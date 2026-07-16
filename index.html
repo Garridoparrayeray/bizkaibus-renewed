@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BizkaiBus+ | Para el amor de mi vida</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <main class="app-container">
+
+        <header>
+            <button id="home-link" type="button">
+                <hgroup>
+                    <h1>BizkaiBus+</h1>
+                    <p>Para el amor de mi vida</p>
+                </hgroup>
+            </button>
+            <span class="header-actions">
+                <button id="favorites-open" class="btn-icon" type="button" aria-label="Abrir favoritos">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
+                </button>
+                <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+                </button>
+            </span>
+        </header>
+
+        <form id="search-form" autocomplete="off">
+            <input id="search-input" type="text" placeholder="Buscar parada, línea o destino..." minlength="2">
+            <button type="submit" aria-label="Buscar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <ul id="search-results" hidden></ul>
+        </form>
+
+        <div class="content-grid">
+            <div class="live-column">
+                <div id="favorites-panel" class="glass">
+                    <header>
+                        <h2>Tus favoritos</h2>
+                        <button id="favorites-close" class="btn-icon" type="button" aria-label="Cerrar favoritos">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                        </button>
+                    </header>
+                    <ul id="favorites-list">
+                        <li id="favorites-empty">Busca una parada o línea y guárdala para verla aquí.</li>
+                    </ul>
+                </div>
+
+                <article id="live-card" class="live-card glass" hidden>
+                    <header>
+                        <span id="live-badge" class="badge">Programado</span>
+                        <span class="header-actions">
+                            <button id="live-favorite" class="btn-icon" type="button" aria-label="Guardar parada en favoritos"></button>
+                            <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                            </button>
+                        </span>
+                    </header>
+                    <h3 id="live-line"></h3>
+                    <p id="live-headsign"></p>
+                    <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del autobús">
+                        <strong id="live-minutes">–</strong><span>min</span>
+                    </button>
+                    <footer>
+                        <p><span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span></p>
+                    </footer>
+                </article>
+                <p id="live-empty">Busca una parada para ver el próximo autobús.</p>
+            </div>
+
+        <section id="timetable-section" class="timetable glass" hidden>
+            <header>
+                <h2>Consultar Horarios</h2>
+                <span class="header-actions">
+                    <button id="timetable-favorite" class="btn-icon" type="button" aria-label="Guardar línea en favoritos"></button>
+                    <button id="timetable-close" class="btn-icon" type="button" aria-label="Cerrar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                    </button>
+                </span>
+            </header>
+            <p id="timetable-line"></p>
+
+            <div id="line-map"></div>
+            <p id="line-map-empty">No hay autobuses de esta línea circulando ahora mismo.</p>
+
+            <div class="filters">
+                <input id="filter-date" type="date">
+                <input id="filter-hour-from" type="time" value="06:00">
+                <input id="filter-hour-to" type="time" value="23:59">
+            </div>
+
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Salida</th>
+                            <th>Destino</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetable-body"></tbody>
+                </table>
+            </div>
+            <p id="timetable-empty" hidden>No hay salidas programadas en ese rango.</p>
+
+            <button id="schedule-text-toggle" type="button">Ver horario oficial 2026</button>
+        </section>
+        </div>
+
+        <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
+    </main>
+
+    <dialog id="schedule-modal">
+        <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <h3 id="schedule-modal-line"></h3>
+        <div id="schedule-modal-content"></div>
+    </dialog>
+
+    <dialog id="vehicle-modal">
+        <button id="modal-close" class="btn-icon" type="button" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <span id="modal-badge" class="badge"></span>
+        <h3 id="modal-line"></h3>
+        <p id="modal-headsign"></p>
+        <p id="modal-vehicle"></p>
+        <ul id="modal-alerts"></ul>
+        <ol id="modal-stops"></ol>
+    </dialog>
+
+    <dialog id="side-menu">
+        <button id="menu-close" class="btn-icon" type="button" aria-label="Cerrar menú">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <h3>Incidencias de mis líneas</h3>
+        <p id="menu-alerts-empty">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
+        <ul id="menu-alerts-list"></ul>
+    </dialog>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
