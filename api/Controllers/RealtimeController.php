@@ -105,22 +105,35 @@ class RealtimeController
 
         $config = require __DIR__ . '/../Config/config.php';
         $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
-        $live = (new RealtimeMatcher($vmMap))->lookup($lineId, $tripNumber, $firstDepartureSeconds);
+        $matcher = new RealtimeMatcher($vmMap, $journeyModel);
+        $live = $matcher->lookup($lineId, $tripNumber, $firstDepartureSeconds);
 
         $stops = $journeyModel->stopsForJourney($journey['id']);
-        $delaySeconds = $live['delaySeconds'] ?? 0;
         $now = Calendar::nowSecondsSinceMidnight();
 
-        $stopsOut = array_map(function ($stop) use ($delaySeconds, $live, $now) {
-            $eta = (int)$stop['arrival_seconds'] + $delaySeconds;
+        $stopsOut = array_map(function ($stop) use ($matcher, $journey, $live, $now) {
+            // Stops the bus has already confirmed passing get no forward ETA at all —
+            // their scheduled time already fell before the live-reported position, so
+            // "now minus a past time" is meaningless (and can wrap oddly across midnight).
+            $alreadyPassed = $live !== null && $live['order'] !== null && (int)$stop['seq_order'] < (int)$live['order'];
+
+            $etaMinutes = null;
+            if (!$alreadyPassed) {
+                [$eta] = $matcher->etaForStop($journey['id'], (int)$stop['arrival_seconds'], $live);
+                $etaMinutes = (int)round(($eta - $now) / 60);
+            }
+
             return [
                 'stopId' => (int)$stop['stop_id'],
                 'name' => $stop['name'],
                 'scheduledTime' => Calendar::secondsToHm((int)$stop['arrival_seconds']),
-                'etaMinutes' => (int)round(($eta - $now) / 60),
+                'etaMinutes' => $etaMinutes,
+                'isPast' => $alreadyPassed,
                 'isCurrent' => $live !== null && $live['currentStopId'] === (int)$stop['stop_id'],
             ];
         }, $stops);
+
+        $delaySeconds = $live['delaySeconds'] ?? 0;
 
         $alertsByLine = (new SiriAlertsClient($config))->alertsByLine();
 

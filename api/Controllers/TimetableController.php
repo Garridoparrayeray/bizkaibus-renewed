@@ -35,12 +35,13 @@ class TimetableController
         $hourFrom = $this->hmToSeconds($request->query('hourFrom', '00:00'));
         $hourTo = $this->hmToSeconds($request->query('hourTo', '23:59'));
 
-        $rows = (new ServiceJourney($pdo))->timetableForLine($lineId, $date, $hourFrom, $hourTo);
+        $journeyModel = new ServiceJourney($pdo);
+        $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo);
 
         $isToday = $date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($isToday) {
             $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
-            $rows = (new RealtimeMatcher($vmMap))->enrich(array_map(
+            $rows = (new RealtimeMatcher($vmMap, $journeyModel))->enrich(array_map(
                 fn($r) => $r + ['arrival_seconds' => $r['departure_seconds']],
                 $rows
             ));

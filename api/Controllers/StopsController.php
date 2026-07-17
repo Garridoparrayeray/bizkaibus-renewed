@@ -39,13 +39,14 @@ class StopsController
         }
 
         $limit = $request->queryInt('limit', 8);
-        $rows = (new ServiceJourney($pdo))->upcomingAtStop($stopId, $limit);
+        $journeyModel = new ServiceJourney($pdo);
+        $rows = $journeyModel->upcomingAtStop($stopId, $limit);
 
         $config = require __DIR__ . '/../Config/config.php';
         $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
         $alertsByLine = (new SiriAlertsClient($config))->alertsByLine();
 
-        $matcher = new RealtimeMatcher($vmMap);
+        $matcher = new RealtimeMatcher($vmMap, $journeyModel);
         $enriched = $matcher->enrich($rows);
 
         $now = Calendar::nowSecondsSinceMidnight();

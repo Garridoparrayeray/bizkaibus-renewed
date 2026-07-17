@@ -108,9 +108,9 @@ header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin:
 }
 #search-form > button svg { width: 20px; height: 20px; }
 #search-results {
-    position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% + 8px);
+    position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 8px);
     margin: 0; padding: 10px; list-style: none;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.97);
     backdrop-filter: blur(20px);
     border-radius: 20px; box-shadow: var(--shadow-soft);
     max-height: 260px; overflow-y: auto;
@@ -140,8 +140,10 @@ header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin:
 #favorites-list {
     display: flex; flex-direction: column; gap: 10px;
     margin: 0; padding: 0; list-style: none;
+    overflow-x: hidden;
 }
-#favorites-list .pill { width: 100%; box-sizing: border-box; }
+#favorites-list .pill { width: 100%; box-sizing: border-box; white-space: normal; align-items: flex-start; overflow-wrap: break-word; }
+#favorites-list .pill span { min-width: 0; }
 #favorites-empty {
     color: #886; opacity: 0.7; font-size: 0.9rem; font-weight: 600;
     padding: 12px 4px; white-space: normal;
@@ -269,6 +271,12 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
 
     .content-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
     .live-column { display: flex; flex-direction: column; }
+
+    /* El buscador no debe estirarse a los 1100px del contenedor — si no, su
+       desplegable de resultados tapa el panel de favoritos (que en escritorio
+       está siempre visible, no oculto como en móvil). Lo alineamos con el
+       ancho de la columna izquierda. */
+    #search-form { max-width: 380px; }
 
     #favorites-panel {
         position: static; transform: none; width: auto; max-width: none;
