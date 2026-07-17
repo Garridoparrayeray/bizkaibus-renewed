@@ -16,10 +16,19 @@ class Request
     {
         $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-        $uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $path = parse_url($uri, PHP_URL_PATH) ?: '/';
-        // Requests arrive as /api/... (Vercel rewrite) or /... (local php -S router).
-        $path = preg_replace('#^/api#', '', $path);
+        // Este método es robusto para diferentes entornos (Apache, Vercel, local).
+        // Primero, busca un parámetro 'path' que el servidor web nos pasa (vía .htaccess).
+        if (isset($_GET['path'])) {
+            $path = $_GET['path'];
+            // El parámetro 'path' es solo para el enrutamiento, lo eliminamos para
+            // que no interfiera con los parámetros reales de la consulta (ej. ?q=...).
+            unset($_GET['path']);
+        } else {
+            // Si no hay parámetro 'path', usamos el método para el servidor de desarrollo local.
+            $uri = $_SERVER['REQUEST_URI'] ?? '/';
+            $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+            $path = preg_replace('#^/api#', '', $path);
+        }
         $this->path = '/' . ltrim($path, '/');
 
         $this->query = $_GET;
