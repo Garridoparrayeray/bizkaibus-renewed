@@ -1,0 +1,22 @@
+# Activa el motor de reescritura de URLs de Apache
+RewriteEngine On
+
+# Establece la base para las rutas relativas en las reglas de reescritura.
+# Es una buena práctica, especialmente en hostings compartidos.
+RewriteBase /
+
+# No reescribas las peticiones a ficheros o directorios que ya existen.
+# Esto es importante para que se puedan cargar directamente ficheros como
+# style.css, js/app.js, etc.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Reescribe todas las peticiones que empiecen por /api/ al punto de entrada
+# de la API (api/index.php), pasando la ruta original como un parámetro 'path'.
+# Ejemplo: /api/lines/123 -> /api/index.php?path=lines/123
+RewriteRule ^api/(.*)$ api/index.php?path=$1 [QSA,L]
+
+# Para cualquier otra petición que no sea un fichero existente, sirve el
+# fichero principal del frontend (index.html). Esto es para el router del lado cliente.
+RewriteRule ^.*$ index.html [L]

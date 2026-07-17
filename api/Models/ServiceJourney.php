@@ -58,8 +58,8 @@ class ServiceJourney
         $weekdayBit = Calendar::weekdayBitFor($date);
 
         $stmt = $this->pdo->prepare('
-            SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, jp.headsign, jp.id AS journey_pattern_id,
-                   pt.departure_seconds
+            SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.id AS service_journey_id,
+                   jp.headsign, jp.id AS journey_pattern_id, pt.departure_seconds
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
             JOIN service_calendars sc ON sc.id = sj.calendar_id
@@ -95,6 +95,22 @@ class ServiceJourney
         $stmt->execute([$lineId, $tripNumber, $firstDepartureSeconds]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    /**
+     * Scheduled arrival at a specific position (seq_order) within a journey —
+     * lets RealtimeMatcher compute "remaining scheduled time from the bus's
+     * last confirmed stop" instead of just "original time + flat delay".
+     */
+    public function arrivalSecondsAtOrder(string $serviceJourneyId, int $seqOrder): ?int
+    {
+        $stmt = $this->pdo->prepare('
+            SELECT arrival_seconds FROM passing_times
+            WHERE service_journey_id = ? AND seq_order = ?
+        ');
+        $stmt->execute([$serviceJourneyId, $seqOrder]);
+        $value = $stmt->fetchColumn();
+        return $value === false ? null : (int)$value;
     }
 
     /** @return array<int, array{seq_order:int, stop_id:int, name:string, arrival_seconds:int, departure_seconds:int}> */
