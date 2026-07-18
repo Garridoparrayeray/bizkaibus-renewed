@@ -1,0 +1,294 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #dadce0;
+    --primary: #1967D2;
+    --primary-dark: #144DA8;
+    --primary-tint: #E8F0FE;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+    --status-ok: #188038;
+    --status-warn: #D93025;
+    --status-muted: #80868B;
+}
+
+[hidden] { display: none !important; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    background-attachment: fixed;
+    margin: 0;
+    padding: 20px;
+    color: var(--text);
+}
+
+.app-container { max-width: 450px; margin: 0 auto; position: relative; }
+
+/* Tarjetas: superficie sólida, borde fino, sombra ligera — sin blur. */
+.glass {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: var(--shadow-soft);
+}
+
+/* Botones e insignias reutilizables */
+.badge {
+    background: var(--primary); color: white; padding: 4px 12px;
+    border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.btn-icon {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary);
+    width: 40px; height: 40px; border-radius: 50%; padding: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-icon svg { width: 18px; height: 18px; }
+.btn-icon.is-favorite { color: var(--primary); border-color: var(--primary); }
+
+.pill {
+    border: 1px solid var(--border); padding: 12px 20px; border-radius: 10px;
+    font-weight: 600; color: var(--text); cursor: pointer;
+    background: var(--surface);
+    box-shadow: none;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 8px;
+}
+.pill:hover { background: var(--primary-tint); border-color: var(--primary); }
+.pill svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--primary); }
+.pill small { display: block; font-weight: 500; opacity: 0.8; color: var(--text-secondary); font-size: 0.75em; white-space: normal; }
+
+.status-dot {
+    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--status-muted); margin-right: 6px;
+}
+.status-dot.status-ok { background: var(--status-ok); }
+.status-dot.status-warn { background: var(--status-warn); }
+
+.status-ok { color: var(--status-ok); font-weight: 700; }
+.status-warn { color: var(--status-warn); font-weight: 700; }
+.status-muted { color: var(--status-muted); font-weight: 700; }
+
+/* Header */
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+#home-link {
+    border: none; background: none; padding: 0; margin: 0;
+    display: block; text-align: left; cursor: pointer; font-family: inherit;
+}
+h1 {
+    font-size: 2.1rem; font-weight: 800; margin: 0;
+    color: var(--primary);
+}
+header p { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin: 0; }
+
+/* Buscador */
+#search-form { position: relative; margin-bottom: 20px; }
+#search-input {
+    width: 100%; box-sizing: border-box;
+    padding: 16px 50px 16px 18px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 1rem; font-family: inherit; color: var(--text);
+    box-shadow: var(--shadow-soft);
+}
+#search-input:focus { outline: none; border-color: var(--primary); }
+#search-form > button {
+    position: absolute; right: 6px; top: 6px; bottom: 6px; width: 44px;
+    border: none; background: transparent; cursor: pointer;
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+}
+#search-form > button svg { width: 20px; height: 20px; }
+#search-results {
+    position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 8px);
+    margin: 0; padding: 10px; list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow-soft);
+    max-height: 260px; overflow-y: auto;
+}
+#search-results li { margin-bottom: 8px; }
+#search-results li:last-child { margin-bottom: 0; }
+#search-results .pill { width: 100%; box-sizing: border-box; text-align: left; border: none; }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Contenido principal: una columna (móvil/tablet) o dos (escritorio, ver media query al final) */
+.live-column { min-width: 0; }
+
+/* Favoritos: panel que se abre con el icono de la cabecera en móvil/tablet;
+   permanente en su propia esquina a partir del breakpoint de escritorio. */
+#favorites-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; left: auto;
+    width: 82vw; max-width: 320px; margin: 0;
+    border-radius: 12px 0 0 12px;
+    transform: translateX(100%);
+    transition: transform 0.25s ease;
+    z-index: 20; overflow-y: auto;
+}
+#favorites-panel.open { transform: translateX(0); }
+#favorites-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+#favorites-panel h2 { font-size: 1.1rem; margin: 0; color: var(--text); font-weight: 700; }
+#favorites-list {
+    display: flex; flex-direction: column; gap: 10px;
+    margin: 0; padding: 0; list-style: none;
+    overflow-x: hidden;
+}
+#favorites-list .pill { width: 100%; box-sizing: border-box; white-space: normal; align-items: flex-start; overflow-wrap: break-word; }
+#favorites-list .pill span { min-width: 0; }
+#favorites-empty {
+    color: var(--text-secondary); opacity: 1; font-size: 0.9rem; font-weight: 500;
+    padding: 12px 4px; white-space: normal;
+}
+
+/* Tarjeta Live */
+.live-card { padding: 28px; position: relative; }
+.live-card header { margin-bottom: 1rem; }
+#live-headsign { color: var(--text-secondary); font-weight: 500; margin: 0 0 10px; }
+.time-display {
+    display: block; border: none; background: none; padding: 0; margin: 0;
+    text-align: left; cursor: pointer; font-family: inherit;
+}
+.time-display:disabled { cursor: default; }
+.time-display strong { font-size: 4.5rem; color: var(--primary); letter-spacing: -2px; font-weight: 800; }
+.time-display span { font-size: 1.4rem; font-weight: 600; color: var(--text-secondary); }
+.live-card footer { margin-top: 10px; }
+.live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); }
+
+#live-more-list { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--border); }
+#live-more-list li { margin-bottom: 6px; }
+#live-more-list li:last-child { margin-bottom: 0; }
+#live-more-list button {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border: 1px solid transparent; border-radius: 8px;
+    padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
+}
+#live-more-list button:hover { border-color: var(--border); }
+#live-more-list strong { color: var(--primary); font-size: 0.85rem; }
+#live-more-list span:nth-child(2) { flex: 1; color: var(--text-secondary); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#live-more-list span:last-child { color: var(--text); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+#live-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; margin: 0 0 20px; }
+
+/* Tabla horaria */
+.timetable { padding: 25px; }
+.timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; }
+.timetable h2 { font-size: 1.15rem; margin: 0; font-weight: 700; }
+#timetable-line { color: var(--text-secondary); font-weight: 600; margin: 4px 0 20px; }
+
+#line-map {
+    height: 220px; border-radius: 10px; margin-bottom: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+}
+#line-map-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; font-size: 0.85rem; margin: 0 0 20px; }
+.bus-marker {
+    background: var(--primary); color: white; border-radius: 50%;
+    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); border: 2px solid white;
+}
+.bus-marker svg { width: 15px; height: 15px; }
+.leaflet-popup-content-wrapper { border-radius: 8px; }
+
+.filters { display: flex; gap: 10px; margin-bottom: 20px; }
+.filters input {
+    flex: 1; min-width: 0; padding: 11px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); font-weight: 500; font-family: inherit; color: var(--text);
+}
+
+.table-scroll { overflow-x: auto; margin: 0 -25px; padding: 0 25px; }
+table { width: 100%; min-width: 320px; table-layout: fixed; border-collapse: collapse; }
+th { color: var(--text-secondary); text-align: left; padding: 0 10px 8px; font-size: 0.8rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+th:first-child, td:first-child { width: 22%; }
+th:last-child, td:last-child { width: 32%; }
+td { padding: 14px 10px; background: none; overflow-wrap: break-word; border-bottom: 1px solid var(--border); }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: var(--primary-tint); }
+tbody tr:last-child td { border-bottom: none; }
+
+#timetable-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; }
+
+#schedule-text-toggle {
+    display: block; width: 100%; margin-top: 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 12px; border-radius: 8px; font-weight: 600; color: var(--primary);
+    cursor: pointer; font-family: inherit;
+}
+#schedule-text-toggle:disabled { opacity: 0.6; cursor: default; }
+
+/* Atribución */
+#attribution { text-align: center; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.9; margin: 10px 0 30px; }
+
+/* Modales (detalle de bus / horario oficial) */
+dialog#vehicle-modal, dialog#schedule-modal {
+    border: 1px solid var(--border); border-radius: 12px; padding: 30px;
+    max-width: 380px; width: 90vw; max-height: 80vh; overflow-y: auto;
+    background: var(--surface);
+    box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit;
+}
+dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rgba(32, 33, 36, 0.5); }
+#modal-close, #schedule-modal-close { position: absolute; top: 20px; right: 20px; }
+#modal-line, #schedule-modal-line { margin: 10px 0 16px; color: var(--text); font-size: 1.25rem; font-weight: 700; }
+#modal-headsign { margin: 4px 0 16px; font-weight: 500; color: var(--text-secondary); }
+#modal-vehicle { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
+
+#modal-alerts { list-style: none; margin: 0 0 16px; padding: 0; }
+#modal-alerts li {
+    background: #FCE8E6; color: var(--status-warn);
+    font-size: 0.8rem; font-weight: 600; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+}
+
+#modal-stops { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--border); }
+#modal-stops li { padding: 8px 0 8px 16px; font-size: 0.85rem; color: var(--text-secondary); }
+#modal-stops li.stop-current { color: var(--primary); font-weight: 700; }
+
+/* Menú lateral (incidencias de favoritos) */
+dialog#side-menu {
+    position: fixed; top: 0; right: 0; margin: 0; left: auto; bottom: 0;
+    height: 100%; max-height: 100vh; width: 82vw; max-width: 340px;
+    border: none; border-left: 1px solid var(--border); border-radius: 0; padding: 30px 24px;
+    background: var(--surface);
+    box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit; overflow-y: auto;
+}
+dialog#side-menu::backdrop { background: rgba(32, 33, 36, 0.5); }
+#menu-close { position: absolute; top: 20px; right: 20px; }
+dialog#side-menu h3 { margin: 10px 0 16px; color: var(--text); font-size: 1.05rem; font-weight: 700; padding-right: 40px; }
+#menu-alerts-empty { color: var(--text-secondary); opacity: 1; font-size: 0.85rem; }
+#menu-alerts-list { list-style: none; margin: 0; padding: 0; }
+#menu-alerts-list li {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+}
+#menu-alerts-list .alert-line { display: block; color: var(--primary); font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
+#menu-alerts-list .alert-summary { display: block; color: var(--status-warn); font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; }
+#menu-alerts-list .alert-description { display: block; color: var(--text-secondary); font-size: 0.78rem; line-height: 1.4; white-space: pre-line; }
+
+/* Horario oficial (texto) */
+.schedule-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; }
+.schedule-block h4 { margin: 0; color: var(--primary); font-size: 1rem; font-weight: 700; }
+.schedule-block .schedule-dates { margin: 2px 0 12px; font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
+.schedule-block h5 { margin: 0 0 4px; font-size: 0.8rem; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
+.schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: var(--text); line-height: 1.5; white-space: pre-line; }
+.schedule-block p:last-child { margin-bottom: 0; }
+
+/* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
+   en vez de todo apilado. Por debajo de este ancho es exactamente el layout de móvil/tablet de arriba. */
+@media (min-width: 960px) {
+    .app-container { max-width: 1100px; }
+
+    .content-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    .live-column { display: flex; flex-direction: column; }
+
+    #search-form { max-width: 380px; }
+
+    #favorites-panel {
+        position: static; transform: none; width: auto; max-width: none;
+        border-radius: 12px; margin: 0 0 20px; max-height: 260px;
+    }
+    #favorites-close { display: none; }
+}

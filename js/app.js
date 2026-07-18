@@ -53,6 +53,7 @@
         liveMinutes: document.getElementById('live-minutes'),
         liveStatusDot: document.getElementById('live-status-dot'),
         liveStatusText: document.getElementById('live-status-text'),
+        liveMoreList: document.getElementById('live-more-list'),
         timetableSection: document.getElementById('timetable-section'),
         timetableFavorite: document.getElementById('timetable-favorite'),
         timetableClose: document.getElementById('timetable-close'),
@@ -208,19 +209,26 @@
         if (!state.currentStop) return;
         let data;
         try {
-            data = await Api.stopDepartures(state.currentStop.id, 5);
+            data = await Api.stopDepartures(state.currentStop.id, 8);
         } catch (e) {
-            renderLiveCard(null);
+            renderLiveCard([]);
             return;
         }
-        renderLiveCard(data.departures[0] || null);
+        renderLiveCard(data.departures);
 
         if (data.departures[0]) {
             selectLine(data.departures[0].lineId);
         }
     }
 
-    function renderLiveCard(departure) {
+    // Shows the soonest departure as the big "next bus" display, and any
+    // other upcoming departures — other lines/directions serving this same
+    // stop — as a compact list below it, so a multi-line stop doesn't hide
+    // everything behind whichever line happens to be soonest right now.
+    function renderLiveCard(departures) {
+        const departure = departures[0] || null;
+        el.liveMoreList.innerHTML = '';
+
         if (!departure) {
             el.liveLine.textContent = state.currentStop.name;
             el.liveHeadsign.textContent = 'Sin próximas salidas';
@@ -241,6 +249,16 @@
         el.liveStatusDot.className = `status-dot ${className}`;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
+
+        for (const other of departures.slice(1)) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.innerHTML = `<strong>${other.lineCode}</strong><span>${other.headsign}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
+            button.addEventListener('click', () => openVehicleModal(other.tripKey));
+            li.appendChild(button);
+            el.liveMoreList.appendChild(li);
+        }
     }
 
     // ---- Line / timetable ----
@@ -515,17 +533,22 @@
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
     }
 
-    // ---- Side menu: alerts for favorite lines only ----
+    // ---- Side menu: alerts for favorite lines, plus whichever line is open right now ----
 
     async function openSideMenu() {
         el.sideMenu.showModal();
 
         const favoriteLines = readFavorites().filter((f) => f.type === 'line');
+        const relevantLineIds = new Set(favoriteLines.map((f) => String(f.refId)));
+        if (state.currentLine) {
+            relevantLineIds.add(String(state.currentLine.id));
+        }
+
         el.menuAlertsList.innerHTML = '';
         el.menuAlertsEmpty.hidden = false;
-        el.menuAlertsEmpty.textContent = 'Guarda alguna línea en favoritos para ver aquí sus incidencias activas.';
+        el.menuAlertsEmpty.textContent = 'Guarda una línea en favoritos, o abre una, para ver aquí sus incidencias activas.';
 
-        if (favoriteLines.length === 0) {
+        if (relevantLineIds.size === 0) {
             return;
         }
 
@@ -537,17 +560,16 @@
             return;
         }
 
-        const favoriteLineIds = new Set(favoriteLines.map((f) => String(f.refId)));
-        const matching = allAlerts.filter((alert) => alert.lineRefs.some((ref) => favoriteLineIds.has(String(ref))));
+        const matching = allAlerts.filter((alert) => alert.lineRefs.some((ref) => relevantLineIds.has(String(ref))));
 
         el.menuAlertsEmpty.hidden = matching.length > 0;
         if (matching.length === 0) {
-            el.menuAlertsEmpty.textContent = 'Ninguna de tus líneas favoritas tiene incidencias activas ahora mismo.';
+            el.menuAlertsEmpty.textContent = 'Ninguna de esas líneas tiene incidencias activas ahora mismo.';
             return;
         }
 
         const lineLabels = {};
-        for (const lineId of favoriteLineIds) {
+        for (const lineId of relevantLineIds) {
             try {
                 const line = await Api.line(lineId);
                 lineLabels[lineId] = line.code;
@@ -557,7 +579,7 @@
         }
 
         for (const alert of matching) {
-            const affectedLabels = alert.lineRefs.filter((ref) => favoriteLineIds.has(String(ref))).map((ref) => lineLabels[ref] || ref);
+            const affectedLabels = alert.lineRefs.filter((ref) => relevantLineIds.has(String(ref))).map((ref) => lineLabels[ref] || ref);
             const li = document.createElement('li');
 
             const lineSpan = document.createElement('span');

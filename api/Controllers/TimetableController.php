@@ -59,11 +59,15 @@ class TimetableController
             ];
         }, $rows);
 
+        $publishedStmt = $pdo->prepare('SELECT value FROM meta WHERE key = ?');
+        $publishedStmt->execute(['schedule_source_published']);
+        $published = $publishedStmt->fetchColumn() ?: $config['schedule_source_published'];
+
         Response::json([
             'line' => ['id' => $line['id'], 'code' => $line['code'], 'name' => $line['name']],
             'date' => $date->format('Y-m-d'),
             'entries' => $entries,
-            'scheduleSourcePublished' => $config['schedule_source_published'],
+            'scheduleSourcePublished' => $published,
         ]);
     }
 

@@ -1,16 +1,20 @@
 <?php
 /**
- * Builds data/bizkaibus.sqlite from the official NeTEx export (bizkaibus.zip).
+ * Builds data/bizkaibus.sqlite from the official GTFS export (bizkaibus.zip).
  *
  * Usage:
  *   php scripts/build-database.php [--source=<path-or-url>] [--output=<path>]
  *
- * Default source is the live canonical zip published by Open Data Bizkaia.
- * The static export's own operating-period calendars are known to be stale
- * (see README) — this script derives a "which weekdays does this calendar
- * run on" mask empirically from each calendar's own bit pattern, rather than
- * trusting its FromDate/ToDate validity window, so the app can still show a
- * plausible recurring weekly schedule.
+ * Default source is the actively-maintained GTFS feed published by Lantik/CTB —
+ * unlike the NeTEx export this app used to read (frozen since Jan 2025), this
+ * one tracks whatever season is currently live (confirmed via feed_info.txt's
+ * feed_start_date/feed_end_date), so re-running this script periodically keeps
+ * the app's schedule current.
+ *
+ * The feed's own weekday-range fields (calendar.txt) are vestigial/always-zero
+ * — like the old NeTEx export, the *real* calendar is the explicit per-date
+ * entries in calendar_dates.txt, generalized here into a recurring weekly
+ * "which weekdays does this run on" mask (see computeWeekdayMask()).
  */
 
 declare(strict_types=1);
@@ -19,8 +23,7 @@ ini_set('memory_limit', '1024M');
 set_time_limit(0);
 date_default_timezone_set('Europe/Madrid');
 
-const DEFAULT_SOURCE = 'https://ctb-netex.s3.eu-south-2.amazonaws.com/bizkaibus.zip';
-const NETEX_NS = 'http://www.netex.org.uk/netex';
+const DEFAULT_SOURCE = 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip';
 const GEOCACHE_PATH = __DIR__ . '/geocache.json';
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 
@@ -31,9 +34,9 @@ function main(array $argv): void
     $output = $options['output'] ?? __DIR__ . '/../data/bizkaibus.sqlite';
     $skipGeocode = isset($options['skip-geocode']);
 
-    echo "== BizkaiBus+ database build ==\n";
+    echo "== BizkaiBus+ database build (GTFS) ==\n";
     $zipPath = resolveZipPath($source);
-    echo "Reading NeTEx export from: $source\n";
+    echo "Reading GTFS export from: $source\n";
 
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) {
@@ -41,26 +44,29 @@ function main(array $argv): void
         exit(1);
     }
 
-    echo "Parsing stops.xml...\n";
+    echo "Parsing routes.txt...\n";
+    $routes = loadRoutes($zip);
+    echo '  ' . count($routes) . " routes\n";
+
+    echo "Parsing stops.txt...\n";
     $stops = loadStops($zip);
     echo '  ' . count($stops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
     $stops = geocodeStops($stops, $skipGeocode);
 
-    echo "Parsing common.xml...\n";
+    echo "Parsing calendar.txt / calendar_dates.txt...\n";
     $calendars = loadCalendars($zip);
     echo '  ' . count($calendars) . " service calendars\n";
 
-    $lineFiles = [];
-    for ($i = 0; $i < $zip->numFiles; $i++) {
-        $name = $zip->getNameIndex($i);
-        if (preg_match('/^line-\d+\.xml$/', $name)) {
-            $lineFiles[] = $name;
-        }
+    echo "Parsing trips.txt...\n";
+    $trips = loadTrips($zip);
+    echo '  ' . count($trips) . " trips\n";
+
+    $feedInfo = loadFeedInfo($zip);
+    if (isset($feedInfo['feed_version'])) {
+        echo "  feed_version: {$feedInfo['feed_version']} (start: {$feedInfo['feed_start_date']}, end: {$feedInfo['feed_end_date']})\n";
     }
-    sort($lineFiles);
-    echo 'Found ' . count($lineFiles) . " line files\n";
 
     if (file_exists($output)) {
         unlink($output);
@@ -76,22 +82,16 @@ function main(array $argv): void
 
     insertStops($pdo, $stops);
     insertCalendars($pdo, $calendars);
+    insertMeta($pdo, $feedInfo);
 
-    $lineTotals = ['lines' => 0, 'patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
-    foreach ($lineFiles as $index => $fileName) {
-        $xmlString = $zip->getFromName($fileName);
-        if ($xmlString === false) {
-            fwrite(STDERR, "  WARNING: could not read $fileName, skipping\n");
-            continue;
-        }
-        try {
-            processLineFile($pdo, $xmlString, $stops, $calendars, $lineTotals);
-        } catch (Throwable $e) {
-            fwrite(STDERR, "  WARNING: failed to process $fileName: {$e->getMessage()}\n");
-        }
-        printf("  [%d/%d] %s\r", $index + 1, count($lineFiles), $fileName);
+    $insertLine = $pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+    foreach ($routes as $routeId => $route) {
+        $insertLine->execute([$routeId, $route['code'], $route['name'], normalize($route['name'])]);
     }
-    echo "\n";
+
+    echo "Processing stop_times.txt (the big one, ~1.1M rows — two bounded-memory passes)...\n";
+    $totals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
+    processStopTimes($pdo, $zip, $trips, $routes, $calendars, $totals);
 
     $pdo->commit();
 
@@ -103,15 +103,10 @@ function main(array $argv): void
     echo "\n== Summary ==\n";
     $geocodedCount = $pdo->query("SELECT COUNT(*) FROM stops WHERE area != ''")->fetchColumn();
     printf("  stops geocoded (municipality/suburb/neighbourhood): %d / %d\n", $geocodedCount, count($stops));
-    printf("  lines:          %d\n", $lineTotals['lines']);
-    printf("  patterns:       %d\n", $lineTotals['patterns']);
-    printf("  service_journeys: %d\n", $lineTotals['journeys']);
-    printf("  passing_times:  %d\n", $lineTotals['passingTimes']);
-
-    $calRange = $pdo->query('SELECT MIN(from_date), MAX(to_date) FROM service_calendars')->fetch(PDO::FETCH_NUM);
-    printf("  calendar validity window in source export: %s .. %s\n", $calRange[0], $calRange[1]);
-    echo "  (today's schedule is derived from each calendar's explicit active-date entries,\n";
-    echo "   generalized to a recurring weekday pattern — not from this window. See README.)\n";
+    printf("  lines:            %d\n", count($routes));
+    printf("  patterns:         %d\n", $totals['patterns']);
+    printf("  service_journeys: %d\n", $totals['journeys']);
+    printf("  passing_times:    %d\n", $totals['passingTimes']);
 
     echo "\nDatabase written to: $output\n";
     printf("File size: %.1f MB\n", filesize($output) / 1024 / 1024);
@@ -131,21 +126,13 @@ function parseArgs(array $argv): array
 }
 
 /**
- * The NeTEx export has NO municipality/locality field at all (verified: zero
- * Locality/TopographicPlace/Municipality/PostalAddress tags anywhere in
- * stops.xml) — only a street-level Name and coordinates. That means searching
- * "Getxo" finds nothing even though dozens of stops are physically there,
- * because none of them happen to have "Getxo" in their own street name.
- *
- * Fixed by reverse-geocoding via OpenStreetMap/Nominatim, which resolves a
- * coordinate down to neighbourhood/suburb/town (e.g. "Erromo, Areeta / Las
- * Arenas, Getxo" — confirmed against a real stop coordinate). Reverse-geocoding
- * all 2263 stops individually would be slow and wasteful; stops cluster
- * tightly, so we round to 2 decimal places (~1.1km) first — that collapses
- * 2263 stops to ~650 unique lookups. Results are cached in geocache.json
- * (committed — it's derived from a real external source, not a secret, and
- * re-fetching costs ~12 minutes against Nominatim's 1 req/s policy) so this
- * only actually hits the network for coordinates never seen before.
+ * The GTFS export has NO municipality/locality field either (stop_desc is
+ * empty on every row) — only a street-level name and coordinates. Reverse-
+ * geocoding via OpenStreetMap/Nominatim resolves that gap. Stops cluster
+ * tightly, so we round to 2 decimal places (~1.1km) first to collapse ~2300
+ * stops down to a few hundred unique lookups, cached in geocache.json —
+ * reused across rebuilds, so this only hits the network for coordinates
+ * never seen before (a handful of genuinely new/moved stops per rebuild).
  *
  * @return array<int, array{name:string, lat:float, lon:float, area:string}>
  */
@@ -225,7 +212,7 @@ function reverseGeocode(float $lat, float $lon): string
 function resolveZipPath(string $source): string
 {
     if (preg_match('#^https?://#i', $source)) {
-        $tmp = tempnam(sys_get_temp_dir(), 'bbnetex') . '.zip';
+        $tmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
         $ch = curl_init($source);
         $fp = fopen($tmp, 'wb');
         curl_setopt_array($ch, [
@@ -270,59 +257,106 @@ function normalize(string $text): string
     return trim(preg_replace('/\s+/', ' ', $lower));
 }
 
-/** @return array<int, array{name:string, lat:float, lon:float}> */
+/** Streams a GTFS CSV member of the zip, yielding one assoc array (keyed by header) per row. */
+function readCsv(ZipArchive $zip, string $name): Generator
+{
+    $stream = $zip->getStream($name);
+    if ($stream === false) {
+        throw new RuntimeException("Could not open $name from zip");
+    }
+    $header = fgetcsv($stream, 0, ',', '"', '\\');
+    while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
+        if ($row === null || $row === [null]) {
+            continue; // blank trailing line
+        }
+        if (count($row) !== count($header)) {
+            continue; // malformed row, skip defensively
+        }
+        yield array_combine($header, $row);
+    }
+    fclose($stream);
+}
+
+function gtfsDateToIso(string $ymd): string
+{
+    return substr($ymd, 0, 4) . '-' . substr($ymd, 4, 2) . '-' . substr($ymd, 6, 2);
+}
+
+/** @return array<int, array{code:string, name:string}> */
+function loadRoutes(ZipArchive $zip): array
+{
+    $routes = [];
+    foreach (readCsv($zip, 'routes.txt') as $row) {
+        if (($row['agency_id'] ?? '') !== '200') {
+            fwrite(STDERR, "  WARNING: skipping route {$row['route_id']} with unexpected agency_id \"{$row['agency_id']}\"\n");
+            continue;
+        }
+        $routeId = (int)$row['route_id'];
+        $routes[$routeId] = [
+            'code' => $row['route_short_name'],
+            'name' => $row['route_long_name'],
+        ];
+    }
+    return $routes;
+}
+
+/**
+ * GTFS stop_name has a mechanical " (<stop_id>)" suffix on every row (e.g.
+ * "KANALA (JANTOKIA) (2375)") — stripped here so the app doesn't show a
+ * redundant trailing id. If a future feed revision ever omits it, we keep
+ * the raw name (with the suffix) rather than crash — logged so it's noticed.
+ *
+ * @return array<int, array{name:string, lat:float, lon:float}>
+ */
 function loadStops(ZipArchive $zip): array
 {
-    $xml = simplexml_load_string($zip->getFromName('stops.xml'));
     $stops = [];
-    foreach ($xml->dataObjects->SiteFrame->stopPlaces->StopPlace as $sp) {
-        $id = (int)$sp['id'];
-        $name = (string)$sp->Name;
-        $lat = (float)$sp->Centroid->Location->Latitude;
-        $lon = (float)$sp->Centroid->Location->Longitude;
-        $stops[$id] = ['name' => $name, 'lat' => $lat, 'lon' => $lon];
+    foreach (readCsv($zip, 'stops.txt') as $row) {
+        $locationType = $row['location_type'] ?? '';
+        if ($locationType !== '' && $locationType !== '0') {
+            continue; // not a boardable stop (station/entrance/generic node/boarding area)
+        }
+
+        $id = (int)$row['stop_id'];
+        $name = $row['stop_name'];
+        $stripped = preg_replace('/\s*\(' . preg_quote((string)$id, '/') . '\)$/', '', $name);
+        if ($stripped === $name) {
+            fwrite(STDERR, "  WARNING: stop $id name \"$name\" lacked the expected trailing \"($id)\" suffix\n");
+        } else {
+            $name = $stripped;
+        }
+
+        $stops[$id] = [
+            'name' => $name,
+            'lat' => (float)$row['stop_lat'],
+            'lon' => (float)$row['stop_lon'],
+        ];
     }
     return $stops;
 }
 
 /**
- * NeTEx gives two calendar mechanisms here: UicOperatingPeriod.ValidDayBits (a
- * bit-per-day range) and dayTypeAssignments/DayTypeAssignment (explicit
- * per-date isAvailable overrides). In this export the bit strings are always
- * entirely zero (verified: 0 ones across all 30 periods) — the *only* real
- * calendar data is the explicit per-date assignments, so those are what we
- * use to derive each calendar's recurring weekday pattern.
+ * calendar.txt's own weekday columns are always zero here (verified across
+ * every row) — same vestigial-calendar quirk the old NeTEx export had. The
+ * real recurring pattern is derived from calendar_dates.txt's explicit
+ * per-date entries via the unchanged computeWeekdayMask().
  *
  * @return array<string, array{from:string, to:string, weekdayMask:int, activeDateCount:int}>
  */
 function loadCalendars(ZipArchive $zip): array
 {
-    $xml = simplexml_load_string($zip->getFromName('common.xml'));
-    $frame = $xml->dataObjects->CompositeFrame->frames->ServiceCalendarFrame;
-
     $ranges = [];
-    foreach ($frame->operatingPeriods->UicOperatingPeriod as $op) {
-        $id = (string)$op['id'];
-        $fromDt = new DateTime((string)$op->FromDate);
-        $fromDt->setTimezone(new DateTimeZone('Europe/Madrid'));
-        $toDt = new DateTime((string)$op->ToDate);
-        $toDt->setTimezone(new DateTimeZone('Europe/Madrid'));
-        $ranges[$id] = ['from' => $fromDt->format('Y-m-d'), 'to' => $toDt->format('Y-m-d')];
+    foreach (readCsv($zip, 'calendar.txt') as $row) {
+        $ranges[$row['service_id']] = [
+            'from' => gtfsDateToIso($row['start_date']),
+            'to' => gtfsDateToIso($row['end_date']),
+        ];
     }
 
-    // dayTypeId -> [date => bool isAvailable], from explicit DayTypeAssignment entries only
-    // (entries with no <Date> just link a DayType to its — unused — OperatingPeriod bits).
     $activeDates = [];
-    if (isset($frame->dayTypeAssignments->DayTypeAssignment)) {
-        foreach ($frame->dayTypeAssignments->DayTypeAssignment as $dta) {
-            if (!isset($dta->Date)) {
-                continue;
-            }
-            $dayTypeId = (string)$dta->DayTypeRef['ref'];
-            $date = substr((string)$dta->Date, 0, 10);
-            $isAvailable = strtolower((string)($dta->isAvailable ?? 'true')) !== 'false';
-            $activeDates[$dayTypeId][$date] = $isAvailable;
-        }
+    foreach (readCsv($zip, 'calendar_dates.txt') as $row) {
+        $date = gtfsDateToIso($row['date']);
+        $activeDates[$row['service_id']][$date] = ((int)$row['exception_type']) === 1;
     }
 
     $calendars = [];
@@ -353,154 +387,234 @@ function computeWeekdayMask(array $dateAvailability): int
     return $mask;
 }
 
-function processLineFile(PDO $pdo, string $xmlString, array $stops, array $calendars, array &$totals): void
+/** @return array<string, array{routeId:int, serviceId:string, headsign:string, tripNumber:?string}> */
+function loadTrips(ZipArchive $zip): array
 {
-    $xml = simplexml_load_string($xmlString);
-    $frames = $xml->dataObjects->CompositeFrame->frames;
-    $serviceFrame = $frames->ServiceFrame ?? null;
-    $timetableFrame = $frames->TimetableFrame ?? null;
-    if (!$serviceFrame || !$timetableFrame) {
-        return;
+    $trips = [];
+    foreach (readCsv($zip, 'trips.txt') as $row) {
+        $tripId = $row['trip_id'];
+        $tripNumber = null;
+        if (preg_match('/^trp_[A-Za-z]*\d+_(\d+)_/', $tripId, $m)) {
+            $tripNumber = $m[1];
+        }
+        $trips[$tripId] = [
+            'routeId' => (int)$row['route_id'],
+            'serviceId' => $row['service_id'],
+            'headsign' => $row['trip_headsign'] ?? '',
+            'tripNumber' => $tripNumber,
+        ];
+    }
+    return $trips;
+}
+
+/**
+ * Streams stop_times.txt (114MB / ~1.15M rows), buffering only the rows for
+ * the trip currently being read (verified: the file is grouped contiguously
+ * by trip_id throughout) and yielding one [tripId, orderedRows] group at a
+ * time. Never holds the full file in memory. Shared by both passes of
+ * processStopTimes() below, so the file is read twice rather than buffered
+ * once in full.
+ *
+ * @return Generator<string, array<int, array{seqOrder:int, stopId:int, arrival:?int, departure:?int}>>
+ */
+function streamStopTimesByTrip(ZipArchive $zip): Generator
+{
+    $stream = $zip->getStream('stop_times.txt');
+    if ($stream === false) {
+        fwrite(STDERR, "Could not open stop_times.txt stream\n");
+        exit(1);
+    }
+    $header = fgetcsv($stream, 0, ',', '"', '\\');
+
+    $currentTripId = null;
+    $buffer = [];
+
+    while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
+        if ($row === null || $row === [null] || count($row) !== count($header)) {
+            continue;
+        }
+        $assoc = array_combine($header, $row);
+        $tripId = $assoc['trip_id'];
+
+        if ($tripId !== $currentTripId) {
+            if ($currentTripId !== null) {
+                yield $currentTripId => $buffer;
+            }
+            $currentTripId = $tripId;
+            $buffer = [];
+        }
+
+        $arrival = $assoc['arrival_time'] !== '' ? timeToSeconds($assoc['arrival_time']) : null;
+        $departure = $assoc['departure_time'] !== '' ? timeToSeconds($assoc['departure_time']) : $arrival;
+        if ($arrival === null) {
+            $arrival = $departure;
+        }
+
+        $buffer[] = [
+            'seqOrder' => (int)$assoc['stop_sequence'],
+            'stopId' => (int)$assoc['stop_id'],
+            'arrival' => $arrival,
+            'departure' => $departure,
+        ];
+    }
+    if ($currentTripId !== null) {
+        yield $currentTripId => $buffer;
+    }
+    fclose($stream);
+}
+
+/**
+ * GTFS gives one trip_id per calendar variant, so the *same* physical
+ * scheduled journey (same line, same trip_number, same stops, same time)
+ * shows up as several near-identical rows — one per day-type it runs on
+ * (e.g. trip_number 921 on line A3526 appears 7 times, once per calendar
+ * variant, all with identical stops/timing). The app already collapses
+ * these at query time (ServiceJourney::dedupeByTrip()), so storing all of
+ * them is pure redundancy: ~4.5x more service_journeys/passing_times rows
+ * than there are actually-distinct journeys, which is what pushed the built
+ * database past Vercel's 100MB deploy limit (164.7MB unmerged).
+ *
+ * Fixed by merging at build time instead of only at query time: group trips
+ * by (route, trip_number, *stop-sequence hash*, first departure) — the hash
+ * is what keeps a genuine detour variant (different stops, e.g. the
+ * Elantxobe summer reroute) in its own group rather than merging it with
+ * the non-detour version of the "same" trip_number — and OR the group's
+ * calendar variants' weekday masks together into one synthetic calendar.
+ * One representative trip per group is what actually gets its passing_times
+ * inserted; the rest only contribute their weekday mask.
+ */
+function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals): void
+{
+    echo "  Pass 1/2: computing trip signatures and merge groups...\n";
+
+    $signatures = [];
+    $seenTripIds = [];
+    $skippedUnknownTrip = 0;
+    $skippedUnknownRoute = 0;
+    $skippedDuplicateTrip = 0;
+
+    foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
+        if (isset($seenTripIds[$tripId])) {
+            $skippedDuplicateTrip++;
+            continue;
+        }
+        $seenTripIds[$tripId] = true;
+
+        $trip = $trips[$tripId] ?? null;
+        if ($trip === null) {
+            $skippedUnknownTrip++;
+            continue;
+        }
+        if (!isset($routes[$trip['routeId']])) {
+            $skippedUnknownRoute++;
+            continue;
+        }
+
+        usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
+        $stopIds = array_column($buffer, 'stopId');
+        $patternKey = 'gp_' . $trip['routeId'] . '_' . substr(md5(implode(',', $stopIds)), 0, 12);
+        $firstDeparture = $buffer[0]['departure'] ?? $buffer[0]['arrival'];
+
+        $signatures[$tripId] = [
+            'routeId' => $trip['routeId'],
+            'tripNumber' => $trip['tripNumber'],
+            'headsign' => $trip['headsign'],
+            'patternKey' => $patternKey,
+            'firstDeparture' => $firstDeparture,
+            'weekdayMask' => $calendars[$trip['serviceId']]['weekdayMask'] ?? 0,
+        ];
     }
 
-    $lineEl = $serviceFrame->lines->Line[0] ?? $serviceFrame->lines->Line ?? null;
-    if (!$lineEl) {
-        return;
+    // Group by (route, trip_number, pattern, first departure); OR the masks.
+    $groups = [];
+    foreach ($signatures as $tripId => $sig) {
+        $groupKey = $sig['routeId'] . '|' . $sig['tripNumber'] . '|' . $sig['patternKey'] . '|' . $sig['firstDeparture'];
+        if (!isset($groups[$groupKey])) {
+            $groups[$groupKey] = $sig + ['representativeTripId' => $tripId, 'weekdayMask' => 0];
+        }
+        $groups[$groupKey]['weekdayMask'] |= $sig['weekdayMask'];
     }
-    $lineId = (int)$lineEl['id'];
-    $lineName = (string)$lineEl->Name;
 
-    // Stop-point-ref -> physical stop id, for this line file.
-    $stopAssignment = [];
-    if (isset($serviceFrame->stopAssignments->PassengerStopAssignment)) {
-        foreach ($serviceFrame->stopAssignments->PassengerStopAssignment as $psa) {
-            $localRef = (string)$psa->ScheduledStopPointRef['ref'];
-            $physicalId = (int)$psa->StopPlaceRef['ref'];
-            $stopAssignment[$localRef] = $physicalId;
+    // Prefer reusing an existing real calendar whose mask already matches;
+    // only mint a synthetic "merged_<mask>" one when no real one does.
+    $maskToCalendarId = [];
+    foreach ($calendars as $calId => $cal) {
+        if (!isset($maskToCalendarId[$cal['weekdayMask']])) {
+            $maskToCalendarId[$cal['weekdayMask']] = $calId;
+        }
+    }
+    $syntheticCalendars = [];
+    $representatives = [];
+    foreach ($groups as $group) {
+        $mask = $group['weekdayMask'];
+        if (!isset($maskToCalendarId[$mask])) {
+            $newId = 'merged_' . $mask;
+            $maskToCalendarId[$mask] = $newId;
+            $syntheticCalendars[$newId] = $mask;
+        }
+        $group['calendarId'] = $maskToCalendarId[$mask];
+        $representatives[$group['representativeTripId']] = $group;
+    }
+
+    printf("  %d raw trips merged into %d distinct journeys (%d synthetic calendars for OR'd weekday masks)\n", count($signatures), count($groups), count($syntheticCalendars));
+
+    if (!empty($syntheticCalendars)) {
+        $stmt = $pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
+        foreach ($syntheticCalendars as $id => $mask) {
+            $stmt->execute([$id, '', '', $mask]);
         }
     }
 
-    // journey pattern id -> ['stopId' => order-indexed physical stop ids, 'pointMap' => [stopPointInPatternId => [order, stopId]]]
-    $patterns = [];
-    if (isset($serviceFrame->journeyPatterns->ServiceJourneyPattern)) {
-        foreach ($serviceFrame->journeyPatterns->ServiceJourneyPattern as $jp) {
-            $patternId = (string)$jp['id'];
-            $pointMap = [];
-            $orderedStopIds = [];
-            foreach ($jp->pointsInSequence->StopPointInJourneyPattern as $sp) {
-                $pointId = (string)$sp['id'];
-                $order = (int)$sp['order'];
-                $localRef = (string)$sp->ScheduledStopPointRef['ref'];
-                $stopId = $stopAssignment[$localRef] ?? null;
-                if ($stopId === null) {
-                    continue;
-                }
-                $pointMap[$pointId] = ['order' => $order, 'stopId' => $stopId];
-                $orderedStopIds[$order] = $stopId;
-            }
-            if (empty($orderedStopIds)) {
-                continue;
-            }
-            ksort($orderedStopIds);
-            $lastStopId = end($orderedStopIds);
-            $headsign = $stops[$lastStopId]['name'] ?? '';
-            $patterns[$patternId] = ['pointMap' => $pointMap, 'headsign' => $headsign];
-        }
-    }
-
-    if (empty($patterns)) {
-        return;
-    }
+    echo "  Pass 2/2: inserting merged journeys + passing_times...\n";
 
     $insertPattern = $pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
     $insertPatternStop = $pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
     $insertJourney = $pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds) VALUES (?, ?, ?, ?, ?, ?)');
     $insertPassingTime = $pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
-    $insertLine = $pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+    $seenPatterns = [];
+    $rowCount = 0;
 
-    // determine this line's public-code prefix letter from a sample ServiceJourney id (e.g. "A" in trp_A2163_848_...)
-    $codePrefix = 'A';
-    if (isset($timetableFrame->vehicleJourneys->ServiceJourney)) {
-        $firstId = (string)($timetableFrame->vehicleJourneys->ServiceJourney[0]['id'] ?? '');
-        if (preg_match('/^trp_([A-Za-z]*)\d+_/', $firstId, $m)) {
-            $codePrefix = $m[1] !== '' ? $m[1] : 'A';
-        }
-    }
-    $insertLine->execute([$lineId, $codePrefix . $lineId, $lineName, normalize($lineName)]);
-    $totals['lines']++;
-
-    foreach ($patterns as $patternId => $pattern) {
-        $insertPattern->execute([$patternId, $lineId, $pattern['headsign']]);
-        foreach ($pattern['pointMap'] as $point) {
-            $insertPatternStop->execute([$patternId, $point['order'], $point['stopId']]);
-        }
-        $totals['patterns']++;
-    }
-
-    if (!isset($timetableFrame->vehicleJourneys->ServiceJourney)) {
-        return;
-    }
-
-    foreach ($timetableFrame->vehicleJourneys->ServiceJourney as $sj) {
-        $journeyId = (string)$sj['id'];
-        $patternRef = (string)($sj->JourneyPatternRef['ref'] ?? '');
-        $pattern = $patterns[$patternRef] ?? null;
-        if ($pattern === null) {
-            continue;
+    foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
+        $group = $representatives[$tripId] ?? null;
+        if ($group === null) {
+            continue; // not the chosen representative for its merge-group
         }
 
-        $calendarId = null;
-        if (isset($sj->dayTypes->DayTypeRef)) {
-            $calendarId = (string)$sj->dayTypes->DayTypeRef[0]['ref'];
-        }
-        if ($calendarId === null || !isset($calendars[$calendarId])) {
-            continue;
-        }
+        usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
+        $patternKey = $group['patternKey'];
 
-        $tripNumber = null;
-        if (preg_match('/^trp_[A-Za-z]*\d+_(\d+)_/', $journeyId, $m)) {
-            $tripNumber = $m[1];
-        }
-
-        if (!isset($sj->passingTimes->TimetabledPassingTime)) {
-            continue;
-        }
-
-        // trip_number is a vehicle/duty block id, reused across many different
-        // departures in the same day — NOT a unique per-trip key. The live SIRI-VM
-        // feed identifies a trip by (line, trip_number, first-stop departure), so
-        // we resolve and store that first-stop departure here too, up front.
-        $passingRows = [];
-        $firstDepartureSeconds = null;
-        $firstOrder = PHP_INT_MAX;
-        foreach ($sj->passingTimes->TimetabledPassingTime as $tpt) {
-            $pointRef = (string)($tpt->StopPointInJourneyPatternRef['ref'] ?? '');
-            $point = $pattern['pointMap'][$pointRef] ?? null;
-            if ($point === null) {
-                continue;
+        if (!isset($seenPatterns[$patternKey])) {
+            $seenPatterns[$patternKey] = true;
+            $insertPattern->execute([$patternKey, $group['routeId'], $group['headsign']]);
+            foreach ($buffer as $row) {
+                $insertPatternStop->execute([$patternKey, $row['seqOrder'], $row['stopId']]);
             }
-            $arrival = isset($tpt->ArrivalTime) ? timeToSeconds((string)$tpt->ArrivalTime) : null;
-            $departure = isset($tpt->DepartureTime) ? timeToSeconds((string)$tpt->DepartureTime) : $arrival;
-            if ($arrival === null) {
-                $arrival = $departure;
-            }
-            $passingRows[] = [$point['order'], $point['stopId'], $arrival, $departure];
-            if ($point['order'] < $firstOrder) {
-                $firstOrder = $point['order'];
-                $firstDepartureSeconds = $departure;
-            }
-        }
-        if (empty($passingRows)) {
-            continue;
+            $totals['patterns']++;
         }
 
-        $insertJourney->execute([$journeyId, $lineId, $patternRef, $tripNumber, $calendarId, $firstDepartureSeconds]);
+        $insertJourney->execute([$tripId, $group['routeId'], $patternKey, $group['tripNumber'], $group['calendarId'], $group['firstDeparture']]);
         $totals['journeys']++;
 
-        foreach ($passingRows as [$order, $stopId, $arrival, $departure]) {
-            $insertPassingTime->execute([$journeyId, $order, $stopId, $arrival, $departure]);
+        foreach ($buffer as $row) {
+            $insertPassingTime->execute([$tripId, $row['seqOrder'], $row['stopId'], $row['arrival'], $row['departure']]);
             $totals['passingTimes']++;
         }
+
+        $rowCount += count($buffer);
+        if ($rowCount % 50000 < 40) {
+            printf("  processed ~%d passing_times rows\r", $rowCount);
+        }
+    }
+    echo "\n";
+
+    if ($skippedUnknownTrip > 0) {
+        fwrite(STDERR, "  WARNING: $skippedUnknownTrip stop_times groups skipped (trip_id not found in trips.txt)\n");
+    }
+    if ($skippedUnknownRoute > 0) {
+        fwrite(STDERR, "  WARNING: $skippedUnknownRoute stop_times groups skipped (route_id not found in routes.txt)\n");
+    }
+    if ($skippedDuplicateTrip > 0) {
+        fwrite(STDERR, "  WARNING: $skippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
     }
 }
 
@@ -572,6 +686,48 @@ function createSchema(PDO $pdo): void
             weekday_mask INTEGER NOT NULL
         )
     ');
+    $pdo->exec('
+        CREATE TABLE meta (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        )
+    ');
+}
+
+/**
+ * feed_info.txt's feed_version is the date this specific GTFS build was
+ * generated (e.g. "20260716") — read here instead of hardcoding a publish
+ * date in config.php, which is exactly the kind of staleness that made the
+ * old NeTEx-based build silently wrong for a year and a half.
+ *
+ * @return array<string, string>
+ */
+function loadFeedInfo(ZipArchive $zip): array
+{
+    foreach (readCsv($zip, 'feed_info.txt') as $row) {
+        return [
+            'feed_version' => $row['feed_version'] ?? '',
+            'feed_start_date' => $row['feed_start_date'] ?? '',
+            'feed_end_date' => $row['feed_end_date'] ?? '',
+        ];
+    }
+    return [];
+}
+
+function insertMeta(PDO $pdo, array $feedInfo): void
+{
+    $publishedDate = isset($feedInfo['feed_version']) && preg_match('/^\d{8}$/', $feedInfo['feed_version'])
+        ? gtfsDateToIso($feedInfo['feed_version'])
+        : date('Y-m-d');
+
+    $stmt = $pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
+    $stmt->execute(['schedule_source_published', $publishedDate]);
+    if (isset($feedInfo['feed_start_date']) && $feedInfo['feed_start_date'] !== '') {
+        $stmt->execute(['feed_start_date', gtfsDateToIso($feedInfo['feed_start_date'])]);
+    }
+    if (isset($feedInfo['feed_end_date']) && $feedInfo['feed_end_date'] !== '') {
+        $stmt->execute(['feed_end_date', gtfsDateToIso($feedInfo['feed_end_date'])]);
+    }
 }
 
 function createIndexes(PDO $pdo): void
