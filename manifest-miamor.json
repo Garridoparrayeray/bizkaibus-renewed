@@ -1,0 +1,17 @@
+{
+    "name": "BizkaiBus+",
+    "short_name": "BizkaiBus+",
+    "description": "Horarios y tiempo real de Bizkaibus — para el amor de mi vida",
+    "start_url": "/?tema=miamor",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#fecfef",
+    "theme_color": "#db2777",
+    "lang": "es",
+    "icons": [
+        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

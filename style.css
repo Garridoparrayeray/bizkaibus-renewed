@@ -162,6 +162,18 @@ header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin:
 .time-display span { font-size: 1.5rem; font-weight: 700; color: var(--pink-light); }
 .live-card footer { margin-top: 10px; }
 .live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; }
+
+#live-more-list { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid rgba(219, 39, 119, 0.15); }
+#live-more-list li { margin-bottom: 6px; }
+#live-more-list li:last-child { margin-bottom: 0; }
+#live-more-list button {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.5); border: none; border-radius: 14px;
+    padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
+}
+#live-more-list strong { color: var(--pink-dark); font-size: 0.85rem; }
+#live-more-list span:nth-child(2) { flex: 1; color: #666; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#live-more-list span:last-child { color: var(--pink); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 #live-empty { text-align: center; color: #886; opacity: 0.7; font-weight: 600; margin: 0 0 20px; }
 
 /* Tabla horaria */
