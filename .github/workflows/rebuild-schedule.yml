@@ -1,0 +1,53 @@
+name: Rebuild schedule data
+
+# Keeps the deployed app's static schedule (data/bizkaibus.sqlite) current.
+# Bizkaibus doesn't push updates to us — the GTFS source they publish just
+# changes silently (e.g. the Elantxobe summer detour). Re-running the build
+# weekly and redeploying is the only way to catch that automatically.
+#
+# The rebuilt .sqlite is deployed straight to Vercel from this workflow's
+# own checkout — it is NOT committed back to git, since that would grow the
+# repo by ~25MB every single week for no real benefit (only the deployed
+# copy matters to users). geocache.json (small, cheap, worth keeping warm)
+# *is* committed back if it picked up any newly-seen stop coordinates.
+
+on:
+  schedule:
+    - cron: '0 3 * * 1' # every Monday 03:00 UTC
+  workflow_dispatch: {} # allows manually clicking "Run workflow" too
+
+jobs:
+  rebuild-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - name: Rebuild database (fetches latest GTFS, geocodes any new stops)
+        run: php scripts/build-database.php
+
+      - name: Commit updated geocache, if it changed
+        run: |
+          if ! git diff --quiet scripts/geocache.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add scripts/geocache.json
+            git commit -m "chore: update geocache with newly seen stop coordinates"
+            git push
+          else
+            echo "geocache.json unchanged, nothing to commit"
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy freshly rebuilt database to production
+        env:
+          VERCEL_ORG_ID: team_5ficEwZMlnchKQlOobqNZmVj
+          VERCEL_PROJECT_ID: prj_jnUQknRYqnlAtxPBIXCznGlcKf4s
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
