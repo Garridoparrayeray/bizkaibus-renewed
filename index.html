@@ -23,7 +23,7 @@
             document.write(
                 '<title>BizkaiBus+' + (isMiamor ? ' | Para el amor de mi vida' : '') + '</title>' +
                 '<link rel="manifest" href="' + (isMiamor ? 'manifest-miamor.json' : 'manifest.json') + '">' +
-                '<meta name="theme-color" content="' + (isMiamor ? '#db2777' : '#1967D2') + '">' +
+                '<meta name="theme-color" content="' + (isMiamor ? '#db2777' : '#01573C') + '">' +
                 '<link rel="apple-touch-icon" href="' + (isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png') + '">' +
                 '<link rel="icon" href="' + (isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png') + '">' +
                 '<link rel="stylesheet" href="' + (isMiamor ? 'style.css' : 'style-pro.css') + '">'
@@ -37,8 +37,14 @@
 
         <header>
             <button id="home-link" type="button">
+                <span id="app-logomark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
+                        <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
+                    </svg>
+                </span>
                 <hgroup>
-                    <h1>BizkaiBus+</h1>
+                    <h1>BizkaiBus<span id="app-title-mark">+</span></h1>
                     <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
                 </hgroup>
             </button>
@@ -91,7 +97,10 @@
                         <strong id="live-minutes">–</strong><span>min</span>
                     </button>
                     <footer>
-                        <p><span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span></p>
+                        <p>
+                            <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>
+                            <button id="live-incidents-link" type="button" hidden>Incidencias</button>
+                        </p>
                     </footer>
                     <ul id="live-more-list"></ul>
                 </article>
@@ -138,7 +147,17 @@
         </div>
 
         <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
+        <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>
     </main>
+
+    <footer id="dev-footer">
+        <p>Hecho por Yeray Garrido</p>
+        <p>
+            <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+            <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
+        </p>
+    </footer>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -156,7 +175,8 @@
         <h3 id="modal-line"></h3>
         <p id="modal-headsign"></p>
         <p id="modal-vehicle"></p>
-        <ul id="modal-alerts"></ul>
+        <button id="modal-alerts-toggle" type="button">Ver incidencias</button>
+        <ul id="modal-alerts" hidden></ul>
         <ol id="modal-stops"></ol>
     </dialog>
 
@@ -175,7 +195,14 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+            let bbSwRefreshed = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (bbSwRefreshed) return;
+                bbSwRefreshed = true;
+                location.reload();
+            });
         }
     </script>
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

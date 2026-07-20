@@ -2,7 +2,7 @@
 
 namespace Models;
 
-/** Must mirror scripts/build-database.php's normalize() so lookups match the stored name_normalized columns. */
+/** Tiene que ser igual que normalize() de scripts/build-database.php para que las búsquedas casen con name_normalized. */
 class Search
 {
     public static function normalize(string $text): string

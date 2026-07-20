@@ -3,9 +3,9 @@
 namespace Core;
 
 /**
- * Minimal file cache in the system temp dir (Vercel's /tmp is the only
- * writable path at runtime; this also works unchanged for local dev).
- * Never the source of truth — every caller must be fine recomputing on miss.
+ * Caché de fichero mínima en el temp del sistema (en Vercel /tmp es la única
+ * ruta con permiso de escritura en runtime; funciona igual en local).
+ * Nunca es la fuente de verdad — todo caller debe poder recalcular si falla.
  */
 class Cache
 {

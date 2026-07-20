@@ -6,13 +6,14 @@ use Core\Cache;
 use Core\Http;
 
 /**
- * Legacy GetLineasHorarios endpoint: the only *current* (2026) schedule
- * source, but free text ("Sabados y festivos: de 10:35 a 12:35 cada hora"),
- * not per-stop times. Surfaced as a supplementary read-only reference next
- * to the NeTEx-derived structured schedule, never parsed into passing times.
+ * Endpoint legado GetLineasHorarios: horario en texto libre ("Sabados y
+ * festivos: de 10:35 a 12:35 cada hora"), no por parada. Se muestra como
+ * referencia complementaria de solo lectura junto al horario estructurado
+ * (derivado del GTFS), nunca se parsea a passing_times.
  *
- * Its own line codes are zero-padded (e.g. "A0651") unlike ours ("A651"), so
- * matching strips non-digits and compares the bare line number.
+ * Sus códigos de línea van con ceros a la izquierda (p.ej. "A0651") a
+ * diferencia de los nuestros ("A651"), así que el match quita los no-dígitos
+ * y compara el número de línea pelado.
  */
 class ScheduleTextClient
 {
@@ -23,14 +24,14 @@ class ScheduleTextClient
         $this->config = $config;
     }
 
-    /** @return array<int, array<string,string>> raw field=>text blocks for the given line id, empty if unavailable */
+    /** @return array<int, array<string,string>> bloques campo=>texto para la línea dada, vacío si no hay */
     public function fetchForLine(int $lineId): array
     {
         $all = $this->fetchAll();
         return $all[$lineId] ?? [];
     }
 
-    /** @return array<int, array<int, array<string,string>>> keyed by bare numeric line id */
+    /** @return array<int, array<int, array<string,string>>> indexado por id numérico de línea pelado */
     private function fetchAll(): array
     {
         $cfg = $this->config['schedule_text'];

@@ -1,38 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
-    --bg: #f4f6f8;
+    --bg: #f4f6f4;
     --surface: #ffffff;
-    --border: #dadce0;
-    --primary: #1967D2;
-    --primary-dark: #144DA8;
-    --primary-tint: #E8F0FE;
-    --text: #202124;
-    --text-secondary: #5f6368;
-    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
-    --status-ok: #188038;
-    --status-warn: #D93025;
+    --border: #dde3dc;
+    --primary: #01573C;
+    --primary-light: #9CCD64;
+    --primary-dark: #003D29;
+    --primary-tint: #EEF6E4;
+    --text: #1c211d;
+    --text-secondary: #5c665e;
+    --shadow-soft: 0 1px 3px rgba(1, 87, 60, 0.1), 0 1px 2px rgba(1, 87, 60, 0.08);
+    --status-ok: #2E7D32;
+    --status-warn: #C4571F;
     --status-muted: #80868B;
 }
 
+*, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
+
+/* Los iconos de trazo fino y esquinas redondeadas (round cap/join) son EL
+   set por defecto de cualquier librería de iconos que usa un generador de
+   IA — con esquinas a inglete y trazo un poco más grueso dejan de leerse
+   como plantilla. */
+svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+}
+.btn-icon svg, #search-form > button svg, .pill svg {
+    stroke-width: 2.25;
+}
 
 body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
     background-attachment: fixed;
     margin: 0;
-    padding: 20px;
+    padding: 20px 20px 0;
     color: var(--text);
+    display: flex; flex-direction: column; min-height: 100vh; box-sizing: border-box;
 }
 
-.app-container { max-width: 450px; margin: 0 auto; position: relative; }
+.app-container { max-width: 450px; margin: 0 auto; position: relative; width: 100%; flex: 1 0 auto; box-sizing: border-box; }
 
 /* Tarjetas: superficie sólida, borde fino, sombra ligera — sin blur. */
 .glass {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
     padding: 20px;
     margin: 20px 0;
     box-shadow: var(--shadow-soft);
@@ -40,8 +55,8 @@ body {
 
 /* Botones e insignias reutilizables */
 .badge {
-    background: var(--primary); color: white; padding: 4px 12px;
-    border-radius: 6px; font-size: 0.7rem; font-weight: 700;
+    background: var(--primary-tint); color: var(--primary); padding: 4px 12px;
+    border-radius: 2px; font-size: 0.7rem; font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 
@@ -52,17 +67,17 @@ body {
     display: flex; align-items: center; justify-content: center;
 }
 .btn-icon svg { width: 18px; height: 18px; }
-.btn-icon.is-favorite { color: var(--primary); border-color: var(--primary); }
+.btn-icon.is-favorite { color: var(--primary); border-color: var(--primary-light); background: var(--primary-tint); }
 
 .pill {
-    border: 1px solid var(--border); padding: 12px 20px; border-radius: 10px;
+    border: 1px solid var(--border); padding: 12px 20px; border-radius: 3px;
     font-weight: 600; color: var(--text); cursor: pointer;
     background: var(--surface);
     box-shadow: none;
     white-space: nowrap;
     display: flex; align-items: center; gap: 8px;
 }
-.pill:hover { background: var(--primary-tint); border-color: var(--primary); }
+.pill:hover { background: var(--primary-tint); border-color: var(--primary-light); }
 .pill svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--primary); }
 .pill small { display: block; font-weight: 500; opacity: 0.8; color: var(--text-secondary); font-size: 0.75em; white-space: normal; }
 
@@ -78,28 +93,41 @@ body {
 .status-muted { color: var(--status-muted); font-weight: 700; }
 
 /* Header */
-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.app-container > header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.75rem; padding: 14px 14px; border-radius: 4px;
+    background: var(--primary);
+}
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
-    display: block; text-align: left; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left; cursor: pointer; font-family: inherit;
 }
+#app-logomark { display: flex; width: 38px; height: 38px; flex-shrink: 0; }
+#app-logomark svg { width: 100%; height: 100%; }
 h1 {
-    font-size: 2.1rem; font-weight: 800; margin: 0;
-    color: var(--primary);
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+    font-size: 1.85rem; font-weight: 800; margin: 0;
+    color: white; letter-spacing: -0.8px; text-transform: uppercase;
 }
-header p { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; margin: 0; }
+#app-title-mark {
+    color: var(--primary-light); font-size: 1.15em; font-weight: 500;
+    display: inline-block; transform: rotate(-8deg) translateY(-2px);
+}
+header p { font-size: 0.82rem; color: rgba(255, 255, 255, 0.8); font-weight: 500; margin: 0; }
+.app-container > header .btn-icon { border-color: transparent; }
 
 /* Buscador */
 #search-form { position: relative; margin-bottom: 20px; }
 #search-input {
     width: 100%; box-sizing: border-box;
     padding: 16px 50px 16px 18px;
-    border-radius: 10px; border: 1px solid var(--border);
+    border-radius: 3px; border: 1px solid var(--border);
     background: var(--surface);
     font-size: 1rem; font-family: inherit; color: var(--text);
     box-shadow: var(--shadow-soft);
 }
-#search-input:focus { outline: none; border-color: var(--primary); }
+#search-input:focus { outline: none; border-color: var(--primary-light); }
 #search-form > button {
     position: absolute; right: 6px; top: 6px; bottom: 6px; width: 44px;
     border: none; background: transparent; cursor: pointer;
@@ -112,7 +140,7 @@ header p { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; m
     margin: 0; padding: 10px; list-style: none;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px; box-shadow: var(--shadow-soft);
+    border-radius: 3px; box-shadow: var(--shadow-soft);
     max-height: 260px; overflow-y: auto;
 }
 #search-results li { margin-bottom: 8px; }
@@ -129,14 +157,14 @@ header p { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; m
 #favorites-panel {
     position: fixed; top: 0; right: 0; bottom: 0; left: auto;
     width: 82vw; max-width: 320px; margin: 0;
-    border-radius: 12px 0 0 12px;
+    border-radius: 4px 0 0 4px;
     transform: translateX(100%);
     transition: transform 0.25s ease;
     z-index: 20; overflow-y: auto;
 }
 #favorites-panel.open { transform: translateX(0); }
-#favorites-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-#favorites-panel h2 { font-size: 1.1rem; margin: 0; color: var(--text); font-weight: 700; }
+#favorites-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 0; border-bottom: none; }
+#favorites-panel h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.15rem; margin: 0; color: var(--text); font-weight: 700; }
 #favorites-list {
     display: flex; flex-direction: column; gap: 10px;
     margin: 0; padding: 0; list-style: none;
@@ -149,56 +177,68 @@ header p { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; m
     padding: 12px 4px; white-space: normal;
 }
 
-/* Tarjeta Live */
-.live-card { padding: 28px; position: relative; }
-.live-card header { margin-bottom: 1rem; }
-#live-headsign { color: var(--text-secondary); font-weight: 500; margin: 0 0 10px; }
+/* Tarjeta Live: el único momento "de color" fuerte de la app — el resto de
+   tarjetas se quedan neutras a propósito, para que esta destaque de verdad
+   en vez de repartir el verde en bordecitos por todas partes. */
+.live-card {
+    padding: 28px; position: relative;
+    background: var(--primary-dark); border: none; color: white;
+}
+.live-card header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0; border-bottom: none; }
+#live-line { color: white; }
+#live-headsign { color: rgba(255, 255, 255, 0.75); font-weight: 500; margin: 0 0 10px; }
+.live-card .status-dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
 .time-display {
     display: block; border: none; background: none; padding: 0; margin: 0;
     text-align: left; cursor: pointer; font-family: inherit;
 }
 .time-display:disabled { cursor: default; }
-.time-display strong { font-size: 4.5rem; color: var(--primary); letter-spacing: -2px; font-weight: 800; }
-.time-display span { font-size: 1.4rem; font-weight: 600; color: var(--text-secondary); }
+.time-display strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 4.5rem; color: white; letter-spacing: -2px; font-weight: 700; }
+.time-display span { font-size: 1.4rem; font-weight: 600; color: var(--primary-light); }
 .live-card footer { margin-top: 10px; }
-.live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); }
+.live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); }
+#live-incidents-link {
+    border: none; background: none; padding: 0; margin-left: 6px;
+    color: var(--primary-light); font-weight: 700; font-size: 0.85rem;
+    text-decoration: underline; cursor: pointer; font-family: inherit;
+}
 
-#live-more-list { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--border); }
+#live-more-list { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.15); max-height: 260px; overflow-y: auto; }
 #live-more-list li { margin-bottom: 6px; }
 #live-more-list li:last-child { margin-bottom: 0; }
 #live-more-list button {
     width: 100%; display: flex; align-items: center; gap: 8px;
-    background: var(--bg); border: 1px solid transparent; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08); border: 1px solid transparent; border-radius: 3px;
     padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
 }
-#live-more-list button:hover { border-color: var(--border); }
-#live-more-list strong { color: var(--primary); font-size: 0.85rem; }
-#live-more-list span:nth-child(2) { flex: 1; color: var(--text-secondary); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#live-more-list span:last-child { color: var(--text); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+#live-more-list button:hover { background: rgba(255, 255, 255, 0.16); }
+#live-more-list strong { color: var(--primary-light); font-size: 0.85rem; }
+#live-more-list span:nth-child(2) { flex: 1; color: rgba(255, 255, 255, 0.75); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#live-more-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 #live-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; margin: 0 0 20px; }
 
 /* Tabla horaria */
 .timetable { padding: 25px; }
-.timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; }
-.timetable h2 { font-size: 1.15rem; margin: 0; font-weight: 700; }
+.timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 0; border-bottom: none; }
+.timetable h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.25rem; margin: 0; font-weight: 700; }
 #timetable-line { color: var(--text-secondary); font-weight: 600; margin: 4px 0 20px; }
 
 #line-map {
-    height: 220px; border-radius: 10px; margin-bottom: 10px;
+    height: 220px; border-radius: 3px; margin-bottom: 10px;
     background: var(--bg); border: 1px solid var(--border);
 }
 #line-map-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; font-size: 0.85rem; margin: 0 0 20px; }
 .bus-marker {
     background: var(--primary); color: white; border-radius: 50%;
     width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); border: 2px solid var(--primary-light);
 }
 .bus-marker svg { width: 15px; height: 15px; }
-.leaflet-popup-content-wrapper { border-radius: 8px; }
+.leaflet-popup-content-wrapper { border-radius: 3px; }
 
 .filters { display: flex; gap: 10px; margin-bottom: 20px; }
 .filters input {
-    flex: 1; min-width: 0; padding: 11px; border-radius: 8px; border: 1px solid var(--border);
+    flex: 1; min-width: 0; padding: 11px; border-radius: 3px; border: 1px solid var(--border);
     background: var(--surface); font-weight: 500; font-family: inherit; color: var(--text);
 }
 
@@ -217,31 +257,63 @@ tbody tr:last-child td { border-bottom: none; }
 #schedule-text-toggle {
     display: block; width: 100%; margin-top: 10px;
     border: 1px solid var(--border); background: var(--surface);
-    padding: 12px; border-radius: 8px; font-weight: 600; color: var(--primary);
+    padding: 12px; border-radius: 3px; font-weight: 600; color: var(--primary);
     cursor: pointer; font-family: inherit;
 }
 #schedule-text-toggle:disabled { opacity: 0.6; cursor: default; }
 
 /* Atribución */
-#attribution { text-align: center; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.9; margin: 10px 0 30px; }
+#attribution { text-align: center; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.9; margin: 10px 0 4px; }
+#disclaimer { text-align: center; font-size: 0.7rem; color: var(--text-secondary); opacity: 0.7; margin: 0 0 20px; padding: 0 20px; }
+
+/* Pie de página */
+#dev-footer {
+    text-align: center; padding: 20px; margin: 20px -20px 0; border-radius: 0;
+    background: var(--primary); flex-shrink: 0;
+}
+#dev-footer p { margin: 0 0 8px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); }
+#dev-footer p:last-child { margin-bottom: 0; }
+#dev-footer a {
+    color: white; font-weight: 600; text-decoration: none;
+    margin: 0 10px; font-size: 0.78rem;
+}
+#dev-footer a:hover { text-decoration: underline; }
 
 /* Modales (detalle de bus / horario oficial) */
-dialog#vehicle-modal, dialog#schedule-modal {
-    border: 1px solid var(--border); border-radius: 12px; padding: 30px;
+dialog#schedule-modal {
+    border: 1px solid var(--border); border-radius: 4px; padding: 30px;
     max-width: 380px; width: 90vw; max-height: 80vh; overflow-y: auto;
     background: var(--surface);
     box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit;
 }
-dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rgba(32, 33, 36, 0.5); }
+
+/* Detalle del bus */
+dialog#vehicle-modal {
+    position: fixed; margin: 0; left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%; max-width: none; max-height: 85vh;
+    border: 1px solid var(--border); border-bottom: none; border-radius: 12px 12px 0 0;
+    padding: 30px; overflow-y: auto;
+    background: var(--surface);
+    box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit;
+}
+
+dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rgba(10, 20, 15, 0.5); }
 #modal-close, #schedule-modal-close { position: absolute; top: 20px; right: 20px; }
-#modal-line, #schedule-modal-line { margin: 10px 0 16px; color: var(--text); font-size: 1.25rem; font-weight: 700; }
+#modal-line, #schedule-modal-line { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--text); font-size: 1.3rem; font-weight: 700; }
 #modal-headsign { margin: 4px 0 16px; font-weight: 500; color: var(--text-secondary); }
 #modal-vehicle { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 16px; }
 
+#modal-alerts-toggle {
+    display: block; width: 100%; margin: 0 0 16px;
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 10px; border-radius: 3px; font-weight: 600; color: var(--primary);
+    cursor: pointer; font-family: inherit; font-size: 0.85rem;
+}
+#modal-alerts-toggle:disabled { opacity: 0.7; cursor: default; }
 #modal-alerts { list-style: none; margin: 0 0 16px; padding: 0; }
 #modal-alerts li {
-    background: #FCE8E6; color: var(--status-warn);
-    font-size: 0.8rem; font-weight: 600; padding: 10px 14px; border-radius: 8px; margin-bottom: 8px;
+    background: #FBE9E1; color: var(--status-warn);
+    font-size: 0.8rem; font-weight: 600; padding: 10px 14px; border-radius: 3px; margin-bottom: 8px;
 }
 
 #modal-stops { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--border); }
@@ -252,32 +324,31 @@ dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rg
 dialog#side-menu {
     position: fixed; top: 0; right: 0; margin: 0; left: auto; bottom: 0;
     height: 100%; max-height: 100vh; width: 82vw; max-width: 340px;
-    border: none; border-left: 1px solid var(--border); border-radius: 0; padding: 30px 24px;
+    border: none; border-radius: 0; padding: 30px 24px;
     background: var(--surface);
     box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit; overflow-y: auto;
 }
-dialog#side-menu::backdrop { background: rgba(32, 33, 36, 0.5); }
+dialog#side-menu::backdrop { background: rgba(10, 20, 15, 0.5); }
 #menu-close { position: absolute; top: 20px; right: 20px; }
-dialog#side-menu h3 { margin: 10px 0 16px; color: var(--text); font-size: 1.05rem; font-weight: 700; padding-right: 40px; }
+dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--text); font-size: 1.1rem; font-weight: 700; padding-right: 40px; }
 #menu-alerts-empty { color: var(--text-secondary); opacity: 1; font-size: 0.85rem; }
 #menu-alerts-list { list-style: none; margin: 0; padding: 0; }
 #menu-alerts-list li {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 12px 14px; margin-bottom: 10px;
 }
 #menu-alerts-list .alert-line { display: block; color: var(--primary); font-weight: 700; font-size: 0.8rem; margin-bottom: 4px; }
 #menu-alerts-list .alert-summary { display: block; color: var(--status-warn); font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; }
 #menu-alerts-list .alert-description { display: block; color: var(--text-secondary); font-size: 0.78rem; line-height: 1.4; white-space: pre-line; }
 
 /* Horario oficial (texto) */
-.schedule-block { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; }
+.schedule-block { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 16px 18px; margin-bottom: 14px; }
 .schedule-block h4 { margin: 0; color: var(--primary); font-size: 1rem; font-weight: 700; }
 .schedule-block .schedule-dates { margin: 2px 0 12px; font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
 .schedule-block h5 { margin: 0 0 4px; font-size: 0.8rem; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; }
 .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: var(--text); line-height: 1.5; white-space: pre-line; }
 .schedule-block p:last-child { margin-bottom: 0; }
 
-/* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
-   en vez de todo apilado. Por debajo de este ancho es exactamente el layout de móvil/tablet de arriba. */
+/* Escritorio */
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
 
@@ -288,7 +359,13 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--text); font-size: 1.05re
 
     #favorites-panel {
         position: static; transform: none; width: auto; max-width: none;
-        border-radius: 12px; margin: 0 0 20px; max-height: 260px;
+        border-radius: 4px; margin: 0 0 20px; max-height: 260px;
     }
     #favorites-close { display: none; }
+
+    dialog#vehicle-modal {
+        left: auto; right: 0; top: 0; bottom: 0; height: 100%;
+        width: 420px; max-width: 420px; max-height: 100vh;
+        border-radius: 4px 0 0 4px; border-right: none; border-bottom: 1px solid var(--border);
+    }
 }
