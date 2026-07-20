@@ -37,7 +37,7 @@ class Stop
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array{id:int,code:string,name:string}> lines that call at this stop */
+    /** @return array<int, array{id:int,code:string,name:string}> líneas que pasan por esta parada */
     public function linesServing(int $stopId): array
     {
         $stmt = $this->pdo->prepare('
@@ -53,9 +53,9 @@ class Stop
     }
 
     /**
-     * Tries the area-aware query first; falls back to the pre-geocoding schema
-     * shape if `stops.area` doesn't exist yet (e.g. data/bizkaibus.sqlite was
-     * built before the geocoding step was added — see scripts/build-database.php).
+     * Prueba primero la consulta con `area`; si esa columna aún no existe
+     * (p.ej. data/bizkaibus.sqlite se generó antes de añadir la
+     * geocodificación — ver scripts/build-database.php), cae a la versión sin ella.
      */
     private function safeQuery(string $sql, string $fallbackSql, array $args, ?array $fallbackArgs = null): \PDOStatement
     {

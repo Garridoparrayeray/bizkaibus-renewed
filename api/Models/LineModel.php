@@ -37,7 +37,7 @@ class LineModel
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array{id:string,headsign:?string}> distinct patterns/directions for a line */
+    /** @return array<int, array{id:string,headsign:?string}> patrones/direcciones distintos de una línea */
     public function patterns(int $lineId): array
     {
         $stmt = $this->pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');

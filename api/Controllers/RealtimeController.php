@@ -9,18 +9,18 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\RealtimeMatcher;
-use Services\SiriAlertsClient;
 use Services\SiriVehicleMonitoringClient;
 
-/** "Detalle del bus": shows what the real data actually contains — fleet ref,
- * delay, current stop, remaining stops. No invented vehicle model/amenities. */
+/** "Detalle del bus": muestra lo que hay realmente en los datos — flota,
+ * retraso, parada actual, paradas restantes. Nada de modelo/amenities inventados. */
 class RealtimeController
 {
     /**
-     * "En vivo ahora" for a line: the route (each pattern's ordered stops, for
-     * drawing on a map) plus currently-active vehicles. Vehicle position is
-     * the stop they were last recorded at — the feed has no continuous GPS,
-     * only stop + order, so a marker sits at a real stop, never interpolated.
+     * "En vivo ahora" de una línea: la ruta (paradas ordenadas de cada patrón,
+     * para dibujar en el mapa) más los vehículos activos ahora mismo. La
+     * posición del vehículo es su última parada confirmada — el feed no da
+     * GPS continuo, solo parada + orden, así que el marcador va en una parada
+     * real, nunca interpolado entre medias.
      */
     public function lineLive(Request $request, array $params): void
     {
@@ -112,9 +112,9 @@ class RealtimeController
         $now = Calendar::nowSecondsSinceMidnight();
 
         $stopsOut = array_map(function ($stop) use ($matcher, $journey, $live, $now) {
-            // Stops the bus has already confirmed passing get no forward ETA at all —
-            // their scheduled time already fell before the live-reported position, so
-            // "now minus a past time" is meaningless (and can wrap oddly across midnight).
+            // Las paradas que el bus ya ha confirmado que pasó no llevan ETA —
+            // su hora programada ya quedó antes de la posición en vivo, así que
+            // "ahora menos una hora pasada" no tiene sentido (y puede liarse cruzando medianoche).
             $alreadyPassed = $live !== null && $live['order'] !== null && (int)$stop['seq_order'] < (int)$live['order'];
 
             $etaMinutes = null;
@@ -135,8 +135,6 @@ class RealtimeController
 
         $delaySeconds = $live['delaySeconds'] ?? 0;
 
-        $alertsByLine = (new SiriAlertsClient($config))->alertsByLine();
-
         Response::json([
             'lineCode' => $journey['line_code'],
             'lineName' => $journey['line_name'],
@@ -145,7 +143,6 @@ class RealtimeController
             'vehicleRef' => $live['vehicleRef'] ?? null,
             'delayMinutes' => $delaySeconds !== 0 ? (int)round($delaySeconds / 60) : 0,
             'stops' => $stopsOut,
-            'alerts' => $alertsByLine[(string)$lineId] ?? [],
         ]);
     }
 }

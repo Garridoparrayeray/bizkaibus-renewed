@@ -5,18 +5,18 @@ namespace Services;
 use Models\ServiceJourney;
 
 /**
- * Enriches scheduled-departure rows with live SIRI-VM data where available.
- * Groups by (line_id, trip_number) and matches the closest departure_seconds
- * within a small tolerance — see SiriVehicleMonitoringClient for why neither
- * exact-id nor exact-time matching works against this feed.
+ * Enriquece las salidas programadas con datos en vivo de SIRI-VM cuando los
+ * hay. Agrupa por (line_id, trip_number) y busca el departure_seconds más
+ * cercano dentro de un margen — ver SiriVehicleMonitoringClient para por qué
+ * ni el id exacto ni la hora exacta funcionan contra este feed.
  */
 class RealtimeMatcher
 {
     private const STALE_GRACE_SECONDS = 120;
     private const MATCH_TOLERANCE_SECONDS = 180;
-    /** If position-based and flat-delay estimates disagree by more than this, the
-     *  live feed's Order likely doesn't line up with our stop sequence (verified
-     *  against real traffic: happens ~1 in 9 times) — distrust it, use flat-delay. */
+    /** Si la estimación por posición y la de retraso plano difieren más de esto,
+     *  es que el Order del feed en vivo no encaja con nuestra secuencia de
+     *  paradas (verificado: pasa ~1 de cada 9 veces) — se descarta y se usa el retraso plano. */
     private const POSITION_SANITY_SECONDS = 15 * 60;
 
     private array $vmMap;
@@ -29,9 +29,9 @@ class RealtimeMatcher
     }
 
     /**
-     * @param array<int, array<string, mixed>> $rows each must include line_id, trip_number,
-     *        first_departure_seconds, arrival_seconds, and (to enable position-based ETAs) service_journey_id
-     * @return array<int, array<string, mixed>> same rows plus status/delaySeconds/etaSeconds/vehicleRef/currentStopId
+     * @param array<int, array<string, mixed>> $rows cada una debe traer line_id, trip_number,
+     *        first_departure_seconds, arrival_seconds y (para poder calcular ETA por posición) service_journey_id
+     * @return array<int, array<string, mixed>> las mismas filas más status/delaySeconds/etaSeconds/vehicleRef/currentStopId
      */
     public function enrich(array $rows): array
     {
@@ -68,13 +68,13 @@ class RealtimeMatcher
     }
 
     /**
-     * Prefers "now + scheduled time remaining from the bus's last confirmed
-     * stop" over "original scheduled time + flat reported delay", since it's
-     * anchored to where the bus actually was last seen rather than trusting
-     * a single delay figure for the whole remaining trip. Falls back to the
-     * flat-delay figure whenever the position-based estimate isn't available
-     * or disagrees enough with it to suggest a bad Order match. Public so
-     * RealtimeController can reuse it per-stop for "Detalle del bus".
+     * Prefiere "ahora + tiempo programado restante desde la última parada
+     * confirmada del bus" antes que "hora programada original + retraso
+     * plano reportado", porque se ancla a dónde se vio al bus la última vez
+     * en vez de fiarse de una única cifra de retraso para todo el trayecto
+     * restante. Si la estimación por posición no está disponible o difiere
+     * demasiado, cae al retraso plano. Pública para que RealtimeController
+     * la reutilice por parada en "Detalle del bus".
      *
      * @return array{0:int, 1:int} [etaSeconds, delaySecondsToDisplay]
      */
@@ -101,7 +101,7 @@ class RealtimeMatcher
         return [$flatEta, $live['delaySeconds']];
     }
 
-    /** Closest live candidate for (line_id, trip_number) within tolerance of $firstDepartureSeconds, or null. */
+    /** Candidato en vivo más cercano para (line_id, trip_number) dentro del margen de $firstDepartureSeconds, o null. */
     public function lookup(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
     {
         $candidates = $this->vmMap[$lineId . '|' . $tripNumber] ?? [];

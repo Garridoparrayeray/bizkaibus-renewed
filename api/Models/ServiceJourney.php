@@ -11,9 +11,9 @@ class ServiceJourney
     }
 
     /**
-     * Scheduled departures at a stop, from now forward, deduped across
-     * calendar variants that happen to share the same trip_number/time
-     * (see README on why more than one calendar can match the same day).
+     * Salidas programadas en una parada, desde ahora en adelante, deduplicadas
+     * entre variantes de calendario que coinciden en trip_number/hora (ver
+     * README sobre por qué más de un calendario puede casar con el mismo día).
      *
      * @return array<int, array<string, mixed>>
      */
@@ -48,8 +48,9 @@ class ServiceJourney
     }
 
     /**
-     * Programmed departures from a line's origin stop, for the weekday that
-     * $date falls on, within an hour range — backs "Tabla Horaria".
+     * Salidas programadas desde la parada de origen de una línea, para el día
+     * de la semana en que cae $date, dentro de un rango horario — usado en
+     * "Tabla Horaria".
      *
      * @return array<int, array<string, mixed>>
      */
@@ -98,9 +99,9 @@ class ServiceJourney
     }
 
     /**
-     * Scheduled arrival at a specific position (seq_order) within a journey —
-     * lets RealtimeMatcher compute "remaining scheduled time from the bus's
-     * last confirmed stop" instead of just "original time + flat delay".
+     * Hora programada de llegada en una posición concreta (seq_order) de un
+     * viaje — permite a RealtimeMatcher calcular "tiempo programado restante
+     * desde la última parada confirmada" en vez de solo "hora original + retraso plano".
      */
     public function arrivalSecondsAtOrder(string $serviceJourneyId, int $seqOrder): ?int
     {

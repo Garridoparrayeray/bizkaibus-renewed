@@ -1,4 +1,6 @@
-const CACHE_NAME = 'bizkaibus-shell-v2';
+// Sin sufijo de versión: el fetch de abajo es network-first, así que las
+// entradas se actualizan solas. Solo cambiar esto si se toca SHELL_FILES.
+const CACHE_NAME = 'bizkaibus-shell';
 const SHELL_FILES = [
     '/',
     '/index.html',
@@ -42,18 +44,16 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Network-first, cache as offline fallback.
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            const network = fetch(event.request)
-                .then((response) => {
-                    if (response.ok) {
-                        const clone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                    }
-                    return response;
-                })
-                .catch(() => cached);
-            return cached || network;
-        })
+        fetch(event.request)
+            .then((response) => {
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                }
+                return response;
+            })
+            .catch(() => caches.match(event.request))
     );
 });

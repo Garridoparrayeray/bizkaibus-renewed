@@ -9,7 +9,6 @@ use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\RealtimeMatcher;
-use Services\SiriAlertsClient;
 use Services\SiriVehicleMonitoringClient;
 
 class StopsController
@@ -44,13 +43,12 @@ class StopsController
 
         $config = require __DIR__ . '/../Config/config.php';
         $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
-        $alertsByLine = (new SiriAlertsClient($config))->alertsByLine();
 
         $matcher = new RealtimeMatcher($vmMap, $journeyModel);
         $enriched = $matcher->enrich($rows);
 
         $now = Calendar::nowSecondsSinceMidnight();
-        $departures = array_map(function ($row) use ($now, $alertsByLine) {
+        $departures = array_map(function ($row) use ($now) {
             return [
                 'lineId' => (int)$row['line_id'],
                 'lineCode' => $row['line_code'],
@@ -61,7 +59,6 @@ class StopsController
                 'etaMinutes' => (int)round(($row['etaSeconds'] - $now) / 60),
                 'status' => $row['status'],
                 'delayMinutes' => $row['delaySeconds'] !== 0 ? (int)round($row['delaySeconds'] / 60) : 0,
-                'hasAlert' => isset($alertsByLine[(string)$row['line_id']]),
             ];
         }, $enriched);
 

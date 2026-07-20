@@ -15,8 +15,8 @@ class Database
             try {
                 $pdo = new \PDO('sqlite:file:' . $path . '?mode=ro&immutable=1');
             } catch (\PDOException $e) {
-                // Fallback for SQLite builds without URI support — the file is
-                // never written to at runtime either way.
+                // Alternativa para builds de SQLite sin soporte de URI — de
+                // todas formas el fichero nunca se escribe en runtime.
                 $pdo = new \PDO('sqlite:' . $path);
             }
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);

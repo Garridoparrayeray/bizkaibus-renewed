@@ -6,23 +6,25 @@ use Core\Cache;
 use Core\Http;
 
 /**
- * SIRI-VM "vehicle monitoring" feed (misleadingly named bizkaibus-trip-updates.xml
- * at the source). Gives live delay + current stop/order per active trip.
+ * Feed SIRI-VM "vehicle monitoring" (mal nombrado bizkaibus-trip-updates.xml
+ * en origen). Da retraso en vivo + parada/orden actual por cada viaje activo.
  *
- * VehicleJourneyRef strings (e.g. "trp_A3513_907_OP44LV_61500_O44LV3513_351302_6")
- * do NOT exact-match static service_journeys.id — verified empirically: only the
- * line and trip-number tokens are reliable, the calendar-code token and
- * everything after it use a different vocabulary live vs. static.
+ * Los VehicleJourneyRef (p.ej. "trp_A3513_907_OP44LV_61500_O44LV3513_351302_6")
+ * NO coinciden exactamente con el id de service_journeys del estático —
+ * verificado: solo los tokens de línea y trip_number son fiables, el token
+ * de calendario y todo lo que va después usan un vocabulario distinto en
+ * vivo que en estático.
  *
- * trip_number alone is NOT unique either — it's a vehicle/duty block id reused
- * across dozens of different departures through the day (verified: line 2322's
- * trip_number "1137" appears at 06:23, 07:36, 08:36, 09:33... all day). Its
- * embedded departure-second token narrows that down, but isn't byte-exact
- * against the static schedule either — verified against real paired samples,
- * e.g. live "72900" against a static "72928" for the same (line, trip) is the
- * same physical departure, just off by tens of seconds. So matching groups by
- * (line_id, trip_number) and picks the closest first_departure_seconds within
- * a small tolerance, rather than requiring exact equality anywhere.
+ * trip_number tampoco es único por sí solo — es un id de bloque/vehículo
+ * reutilizado en decenas de salidas distintas a lo largo del día (verificado:
+ * el trip_number "1137" de la línea 2322 aparece a las 06:23, 07:36, 08:36,
+ * 09:33... todo el día). El token de segundos de salida que lleva incrustado
+ * lo acota, pero tampoco coincide byte a byte con el horario estático —
+ * verificado con pares reales, p.ej. un "72900" en vivo contra un "72928"
+ * estático para la misma (línea, trip) son la misma salida física, con
+ * decenas de segundos de diferencia. Por eso se agrupa por (line_id,
+ * trip_number) y se elige el first_departure_seconds más cercano dentro de
+ * un margen, en vez de exigir igualdad exacta en ningún sitio.
  */
 class SiriVehicleMonitoringClient
 {
@@ -33,7 +35,7 @@ class SiriVehicleMonitoringClient
         $this->config = $config;
     }
 
-    /** @return array<string, array<int, array{departureSeconds:int, delaySeconds:int, vehicleRef:string, currentStopId:?int, order:?int}>> keyed by "{lineId}|{tripNumber}" */
+    /** @return array<string, array<int, array{departureSeconds:int, delaySeconds:int, vehicleRef:string, currentStopId:?int, order:?int}>> indexado por "{lineId}|{tripNumber}" */
     public function fetchActiveTrips(): array
     {
         $cfg = $this->config['siri'];
@@ -79,7 +81,7 @@ class SiriVehicleMonitoringClient
         return $map;
     }
 
-    /** Parses a small subset of ISO 8601 durations as used here (PT0S, PT5M, PT1H2M, signed). */
+    /** Parsea el subconjunto de duraciones ISO 8601 que usa este feed (PT0S, PT5M, PT1H2M, con signo). */
     private static function parseIsoDuration(string $iso): int
     {
         if (!preg_match('/^(-?)PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $iso, $m)) {
