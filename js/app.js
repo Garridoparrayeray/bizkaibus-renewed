@@ -12,11 +12,12 @@
         currentStop: null,
         currentLine: null,
         favoriteKeys: new Set(),
+        departuresRefreshTimer: null,
     };
 
-    // Avoids re-fetching every favorite's display name on every add/remove —
-    // without this, each toggle re-requests labels for ALL favorites, so the
-    // number of in-flight requests grows every time you favorite one more thing.
+    // Evita repedir el nombre de cada favorito en cada añadir/quitar — sin
+    // esto, cada toggle vuelve a pedir el label de TODOS los favoritos, así
+    // que el número de peticiones en vuelo crece cada vez que añades uno más.
     const favoriteLabelCache = new Map();
 
     const mapState = {
@@ -26,6 +27,7 @@
         refreshTimer: null,
     };
     const LINE_MAP_REFRESH_MS = 25000;
+    const DEPARTURES_REFRESH_MS = 25000;
 
     const el = {
         homeLink: document.getElementById('home-link'),
@@ -53,6 +55,7 @@
         liveMinutes: document.getElementById('live-minutes'),
         liveStatusDot: document.getElementById('live-status-dot'),
         liveStatusText: document.getElementById('live-status-text'),
+        liveIncidentsLink: document.getElementById('live-incidents-link'),
         liveMoreList: document.getElementById('live-more-list'),
         timetableSection: document.getElementById('timetable-section'),
         timetableFavorite: document.getElementById('timetable-favorite'),
@@ -76,6 +79,7 @@
         modalLine: document.getElementById('modal-line'),
         modalHeadsign: document.getElementById('modal-headsign'),
         modalVehicle: document.getElementById('modal-vehicle'),
+        modalAlertsToggle: document.getElementById('modal-alerts-toggle'),
         modalAlerts: document.getElementById('modal-alerts'),
         modalStops: document.getElementById('modal-stops'),
     };
@@ -92,6 +96,14 @@
         return `${type}:${refId}`;
     }
 
+    // "LLEGANDO" implica que está a punto de llegar — mostrarlo para un bus
+    // en vivo que aún está a 30+ minutos engaña solo porque haya match de
+    // GPS. Lo que está en vivo pero aún lejos lleva su propia etiqueta.
+    function liveBadgeText(status, etaMinutes) {
+        if (status !== 'live') return 'PROGRAMADO';
+        return etaMinutes <= 3 ? 'LLEGANDO' : 'EN RUTA';
+    }
+
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
             return delayMinutes > 0
@@ -101,7 +113,7 @@
         return { text: 'Programado', className: 'status-muted' };
     }
 
-    /** Builds <icon><label>[<small>area</small>] inside a pill button — icon markup is a static trusted constant, label/area go through textContent. */
+    /** Monta <icon><label>[<small>area</small>] dentro de un botón pill — el icono es una constante estática de confianza, label/area van por textContent. */
     function setPillContent(button, iconSvg, label, area) {
         button.innerHTML = '';
         const icon = document.createElement('span');
@@ -118,7 +130,7 @@
         button.append(icon, textWrap);
     }
 
-    // ---- Home / reset ----
+    // ---- Inicio / reset ----
 
     function goHome() {
         el.searchInput.value = '';
@@ -131,6 +143,7 @@
         state.currentStop = null;
         el.liveCard.hidden = true;
         el.liveEmpty.hidden = false;
+        stopDeparturesRefresh();
     }
 
     function closeTimetableSection() {
@@ -139,7 +152,7 @@
         stopLineMapRefresh();
     }
 
-    // ---- Search ----
+    // ---- Búsqueda ----
 
     async function performSearch(query) {
         if (query.trim().length < 2) {
@@ -189,7 +202,7 @@
         el.searchResults.hidden = false;
     }
 
-    // ---- Stop / live departures ----
+    // ---- Parada / salidas en vivo ----
 
     async function selectStop(stopId) {
         let stop;
@@ -203,30 +216,44 @@
         el.liveCard.hidden = false;
         el.liveEmpty.hidden = true;
         await loadDepartures();
+        startDeparturesRefresh();
+    }
+
+    // Las salidas se piden una vez al seleccionar y si no, no se actualizan —
+    // sin refresco, un bus que ya se fue se queda en "0 min" para siempre en
+    // vez de desaparecer de la lista como en un panel de salidas real.
+    function startDeparturesRefresh() {
+        stopDeparturesRefresh();
+        state.departuresRefreshTimer = setInterval(loadDepartures, DEPARTURES_REFRESH_MS);
+    }
+
+    function stopDeparturesRefresh() {
+        if (state.departuresRefreshTimer) clearInterval(state.departuresRefreshTimer);
+        state.departuresRefreshTimer = null;
     }
 
     async function loadDepartures() {
         if (!state.currentStop) return;
         let data;
         try {
-            data = await Api.stopDepartures(state.currentStop.id, 8);
+            data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
             renderLiveCard([]);
             return;
         }
         renderLiveCard(data.departures);
-
-        if (data.departures[0]) {
-            selectLine(data.departures[0].lineId);
-        }
     }
 
-    // Shows the soonest departure as the big "next bus" display, and any
-    // other upcoming departures — other lines/directions serving this same
-    // stop — as a compact list below it, so a multi-line stop doesn't hide
-    // everything behind whichever line happens to be soonest right now.
+    // Muestra una salida como el gran "próximo bus" y el resto como lista
+    // compacta debajo. Si hay una línea favorita entre las salidas, se pone
+    // arriba del todo sin importar el orden de llegada — para eso sirve
+    // marcar una línea como favorita en esta parada. Si no, gana la salida
+    // más próxima, como antes.
     function renderLiveCard(departures) {
-        const departure = departures[0] || null;
+        const favoriteIndex = departures.findIndex((d) => state.favoriteKeys.has(favoriteKey('line', d.lineId)));
+        const heroIndex = favoriteIndex !== -1 ? favoriteIndex : 0;
+        const departure = departures[heroIndex] || null;
+        const others = departures.filter((_, i) => i !== heroIndex);
         el.liveMoreList.innerHTML = '';
 
         if (!departure) {
@@ -236,6 +263,7 @@
             el.liveBadge.textContent = 'Sin datos';
             el.liveStatusText.textContent = '';
             el.liveStatusDot.className = 'status-dot';
+            el.liveIncidentsLink.hidden = true;
             el.liveOpenDetail.disabled = true;
             return;
         }
@@ -244,24 +272,38 @@
         el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
         el.liveHeadsign.textContent = state.currentStop.name;
         el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
-        el.liveBadge.textContent = departure.status === 'live' ? 'LLEGANDO' : 'PROGRAMADO';
-        el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}${departure.hasAlert ? ' · Incidencia' : ''}`;
+        el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
+        el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
+        el.liveIncidentsLink.hidden = false;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
 
-        for (const other of departures.slice(1)) {
+        for (const other of others) {
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
             button.innerHTML = `<strong>${other.lineCode}</strong><span>${other.headsign}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
-            button.addEventListener('click', () => openVehicleModal(other.tripKey));
+
+            // El primer toque en una entrada de "más salidas" abre el
+            // horario de esa línea (Consultar Horarios, con filtros de
+            // fecha/hora); el segundo toque en la misma entrada va directo
+            // al detalle en vivo de ese bus concreto.
+            button.addEventListener('click', () => {
+                if (button.dataset.tapped === 'true') {
+                    openVehicleModal(other.tripKey);
+                } else {
+                    button.dataset.tapped = 'true';
+                    selectLine(other.lineId);
+                }
+            });
+
             li.appendChild(button);
             el.liveMoreList.appendChild(li);
         }
     }
 
-    // ---- Line / timetable ----
+    // ---- Línea / horario ----
 
     async function selectLine(lineId) {
         let line;
@@ -319,7 +361,7 @@
         }
     }
 
-    // ---- Live line map ----
+    // ---- Mapa en vivo de la línea ----
 
     function busDivIcon() {
         return L.divIcon({ className: 'bus-marker', html: ICONS.bus, iconSize: [28, 28] });
@@ -377,7 +419,7 @@
         } catch (e) {
             return;
         }
-        if (state.currentLine?.id !== lineId) return; // a different line was selected meanwhile
+        if (state.currentLine?.id !== lineId) return; // mientras tanto se seleccionó otra línea
         renderLineMap(data);
     }
 
@@ -391,9 +433,9 @@
         mapState.refreshTimer = null;
     }
 
-    // ---- Official schedule text (popup, Spanish only, structured) ----
+    // ---- Horario oficial en texto (popup, solo castellano, estructurado) ----
 
-    /** Raw fields are generic key/value pairs straight from the legacy XML — group them into season/dates/ida/vuelta, Spanish variants only. */
+    /** Los campos crudos son pares clave/valor genéricos del XML legado — se agrupan en temporada/fechas/ida/vuelta, solo variantes en castellano. */
     function extractScheduleFields(block) {
         const fields = { season: '', from: '', to: '', outbound: '', returnTrip: '' };
         for (const [key, value] of Object.entries(block)) {
@@ -473,7 +515,7 @@
         el.scheduleModal.showModal();
     }
 
-    // ---- Vehicle detail modal ----
+    // ---- Modal de detalle del vehículo ----
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
@@ -492,12 +534,14 @@
             ? `Vehículo en seguimiento en vivo · Ref. ${data.vehicleRef}`
             : 'Sin seguimiento en vivo en este momento — se muestra el horario programado.';
 
+        // Las incidencias se piden solo bajo demanda (al tocar), nunca antes
+        // — este popup se abre a menudo (cada fila/click) y la mayoría de viajes no tienen ninguna.
+        el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
+        el.modalAlertsToggle.textContent = 'Ver incidencias';
+        el.modalAlertsToggle.disabled = false;
+        el.modalAlertsToggle.hidden = false;
+        el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
-        for (const alert of data.alerts) {
-            const li = document.createElement('li');
-            li.textContent = `${alert.summary}: ${alert.description}`;
-            el.modalAlerts.appendChild(li);
-        }
 
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
@@ -510,7 +554,36 @@
         el.modal.showModal();
     }
 
-    // ---- Favorites (browser-local: localStorage, no account/server needed) ----
+    async function loadModalAlerts() {
+        const lineId = el.modalAlertsToggle.dataset.lineId;
+        el.modalAlertsToggle.disabled = true;
+        el.modalAlertsToggle.textContent = 'Cargando…';
+
+        let alerts;
+        try {
+            alerts = (await Api.alerts(lineId)).alerts;
+        } catch (e) {
+            el.modalAlertsToggle.textContent = 'No se han podido cargar';
+            return;
+        }
+
+        el.modalAlerts.innerHTML = '';
+        if (alerts.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = 'Sin incidencias activas para esta línea.';
+            el.modalAlerts.appendChild(li);
+        } else {
+            for (const alert of alerts) {
+                const li = document.createElement('li');
+                li.textContent = `${alert.summary}: ${alert.description}`;
+                el.modalAlerts.appendChild(li);
+            }
+        }
+        el.modalAlerts.hidden = false;
+        el.modalAlertsToggle.hidden = true;
+    }
+
+    // ---- Favoritos (locales al navegador: localStorage, sin cuenta ni servidor) ----
 
     function openFavoritesPanel() {
         el.favoritesPanel.classList.add('open');
@@ -533,7 +606,7 @@
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
     }
 
-    // ---- Side menu: alerts for favorite lines, plus whichever line is open right now ----
+    // ---- Menú lateral: incidencias de las líneas favoritas, más la que esté abierta ahora mismo ----
 
     async function openSideMenu() {
         el.sideMenu.showModal();
@@ -669,11 +742,12 @@
         loadFavorites();
     }
 
-    // ---- Wiring ----
+    // ---- Enganche de eventos ----
 
     el.homeLink.addEventListener('click', goHome);
 
     el.menuOpen.addEventListener('click', openSideMenu);
+    el.liveIncidentsLink.addEventListener('click', openSideMenu);
     el.menuClose.addEventListener('click', () => el.sideMenu.close());
     el.sideMenu.addEventListener('click', (e) => {
         if (e.target === el.sideMenu) el.sideMenu.close();
@@ -705,6 +779,7 @@
     el.scheduleTextToggle.addEventListener('click', openScheduleModal);
 
     el.modalClose.addEventListener('click', () => el.modal.close());
+    el.modalAlertsToggle.addEventListener('click', loadModalAlerts);
     el.modal.addEventListener('click', (e) => {
         if (e.target === el.modal) el.modal.close();
     });

@@ -1,6 +1,6 @@
 <?php
-// Local-only entry point for `php -S localhost:8000 dev-router.php`.
-// Mimics the vercel.json rewrite (/api/* -> api/index.php) that Vercel applies in production.
+// Punto de entrada solo para local con `php -S localhost:8000 dev-router.php`.
+// Imita el rewrite de vercel.json (/api/* -> api/index.php) que aplica Vercel en producción.
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
