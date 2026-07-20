@@ -1,20 +1,17 @@
 <?php
 /**
- * Builds data/bizkaibus.sqlite from the official GTFS export (bizkaibus.zip).
+ * Genera data/bizkaibus.sqlite a partir del export GTFS oficial (bizkaibus.zip).
  *
- * Usage:
- *   php scripts/build-database.php [--source=<path-or-url>] [--output=<path>]
+ * Uso:
+ *   php scripts/build-database.php [--source=<ruta-o-url>] [--output=<ruta>]
  *
- * Default source is the actively-maintained GTFS feed published by Lantik/CTB —
- * unlike the NeTEx export this app used to read (frozen since Jan 2025), this
- * one tracks whatever season is currently live (confirmed via feed_info.txt's
- * feed_start_date/feed_end_date), so re-running this script periodically keeps
- * the app's schedule current.
+ * La fuente por defecto es el feed GTFS de Lantik/CTB, que sí se mantiene
+ * actualizado (a diferencia del NeTEx que usaba antes esta app, congelado
+ * desde enero 2025). Por eso conviene re-ejecutar este script periódicamente.
  *
- * The feed's own weekday-range fields (calendar.txt) are vestigial/always-zero
- * — like the old NeTEx export, the *real* calendar is the explicit per-date
- * entries in calendar_dates.txt, generalized here into a recurring weekly
- * "which weekdays does this run on" mask (see computeWeekdayMask()).
+ * Los campos de días de la semana de calendar.txt están siempre a cero — el
+ * calendario real sale de las fechas explícitas de calendar_dates.txt,
+ * generalizadas aquí a una máscara semanal (ver computeWeekdayMask()).
  */
 
 declare(strict_types=1);
@@ -126,13 +123,15 @@ function parseArgs(array $argv): array
 }
 
 /**
- * The GTFS export has NO municipality/locality field either (stop_desc is
- * empty on every row) — only a street-level name and coordinates. Reverse-
- * geocoding via OpenStreetMap/Nominatim resolves that gap. Stops cluster
- * tightly, so we round to 2 decimal places (~1.1km) first to collapse ~2300
- * stops down to a few hundred unique lookups, cached in geocache.json —
- * reused across rebuilds, so this only hits the network for coordinates
- * never seen before (a handful of genuinely new/moved stops per rebuild).
+ * El GTFS tampoco trae municipio/barrio (stop_desc viene vacío) — solo
+ * nombre de calle y coordenadas. Se resuelve con geocodificación inversa
+ * (OpenStreetMap/Nominatim), agrupando antes por coordenada redondeada para
+ * no hacer una petición por cada una de las ~2300 paradas. Cacheado en
+ * geocache.json, así que solo se pide lo que aún no esté en caché.
+ *
+ * Redondeo a 3 decimales (~111m), no 2 (~1.1km): con 2 decimales una parada
+ * de Areeta/Las Arenas (Getxo) caía en el mismo cluster que otra al otro
+ * lado de la ría en Portugalete — municipios distintos.
  *
  * @return array<int, array{name:string, lat:float, lon:float, area:string}>
  */
@@ -150,7 +149,7 @@ function geocodeStops(array $stops, bool $skip): array
 
     $clusterKeys = [];
     foreach ($stops as $id => $stop) {
-        $key = round($stop['lat'], 2) . ',' . round($stop['lon'], 2);
+        $key = round($stop['lat'], 3) . ',' . round($stop['lon'], 3);
         $clusterKeys[$id] = $key;
     }
     $uniqueKeys = array_unique(array_values($clusterKeys));
@@ -166,7 +165,7 @@ function geocodeStops(array $stops, bool $skip): array
             file_put_contents(GEOCACHE_PATH, json_encode($cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         }
         if ($i + 1 < count($missing)) {
-            usleep(1_100_000); // Nominatim usage policy: max 1 request/second
+            usleep(1_100_000); // Nominatim: máximo 1 petición/segundo
         }
     }
     if (!empty($missing)) {
@@ -257,7 +256,7 @@ function normalize(string $text): string
     return trim(preg_replace('/\s+/', ' ', $lower));
 }
 
-/** Streams a GTFS CSV member of the zip, yielding one assoc array (keyed by header) per row. */
+/** Recorre un CSV del GTFS en streaming, devolviendo un array asociativo por fila. */
 function readCsv(ZipArchive $zip, string $name): Generator
 {
     $stream = $zip->getStream($name);
@@ -267,10 +266,10 @@ function readCsv(ZipArchive $zip, string $name): Generator
     $header = fgetcsv($stream, 0, ',', '"', '\\');
     while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
         if ($row === null || $row === [null]) {
-            continue; // blank trailing line
+            continue; // línea en blanco al final
         }
         if (count($row) !== count($header)) {
-            continue; // malformed row, skip defensively
+            continue; // fila mal formada, se descarta
         }
         yield array_combine($header, $row);
     }
@@ -301,10 +300,10 @@ function loadRoutes(ZipArchive $zip): array
 }
 
 /**
- * GTFS stop_name has a mechanical " (<stop_id>)" suffix on every row (e.g.
- * "KANALA (JANTOKIA) (2375)") — stripped here so the app doesn't show a
- * redundant trailing id. If a future feed revision ever omits it, we keep
- * the raw name (with the suffix) rather than crash — logged so it's noticed.
+ * stop_name del GTFS lleva siempre un sufijo mecánico " (<stop_id>)" (p.ej.
+ * "KANALA (JANTOKIA) (2375)") — se quita para no mostrar el id repetido. Si
+ * algún día el feed deja de traerlo, se conserva el nombre tal cual (con
+ * aviso en el log) en vez de fallar.
  *
  * @return array<int, array{name:string, lat:float, lon:float}>
  */
@@ -314,7 +313,7 @@ function loadStops(ZipArchive $zip): array
     foreach (readCsv($zip, 'stops.txt') as $row) {
         $locationType = $row['location_type'] ?? '';
         if ($locationType !== '' && $locationType !== '0') {
-            continue; // not a boardable stop (station/entrance/generic node/boarding area)
+            continue; // no es una parada real (estación/entrada/nodo genérico/andén)
         }
 
         $id = (int)$row['stop_id'];
@@ -336,10 +335,9 @@ function loadStops(ZipArchive $zip): array
 }
 
 /**
- * calendar.txt's own weekday columns are always zero here (verified across
- * every row) — same vestigial-calendar quirk the old NeTEx export had. The
- * real recurring pattern is derived from calendar_dates.txt's explicit
- * per-date entries via the unchanged computeWeekdayMask().
+ * Las columnas de días de calendar.txt están siempre a cero (igual que en
+ * el NeTEx antiguo). El patrón real sale de las fechas explícitas de
+ * calendar_dates.txt vía computeWeekdayMask().
  *
  * @return array<string, array{from:string, to:string, weekdayMask:int, activeDateCount:int}>
  */
@@ -373,7 +371,7 @@ function loadCalendars(ZipArchive $zip): array
     return $calendars;
 }
 
-/** Derive which ISO weekdays (1=Mon..7=Sun) this calendar's explicit active dates fall on. */
+/** Calcula en qué días de la semana ISO (1=lunes..7=domingo) cae este calendario. */
 function computeWeekdayMask(array $dateAvailability): int
 {
     $mask = 0;
@@ -408,12 +406,11 @@ function loadTrips(ZipArchive $zip): array
 }
 
 /**
- * Streams stop_times.txt (114MB / ~1.15M rows), buffering only the rows for
- * the trip currently being read (verified: the file is grouped contiguously
- * by trip_id throughout) and yielding one [tripId, orderedRows] group at a
- * time. Never holds the full file in memory. Shared by both passes of
- * processStopTimes() below, so the file is read twice rather than buffered
- * once in full.
+ * Recorre stop_times.txt (114MB / ~1.15M filas) en streaming, guardando solo
+ * las filas del trip_id actual (el fichero viene agrupado por trip_id) y
+ * devolviendo un grupo [tripId, filas] cada vez. Nunca carga el fichero
+ * entero en memoria. Se usa en las dos pasadas de processStopTimes(), así
+ * que el fichero se lee dos veces en vez de guardarlo entero una sola vez.
  *
  * @return Generator<string, array<int, array{seqOrder:int, stopId:int, arrival:?int, departure:?int}>>
  */
@@ -464,24 +461,21 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
 }
 
 /**
- * GTFS gives one trip_id per calendar variant, so the *same* physical
- * scheduled journey (same line, same trip_number, same stops, same time)
- * shows up as several near-identical rows — one per day-type it runs on
- * (e.g. trip_number 921 on line A3526 appears 7 times, once per calendar
- * variant, all with identical stops/timing). The app already collapses
- * these at query time (ServiceJourney::dedupeByTrip()), so storing all of
- * them is pure redundancy: ~4.5x more service_journeys/passing_times rows
- * than there are actually-distinct journeys, which is what pushed the built
- * database past Vercel's 100MB deploy limit (164.7MB unmerged).
+ * El GTFS da un trip_id por variante de calendario, así que el mismo viaje
+ * real (misma línea, mismo trip_number, mismas paradas, misma hora) aparece
+ * repetido, una vez por cada tipo de día en que circula (p.ej. el
+ * trip_number 921 de la A3526 aparece 7 veces). La app ya lo deduplicaba en
+ * consulta (ServiceJourney::dedupeByTrip()), pero guardar todas las filas
+ * era pura redundancia: ~4.5x más filas de las necesarias, lo que hacía que
+ * la base de datos superara el límite de 100MB de Vercel (164.7MB sin
+ * fusionar).
  *
- * Fixed by merging at build time instead of only at query time: group trips
- * by (route, trip_number, *stop-sequence hash*, first departure) — the hash
- * is what keeps a genuine detour variant (different stops, e.g. the
- * Elantxobe summer reroute) in its own group rather than merging it with
- * the non-detour version of the "same" trip_number — and OR the group's
- * calendar variants' weekday masks together into one synthetic calendar.
- * One representative trip per group is what actually gets its passing_times
- * inserted; the rest only contribute their weekday mask.
+ * Se fusiona ya en el build: se agrupan los viajes por (línea, trip_number,
+ * hash de la secuencia de paradas, primera salida) — el hash es lo que evita
+ * fusionar un desvío real (p.ej. el de Elantxobe en verano) con la versión
+ * normal del "mismo" trip_number — y se hace OR de las máscaras semanales de
+ * cada variante en un calendario sintético. Solo el viaje representante de
+ * cada grupo inserta sus passing_times; el resto solo aporta su máscara.
  */
 function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals): void
 {
@@ -525,20 +519,56 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         ];
     }
 
-    // Group by (route, trip_number, pattern, first departure); OR the masks.
-    $groups = [];
+    // Se agrupa por (línea, trip_number, patrón) y luego se agrupan las
+    // salidas cercanas entre sí (con OR de las máscaras). El mismo viaje
+    // real puede tener un first_departure_seconds ligeramente distinto entre
+    // variantes de calendario (hasta ~80s de diferencia verificados). Un
+    // match exacto no las fusiona y salían como duplicados visuales en la
+    // lista de salidas.
+    //
+    // Redondear a un grid fijo tampoco vale: dos valores a 80s pueden caer
+    // en buckets distintos si la línea del grid cae entre medias (verificado:
+    // 65200 y 65280 en buckets de 120s distintos). Por eso se agrupa por
+    // hueco real: se ordenan las salidas de cada grupo y solo se abre un
+    // cluster nuevo cuando el hueco con la anterior supera la tolerancia.
+    $departureClusterGapSeconds = 90;
+
+    $byRoutePattern = [];
     foreach ($signatures as $tripId => $sig) {
-        $groupKey = $sig['routeId'] . '|' . $sig['tripNumber'] . '|' . $sig['patternKey'] . '|' . $sig['firstDeparture'];
-        if (!isset($groups[$groupKey])) {
-            $groups[$groupKey] = $sig + ['representativeTripId' => $tripId, 'weekdayMask' => 0];
-        }
-        $groups[$groupKey]['weekdayMask'] |= $sig['weekdayMask'];
+        $key = $sig['routeId'] . '|' . $sig['tripNumber'] . '|' . $sig['patternKey'];
+        $byRoutePattern[$key][] = $tripId;
     }
 
-    // Prefer reusing an existing real calendar whose mask already matches;
-    // only mint a synthetic "merged_<mask>" one when no real one does.
+    $groups = [];
+    foreach ($byRoutePattern as $tripIds) {
+        usort($tripIds, fn($a, $b) => $signatures[$a]['firstDeparture'] <=> $signatures[$b]['firstDeparture']);
+
+        $clusterKey = null;
+        $previousDeparture = null;
+        foreach ($tripIds as $tripId) {
+            $sig = $signatures[$tripId];
+            if ($previousDeparture === null || ($sig['firstDeparture'] - $previousDeparture) > $departureClusterGapSeconds) {
+                $clusterKey = $tripId; // el primer viaje del cluster le da nombre
+                $groups[$clusterKey] = $sig + ['representativeTripId' => $tripId, 'weekdayMask' => 0];
+            }
+            $groups[$clusterKey]['weekdayMask'] |= $sig['weekdayMask'];
+            $previousDeparture = $sig['firstDeparture'];
+        }
+    }
+
+    // Se reutiliza un calendario real existente si su máscara ya coincide;
+    // solo se crea uno sintético "merged_<mask>" si no hay ninguno. Nunca se
+    // reutiliza 'PRUEBA' — es un service_id real (no un dummy vacío tipo
+    // NeTEx) que ServiceJourney.php excluye siempre, y su weekday_mask es
+    // 127 (todos los días). Sin esta exclusión, cualquier grupo fusionado
+    // que también saliera "todos los días" heredaba calendar_id 'PRUEBA' y
+    // desaparecía de toda consulta — pasaba en 2.110 de 6.966 viajes (30%)
+    // antes de este fix.
     $maskToCalendarId = [];
     foreach ($calendars as $calId => $cal) {
+        if ($calId === 'PRUEBA') {
+            continue;
+        }
         if (!isset($maskToCalendarId[$cal['weekdayMask']])) {
             $maskToCalendarId[$cal['weekdayMask']] = $calId;
         }
@@ -577,7 +607,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
         $group = $representatives[$tripId] ?? null;
         if ($group === null) {
-            continue; // not the chosen representative for its merge-group
+            continue; // no es el representante elegido de su grupo
         }
 
         usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
@@ -695,10 +725,10 @@ function createSchema(PDO $pdo): void
 }
 
 /**
- * feed_info.txt's feed_version is the date this specific GTFS build was
- * generated (e.g. "20260716") — read here instead of hardcoding a publish
- * date in config.php, which is exactly the kind of staleness that made the
- * old NeTEx-based build silently wrong for a year and a half.
+ * feed_version de feed_info.txt es la fecha en que se generó este GTFS
+ * concreto (p.ej. "20260716") — se lee de aquí en vez de fijarla a mano en
+ * config.php, que es justo el tipo de dato desfasado que dejó el build con
+ * NeTEx mal durante año y medio sin que nadie lo notara.
  *
  * @return array<string, string>
  */

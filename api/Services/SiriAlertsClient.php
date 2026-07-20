@@ -6,8 +6,8 @@ use Core\Cache;
 use Core\Http;
 
 /**
- * SIRI-SX service alerts (bizkaibus-service-alerts.xml). Small feed (~180KB),
- * fetched live and cached briefly — never bundled/static.
+ * Alertas de servicio SIRI-SX (bizkaibus-service-alerts.xml). Feed pequeño
+ * (~180KB), se pide en vivo y se cachea poco tiempo — nunca es estático.
  */
 class SiriAlertsClient
 {
@@ -90,7 +90,7 @@ class SiriAlertsClient
                 return (string)$el;
             }
         }
-        // fall back to the first one available
+        // si no hay en el idioma pedido, se usa el primero que haya
         foreach ($elements as $el) {
             return (string)$el;
         }
