@@ -11,13 +11,12 @@
         (function () {
             var params = new URLSearchParams(location.search);
             var qTema = params.get('tema');
+            var isMiamor = qTema === 'miamor';
             if (qTema === 'miamor' || qTema === 'pro') {
-                localStorage.setItem('bb_theme', qTema);
                 params.delete('tema');
                 var qs = params.toString();
                 history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
             }
-            var isMiamor = localStorage.getItem('bb_theme') === 'miamor';
             window.__bbTheme = isMiamor ? 'miamor' : 'pro';
 
             document.write(
