@@ -62,6 +62,13 @@ class StopsController
             ];
         }, $enriched);
 
+        // La consulta trae también buses "pasados por hora programada" para
+        // darle al retraso en vivo ocasión de confirmar si siguen en camino
+        // (ver ServiceJourney::PAST_GRACE_SECONDS). Los que de verdad ya se
+        // fueron (ni siquiera el en vivo los sostiene) se descartan aquí.
+        $departures = array_values(array_filter($departures, fn($d) => $d['etaMinutes'] >= -2));
+        $departures = array_slice($departures, 0, $limit);
+
         Response::json([
             'stop' => ['id' => $stop['id'], 'name' => $stop['name']],
             'departures' => $departures,

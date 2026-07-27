@@ -6,6 +6,18 @@ use Services\Calendar;
 
 class ServiceJourney
 {
+    /** Igual que el gap de clustering del build (scripts/build-database.php) — dos
+     *  variantes de calendario para el mismo (línea, trip_number) que en esta parada
+     *  caen a menos de esto una de otra son el mismo viaje real, no dos salidas distintas. */
+    private const DEDUPE_TOLERANCE_SECONDS = 90;
+
+    /** Un bus retrasado puede seguir sin llegar mucho después de su hora
+     *  programada — si el margen hacia atrás fuera pequeño, se excluiría de
+     *  aquí (por hora programada) antes de que el enriquecido en vivo tenga
+     *  ocasión de comprobar si en realidad sigue en camino, y desaparecería
+     *  de la app justo cuando estuviera "LLEGANDO" sin haber llegado todavía. */
+    private const PAST_GRACE_SECONDS = 900;
+
     public function __construct(private \PDO $pdo)
     {
     }
@@ -40,11 +52,15 @@ class ServiceJourney
         $stmt->execute([
             'stopId' => $stopId,
             'weekdayBit' => $weekdayBit,
-            'windowStart' => $now - 120,
+            'windowStart' => $now - self::PAST_GRACE_SECONDS,
             'windowEnd' => $now + $windowSeconds,
         ]);
 
-        return $this->dedupeByTrip($stmt->fetchAll(), $limit);
+        // +5 de margen: algunas de las filas "pasadas" que trae la ventana
+        // ampliada se descartarán después (StopsController) si el enriquecido
+        // en vivo confirma que el bus ya pasó de verdad — así no le quitan
+        // el sitio a una salida futura real en el límite final.
+        return $this->dedupeByTrip($stmt->fetchAll(), $limit + 5);
     }
 
     /**
@@ -130,14 +146,15 @@ class ServiceJourney
 
     private function dedupeByTrip(array $rows, int $limit): array
     {
-        $seen = [];
+        $lastKeptDeparture = [];
         $result = [];
         foreach ($rows as $row) {
-            $key = $row['line_id'] . '|' . $row['trip_number'] . '|' . $row['departure_seconds'];
-            if (isset($seen[$key])) {
+            $key = $row['line_id'] . '|' . $row['trip_number'];
+            $departure = (int)$row['departure_seconds'];
+            if (isset($lastKeptDeparture[$key]) && abs($departure - $lastKeptDeparture[$key]) <= self::DEDUPE_TOLERANCE_SECONDS) {
                 continue;
             }
-            $seen[$key] = true;
+            $lastKeptDeparture[$key] = $departure;
             $result[] = $row;
             if (\count($result) >= $limit) {
                 break;

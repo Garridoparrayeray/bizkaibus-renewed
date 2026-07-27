@@ -14,12 +14,12 @@ Versión mejorada de la app de Bizkaibus: PHP nativo (API REST) + HTML/CSS/JS va
 
 ## Dos temas visuales, un solo código
 
-`index.html`, `js/app.js`, `js/api.js` y todo `api/` son exactamente los mismos para los dos temas — solo cambia qué hoja de estilos, manifest e iconos se cargan. Un script inline al principio de `<head>` (antes de cualquier `<link>` de estilos, para evitar parpadeo del tema equivocado) resuelve el tema con esta prioridad: parámetro `?tema=` en la URL (si aparece, se guarda en `localStorage` y se limpia de la URL) → `localStorage.getItem('bb_theme')` → por defecto `'pro'`. Con eso, escribe (`document.write`) el `<title>`, `<link rel="manifest">`, `theme-color`, iconos y hoja de estilos correctos antes de que el navegador empiece a pintar.
+`index.html`, `js/app.js`, `js/api.js` y todo `api/` son exactamente los mismos para los dos temas — solo cambia qué hoja de estilos, manifest e iconos se cargan. Un script inline al principio de `<head>` (antes de cualquier `<link>` de estilos, para evitar parpadeo del tema equivocado) resuelve el tema con esta prioridad: parámetro `?tema=miamor` en la URL → si no, `'pro'` por defecto. No se usa `localStorage` para decidir el tema (se probó, pero un navegador que hubiera visitado antes `/miamor.html` se quedaba pegado a ese tema incluso en el link global) — cada carga de `/` sin el parámetro es siempre profesional. Con eso, escribe (`document.write`) el `<title>`, `<link rel="manifest">`, `theme-color`, iconos y hoja de estilos correctos antes de que el navegador empiece a pintar.
 
 - **`style.css`** — el tema "miamor": rosa, glassmorphism, muy redondeado. Es el tema original de esta app, sin tocar. El proyecto inicial ya que es un proyecto echo para mi mujer por quejas que me ha tenido por la aplicacion de bizkaibus porque no le parece user friendly.
 - **`style-pro.css`** — el tema público: plano, tipo Google Maps, sin `backdrop-filter`, radios de borde pequeños, azul (`#1967D2`) en vez de rosa. Mismos selectores que `style.css`, así que cualquier funcionalidad nueva (por ejemplo, cuando se integre Metro Bilbao) solo necesita sus reglas añadidas a los dos ficheros — la estructura HTML/JS no cambia por tema.
 - **`manifest.json`** (profesional, por defecto) y **`manifest-miamor.json`** — mismo contenido salvo tema, iconos y `theme_color`.
-- **`miamor.html`** — un redirector: guarda `bb_theme=miamor` en `localStorage` y manda a `/`. Basta con visitarlo una vez desde un dispositivo — a partir de ahí, `/` carga su tema automáticamente en ese dispositivo, mientras que cualquier otro visitante sigue viendo el tema profesional por defecto.
+- **`miamor.html`** — un redirector: manda a `/?tema=miamor`. Hay que entrar por este link (o tenerlo instalado como PWA, cuyo `manifest-miamor.json` ya apunta a ese `start_url`) cada vez — el link global (`/` a secas) siempre carga el tema profesional, sin excepción.
 
 ## Mapa en vivo por línea
 
