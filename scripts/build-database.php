@@ -65,6 +65,13 @@ function main(array $argv): void
         echo "  feed_version: {$feedInfo['feed_version']} (start: {$feedInfo['feed_start_date']}, end: {$feedInfo['feed_end_date']})\n";
     }
 
+    // Feed caducado (Bizkaibus aún no publicó la siguiente temporada) — abortar en vez de desplegar datos viejos.
+    $feedEndIso = !empty($feedInfo['feed_end_date']) ? gtfsDateToIso($feedInfo['feed_end_date']) : '';
+    if ($feedEndIso !== '' && $feedEndIso < date('Y-m-d')) {
+        fwrite(STDERR, "ERROR: el GTFS terminó el $feedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
+        exit(1);
+    }
+
     if (file_exists($output)) {
         unlink($output);
     }
