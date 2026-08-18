@@ -2,6 +2,7 @@
 
 namespace Controllers;
 
+use Core\Config;
 use Core\Database;
 use Core\Request;
 use Core\Response;
@@ -41,8 +42,11 @@ class StopsController
         $journeyModel = new ServiceJourney($pdo);
         $rows = $journeyModel->upcomingAtStop($stopId, $limit);
 
-        $config = require __DIR__ . '/../Config/config.php';
-        $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
+        $config = Config::current();
+        $vmMap = [];
+        if (isset($config['siri'])) {
+            $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
+        }
 
         $matcher = new RealtimeMatcher($vmMap, $journeyModel);
         $enriched = $matcher->enrich($rows);
@@ -73,6 +77,52 @@ class StopsController
             'stop' => ['id' => $stop['id'], 'name' => $stop['name']],
             'departures' => $departures,
             'attribution' => $config['attribution'],
+        ]);
+    }
+
+    /**
+     * Secuencia completa de paradas/estaciones de un trayecto programado, con
+     * la hora de paso por cada una — sin tiempo real. Es el equivalente de
+     * RealtimeController::vehicle() para redes sin SIRI (Metro Bilbao): en vez
+     * de "dónde está el vehículo ahora", responde "por dónde pasa este
+     * trayecto hasta llegar a mi parada". El stopId de referencia llega por
+     * query param ?stopId= y marca esa fila con isTarget=true.
+     */
+    public function tripStops(Request $request, array $params): void
+    {
+        $tripKeyParts = array_pad(explode('-', $params['tripKey'], 3), 3, null);
+        [$lineId, $tripNumber, $firstDepartureSeconds] = $tripKeyParts;
+        if ($lineId === null || $tripNumber === null || $firstDepartureSeconds === null) {
+            Response::error('Invalid trip key', 422);
+            return;
+        }
+        $lineId = (int)$lineId;
+        $firstDepartureSeconds = (int)$firstDepartureSeconds;
+        $targetStopId = $request->queryInt('stopId');
+
+        $pdo = Database::connection();
+        $journeyModel = new ServiceJourney($pdo);
+        $journey = $journeyModel->findByLineAndTrip($lineId, $tripNumber, $firstDepartureSeconds);
+        if ($journey === null) {
+            Response::error('Trip not found', 404);
+            return;
+        }
+
+        $stops = $journeyModel->stopsForJourney($journey['id']);
+        $stopsOut = array_map(function ($stop) use ($targetStopId) {
+            return [
+                'stopId' => (int)$stop['stop_id'],
+                'name' => $stop['name'],
+                'scheduledTime' => Calendar::secondsToHm((int)$stop['arrival_seconds']),
+                'isTarget' => $targetStopId !== null && (int)$stop['stop_id'] === $targetStopId,
+            ];
+        }, $stops);
+
+        Response::json([
+            'lineCode' => $journey['line_code'],
+            'lineName' => $journey['line_name'],
+            'headsign' => $journey['headsign'],
+            'stops' => $stopsOut,
         ]);
     }
 }
