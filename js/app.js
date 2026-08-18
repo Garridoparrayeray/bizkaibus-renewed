@@ -1,5 +1,8 @@
 (() => {
-    const FAVORITES_STORAGE_KEY = 'bizkaibus_favorites';
+    const IS_METRO = window.__bbNetwork === 'metro';
+    // Claves separadas por red — una parada de bus y una estación de metro
+    // nunca deben mezclarse en el mismo panel de favoritos.
+    const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites' : 'bizkaibus_favorites';
 
     const ICONS = {
         pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
@@ -31,6 +34,7 @@
 
     const el = {
         homeLink: document.getElementById('home-link'),
+        networkMenu: document.getElementById('network-menu'),
         menuOpen: document.getElementById('menu-open'),
         menuClose: document.getElementById('menu-close'),
         sideMenu: document.getElementById('side-menu'),
@@ -69,6 +73,8 @@
         filterHourTo: document.getElementById('filter-hour-to'),
         scheduleTextToggle: document.getElementById('schedule-text-toggle'),
         attribution: document.getElementById('attribution'),
+        disclaimer: document.getElementById('disclaimer'),
+        lineMap: document.getElementById('line-map'),
         scheduleModal: document.getElementById('schedule-modal'),
         scheduleModalClose: document.getElementById('schedule-modal-close'),
         scheduleModalLine: document.getElementById('schedule-modal-line'),
@@ -130,13 +136,18 @@
         button.append(icon, textWrap);
     }
 
-    // ---- Inicio / reset ----
+    // ---- Selector de red (BizkaiBus+ / Metro+) ----
+    // Tocar el logo despliega, con animación, la otra red disponible. Elegirla
+    // navega (recarga completa) a /?red=metro o / — misma filosofía que el
+    // selector de tema (?tema=miamor): URL distinta = estado distinto, sin
+    // reconstruir la app en caliente para un cambio tan infrecuente.
 
-    function goHome() {
-        el.searchInput.value = '';
-        el.searchResults.hidden = true;
-        closeLiveCard();
-        closeTimetableSection();
+    function toggleNetworkMenu() {
+        el.networkMenu.classList.toggle('open');
+    }
+
+    function closeNetworkMenu() {
+        el.networkMenu.classList.remove('open');
     }
 
     function closeLiveCard() {
@@ -275,7 +286,7 @@
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
-        el.liveIncidentsLink.hidden = false;
+        el.liveIncidentsLink.hidden = IS_METRO;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
 
@@ -317,8 +328,12 @@
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
         await loadTimetable();
-        await loadLineMap(line.id);
-        startLineMapRefresh(line.id);
+        // Metro+ no tiene mapa en vivo por línea — la red es lineal
+        // y se entiende con texto, sin necesidad de mapa.
+        if (!IS_METRO) {
+            await loadLineMap(line.id);
+            startLineMapRefresh(line.id);
+        }
     }
 
     async function loadTimetable() {
@@ -334,7 +349,10 @@
             return;
         }
         renderTimetableRows(data.entries);
-        el.attribution.textContent = `Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0) · Horario base publicado: ${data.scheduleSourcePublished}`;
+        const sourceLabel = IS_METRO
+            ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
+            : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
+        el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
     }
 
     function renderTimetableRows(entries) {
@@ -515,10 +533,15 @@
         el.scheduleModal.showModal();
     }
 
-    // ---- Modal de detalle del vehículo ----
+    // ---- Modal de detalle del vehículo (bus) / trayecto (metro) ----
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
+        if (IS_METRO) {
+            await openTripStopsModal(tripKey);
+            return;
+        }
+
         let data;
         try {
             data = await Api.vehicle(tripKey);
@@ -547,6 +570,37 @@
         for (const stop of data.stops) {
             const li = document.createElement('li');
             li.className = stop.isCurrent ? 'stop-current' : '';
+            li.textContent = `${stop.scheduledTime} · ${stop.name}`;
+            el.modalStops.appendChild(li);
+        }
+
+        el.modal.showModal();
+    }
+
+    // Metro+ no tiene tiempo real — reutiliza el mismo modal que bus (mismos
+    // IDs/estructura, "Detalle del bus" del CSS) pero sin badge de en-vivo,
+    // vehicleRef ni incidencias: solo la secuencia de estaciones programadas,
+    // con la parada de origen (si se abrió desde ahí) resaltada como "isTarget".
+    async function openTripStopsModal(tripKey) {
+        let data;
+        try {
+            data = await Api.tripStops(tripKey, state.currentStop?.id ?? '');
+        } catch (e) {
+            return;
+        }
+
+        el.modalBadge.textContent = 'Programado';
+        el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
+        el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
+        el.modalVehicle.hidden = true;
+        el.modalAlertsToggle.hidden = true;
+        el.modalAlerts.hidden = true;
+        el.modalAlerts.innerHTML = '';
+
+        el.modalStops.innerHTML = '';
+        for (const stop of data.stops) {
+            const li = document.createElement('li');
+            li.className = stop.isTarget ? 'stop-current' : '';
             li.textContent = `${stop.scheduledTime} · ${stop.name}`;
             el.modalStops.appendChild(li);
         }
@@ -744,7 +798,13 @@
 
     // ---- Enganche de eventos ----
 
-    el.homeLink.addEventListener('click', goHome);
+    el.homeLink.addEventListener('click', toggleNetworkMenu);
+    el.networkMenu.querySelector(`a[data-network="${IS_METRO ? 'metro' : 'bus'}"]`).classList.add('active');
+    document.addEventListener('click', (e) => {
+        if (!el.homeLink.contains(e.target) && !el.networkMenu.contains(e.target)) {
+            closeNetworkMenu();
+        }
+    });
 
     el.menuOpen.addEventListener('click', openSideMenu);
     el.liveIncidentsLink.addEventListener('click', openSideMenu);
@@ -789,6 +849,22 @@
     });
 
     el.filterDate.value = new Date().toISOString().slice(0, 10);
+
+    // Metro+ no tiene mapa en vivo (sin SIRI de posición) ni el endpoint
+    // legado de horario oficial en texto libre — se ocultan sus controles
+    // en vez de dejarlos ahí sin función.
+    if (IS_METRO) {
+        el.lineMap.hidden = true;
+        el.lineMapEmpty.hidden = true;
+        el.scheduleTextToggle.hidden = true;
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A.';
+        el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
+        // Metro Bilbao no tiene alertas SIRI ni concepto de varias líneas que
+        // vigilar (solo hay una) — el menú de incidencias no tiene qué mostrar.
+        el.menuOpen.hidden = true;
+        el.liveIncidentsLink.hidden = true;
+        el.liveEmpty.textContent = 'Busca una estación para ver el próximo metro.';
+    }
 
     loadFavorites();
 })();

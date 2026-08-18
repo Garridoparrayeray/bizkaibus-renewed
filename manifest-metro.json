@@ -1,0 +1,17 @@
+{
+    "name": "Metro+",
+    "short_name": "Metro+",
+    "description": "Horarios de Metro Bilbao",
+    "start_url": "/?red=metro",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f6f4f4",
+    "theme_color": "#C8102E",
+    "lang": "es",
+    "icons": [
+        { "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons-metro/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons-metro/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}
