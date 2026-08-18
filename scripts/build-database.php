@@ -1,17 +1,24 @@
 <?php
 /**
- * Genera data/bizkaibus.sqlite a partir del export GTFS oficial (bizkaibus.zip).
+ * Genera data/bizkaibus.sqlite o data/metrobilbao.sqlite a partir del export
+ * GTFS oficial de cada red.
  *
  * Uso:
- *   php scripts/build-database.php [--source=<ruta-o-url>] [--output=<ruta>]
+ *   php scripts/build-database.php [--network=bus|metro] [--source=<ruta-o-url>] [--output=<ruta>]
  *
- * La fuente por defecto es el feed GTFS de Lantik/CTB, que sí se mantiene
- * actualizado (a diferencia del NeTEx que usaba antes esta app, congelado
- * desde enero 2025). Por eso conviene re-ejecutar este script periódicamente.
+ * Por defecto --network=bus (Bizkaibus, feed GTFS de Lantik/CTB, que sí se
+ * mantiene actualizado — a diferencia del NeTEx que usaba antes esta app,
+ * congelado desde enero 2025). --network=metro usa el GTFS oficial de Metro
+ * Bilbao (cms.metrobilbao.eus), mucho más pequeño (~2.4MB, 42 estaciones) y
+ * sin necesidad de geocodificación (los nombres de estación ya son reales).
+ * Por eso conviene re-ejecutar este script periódicamente para cada red.
  *
- * Los campos de días de la semana de calendar.txt están siempre a cero — el
- * calendario real sale de las fechas explícitas de calendar_dates.txt,
- * generalizadas aquí a una máscara semanal (ver computeWeekdayMask()).
+ * Los campos de días de la semana de calendar.txt de Bizkaibus están siempre
+ * a cero — el calendario real sale de las fechas explícitas de
+ * calendar_dates.txt, generalizadas aquí a una máscara semanal (ver
+ * computeWeekdayMask()). El calendar.txt de Metro Bilbao sí trae los días
+ * rellenos, pero se procesa igual: computeWeekdayMask() solo mira
+ * calendar_dates.txt, así que el resultado es el mismo en ambos casos.
  */
 
 declare(strict_types=1);
@@ -20,18 +27,45 @@ ini_set('memory_limit', '1024M');
 set_time_limit(0);
 date_default_timezone_set('Europe/Madrid');
 
-const DEFAULT_SOURCE = 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip';
+const NETWORK_DEFAULTS = [
+    'bus' => [
+        'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
+        'output' => __DIR__ . '/../data/bizkaibus.sqlite',
+        'label' => 'BizkaiBus+',
+        'agencyId' => '200',
+        'skipGeocode' => false,
+    ],
+    'metro' => [
+        'source' => 'https://cms.metrobilbao.eus/es/get/open_data/horarios/es',
+        'output' => __DIR__ . '/../data/metrobilbao.sqlite',
+        'label' => 'Metro+',
+        // routes.txt de Metro Bilbao no trae columna agency_id (solo una
+        // agencia, "Metro Bilbao") — null desactiva el filtro por agencia.
+        'agencyId' => null,
+        // Las 42 estaciones ya tienen nombre real de localidad/barrio; no
+        // hace falta resolverlo por geocodificación inversa.
+        'skipGeocode' => true,
+    ],
+];
 const GEOCACHE_PATH = __DIR__ . '/geocache.json';
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 
 function main(array $argv): void
 {
     $options = parseArgs($argv);
-    $source = $options['source'] ?? DEFAULT_SOURCE;
-    $output = $options['output'] ?? __DIR__ . '/../data/bizkaibus.sqlite';
-    $skipGeocode = isset($options['skip-geocode']);
+    $network = $options['network'] ?? 'bus';
+    if (!isset(NETWORK_DEFAULTS[$network])) {
+        fwrite(STDERR, "Unknown --network=\"$network\" (expected bus|metro)\n");
+        exit(1);
+    }
+    $defaults = NETWORK_DEFAULTS[$network];
 
-    echo "== BizkaiBus+ database build (GTFS) ==\n";
+    $source = $options['source'] ?? $defaults['source'];
+    $output = $options['output'] ?? $defaults['output'];
+    $skipGeocode = isset($options['skip-geocode']) || $defaults['skipGeocode'];
+    $agencyId = $defaults['agencyId'];
+
+    echo "== {$defaults['label']} database build (GTFS, network=$network) ==\n";
     $zipPath = resolveZipPath($source);
     echo "Reading GTFS export from: $source\n";
 
@@ -42,7 +76,7 @@ function main(array $argv): void
     }
 
     echo "Parsing routes.txt...\n";
-    $routes = loadRoutes($zip);
+    $routes = loadRoutes($zip, $agencyId);
     echo '  ' . count($routes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
@@ -65,7 +99,7 @@ function main(array $argv): void
         echo "  feed_version: {$feedInfo['feed_version']} (start: {$feedInfo['feed_start_date']}, end: {$feedInfo['feed_end_date']})\n";
     }
 
-    // Feed caducado (Bizkaibus aún no publicó la siguiente temporada) — abortar en vez de desplegar datos viejos.
+    // Feed caducado (el operador aún no publicó la siguiente temporada) — abortar en vez de desplegar datos viejos.
     $feedEndIso = !empty($feedInfo['feed_end_date']) ? gtfsDateToIso($feedInfo['feed_end_date']) : '';
     if ($feedEndIso !== '' && $feedEndIso < date('Y-m-d')) {
         fwrite(STDERR, "ERROR: el GTFS terminó el $feedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
@@ -120,7 +154,7 @@ function parseArgs(array $argv): array
 {
     $out = [];
     foreach ($argv as $arg) {
-        if (preg_match('/^--(source|output)=(.+)$/', $arg, $m)) {
+        if (preg_match('/^--(network|source|output)=(.+)$/', $arg, $m)) {
             $out[$m[1]] = $m[2];
         } elseif ($arg === '--skip-geocode') {
             $out['skip-geocode'] = true;
@@ -288,18 +322,27 @@ function gtfsDateToIso(string $ymd): string
     return substr($ymd, 0, 4) . '-' . substr($ymd, 4, 2) . '-' . substr($ymd, 6, 2);
 }
 
-/** @return array<int, array{code:string, name:string}> */
-function loadRoutes(ZipArchive $zip): array
+/**
+ * $expectedAgencyId = null desactiva el filtro (usado por redes cuyo
+ * routes.txt no trae columna agency_id, p.ej. Metro Bilbao).
+ *
+ * @return array<int, array{code:string, name:string}>
+ */
+function loadRoutes(ZipArchive $zip, ?string $expectedAgencyId): array
 {
     $routes = [];
     foreach (readCsv($zip, 'routes.txt') as $row) {
-        if (($row['agency_id'] ?? '') !== '200') {
+        if ($expectedAgencyId !== null && ($row['agency_id'] ?? '') !== $expectedAgencyId) {
             fwrite(STDERR, "  WARNING: skipping route {$row['route_id']} with unexpected agency_id \"{$row['agency_id']}\"\n");
             continue;
         }
         $routeId = (int)$row['route_id'];
+        $code = $row['route_short_name'];
+        if ($code === '') {
+            $code = $row['route_id'];
+        }
         $routes[$routeId] = [
-            'code' => $row['route_short_name'],
+            'code' => $code,
             'name' => $row['route_long_name'],
         ];
     }
@@ -342,20 +385,32 @@ function loadStops(ZipArchive $zip): array
 }
 
 /**
- * Las columnas de días de calendar.txt están siempre a cero (igual que en
- * el NeTEx antiguo). El patrón real sale de las fechas explícitas de
- * calendar_dates.txt vía computeWeekdayMask().
- *
- * @return array<string, array{from:string, to:string, weekdayMask:int, activeDateCount:int}>
+ * Combina calendar.txt (patrón semanal base, cuando lo trae — en Bizkaibus
+ * siempre está a cero, en Metro Bilbao viene relleno para parte de los
+ * servicios) con calendar_dates.txt (excepciones puntuales, exception_type=1
+ * añade ese día concreto). Un service_id puede existir solo en uno de los
+ * dos ficheros — GTFS lo permite (verificado con datos reales de Metro
+ * Bilbao: 11 de sus 15 service_ids usados en trips.txt no tienen fila en
+ * calendar.txt, solo fechas sueltas en calendar_dates.txt) — así que hay que
+ * recorrer la unión de ambos, no solo los service_id de calendar.txt.
  */
 function loadCalendars(ZipArchive $zip): array
 {
     $ranges = [];
+    $baseWeekdayMask = [];
+    $weekdayColumns = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     foreach (readCsv($zip, 'calendar.txt') as $row) {
         $ranges[$row['service_id']] = [
             'from' => gtfsDateToIso($row['start_date']),
             'to' => gtfsDateToIso($row['end_date']),
         ];
+        $mask = 0;
+        foreach ($weekdayColumns as $i => $column) {
+            if ((int)($row[$column] ?? 0) === 1) {
+                $mask |= (1 << $i);
+            }
+        }
+        $baseWeekdayMask[$row['service_id']] = $mask;
     }
 
     $activeDates = [];
@@ -365,12 +420,12 @@ function loadCalendars(ZipArchive $zip): array
     }
 
     $calendars = [];
-    foreach ($ranges as $id => $range) {
+    foreach (array_unique(array_merge(array_keys($ranges), array_keys($activeDates))) as $id) {
         $dates = $activeDates[$id] ?? [];
-        $weekdayMask = computeWeekdayMask($dates);
+        $weekdayMask = ($baseWeekdayMask[$id] ?? 0) | computeWeekdayMask($dates);
         $calendars[$id] = [
-            'from' => $range['from'],
-            'to' => $range['to'],
+            'from' => $ranges[$id]['from'] ?? '',
+            'to' => $ranges[$id]['to'] ?? '',
             'weekdayMask' => $weekdayMask,
             'activeDateCount' => count(array_filter($dates)),
         ];
@@ -392,7 +447,17 @@ function computeWeekdayMask(array $dateAvailability): int
     return $mask;
 }
 
-/** @return array<string, array{routeId:int, serviceId:string, headsign:string, tripNumber:?string}> */
+/**
+ * trip_number es el segundo token del trip_id de Bizkaibus (formato
+ * "trp_A123_456_..."), usado para el matching con el feed SIRI en vivo y
+ * como salvaguarda extra al fusionar variantes de calendario del mismo viaje
+ * (ver processStopTimes()). Metro Bilbao no tiene tiempo real y su trip_id es
+ * un simple entero ("876714") sin ese formato — la regex no matchea, así que
+ * queda null; processStopTimes() ya sabe agrupar solo por (línea, patrón) en
+ * ese caso.
+ *
+ * @return array<string, array{routeId:int, serviceId:string, headsign:string, tripNumber:?string}>
+ */
 function loadTrips(ZipArchive $zip): array
 {
     $trips = [];
@@ -538,11 +603,18 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     // 65200 y 65280 en buckets de 120s distintos). Por eso se agrupa por
     // hueco real: se ordenan las salidas de cada grupo y solo se abre un
     // cluster nuevo cuando el hueco con la anterior supera la tolerancia.
+    //
+    // trip_number es null cuando el trip_id de la red no trae ese formato
+    // (Metro Bilbao) — en ese caso se agrupa solo por (línea, patrón); el
+    // trip_id de Metro Bilbao ya es único por variante de calendario (no se
+    // repite como en Bizkaibus), así que trip_number no aporta nada como
+    // salvaguarda extra ahí y solo haría que cada variante quedara en su
+    // propio grupo sin fusionar.
     $departureClusterGapSeconds = 90;
 
     $byRoutePattern = [];
     foreach ($signatures as $tripId => $sig) {
-        $key = $sig['routeId'] . '|' . $sig['tripNumber'] . '|' . $sig['patternKey'];
+        $key = $sig['routeId'] . '|' . ($sig['tripNumber'] ?? '') . '|' . $sig['patternKey'];
         $byRoutePattern[$key][] = $tripId;
     }
 
@@ -629,7 +701,17 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
             $totals['patterns']++;
         }
 
-        $insertJourney->execute([$tripId, $group['routeId'], $patternKey, $group['tripNumber'], $group['calendarId'], $group['firstDeparture']]);
+        // trip_number es NULL cuando la red no tiene el formato de trip_id de
+        // Bizkaibus (ver loadTrips()) — sin él, dos service_journeys distintos
+        // con la misma first_departure_seconds serían indistinguibles para
+        // findByLineAndTrip()/tripKey en el frontend. $tripId aquí es el
+        // representative trip id del grupo fusionado (único por journey), así
+        // que sirve de identificador estable cuando no hay trip_number real.
+        $tripNumber = $group['tripNumber'];
+        if ($tripNumber === null) {
+            $tripNumber = $tripId;
+        }
+        $insertJourney->execute([$tripId, $group['routeId'], $patternKey, $tripNumber, $group['calendarId'], $group['firstDeparture']]);
         $totals['journeys']++;
 
         foreach ($buffer as $row) {
@@ -741,6 +823,10 @@ function createSchema(PDO $pdo): void
  */
 function loadFeedInfo(ZipArchive $zip): array
 {
+    // feed_info.txt es opcional en GTFS — Metro Bilbao no lo publica (Bizkaibus sí).
+    if ($zip->locateName('feed_info.txt') === false) {
+        return [];
+    }
     foreach (readCsv($zip, 'feed_info.txt') as $row) {
         return [
             'feed_version' => $row['feed_version'] ?? '',

@@ -19,13 +19,38 @@
             }
             window.__bbTheme = isMiamor ? 'miamor' : 'pro';
 
+            // Red: bus (Bizkaibus, por defecto) o metro (Metro Bilbao). A
+            // diferencia de ?tema=, esto SÍ se conserva en la URL (?red=metro)
+            // porque cada llamada a la API necesita saberlo (ver js/api.js) —
+            // no solo afecta a qué CSS se carga.
+            window.__bbNetwork = params.get('red') === 'metro' ? 'metro' : 'bus';
+            var isMetro = window.__bbNetwork === 'metro';
+
+            var title = 'BizkaiBus+';
+            var manifest = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
+            var themeColor = isMiamor ? '#db2777' : '#01573C';
+            var touchIcon = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
+            var icon = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
+            var stylesheet = isMiamor ? 'style.css' : 'style-pro.css';
+            if (isMetro) {
+                title = 'Metro+';
+                manifest = 'manifest-metro.json';
+                themeColor = '#C8102E';
+                touchIcon = 'icons-metro/apple-touch-icon.png';
+                icon = 'icons-metro/icon-192.png';
+                stylesheet = 'style-metro.css';
+            }
+            if (isMiamor) {
+                title += ' | Para el amor de mi vida';
+            }
+
             document.write(
-                '<title>BizkaiBus+' + (isMiamor ? ' | Para el amor de mi vida' : '') + '</title>' +
-                '<link rel="manifest" href="' + (isMiamor ? 'manifest-miamor.json' : 'manifest.json') + '">' +
-                '<meta name="theme-color" content="' + (isMiamor ? '#db2777' : '#01573C') + '">' +
-                '<link rel="apple-touch-icon" href="' + (isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png') + '">' +
-                '<link rel="icon" href="' + (isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png') + '">' +
-                '<link rel="stylesheet" href="' + (isMiamor ? 'style.css' : 'style-pro.css') + '">'
+                '<title>' + title + '</title>' +
+                '<link rel="manifest" href="' + manifest + '">' +
+                '<meta name="theme-color" content="' + themeColor + '">' +
+                '<link rel="apple-touch-icon" href="' + touchIcon + '">' +
+                '<link rel="icon" href="' + icon + '">' +
+                '<link rel="stylesheet" href="' + stylesheet + '">'
             );
         })();
     </script>
@@ -35,19 +60,45 @@
     <main class="app-container">
 
         <header>
-            <button id="home-link" type="button">
-                <span id="app-logomark" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
-                        <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
-                    </svg>
-                </span>
-                <hgroup>
-                    <h1>BizkaiBus<span id="app-title-mark">+</span></h1>
-                    <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
-                </hgroup>
-            </button>
-            <script>if (window.__bbTheme === 'miamor') document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';</script>
+            <div class="home-link-wrap">
+                <button id="home-link" type="button">
+                    <span id="app-logomark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
+                            <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
+                        </svg>
+                        <svg viewBox="0 0 24 24" fill="none" hidden>
+                            <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
+                            <path d="M8 16V10.5L12 13.5L16 10.5V16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                            <circle cx="8" cy="10.5" r="1.1" fill="white"/>
+                            <circle cx="12" cy="13.5" r="1.1" fill="white"/>
+                            <circle cx="16" cy="10.5" r="1.1" fill="white"/>
+                            <circle cx="8" cy="16" r="1.1" fill="white"/>
+                            <circle cx="16" cy="16" r="1.1" fill="white"/>
+                        </svg>
+                    </span>
+                    <hgroup>
+                        <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
+                        <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
+                    </hgroup>
+                </button>
+                <ul id="network-menu" role="menu">
+                    <li role="none"><a href="/" role="menuitem" data-network="bus"><span class="network-dot network-bus"></span>BizkaiBus+</a></li>
+                    <li role="none"><a href="/?red=metro" role="menuitem" data-network="metro"><span class="network-dot network-metro"></span>Metro+</a></li>
+                </ul>
+            </div>
+            <script>
+                if (window.__bbTheme === 'miamor' && window.__bbNetwork !== 'metro') {
+                    document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
+                }
+                if (window.__bbNetwork === 'metro') {
+                    var logoSvgs = document.querySelectorAll('#app-logomark svg');
+                    logoSvgs[0].hidden = true;
+                    logoSvgs[1].hidden = false;
+                    document.getElementById('app-title').firstChild.textContent = 'METRO';
+                    document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
+                }
+            </script>
             <span class="header-actions">
                 <button id="favorites-open" class="btn-icon" type="button" aria-label="Abrir favoritos">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
@@ -92,7 +143,7 @@
                     </header>
                     <h3 id="live-line"></h3>
                     <p id="live-headsign"></p>
-                    <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del autobús">
+                    <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
                         <strong id="live-minutes">–</strong><span>min</span>
                     </button>
                     <footer>

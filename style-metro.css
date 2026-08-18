@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
-    --bg: #f4f6f4;
+    --bg: #f6f4f4;
     --surface: #ffffff;
-    --border: #dde3dc;
-    --primary: #01573C;
-    --primary-light: #9CCD64;
-    --primary-dark: #003D29;
-    --primary-tint: #EEF6E4;
-    --text: #1c211d;
-    --text-secondary: #5c665e;
-    --shadow-soft: 0 1px 3px rgba(1, 87, 60, 0.1), 0 1px 2px rgba(1, 87, 60, 0.08);
+    --border: #e3ddde;
+    --primary: #C8102E;
+    --primary-light: #FF8A80;
+    --primary-dark: #7A0C1D;
+    --primary-tint: #FCEBEA;
+    --text: #211c1c;
+    --text-secondary: #665c5d;
+    --shadow-soft: 0 1px 3px rgba(200, 16, 46, 0.1), 0 1px 2px rgba(200, 16, 46, 0.08);
     --status-ok: #2E7D32;
     --status-warn: #C4571F;
     --status-muted: #80868B;
@@ -180,7 +180,7 @@ header p { font-size: 0.82rem; color: rgba(255, 255, 255, 0.8); font-weight: 500
 
 /* Tarjeta Live: el único momento "de color" fuerte de la app — el resto de
    tarjetas se quedan neutras a propósito, para que esta destaque de verdad
-   en vez de repartir el verde en bordecitos por todas partes. */
+   en vez de repartir el rojo en bordecitos por todas partes. */
 .live-card {
     padding: 28px; position: relative;
     background: var(--primary-dark); border: none; color: white;
@@ -224,19 +224,6 @@ header p { font-size: 0.82rem; color: rgba(255, 255, 255, 0.8); font-weight: 500
 .timetable h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.25rem; margin: 0; font-weight: 700; }
 #timetable-line { color: var(--text-secondary); font-weight: 600; margin: 4px 0 20px; }
 
-#line-map {
-    height: 220px; border-radius: 3px; margin-bottom: 10px;
-    background: var(--bg); border: 1px solid var(--border);
-}
-#line-map-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; font-size: 0.85rem; margin: 0 0 20px; }
-.bus-marker {
-    background: var(--primary); color: white; border-radius: 50%;
-    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); border: 2px solid var(--primary-light);
-}
-.bus-marker svg { width: 15px; height: 15px; }
-.leaflet-popup-content-wrapper { border-radius: 3px; }
-
 .filters { display: flex; gap: 10px; margin-bottom: 20px; }
 .filters input {
     flex: 1; min-width: 0; padding: 11px; border-radius: 3px; border: 1px solid var(--border);
@@ -255,14 +242,6 @@ tbody tr:last-child td { border-bottom: none; }
 
 #timetable-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; }
 
-#schedule-text-toggle {
-    display: block; width: 100%; margin-top: 10px;
-    border: 1px solid var(--border); background: var(--surface);
-    padding: 12px; border-radius: 3px; font-weight: 600; color: var(--primary);
-    cursor: pointer; font-family: inherit;
-}
-#schedule-text-toggle:disabled { opacity: 0.6; cursor: default; }
-
 /* Atribución */
 #attribution { text-align: center; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.9; margin: 10px 0 4px; }
 #disclaimer { text-align: center; font-size: 0.7rem; color: var(--text-secondary); opacity: 0.7; margin: 0 0 20px; padding: 0 20px; }
@@ -280,7 +259,7 @@ tbody tr:last-child td { border-bottom: none; }
 }
 #dev-footer a:hover { text-decoration: underline; }
 
-/* Modales (detalle de bus / horario oficial) */
+/* Modales (detalle de trayecto / horario oficial) */
 dialog#schedule-modal {
     border: 1px solid var(--border); border-radius: 4px; padding: 30px;
     max-width: 380px; width: 90vw; max-height: 80vh; overflow-y: auto;
@@ -288,7 +267,7 @@ dialog#schedule-modal {
     box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit;
 }
 
-/* Detalle del bus */
+/* Detalle del trayecto (estaciones hasta la mía) */
 dialog#vehicle-modal {
     position: fixed; margin: 0; left: 0; right: 0; bottom: 0; top: auto;
     width: 100%; max-width: none; max-height: 85vh;
@@ -298,7 +277,7 @@ dialog#vehicle-modal {
     box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit;
 }
 
-dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rgba(10, 20, 15, 0.5); }
+dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop { background: rgba(20, 10, 11, 0.5); }
 #modal-close, #schedule-modal-close { position: absolute; top: 20px; right: 20px; }
 #modal-line, #schedule-modal-line { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--text); font-size: 1.3rem; font-weight: 700; }
 #modal-headsign { margin: 4px 0 16px; font-weight: 500; color: var(--text-secondary); }
@@ -329,7 +308,7 @@ dialog#side-menu {
     background: var(--surface);
     box-shadow: var(--shadow-soft); color: var(--text); font-family: inherit; overflow-y: auto;
 }
-dialog#side-menu::backdrop { background: rgba(10, 20, 15, 0.5); }
+dialog#side-menu::backdrop { background: rgba(20, 10, 11, 0.5); }
 #menu-close { position: absolute; top: 20px; right: 20px; }
 dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--text); font-size: 1.1rem; font-weight: 700; padding-right: 40px; }
 #menu-alerts-empty { color: var(--text-secondary); opacity: 1; font-size: 0.85rem; }

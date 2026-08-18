@@ -16,6 +16,7 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
+use Core\Config;
 use Core\Request;
 use Core\Response;
 use Core\Router;
@@ -27,29 +28,44 @@ use Controllers\RealtimeController;
 use Controllers\AlertsController;
 
 $request = new Request();
+
+$network = 'bus';
+if ($request->query('red') === 'metro') {
+    $network = 'metro';
+}
+Config::set($network);
+
 $router = new Router();
 
+// Rutas comunes a ambas redes.
 $search = new SearchController();
 $router->get('/search', [$search, 'search']);
 
 $stops = new StopsController();
 $router->get('/stops/{id}', [$stops, 'show']);
 $router->get('/stops/{id}/departures', [$stops, 'departures']);
+$router->get('/trips/{tripKey}', [$stops, 'tripStops']);
 
 $lines = new LinesController();
 $router->get('/lines', [$lines, 'index']);
 $router->get('/lines/{id}', [$lines, 'show']);
-$router->get('/lines/{id}/schedule-text', [$lines, 'scheduleText']);
 
 $timetable = new TimetableController();
 $router->get('/lines/{id}/timetable', [$timetable, 'show']);
 
-$realtime = new RealtimeController();
-$router->get('/vehicles/{tripKey}', [$realtime, 'vehicle']);
-$router->get('/lines/{id}/live', [$realtime, 'lineLive']);
+// Metro Bilbao no tiene feed SIRI en vivo (posición de vehículos, alertas) ni
+// el endpoint legado de horario en texto libre — esas rutas solo existen
+// para la red bus.
+if ($network === 'bus') {
+    $router->get('/lines/{id}/schedule-text', [$lines, 'scheduleText']);
 
-$alerts = new AlertsController();
-$router->get('/alerts', [$alerts, 'index']);
+    $realtime = new RealtimeController();
+    $router->get('/vehicles/{tripKey}', [$realtime, 'vehicle']);
+    $router->get('/lines/{id}/live', [$realtime, 'lineLive']);
+
+    $alerts = new AlertsController();
+    $router->get('/alerts', [$alerts, 'index']);
+}
 
 try {
     $router->dispatch($request);

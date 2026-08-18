@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'network' => 'bus',
     'db_path' => __DIR__ . '/../../data/bizkaibus.sqlite',
 
     'siri' => [

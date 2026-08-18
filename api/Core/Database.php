@@ -4,12 +4,15 @@ namespace Core;
 
 class Database
 {
-    private static ?\PDO $pdo = null;
+    /** Una conexión PDO cacheada por red (bus/metro) — un request solo usa una, pero ambas pueden coexistir entre requests dentro del mismo proceso PHP-FPM/CLI-server. */
+    private static array $connections = [];
 
     public static function connection(): \PDO
     {
-        if (self::$pdo === null) {
-            $config = require __DIR__ . '/../Config/config.php';
+        $config = Config::current();
+        $network = $config['network'] ?? 'bus';
+
+        if (!isset(self::$connections[$network])) {
             $path = $config['db_path'];
 
             try {
@@ -21,8 +24,8 @@ class Database
             }
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-            self::$pdo = $pdo;
+            self::$connections[$network] = $pdo;
         }
-        return self::$pdo;
+        return self::$connections[$network];
     }
 }
