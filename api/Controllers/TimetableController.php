@@ -2,6 +2,7 @@
 
 namespace Controllers;
 
+use Core\Config;
 use Core\Database;
 use Core\Request;
 use Core\Response;
@@ -15,7 +16,7 @@ class TimetableController
 {
     public function show(Request $request, array $params): void
     {
-        $config = require __DIR__ . '/../Config/config.php';
+        $config = Config::current();
         $pdo = Database::connection();
         $lineId = (int)$params['id'];
         $line = (new LineModel($pdo))->find($lineId);
@@ -39,7 +40,7 @@ class TimetableController
         $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo);
 
         $isToday = $date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
-        if ($isToday) {
+        if ($isToday && isset($config['siri'])) {
             $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
             $rows = (new RealtimeMatcher($vmMap, $journeyModel))->enrich(array_map(
                 fn($r) => $r + ['arrival_seconds' => $r['departure_seconds']],

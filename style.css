@@ -123,6 +123,7 @@ body {
 
 /* Header */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.home-link-wrap { position: relative; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
     display: block; text-align: left; cursor: pointer; font-family: inherit;
@@ -354,6 +355,33 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
 .schedule-block h5 { margin: 0 0 4px; font-size: 0.8rem; color: var(--pink-dark); text-transform: uppercase; letter-spacing: 0.5px; }
 .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: #444; line-height: 1.5; white-space: pre-line; }
 .schedule-block p:last-child { margin-bottom: 0; }
+
+/* Desplegable de red (selector Bizkaibus+ / Metro+) */
+#network-menu {
+    position: absolute; z-index: 40; left: 14px; top: calc(100% + 8px);
+    margin: 0; padding: 8px; list-style: none;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(20px);
+    border-radius: 20px; box-shadow: var(--shadow-soft);
+    min-width: 200px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+#network-menu.open { opacity: 1; pointer-events: auto; animation: dropdownIn 0.25s ease; }
+#network-menu li { margin-bottom: 4px; }
+#network-menu li:last-child { margin-bottom: 0; }
+#network-menu a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 14px;
+    color: #444; font-weight: 700; font-size: 0.9rem;
+    text-decoration: none;
+}
+#network-menu a:hover { background: rgba(219, 39, 119, 0.08); }
+#network-menu a.active { color: var(--pink-dark); }
+#network-menu .network-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+#network-menu .network-dot.network-bus { background: var(--pink); }
+#network-menu .network-dot.network-metro { background: #C8102E; }
 
 /* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
    en vez de todo apilado. Por debajo de este ancho es exactamente el layout de móvil/tablet de arriba. */

@@ -1,7 +1,9 @@
 name: Rebuild schedule data
 
-# Reconstruye y redespliega data/bizkaibus.sqlite a diario desde el GTFS
-# oficial. El .sqlite no se comitea (solo geocache.json si cambia).
+# Reconstruye y redespliega data/bizkaibus.sqlite y data/metrobilbao.sqlite a
+# diario desde sus respectivos GTFS oficiales. Los .sqlite no se comitean
+# (solo geocache.json si cambia) — se regeneran en el runner y se suben tal
+# cual con el deploy de Vercel.
 
 on:
   schedule:
@@ -20,8 +22,11 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
-      - name: Rebuild database (fetches latest GTFS, geocodes any new stops)
-        run: php scripts/build-database.php
+      - name: Rebuild BizkaiBus+ database (fetches latest GTFS, geocodes any new stops)
+        run: php scripts/build-database.php --network=bus
+
+      - name: Rebuild Metro+ database (fetches latest GTFS)
+        run: php scripts/build-database.php --network=metro
 
       - name: Commit updated geocache, if it changed
         run: |
