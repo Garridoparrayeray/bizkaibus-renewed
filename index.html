@@ -63,11 +63,11 @@
             <div class="home-link-wrap">
                 <button id="home-link" type="button">
                     <span id="app-logomark" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
+                        <svg class="logo-bus" viewBox="0 0 24 24" fill="none">
                             <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
                             <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
                         </svg>
-                        <svg viewBox="0 0 24 24" fill="none" hidden>
+                        <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
                             <path d="M8 16V10.5L12 13.5L16 10.5V16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                             <circle cx="8" cy="10.5" r="1.1" fill="white"/>
@@ -92,9 +92,7 @@
                     document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                 }
                 if (window.__bbNetwork === 'metro') {
-                    var logoSvgs = document.querySelectorAll('#app-logomark svg');
-                    logoSvgs[0].hidden = true;
-                    logoSvgs[1].hidden = false;
+                    document.getElementById('app-logomark').classList.add('is-metro');
                     document.getElementById('app-title').firstChild.textContent = 'METRO';
                     document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
                 }

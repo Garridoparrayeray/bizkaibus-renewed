@@ -107,6 +107,12 @@ body {
 }
 #app-logomark { display: flex; width: 38px; height: 38px; flex-shrink: 0; }
 #app-logomark svg { width: 100%; height: 100%; }
+/* El intercambio de logo es puramente CSS (clase .is-metro añadida por el
+   script inline de index.html) — no depende de índices de querySelectorAll,
+   más resistente ante cualquier caché de JS desincronizada del HTML. */
+#app-logomark .logo-metro { display: none; }
+#app-logomark.is-metro .logo-bus { display: none; }
+#app-logomark.is-metro .logo-metro { display: block; }
 h1 {
     font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 1.85rem; font-weight: 800; margin: 0;
