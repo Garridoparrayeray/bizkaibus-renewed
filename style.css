@@ -124,7 +124,11 @@ body {
 
 /* Header */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-.home-link-wrap { position: relative; }
+/* Grid de una columna max-content: #home-link y #network-switch son del
+   mismo ancho — el más ancho de los dos fija la columna, el más corto se
+   estira a igualarlo. Así el banner desplegado queda alineado con el
+   bloque de arriba en vez de medir solo lo que su propio contenido necesita. */
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
     display: block; text-align: left; cursor: pointer; font-family: inherit;
@@ -357,32 +361,33 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
 .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: #444; line-height: 1.5; white-space: pre-line; }
 .schedule-block p:last-child { margin-bottom: 0; }
 
-/* Desplegable de red (selector Bizkaibus+ / Metro+) */
-#network-menu {
-    position: absolute; z-index: 40; left: 14px; top: calc(100% + 8px);
-    margin: 0; padding: 8px; list-style: none;
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(20px);
-    border-radius: 20px; box-shadow: var(--shadow-soft);
-    min-width: 200px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-#network-menu.open { opacity: 1; pointer-events: auto; animation: dropdownIn 0.25s ease; }
-#network-menu li { margin-bottom: 4px; }
-#network-menu li:last-child { margin-bottom: 0; }
-#network-menu a {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px; border-radius: 14px;
-    color: #444; font-weight: 700; font-size: 0.9rem;
+/* Banner de cambio de red (selector Bizkaibus+ / Metro+): al tocar el logo
+   se despliega, debajo, una tarjeta con el aspecto real de la OTRA app
+   (su color, su logo, su título) — un preview de a dónde vas a cambiar, no
+   un menú de texto. Colores fijos (no las variables de tema) porque este
+   banner siempre representa a la red contraria. */
+#network-switch {
+    display: flex; align-items: center; gap: 12px;
+    max-height: 0; overflow: hidden;
+    margin: 0; padding: 0 16px;
+    border-radius: 20px;
     text-decoration: none;
+    background: #C8102E;
+    transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease;
 }
-#network-menu a:hover { background: rgba(219, 39, 119, 0.08); }
-#network-menu a.active { color: var(--pink-dark); }
-#network-menu .network-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-#network-menu .network-dot.network-bus { background: var(--pink); }
-#network-menu .network-dot.network-metro { background: #C8102E; }
+#network-switch.open {
+    max-height: 80px; padding: 14px 16px; margin-top: 10px;
+}
+#network-switch.is-bus { background: var(--pink-dark); }
+.network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
+.network-switch-logomark svg { width: 100%; height: 100%; }
+.network-switch-logomark .logo-metro { display: block; }
+.network-switch-logomark .logo-bus { display: none; }
+#network-switch.is-bus .network-switch-logomark .logo-metro { display: none; }
+#network-switch.is-bus .network-switch-logomark .logo-bus { display: block; }
+.network-switch-text { display: flex; flex-direction: column; }
+#network-switch-title { font-size: 1.05rem; font-weight: 800; color: white; }
+#network-switch-sub { font-size: 0.76rem; color: rgba(255, 255, 255, 0.85); font-weight: 500; }
 
 /* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
    en vez de todo apilado. Por debajo de este ancho es exactamente el layout de móvil/tablet de arriba. */
