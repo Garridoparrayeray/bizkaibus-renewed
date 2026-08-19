@@ -31,16 +31,25 @@
             var themeColor = isMiamor ? '#db2777' : '#01573C';
             var touchIcon = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
             var icon = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
+            // El tema mi amor (style.css, rosa/glassmorphism) es el MISMO
+            // fichero para ambas redes — Metro+ también puede llevarlo, solo
+            // cambian logo/textos (ver el script del <body>). Así ?tema=miamor
+            // funciona igual en las dos redes, sin tener que "recordar" el
+            // tema al saltar entre ellas ni mantener una cuarta hoja de estilos.
             var stylesheet = isMiamor ? 'style.css' : 'style-pro.css';
             if (isMetro) {
                 title = 'Metro+';
                 manifest = 'manifest-metro.json';
-                themeColor = '#C8102E';
                 touchIcon = 'icons-metro/apple-touch-icon.png';
                 icon = 'icons-metro/icon-192.png';
-                stylesheet = 'style-metro.css';
+                if (isMiamor) {
+                    themeColor = '#db2777';
+                } else {
+                    themeColor = '#C8102E';
+                    stylesheet = 'style-metro.css';
+                }
             }
-            if (isMiamor) {
+            if (isMiamor && !isMetro) {
                 title += ' | Para el amor de mi vida';
             }
 
@@ -68,10 +77,10 @@
                             <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
                         </svg>
                         <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
-                            <circle cx="9.84" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
-                            <circle cx="12" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
-                            <circle cx="14.16" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
+                            <circle cx="9.25" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
+                            <circle cx="12" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
+                            <circle cx="14.75" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
                         </svg>
                     </span>
                     <hgroup>
@@ -86,10 +95,10 @@
                             <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
                         </svg>
                         <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
-                            <circle cx="9.84" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
-                            <circle cx="12" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
-                            <circle cx="14.16" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
+                            <circle cx="9.25" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
+                            <circle cx="12" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
+                            <circle cx="14.75" cy="12" r="3.05" stroke="#FF6505" stroke-width="1.55"/>
                         </svg>
                     </span>
                     <span class="network-switch-text">
@@ -99,19 +108,34 @@
                 </a>
             </div>
             <script>
-                if (window.__bbTheme === 'miamor' && window.__bbNetwork !== 'metro') {
-                    document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
-                }
+                var isMiamorActive = window.__bbTheme === 'miamor';
                 var networkSwitch = document.getElementById('network-switch');
+                // Mi amor (style.css) es el mismo tema para ambas redes — el
+                // enlace de cambio de red lleva ?tema=miamor cuando está
+                // activo, así se mantiene al saltar entre BizkaiBus+ y Metro+.
+                // Sin esto, un enlace normal (recarga completa) siempre cae al
+                // tema pro por defecto — ver el script de arriba, que borra
+                // ?tema= de la URL nada más leerlo.
+                var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
+
                 if (window.__bbNetwork === 'metro') {
                     document.getElementById('app-logomark').classList.add('is-metro');
                     document.getElementById('app-title').firstChild.textContent = 'METRO';
                     document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
                     // El banner del desplegable ofrece la red contraria: desde Metro+, vuelve a BizkaiBus+.
-                    networkSwitch.href = '/';
+                    networkSwitch.href = isMiamorActive ? '/?tema=miamor' : '/';
                     networkSwitch.classList.add('is-bus');
                     document.getElementById('network-switch-title').textContent = 'BIZKAIBUS+';
                     document.getElementById('network-switch-sub').textContent = 'Horarios y tiempo real de Bizkaibus';
+                } else {
+                    networkSwitch.href = '/?red=metro' + temaSuffix;
+                }
+
+                // El mensaje cariñoso sustituye al subtítulo funcional sin
+                // importar la red — mi amor es el tema activo, no algo
+                // exclusivo de BizkaiBus+.
+                if (isMiamorActive) {
+                    document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                 }
             </script>
             <span class="header-actions">
