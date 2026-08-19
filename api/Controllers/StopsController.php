@@ -51,13 +51,26 @@ class StopsController
         $matcher = new RealtimeMatcher($vmMap, $journeyModel);
         $enriched = $matcher->enrich($rows);
 
+        // El headsign de GTFS es el destino comercial anunciado del
+        // recorrido (correcto para bus, donde no siempre coincide con la
+        // última parada de una variante concreta). Para metro, sin ramales
+        // comerciales complejos, la última parada real del propio trayecto
+        // es más fiable — verificado: el GTFS de Metro Bilbao repite el
+        // mismo headsign en trenes que en realidad terminan en paradas
+        // distintas (ver ServiceJourney::LAST_STOP_NAME_SUBQUERY).
+        $isMetro = ($config['network'] ?? 'bus') === 'metro';
+
         $now = Calendar::nowSecondsSinceMidnight();
-        $departures = array_map(function ($row) use ($now) {
+        $departures = array_map(function ($row) use ($now, $isMetro) {
+            $headsign = $row['headsign'];
+            if ($isMetro && !empty($row['last_stop_name'])) {
+                $headsign = $row['last_stop_name'];
+            }
             return [
                 'lineId' => (int)$row['line_id'],
                 'lineCode' => $row['line_code'],
                 'lineName' => $row['line_name'],
-                'headsign' => $row['headsign'],
+                'headsign' => $headsign,
                 'tripKey' => $row['line_id'] . '-' . $row['trip_number'] . '-' . $row['first_departure_seconds'],
                 'scheduledTime' => Calendar::secondsToHm((int)$row['arrival_seconds']),
                 'etaMinutes' => (int)round(($row['etaSeconds'] - $now) / 60),
@@ -118,10 +131,18 @@ class StopsController
             ];
         }, $stops);
 
+        // Ver StopsController::departures() sobre por qué metro usa la
+        // última parada real en vez del headsign de GTFS.
+        $headsign = $journey['headsign'];
+        $config = Config::current();
+        if (($config['network'] ?? 'bus') === 'metro' && !empty($stops)) {
+            $headsign = end($stops)['name'];
+        }
+
         Response::json([
             'lineCode' => $journey['line_code'],
             'lineName' => $journey['line_name'],
-            'headsign' => $journey['headsign'],
+            'headsign' => $headsign,
             'stops' => $stopsOut,
         ]);
     }

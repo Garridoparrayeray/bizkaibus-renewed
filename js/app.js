@@ -119,8 +119,8 @@
         return { text: 'Programado', className: 'status-muted' };
     }
 
-    /** Monta <icon><label>[<small>area</small>] dentro de un botón pill — el icono es una constante estática de confianza, label/area van por textContent. */
-    function setPillContent(button, iconSvg, label, area) {
+    /** Monta <icon><label>[<small>area</small>][<small>hint</small>] dentro de un botón pill — el icono es una constante estática de confianza, label/area/hint van por textContent. */
+    function setPillContent(button, iconSvg, label, area, hint) {
         button.innerHTML = '';
         const icon = document.createElement('span');
         icon.innerHTML = iconSvg;
@@ -132,6 +132,12 @@
             const small = document.createElement('small');
             small.textContent = area;
             textWrap.appendChild(small);
+        }
+        if (hint) {
+            const hintEl = document.createElement('small');
+            hintEl.className = 'pill-hint';
+            hintEl.textContent = hint;
+            textWrap.appendChild(hintEl);
         }
         button.append(icon, textWrap);
     }
@@ -183,8 +189,8 @@
     function renderSearchResults(stops, lines) {
         el.searchResults.innerHTML = '';
         const items = [
-            ...stops.map((s) => ({ type: 'stop', id: s.id, label: s.name, area: s.area })),
-            ...lines.map((l) => ({ type: 'line', id: l.id, label: `${l.code} · ${l.name}`, area: '' })),
+            ...stops.map((s) => ({ type: 'stop', id: s.id, label: s.name, area: s.area, hint: s.hint })),
+            ...lines.map((l) => ({ type: 'line', id: l.id, label: `${l.code} · ${l.name}`, area: '', hint: null })),
         ];
 
         if (items.length === 0) {
@@ -197,7 +203,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'pill';
-            setPillContent(button, item.type === 'stop' ? ICONS.pin : ICONS.bus, item.label, item.area);
+            setPillContent(button, item.type === 'stop' ? ICONS.pin : ICONS.bus, item.label, item.area, item.hint);
             button.addEventListener('click', () => {
                 el.searchInput.value = '';
                 el.searchResults.hidden = true;
