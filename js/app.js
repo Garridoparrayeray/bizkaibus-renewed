@@ -34,7 +34,7 @@
 
     const el = {
         homeLink: document.getElementById('home-link'),
-        networkMenu: document.getElementById('network-menu'),
+        networkSwitch: document.getElementById('network-switch'),
         menuOpen: document.getElementById('menu-open'),
         menuClose: document.getElementById('menu-close'),
         sideMenu: document.getElementById('side-menu'),
@@ -149,11 +149,11 @@
     // reconstruir la app en caliente para un cambio tan infrecuente.
 
     function toggleNetworkMenu() {
-        el.networkMenu.classList.toggle('open');
+        el.networkSwitch.classList.toggle('open');
     }
 
     function closeNetworkMenu() {
-        el.networkMenu.classList.remove('open');
+        el.networkSwitch.classList.remove('open');
     }
 
     function closeLiveCard() {
@@ -805,9 +805,8 @@
     // ---- Enganche de eventos ----
 
     el.homeLink.addEventListener('click', toggleNetworkMenu);
-    el.networkMenu.querySelector(`a[data-network="${IS_METRO ? 'metro' : 'bus'}"]`).classList.add('active');
     document.addEventListener('click', (e) => {
-        if (!el.homeLink.contains(e.target) && !el.networkMenu.contains(e.target)) {
+        if (!el.homeLink.contains(e.target) && !el.networkSwitch.contains(e.target)) {
             closeNetworkMenu();
         }
     });

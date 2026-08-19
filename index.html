@@ -69,12 +69,9 @@
                         </svg>
                         <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
-                            <path d="M8 16V10.5L12 13.5L16 10.5V16" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                            <circle cx="8" cy="10.5" r="1.1" fill="white"/>
-                            <circle cx="12" cy="13.5" r="1.1" fill="white"/>
-                            <circle cx="16" cy="10.5" r="1.1" fill="white"/>
-                            <circle cx="8" cy="16" r="1.1" fill="white"/>
-                            <circle cx="16" cy="16" r="1.1" fill="white"/>
+                            <circle cx="9.84" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="12" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="14.16" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
                         </svg>
                     </span>
                     <hgroup>
@@ -82,19 +79,39 @@
                         <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
                     </hgroup>
                 </button>
-                <ul id="network-menu" role="menu">
-                    <li role="none"><a href="/" role="menuitem" data-network="bus"><span class="network-dot network-bus"></span>BizkaiBus+</a></li>
-                    <li role="none"><a href="/?red=metro" role="menuitem" data-network="metro"><span class="network-dot network-metro"></span>Metro+</a></li>
-                </ul>
+                <a id="network-switch" href="/?red=metro">
+                    <span class="network-switch-logomark" aria-hidden="true">
+                        <svg class="logo-bus" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
+                            <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
+                        </svg>
+                        <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10.5" fill="#C8102E"/>
+                            <circle cx="9.84" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="12" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                            <circle cx="14.16" cy="12" r="2.34" stroke="#FF6505" stroke-width="1.27"/>
+                        </svg>
+                    </span>
+                    <span class="network-switch-text">
+                        <strong id="network-switch-title">METRO+</strong>
+                        <span id="network-switch-sub">Horarios de Metro Bilbao</span>
+                    </span>
+                </a>
             </div>
             <script>
                 if (window.__bbTheme === 'miamor' && window.__bbNetwork !== 'metro') {
                     document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                 }
+                var networkSwitch = document.getElementById('network-switch');
                 if (window.__bbNetwork === 'metro') {
                     document.getElementById('app-logomark').classList.add('is-metro');
                     document.getElementById('app-title').firstChild.textContent = 'METRO';
                     document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
+                    // El banner del desplegable ofrece la red contraria: desde Metro+, vuelve a BizkaiBus+.
+                    networkSwitch.href = '/';
+                    networkSwitch.classList.add('is-bus');
+                    document.getElementById('network-switch-title').textContent = 'BIZKAIBUS+';
+                    document.getElementById('network-switch-sub').textContent = 'Horarios y tiempo real de Bizkaibus';
                 }
             </script>
             <span class="header-actions">
