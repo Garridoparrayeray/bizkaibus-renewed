@@ -50,11 +50,19 @@ class TimetableController
             $rows = array_map(fn($r) => $r + ['status' => 'scheduled', 'delaySeconds' => 0], $rows);
         }
 
-        $entries = array_map(function ($row) {
+        // Ver StopsController::departures() sobre por qué metro usa la
+        // última parada real en vez del headsign de GTFS.
+        $isMetro = ($config['network'] ?? 'bus') === 'metro';
+
+        $entries = array_map(function ($row) use ($isMetro) {
+            $headsign = $row['headsign'];
+            if ($isMetro && !empty($row['last_stop_name'])) {
+                $headsign = $row['last_stop_name'];
+            }
             return [
                 'tripKey' => $row['line_id'] . '-' . $row['trip_number'] . '-' . $row['first_departure_seconds'],
                 'departure' => Calendar::secondsToHm((int)$row['departure_seconds']),
-                'headsign' => $row['headsign'],
+                'headsign' => $headsign,
                 'status' => $row['status'],
                 'delayMinutes' => ($row['delaySeconds'] ?? 0) !== 0 ? (int)round($row['delaySeconds'] / 60) : 0,
             ];

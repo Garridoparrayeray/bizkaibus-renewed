@@ -18,6 +18,27 @@ class ServiceJourney
      *  de la app justo cuando estuviera "LLEGANDO" sin haber llegado todavía. */
     private const PAST_GRACE_SECONDS = 900;
 
+    /**
+     * El headsign de journey_patterns viene del trip_headsign del GTFS, que
+     * no siempre coincide con la última parada real del recorrido concreto —
+     * verificado con datos reales de Metro Bilbao: 172 de 265 patrones (65%)
+     * tienen headsign distinto de su última parada, incluyendo casos donde
+     * dos trenes con el MISMO headsign salen a la misma hora pero uno de
+     * ellos en realidad se queda corto (p.ej. "Etxebarri" a las 06:00 dos
+     * veces: uno llega a Etxebarri de verdad, el otro solo hasta Indautxu).
+     * En Bizkaibus esta discrepancia es aún más frecuente (95%) pero ahí es
+     * esperada — el headsign es el destino comercial anunciado del
+     * recorrido, no necesariamente la última parada de cada variante. Por
+     * eso este dato se calcula siempre pero cada red decide en el frontend
+     * si usarlo (Metro+) o seguir mostrando el headsign de GTFS (bus).
+     */
+    private const LAST_STOP_NAME_SUBQUERY = '(
+        SELECT s2.name FROM passing_times pt2
+        JOIN stops s2 ON s2.id = pt2.stop_id
+        WHERE pt2.service_journey_id = sj.id
+        ORDER BY pt2.seq_order DESC LIMIT 1
+    )';
+
     public function __construct(private \PDO $pdo)
     {
     }
@@ -37,7 +58,8 @@ class ServiceJourney
         $stmt = $this->pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
                    l.code AS line_code, l.name AS line_name, jp.headsign,
-                   pt.arrival_seconds, pt.departure_seconds
+                   pt.arrival_seconds, pt.departure_seconds,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
             JOIN service_calendars sc ON sc.id = sj.calendar_id
@@ -76,7 +98,8 @@ class ServiceJourney
 
         $stmt = $this->pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.id AS service_journey_id,
-                   jp.headsign, jp.id AS journey_pattern_id, pt.departure_seconds
+                   jp.headsign, jp.id AS journey_pattern_id, pt.departure_seconds,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
             JOIN service_calendars sc ON sc.id = sj.calendar_id
@@ -102,7 +125,8 @@ class ServiceJourney
     {
         $stmt = $this->pdo->prepare('
             SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,
-                   l.code AS line_code, l.name AS line_name, jp.headsign
+                   l.code AS line_code, l.name AS line_name, jp.headsign,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
             FROM service_journeys sj
             JOIN lines l ON l.id = sj.line_id
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id

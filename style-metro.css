@@ -80,6 +80,7 @@ body {
 .pill:hover { background: var(--primary-tint); border-color: var(--primary-light); }
 .pill svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--primary); }
 .pill small { display: block; font-weight: 500; opacity: 0.8; color: var(--text-secondary); font-size: 0.75em; white-space: normal; }
+.pill small.pill-hint { font-style: italic; }
 
 .status-dot {
     display: inline-block; width: 9px; height: 9px; border-radius: 50%;

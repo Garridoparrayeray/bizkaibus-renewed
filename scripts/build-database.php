@@ -478,11 +478,23 @@ function loadTrips(ZipArchive $zip): array
 }
 
 /**
- * Recorre stop_times.txt (114MB / ~1.15M filas) en streaming, guardando solo
- * las filas del trip_id actual (el fichero viene agrupado por trip_id) y
- * devolviendo un grupo [tripId, filas] cada vez. Nunca carga el fichero
- * entero en memoria. Se usa en las dos pasadas de processStopTimes(), así
- * que el fichero se lee dos veces en vez de guardarlo entero una sola vez.
+ * Recorre stop_times.txt (hasta ~114MB / ~1.15M filas en Bizkaibus) y agrupa
+ * todas las filas de cada trip_id, devolviendo un grupo [tripId, filas] por
+ * cada trip_id distinto.
+ *
+ * NO asume que el fichero viene ordenado con cada trip_id en un bloque
+ * contiguo — verificado con datos reales de Metro Bilbao que NO es así: el
+ * mismo trip_id puede reaparecer en bloques separados a lo largo del
+ * fichero. Una versión anterior de este código sí asumía contigüidad
+ * (cerraba el grupo en cuanto veía cambiar el trip_id) y descartaba como
+ * "duplicado" cualquier reaparición posterior del mismo trip_id — perdiendo
+ * en silencio las paradas de ese segundo bloque. Eso producía
+ * journey_patterns truncados (p.ej. un trip real de 29 paradas quedaba
+ * registrado con solo las 22 primeras) que además, por mala suerte,
+ * coincidían en representante con otros trips que sí tenían la secuencia
+ * completa — mostrando el mismo destino repetido dos veces a la misma hora
+ * con recorridos de longitud distinta. Por eso aquí se agrupa por trip_id de
+ * verdad (un array indexado por trip_id) antes de generar nada.
  *
  * @return Generator<string, array<int, array{seqOrder:int, stopId:int, arrival:?int, departure:?int}>>
  */
@@ -495,8 +507,7 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
     }
     $header = fgetcsv($stream, 0, ',', '"', '\\');
 
-    $currentTripId = null;
-    $buffer = [];
+    $byTrip = [];
 
     while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
         if ($row === null || $row === [null] || count($row) !== count($header)) {
@@ -505,31 +516,25 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
         $assoc = array_combine($header, $row);
         $tripId = $assoc['trip_id'];
 
-        if ($tripId !== $currentTripId) {
-            if ($currentTripId !== null) {
-                yield $currentTripId => $buffer;
-            }
-            $currentTripId = $tripId;
-            $buffer = [];
-        }
-
         $arrival = $assoc['arrival_time'] !== '' ? timeToSeconds($assoc['arrival_time']) : null;
         $departure = $assoc['departure_time'] !== '' ? timeToSeconds($assoc['departure_time']) : $arrival;
         if ($arrival === null) {
             $arrival = $departure;
         }
 
-        $buffer[] = [
+        $byTrip[$tripId][] = [
             'seqOrder' => (int)$assoc['stop_sequence'],
             'stopId' => (int)$assoc['stop_id'],
             'arrival' => $arrival,
             'departure' => $departure,
         ];
     }
-    if ($currentTripId !== null) {
-        yield $currentTripId => $buffer;
-    }
     fclose($stream);
+
+    foreach ($byTrip as $tripId => $buffer) {
+        yield $tripId => $buffer;
+        unset($byTrip[$tripId]); // libera memoria trip a trip, no todo de golpe al final
+    }
 }
 
 /**

@@ -37,6 +37,29 @@ class Stop
         return $stmt->fetchAll();
     }
 
+    /**
+     * Destinos reales (headsigns de patrón) que pasan por esta parada, hasta
+     * $limit valores distintos — usado como pista para diferenciar paradas
+     * que comparten nombre+zona exacta (p.ej. dos andenes de la misma
+     * marquesina, uno de ida y otro de vuelta) en los resultados de búsqueda.
+     *
+     * @return array<int, string>
+     */
+    public function headsignsFor(int $stopId, int $limit = 2): array
+    {
+        $stmt = $this->pdo->prepare('
+            SELECT DISTINCT jp.headsign
+            FROM journey_pattern_stops jps
+            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+            WHERE jps.stop_id = ? AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
+            LIMIT ?
+        ');
+        $stmt->bindValue(1, $stopId, \PDO::PARAM_INT);
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    }
+
     /** @return array<int, array{id:int,code:string,name:string}> líneas que pasan por esta parada */
     public function linesServing(int $stopId): array
     {
