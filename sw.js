@@ -1,20 +1,30 @@
-// Sin sufijo de versión: el fetch de abajo es network-first, así que las
-// entradas se actualizan solas. Solo cambiar esto si se toca SHELL_FILES.
-const CACHE_NAME = 'bizkaibus-shell';
+// El sufijo de versión fuerza a que activate() borre cualquier caché anterior
+// (ver más abajo) — sin él, un dispositivo que instaló el SW antes de añadir
+// Metro+ puede quedarse sirviendo /index.html o js/app.js viejos desde caché
+// si la red falla o tarda, aunque el fetch de abajo sea network-first: la
+// navegación inicial de una PWA instalada no siempre pasa por ese camino en
+// todos los navegadores. Subir este número cada vez que cambien SHELL_FILES
+// o el propio HTML/JS del shell de forma significativa.
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const SHELL_FILES = [
     '/',
     '/index.html',
     '/style.css',
     '/style-pro.css',
+    '/style-metro.css',
     '/js/api.js',
     '/js/app.js',
     '/manifest.json',
     '/manifest-miamor.json',
+    '/manifest-metro.json',
     '/miamor.html',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
     '/icons-pro/icon-192.png',
     '/icons-pro/icon-512.png',
+    '/icons-metro/icon-192.png',
+    '/icons-metro/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
