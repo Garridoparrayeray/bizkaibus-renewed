@@ -124,11 +124,13 @@ body {
 
 /* Header */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-/* Grid de una columna max-content: #home-link y #network-switch son del
-   mismo ancho — el más ancho de los dos fija la columna, el más corto se
-   estira a igualarlo. Así el banner desplegado queda alineado con el
-   bloque de arriba en vez de medir solo lo que su propio contenido necesita. */
-.home-link-wrap { display: inline-grid; grid-template-columns: max-content; }
+/* inline-grid de una columna max-content fija el ancho al del contenido más
+   ancho de los dos (home-link o el banner) — #network-switch lo hereda vía
+   width:100% aunque esté en position:absolute (ver más abajo), así el
+   banner desplegado mide lo mismo que el bloque de arriba. position:relative
+   ancla ese absolute; el header no recorta overflow, así que el banner
+   escapa visualmente del bloque de color del header. */
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
     display: block; text-align: left; cursor: pointer; font-family: inherit;
@@ -367,16 +369,23 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
    un menú de texto. Colores fijos (no las variables de tema) porque este
    banner siempre representa a la red contraria. */
 #network-switch {
+    /* min-width evita que el banner quede comprimido cuando el ancho de
+       .home-link-wrap de la página actual es menor que lo que necesita el
+       texto de la OTRA app. Ver style-pro.css para la explicación completa. */
+    position: absolute; top: 100%; left: 0; width: 100%; min-width: min(260px, calc(100vw - 40px)); z-index: 40;
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 16px;
     border-radius: 20px;
     text-decoration: none;
     background: #C8102E;
-    transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease;
+    box-shadow: var(--shadow-soft);
+    opacity: 0;
+    transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, opacity 0.18s ease;
 }
 #network-switch.open {
-    max-height: 80px; padding: 14px 16px; margin-top: 10px;
+    /* margin-top más generoso: "rozan" sin quedar uno dentro del otro. */
+    max-height: 150px; padding: 14px 16px; margin-top: 14px; opacity: 1;
 }
 #network-switch.is-bus { background: var(--pink-dark); }
 .network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
@@ -385,7 +394,7 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
 .network-switch-logomark .logo-bus { display: none; }
 #network-switch.is-bus .network-switch-logomark .logo-metro { display: none; }
 #network-switch.is-bus .network-switch-logomark .logo-bus { display: block; }
-.network-switch-text { display: flex; flex-direction: column; }
+.network-switch-text { display: flex; flex-direction: column; min-width: 0; }
 #network-switch-title { font-size: 1.05rem; font-weight: 800; color: white; }
 #network-switch-sub { font-size: 0.76rem; color: rgba(255, 255, 255, 0.85); font-weight: 500; }
 
