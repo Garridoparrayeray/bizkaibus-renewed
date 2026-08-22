@@ -38,6 +38,15 @@ class TimetableController
 
         $hourFrom = $this->hmToSeconds($request->query('hourFrom', '00:00'));
         $hourTo = $this->hmToSeconds($request->query('hourTo', '23:59'));
+        // Un rango tipo 23:00-02:00 cruza medianoche: sin este ajuste, "hasta
+        // las 02:00" (7200s) sería siempre menor que "desde las 23:00"
+        // (82800s) y el BETWEEN nunca encontraría nada. Se interpreta como
+        // que la hora de fin cae en la madrugada del día siguiente — igual
+        // que el propio GTFS representa esas salidas con segundos >86400
+        // (ver ServiceJourney/Calendar::secondsToHm).
+        if ($hourTo < $hourFrom) {
+            $hourTo += 24 * 3600;
+        }
 
         $journeyModel = new ServiceJourney($pdo);
         $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo);

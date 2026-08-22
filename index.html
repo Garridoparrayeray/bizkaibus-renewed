@@ -137,19 +137,6 @@
                 if (isMiamorActive) {
                     document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                 }
-
-                // Botón discreto del footer para saltar entre el tema normal y
-                // el tema mi amor, conservando la red actual (bus o metro).
-                var redSuffix = window.__bbNetwork === 'metro' ? '?red=metro' : '';
-                var themeToggleLink = document.getElementById('theme-toggle-link');
-                if (isMiamorActive) {
-                    themeToggleLink.href = '/' + redSuffix;
-                    themeToggleLink.textContent = 'Versión normal';
-                } else {
-                    var joiner = redSuffix ? '&' : '?';
-                    themeToggleLink.href = '/' + redSuffix + joiner + 'tema=miamor';
-                    themeToggleLink.textContent = 'Versión girlie';
-                }
             </script>
             <span class="header-actions">
                 <button id="favorites-open" class="btn-icon" type="button" aria-label="Abrir favoritos">
@@ -244,8 +231,8 @@
 
             <div class="filters">
                 <input id="filter-date" type="date">
-                <input id="filter-hour-from" type="time" value="06:00">
-                <input id="filter-hour-to" type="time" value="23:59">
+                <input id="filter-hour-from" type="time">
+                <input id="filter-hour-to" type="time">
             </div>
 
             <div class="table-scroll">
@@ -278,7 +265,32 @@
             <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
         </p>
     </footer>
-    <a id="theme-toggle-link" href="#" class="theme-toggle-link">Versión girlie</a>
+    <a id="theme-toggle-link" href="#" class="theme-toggle-link" aria-label="Cambiar tema"></a>
+    <script>
+        // El elemento debe existir ya en el DOM antes de rellenarlo — este
+        // script va justo después, no en el <head>/<header> (que corren
+        // antes de que el <body> termine de parsearse y dejaban el enlace
+        // sin href, con document.getElementById devolviendo null).
+        (function () {
+            var isMiamorActive = window.__bbTheme === 'miamor';
+            var redSuffix = '';
+            if (window.__bbNetwork === 'metro') {
+                redSuffix = '?red=metro';
+            }
+            var themeToggleLink = document.getElementById('theme-toggle-link');
+            if (isMiamorActive) {
+                themeToggleLink.href = '/' + redSuffix;
+                themeToggleLink.setAttribute('aria-label', 'Volver al tema normal');
+            } else {
+                var joiner = '?';
+                if (redSuffix) {
+                    joiner = '&';
+                }
+                themeToggleLink.href = '/' + redSuffix + joiner + 'tema=miamor';
+                themeToggleLink.setAttribute('aria-label', 'Cambiar al tema mi amor');
+            }
+        })();
+    </script>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">

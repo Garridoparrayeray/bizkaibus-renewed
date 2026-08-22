@@ -294,18 +294,25 @@ tbody tr:last-child td { border-bottom: none; }
 }
 #dev-footer a:hover { text-decoration: underline; }
 
-/* Botón discreto para saltar al tema mi amor — mismo rosa/glassmorphism que
-   style.css, para que se note qué activa antes incluso de tocarlo. */
+/* Botón casi invisible para saltar al tema mi amor: un punto pequeño fijo en
+   la esquina, mismo rosa/glassmorphism que style.css. Sin texto — solo un
+   corazón diminuto que aparece al pasar el ratón/tocar, para no competir
+   visualmente con el resto de la interfaz. */
 .theme-toggle-link {
-    display: block; width: fit-content; margin: 14px auto 0;
-    padding: 6px 14px; border-radius: 20px; text-decoration: none;
-    font-size: 0.72rem; font-weight: 600; color: #db2777;
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.7);
+    position: fixed; right: 10px; bottom: 10px; z-index: 30;
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; text-decoration: none;
+    background: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    transition: transform 0.15s ease;
+    opacity: 0.35; transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.theme-toggle-link:hover { transform: scale(1.05); }
+.theme-toggle-link::before {
+    content: '♥'; font-size: 0.7rem; line-height: 1; color: #db2777;
+}
+.theme-toggle-link:hover, .theme-toggle-link:focus-visible {
+    opacity: 1; transform: scale(1.15);
+}
 
 /* Modales (detalle de bus / horario oficial) */
 dialog#schedule-modal {
