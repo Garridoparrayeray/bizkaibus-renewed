@@ -110,8 +110,12 @@ body {
    max-content en pantallas muy estrechas — sin esto, un hijo flex nunca
    encoge más allá del ancho intrínseco de su contenido (min-width:auto es
    el valor por defecto en flexbox), así que en móviles de ~390px el título
-   empujaba a los botones de favoritos/menú fuera del header. */
-.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; overflow: hidden; }
+   empujaba a los botones de favoritos/menú fuera del header.
+   SIN overflow:hidden aquí — el banner (#network-switch) es hijo directo
+   de este bloque y necesita escapar hacia abajo sin recortarse (ver más
+   abajo); el truncado con ellipsis del título ya lo hace hgroup, que es
+   más específico y no afecta al banner. */
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
     display: flex; align-items: center; gap: 12px; min-width: 0;

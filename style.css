@@ -130,8 +130,11 @@ header { display: flex; justify-content: space-between; align-items: center; mar
    width:100% aunque esté en position:absolute (ver más abajo), así el
    banner desplegado mide lo mismo que el bloque de arriba. position:relative
    ancla ese absolute; el header no recorta overflow, así que el banner
-   escapa visualmente del bloque de color del header. */
-.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; overflow: hidden; }
+   escapa visualmente del bloque de color del header.
+   SIN overflow:hidden aquí — el banner (#network-switch) es hijo directo
+   de este bloque y necesita escapar hacia abajo sin recortarse; el
+   truncado con ellipsis del título ya lo hace hgroup, más específico. */
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0; min-width: 0;
     display: block; text-align: left; cursor: pointer; font-family: inherit;
