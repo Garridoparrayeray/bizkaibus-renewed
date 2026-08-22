@@ -294,6 +294,19 @@ tbody tr:last-child td { border-bottom: none; }
 }
 #dev-footer a:hover { text-decoration: underline; }
 
+/* Botón discreto para saltar al tema mi amor — mismo rosa/glassmorphism que
+   style.css, para que se note qué activa antes incluso de tocarlo. */
+.theme-toggle-link {
+    display: block; width: fit-content; margin: 14px auto 0;
+    padding: 6px 14px; border-radius: 20px; text-decoration: none;
+    font-size: 0.72rem; font-weight: 600; color: #db2777;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    transition: transform 0.15s ease;
+}
+.theme-toggle-link:hover { transform: scale(1.05); }
+
 /* Modales (detalle de bus / horario oficial) */
 dialog#schedule-modal {
     border: 1px solid var(--border); border-radius: 4px; padding: 30px;
