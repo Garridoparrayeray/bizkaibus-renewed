@@ -6,6 +6,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BizkaiBus+">
+    <!-- Título y Open Graph estáticos por defecto — el script de abajo los
+         sobrescribe (document.write) en navegadores reales según tema/red,
+         pero los bots que generan la vista previa al compartir un enlace
+         (WhatsApp, Telegram, X, LinkedIn...) no ejecutan JavaScript: sin
+         esto, veían el HTML crudo sin ningún <title> real y algunos
+         terminaban mostrando literalmente el string sin interpretar. -->
+    <title>BizkaiBus+</title>
+    <meta name="description" content="Horarios y tiempo real de Bizkaibus, sin vueltas.">
+    <meta property="og:title" content="BizkaiBus+">
+    <meta property="og:description" content="Horarios y tiempo real de Bizkaibus, sin vueltas.">
+    <meta property="og:image" content="https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png">
+    <meta property="og:type" content="website">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script>
         (function () {
