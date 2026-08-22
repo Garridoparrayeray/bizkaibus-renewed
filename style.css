@@ -225,6 +225,7 @@ header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin:
 /* Tarjeta Live */
 .live-card { padding: 30px; position: relative; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
 .live-card header { margin-bottom: 1rem; }
+#live-line { color: var(--pink-dark); font-weight: 700; margin: 0 0 4px; }
 #live-headsign { color: #886; font-weight: 600; margin: 0 0 10px; }
 .time-display {
     display: block; border: none; background: none; padding: 0; margin: 0;
@@ -249,10 +250,51 @@ header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin:
     background: rgba(255, 255, 255, 0.5); border: none; border-radius: 14px;
     padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
 }
+#live-more-list button:hover { background: rgba(255, 255, 255, 0.8); }
 #live-more-list strong { color: var(--pink-dark); font-size: 0.85rem; }
 #live-more-list span:nth-child(2) { flex: 1; color: #666; font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #live-more-list span:last-child { color: var(--pink); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 #live-empty { text-align: center; color: #886; opacity: 0.7; font-weight: 600; margin: 0 0 20px; }
+
+/* Panel de andén (Metro+): faltaba por completo en este tema — se veía sin
+   estilo alguno al activar mi amor en Metro+. Mismo glassmorphism rosa que
+   el resto de tarjetas, con las columnas en un rosa oscuro translúcido en
+   vez del gris corporativo de style-metro.css. */
+.platform-panel {
+    background: var(--glass-bg); border: var(--glass-border); border-radius: 24px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: 30px; margin: 20px 0; box-shadow: var(--shadow-soft);
+    animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.platform-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+#platform-panel-stop { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--pink-dark); }
+.platform-timetable-link {
+    display: block; width: 100%; margin-bottom: 14px;
+    border: none; background: rgba(255, 255, 255, 0.5);
+    padding: 10px; border-radius: 14px; font-weight: 700; color: var(--pink-dark);
+    cursor: pointer; font-family: inherit; font-size: 0.85rem;
+}
+#platform-columns { display: flex; flex-direction: column; gap: 14px; }
+
+.platform-column { background: var(--pink-dark); border-radius: 18px; padding: 18px; color: white; }
+.platform-column-headsign { font-size: 0.78rem; color: rgba(255, 255, 255, 0.75); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 8px; }
+.platform-column-empty { font-size: 0.85rem; color: rgba(255, 255, 255, 0.65); font-weight: 500; margin: 0; }
+.platform-column .time-display strong { font-size: 3rem; color: white; }
+.platform-column .time-display span { color: rgba(255, 255, 255, 0.85); }
+.platform-column-next { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.platform-column-scheduled { font-size: 0.8rem; color: rgba(255, 255, 255, 0.8); font-weight: 600; margin: 0 0 10px; }
+
+.platform-column-list { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.2); max-height: 200px; overflow-y: auto; }
+.platform-column-list li { margin-bottom: 6px; }
+.platform-column-list li:last-child { margin-bottom: 0; }
+.platform-column-list button {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.12); border: none; border-radius: 12px;
+    padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
+}
+.platform-column-list button:hover { background: rgba(255, 255, 255, 0.22); }
+.platform-column-list span:first-child { flex: 1; color: rgba(255, 255, 255, 0.85); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.platform-column-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 
 /* Tabla horaria */
 .timetable { padding: 25px; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
@@ -446,4 +488,15 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
         border-radius: 24px 0 0 24px; border-right: none; border-bottom: var(--glass-border);
         animation: slideInRight 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
+
+    /* Metro+ con mi amor: mismo layout de una sola columna centrada que
+       style-metro.css (sin mapa, panel de andén con sitio real para dos
+       columnas lado a lado) — el grid de dos columnas de arriba es solo
+       para bus. */
+    html.is-metro .content-grid { display: block; }
+    html.is-metro .live-column { max-width: 1100px; margin: 0 auto; }
+    html.is-metro #timetable-section { max-width: 1100px; margin: 20px auto 0; }
+    html.is-metro #search-form { margin-left: auto; margin-right: auto; }
+    html.is-metro #platform-columns { flex-direction: row; }
+    html.is-metro .platform-column { flex: 1; min-width: 0; }
 }
