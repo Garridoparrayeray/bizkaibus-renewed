@@ -1,6 +1,7 @@
 <?php
 // Punto de entrada solo para local con `php -S localhost:8000 dev-router.php`.
-// Imita el rewrite de vercel.json (/api/* -> api/index.php) que aplica Vercel en producción.
+// Imita los rewrites de vercel.json (/api/* -> api/index.php, / -> index.php)
+// que aplica Vercel en producción.
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
@@ -13,5 +14,4 @@ if (str_starts_with($uri, '/api/')) {
     return true;
 }
 
-header('Content-Type: text/html; charset=utf-8');
-readfile(__DIR__ . '/index.html');
+require __DIR__ . '/index.php';
