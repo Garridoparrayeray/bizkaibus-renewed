@@ -376,9 +376,12 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 16px;
-    border-radius: 20px;
+    border-radius: 0;
     text-decoration: none;
-    background: #C8102E;
+    /* En mi amor el banner es siempre rosa (el color del propio tema), a
+       diferencia de los temas planos donde cambia según la red destino —
+       aquí mi amor es el tema activo, no algo exclusivo de una red. */
+    background: var(--pink-dark);
     box-shadow: var(--shadow-soft);
     opacity: 0;
     transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, opacity 0.18s ease;
@@ -387,7 +390,6 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
     /* margin-top más generoso: "rozan" sin quedar uno dentro del otro. */
     max-height: 150px; padding: 14px 16px; margin-top: 14px; opacity: 1;
 }
-#network-switch.is-bus { background: var(--pink-dark); }
 .network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
 .network-switch-logomark svg { width: 100%; height: 100%; }
 .network-switch-logomark .logo-metro { display: block; }
