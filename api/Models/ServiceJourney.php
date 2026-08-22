@@ -169,7 +169,10 @@ class ServiceJourney
         ');
         $stmt->execute([$lineId, $tripNumber, $firstDepartureSeconds]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        if (!$row) {
+            return null;
+        }
+        return $row;
     }
 
     /**
@@ -185,7 +188,10 @@ class ServiceJourney
         ');
         $stmt->execute([$serviceJourneyId, $seqOrder]);
         $value = $stmt->fetchColumn();
-        return $value === false ? null : (int)$value;
+        if ($value === false) {
+            return null;
+        }
+        return (int)$value;
     }
 
     /** @return array<int, array{seq_order:int, stop_id:int, name:string, arrival_seconds:int, departure_seconds:int}> */

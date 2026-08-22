@@ -60,6 +60,10 @@ class Router
             return;
         }
 
-        Response::error($matchedPath ? 'Method not allowed' : 'Not found', $matchedPath ? 405 : 404);
+        if ($matchedPath) {
+            Response::error('Method not allowed', 405);
+        } else {
+            Response::error('Not found', 404);
+        }
     }
 }

@@ -241,6 +241,12 @@ header p { font-size: 0.82rem; color: rgba(255, 255, 255, 0.8); font-weight: 500
 }
 .platform-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 #platform-panel-stop { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text); }
+.platform-timetable-link {
+    display: block; width: 100%; margin-bottom: 14px;
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 10px; border-radius: 3px; font-weight: 600; color: var(--primary);
+    cursor: pointer; font-family: inherit; font-size: 0.85rem;
+}
 #platform-columns { display: flex; flex-direction: column; gap: 14px; }
 
 .platform-column { background: var(--primary-dark); border-radius: 3px; padding: 18px; color: white; }
@@ -416,7 +422,10 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
 
-    .content-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+    /* Columna izquierda más ancha que en bus (520px vs 380px): sin mapa que
+       compita por espacio en la columna derecha, y el panel de andén
+       necesita sitio real para dos cuadros lado a lado sin comprimirse. */
+    .content-grid { display: grid; grid-template-columns: 520px 1fr; gap: 20px; align-items: start; }
     .live-column { display: flex; flex-direction: column; }
 
     #search-form { max-width: 380px; }

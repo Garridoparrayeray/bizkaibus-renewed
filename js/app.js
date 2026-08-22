@@ -65,6 +65,7 @@
         platformPanelStop: document.getElementById('platform-panel-stop'),
         platformFavorite: document.getElementById('platform-favorite'),
         platformClose: document.getElementById('platform-close'),
+        platformTimetableLink: document.getElementById('platform-timetable-link'),
         platformColumns: document.getElementById('platform-columns'),
         timetableSection: document.getElementById('timetable-section'),
         timetableFavorite: document.getElementById('timetable-favorite'),
@@ -407,6 +408,12 @@
             const columnDepartures = departures.filter((d) => d.direction === direction.key);
             el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
         }
+        // "Ver horario completo" lleva a Consultar Horarios de la única línea
+        // de metro — el lineId sale de las propias salidas cargadas, sin
+        // asumir un id fijo.
+        const lineId = departures[0]?.lineId;
+        el.platformTimetableLink.disabled = lineId === undefined;
+        el.platformTimetableLink.dataset.lineId = lineId ?? '';
     }
 
     // ---- Línea / horario ----
@@ -926,6 +933,9 @@
     el.liveClose.addEventListener('click', closeLiveCard);
     el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
     el.platformClose.addEventListener('click', closeLiveCard);
+    el.platformTimetableLink.addEventListener('click', () => {
+        if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId);
+    });
     el.timetableFavorite.addEventListener('click', () => toggleFavorite('line', state.currentLine?.id, el.timetableFavorite));
     el.timetableClose.addEventListener('click', closeTimetableSection);
     el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey));

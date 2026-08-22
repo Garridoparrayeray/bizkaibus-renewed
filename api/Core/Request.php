@@ -14,7 +14,11 @@ class Request
 
     public function __construct()
     {
-        $this->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (isset($_SERVER['REQUEST_METHOD'])) {
+            $this->method = $_SERVER['REQUEST_METHOD'];
+        } else {
+            $this->method = 'GET';
+        }
 
         // Este método es robusto para diferentes entornos (Apache, Vercel, local).
         // Primero, busca un parámetro 'path' que el servidor web nos pasa (vía .htaccess).
@@ -25,8 +29,15 @@ class Request
             unset($_GET['path']);
         } else {
             // Si no hay parámetro 'path', usamos el método para el servidor de desarrollo local.
-            $uri = $_SERVER['REQUEST_URI'] ?? '/';
-            $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+            if (isset($_SERVER['REQUEST_URI'])) {
+                $uri = $_SERVER['REQUEST_URI'];
+            } else {
+                $uri = '/';
+            }
+            $path = parse_url($uri, PHP_URL_PATH);
+            if (!$path) {
+                $path = '/';
+            }
             $path = preg_replace('#^/api#', '', $path);
         }
         $this->path = '/' . ltrim($path, '/');
@@ -36,13 +47,18 @@ class Request
 
     public function query(string $key, ?string $default = null): ?string
     {
-        return $this->query[$key] ?? $default;
+        if (isset($this->query[$key])) {
+            return $this->query[$key];
+        }
+        return $default;
     }
 
     public function queryInt(string $key, ?int $default = null): ?int
     {
-        $value = $this->query[$key] ?? null;
-        return $value === null || $value === '' ? $default : (int)$value;
+        if (!isset($this->query[$key]) || $this->query[$key] === '') {
+            return $default;
+        }
+        return (int)$this->query[$key];
     }
 
     /** @return array<string,mixed> */
@@ -50,8 +66,15 @@ class Request
     {
         if (!$this->jsonBodyParsed) {
             $raw = file_get_contents('php://input');
-            $decoded = $raw ? json_decode($raw, true) : null;
-            $this->jsonBody = is_array($decoded) ? $decoded : [];
+            $decoded = null;
+            if ($raw) {
+                $decoded = json_decode($raw, true);
+            }
+            if (is_array($decoded)) {
+                $this->jsonBody = $decoded;
+            } else {
+                $this->jsonBody = [];
+            }
             $this->jsonBodyParsed = true;
         }
         return $this->jsonBody;
@@ -59,6 +82,9 @@ class Request
 
     public function cookie(string $name): ?string
     {
-        return $_COOKIE[$name] ?? null;
+        if (isset($_COOKIE[$name])) {
+            return $_COOKIE[$name];
+        }
+        return null;
     }
 }

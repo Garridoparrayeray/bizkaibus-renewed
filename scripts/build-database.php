@@ -53,15 +53,24 @@ const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 function main(array $argv): void
 {
     $options = parseArgs($argv);
-    $network = $options['network'] ?? 'bus';
+    $network = 'bus';
+    if (isset($options['network'])) {
+        $network = $options['network'];
+    }
     if (!isset(NETWORK_DEFAULTS[$network])) {
         fwrite(STDERR, "Unknown --network=\"$network\" (expected bus|metro)\n");
         exit(1);
     }
     $defaults = NETWORK_DEFAULTS[$network];
 
-    $source = $options['source'] ?? $defaults['source'];
-    $output = $options['output'] ?? $defaults['output'];
+    $source = $defaults['source'];
+    if (isset($options['source'])) {
+        $source = $options['source'];
+    }
+    $output = $defaults['output'];
+    if (isset($options['output'])) {
+        $output = $options['output'];
+    }
     $skipGeocode = isset($options['skip-geocode']) || $defaults['skipGeocode'];
     $agencyId = $defaults['agencyId'];
 
@@ -100,7 +109,10 @@ function main(array $argv): void
     }
 
     // Feed caducado (el operador aún no publicó la siguiente temporada) — abortar en vez de desplegar datos viejos.
-    $feedEndIso = !empty($feedInfo['feed_end_date']) ? gtfsDateToIso($feedInfo['feed_end_date']) : '';
+    $feedEndIso = '';
+    if (!empty($feedInfo['feed_end_date'])) {
+        $feedEndIso = gtfsDateToIso($feedInfo['feed_end_date']);
+    }
     if ($feedEndIso !== '' && $feedEndIso < date('Y-m-d')) {
         fwrite(STDERR, "ERROR: el GTFS terminó el $feedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
         exit(1);
@@ -185,8 +197,13 @@ function geocodeStops(array $stops, bool $skip): array
         return $stops;
     }
 
-    $cache = is_file(GEOCACHE_PATH) ? json_decode((string)file_get_contents(GEOCACHE_PATH), true) : [];
-    $cache = is_array($cache) ? $cache : [];
+    $cache = [];
+    if (is_file(GEOCACHE_PATH)) {
+        $cache = json_decode((string)file_get_contents(GEOCACHE_PATH), true);
+    }
+    if (!is_array($cache)) {
+        $cache = [];
+    }
 
     $clusterKeys = [];
     foreach ($stops as $id => $stop) {
@@ -215,7 +232,10 @@ function geocodeStops(array $stops, bool $skip): array
     file_put_contents(GEOCACHE_PATH, json_encode($cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
     foreach ($stops as $id => &$stop) {
-        $stop['area'] = $cache[$clusterKeys[$id]] ?? '';
+        $stop['area'] = '';
+        if (isset($cache[$clusterKeys[$id]])) {
+            $stop['area'] = $cache[$clusterKeys[$id]];
+        }
     }
     return $stops;
 }
@@ -240,12 +260,29 @@ function reverseGeocode(float $lat, float $lon): string
         return '';
     }
     $data = json_decode($body, true);
-    $address = $data['address'] ?? [];
-    $parts = array_filter([
-        $address['neighbourhood'] ?? null,
-        $address['suburb'] ?? null,
-        $address['town'] ?? $address['city'] ?? $address['village'] ?? null,
-    ]);
+    $address = [];
+    if (isset($data['address'])) {
+        $address = $data['address'];
+    }
+
+    $neighbourhood = null;
+    if (isset($address['neighbourhood'])) {
+        $neighbourhood = $address['neighbourhood'];
+    }
+    $suburb = null;
+    if (isset($address['suburb'])) {
+        $suburb = $address['suburb'];
+    }
+    $townLevel = null;
+    if (isset($address['town'])) {
+        $townLevel = $address['town'];
+    } elseif (isset($address['city'])) {
+        $townLevel = $address['city'];
+    } elseif (isset($address['village'])) {
+        $townLevel = $address['village'];
+    }
+
+    $parts = array_filter([$neighbourhood, $suburb, $townLevel]);
     return implode(', ', array_unique($parts));
 }
 
@@ -332,7 +369,11 @@ function loadRoutes(ZipArchive $zip, ?string $expectedAgencyId): array
 {
     $routes = [];
     foreach (readCsv($zip, 'routes.txt') as $row) {
-        if ($expectedAgencyId !== null && ($row['agency_id'] ?? '') !== $expectedAgencyId) {
+        $agencyId = '';
+        if (isset($row['agency_id'])) {
+            $agencyId = $row['agency_id'];
+        }
+        if ($expectedAgencyId !== null && $agencyId !== $expectedAgencyId) {
             fwrite(STDERR, "  WARNING: skipping route {$row['route_id']} with unexpected agency_id \"{$row['agency_id']}\"\n");
             continue;
         }
@@ -361,7 +402,10 @@ function loadStops(ZipArchive $zip): array
 {
     $stops = [];
     foreach (readCsv($zip, 'stops.txt') as $row) {
-        $locationType = $row['location_type'] ?? '';
+        $locationType = '';
+        if (isset($row['location_type'])) {
+            $locationType = $row['location_type'];
+        }
         if ($locationType !== '' && $locationType !== '0') {
             continue; // no es una parada real (estación/entrada/nodo genérico/andén)
         }
@@ -406,7 +450,11 @@ function loadCalendars(ZipArchive $zip): array
         ];
         $mask = 0;
         foreach ($weekdayColumns as $i => $column) {
-            if ((int)($row[$column] ?? 0) === 1) {
+            $columnValue = 0;
+            if (isset($row[$column])) {
+                $columnValue = (int)$row[$column];
+            }
+            if ($columnValue === 1) {
                 $mask |= (1 << $i);
             }
         }
@@ -421,11 +469,26 @@ function loadCalendars(ZipArchive $zip): array
 
     $calendars = [];
     foreach (array_unique(array_merge(array_keys($ranges), array_keys($activeDates))) as $id) {
-        $dates = $activeDates[$id] ?? [];
-        $weekdayMask = ($baseWeekdayMask[$id] ?? 0) | computeWeekdayMask($dates);
+        $dates = [];
+        if (isset($activeDates[$id])) {
+            $dates = $activeDates[$id];
+        }
+        $baseMask = 0;
+        if (isset($baseWeekdayMask[$id])) {
+            $baseMask = $baseWeekdayMask[$id];
+        }
+        $weekdayMask = $baseMask | computeWeekdayMask($dates);
+
+        $from = '';
+        $to = '';
+        if (isset($ranges[$id])) {
+            $from = $ranges[$id]['from'];
+            $to = $ranges[$id]['to'];
+        }
+
         $calendars[$id] = [
-            'from' => $ranges[$id]['from'] ?? '',
-            'to' => $ranges[$id]['to'] ?? '',
+            'from' => $from,
+            'to' => $to,
             'weekdayMask' => $weekdayMask,
             'activeDateCount' => count(array_filter($dates)),
         ];
@@ -467,10 +530,14 @@ function loadTrips(ZipArchive $zip): array
         if (preg_match('/^trp_[A-Za-z]*\d+_(\d+)_/', $tripId, $m)) {
             $tripNumber = $m[1];
         }
+        $headsign = '';
+        if (isset($row['trip_headsign'])) {
+            $headsign = $row['trip_headsign'];
+        }
         $trips[$tripId] = [
             'routeId' => (int)$row['route_id'],
             'serviceId' => $row['service_id'],
-            'headsign' => $row['trip_headsign'] ?? '',
+            'headsign' => $headsign,
             'tripNumber' => $tripNumber,
         ];
     }
@@ -516,8 +583,14 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
         $assoc = array_combine($header, $row);
         $tripId = $assoc['trip_id'];
 
-        $arrival = $assoc['arrival_time'] !== '' ? timeToSeconds($assoc['arrival_time']) : null;
-        $departure = $assoc['departure_time'] !== '' ? timeToSeconds($assoc['departure_time']) : $arrival;
+        $arrival = null;
+        if ($assoc['arrival_time'] !== '') {
+            $arrival = timeToSeconds($assoc['arrival_time']);
+        }
+        $departure = $arrival;
+        if ($assoc['departure_time'] !== '') {
+            $departure = timeToSeconds($assoc['departure_time']);
+        }
         if ($arrival === null) {
             $arrival = $departure;
         }
@@ -571,7 +644,10 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         }
         $seenTripIds[$tripId] = true;
 
-        $trip = $trips[$tripId] ?? null;
+        $trip = null;
+        if (isset($trips[$tripId])) {
+            $trip = $trips[$tripId];
+        }
         if ($trip === null) {
             $skippedUnknownTrip++;
             continue;
@@ -584,7 +660,15 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
         $stopIds = array_column($buffer, 'stopId');
         $patternKey = 'gp_' . $trip['routeId'] . '_' . substr(md5(implode(',', $stopIds)), 0, 12);
-        $firstDeparture = $buffer[0]['departure'] ?? $buffer[0]['arrival'];
+        $firstDeparture = $buffer[0]['arrival'];
+        if (isset($buffer[0]['departure'])) {
+            $firstDeparture = $buffer[0]['departure'];
+        }
+
+        $weekdayMask = 0;
+        if (isset($calendars[$trip['serviceId']])) {
+            $weekdayMask = $calendars[$trip['serviceId']]['weekdayMask'];
+        }
 
         $signatures[$tripId] = [
             'routeId' => $trip['routeId'],
@@ -592,7 +676,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
             'headsign' => $trip['headsign'],
             'patternKey' => $patternKey,
             'firstDeparture' => $firstDeparture,
-            'weekdayMask' => $calendars[$trip['serviceId']]['weekdayMask'] ?? 0,
+            'weekdayMask' => $weekdayMask,
         ];
     }
 
@@ -619,7 +703,11 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
 
     $byRoutePattern = [];
     foreach ($signatures as $tripId => $sig) {
-        $key = $sig['routeId'] . '|' . ($sig['tripNumber'] ?? '') . '|' . $sig['patternKey'];
+        $tripNumberPart = '';
+        if (isset($sig['tripNumber'])) {
+            $tripNumberPart = $sig['tripNumber'];
+        }
+        $key = $sig['routeId'] . '|' . $tripNumberPart . '|' . $sig['patternKey'];
         $byRoutePattern[$key][] = $tripId;
     }
 
@@ -689,7 +777,10 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     $rowCount = 0;
 
     foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
-        $group = $representatives[$tripId] ?? null;
+        $group = null;
+        if (isset($representatives[$tripId])) {
+            $group = $representatives[$tripId];
+        }
         if ($group === null) {
             continue; // no es el representante elegido de su grupo
         }
@@ -833,10 +924,22 @@ function loadFeedInfo(ZipArchive $zip): array
         return [];
     }
     foreach (readCsv($zip, 'feed_info.txt') as $row) {
+        $feedVersion = '';
+        if (isset($row['feed_version'])) {
+            $feedVersion = $row['feed_version'];
+        }
+        $feedStartDate = '';
+        if (isset($row['feed_start_date'])) {
+            $feedStartDate = $row['feed_start_date'];
+        }
+        $feedEndDate = '';
+        if (isset($row['feed_end_date'])) {
+            $feedEndDate = $row['feed_end_date'];
+        }
         return [
-            'feed_version' => $row['feed_version'] ?? '',
-            'feed_start_date' => $row['feed_start_date'] ?? '',
-            'feed_end_date' => $row['feed_end_date'] ?? '',
+            'feed_version' => $feedVersion,
+            'feed_start_date' => $feedStartDate,
+            'feed_end_date' => $feedEndDate,
         ];
     }
     return [];
@@ -844,9 +947,10 @@ function loadFeedInfo(ZipArchive $zip): array
 
 function insertMeta(PDO $pdo, array $feedInfo): void
 {
-    $publishedDate = isset($feedInfo['feed_version']) && preg_match('/^\d{8}$/', $feedInfo['feed_version'])
-        ? gtfsDateToIso($feedInfo['feed_version'])
-        : date('Y-m-d');
+    $publishedDate = date('Y-m-d');
+    if (isset($feedInfo['feed_version']) && preg_match('/^\d{8}$/', $feedInfo['feed_version'])) {
+        $publishedDate = gtfsDateToIso($feedInfo['feed_version']);
+    }
 
     $stmt = $pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
     $stmt->execute(['schedule_source_published', $publishedDate]);
@@ -873,7 +977,10 @@ function insertStops(PDO $pdo, array $stops): void
 {
     $stmt = $pdo->prepare('INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon) VALUES (?, ?, ?, ?, ?, ?, ?)');
     foreach ($stops as $id => $stop) {
-        $area = $stop['area'] ?? '';
+        $area = '';
+        if (isset($stop['area'])) {
+            $area = $stop['area'];
+        }
         $stmt->execute([$id, $stop['name'], normalize($stop['name']), $area, normalize($area), $stop['lat'], $stop['lon']]);
     }
 }
