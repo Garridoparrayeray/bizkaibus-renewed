@@ -53,6 +53,15 @@
                 title += ' | Para el amor de mi vida';
             }
 
+            // Clase en <html> (existe siempre, a diferencia de <body> que
+            // este script todavía no ha alcanzado) — permite que style.css
+            // (compartido entre bus y metro en el tema mi amor) diferencie
+            // el layout de escritorio de Metro+ del de bus sin depender de JS
+            // en tiempo de ejecución para cada regla.
+            if (isMetro) {
+                document.documentElement.classList.add('is-metro');
+            }
+
             document.write(
                 '<title>' + title + '</title>' +
                 '<link rel="manifest" href="' + manifest + '">' +
