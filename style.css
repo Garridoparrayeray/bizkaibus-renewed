@@ -173,6 +173,14 @@ h1 {
     -webkit-background-clip: text; background-clip: text; color: transparent;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* El "+" inclinado, igual que en style-pro.css/style-metro.css — reseteo
+   background-clip/color heredados del degradado del h1 para que el "+"
+   se vea sólido, no transparente con el fondo clippeado. */
+#app-title-mark {
+    background: none; -webkit-background-clip: unset; background-clip: unset;
+    color: var(--pink-light); font-size: 1.15em; font-weight: 500;
+    display: inline-block; transform: rotate(-8deg) translateY(-2px);
+}
 header p {
     font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin: 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
