@@ -137,6 +137,19 @@
                 if (isMiamorActive) {
                     document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                 }
+
+                // Botón discreto del footer para saltar entre el tema normal y
+                // el tema mi amor, conservando la red actual (bus o metro).
+                var redSuffix = window.__bbNetwork === 'metro' ? '?red=metro' : '';
+                var themeToggleLink = document.getElementById('theme-toggle-link');
+                if (isMiamorActive) {
+                    themeToggleLink.href = '/' + redSuffix;
+                    themeToggleLink.textContent = 'Versión normal';
+                } else {
+                    var joiner = redSuffix ? '&' : '?';
+                    themeToggleLink.href = '/' + redSuffix + joiner + 'tema=miamor';
+                    themeToggleLink.textContent = 'Versión girlie';
+                }
             </script>
             <span class="header-actions">
                 <button id="favorites-open" class="btn-icon" type="button" aria-label="Abrir favoritos">
@@ -265,6 +278,7 @@
             <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
         </p>
     </footer>
+    <a id="theme-toggle-link" href="#" class="theme-toggle-link">Versión girlie</a>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">

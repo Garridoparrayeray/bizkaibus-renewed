@@ -309,6 +309,19 @@ tbody tr:last-child td { border-bottom: none; }
 }
 #dev-footer a:hover { text-decoration: underline; }
 
+/* Botón discreto para saltar al tema mi amor — mismo rosa/glassmorphism que
+   style.css, para que se note qué activa antes incluso de tocarlo. */
+.theme-toggle-link {
+    display: block; width: fit-content; margin: 14px auto 0;
+    padding: 6px 14px; border-radius: 20px; text-decoration: none;
+    font-size: 0.72rem; font-weight: 600; color: #db2777;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    transition: transform 0.15s ease;
+}
+.theme-toggle-link:hover { transform: scale(1.05); }
+
 /* Modales (detalle de trayecto / horario oficial) */
 dialog#schedule-modal {
     border: 1px solid var(--border); border-radius: 4px; padding: 30px;
@@ -422,13 +435,15 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
 
-    /* Columna izquierda más ancha que en bus (520px vs 380px): sin mapa que
-       compita por espacio en la columna derecha, y el panel de andén
-       necesita sitio real para dos cuadros lado a lado sin comprimirse. */
-    .content-grid { display: grid; grid-template-columns: 520px 1fr; gap: 20px; align-items: start; }
-    .live-column { display: flex; flex-direction: column; }
+    /* A diferencia de bus, Metro+ no tiene mapa ni columna lateral fija: una
+       sola columna centrada, del mismo ancho que el header (1100px), con el
+       panel de andén arriba y "Consultar Horarios" debajo al abrirse — no
+       lado a lado. */
+    .content-grid { display: block; }
+    .live-column { display: flex; flex-direction: column; max-width: 1100px; margin: 0 auto; }
+    #timetable-section { max-width: 1100px; margin: 20px auto 0; }
 
-    #search-form { max-width: 380px; }
+    #search-form { max-width: 380px; margin-left: auto; margin-right: auto; }
 
     #favorites-panel {
         position: static; transform: none; width: auto; max-width: none;

@@ -137,6 +137,18 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 }
 #app-logomark { display: none; }
 #dev-footer { display: none; }
+
+/* Botón discreto para volver al tema normal — mismo hueco visual que ocupa
+   en style-pro.css/style-metro.css, con el glass ya propio de este tema. */
+.theme-toggle-link {
+    display: block; width: fit-content; margin: 20px auto 0;
+    padding: 6px 14px; border-radius: 20px; text-decoration: none;
+    font-size: 0.72rem; font-weight: 600; color: var(--pink-dark);
+    background: var(--glass-bg); border: var(--glass-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    transition: transform 0.15s ease;
+}
+.theme-toggle-link:hover { transform: scale(1.05); }
 h1 {
     font-size: 2.2rem; font-weight: 800; margin: 0;
     background: linear-gradient(135deg, var(--pink) 0%, #9333ea 100%);
