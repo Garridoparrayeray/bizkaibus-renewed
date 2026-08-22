@@ -391,7 +391,12 @@
                 const li = document.createElement('li');
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.innerHTML = `<span>${departure.headsign}</span><span>${Math.max(departure.etaMinutes, 0)} min</span>`;
+                // La hora programada (HH:MM) va siempre visible, no solo el
+                // minuto restante redondeado: dos trenes de líneas distintas
+                // (p.ej. hacia Etxebarri y hacia Kabiezes) pueden salir con
+                // segundos de diferencia y redondear al mismo "1 min" —  sin
+                // la hora exacta parecían la misma salida repetida.
+                button.innerHTML = `<span>${departure.headsign}</span><span>${departure.scheduledTime} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
                 button.addEventListener('click', () => openVehicleModal(departure.tripKey));
                 li.appendChild(button);
                 list.appendChild(li);
