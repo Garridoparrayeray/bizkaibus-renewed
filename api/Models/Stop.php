@@ -16,7 +16,10 @@ class Stop
             [$id]
         );
         $row = $stmt->fetch();
-        return $row ?: null;
+        if (!$row) {
+            return null;
+        }
+        return $row;
     }
 
     /** @return array<int, array{id:int,name:string,area:string,lat:float,lon:float}> */
@@ -91,7 +94,11 @@ class Stop
                 throw $e;
             }
             $stmt = $this->pdo->prepare($fallbackSql);
-            $stmt->execute($fallbackArgs ?? $args);
+            if (isset($fallbackArgs)) {
+                $stmt->execute($fallbackArgs);
+            } else {
+                $stmt->execute($args);
+            }
             return $stmt;
         }
     }

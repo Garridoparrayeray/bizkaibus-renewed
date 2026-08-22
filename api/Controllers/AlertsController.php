@@ -16,7 +16,11 @@ class AlertsController
         $lineFilter = $request->query('line');
         if ($lineFilter !== null) {
             $byLine = $client->alertsByLine();
-            Response::json(['alerts' => $byLine[$lineFilter] ?? []]);
+            $alerts = [];
+            if (isset($byLine[$lineFilter])) {
+                $alerts = $byLine[$lineFilter];
+            }
+            Response::json(['alerts' => $alerts]);
             return;
         }
 
