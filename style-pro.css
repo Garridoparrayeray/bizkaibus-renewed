@@ -393,13 +393,14 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
        borde izquierdo del banner coincide exactamente con el borde
        izquierdo real del header, en vez de con el de .home-link-wrap
        (que ya está desplazado hacia dentro por ese padding).
-       min-width evita que el banner quede comprimido cuando el ancho de
-       .home-link-wrap de la página actual (fijado por su propio título,
-       p.ej. "METRO+", más corto) es menor que lo que necesita el texto de
-       LA OTRA app (p.ej. "BIZKAIBUS+ · Horarios y tiempo real de Bizkaibus",
-       más largo) — el banner nunca baja de este ancho, aunque el grid de
-       arriba pida menos. */
-    position: absolute; top: 100%; left: -14px; width: 100%; min-width: min(260px, calc(100vw - 40px)); z-index: 40;
+       El min-width real vive en la regla .open de abajo, no aquí: puesto
+       aquí (estado cerrado) participaba en el cálculo de max-content del
+       grid de .home-link-wrap y forzaba el header entero a un ancho mínimo
+       de 260px SIEMPRE, aunque el banner estuviera oculto — en pantallas
+       de ~390px de ancho eso dejaba sitio de sobra para el logo+título pero
+       muy poco para el resto del header (favoritos + menú hamburguesa),
+       que acababan desbordando el borde redondeado del header verde. */
+    position: absolute; top: 100%; left: -14px; width: 100%; z-index: 40;
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 14px;
@@ -417,8 +418,16 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
        logo+título de la app actual, en móviles pequeños.
        margin-top más generoso: "rozan" sin quedar uno pegado dentro del
        otro, con un hueco claro entre el bloque de color del header y el
-       banner (antes eran solo 8px, casi sin separación visual). */
+       banner (antes eran solo 8px, casi sin separación visual).
+       min-width solo aquí, en el estado abierto: evita que el banner quede
+       comprimido cuando el ancho de .home-link-wrap de la página actual
+       (fijado por su propio título, p.ej. "METRO+", más corto) es menor que
+       lo que necesita el texto de LA OTRA app (p.ej. "BIZKAIBUS+ · Horarios
+       y tiempo real de Bizkaibus", más largo) — el banner nunca baja de
+       este ancho. Puesto solo en .open no afecta al layout del header en su
+       estado normal (ver comentario en la regla base de arriba). */
     max-height: 150px; padding: 14px; margin-top: 14px; opacity: 1;
+    min-width: min(260px, calc(100vw - 40px));
 }
 #network-switch.is-bus { background: #01573C; }
 .network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }

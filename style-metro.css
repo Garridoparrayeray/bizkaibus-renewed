@@ -404,12 +404,12 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
    un menú de texto. Colores fijos (no las variables --primary del tema
    activo) porque este banner siempre representa a la red contraria. */
 #network-switch {
-    /* left:-14px compensa el padding horizontal del header (14px). min-width
-       evita que el banner quede comprimido cuando el ancho de
-       .home-link-wrap de la página actual (fijado por su propio título) es
-       menor que lo que necesita el texto de la OTRA app. Ver style-pro.css
-       para la explicación completa. */
-    position: absolute; top: 100%; left: -14px; width: 100%; min-width: min(260px, calc(100vw - 40px)); z-index: 40;
+    /* left:-14px compensa el padding horizontal del header (14px). El
+       min-width real vive en la regla .open de abajo, no aquí — puesto en
+       el estado cerrado forzaba el header a un ancho mínimo de 260px
+       siempre, desbordando el menú hamburguesa en pantallas de ~390px. Ver
+       style-pro.css para la explicación completa. */
+    position: absolute; top: 100%; left: -14px; width: 100%; z-index: 40;
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 14px;
@@ -421,8 +421,12 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
     transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, opacity 0.18s ease;
 }
 #network-switch.open {
-    /* margin-top más generoso: "rozan" sin quedar uno dentro del otro. */
+    /* margin-top más generoso: "rozan" sin quedar uno dentro del otro.
+       min-width solo aquí — evita que el banner quede comprimido cuando el
+       ancho de .home-link-wrap actual es menor que lo que necesita el texto
+       de la otra app, sin afectar al layout del header en su estado normal. */
     max-height: 150px; padding: 14px; margin-top: 14px; opacity: 1;
+    min-width: min(260px, calc(100vw - 40px));
 }
 #network-switch.is-bus { background: #01573C; }
 .network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
