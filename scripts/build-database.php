@@ -486,11 +486,25 @@ function loadCalendars(ZipArchive $zip): array
             $to = $ranges[$id]['to'];
         }
 
+        // Fechas de calendar_dates.txt con exception_type=2 (día concreto EN
+        // que este servicio, aunque su weekday_mask lo cubra, NO circula —
+        // p.ej. un service de obras que corre "todos los sábados" pero el
+        // operador excluye dos sábados sueltos por cambio de planificación).
+        // weekday_mask no puede representar esto por sí solo, así que se
+        // guarda la lista de fechas excluidas aparte.
+        $excludedDates = [];
+        foreach ($dates as $date => $isAvailable) {
+            if (!$isAvailable) {
+                $excludedDates[] = $date;
+            }
+        }
+
         $calendars[$id] = [
             'from' => $from,
             'to' => $to,
             'weekdayMask' => $weekdayMask,
             'activeDateCount' => count(array_filter($dates)),
+            'excludedDates' => $excludedDates,
         ];
     }
     return $calendars;
@@ -901,6 +915,21 @@ function createSchema(PDO $pdo): void
             weekday_mask INTEGER NOT NULL
         )
     ');
+    // Excepciones puntuales de calendar_dates.txt: un service_id puede tener
+    // días sueltos añadidos (exception_type=1, ya cubiertos por weekday_mask
+    // vía computeWeekdayMask) o RESTADOS (exception_type=2) sobre su patrón
+    // semanal base — esto último no se puede representar con weekday_mask +
+    // rango de fechas solo, así que se guarda aparte. Solo interesan las
+    // exclusiones (available=0); las de tipo 1 puntuales que no formen parte
+    // ya del weekday_mask base tampoco se guardan aquí — se resuelven con
+    // OR en computeWeekdayMask() como siempre. Ver ServiceJourney::isDateExcluded().
+    $pdo->exec('
+        CREATE TABLE service_calendar_exceptions (
+            calendar_id TEXT NOT NULL,
+            date TEXT NOT NULL,
+            available INTEGER NOT NULL
+        )
+    ');
     $pdo->exec('
         CREATE TABLE meta (
             key TEXT PRIMARY KEY,
@@ -971,6 +1000,7 @@ function createIndexes(PDO $pdo): void
     $pdo->exec('CREATE INDEX idx_pattern_stops ON journey_pattern_stops (journey_pattern_id, seq_order)');
     $pdo->exec('CREATE INDEX idx_stops_normalized ON stops (name_normalized)');
     $pdo->exec('CREATE INDEX idx_lines_normalized ON lines (name_normalized)');
+    $pdo->exec('CREATE INDEX idx_calendar_exceptions ON service_calendar_exceptions (calendar_id, date)');
 }
 
 function insertStops(PDO $pdo, array $stops): void
@@ -988,8 +1018,12 @@ function insertStops(PDO $pdo, array $stops): void
 function insertCalendars(PDO $pdo, array $calendars): void
 {
     $stmt = $pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
+    $exceptionStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
     foreach ($calendars as $id => $cal) {
         $stmt->execute([$id, $cal['from'], $cal['to'], $cal['weekdayMask']]);
+        foreach ($cal['excludedDates'] as $date) {
+            $exceptionStmt->execute([$id, $date]);
+        }
     }
 }
 
