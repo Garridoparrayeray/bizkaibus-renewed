@@ -141,7 +141,7 @@ function main(array $argv): void
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows — two bounded-memory passes)...\n";
     $totals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
-    processStopTimes($pdo, $zip, $trips, $routes, $calendars, $totals);
+    processStopTimes($pdo, $zip, $trips, $routes, $calendars, $totals, $network);
 
     $pdo->commit();
 
@@ -641,7 +641,44 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
  * cada variante en un calendario sintético. Solo el viaje representante de
  * cada grupo inserta sus passing_times; el resto solo aporta su máscara.
  */
-function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals): void
+/**
+ * Clave extra para separar, dentro de un mismo (línea, trip_number, patrón),
+ * viajes que NO deben fusionarse entre sí aunque su horario coincida dentro
+ * del margen de clustering — porque no son variantes de calendario del
+ * mismo viaje real, solo una coincidencia de horario entre campañas
+ * independientes. Vacío = sin restricción extra (se fusiona como siempre).
+ *
+ * Solo aplica a metro: sus service_id con from_date/to_date explícito en
+ * calendar.txt (obranegvia1_*) son campañas de
+ * vigencia acotada (obras, desvíos estacionales) — verificado con datos
+ * reales que un tren de obras de domingo se fusionaba con uno de Aste
+ * Nagusia porque ambos, tras el OR final de máscaras del grupo, caían a
+ * <90s de diferencia; el tren de obras terminaba pareciendo "todos los
+ * días" en vez de solo domingos, colándose en días que no le tocan.
+ *
+ * Bus NO usa esta regla: ahí casi todos sus 94+ calendarios (94/105
+ * verificado) tienen from_date/to_date por cómo el operador publica sus
+ * temporadas — aplicar la misma regla ahí deshace casi toda la fusión
+ * legítima entre variantes reales del mismo viaje (43803 trips → 43705
+ * journeys en vez de ~6673, 153MB en vez de ~24MB, por encima del límite
+ * de 100MB de Vercel). Bus ya tiene una señal fuerte y correcta para esto
+ * (trip_number, ver más abajo), que metro no tiene.
+ */
+function calendarGroupKeyFor(string $network, string $serviceId, array $calendars): string
+{
+    if ($network !== 'metro') {
+        return '';
+    }
+    if (!isset($calendars[$serviceId])) {
+        return '';
+    }
+    if ($calendars[$serviceId]['from'] === '') {
+        return '';
+    }
+    return $serviceId;
+}
+
+function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals, string $network): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
@@ -683,6 +720,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         if (isset($calendars[$trip['serviceId']])) {
             $weekdayMask = $calendars[$trip['serviceId']]['weekdayMask'];
         }
+        $calendarGroupKey = calendarGroupKeyFor($network, $trip['serviceId'], $calendars);
 
         $signatures[$tripId] = [
             'routeId' => $trip['routeId'],
@@ -691,6 +729,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
             'patternKey' => $patternKey,
             'firstDeparture' => $firstDeparture,
             'weekdayMask' => $weekdayMask,
+            'calendarGroupKey' => $calendarGroupKey,
         ];
     }
 
@@ -721,7 +760,12 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         if (isset($sig['tripNumber'])) {
             $tripNumberPart = $sig['tripNumber'];
         }
-        $key = $sig['routeId'] . '|' . $tripNumberPart . '|' . $sig['patternKey'];
+        // calendarGroupKey separa campañas de vigencia acotada (obras,
+        // desvíos estacionales) entre sí y del servicio base — ver el
+        // comentario donde se calcula, más arriba. Vacío para el servicio
+        // base y para excepciones puntuales sin from_date/to_date propio,
+        // que sí deben poder fusionarse entre ellas como hasta ahora.
+        $key = $sig['routeId'] . '|' . $tripNumberPart . '|' . $sig['patternKey'] . '|' . $sig['calendarGroupKey'];
         $byRoutePattern[$key][] = $tripId;
     }
 
