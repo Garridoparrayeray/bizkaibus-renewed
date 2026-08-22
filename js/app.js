@@ -962,6 +962,17 @@
 
     el.filterDate.value = new Date().toISOString().slice(0, 10);
 
+    // Franja corta por defecto (hora actual, redondeada a la baja, hasta +2h)
+    // en vez de todo el día: así la tabla abre con algo relevante ahora
+    // mismo y quien quiera más horas las suma él mismo ampliando el filtro.
+    // Si la franja cruza medianoche (p.ej. 23:00-01:00) el campo "hasta"
+    // simplemente muestra la hora de madrugada — el backend ya interpreta
+    // ese caso como el día siguiente cuando hourTo < hourFrom.
+    const now = new Date();
+    const pad2 = (n) => String(n).padStart(2, '0');
+    el.filterHourFrom.value = `${pad2(now.getHours())}:00`;
+    el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
+
     // Metro+ no tiene mapa en vivo (sin SIRI de posición) ni el endpoint
     // legado de horario oficial en texto libre — se ocultan sus controles
     // en vez de dejarlos ahí sin función.
