@@ -53,18 +53,21 @@ $router->get('/lines/{id}', [$lines, 'show']);
 $timetable = new TimetableController();
 $router->get('/lines/{id}/timetable', [$timetable, 'show']);
 
-// Metro Bilbao no tiene feed SIRI en vivo (posición de vehículos, alertas) ni
-// el endpoint legado de horario en texto libre — esas rutas solo existen
-// para la red bus.
+// Alertas: bus usa SIRI-SX, metro usa el JSON de avisos propio de su CMS —
+// AlertsController ya decide internamente cuál según la red, así que la
+// ruta se registra para las dos.
+$alerts = new AlertsController();
+$router->get('/alerts', [$alerts, 'index']);
+
+// Metro Bilbao no tiene feed SIRI en vivo (posición de vehículos) ni el
+// endpoint legado de horario en texto libre — esas rutas solo existen para
+// la red bus.
 if ($network === 'bus') {
     $router->get('/lines/{id}/schedule-text', [$lines, 'scheduleText']);
 
     $realtime = new RealtimeController();
     $router->get('/vehicles/{tripKey}', [$realtime, 'vehicle']);
     $router->get('/lines/{id}/live', [$realtime, 'lineLive']);
-
-    $alerts = new AlertsController();
-    $router->get('/alerts', [$alerts, 'index']);
 }
 
 try {

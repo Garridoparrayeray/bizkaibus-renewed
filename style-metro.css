@@ -149,6 +149,16 @@ header p {
 .header-actions .btn-icon { width: 34px; height: 34px; }
 .header-actions .btn-icon svg { width: 16px; height: 16px; }
 
+/* Pantallas muy estrechas: aunque ya no desborden, logo+título y los
+   botones quedaban demasiado pegados al compartir una sola fila. Se
+   apilan en dos filas — título arriba, botones abajo alineados a la
+   derecha — con hueco de sobra para cada uno en vez de competir por
+   el mismo ancho. */
+@media (max-width: 420px) {
+    .app-container > header { flex-wrap: wrap; row-gap: 10px; }
+    .header-actions { width: 100%; justify-content: flex-end; }
+}
+
 /* Buscador */
 #search-form { position: relative; margin-bottom: 20px; }
 #search-input {

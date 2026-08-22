@@ -772,14 +772,45 @@
     async function openSideMenu() {
         el.sideMenu.showModal();
 
+        el.menuAlertsList.innerHTML = '';
+        el.menuAlertsEmpty.hidden = false;
+
+        // Metro Bilbao solo tiene una línea agregada y sus avisos no traen
+        // referencia fiable a línea (station_id pertenece al sistema interno
+        // del CMS, no al GTFS) — se muestra la lista completa de avisos
+        // activos de la red directamente, sin el filtro por línea favorita
+        // que sí tiene sentido en bus (múltiples líneas independientes).
+        if (IS_METRO) {
+            el.menuAlertsEmpty.textContent = 'Cargando incidencias…';
+            let metroAlerts;
+            try {
+                metroAlerts = (await Api.alerts()).alerts;
+            } catch (e) {
+                el.menuAlertsEmpty.textContent = 'No se han podido cargar las incidencias ahora mismo.';
+                return;
+            }
+            el.menuAlertsEmpty.hidden = metroAlerts.length > 0;
+            if (metroAlerts.length === 0) {
+                el.menuAlertsEmpty.textContent = 'No hay incidencias activas ahora mismo.';
+                return;
+            }
+            for (const alert of metroAlerts) {
+                const li = document.createElement('li');
+                const summarySpan = document.createElement('span');
+                summarySpan.className = 'alert-summary';
+                summarySpan.textContent = alert.summary;
+                li.append(summarySpan);
+                el.menuAlertsList.appendChild(li);
+            }
+            return;
+        }
+
         const favoriteLines = readFavorites().filter((f) => f.type === 'line');
         const relevantLineIds = new Set(favoriteLines.map((f) => String(f.refId)));
         if (state.currentLine) {
             relevantLineIds.add(String(state.currentLine.id));
         }
 
-        el.menuAlertsList.innerHTML = '';
-        el.menuAlertsEmpty.hidden = false;
         el.menuAlertsEmpty.textContent = 'Guarda una línea en favoritos, o abre una, para ver aquí sus incidencias activas.';
 
         if (relevantLineIds.size === 0) {
@@ -982,10 +1013,6 @@
         el.scheduleTextToggle.hidden = true;
         el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A.';
         el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
-        // Metro Bilbao no tiene alertas SIRI ni concepto de varias líneas que
-        // vigilar (solo hay una) — el menú de incidencias no tiene qué mostrar.
-        el.menuOpen.hidden = true;
-        el.liveIncidentsLink.hidden = true;
         el.liveEmpty.textContent = 'Busca una estación para ver el próximo metro.';
     }
 

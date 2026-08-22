@@ -149,6 +149,16 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .header-actions .btn-icon { width: 34px; height: 34px; }
 .header-actions .btn-icon svg { width: 16px; height: 16px; }
 
+/* Pantallas muy estrechas: aunque ya no desborden, logo+título y los
+   botones quedaban demasiado pegados al compartir una sola fila. Se
+   apilan en dos filas — título arriba, botones abajo alineados a la
+   derecha — con hueco de sobra para cada uno en vez de competir por
+   el mismo ancho. */
+@media (max-width: 420px) {
+    header { flex-wrap: wrap; row-gap: 10px; }
+    .header-actions { width: 100%; justify-content: flex-end; }
+}
+
 /* Botón casi invisible para volver al tema normal: un punto pequeño fijo en
    la esquina, con el glass propio de este tema. Sin texto — solo un corazón
    diminuto, igual que en style-pro.css/style-metro.css. */
