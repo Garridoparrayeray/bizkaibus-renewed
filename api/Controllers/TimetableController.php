@@ -25,7 +25,10 @@ class TimetableController
             return;
         }
 
-        $dateStr = $request->query('date') ?: Calendar::todayMadrid()->format('Y-m-d');
+        $dateStr = $request->query('date');
+        if (!$dateStr) {
+            $dateStr = Calendar::todayMadrid()->format('Y-m-d');
+        }
         try {
             $date = new \DateTime($dateStr, new \DateTimeZone('Europe/Madrid'));
         } catch (\Throwable $e) {
@@ -52,25 +55,40 @@ class TimetableController
 
         // Ver StopsController::departures() sobre por qué metro usa la
         // última parada real en vez del headsign de GTFS.
-        $isMetro = ($config['network'] ?? 'bus') === 'metro';
+        $network = 'bus';
+        if (isset($config['network'])) {
+            $network = $config['network'];
+        }
+        $isMetro = $network === 'metro';
 
         $entries = array_map(function ($row) use ($isMetro) {
             $headsign = $row['headsign'];
             if ($isMetro && !empty($row['last_stop_name'])) {
                 $headsign = $row['last_stop_name'];
             }
+            $delaySeconds = 0;
+            if (isset($row['delaySeconds'])) {
+                $delaySeconds = $row['delaySeconds'];
+            }
+            $delayMinutes = 0;
+            if ($delaySeconds !== 0) {
+                $delayMinutes = (int)round($delaySeconds / 60);
+            }
             return [
                 'tripKey' => $row['line_id'] . '-' . $row['trip_number'] . '-' . $row['first_departure_seconds'],
                 'departure' => Calendar::secondsToHm((int)$row['departure_seconds']),
                 'headsign' => $headsign,
                 'status' => $row['status'],
-                'delayMinutes' => ($row['delaySeconds'] ?? 0) !== 0 ? (int)round($row['delaySeconds'] / 60) : 0,
+                'delayMinutes' => $delayMinutes,
             ];
         }, $rows);
 
         $publishedStmt = $pdo->prepare('SELECT value FROM meta WHERE key = ?');
         $publishedStmt->execute(['schedule_source_published']);
-        $published = $publishedStmt->fetchColumn() ?: $config['schedule_source_published'];
+        $published = $publishedStmt->fetchColumn();
+        if (!$published) {
+            $published = $config['schedule_source_published'];
+        }
 
         Response::json([
             'line' => ['id' => $line['id'], 'code' => $line['code'], 'name' => $line['name']],

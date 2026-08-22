@@ -41,7 +41,10 @@ class StopsController
         $limit = $request->queryInt('limit', 8);
         $journeyModel = new ServiceJourney($pdo);
         $config = Config::current();
-        $referenceStopId = $config['direction_reference_stop_id'] ?? null;
+        $referenceStopId = null;
+        if (isset($config['direction_reference_stop_id'])) {
+            $referenceStopId = $config['direction_reference_stop_id'];
+        }
         $rows = $journeyModel->upcomingAtStop($stopId, $limit, 4 * 3600, $referenceStopId);
 
         $vmMap = [];
@@ -59,13 +62,25 @@ class StopsController
         // es más fiable — verificado: el GTFS de Metro Bilbao repite el
         // mismo headsign en trenes que en realidad terminan en paradas
         // distintas (ver ServiceJourney::LAST_STOP_NAME_SUBQUERY).
-        $isMetro = ($config['network'] ?? 'bus') === 'metro';
+        $network = 'bus';
+        if (isset($config['network'])) {
+            $network = $config['network'];
+        }
+        $isMetro = $network === 'metro';
 
         $now = Calendar::nowSecondsSinceMidnight();
         $departures = array_map(function ($row) use ($now, $isMetro) {
             $headsign = $row['headsign'];
             if ($isMetro && !empty($row['last_stop_name'])) {
                 $headsign = $row['last_stop_name'];
+            }
+            $delayMinutes = 0;
+            if ($row['delaySeconds'] !== 0) {
+                $delayMinutes = (int)round($row['delaySeconds'] / 60);
+            }
+            $direction = null;
+            if (isset($row['direction'])) {
+                $direction = $row['direction'];
             }
             return [
                 'lineId' => (int)$row['line_id'],
@@ -76,8 +91,8 @@ class StopsController
                 'scheduledTime' => Calendar::secondsToHm((int)$row['arrival_seconds']),
                 'etaMinutes' => (int)round(($row['etaSeconds'] - $now) / 60),
                 'status' => $row['status'],
-                'delayMinutes' => $row['delaySeconds'] !== 0 ? (int)round($row['delaySeconds'] / 60) : 0,
-                'direction' => $row['direction'] ?? null,
+                'delayMinutes' => $delayMinutes,
+                'direction' => $direction,
             ];
         }, $enriched);
 
@@ -137,7 +152,11 @@ class StopsController
         // última parada real en vez del headsign de GTFS.
         $headsign = $journey['headsign'];
         $config = Config::current();
-        if (($config['network'] ?? 'bus') === 'metro' && !empty($stops)) {
+        $network = 'bus';
+        if (isset($config['network'])) {
+            $network = $config['network'];
+        }
+        if ($network === 'metro' && !empty($stops)) {
             $headsign = end($stops)['name'];
         }
 

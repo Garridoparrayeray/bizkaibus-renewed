@@ -63,11 +63,15 @@ class RealtimeController
                 }
                 $journeyStmt->execute([$lineId, $tripNumber]);
                 $journey = $journeyStmt->fetch();
+                $headsign = null;
+                if (isset($journey['headsign'])) {
+                    $headsign = $journey['headsign'];
+                }
 
                 $vehicles[] = [
                     'vehicleRef' => $entry['vehicleRef'],
                     'delayMinutes' => (int)round($entry['delaySeconds'] / 60),
-                    'headsign' => $journey['headsign'] ?? null,
+                    'headsign' => $headsign,
                     'currentStop' => [
                         'id' => (int)$stop['id'],
                         'name' => $stop['name'],
@@ -133,15 +137,33 @@ class RealtimeController
             ];
         }, $stops);
 
-        $delaySeconds = $live['delaySeconds'] ?? 0;
+        $delaySeconds = 0;
+        if (isset($live['delaySeconds'])) {
+            $delaySeconds = $live['delaySeconds'];
+        }
+
+        $status = 'scheduled';
+        if ($live !== null) {
+            $status = 'live';
+        }
+
+        $delayMinutes = 0;
+        if ($delaySeconds !== 0) {
+            $delayMinutes = (int)round($delaySeconds / 60);
+        }
+
+        $vehicleRef = null;
+        if (isset($live['vehicleRef'])) {
+            $vehicleRef = $live['vehicleRef'];
+        }
 
         Response::json([
             'lineCode' => $journey['line_code'],
             'lineName' => $journey['line_name'],
             'headsign' => $journey['headsign'],
-            'status' => $live !== null ? 'live' : 'scheduled',
-            'vehicleRef' => $live['vehicleRef'] ?? null,
-            'delayMinutes' => $delaySeconds !== 0 ? (int)round($delaySeconds / 60) : 0,
+            'status' => $status,
+            'vehicleRef' => $vehicleRef,
+            'delayMinutes' => $delayMinutes,
             'stops' => $stopsOut,
         ]);
     }
