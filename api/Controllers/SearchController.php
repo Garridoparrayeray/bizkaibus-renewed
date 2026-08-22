@@ -2,6 +2,7 @@
 
 namespace Controllers;
 
+use Core\Config;
 use Core\Database;
 use Core\Request;
 use Core\Response;
@@ -23,7 +24,22 @@ class SearchController
         $stops = $stopModel->search($q, 60);
         $lines = (new LineModel($pdo))->search($q, 30);
 
-        $stops = $this->addDirectionHints($stopModel, $stops);
+        // La pista "hacia X" solo tiene sentido en Bizkaibus, donde muchas
+        // paradas comparten nombre — en Metro Bilbao cada una de las 42
+        // estaciones tiene nombre único, así que la pista no desambigua
+        // nada y solo añade ruido a cada resultado.
+        $config = Config::current();
+        $network = 'bus';
+        if (isset($config['network'])) {
+            $network = $config['network'];
+        }
+        if ($network === 'bus') {
+            $stops = $this->addDirectionHints($stopModel, $stops);
+        } else {
+            foreach ($stops as &$stop) {
+                $stop['hint'] = null;
+            }
+        }
 
         Response::json(['stops' => $stops, 'lines' => $lines]);
     }
