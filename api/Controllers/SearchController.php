@@ -43,7 +43,10 @@ class SearchController
         $counts = [];
         foreach ($stops as $stop) {
             $key = $stop['name'] . '|' . $stop['area'];
-            $counts[$key] = ($counts[$key] ?? 0) + 1;
+            if (!isset($counts[$key])) {
+                $counts[$key] = 0;
+            }
+            $counts[$key]++;
         }
 
         foreach ($stops as &$stop) {

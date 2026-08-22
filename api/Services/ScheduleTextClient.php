@@ -28,7 +28,10 @@ class ScheduleTextClient
     public function fetchForLine(int $lineId): array
     {
         $all = $this->fetchAll();
-        return $all[$lineId] ?? [];
+        if (isset($all[$lineId])) {
+            return $all[$lineId];
+        }
+        return [];
     }
 
     /** @return array<int, array<int, array<string,string>>> indexado por id numérico de línea pelado */
@@ -54,14 +57,22 @@ class ScheduleTextClient
 
         $byLine = [];
         foreach ($xml->{'LINEA-LINEA'} as $linea) {
-            $codeField = $linea->{'KODEA-CODIGO'} ?? null;
+            $codeField = null;
+            if (isset($linea->{'KODEA-CODIGO'})) {
+                $codeField = $linea->{'KODEA-CODIGO'};
+            }
             if ($codeField === null || !preg_match('/(\d+)/', (string)$codeField, $m)) {
                 continue;
             }
             $lineId = (int)ltrim($m[1], '0');
 
+            $horarios = [];
+            if (isset($linea->{'ORDUTEGIA-HORARIO'})) {
+                $horarios = $linea->{'ORDUTEGIA-HORARIO'};
+            }
+
             $blocks = [];
-            foreach ($linea->{'ORDUTEGIA-HORARIO'} ?? [] as $horario) {
+            foreach ($horarios as $horario) {
                 $block = [];
                 foreach ($horario->children() as $child) {
                     $block[$child->getName()] = trim((string)$child);

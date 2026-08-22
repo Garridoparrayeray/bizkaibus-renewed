@@ -55,11 +55,17 @@ class SiriVehicleMonitoringClient
         if ($xml === false) {
             return [];
         }
-        $activities = $xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity ?? [];
+        $activities = [];
+        if (isset($xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity)) {
+            $activities = $xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity;
+        }
 
         $map = [];
         foreach ($activities as $activity) {
-            $mvj = $activity->MonitoredVehicleJourney ?? null;
+            $mvj = null;
+            if (isset($activity->MonitoredVehicleJourney)) {
+                $mvj = $activity->MonitoredVehicleJourney;
+            }
             if ($mvj === null || !isset($mvj->VehicleJourneyRef)) {
                 continue;
             }
@@ -69,13 +75,30 @@ class SiriVehicleMonitoringClient
             }
             [, $lineId, $tripNumber, $departureSeconds] = $m;
 
+            $delayIso = 'PT0S';
+            if (isset($mvj->Delay)) {
+                $delayIso = (string)$mvj->Delay;
+            }
+            $vehicleRef = '';
+            if (isset($mvj->VehicleRef)) {
+                $vehicleRef = (string)$mvj->VehicleRef;
+            }
+            $currentStopId = null;
+            if (isset($mvj->MonitoredCall->StopPointRef)) {
+                $currentStopId = (int)$mvj->MonitoredCall->StopPointRef;
+            }
+            $order = null;
+            if (isset($mvj->MonitoredCall->Order)) {
+                $order = (int)$mvj->MonitoredCall->Order;
+            }
+
             $key = $lineId . '|' . $tripNumber;
             $map[$key][] = [
                 'departureSeconds' => (int)$departureSeconds,
-                'delaySeconds' => self::parseIsoDuration((string)($mvj->Delay ?? 'PT0S')),
-                'vehicleRef' => (string)($mvj->VehicleRef ?? ''),
-                'currentStopId' => isset($mvj->MonitoredCall->StopPointRef) ? (int)$mvj->MonitoredCall->StopPointRef : null,
-                'order' => isset($mvj->MonitoredCall->Order) ? (int)$mvj->MonitoredCall->Order : null,
+                'delaySeconds' => self::parseIsoDuration($delayIso),
+                'vehicleRef' => $vehicleRef,
+                'currentStopId' => $currentStopId,
+                'order' => $order,
             ];
         }
         return $map;
@@ -87,10 +110,22 @@ class SiriVehicleMonitoringClient
         if (!preg_match('/^(-?)PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $iso, $m)) {
             return 0;
         }
-        $sign = $m[1] === '-' ? -1 : 1;
-        $hours = (int)($m[2] ?? 0);
-        $minutes = (int)($m[3] ?? 0);
-        $seconds = (int)($m[4] ?? 0);
+        $sign = 1;
+        if ($m[1] === '-') {
+            $sign = -1;
+        }
+        $hours = 0;
+        if (isset($m[2])) {
+            $hours = (int)$m[2];
+        }
+        $minutes = 0;
+        if (isset($m[3])) {
+            $minutes = (int)$m[3];
+        }
+        $seconds = 0;
+        if (isset($m[4])) {
+            $seconds = (int)$m[4];
+        }
         return $sign * ($hours * 3600 + $minutes * 60 + $seconds);
     }
 }

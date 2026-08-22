@@ -55,7 +55,10 @@ class SiriAlertsClient
         if ($xml === false) {
             return [];
         }
-        $situations = $xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement ?? [];
+        $situations = [];
+        if (isset($xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement)) {
+            $situations = $xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement;
+        }
 
         $alerts = [];
         foreach ($situations as $situation) {
@@ -68,11 +71,29 @@ class SiriAlertsClient
                 }
             }
 
+            $summaryElements = null;
+            if (isset($situation->Summary)) {
+                $summaryElements = $situation->Summary;
+            }
+            $descriptionElements = null;
+            if (isset($situation->Description)) {
+                $descriptionElements = $situation->Description;
+            }
+
+            $startTime = null;
+            if (isset($situation->ValidityPeriod->StartTime)) {
+                $startTime = (string)$situation->ValidityPeriod->StartTime;
+            }
+            $endTime = null;
+            if (isset($situation->ValidityPeriod->EndTime)) {
+                $endTime = (string)$situation->ValidityPeriod->EndTime;
+            }
+
             $alerts[] = [
-                'summary' => self::textByLang($situation->Summary ?? null, 'es'),
-                'description' => self::textByLang($situation->Description ?? null, 'es'),
-                'startTime' => isset($situation->ValidityPeriod->StartTime) ? (string)$situation->ValidityPeriod->StartTime : null,
-                'endTime' => isset($situation->ValidityPeriod->EndTime) ? (string)$situation->ValidityPeriod->EndTime : null,
+                'summary' => self::textByLang($summaryElements, 'es'),
+                'description' => self::textByLang($descriptionElements, 'es'),
+                'startTime' => $startTime,
+                'endTime' => $endTime,
                 'lineRefs' => array_values(array_unique($lineRefs)),
             ];
         }
@@ -86,7 +107,11 @@ class SiriAlertsClient
         }
         foreach ($elements as $el) {
             $attrs = $el->attributes('http://www.w3.org/XML/1998/namespace');
-            if ((string)($attrs['lang'] ?? '') === $lang) {
+            $elLang = '';
+            if (isset($attrs['lang'])) {
+                $elLang = (string)$attrs['lang'];
+            }
+            if ($elLang === $lang) {
                 return (string)$el;
             }
         }

@@ -50,19 +50,37 @@ class RealtimeMatcher
                 ];
             }
 
+            $serviceJourneyId = null;
+            if (isset($row['service_journey_id'])) {
+                $serviceJourneyId = $row['service_journey_id'];
+            }
             [$eta, $effectiveDelay] = $this->etaForStop(
-                $row['service_journey_id'] ?? null,
+                $serviceJourneyId,
                 (int)$row['arrival_seconds'],
                 $live
             );
             $isStale = $eta < ($now - self::STALE_GRACE_SECONDS);
 
+            if ($isStale) {
+                $status = 'scheduled';
+                $delaySeconds = 0;
+                $etaSeconds = (int)$row['arrival_seconds'];
+                $vehicleRef = null;
+                $currentStopId = null;
+            } else {
+                $status = 'live';
+                $delaySeconds = $effectiveDelay;
+                $etaSeconds = $eta;
+                $vehicleRef = $live['vehicleRef'];
+                $currentStopId = $live['currentStopId'];
+            }
+
             return $row + [
-                'status' => $isStale ? 'scheduled' : 'live',
-                'delaySeconds' => $isStale ? 0 : $effectiveDelay,
-                'etaSeconds' => $isStale ? (int)$row['arrival_seconds'] : $eta,
-                'vehicleRef' => $isStale ? null : $live['vehicleRef'],
-                'currentStopId' => $isStale ? null : $live['currentStopId'],
+                'status' => $status,
+                'delaySeconds' => $delaySeconds,
+                'etaSeconds' => $etaSeconds,
+                'vehicleRef' => $vehicleRef,
+                'currentStopId' => $currentStopId,
             ];
         }, $rows);
     }
@@ -104,7 +122,11 @@ class RealtimeMatcher
     /** Candidato en vivo más cercano para (line_id, trip_number) dentro del margen de $firstDepartureSeconds, o null. */
     public function lookup(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
     {
-        $candidates = $this->vmMap[$lineId . '|' . $tripNumber] ?? [];
+        $key = $lineId . '|' . $tripNumber;
+        $candidates = [];
+        if (isset($this->vmMap[$key])) {
+            $candidates = $this->vmMap[$key];
+        }
         if (empty($candidates)) {
             return null;
         }

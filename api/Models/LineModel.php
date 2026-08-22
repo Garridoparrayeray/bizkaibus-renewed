@@ -13,7 +13,10 @@ class LineModel
         $stmt = $this->pdo->prepare('SELECT id, code, name FROM lines WHERE id = ?');
         $stmt->execute([$id]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        if (!$row) {
+            return null;
+        }
+        return $row;
     }
 
     /** @return array<int, array{id:int,code:string,name:string}> */
