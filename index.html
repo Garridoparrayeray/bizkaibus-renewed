@@ -193,6 +193,23 @@
                     </footer>
                     <ul id="live-more-list"></ul>
                 </article>
+
+                <!-- Panel de andén (Metro+ únicamente): un cuadro por sentido
+                     de circulación, como los paneles físicos reales de
+                     estación — reemplaza a #live-card para esta red (ver
+                     js/app.js selectStop()). -->
+                <div id="platform-panel" class="platform-panel" hidden>
+                    <header>
+                        <h3 id="platform-panel-stop"></h3>
+                        <span class="header-actions">
+                            <button id="platform-favorite" class="btn-icon" type="button" aria-label="Guardar estación en favoritos"></button>
+                            <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+                            </button>
+                        </span>
+                    </header>
+                    <div id="platform-columns"></div>
+                </div>
                 <p id="live-empty">Busca una parada para ver el próximo autobús.</p>
             </div>
 
