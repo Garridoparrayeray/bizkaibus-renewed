@@ -98,11 +98,9 @@ class ServiceJourney
             WHERE pt.stop_id = :stopId
               AND sc.id != \'PRUEBA\'
               AND (sc.weekday_mask & :weekdayBit) != 0
-              AND (sc.from_date = \'\' OR sc.from_date <= :today)
-              AND (sc.to_date = \'\' OR sc.to_date >= :today)
               AND NOT EXISTS (
                   SELECT 1 FROM service_calendar_exceptions sce
-                  WHERE sce.calendar_id = sc.id AND sce.date = :today2 AND sce.available = 0
+                  WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
               )
               AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
             ORDER BY pt.departure_seconds ASC
@@ -111,7 +109,6 @@ class ServiceJourney
             'stopId' => $stopId,
             'weekdayBit' => $weekdayBit,
             'today' => $today,
-            'today2' => $today,
             'windowStart' => $now - self::PAST_GRACE_SECONDS,
             'windowEnd' => $now + $windowSeconds,
         ];
@@ -152,11 +149,9 @@ class ServiceJourney
               AND pt.seq_order = 1
               AND sc.id != \'PRUEBA\'
               AND (sc.weekday_mask & :weekdayBit) != 0
-              AND (sc.from_date = \'\' OR sc.from_date <= :dateStr)
-              AND (sc.to_date = \'\' OR sc.to_date >= :dateStr)
               AND NOT EXISTS (
                   SELECT 1 FROM service_calendar_exceptions sce
-                  WHERE sce.calendar_id = sc.id AND sce.date = :dateStr2 AND sce.available = 0
+                  WHERE sce.calendar_id = sc.id AND sce.date = :dateStr AND sce.available = 0
               )
               AND pt.departure_seconds BETWEEN :hourFrom AND :hourTo
             ORDER BY pt.departure_seconds ASC
@@ -165,7 +160,6 @@ class ServiceJourney
             'lineId' => $lineId,
             'weekdayBit' => $weekdayBit,
             'dateStr' => $dateStr,
-            'dateStr2' => $dateStr,
             'hourFrom' => $hourFromSeconds,
             'hourTo' => $hourToSeconds,
         ]);
