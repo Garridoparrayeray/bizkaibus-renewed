@@ -105,8 +105,11 @@ body {
    banner desplegado mide lo mismo que el bloque logo+título de arriba.
    position:relative ancla ese absolute; el header no recorta overflow, así
    que el banner escapa visualmente del bloque de color del header y queda
-   sobre el fondo de la página, no encajonado dentro de él. */
-.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; overflow: hidden; }
+   sobre el fondo de la página, no encajonado dentro de él.
+   SIN overflow:hidden aquí — el banner (#network-switch) es hijo directo
+   de este bloque y necesita escapar hacia abajo sin recortarse; el
+   truncado con ellipsis del título ya lo hace hgroup, más específico. */
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0;
     display: flex; align-items: center; gap: 12px; min-width: 0;
