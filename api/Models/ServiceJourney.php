@@ -48,18 +48,47 @@ class ServiceJourney
      * entre variantes de calendario que coinciden en trip_number/hora (ver
      * README sobre por qué más de un calendario puede casar con el mismo día).
      *
+     * $referenceStopId, cuando se pasa, añade una columna "direction" a cada
+     * fila: 'toward_reference' si esta parada va antes que la de referencia
+     * en la secuencia del propio trayecto (o esa parada no aparece en el
+     * trayecto en absoluto, ver más abajo), 'away_from_reference' si va
+     * después. Pensado para Metro+ (referencia = Abando, el centro real de
+     * la red) para agrupar las salidas por sentido de circulación en dos
+     * columnas, como un panel físico de andén — verificado con datos reales
+     * que comparar el seq_order de la parada consultada contra el de Abando
+     * dentro del MISMO journey_pattern predice el sentido con fiabilidad
+     * total en los patrones que pasan por ambas. No tiene sentido para bus
+     * (sin concepto de "centro" único de red), así que el parámetro es
+     * opcional y por defecto no calcula nada.
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function upcomingAtStop(int $stopId, int $limit = 8, int $windowSeconds = 4 * 3600): array
+    public function upcomingAtStop(int $stopId, int $limit = 8, int $windowSeconds = 4 * 3600, ?int $referenceStopId = null): array
     {
         $now = Calendar::nowSecondsSinceMidnight();
         $weekdayBit = Calendar::todayWeekdayBit();
+
+        $directionSelect = '';
+        if ($referenceStopId !== null) {
+            $directionSelect = ',
+                CASE WHEN (
+                    SELECT jps_ref.seq_order FROM journey_pattern_stops jps_ref
+                    WHERE jps_ref.journey_pattern_id = jp.id AND jps_ref.stop_id = :referenceStopId
+                    LIMIT 1
+                ) IS NULL THEN \'toward_reference\'
+                WHEN pt.seq_order < (
+                    SELECT jps_ref.seq_order FROM journey_pattern_stops jps_ref
+                    WHERE jps_ref.journey_pattern_id = jp.id AND jps_ref.stop_id = :referenceStopId2
+                    LIMIT 1
+                ) THEN \'toward_reference\'
+                ELSE \'away_from_reference\' END AS direction';
+        }
 
         $stmt = $this->pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
                    l.code AS line_code, l.name AS line_name, jp.headsign,
                    pt.arrival_seconds, pt.departure_seconds,
-                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name' . $directionSelect . '
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
             JOIN service_calendars sc ON sc.id = sj.calendar_id
@@ -71,12 +100,17 @@ class ServiceJourney
               AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
             ORDER BY pt.departure_seconds ASC
         ');
-        $stmt->execute([
+        $params = [
             'stopId' => $stopId,
             'weekdayBit' => $weekdayBit,
             'windowStart' => $now - self::PAST_GRACE_SECONDS,
             'windowEnd' => $now + $windowSeconds,
-        ]);
+        ];
+        if ($referenceStopId !== null) {
+            $params['referenceStopId'] = $referenceStopId;
+            $params['referenceStopId2'] = $referenceStopId;
+        }
+        $stmt->execute($params);
 
         // +5 de margen: algunas de las filas "pasadas" que trae la ventana
         // ampliada se descartarán después (StopsController) si el enriquecido

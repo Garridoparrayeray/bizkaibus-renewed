@@ -232,6 +232,36 @@ header p { font-size: 0.82rem; color: rgba(255, 255, 255, 0.8); font-weight: 500
 #live-more-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 #live-empty { text-align: center; color: var(--text-secondary); opacity: 1; font-weight: 500; margin: 0 0 20px; }
 
+/* Panel de andén (Metro+): un cuadro por sentido de circulación, como los
+   paneles físicos reales de estación — apilados en móvil, lado a lado en
+   escritorio (ver el media query de escritorio al final del fichero). */
+.platform-panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 20px; margin: 20px 0; box-shadow: var(--shadow-soft);
+}
+.platform-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+#platform-panel-stop { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--text); }
+#platform-columns { display: flex; flex-direction: column; gap: 14px; }
+
+.platform-column { background: var(--primary-dark); border-radius: 3px; padding: 18px; color: white; }
+.platform-column-headsign { font-size: 0.78rem; color: rgba(255, 255, 255, 0.7); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 8px; }
+.platform-column-empty { font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); font-weight: 500; margin: 0; }
+.platform-column .time-display strong { font-size: 3rem; }
+.platform-column-next { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.platform-column-scheduled { font-size: 0.8rem; color: rgba(255, 255, 255, 0.75); font-weight: 600; margin: 0 0 10px; }
+
+.platform-column-list { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.15); max-height: 200px; overflow-y: auto; }
+.platform-column-list li { margin-bottom: 6px; }
+.platform-column-list li:last-child { margin-bottom: 0; }
+.platform-column-list button {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.08); border: 1px solid transparent; border-radius: 3px;
+    padding: 8px 12px; cursor: pointer; text-align: left; font-family: inherit;
+}
+.platform-column-list button:hover { background: rgba(255, 255, 255, 0.16); }
+.platform-column-list span:first-child { flex: 1; color: rgba(255, 255, 255, 0.8); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.platform-column-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
+
 /* Tabla horaria */
 .timetable { padding: 25px; }
 .timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 0; border-bottom: none; }
@@ -357,7 +387,7 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 14px;
-    border-radius: 4px;
+    border-radius: 0;
     text-decoration: none;
     background: #C8102E;
     box-shadow: var(--shadow-soft);
@@ -396,6 +426,10 @@ dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; m
         border-radius: 4px; margin: 0 0 20px; max-height: 260px;
     }
     #favorites-close { display: none; }
+
+    /* Los dos cuadros de sentido lado a lado, no apilados. */
+    #platform-columns { flex-direction: row; }
+    .platform-column { flex: 1; min-width: 0; }
 
     dialog#vehicle-modal {
         left: auto; right: 0; top: 0; bottom: 0; height: 100%;
