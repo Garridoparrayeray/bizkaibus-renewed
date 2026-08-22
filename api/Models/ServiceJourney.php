@@ -164,7 +164,11 @@ class ServiceJourney
             'hourTo' => $hourToSeconds,
         ]);
 
-        return $this->dedupeByTrip($stmt->fetchAll(), 200);
+        // 2000: Bizkaibus nunca pasa de ~190 salidas/día por línea, pero
+        // Metro+ agrega TODA la red bajo una única línea (854 salidas/día
+        // hoy) — 200 cortaba la tabla de horarios de Metro+ a media mañana,
+        // ocultando tarde y noche enteras en silencio.
+        return $this->dedupeByTrip($stmt->fetchAll(), 2000);
     }
 
     public function findByLineAndTrip(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
