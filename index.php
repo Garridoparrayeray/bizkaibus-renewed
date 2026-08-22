@@ -1,3 +1,23 @@
+<?php
+// Título y Open Graph resueltos en servidor, según ?red= — el script del
+// <head> de abajo los sobrescribe (document.write) en navegadores reales
+// con la lógica completa de tema+red, pero los bots que generan la vista
+// previa al compartir un enlace (WhatsApp, Telegram, X, LinkedIn...) no
+// ejecutan JavaScript: leen exactamente este HTML tal cual lo escribe PHP.
+// Por eso esto solo necesita distinguir red (visible en la query string
+// que el bot sí tiene), no ?tema=miamor — ese es un detalle de UI que no
+// tiene sentido en una vista previa de enlace compartido.
+$isMetroShare = isset($_GET['red']) && $_GET['red'] === 'metro';
+if ($isMetroShare) {
+    $ogTitle = 'Metro+';
+    $ogDescription = 'Horarios de Metro Bilbao, sin vueltas.';
+    $ogImage = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
+} else {
+    $ogTitle = 'BizkaiBus+';
+    $ogDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
+    $ogImage = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,17 +26,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BizkaiBus+">
-    <!-- Título y Open Graph estáticos por defecto — el script de abajo los
-         sobrescribe (document.write) en navegadores reales según tema/red,
-         pero los bots que generan la vista previa al compartir un enlace
-         (WhatsApp, Telegram, X, LinkedIn...) no ejecutan JavaScript: sin
-         esto, veían el HTML crudo sin ningún <title> real y algunos
-         terminaban mostrando literalmente el string sin interpretar. -->
-    <title>BizkaiBus+</title>
-    <meta name="description" content="Horarios y tiempo real de Bizkaibus, sin vueltas.">
-    <meta property="og:title" content="BizkaiBus+">
-    <meta property="og:description" content="Horarios y tiempo real de Bizkaibus, sin vueltas.">
-    <meta property="og:image" content="https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png">
+    <title><?= $ogTitle ?></title>
+    <meta name="description" content="<?= $ogDescription ?>">
+    <meta property="og:title" content="<?= $ogTitle ?>">
+    <meta property="og:description" content="<?= $ogDescription ?>">
+    <meta property="og:image" content="<?= $ogImage ?>">
     <meta property="og:type" content="website">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script>
