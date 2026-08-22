@@ -39,12 +39,16 @@
             var stylesheet = isMiamor ? 'style.css' : 'style-pro.css';
             if (isMetro) {
                 title = 'Metro+';
-                manifest = 'manifest-metro.json';
-                touchIcon = 'icons-metro/apple-touch-icon.png';
-                icon = 'icons-metro/icon-192.png';
                 if (isMiamor) {
+                    // El icono de instalación (manifest/apple-touch-icon/favicon)
+                    // sigue siendo el corazón de mi amor, no el aro rojo de
+                    // Metro+ — mi amor es el tema activo, no algo exclusivo
+                    // de una red (mismo criterio que el subtítulo cariñoso).
                     themeColor = '#db2777';
                 } else {
+                    manifest = 'manifest-metro.json';
+                    touchIcon = 'icons-metro/apple-touch-icon.png';
+                    icon = 'icons-metro/icon-192.png';
                     themeColor = '#C8102E';
                     stylesheet = 'style-metro.css';
                 }
