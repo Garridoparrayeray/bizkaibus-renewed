@@ -5,8 +5,8 @@
 // inicial de una PWA instalada no siempre pasa por ese camino en todos los
 // navegadores. Subir este número cada vez que cambien SHELL_FILES o el
 // propio HTML/JS del shell de forma significativa.
-// '/index.html' quitado de la lista: el shell ahora es index.php, servido
-// solo a través del rewrite '/' (index.php no es una ruta pública propia en
+// '/index.html' quitado de la lista: el shell ahora es api/shell.php,
+// servido solo a través del rewrite '/' (no es una ruta pública propia en
 // Vercel) — cachearlo por su nombre de fichero real daría 404 y rompería
 // cache.addAll() entero, que falla si un solo fetch de la lista falla.
 const CACHE_VERSION = 'v3';
