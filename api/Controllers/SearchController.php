@@ -23,40 +23,28 @@ class SearchController
         $stops = $stopModel->search($q, 60);
         $lines = (new LineModel($pdo))->search($q, 30);
 
-        $stops = $this->addHintsForAmbiguousStops($stopModel, $stops);
+        $stops = $this->addDirectionHints($stopModel, $stops);
 
         Response::json(['stops' => $stops, 'lines' => $lines]);
     }
 
     /**
-     * Muchas paradas comparten nombre+zona exacta (p.ej. dos andenes de la
-     * misma marquesina, uno por sentido) — indistinguibles a simple vista en
-     * la lista de resultados. Solo para esos casos ambiguos se añade una
-     * pista con destinos reales que pasan por cada una, sin penalizar con
-     * consultas extra las búsquedas normales sin duplicados.
+     * Destinos reales que pasan por cada parada, como pista de dirección en
+     * la lista de resultados — siempre, no solo cuando dos paradas comparten
+     * nombre+zona exacta (antes solo se calculaba para esos casos
+     * ambiguos, así que la mayoría de paradas con nombre único nunca
+     * mostraban hacia dónde iban).
      *
      * @param array<int, array{id:int,name:string,area:string,lat:float,lon:float}> $stops
      * @return array<int, array{id:int,name:string,area:string,lat:float,lon:float,hint:?string}>
      */
-    private function addHintsForAmbiguousStops(Stop $stopModel, array $stops): array
+    private function addDirectionHints(Stop $stopModel, array $stops): array
     {
-        $counts = [];
-        foreach ($stops as $stop) {
-            $key = $stop['name'] . '|' . $stop['area'];
-            if (!isset($counts[$key])) {
-                $counts[$key] = 0;
-            }
-            $counts[$key]++;
-        }
-
         foreach ($stops as &$stop) {
-            $key = $stop['name'] . '|' . $stop['area'];
             $stop['hint'] = null;
-            if ($counts[$key] > 1) {
-                $headsigns = $stopModel->headsignsFor((int)$stop['id']);
-                if (!empty($headsigns)) {
-                    $stop['hint'] = 'hacia ' . implode(', ', $headsigns);
-                }
+            $headsigns = $stopModel->headsignsFor((int)$stop['id']);
+            if (!empty($headsigns)) {
+                $stop['hint'] = 'hacia ' . implode(', ', $headsigns);
             }
         }
         return $stops;
