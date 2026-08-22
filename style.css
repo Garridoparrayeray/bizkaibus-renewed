@@ -130,13 +130,20 @@ header { display: flex; justify-content: space-between; align-items: center; mar
    banner desplegado mide lo mismo que el bloque de arriba. position:relative
    ancla ese absolute; el header no recorta overflow, así que el banner
    escapa visualmente del bloque de color del header. */
-.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; }
+.home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; overflow: hidden; }
 #home-link {
-    border: none; background: none; padding: 0; margin: 0;
+    border: none; background: none; padding: 0; margin: 0; min-width: 0;
     display: block; text-align: left; cursor: pointer; font-family: inherit;
 }
 #app-logomark { display: none; }
 #dev-footer { display: none; }
+
+/* Botones del header (favoritos/menú), más pequeños que el .btn-icon
+   genérico (40px, usado en tarjetas) — menos ancho que reservar junto al
+   título en pantallas estrechas. */
+.header-actions { flex-shrink: 0; }
+.header-actions .btn-icon { width: 34px; height: 34px; }
+.header-actions .btn-icon svg { width: 16px; height: 16px; }
 
 /* Botón casi invisible para volver al tema normal: un punto pequeño fijo en
    la esquina, con el glass propio de este tema. Sin texto — solo un corazón
@@ -155,12 +162,19 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .theme-toggle-link:hover, .theme-toggle-link:focus-visible {
     opacity: 1; transform: scale(1.15);
 }
+/* hgroup (h1 + p) es lo único del header que puede ceder ancho de verdad —
+   trunca con ellipsis en vez de forzar overflow al header entero. */
+hgroup { min-width: 0; overflow: hidden; }
 h1 {
     font-size: 2.2rem; font-weight: 800; margin: 0;
     background: linear-gradient(135deg, var(--pink) 0%, #9333ea 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-header p { font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin: 0; }
+header p {
+    font-size: 0.9rem; color: var(--pink-dark); font-weight: 600; margin: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* Buscador */
 #search-form { position: relative; margin-bottom: 20px; }
