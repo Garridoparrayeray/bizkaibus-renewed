@@ -1,5 +1,6 @@
-/* Importación de fuente Apple-like */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+/* Misma tipografía que style-pro.css/style-metro.css: Inter para cuerpo,
+   Bricolage Grotesque para títulos y números grandes. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
     --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #ffc3a0 100%);
@@ -166,6 +167,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
    trunca con ellipsis en vez de forzar overflow al header entero. */
 hgroup { min-width: 0; overflow: hidden; }
 h1 {
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
     font-size: 2.2rem; font-weight: 800; margin: 0;
     background: linear-gradient(135deg, var(--pink) 0%, #9333ea 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -223,7 +225,7 @@ header p {
 }
 #favorites-panel.open { transform: translateX(0); }
 #favorites-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-#favorites-panel h2 { font-size: 1.2rem; margin: 0; color: #444; }
+#favorites-panel h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.2rem; margin: 0; color: #444; font-weight: 700; }
 #favorites-list {
     display: flex; flex-direction: column; gap: 10px;
     margin: 0; padding: 0; list-style: none;
@@ -246,7 +248,7 @@ header p {
     text-align: left; cursor: pointer; font-family: inherit;
 }
 .time-display:disabled { cursor: default; }
-.time-display strong { font-size: 5rem; color: var(--pink); letter-spacing: -2px; }
+.time-display strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 5rem; color: var(--pink); letter-spacing: -2px; font-weight: 700; }
 .time-display span { font-size: 1.5rem; font-weight: 700; color: var(--pink-light); }
 .live-card footer { margin-top: 10px; }
 .live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; }
@@ -281,7 +283,7 @@ header p {
     animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .platform-panel header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-#platform-panel-stop { font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--pink-dark); }
+#platform-panel-stop { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.15rem; font-weight: 700; margin: 0; color: var(--pink-dark); }
 .platform-timetable-link {
     display: block; width: 100%; margin-bottom: 14px;
     border: none; background: rgba(255, 255, 255, 0.5);
@@ -313,7 +315,7 @@ header p {
 /* Tabla horaria */
 .timetable { padding: 25px; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
 .timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; }
-.timetable h2 { font-size: 1.2rem; margin: 0; }
+.timetable h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.2rem; margin: 0; font-weight: 700; }
 #timetable-line { color: var(--pink-dark); font-weight: 700; margin: 4px 0 20px; }
 
 #line-map {
@@ -387,7 +389,7 @@ dialog#vehicle-modal::backdrop, dialog#schedule-modal::backdrop {
     animation: backdropIn 0.3s ease;
 }
 #modal-close, #schedule-modal-close { position: absolute; top: 20px; right: 20px; }
-#modal-line, #schedule-modal-line { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1.3rem; }
+#modal-line, #schedule-modal-line { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--pink-dark); font-size: 1.3rem; font-weight: 700; }
 #modal-headsign { margin: 4px 0 16px; font-weight: 600; color: #886; }
 #modal-vehicle { font-size: 0.85rem; color: #555; margin: 0 0 16px; }
 
@@ -419,7 +421,7 @@ dialog#side-menu {
 }
 dialog#side-menu::backdrop { background: rgba(80, 20, 50, 0.35); backdrop-filter: blur(4px); animation: backdropIn 0.3s ease; }
 #menu-close { position: absolute; top: 20px; right: 20px; }
-dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1.1rem; padding-right: 40px; }
+dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--pink-dark); font-size: 1.1rem; font-weight: 700; padding-right: 40px; }
 #menu-alerts-empty { color: #886; opacity: 0.7; font-size: 0.85rem; }
 #menu-alerts-list { list-style: none; margin: 0; padding: 0; }
 #menu-alerts-list li {
@@ -476,7 +478,7 @@ dialog#side-menu h3 { margin: 10px 0 16px; color: var(--pink-dark); font-size: 1
 #network-switch.is-bus .network-switch-logomark .logo-metro { display: none; }
 #network-switch.is-bus .network-switch-logomark .logo-bus { display: block; }
 .network-switch-text { display: flex; flex-direction: column; min-width: 0; }
-#network-switch-title { font-size: 1.05rem; font-weight: 800; color: white; }
+#network-switch-title { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.05rem; font-weight: 800; color: white; }
 #network-switch-sub { font-size: 0.76rem; color: rgba(255, 255, 255, 0.85); font-weight: 500; }
 
 /* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
