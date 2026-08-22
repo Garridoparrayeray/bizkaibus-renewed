@@ -142,22 +142,13 @@ header p {
 }
 .app-container > header .btn-icon { border-color: transparent; }
 
-/* Botones del header (favoritos/menú), más pequeños que el .btn-icon
-   genérico (40px, usado en tarjetas) — menos ancho que reservar junto al
-   título en pantallas estrechas. */
+/* Botón del header (menú — favoritos vive dentro del menú lateral, ver
+   #menu-favorites-open), más pequeño que el .btn-icon genérico (40px,
+   usado en tarjetas) — menos ancho que reservar junto al título en
+   pantallas estrechas. */
 .header-actions { flex-shrink: 0; }
 .header-actions .btn-icon { width: 34px; height: 34px; }
 .header-actions .btn-icon svg { width: 16px; height: 16px; }
-
-/* Pantallas muy estrechas: aunque ya no desborden, logo+título y los
-   botones quedaban demasiado pegados al compartir una sola fila. Se
-   apilan en dos filas — título arriba, botones abajo alineados a la
-   derecha — con hueco de sobra para cada uno en vez de competir por
-   el mismo ancho. */
-@media (max-width: 420px) {
-    .app-container > header { flex-wrap: wrap; row-gap: 10px; }
-    .header-actions { width: 100%; justify-content: flex-end; }
-}
 
 /* Buscador */
 #search-form { position: relative; margin-bottom: 20px; }
@@ -407,6 +398,7 @@ dialog#side-menu {
 }
 dialog#side-menu::backdrop { background: rgba(20, 10, 11, 0.5); }
 #menu-close { position: absolute; top: 20px; right: 20px; }
+#menu-favorites-open { width: 100%; justify-content: flex-start; margin: 10px 0 24px; }
 dialog#side-menu h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 16px; color: var(--text); font-size: 1.1rem; font-weight: 700; padding-right: 40px; }
 #menu-alerts-empty { color: var(--text-secondary); opacity: 1; font-size: 0.85rem; }
 #menu-alerts-list { list-style: none; margin: 0; padding: 0; }
