@@ -38,9 +38,9 @@
         menuOpen: document.getElementById('menu-open'),
         menuClose: document.getElementById('menu-close'),
         sideMenu: document.getElementById('side-menu'),
+        menuFavoritesOpen: document.getElementById('menu-favorites-open'),
         menuAlertsEmpty: document.getElementById('menu-alerts-empty'),
         menuAlertsList: document.getElementById('menu-alerts-list'),
-        favoritesOpen: document.getElementById('favorites-open'),
         favoritesClose: document.getElementById('favorites-close'),
         favoritesPanel: document.getElementById('favorites-panel'),
         searchForm: document.getElementById('search-form'),
@@ -951,7 +951,10 @@
         if (e.target === el.sideMenu) el.sideMenu.close();
     });
 
-    el.favoritesOpen.addEventListener('click', openFavoritesPanel);
+    el.menuFavoritesOpen.addEventListener('click', () => {
+        el.sideMenu.close();
+        openFavoritesPanel();
+    });
     el.favoritesClose.addEventListener('click', closeFavoritesPanel);
 
     el.searchInput.addEventListener('input', debounce((e) => performSearch(e.target.value), 300));
