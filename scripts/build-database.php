@@ -89,7 +89,11 @@ function main(array $argv): void
     echo '  ' . count($routes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    $stops = loadStops($zip);
+    if ($network === 'metro') {
+        $stops = loadStopsMetro($zip);
+    } else {
+        $stops = loadStopsBus($zip);
+    }
     echo '  ' . count($stops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
@@ -391,16 +395,16 @@ function loadRoutes(ZipArchive $zip, ?string $expectedAgencyId): array
 }
 
 /**
- * stop_name del GTFS lleva siempre un sufijo mecánico " (<stop_id>)" (p.ej.
- * "KANALA (JANTOKIA) (2375)") — se quita para no mostrar el id repetido. Si
- * algún día el feed deja de traerlo, se conserva el nombre tal cual (con
- * aviso en el log) en vez de fallar.
+ * Filas de stops.txt que son paradas reales (location_type vacío o '0') —
+ * lo demás son estaciones-padre/entradas/nodos genéricos, comunes a las dos
+ * redes. Compartido porque el filtro en sí no difiere entre Bizkaibus y
+ * Metro Bilbao; lo que sí difiere es cómo cada una nombra sus paradas (ver
+ * loadStopsBus()/loadStopsMetro()).
  *
- * @return array<int, array{name:string, lat:float, lon:float}>
+ * @return Generator<array<string,string>>
  */
-function loadStops(ZipArchive $zip): array
+function realStopRows(ZipArchive $zip): Generator
 {
-    $stops = [];
     foreach (readCsv($zip, 'stops.txt') as $row) {
         $locationType = '';
         if (isset($row['location_type'])) {
@@ -409,7 +413,22 @@ function loadStops(ZipArchive $zip): array
         if ($locationType !== '' && $locationType !== '0') {
             continue; // no es una parada real (estación/entrada/nodo genérico/andén)
         }
+        yield $row;
+    }
+}
 
+/**
+ * stop_name del GTFS de Bizkaibus lleva siempre un sufijo mecánico
+ * " (<stop_id>)" (p.ej. "KANALA (JANTOKIA) (2375)") — se quita para no
+ * mostrar el id repetido. Si algún día el feed deja de traerlo, se conserva
+ * el nombre tal cual (con aviso en el log) en vez de fallar.
+ *
+ * @return array<int, array{name:string, lat:float, lon:float}>
+ */
+function loadStopsBus(ZipArchive $zip): array
+{
+    $stops = [];
+    foreach (realStopRows($zip) as $row) {
         $id = (int)$row['stop_id'];
         $name = $row['stop_name'];
         $stripped = preg_replace('/\s*\(' . preg_quote((string)$id, '/') . '\)$/', '', $name);
@@ -421,6 +440,29 @@ function loadStops(ZipArchive $zip): array
 
         $stops[$id] = [
             'name' => $name,
+            'lat' => (float)$row['stop_lat'],
+            'lon' => (float)$row['stop_lon'],
+        ];
+    }
+    return $stops;
+}
+
+/**
+ * stop_name del GTFS de Metro Bilbao ya viene limpio, sin el sufijo
+ * mecánico " (<stop_id>)" que sí trae Bizkaibus — verificado con datos
+ * reales (p.ej. "Basauri", "Abando", sin ningún id al final). Aplicar la
+ * misma limpieza de loadStopsBus() aquí solo generaba un warning espurio
+ * por cada una de las 42 estaciones, cada build, sin corregir nada real.
+ *
+ * @return array<int, array{name:string, lat:float, lon:float}>
+ */
+function loadStopsMetro(ZipArchive $zip): array
+{
+    $stops = [];
+    foreach (realStopRows($zip) as $row) {
+        $id = (int)$row['stop_id'];
+        $stops[$id] = [
+            'name' => $row['stop_name'],
             'lat' => (float)$row['stop_lat'],
             'lon' => (float)$row['stop_lon'],
         ];
@@ -794,9 +836,21 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     // que también saliera "todos los días" heredaba calendar_id 'PRUEBA' y
     // desaparecía de toda consulta — pasaba en 2.110 de 6.966 viajes (30%)
     // antes de este fix.
+    //
+    // Tampoco se reutiliza ningún calendario con from_date/to_date propio
+    // (campañas de vigencia acotada como obras/desvíos, ver
+    // calendarGroupKeyFor()) — verificado con datos reales de metro que
+    // varios grupos de Aste Nagusia (astnag1d_26.pex, sin fecha, servicio
+    // normal) terminaban heredando el calendar_id de un calendario de obras
+    // acotado (obranegvia1_invd_26.pex, 22 ago-22 sep) solo porque ambos
+    // compartían la misma weekday_mask (domingo) — el tren de Aste Nagusia
+    // quedaba invisible fuera de ese mes de obras sin ninguna razón real.
     $maskToCalendarId = [];
     foreach ($calendars as $calId => $cal) {
         if ($calId === 'PRUEBA') {
+            continue;
+        }
+        if ($cal['from'] !== '') {
             continue;
         }
         if (!isset($maskToCalendarId[$cal['weekdayMask']])) {
@@ -806,6 +860,22 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     $syntheticCalendars = [];
     $representatives = [];
     foreach ($groups as $group) {
+        // Un grupo que viene de un calendario de vigencia acotada
+        // (calendarGroupKey no vacío, ver calendarGroupKeyFor()) conserva
+        // SIEMPRE su propio service_id original como calendar_id final —
+        // nunca reutiliza ni un calendario real de otro grupo ni crea uno
+        // sintético. Solo el service_id original tiene las filas de
+        // service_calendar_exceptions y el from_date/to_date correctos;
+        // reutilizar otro calendario con la misma weekday_mask (p.ej. un
+        // calendario de Aste Nagusia que también cae en domingo) le hacía
+        // perder sus exclusiones puntuales y aparecer en días donde el
+        // propio operador había dicho explícitamente que no circulaba.
+        if ($group['calendarGroupKey'] !== '') {
+            $group['calendarId'] = $group['calendarGroupKey'];
+            $representatives[$group['representativeTripId']] = $group;
+            continue;
+        }
+
         $mask = $group['weekdayMask'];
         if (!isset($maskToCalendarId[$mask])) {
             $newId = 'merged_' . $mask;
