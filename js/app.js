@@ -61,6 +61,11 @@
         liveStatusText: document.getElementById('live-status-text'),
         liveIncidentsLink: document.getElementById('live-incidents-link'),
         liveMoreList: document.getElementById('live-more-list'),
+        platformPanel: document.getElementById('platform-panel'),
+        platformPanelStop: document.getElementById('platform-panel-stop'),
+        platformFavorite: document.getElementById('platform-favorite'),
+        platformClose: document.getElementById('platform-close'),
+        platformColumns: document.getElementById('platform-columns'),
         timetableSection: document.getElementById('timetable-section'),
         timetableFavorite: document.getElementById('timetable-favorite'),
         timetableClose: document.getElementById('timetable-close'),
@@ -159,6 +164,7 @@
     function closeLiveCard() {
         state.currentStop = null;
         el.liveCard.hidden = true;
+        el.platformPanel.hidden = true;
         el.liveEmpty.hidden = false;
         stopDeparturesRefresh();
     }
@@ -229,9 +235,15 @@
             return;
         }
         state.currentStop = { id: stop.id, name: stop.name };
-        updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
-        el.liveCard.hidden = false;
         el.liveEmpty.hidden = true;
+        if (IS_METRO) {
+            updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
+            el.platformPanelStop.textContent = stop.name;
+            el.platformPanel.hidden = false;
+        } else {
+            updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
+            el.liveCard.hidden = false;
+        }
         await loadDepartures();
         startDeparturesRefresh();
     }
@@ -255,10 +267,18 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            renderLiveCard([]);
+            if (IS_METRO) {
+                renderPlatformPanel([]);
+            } else {
+                renderLiveCard([]);
+            }
             return;
         }
-        renderLiveCard(data.departures);
+        if (IS_METRO) {
+            renderPlatformPanel(data.departures);
+        } else {
+            renderLiveCard(data.departures);
+        }
     }
 
     // Muestra una salida como el gran "próximo bus" y el resto como lista
@@ -317,6 +337,75 @@
 
             li.appendChild(button);
             el.liveMoreList.appendChild(li);
+        }
+    }
+
+    // Panel de andén (Metro+): un cuadro por sentido de circulación en vez
+    // de una única lista — direction viene ya calculado por el backend
+    // (ver ServiceJourney::upcomingAtStop()). No hay doble-toque como en
+    // renderLiveCard (no tiene sentido "abrir la línea", solo hay una) —
+    // cualquier entrada de la lista va directa al detalle del trayecto.
+    const PLATFORM_DIRECTIONS = [
+        { key: 'toward_reference', label: 'Sentido Abando / Bilbao centro' },
+        { key: 'away_from_reference', label: 'Sentido contrario' },
+    ];
+
+    function renderPlatformColumn(direction, departures) {
+        const column = document.createElement('div');
+        column.className = 'platform-column';
+
+        if (departures.length === 0) {
+            const headsignEl = document.createElement('p');
+            headsignEl.className = 'platform-column-headsign';
+            headsignEl.textContent = direction.label;
+            const empty = document.createElement('p');
+            empty.className = 'platform-column-empty';
+            empty.textContent = 'Sin próximas salidas';
+            column.append(headsignEl, empty);
+            return column;
+        }
+
+        const [next, ...rest] = departures;
+
+        const headsignEl = document.createElement('p');
+        headsignEl.className = 'platform-column-headsign';
+        headsignEl.textContent = `→ ${next.headsign}`;
+
+        const nextButton = document.createElement('button');
+        nextButton.type = 'button';
+        nextButton.className = 'time-display';
+        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(next.etaMinutes, 0)}</strong><span>min</span></span>`;
+        nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
+
+        const scheduled = document.createElement('p');
+        scheduled.className = 'platform-column-scheduled';
+        scheduled.textContent = next.scheduledTime;
+
+        column.append(headsignEl, nextButton, scheduled);
+
+        if (rest.length > 0) {
+            const list = document.createElement('ul');
+            list.className = 'platform-column-list';
+            for (const departure of rest) {
+                const li = document.createElement('li');
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.innerHTML = `<span>${departure.headsign}</span><span>${Math.max(departure.etaMinutes, 0)} min</span>`;
+                button.addEventListener('click', () => openVehicleModal(departure.tripKey));
+                li.appendChild(button);
+                list.appendChild(li);
+            }
+            column.appendChild(list);
+        }
+
+        return column;
+    }
+
+    function renderPlatformPanel(departures) {
+        el.platformColumns.innerHTML = '';
+        for (const direction of PLATFORM_DIRECTIONS) {
+            const columnDepartures = departures.filter((d) => d.direction === direction.key);
+            el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
         }
     }
 
@@ -737,6 +826,7 @@
 
         state.favoriteKeys = new Set(favorites.map((f) => favoriteKey(f.type, f.refId)));
         updateFavoriteButton(el.liveFavorite, 'stop', state.currentStop?.id);
+        updateFavoriteButton(el.platformFavorite, 'stop', state.currentStop?.id);
         updateFavoriteButton(el.timetableFavorite, 'line', state.currentLine?.id);
 
         el.favoritesList.querySelectorAll('li:not(#favorites-empty)').forEach((li) => li.remove());
@@ -834,6 +924,8 @@
 
     el.liveFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.liveFavorite));
     el.liveClose.addEventListener('click', closeLiveCard);
+    el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
+    el.platformClose.addEventListener('click', closeLiveCard);
     el.timetableFavorite.addEventListener('click', () => toggleFavorite('line', state.currentLine?.id, el.timetableFavorite));
     el.timetableClose.addEventListener('click', closeTimetableSection);
     el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey));

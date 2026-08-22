@@ -40,9 +40,10 @@ class StopsController
 
         $limit = $request->queryInt('limit', 8);
         $journeyModel = new ServiceJourney($pdo);
-        $rows = $journeyModel->upcomingAtStop($stopId, $limit);
-
         $config = Config::current();
+        $referenceStopId = $config['direction_reference_stop_id'] ?? null;
+        $rows = $journeyModel->upcomingAtStop($stopId, $limit, 4 * 3600, $referenceStopId);
+
         $vmMap = [];
         if (isset($config['siri'])) {
             $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
@@ -76,6 +77,7 @@ class StopsController
                 'etaMinutes' => (int)round(($row['etaSeconds'] - $now) / 60),
                 'status' => $row['status'],
                 'delayMinutes' => $row['delaySeconds'] !== 0 ? (int)round($row['delaySeconds'] / 60) : 0,
+                'direction' => $row['direction'] ?? null,
             ];
         }, $enriched);
 
