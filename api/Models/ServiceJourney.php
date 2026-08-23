@@ -97,7 +97,13 @@ class ServiceJourney
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE pt.stop_id = :stopId
               AND sc.id != \'PRUEBA\'
-              AND (sc.weekday_mask & :weekdayBit) != 0
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                  )
+              )
               AND NOT EXISTS (
                   SELECT 1 FROM service_calendar_exceptions sce
                   WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
@@ -109,6 +115,7 @@ class ServiceJourney
             'stopId' => $stopId,
             'weekdayBit' => $weekdayBit,
             'today' => $today,
+            'today2' => $today,
             'windowStart' => $now - self::PAST_GRACE_SECONDS,
             'windowEnd' => $now + $windowSeconds,
         ];
@@ -148,7 +155,13 @@ class ServiceJourney
             WHERE sj.line_id = :lineId
               AND pt.seq_order = 1
               AND sc.id != \'PRUEBA\'
-              AND (sc.weekday_mask & :weekdayBit) != 0
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :dateStr2 AND sce_inc.available = 1
+                  )
+              )
               AND NOT EXISTS (
                   SELECT 1 FROM service_calendar_exceptions sce
                   WHERE sce.calendar_id = sc.id AND sce.date = :dateStr AND sce.available = 0
@@ -160,6 +173,7 @@ class ServiceJourney
             'lineId' => $lineId,
             'weekdayBit' => $weekdayBit,
             'dateStr' => $dateStr,
+            'dateStr2' => $dateStr,
             'hourFrom' => $hourFromSeconds,
             'hourTo' => $hourToSeconds,
         ]);
