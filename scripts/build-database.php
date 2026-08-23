@@ -100,7 +100,8 @@ function main(array $argv): void
     $stops = geocodeStops($stops, $skipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $calendars = loadCalendars($zip);
+    $generalizeSingleDatesToWeekday = $network !== 'metro';
+    $calendars = loadCalendars($zip, $generalizeSingleDatesToWeekday);
     echo '  ' . count($calendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
@@ -479,8 +480,25 @@ function loadStopsMetro(ZipArchive $zip): array
  * Bilbao: 11 de sus 15 service_ids usados en trips.txt no tienen fila en
  * calendar.txt, solo fechas sueltas en calendar_dates.txt) — así que hay que
  * recorrer la unión de ambos, no solo los service_id de calendar.txt.
+ *
+ * $generalizeSingleDatesToWeekday controla qué se hace con un service_id
+ * SIN fila en calendar.txt (sin patrón semanal declarado por el operador):
+ * true (Bizkaibus) generaliza sus fechas puntuales a "este día de la semana,
+ * siempre" — correcto ahí porque calendar.txt de Bizkaibus está siempre a
+ * cero y TODA la información real viene de decenas de fechas puntuales que
+ * sí forman un patrón semanal recurrente genuino (p.ej. "todos los lunes de
+ * julio a septiembre"). false (Metro Bilbao) NO generaliza — verificado con
+ * datos reales que servicios de Aste Nagusia (astnag1d_26.pex) traen UNA
+ * sola fecha puntual (23 de agosto de 2026) sin ninguna fila en
+ * calendar.txt; generalizarla a "todos los domingos" los hacía aparecer en
+ * cualquier domingo del año (incluidos meses después de las fiestas) y, al
+ * mismo tiempo, el horario nocturno ampliado de esa fecha concreta quedaba
+ * indistinguible del servicio normal de cualquier otro domingo. En vez de
+ * eso, esas fechas puntuales se guardan como excepciones de inclusión
+ * exactas (ver excludedDates/includedDates más abajo) y el propio
+ * weekdayMask del calendario queda en 0 — solo activo esas fechas.
  */
-function loadCalendars(ZipArchive $zip): array
+function loadCalendars(ZipArchive $zip, bool $generalizeSingleDatesToWeekday): array
 {
     $ranges = [];
     $baseWeekdayMask = [];
@@ -516,10 +534,23 @@ function loadCalendars(ZipArchive $zip): array
             $dates = $activeDates[$id];
         }
         $baseMask = 0;
-        if (isset($baseWeekdayMask[$id])) {
+        $hasCalendarRow = isset($baseWeekdayMask[$id]);
+        if ($hasCalendarRow) {
             $baseMask = $baseWeekdayMask[$id];
         }
-        $weekdayMask = $baseMask | computeWeekdayMask($dates);
+
+        // Solo se generalizan a "este día de la semana, siempre" las fechas
+        // puntuales de un service_id SIN fila propia en calendar.txt cuando
+        // $generalizeSingleDatesToWeekday lo permite (ver docblock). Un
+        // service_id CON fila en calendar.txt ya declaró su propio patrón
+        // semanal explícitamente — sus fechas puntuales en calendar_dates.txt
+        // son excepciones sobre ESE patrón (añadir/quitar días sueltos), no
+        // una fuente alternativa de patrón semanal, así que siempre se
+        // generalizan igual en ambas redes.
+        $weekdayMask = $baseMask;
+        if ($hasCalendarRow || $generalizeSingleDatesToWeekday) {
+            $weekdayMask |= computeWeekdayMask($dates);
+        }
 
         $from = '';
         $to = '';
@@ -535,9 +566,19 @@ function loadCalendars(ZipArchive $zip): array
         // weekday_mask no puede representar esto por sí solo, así que se
         // guarda la lista de fechas excluidas aparte.
         $excludedDates = [];
+        // Fechas de exception_type=1 para un service_id SIN fila en
+        // calendar.txt, cuando NO se generalizan a weekday_mask (metro): se
+        // guardan como inclusiones puntuales exactas — el servicio solo
+        // está activo esas fechas concretas, no "ese día de la semana
+        // siempre". Ver ServiceJourney::upcomingAtStop()/timetableForLine(),
+        // que comprueban esta tabla con available=1 como alternativa al
+        // weekday_mask (que aquí se queda en 0).
+        $includedDates = [];
         foreach ($dates as $date => $isAvailable) {
             if (!$isAvailable) {
                 $excludedDates[] = $date;
+            } elseif (!$hasCalendarRow && !$generalizeSingleDatesToWeekday) {
+                $includedDates[] = $date;
             }
         }
 
@@ -547,6 +588,7 @@ function loadCalendars(ZipArchive $zip): array
             'weekdayMask' => $weekdayMask,
             'activeDateCount' => count(array_filter($dates)),
             'excludedDates' => $excludedDates,
+            'includedDates' => $includedDates,
         ];
     }
     return $calendars;
@@ -690,21 +732,39 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
  * mismo viaje real, solo una coincidencia de horario entre campañas
  * independientes. Vacío = sin restricción extra (se fusiona como siempre).
  *
- * Solo aplica a metro: sus service_id con from_date/to_date explícito en
- * calendar.txt (obranegvia1_*) son campañas de
- * vigencia acotada (obras, desvíos estacionales) — verificado con datos
- * reales que un tren de obras de domingo se fusionaba con uno de Aste
- * Nagusia porque ambos, tras el OR final de máscaras del grupo, caían a
- * <90s de diferencia; el tren de obras terminaba pareciendo "todos los
- * días" en vez de solo domingos, colándose en días que no le tocan.
+ * Solo aplica a metro, en dos casos:
+ *
+ * 1) service_id con from_date/to_date explícito en calendar.txt
+ *    (obranegvia1_*) — campañas de vigencia acotada (obras, desvíos
+ *    estacionales). Verificado con datos reales que un tren de obras de
+ *    domingo se fusionaba con uno de Aste Nagusia porque ambos, tras el OR
+ *    final de máscaras del grupo, caían a <90s de diferencia; el tren de
+ *    obras terminaba pareciendo "todos los días" en vez de solo domingos,
+ *    colándose en días que no le tocan.
+ *
+ * 2) service_id sin fila en calendar.txt cuya única presencia es una o
+ *    pocas fechas puntuales en calendar_dates.txt (weekdayMask=0, ver
+ *    loadCalendars()/$generalizeSingleDatesToWeekday) — cada uno de estos
+ *    (p.ej. astnag1d_26.pex = solo 23 de agosto de 2026, astnag2l_26.pex =
+ *    solo el 24) es una fecha real distinta. Verificado que sin separarlos,
+ *    el trip de un día de Aste Nagusia se fusionaba con el de otro día
+ *    porque ambos, con weekdayMask=0, caían dentro de la ventana de
+ *    clustering — el representante elegido se quedaba con el calendar_id
+ *    de UN solo día, y las fechas de inclusión puntual de los demás
+ *    service_id fusionados se perdían sin más (solo el OR de weekday_mask
+ *    se propaga entre miembros del grupo, no las fechas de inclusión
+ *    individuales) — el horario especial de un día concreto desaparecía
+ *    por completo en vez de solo mostrarse ese día.
  *
  * Bus NO usa esta regla: ahí casi todos sus 94+ calendarios (94/105
  * verificado) tienen from_date/to_date por cómo el operador publica sus
- * temporadas — aplicar la misma regla ahí deshace casi toda la fusión
- * legítima entre variantes reales del mismo viaje (43803 trips → 43705
- * journeys en vez de ~6673, 153MB en vez de ~24MB, por encima del límite
- * de 100MB de Vercel). Bus ya tiene una señal fuerte y correcta para esto
- * (trip_number, ver más abajo), que metro no tiene.
+ * temporadas, y su weekdayMask siempre se generaliza desde fechas puntuales
+ * (comportamiento correcto y necesario ahí, ver
+ * $generalizeSingleDatesToWeekday) — aplicar el caso 1) deshace casi toda
+ * la fusión legítima entre variantes reales del mismo viaje (43803 trips →
+ * 43705 journeys en vez de ~6673, 153MB en vez de ~24MB, por encima del
+ * límite de 100MB de Vercel). Bus ya tiene una señal fuerte y correcta para
+ * esto (trip_number, ver más abajo), que metro no tiene.
  */
 function calendarGroupKeyFor(string $network, string $serviceId, array $calendars): string
 {
@@ -714,10 +774,14 @@ function calendarGroupKeyFor(string $network, string $serviceId, array $calendar
     if (!isset($calendars[$serviceId])) {
         return '';
     }
-    if ($calendars[$serviceId]['from'] === '') {
-        return '';
+    $cal = $calendars[$serviceId];
+    if ($cal['from'] !== '') {
+        return $serviceId;
     }
-    return $serviceId;
+    if ($cal['weekdayMask'] === 0 && !empty($cal['includedDates'])) {
+        return $serviceId;
+    }
+    return '';
 }
 
 function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals, string $network): void
@@ -1132,11 +1196,15 @@ function insertStops(PDO $pdo, array $stops): void
 function insertCalendars(PDO $pdo, array $calendars): void
 {
     $stmt = $pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
-    $exceptionStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
+    $excludeStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
+    $includeStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 1)');
     foreach ($calendars as $id => $cal) {
         $stmt->execute([$id, $cal['from'], $cal['to'], $cal['weekdayMask']]);
         foreach ($cal['excludedDates'] as $date) {
-            $exceptionStmt->execute([$id, $date]);
+            $excludeStmt->execute([$id, $date]);
+        }
+        foreach ($cal['includedDates'] as $date) {
+            $includeStmt->execute([$id, $date]);
         }
     }
 }
