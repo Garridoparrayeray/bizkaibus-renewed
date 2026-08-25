@@ -174,6 +174,7 @@
         state.currentLine = null;
         el.timetableSection.hidden = true;
         stopLineMapRefresh();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ---- Búsqueda ----
@@ -434,6 +435,7 @@
         updateFavoriteButton(el.timetableFavorite, 'line', line.id);
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
+        el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         await loadTimetable();
         // Metro+ no tiene mapa en vivo por línea, ya que la red es lineal
         // y se entiende con texto, sin necesidad de mapa.
