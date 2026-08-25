@@ -6,13 +6,13 @@ use Services\Calendar;
 
 class ServiceJourney
 {
-    /** Igual que el gap de clustering del build (scripts/build-database.php) — dos
+    /** Igual que el gap de clustering del build (scripts/build-database.php): dos
      *  variantes de calendario para el mismo (línea, trip_number) que en esta parada
      *  caen a menos de esto una de otra son el mismo viaje real, no dos salidas distintas. */
     private const DEDUPE_TOLERANCE_SECONDS = 90;
 
     /** Un bus retrasado puede seguir sin llegar mucho después de su hora
-     *  programada — si el margen hacia atrás fuera pequeño, se excluiría de
+     *  programada. Si el margen hacia atrás fuera pequeño, se excluiría de
      *  aquí (por hora programada) antes de que el enriquecido en vivo tenga
      *  ocasión de comprobar si en realidad sigue en camino, y desaparecería
      *  de la app justo cuando estuviera "LLEGANDO" sin haber llegado todavía. */
@@ -20,14 +20,14 @@ class ServiceJourney
 
     /**
      * El headsign de journey_patterns viene del trip_headsign del GTFS, que
-     * no siempre coincide con la última parada real del recorrido concreto —
-     * verificado con datos reales de Metro Bilbao: 172 de 265 patrones (65%)
+     * no siempre coincide con la última parada real del recorrido concreto.
+     * Verificado con datos reales de Metro Bilbao: 172 de 265 patrones (65%)
      * tienen headsign distinto de su última parada, incluyendo casos donde
      * dos trenes con el MISMO headsign salen a la misma hora pero uno de
      * ellos en realidad se queda corto (p.ej. "Etxebarri" a las 06:00 dos
      * veces: uno llega a Etxebarri de verdad, el otro solo hasta Indautxu).
      * En Bizkaibus esta discrepancia es aún más frecuente (95%) pero ahí es
-     * esperada — el headsign es el destino comercial anunciado del
+     * esperada: el headsign es el destino comercial anunciado del
      * recorrido, no necesariamente la última parada de cada variante. Por
      * eso este dato se calcula siempre pero cada red decide en el frontend
      * si usarlo (Metro+) o seguir mostrando el headsign de GTFS (bus).
@@ -54,7 +54,7 @@ class ServiceJourney
      * trayecto en absoluto, ver más abajo), 'away_from_reference' si va
      * después. Pensado para Metro+ (referencia = Abando, el centro real de
      * la red) para agrupar las salidas por sentido de circulación en dos
-     * columnas, como un panel físico de andén — verificado con datos reales
+     * columnas, como un panel físico de andén. Verificado con datos reales
      * que comparar el seq_order de la parada consultada contra el de Abando
      * dentro del MISMO journey_pattern predice el sentido con fiabilidad
      * total en los patrones que pasan por ambas. No tiene sentido para bus
@@ -127,14 +127,14 @@ class ServiceJourney
 
         // +5 de margen: algunas de las filas "pasadas" que trae la ventana
         // ampliada se descartarán después (StopsController) si el enriquecido
-        // en vivo confirma que el bus ya pasó de verdad — así no le quitan
+        // en vivo confirma que el bus ya pasó de verdad, así no le quitan
         // el sitio a una salida futura real en el límite final.
         return $this->dedupeByTrip($stmt->fetchAll(), $limit + 5);
     }
 
     /**
      * Salidas programadas desde la parada de origen de una línea, para el día
-     * de la semana en que cae $date, dentro de un rango horario — usado en
+     * de la semana en que cae $date, dentro de un rango horario. Usado en
      * "Tabla Horaria".
      *
      * @return array<int, array<string, mixed>>
@@ -180,11 +180,12 @@ class ServiceJourney
 
         // 2000: Bizkaibus nunca pasa de ~190 salidas/día por línea, pero
         // Metro+ agrega TODA la red bajo una única línea (854 salidas/día
-        // hoy) — 200 cortaba la tabla de horarios de Metro+ a media mañana,
+        // hoy). 200 cortaba la tabla de horarios de Metro+ a media mañana,
         // ocultando tarde y noche enteras en silencio.
         return $this->dedupeByTrip($stmt->fetchAll(), 2000);
     }
 
+    /** Un viaje concreto por su clave (línea, número de trip, primera salida), tal como llega en tripKey desde el frontend. */
     public function findByLineAndTrip(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
     {
         $stmt = $this->pdo->prepare('
@@ -207,7 +208,7 @@ class ServiceJourney
 
     /**
      * Hora programada de llegada en una posición concreta (seq_order) de un
-     * viaje — permite a RealtimeMatcher calcular "tiempo programado restante
+     * viaje. Permite a RealtimeMatcher calcular "tiempo programado restante
      * desde la última parada confirmada" en vez de solo "hora original + retraso plano".
      */
     public function arrivalSecondsAtOrder(string $serviceJourneyId, int $seqOrder): ?int
@@ -224,7 +225,13 @@ class ServiceJourney
         return (int)$value;
     }
 
-    /** @return array<int, array{seq_order:int, stop_id:int, name:string, arrival_seconds:int, departure_seconds:int}> */
+    /**
+     * Recorrido completo de un viaje, parada a parada en orden, con hora
+     * programada de llegada y salida en cada una. Base de las pantallas de
+     * "detalle de trayecto" y del modal sin tiempo real de metro.
+     *
+     * @return array<int, array{seq_order:int, stop_id:int, name:string, arrival_seconds:int, departure_seconds:int}>
+     */
     public function stopsForJourney(string $serviceJourneyId): array
     {
         $stmt = $this->pdo->prepare('
@@ -238,6 +245,13 @@ class ServiceJourney
         return $stmt->fetchAll();
     }
 
+    /**
+     * Colapsa filas del mismo (line_id, trip_number) cuya hora de salida cae
+     * dentro de DEDUPE_TOLERANCE_SECONDS: son variantes de calendario que
+     * casan con el mismo día para el mismo viaje real, no dos salidas
+     * distintas (ver esa constante). Conserva la primera fila de cada grupo,
+     * en el orden en que ya vinieron ordenadas por la consulta SQL.
+     */
     private function dedupeByTrip(array $rows, int $limit): array
     {
         $lastKeptDeparture = [];

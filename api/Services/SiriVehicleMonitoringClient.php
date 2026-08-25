@@ -10,19 +10,19 @@ use Core\Http;
  * en origen). Da retraso en vivo + parada/orden actual por cada viaje activo.
  *
  * Los VehicleJourneyRef (p.ej. "trp_A3513_907_OP44LV_61500_O44LV3513_351302_6")
- * NO coinciden exactamente con el id de service_journeys del estático —
- * verificado: solo los tokens de línea y trip_number son fiables, el token
+ * NO coinciden exactamente con el id de service_journeys del estático.
+ * Verificado que solo los tokens de línea y trip_number son fiables: el token
  * de calendario y todo lo que va después usan un vocabulario distinto en
  * vivo que en estático.
  *
- * trip_number tampoco es único por sí solo — es un id de bloque/vehículo
+ * trip_number tampoco es único por sí solo: es un id de bloque/vehículo
  * reutilizado en decenas de salidas distintas a lo largo del día (verificado:
  * el trip_number "1137" de la línea 2322 aparece a las 06:23, 07:36, 08:36,
  * 09:33... todo el día). El token de segundos de salida que lleva incrustado
- * lo acota, pero tampoco coincide byte a byte con el horario estático —
- * verificado con pares reales, p.ej. un "72900" en vivo contra un "72928"
- * estático para la misma (línea, trip) son la misma salida física, con
- * decenas de segundos de diferencia. Por eso se agrupa por (line_id,
+ * lo acota, pero tampoco coincide byte a byte con el horario estático.
+ * Verificado con pares reales que, por ejemplo, un "72900" en vivo contra un
+ * "72928" estático para la misma (línea, trip) son la misma salida física,
+ * con decenas de segundos de diferencia. Por eso se agrupa por (line_id,
  * trip_number) y se elige el first_departure_seconds más cercano dentro de
  * un margen, en vez de exigir igualdad exacta en ningún sitio.
  */
@@ -35,7 +35,14 @@ class SiriVehicleMonitoringClient
         $this->config = $config;
     }
 
-    /** @return array<string, array<int, array{departureSeconds:int, delaySeconds:int, vehicleRef:string, currentStopId:?int, order:?int}>> indexado por "{lineId}|{tripNumber}" */
+    /**
+     * Todos los vehículos en circulación ahora mismo según SIRI-VM, cacheados
+     * según siri.cache_ttl_seconds. Si el feed falla, devuelve mapa vacío en
+     * vez de propagar el error: sin datos en vivo, la app sigue funcionando
+     * con el horario programado.
+     *
+     * @return array<string, array<int, array{departureSeconds:int, delaySeconds:int, vehicleRef:string, currentStopId:?int, order:?int}>> indexado por "{lineId}|{tripNumber}"
+     */
     public function fetchActiveTrips(): array
     {
         $cfg = $this->config['siri'];
@@ -49,6 +56,7 @@ class SiriVehicleMonitoringClient
         });
     }
 
+    /** Extrae line_id y trip_number del VehicleJourneyRef y agrupa las actividades del feed por esa clave. */
     private static function parse(string $xmlString): array
     {
         $xml = @simplexml_load_string($xmlString);

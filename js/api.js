@@ -1,5 +1,5 @@
 const Api = (() => {
-    // Toda llamada lleva el parámetro de red cuando estamos en Metro+ — el
+    // Toda llamada lleva el parámetro de red cuando estamos en Metro+, ya que el
     // backend (api/index.php) lo usa para decidir qué sqlite/config cargar
     // (ver Core\Config::set()). window.__bbNetwork lo fija index.html antes
     // de que se ejecute ningún script, igual que window.__bbTheme.

@@ -14,6 +14,7 @@ use Services\SiriVehicleMonitoringClient;
 
 class StopsController
 {
+    /** Ficha de una parada/estación, ruta /stops/{id}, con las líneas que la sirven. */
     public function show(Request $request, array $params): void
     {
         $pdo = Database::connection();
@@ -27,6 +28,14 @@ class StopsController
         Response::json($stop);
     }
 
+    /**
+     * Próximas salidas de una parada, ruta /stops/{id}/departures: la
+     * pantalla principal de la app. Enriquece el horario programado con
+     * SIRI-VM cuando la red lo tiene (bus); en metro se queda en "scheduled".
+     * Cuando la config trae direction_reference_stop_id (Abando en Metro+),
+     * cada fila lleva además 'direction' para agrupar por sentido de
+     * circulación, como un panel físico de andén.
+     */
     public function departures(Request $request, array $params): void
     {
         $pdo = Database::connection();
@@ -59,7 +68,7 @@ class StopsController
         // recorrido (correcto para bus, donde no siempre coincide con la
         // última parada de una variante concreta). Para metro, sin ramales
         // comerciales complejos, la última parada real del propio trayecto
-        // es más fiable — verificado: el GTFS de Metro Bilbao repite el
+        // es más fiable: verificado que el GTFS de Metro Bilbao repite el
         // mismo headsign en trenes que en realidad terminan en paradas
         // distintas (ver ServiceJourney::LAST_STOP_NAME_SUBQUERY).
         $network = 'bus';
@@ -112,7 +121,7 @@ class StopsController
 
     /**
      * Secuencia completa de paradas/estaciones de un trayecto programado, con
-     * la hora de paso por cada una — sin tiempo real. Es el equivalente de
+     * la hora de paso por cada una, sin tiempo real. Es el equivalente de
      * RealtimeController::vehicle() para redes sin SIRI (Metro Bilbao): en vez
      * de "dónde está el vehículo ahora", responde "por dónde pasa este
      * trayecto hasta llegar a mi parada". El stopId de referencia llega por

@@ -7,7 +7,7 @@ use Core\Http;
 
 /**
  * Alertas de servicio SIRI-SX (bizkaibus-service-alerts.xml). Feed pequeño
- * (~180KB), se pide en vivo y se cachea poco tiempo — nunca es estático.
+ * (~180KB), se pide en vivo y se cachea poco tiempo: nunca es estático.
  */
 class SiriAlertsClient
 {
@@ -18,7 +18,12 @@ class SiriAlertsClient
         $this->config = $config;
     }
 
-    /** @return array<int, array{summary:string, description:string, startTime:?string, endTime:?string, lineRefs:string[]}> */
+    /**
+     * Todas las alertas activas del feed, cacheadas según siri.cache_ttl_seconds.
+     * Si SIRI-SX falla, devuelve lista vacía en vez de propagar el error.
+     *
+     * @return array<int, array{summary:string, description:string, startTime:?string, endTime:?string, lineRefs:string[]}>
+     */
     public function fetchAlerts(): array
     {
         $cfg = $this->config['siri'];
@@ -32,7 +37,13 @@ class SiriAlertsClient
         });
     }
 
-    /** @return array<string, array<int, array{summary:string, description:string, startTime:?string, endTime:?string}>> */
+    /**
+     * Las mismas alertas de fetchAlerts(), reagrupadas por line_id de línea
+     * afectada, para que AlertsController pueda filtrar por ?line= sin volver
+     * a pedir el feed.
+     *
+     * @return array<string, array<int, array{summary:string, description:string, startTime:?string, endTime:?string}>>
+     */
     public function alertsByLine(): array
     {
         $byLine = [];
@@ -49,6 +60,7 @@ class SiriAlertsClient
         return $byLine;
     }
 
+    /** Traduce el XML SIRI-SX (PtSituationElement) a la forma plana que usa el resto de la app. */
     private static function parse(string $xmlString): array
     {
         $xml = @simplexml_load_string($xmlString);

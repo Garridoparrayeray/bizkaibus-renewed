@@ -8,6 +8,7 @@ class Stop
     {
     }
 
+    /** Ficha básica de una parada/estación por id, sin las líneas que la sirven (ver linesServing). */
     public function find(int $id): ?array
     {
         $stmt = $this->safeQuery(
@@ -22,7 +23,14 @@ class Stop
         return $row;
     }
 
-    /** @return array<int, array{id:int,name:string,area:string,lat:float,lon:float}> */
+    /**
+     * Búsqueda de paradas/estaciones por nombre o zona, normalizando el texto
+     * de entrada (sin tildes, minúsculas) contra las columnas *_normalized ya
+     * precalculadas por el ETL, para que un usuario que escriba "bilbo" o
+     * "getxo" sin acentos siga encontrando resultados.
+     *
+     * @return array<int, array{id:int,name:string,area:string,lat:float,lon:float}>
+     */
     public function search(string $query, int $limit = 10): array
     {
         $normalized = Search::normalize($query);
@@ -42,8 +50,8 @@ class Stop
 
     /**
      * Destinos reales (headsigns de patrón) que pasan por esta parada, hasta
-     * $limit valores distintos — usado como pista para diferenciar paradas
-     * que comparten nombre+zona exacta (p.ej. dos andenes de la misma
+     * $limit valores distintos. Usado como pista para diferenciar paradas
+     * que comparten nombre y zona exacta (p.ej. dos andenes de la misma
      * marquesina, uno de ida y otro de vuelta) en los resultados de búsqueda.
      *
      * @return array<int, string>
@@ -81,7 +89,7 @@ class Stop
     /**
      * Prueba primero la consulta con `area`; si esa columna aún no existe
      * (p.ej. data/bizkaibus.sqlite se generó antes de añadir la
-     * geocodificación — ver scripts/build-database.php), cae a la versión sin ella.
+     * geocodificación, ver scripts/build-database.php), cae a la versión sin ella.
      */
     private function safeQuery(string $sql, string $fallbackSql, array $args, ?array $fallbackArgs = null): \PDOStatement
     {

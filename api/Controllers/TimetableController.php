@@ -14,6 +14,14 @@ use Services\SiriVehicleMonitoringClient;
 
 class TimetableController
 {
+    /**
+     * Horario completo de una línea para un día y rango horario dados, ruta
+     * /lines/{id}/timetable. A diferencia de las salidas "en vivo" de
+     * StopsController::departures(), aquí se listan todas las salidas
+     * programadas del rango pedido, no solo las próximas, pensado para la
+     * pantalla "Consultar Horarios". Si la fecha consultada es hoy, enriquece
+     * con SIRI-VM (solo bus); si es otro día, todo queda como "scheduled".
+     */
     public function show(Request $request, array $params): void
     {
         $config = Config::current();
@@ -41,7 +49,7 @@ class TimetableController
         // Un rango tipo 23:00-02:00 cruza medianoche: sin este ajuste, "hasta
         // las 02:00" (7200s) sería siempre menor que "desde las 23:00"
         // (82800s) y el BETWEEN nunca encontraría nada. Se interpreta como
-        // que la hora de fin cae en la madrugada del día siguiente — igual
+        // que la hora de fin cae en la madrugada del día siguiente, igual
         // que el propio GTFS representa esas salidas con segundos >86400
         // (ver ServiceJourney/Calendar::secondsToHm).
         if ($hourTo < $hourFrom) {
@@ -107,6 +115,7 @@ class TimetableController
         ]);
     }
 
+    /** "HH:MM" -> segundos desde medianoche. Formato inválido devuelve 0. */
     private function hmToSeconds(string $hm): int
     {
         if (!preg_match('/^(\d{1,2}):(\d{2})$/', $hm, $m)) {
