@@ -11,16 +11,19 @@ use Services\Calendar;
 use Services\RealtimeMatcher;
 use Services\SiriVehicleMonitoringClient;
 
-/** "Detalle del bus": muestra lo que hay realmente en los datos — flota,
- * retraso, parada actual, paradas restantes. Nada de modelo/amenities inventados. */
+/**
+ * "Detalle del bus": muestra lo que hay realmente en los datos, es decir
+ * flota, retraso, parada actual y paradas restantes. Nada de modelo ni
+ * amenities inventados: si SIRI no lo publica, la app no lo muestra.
+ */
 class RealtimeController
 {
     /**
      * "En vivo ahora" de una línea: la ruta (paradas ordenadas de cada patrón,
      * para dibujar en el mapa) más los vehículos activos ahora mismo. La
-     * posición del vehículo es su última parada confirmada — el feed no da
-     * GPS continuo, solo parada + orden, así que el marcador va en una parada
-     * real, nunca interpolado entre medias.
+     * posición del vehículo es su última parada confirmada, porque el feed no
+     * da GPS continuo, solo parada más orden. El marcador va siempre en una
+     * parada real, nunca interpolado entre medias.
      */
     public function lineLive(Request $request, array $params): void
     {
@@ -89,6 +92,13 @@ class RealtimeController
         ]);
     }
 
+    /**
+     * Detalle en vivo de un vehículo concreto, ruta /vehicles/{tripKey}: su
+     * recorrido completo con la hora programada de cada parada, más el
+     * enriquecido en tiempo real cuando SIRI-VM lo confirma en circulación.
+     * Las paradas que el vehículo ya dejó atrás no llevan ETA, marcadas con
+     * isPast a partir del order confirmado por el propio feed.
+     */
     public function vehicle(Request $request, array $params): void
     {
         [$lineId, $tripNumber, $firstDepartureSeconds] = array_pad(explode('-', $params['tripKey'], 3), 3, null);
@@ -116,7 +126,7 @@ class RealtimeController
         $now = Calendar::nowSecondsSinceMidnight();
 
         $stopsOut = array_map(function ($stop) use ($matcher, $journey, $live, $now) {
-            // Las paradas que el bus ya ha confirmado que pasó no llevan ETA —
+            // Las paradas que el bus ya ha confirmado que pasó no llevan ETA:
             // su hora programada ya quedó antes de la posición en vivo, así que
             // "ahora menos una hora pasada" no tiene sentido (y puede liarse cruzando medianoche).
             $alreadyPassed = $live !== null && $live['order'] !== null && (int)$stop['seq_order'] < (int)$live['order'];

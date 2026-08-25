@@ -7,7 +7,7 @@ use Models\ServiceJourney;
 /**
  * Enriquece las salidas programadas con datos en vivo de SIRI-VM cuando los
  * hay. Agrupa por (line_id, trip_number) y busca el departure_seconds más
- * cercano dentro de un margen — ver SiriVehicleMonitoringClient para por qué
+ * cercano dentro de un margen; ver SiriVehicleMonitoringClient para por qué
  * ni el id exacto ni la hora exacta funcionan contra este feed.
  */
 class RealtimeMatcher
@@ -16,7 +16,7 @@ class RealtimeMatcher
     private const MATCH_TOLERANCE_SECONDS = 180;
     /** Si la estimación por posición y la de retraso plano difieren más de esto,
      *  es que el Order del feed en vivo no encaja con nuestra secuencia de
-     *  paradas (verificado: pasa ~1 de cada 9 veces) — se descarta y se usa el retraso plano. */
+     *  paradas (verificado: pasa ~1 de cada 9 veces), así que se descarta y se usa el retraso plano. */
     private const POSITION_SANITY_SECONDS = 15 * 60;
 
     private array $vmMap;
