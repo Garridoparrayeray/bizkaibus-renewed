@@ -7,14 +7,14 @@
  *   php scripts/build-database.php [--network=bus|metro] [--source=<ruta-o-url>] [--output=<ruta>]
  *
  * Por defecto --network=bus (Bizkaibus, feed GTFS de Lantik/CTB, que sí se
- * mantiene actualizado — a diferencia del NeTEx que usaba antes esta app,
+ * mantiene actualizado, a diferencia del NeTEx que usaba antes esta app,
  * congelado desde enero 2025). --network=metro usa el GTFS oficial de Metro
  * Bilbao (cms.metrobilbao.eus), mucho más pequeño (~2.4MB, 42 estaciones) y
  * sin necesidad de geocodificación (los nombres de estación ya son reales).
  * Por eso conviene re-ejecutar este script periódicamente para cada red.
  *
  * Los campos de días de la semana de calendar.txt de Bizkaibus están siempre
- * a cero — el calendario real sale de las fechas explícitas de
+ * a cero: el calendario real sale de las fechas explícitas de
  * calendar_dates.txt, generalizadas aquí a una máscara semanal (ver
  * computeWeekdayMask()). El calendar.txt de Metro Bilbao sí trae los días
  * rellenos, pero se procesa igual: computeWeekdayMask() solo mira
@@ -40,7 +40,7 @@ const NETWORK_DEFAULTS = [
         'output' => __DIR__ . '/../data/metrobilbao.sqlite',
         'label' => 'Metro+',
         // routes.txt de Metro Bilbao no trae columna agency_id (solo una
-        // agencia, "Metro Bilbao") — null desactiva el filtro por agencia.
+        // agencia, "Metro Bilbao"); null desactiva el filtro por agencia.
         'agencyId' => null,
         // Las 42 estaciones ya tienen nombre real de localidad/barrio; no
         // hace falta resolverlo por geocodificación inversa.
@@ -113,7 +113,7 @@ function main(array $argv): void
         echo "  feed_version: {$feedInfo['feed_version']} (start: {$feedInfo['feed_start_date']}, end: {$feedInfo['feed_end_date']})\n";
     }
 
-    // Feed caducado (el operador aún no publicó la siguiente temporada) — abortar en vez de desplegar datos viejos.
+    // Feed caducado (el operador aún no publicó la siguiente temporada): abortar en vez de desplegar datos viejos.
     $feedEndIso = '';
     if (!empty($feedInfo['feed_end_date'])) {
         $feedEndIso = gtfsDateToIso($feedInfo['feed_end_date']);
@@ -144,7 +144,7 @@ function main(array $argv): void
         $insertLine->execute([$routeId, $route['code'], $route['name'], normalize($route['name'])]);
     }
 
-    echo "Processing stop_times.txt (the big one, ~1.1M rows — two bounded-memory passes)...\n";
+    echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
     $totals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
     processStopTimes($pdo, $zip, $trips, $routes, $calendars, $totals, $network);
 
@@ -181,7 +181,7 @@ function parseArgs(array $argv): array
 }
 
 /**
- * El GTFS tampoco trae municipio/barrio (stop_desc viene vacío) — solo
+ * El GTFS tampoco trae municipio/barrio (stop_desc viene vacío), solo
  * nombre de calle y coordenadas. Se resuelve con geocodificación inversa
  * (OpenStreetMap/Nominatim), agrupando antes por coordenada redondeada para
  * no hacer una petición por cada una de las ~2300 paradas. Cacheado en
@@ -189,7 +189,7 @@ function parseArgs(array $argv): array
  *
  * Redondeo a 3 decimales (~111m), no 2 (~1.1km): con 2 decimales una parada
  * de Areeta/Las Arenas (Getxo) caía en el mismo cluster que otra al otro
- * lado de la ría en Portugalete — municipios distintos.
+ * lado de la ría en Portugalete: municipios distintos.
  *
  * @return array<int, array{name:string, lat:float, lon:float, area:string}>
  */
@@ -396,7 +396,7 @@ function loadRoutes(ZipArchive $zip, ?string $expectedAgencyId): array
 }
 
 /**
- * Filas de stops.txt que son paradas reales (location_type vacío o '0') —
+ * Filas de stops.txt que son paradas reales (location_type vacío o '0'),
  * lo demás son estaciones-padre/entradas/nodos genéricos, comunes a las dos
  * redes. Compartido porque el filtro en sí no difiere entre Bizkaibus y
  * Metro Bilbao; lo que sí difiere es cómo cada una nombra sus paradas (ver
@@ -420,7 +420,7 @@ function realStopRows(ZipArchive $zip): Generator
 
 /**
  * stop_name del GTFS de Bizkaibus lleva siempre un sufijo mecánico
- * " (<stop_id>)" (p.ej. "KANALA (JANTOKIA) (2375)") — se quita para no
+ * " (<stop_id>)" (p.ej. "KANALA (JANTOKIA) (2375)"), se quita para no
  * mostrar el id repetido. Si algún día el feed deja de traerlo, se conserva
  * el nombre tal cual (con aviso en el log) en vez de fallar.
  *
@@ -450,7 +450,7 @@ function loadStopsBus(ZipArchive $zip): array
 
 /**
  * stop_name del GTFS de Metro Bilbao ya viene limpio, sin el sufijo
- * mecánico " (<stop_id>)" que sí trae Bizkaibus — verificado con datos
+ * mecánico " (<stop_id>)" que sí trae Bizkaibus, verificado con datos
  * reales (p.ej. "Basauri", "Abando", sin ningún id al final). Aplicar la
  * misma limpieza de loadStopsBus() aquí solo generaba un warning espurio
  * por cada una de las 42 estaciones, cada build, sin corregir nada real.
@@ -472,22 +472,22 @@ function loadStopsMetro(ZipArchive $zip): array
 }
 
 /**
- * Combina calendar.txt (patrón semanal base, cuando lo trae — en Bizkaibus
+ * Combina calendar.txt (patrón semanal base, cuando lo trae: en Bizkaibus
  * siempre está a cero, en Metro Bilbao viene relleno para parte de los
  * servicios) con calendar_dates.txt (excepciones puntuales, exception_type=1
  * añade ese día concreto). Un service_id puede existir solo en uno de los
- * dos ficheros — GTFS lo permite (verificado con datos reales de Metro
+ * dos ficheros: GTFS lo permite (verificado con datos reales de Metro
  * Bilbao: 11 de sus 15 service_ids usados en trips.txt no tienen fila en
- * calendar.txt, solo fechas sueltas en calendar_dates.txt) — así que hay que
+ * calendar.txt, solo fechas sueltas en calendar_dates.txt), así que hay que
  * recorrer la unión de ambos, no solo los service_id de calendar.txt.
  *
  * $generalizeSingleDatesToWeekday controla qué se hace con un service_id
  * SIN fila en calendar.txt (sin patrón semanal declarado por el operador):
  * true (Bizkaibus) generaliza sus fechas puntuales a "este día de la semana,
- * siempre" — correcto ahí porque calendar.txt de Bizkaibus está siempre a
+ * siempre": correcto ahí porque calendar.txt de Bizkaibus está siempre a
  * cero y TODA la información real viene de decenas de fechas puntuales que
  * sí forman un patrón semanal recurrente genuino (p.ej. "todos los lunes de
- * julio a septiembre"). false (Metro Bilbao) NO generaliza — verificado con
+ * julio a septiembre"). false (Metro Bilbao) NO generaliza, verificado con
  * datos reales que servicios de Aste Nagusia (astnag1d_26.pex) traen UNA
  * sola fecha puntual (23 de agosto de 2026) sin ninguna fila en
  * calendar.txt; generalizarla a "todos los domingos" los hacía aparecer en
@@ -496,7 +496,7 @@ function loadStopsMetro(ZipArchive $zip): array
  * indistinguible del servicio normal de cualquier otro domingo. En vez de
  * eso, esas fechas puntuales se guardan como excepciones de inclusión
  * exactas (ver excludedDates/includedDates más abajo) y el propio
- * weekdayMask del calendario queda en 0 — solo activo esas fechas.
+ * weekdayMask del calendario queda en 0: solo activo esas fechas.
  */
 function loadCalendars(ZipArchive $zip, bool $generalizeSingleDatesToWeekday): array
 {
@@ -543,7 +543,7 @@ function loadCalendars(ZipArchive $zip, bool $generalizeSingleDatesToWeekday): a
         // puntuales de un service_id SIN fila propia en calendar.txt cuando
         // $generalizeSingleDatesToWeekday lo permite (ver docblock). Un
         // service_id CON fila en calendar.txt ya declaró su propio patrón
-        // semanal explícitamente — sus fechas puntuales en calendar_dates.txt
+        // semanal explícitamente, sus fechas puntuales en calendar_dates.txt
         // son excepciones sobre ESE patrón (añadir/quitar días sueltos), no
         // una fuente alternativa de patrón semanal, así que siempre se
         // generalizan igual en ambas redes.
@@ -560,7 +560,7 @@ function loadCalendars(ZipArchive $zip, bool $generalizeSingleDatesToWeekday): a
         }
 
         // Fechas de calendar_dates.txt con exception_type=2 (día concreto EN
-        // que este servicio, aunque su weekday_mask lo cubra, NO circula —
+        // que este servicio, aunque su weekday_mask lo cubra, NO circula:
         // p.ej. un service de obras que corre "todos los sábados" pero el
         // operador excluye dos sábados sueltos por cambio de planificación).
         // weekday_mask no puede representar esto por sí solo, así que se
@@ -568,7 +568,7 @@ function loadCalendars(ZipArchive $zip, bool $generalizeSingleDatesToWeekday): a
         $excludedDates = [];
         // Fechas de exception_type=1 para un service_id SIN fila en
         // calendar.txt, cuando NO se generalizan a weekday_mask (metro): se
-        // guardan como inclusiones puntuales exactas — el servicio solo
+        // guardan como inclusiones puntuales exactas: el servicio solo
         // está activo esas fechas concretas, no "ese día de la semana
         // siempre". Ver ServiceJourney::upcomingAtStop()/timetableForLine(),
         // que comprueban esta tabla con available=1 como alternativa al
@@ -613,7 +613,7 @@ function computeWeekdayMask(array $dateAvailability): int
  * "trp_A123_456_..."), usado para el matching con el feed SIRI en vivo y
  * como salvaguarda extra al fusionar variantes de calendario del mismo viaje
  * (ver processStopTimes()). Metro Bilbao no tiene tiempo real y su trip_id es
- * un simple entero ("876714") sin ese formato — la regex no matchea, así que
+ * un simple entero ("876714") sin ese formato, la regex no matchea, así que
  * queda null; processStopTimes() ya sabe agrupar solo por (línea, patrón) en
  * ese caso.
  *
@@ -648,16 +648,16 @@ function loadTrips(ZipArchive $zip): array
  * cada trip_id distinto.
  *
  * NO asume que el fichero viene ordenado con cada trip_id en un bloque
- * contiguo — verificado con datos reales de Metro Bilbao que NO es así: el
+ * contiguo, verificado con datos reales de Metro Bilbao que NO es así: el
  * mismo trip_id puede reaparecer en bloques separados a lo largo del
  * fichero. Una versión anterior de este código sí asumía contigüidad
  * (cerraba el grupo en cuanto veía cambiar el trip_id) y descartaba como
- * "duplicado" cualquier reaparición posterior del mismo trip_id — perdiendo
+ * "duplicado" cualquier reaparición posterior del mismo trip_id, perdiendo
  * en silencio las paradas de ese segundo bloque. Eso producía
  * journey_patterns truncados (p.ej. un trip real de 29 paradas quedaba
  * registrado con solo las 22 primeras) que además, por mala suerte,
  * coincidían en representante con otros trips que sí tenían la secuencia
- * completa — mostrando el mismo destino repetido dos veces a la misma hora
+ * completa, mostrando el mismo destino repetido dos veces a la misma hora
  * con recorridos de longitud distinta. Por eso aquí se agrupa por trip_id de
  * verdad (un array indexado por trip_id) antes de generar nada.
  *
@@ -719,23 +719,23 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
  * fusionar).
  *
  * Se fusiona ya en el build: se agrupan los viajes por (línea, trip_number,
- * hash de la secuencia de paradas, primera salida) — el hash es lo que evita
+ * hash de la secuencia de paradas, primera salida): el hash es lo que evita
  * fusionar un desvío real (p.ej. el de Elantxobe en verano) con la versión
- * normal del "mismo" trip_number — y se hace OR de las máscaras semanales de
+ * normal del "mismo" trip_number, y se hace OR de las máscaras semanales de
  * cada variante en un calendario sintético. Solo el viaje representante de
  * cada grupo inserta sus passing_times; el resto solo aporta su máscara.
  */
 /**
  * Clave extra para separar, dentro de un mismo (línea, trip_number, patrón),
  * viajes que NO deben fusionarse entre sí aunque su horario coincida dentro
- * del margen de clustering — porque no son variantes de calendario del
+ * del margen de clustering, porque no son variantes de calendario del
  * mismo viaje real, solo una coincidencia de horario entre campañas
  * independientes. Vacío = sin restricción extra (se fusiona como siempre).
  *
  * Solo aplica a metro, en dos casos:
  *
  * 1) service_id con from_date/to_date explícito en calendar.txt
- *    (obranegvia1_*) — campañas de vigencia acotada (obras, desvíos
+ *    (obranegvia1_*): campañas de vigencia acotada (obras, desvíos
  *    estacionales). Verificado con datos reales que un tren de obras de
  *    domingo se fusionaba con uno de Aste Nagusia porque ambos, tras el OR
  *    final de máscaras del grupo, caían a <90s de diferencia; el tren de
@@ -744,23 +744,23 @@ function streamStopTimesByTrip(ZipArchive $zip): Generator
  *
  * 2) service_id sin fila en calendar.txt cuya única presencia es una o
  *    pocas fechas puntuales en calendar_dates.txt (weekdayMask=0, ver
- *    loadCalendars()/$generalizeSingleDatesToWeekday) — cada uno de estos
+ *    loadCalendars()/$generalizeSingleDatesToWeekday): cada uno de estos
  *    (p.ej. astnag1d_26.pex = solo 23 de agosto de 2026, astnag2l_26.pex =
  *    solo el 24) es una fecha real distinta. Verificado que sin separarlos,
  *    el trip de un día de Aste Nagusia se fusionaba con el de otro día
  *    porque ambos, con weekdayMask=0, caían dentro de la ventana de
- *    clustering — el representante elegido se quedaba con el calendar_id
+ *    clustering: el representante elegido se quedaba con el calendar_id
  *    de UN solo día, y las fechas de inclusión puntual de los demás
  *    service_id fusionados se perdían sin más (solo el OR de weekday_mask
  *    se propaga entre miembros del grupo, no las fechas de inclusión
- *    individuales) — el horario especial de un día concreto desaparecía
+ *    individuales): el horario especial de un día concreto desaparecía
  *    por completo en vez de solo mostrarse ese día.
  *
  * Bus NO usa esta regla: ahí casi todos sus 94+ calendarios (94/105
  * verificado) tienen from_date/to_date por cómo el operador publica sus
  * temporadas, y su weekdayMask siempre se generaliza desde fechas puntuales
  * (comportamiento correcto y necesario ahí, ver
- * $generalizeSingleDatesToWeekday) — aplicar el caso 1) deshace casi toda
+ * $generalizeSingleDatesToWeekday), aplicar el caso 1) deshace casi toda
  * la fusión legítima entre variantes reales del mismo viaje (43803 trips →
  * 43705 journeys en vez de ~6673, 153MB en vez de ~24MB, por encima del
  * límite de 100MB de Vercel). Bus ya tiene una señal fuerte y correcta para
@@ -853,7 +853,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     // cluster nuevo cuando el hueco con la anterior supera la tolerancia.
     //
     // trip_number es null cuando el trip_id de la red no trae ese formato
-    // (Metro Bilbao) — en ese caso se agrupa solo por (línea, patrón); el
+    // (Metro Bilbao): en ese caso se agrupa solo por (línea, patrón); el
     // trip_id de Metro Bilbao ya es único por variante de calendario (no se
     // repite como en Bizkaibus), así que trip_number no aporta nada como
     // salvaguarda extra ahí y solo haría que cada variante quedara en su
@@ -867,7 +867,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
             $tripNumberPart = $sig['tripNumber'];
         }
         // calendarGroupKey separa campañas de vigencia acotada (obras,
-        // desvíos estacionales) entre sí y del servicio base — ver el
+        // desvíos estacionales) entre sí y del servicio base, ver el
         // comentario donde se calcula, más arriba. Vacío para el servicio
         // base y para excepciones puntuales sin from_date/to_date propio,
         // que sí deben poder fusionarse entre ellas como hasta ahora.
@@ -894,20 +894,20 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
 
     // Se reutiliza un calendario real existente si su máscara ya coincide;
     // solo se crea uno sintético "merged_<mask>" si no hay ninguno. Nunca se
-    // reutiliza 'PRUEBA' — es un service_id real (no un dummy vacío tipo
+    // reutiliza 'PRUEBA': es un service_id real (no un dummy vacío tipo
     // NeTEx) que ServiceJourney.php excluye siempre, y su weekday_mask es
     // 127 (todos los días). Sin esta exclusión, cualquier grupo fusionado
     // que también saliera "todos los días" heredaba calendar_id 'PRUEBA' y
-    // desaparecía de toda consulta — pasaba en 2.110 de 6.966 viajes (30%)
+    // desaparecía de toda consulta, pasaba en 2.110 de 6.966 viajes (30%)
     // antes de este fix.
     //
     // Tampoco se reutiliza ningún calendario con from_date/to_date propio
     // (campañas de vigencia acotada como obras/desvíos, ver
-    // calendarGroupKeyFor()) — verificado con datos reales de metro que
+    // calendarGroupKeyFor()), verificado con datos reales de metro que
     // varios grupos de Aste Nagusia (astnag1d_26.pex, sin fecha, servicio
     // normal) terminaban heredando el calendar_id de un calendario de obras
     // acotado (obranegvia1_invd_26.pex, 22 ago-22 sep) solo porque ambos
-    // compartían la misma weekday_mask (domingo) — el tren de Aste Nagusia
+    // compartían la misma weekday_mask (domingo): el tren de Aste Nagusia
     // quedaba invisible fuera de ese mes de obras sin ninguna razón real.
     $maskToCalendarId = [];
     foreach ($calendars as $calId => $cal) {
@@ -926,7 +926,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
     foreach ($groups as $group) {
         // Un grupo que viene de un calendario de vigencia acotada
         // (calendarGroupKey no vacío, ver calendarGroupKeyFor()) conserva
-        // SIEMPRE su propio service_id original como calendar_id final —
+        // SIEMPRE su propio service_id original como calendar_id final,
         // nunca reutiliza ni un calendario real de otro grupo ni crea uno
         // sintético. Solo el service_id original tiene las filas de
         // service_calendar_exceptions y el from_date/to_date correctos;
@@ -990,7 +990,7 @@ function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes
         }
 
         // trip_number es NULL cuando la red no tiene el formato de trip_id de
-        // Bizkaibus (ver loadTrips()) — sin él, dos service_journeys distintos
+        // Bizkaibus (ver loadTrips()), sin él, dos service_journeys distintos
         // con la misma first_departure_seconds serían indistinguibles para
         // findByLineAndTrip()/tripKey en el frontend. $tripId aquí es el
         // representative trip id del grupo fusionado (único por journey), así
@@ -1096,10 +1096,10 @@ function createSchema(PDO $pdo): void
     // Excepciones puntuales de calendar_dates.txt: un service_id puede tener
     // días sueltos añadidos (exception_type=1, ya cubiertos por weekday_mask
     // vía computeWeekdayMask) o RESTADOS (exception_type=2) sobre su patrón
-    // semanal base — esto último no se puede representar con weekday_mask +
+    // semanal base, esto último no se puede representar con weekday_mask +
     // rango de fechas solo, así que se guarda aparte. Solo interesan las
     // exclusiones (available=0); las de tipo 1 puntuales que no formen parte
-    // ya del weekday_mask base tampoco se guardan aquí — se resuelven con
+    // ya del weekday_mask base tampoco se guardan aquí, se resuelven con
     // OR en computeWeekdayMask() como siempre. Ver ServiceJourney::isDateExcluded().
     $pdo->exec('
         CREATE TABLE service_calendar_exceptions (
@@ -1118,7 +1118,7 @@ function createSchema(PDO $pdo): void
 
 /**
  * feed_version de feed_info.txt es la fecha en que se generó este GTFS
- * concreto (p.ej. "20260716") — se lee de aquí en vez de fijarla a mano en
+ * concreto (p.ej. "20260716"), se lee de aquí en vez de fijarla a mano en
  * config.php, que es justo el tipo de dato desfasado que dejó el build con
  * NeTEx mal durante año y medio sin que nadie lo notara.
  *
@@ -1126,7 +1126,7 @@ function createSchema(PDO $pdo): void
  */
 function loadFeedInfo(ZipArchive $zip): array
 {
-    // feed_info.txt es opcional en GTFS — Metro Bilbao no lo publica (Bizkaibus sí).
+    // feed_info.txt es opcional en GTFS: Metro Bilbao no lo publica (Bizkaibus sí).
     if ($zip->locateName('feed_info.txt') === false) {
         return [];
     }

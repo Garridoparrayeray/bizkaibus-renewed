@@ -1,12 +1,12 @@
 <?php
-// Título y Open Graph resueltos en servidor, según ?red= — el script del
+// Título y Open Graph resueltos en servidor, según ?red=. El script del
 // <head> de abajo los sobrescribe (document.write) en navegadores reales
 // con la lógica completa de tema+red, pero los bots que generan la vista
 // previa al compartir un enlace (WhatsApp, Telegram, X, LinkedIn...) no
 // ejecutan JavaScript: leen exactamente este HTML tal cual lo escribe PHP.
 // Por eso esto solo necesita distinguir red (visible en la query string
-// que el bot sí tiene), no ?tema=miamor — ese es un detalle de UI que no
-// tiene sentido en una vista previa de enlace compartido.
+// que el bot sí tiene), no ?tema=miamor, que es un detalle de UI sin
+// sentido en una vista previa de enlace compartido.
 $isMetroShare = isset($_GET['red']) && $_GET['red'] === 'metro';
 if ($isMetroShare) {
     $ogTitle = 'Metro+';
@@ -47,7 +47,7 @@ if ($isMetroShare) {
 
             // Red: bus (Bizkaibus, por defecto) o metro (Metro Bilbao). A
             // diferencia de ?tema=, esto SÍ se conserva en la URL (?red=metro)
-            // porque cada llamada a la API necesita saberlo (ver js/api.js) —
+            // porque cada llamada a la API necesita saberlo (ver js/api.js):
             // no solo afecta a qué CSS se carga.
             window.__bbNetwork = params.get('red') === 'metro' ? 'metro' : 'bus';
             var isMetro = window.__bbNetwork === 'metro';
@@ -58,7 +58,7 @@ if ($isMetroShare) {
             var touchIcon = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
             var icon = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
             // El tema mi amor (style.css, rosa/glassmorphism) es el MISMO
-            // fichero para ambas redes — Metro+ también puede llevarlo, solo
+            // fichero para ambas redes: Metro+ también puede llevarlo, solo
             // cambian logo/textos (ver el script del <body>). Así ?tema=miamor
             // funciona igual en las dos redes, sin tener que "recordar" el
             // tema al saltar entre ellas ni mantener una cuarta hoja de estilos.
@@ -68,7 +68,7 @@ if ($isMetroShare) {
                 if (isMiamor) {
                     // El icono de instalación (manifest/apple-touch-icon/favicon)
                     // sigue siendo el corazón de mi amor, no el aro rojo de
-                    // Metro+ — mi amor es el tema activo, no algo exclusivo
+                    // Metro+: mi amor es el tema activo, no algo exclusivo
                     // de una red (mismo criterio que el subtítulo cariñoso).
                     themeColor = '#db2777';
                 } else {
@@ -84,7 +84,7 @@ if ($isMetroShare) {
             }
 
             // Clase en <html> (existe siempre, a diferencia de <body> que
-            // este script todavía no ha alcanzado) — permite que style.css
+            // este script todavía no ha alcanzado): permite que style.css
             // (compartido entre bus y metro en el tema mi amor) diferencie
             // el layout de escritorio de Metro+ del de bus sin depender de JS
             // en tiempo de ejecución para cada regla.
@@ -149,12 +149,12 @@ if ($isMetroShare) {
             <script>
                 var isMiamorActive = window.__bbTheme === 'miamor';
                 var networkSwitch = document.getElementById('network-switch');
-                // Mi amor (style.css) es el mismo tema para ambas redes — el
+                // Mi amor (style.css) es el mismo tema para ambas redes: el
                 // enlace de cambio de red lleva ?tema=miamor cuando está
                 // activo, así se mantiene al saltar entre BizkaiBus+ y Metro+.
                 // Sin esto, un enlace normal (recarga completa) siempre cae al
-                // tema pro por defecto — ver el script de arriba, que borra
-                // ?tema= de la URL nada más leerlo.
+                // tema pro por defecto (ver el script de arriba, que borra
+                // ?tema= de la URL nada más leerlo).
                 var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
 
                 if (window.__bbNetwork === 'metro') {
@@ -171,7 +171,7 @@ if ($isMetroShare) {
                 }
 
                 // El mensaje cariñoso sustituye al subtítulo funcional sin
-                // importar la red — mi amor es el tema activo, no algo
+                // importar la red: mi amor es el tema activo, no algo
                 // exclusivo de BizkaiBus+.
                 if (isMiamorActive) {
                     document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
@@ -232,7 +232,7 @@ if ($isMetroShare) {
 
                 <!-- Panel de andén (Metro+ únicamente): un cuadro por sentido
                      de circulación, como los paneles físicos reales de
-                     estación — reemplaza a #live-card para esta red (ver
+                     estación. Reemplaza a #live-card para esta red (ver
                      js/app.js selectStop()). -->
                 <div id="platform-panel" class="platform-panel" hidden>
                     <header>
@@ -303,7 +303,7 @@ if ($isMetroShare) {
     </footer>
     <a id="theme-toggle-link" href="#" class="theme-toggle-link" aria-label="Cambiar tema"></a>
     <script>
-        // El elemento debe existir ya en el DOM antes de rellenarlo — este
+        // El elemento debe existir ya en el DOM antes de rellenarlo. Este
         // script va justo después, no en el <head>/<header> (que corren
         // antes de que el <body> termine de parsearse y dejaban el enlace
         // sin href, con document.getElementById devolviendo null).

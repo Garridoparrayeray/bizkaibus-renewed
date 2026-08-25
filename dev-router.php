@@ -3,7 +3,7 @@
 // Imita los rewrites de vercel.json (/api/* -> api/index.php, / -> api/shell.php)
 // que aplica Vercel en producción. shell.php vive dentro de api/ porque
 // Vercel solo reconoce como Serverless Function un fichero PHP que esté
-// físicamente en ese directorio — no basta con declararlo en "functions".
+// físicamente en ese directorio, no basta con declararlo en "functions".
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 

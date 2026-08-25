@@ -1,6 +1,6 @@
 (() => {
     const IS_METRO = window.__bbNetwork === 'metro';
-    // Claves separadas por red — una parada de bus y una estación de metro
+    // Claves separadas por red: una parada de bus y una estación de metro
     // nunca deben mezclarse en el mismo panel de favoritos.
     const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites' : 'bizkaibus_favorites';
 
@@ -18,7 +18,7 @@
         departuresRefreshTimer: null,
     };
 
-    // Evita repedir el nombre de cada favorito en cada añadir/quitar — sin
+    // Evita repedir el nombre de cada favorito en cada añadir/quitar. Sin
     // esto, cada toggle vuelve a pedir el label de TODOS los favoritos, así
     // que el número de peticiones en vuelo crece cada vez que añades uno más.
     const favoriteLabelCache = new Map();
@@ -108,7 +108,7 @@
         return `${type}:${refId}`;
     }
 
-    // "LLEGANDO" implica que está a punto de llegar — mostrarlo para un bus
+    // "LLEGANDO" implica que está a punto de llegar: mostrarlo para un bus
     // en vivo que aún está a 30+ minutos engaña solo porque haya match de
     // GPS. Lo que está en vivo pero aún lejos lleva su propia etiqueta.
     function liveBadgeText(status, etaMinutes) {
@@ -125,7 +125,7 @@
         return { text: 'Programado', className: 'status-muted' };
     }
 
-    /** Monta <icon><label>[<small>area</small>][<small>hint</small>] dentro de un botón pill — el icono es una constante estática de confianza, label/area/hint van por textContent. */
+    /** Monta <icon><label>[<small>area</small>][<small>hint</small>] dentro de un botón pill. El icono es una constante estática de confianza, label/area/hint van por textContent. */
     function setPillContent(button, iconSvg, label, area, hint) {
         button.innerHTML = '';
         const icon = document.createElement('span');
@@ -150,7 +150,7 @@
 
     // ---- Selector de red (BizkaiBus+ / Metro+) ----
     // Tocar el logo despliega, con animación, la otra red disponible. Elegirla
-    // navega (recarga completa) a /?red=metro o / — misma filosofía que el
+    // navega (recarga completa) a /?red=metro o /, misma filosofía que el
     // selector de tema (?tema=miamor): URL distinta = estado distinto, sin
     // reconstruir la app en caliente para un cambio tan infrecuente.
 
@@ -249,8 +249,8 @@
         startDeparturesRefresh();
     }
 
-    // Las salidas se piden una vez al seleccionar y si no, no se actualizan —
-    // sin refresco, un bus que ya se fue se queda en "0 min" para siempre en
+    // Las salidas se piden una vez al seleccionar y si no, no se actualizan.
+    // Sin refresco, un bus que ya se fue se queda en "0 min" para siempre en
     // vez de desaparecer de la lista como en un panel de salidas real.
     function startDeparturesRefresh() {
         stopDeparturesRefresh();
@@ -284,7 +284,7 @@
 
     // Muestra una salida como el gran "próximo bus" y el resto como lista
     // compacta debajo. Si hay una línea favorita entre las salidas, se pone
-    // arriba del todo sin importar el orden de llegada — para eso sirve
+    // arriba del todo sin importar el orden de llegada, para eso sirve
     // marcar una línea como favorita en esta parada. Si no, gana la salida
     // más próxima, como antes.
     function renderLiveCard(departures) {
@@ -342,9 +342,9 @@
     }
 
     // Panel de andén (Metro+): un cuadro por sentido de circulación en vez
-    // de una única lista — direction viene ya calculado por el backend
+    // de una única lista, direction viene ya calculado por el backend
     // (ver ServiceJourney::upcomingAtStop()). No hay doble-toque como en
-    // renderLiveCard (no tiene sentido "abrir la línea", solo hay una) —
+    // renderLiveCard (no tiene sentido "abrir la línea", solo hay una);
     // cualquier entrada de la lista va directa al detalle del trayecto.
     const PLATFORM_DIRECTIONS = [
         { key: 'toward_reference', label: 'Sentido Abando / Bilbao centro' },
@@ -394,7 +394,7 @@
                 // La hora programada (HH:MM) va siempre visible, no solo el
                 // minuto restante redondeado: dos trenes de líneas distintas
                 // (p.ej. hacia Etxebarri y hacia Kabiezes) pueden salir con
-                // segundos de diferencia y redondear al mismo "1 min" —  sin
+                // segundos de diferencia y redondear al mismo "1 min": sin
                 // la hora exacta parecían la misma salida repetida.
                 button.innerHTML = `<span>${departure.headsign}</span><span>${departure.scheduledTime} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
                 button.addEventListener('click', () => openVehicleModal(departure.tripKey));
@@ -414,7 +414,7 @@
             el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
         }
         // "Ver horario completo" lleva a Consultar Horarios de la única línea
-        // de metro — el lineId sale de las propias salidas cargadas, sin
+        // de metro, el lineId sale de las propias salidas cargadas, sin
         // asumir un id fijo.
         const lineId = departures[0]?.lineId;
         el.platformTimetableLink.disabled = lineId === undefined;
@@ -435,7 +435,7 @@
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
         await loadTimetable();
-        // Metro+ no tiene mapa en vivo por línea — la red es lineal
+        // Metro+ no tiene mapa en vivo por línea, ya que la red es lineal
         // y se entiende con texto, sin necesidad de mapa.
         if (!IS_METRO) {
             await loadLineMap(line.id);
@@ -560,7 +560,7 @@
 
     // ---- Horario oficial en texto (popup, solo castellano, estructurado) ----
 
-    /** Los campos crudos son pares clave/valor genéricos del XML legado — se agrupan en temporada/fechas/ida/vuelta, solo variantes en castellano. */
+    /** Los campos crudos son pares clave/valor genéricos del XML legado, se agrupan en temporada/fechas/ida/vuelta, solo variantes en castellano. */
     function extractScheduleFields(block) {
         const fields = { season: '', from: '', to: '', outbound: '', returnTrip: '' };
         for (const [key, value] of Object.entries(block)) {
@@ -662,10 +662,10 @@
         el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
         el.modalVehicle.textContent = data.vehicleRef
             ? `Vehículo en seguimiento en vivo · Ref. ${data.vehicleRef}`
-            : 'Sin seguimiento en vivo en este momento — se muestra el horario programado.';
+            : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
 
-        // Las incidencias se piden solo bajo demanda (al tocar), nunca antes
-        // — este popup se abre a menudo (cada fila/click) y la mayoría de viajes no tienen ninguna.
+        // Las incidencias se piden solo bajo demanda (al tocar), nunca antes:
+        // este popup se abre a menudo (cada fila/click) y la mayoría de viajes no tienen ninguna.
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = 'Ver incidencias';
         el.modalAlertsToggle.disabled = false;
@@ -684,7 +684,7 @@
         el.modal.showModal();
     }
 
-    // Metro+ no tiene tiempo real — reutiliza el mismo modal que bus (mismos
+    // Metro+ no tiene tiempo real, reutiliza el mismo modal que bus (mismos
     // IDs/estructura, "Detalle del bus" del CSS) pero sin badge de en-vivo,
     // vehicleRef ni incidencias: solo la secuencia de estaciones programadas,
     // con la parada de origen (si se abrió desde ahí) resaltada como "isTarget".
@@ -777,7 +777,7 @@
 
         // Metro Bilbao solo tiene una línea agregada y sus avisos no traen
         // referencia fiable a línea (station_id pertenece al sistema interno
-        // del CMS, no al GTFS) — se muestra la lista completa de avisos
+        // del CMS, no al GTFS), se muestra la lista completa de avisos
         // activos de la red directamente, sin el filtro por línea favorita
         // que sí tiene sentido en bus (múltiples líneas independientes).
         if (IS_METRO) {
@@ -1000,7 +1000,7 @@
     // en vez de todo el día: así la tabla abre con algo relevante ahora
     // mismo y quien quiera más horas las suma él mismo ampliando el filtro.
     // Si la franja cruza medianoche (p.ej. 23:00-01:00) el campo "hasta"
-    // simplemente muestra la hora de madrugada — el backend ya interpreta
+    // simplemente muestra la hora de madrugada, ya que el backend interpreta
     // ese caso como el día siguiente cuando hourTo < hourFrom.
     const now = new Date();
     const pad2 = (n) => String(n).padStart(2, '0');
@@ -1008,7 +1008,7 @@
     el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
 
     // Metro+ no tiene mapa en vivo (sin SIRI de posición) ni el endpoint
-    // legado de horario oficial en texto libre — se ocultan sus controles
+    // legado de horario oficial en texto libre, se ocultan sus controles
     // en vez de dejarlos ahí sin función.
     if (IS_METRO) {
         el.lineMap.hidden = true;
