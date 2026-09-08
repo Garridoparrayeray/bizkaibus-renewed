@@ -1,5 +1,5 @@
 // El sufijo de versión fuerza a que activate() borre cualquier caché anterior
-// (ver más abajo) — sin él, un dispositivo que instaló el SW antes de añadir
+// (ver más abajo): sin él, un dispositivo que instaló el SW antes de añadir
 // Metro+ puede quedarse sirviendo / o js/app.js viejos desde caché si la red
 // falla o tarda, aunque el fetch de abajo sea network-first: la navegación
 // inicial de una PWA instalada no siempre pasa por ese camino en todos los
@@ -7,7 +7,7 @@
 // propio HTML/JS del shell de forma significativa.
 // '/index.html' quitado de la lista: el shell ahora es api/shell.php,
 // servido solo a través del rewrite '/' (no es una ruta pública propia en
-// Vercel) — cachearlo por su nombre de fichero real daría 404 y rompería
+// Vercel), cachearlo por su nombre de fichero real daría 404 y rompería
 // cache.addAll() entero, que falla si un solo fetch de la lista falla.
 const CACHE_VERSION = 'v3';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
@@ -49,7 +49,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Never cache the API — real-time data must always hit the network.
+    // Never cache the API: real-time data must always hit the network.
     if (url.pathname.startsWith('/api/')) {
         return;
     }

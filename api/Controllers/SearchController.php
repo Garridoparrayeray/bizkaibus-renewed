@@ -11,6 +11,12 @@ use Models\Stop;
 
 class SearchController
 {
+    /**
+     * Búsqueda combinada de paradas y líneas, ruta /search. Exige al menos
+     * dos caracteres para no lanzar consultas LIKE contra toda la tabla en
+     * cada pulsación del buscador. El hint "hacia X" solo se añade en bus
+     * (ver addDirectionHints); en metro se deja explícitamente a null.
+     */
     public function search(Request $request): void
     {
         $q = trim((string)$request->query('q', ''));
@@ -25,7 +31,7 @@ class SearchController
         $lines = (new LineModel($pdo))->search($q, 30);
 
         // La pista "hacia X" solo tiene sentido en Bizkaibus, donde muchas
-        // paradas comparten nombre — en Metro Bilbao cada una de las 42
+        // paradas comparten nombre. En Metro Bilbao cada una de las 42
         // estaciones tiene nombre único, así que la pista no desambigua
         // nada y solo añade ruido a cada resultado.
         $config = Config::current();
@@ -46,10 +52,10 @@ class SearchController
 
     /**
      * Destinos reales que pasan por cada parada, como pista de dirección en
-     * la lista de resultados — siempre, no solo cuando dos paradas comparten
-     * nombre+zona exacta (antes solo se calculaba para esos casos
+     * la lista de resultados. Se calcula siempre, no solo cuando dos paradas
+     * comparten nombre y zona exacta: antes solo se calculaba para esos casos
      * ambiguos, así que la mayoría de paradas con nombre único nunca
-     * mostraban hacia dónde iban).
+     * mostraban hacia dónde iban.
      *
      * @param array<int, array{id:int,name:string,area:string,lat:float,lon:float}> $stops
      * @return array<int, array{id:int,name:string,area:string,lat:float,lon:float,hint:?string}>

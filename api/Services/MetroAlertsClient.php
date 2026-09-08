@@ -7,12 +7,12 @@ use Core\Http;
 
 /**
  * Avisos/incidencias de Metro Bilbao (endpoint JSON propio del CMS, no
- * SIRI-SX como Bizkaibus — Metro Bilbao no publica ese formato). El
- * station_id que trae cada aviso pertenece al sistema interno del CMS, no
- * al stop_id del GTFS público — no hay forma fiable de cruzarlos, así que
- * los avisos se muestran como lista global de la red, no filtrados por
- * estación. El propio título del aviso ya suele nombrar la estación en
- * texto libre (p.ej. "Ascensor exterior de Areeta fuera de servicio").
+ * SIRI-SX como Bizkaibus, que no publica ese formato). El station_id que
+ * trae cada aviso pertenece al sistema interno del CMS, no al stop_id del
+ * GTFS público, y no hay forma fiable de cruzarlos, así que los avisos se
+ * muestran como lista global de la red, no filtrados por estación. El propio
+ * título del aviso ya suele nombrar la estación en texto libre (p.ej.
+ * "Ascensor exterior de Areeta fuera de servicio").
  */
 class MetroAlertsClient
 {
@@ -23,7 +23,13 @@ class MetroAlertsClient
         $this->config = $config;
     }
 
-    /** @return array<int, array{summary:string, description:string, startTime:?string, endTime:?string}> */
+    /**
+     * Avisos activos ahora mismo, cacheados según metro_alerts.cache_ttl_seconds.
+     * Si el CMS de Metro Bilbao falla o no responde, devuelve lista vacía en
+     * vez de propagar el error: un aviso caído no debe tumbar el resto de la app.
+     *
+     * @return array<int, array{summary:string, description:string, startTime:?string, endTime:?string}>
+     */
     public function fetchAlerts(): array
     {
         $cfg = $this->config['metro_alerts'];
@@ -37,6 +43,7 @@ class MetroAlertsClient
         });
     }
 
+    /** Filtra el JSON crudo del CMS a los avisos publicados y aún no finalizados. */
     private static function parse(string $body): array
     {
         $decoded = json_decode($body, true);
