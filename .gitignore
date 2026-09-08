@@ -4,5 +4,6 @@
 *.log
 Thumbs.db
 .DS_Store
+.phpdoc
 
 .vercel

@@ -10,6 +10,13 @@ use Services\SiriAlertsClient;
 
 class AlertsController
 {
+    /**
+     * Avisos activos de la red, ruta /alerts. Bifurca por Config::current()['network']:
+     * MetroAlertsClient para metro, que devuelve la lista global del CMS de Metro
+     * Bilbao sin filtro por línea, porque el metro no tiene ese concepto; y
+     * SiriAlertsClient para bus, que consume SIRI-SX de Bizkaibus y admite
+     * filtrar por ?line=. Sin ese parámetro, devuelve todos los avisos.
+     */
     public function index(Request $request): void
     {
         $config = Config::current();
