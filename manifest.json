@@ -1,5 +1,5 @@
 {
-    "id": "/",
+    "id": "/?homescreen=1",
     "name": "BizkaiBus+",
     "short_name": "BizkaiBus+",
     "description": "Horarios y tiempo real de Bizkaibus",
