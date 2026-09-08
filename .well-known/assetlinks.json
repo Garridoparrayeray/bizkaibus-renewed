@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.bizkaibus_renewed.twa",
+        "sha256_cert_fingerprints": ["5E:37:E0:E7:3C:A9:BC:90:EE:F6:19:A5:20:E1:0B:08:BC:FF:E9:C0:54:B3:20:5B:71:33:45:66:78:16:2A:4F"]
+      }
+    }]
