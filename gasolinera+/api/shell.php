@@ -78,6 +78,17 @@
                 <option value="gasolina_98_e5">Gasolina 98 E5</option>
                 <option value="adblue">AdBlue</option>
                 <option value="glp">GLP</option>
+                <optgroup label="Alternativos y renovables">
+                    <option value="diesel_renovable">Diésel Renovable</option>
+                    <option value="gasolina_renovable">Gasolina Renovable</option>
+                    <option value="biodiesel">Biodiésel</option>
+                    <option value="bioetanol">Bioetanol</option>
+                    <option value="gnc">Gas Natural Comprimido</option>
+                    <option value="gnl">Gas Natural Licuado</option>
+                    <option value="biogas_natural_comprimido">Biogás Natural Comprimido</option>
+                    <option value="biogas_natural_licuado">Biogás Natural Licuado</option>
+                    <option value="hidrogeno">Hidrógeno</option>
+                </optgroup>
             </select>
             <select id="filter-radius" aria-label="Radio de búsqueda">
                 <option value="1">1 km</option>
@@ -145,6 +156,17 @@
                         <option value="gasolina_98_e5">Gasolina 98 E5</option>
                         <option value="adblue">AdBlue</option>
                         <option value="glp">GLP</option>
+                        <optgroup label="Alternativos y renovables">
+                            <option value="diesel_renovable">Diésel Renovable</option>
+                            <option value="gasolina_renovable">Gasolina Renovable</option>
+                            <option value="biodiesel">Biodiésel</option>
+                            <option value="bioetanol">Bioetanol</option>
+                            <option value="gnc">Gas Natural Comprimido</option>
+                            <option value="gnl">Gas Natural Licuado</option>
+                            <option value="biogas_natural_comprimido">Biogás Natural Comprimido</option>
+                            <option value="biogas_natural_licuado">Biogás Natural Licuado</option>
+                            <option value="hidrogeno">Hidrógeno</option>
+                        </optgroup>
                     </select>
                     <div id="stats-group-toggle" role="tablist">
                         <button type="button" class="pill" data-group="day" aria-pressed="true">Diario</button>

@@ -17,6 +17,19 @@ class StationsController
     ];
 
     /**
+     * Combustibles alternativos/renovables: cobertura real muy por debajo de
+     * VALID_FUELS (del 14% del diésel renovable al 0.0% del hidrógeno, 1-2
+     * estaciones en todo el país), así que no entran en la gráfica
+     * comparativa por carburante (saldrían líneas casi vacías), pero sí son
+     * filtrables/ordenables como cualquier otro: cuanto más raro el
+     * carburante, más falta le hace a quien lo busca poder filtrar por él.
+     */
+    private const ALTERNATIVE_FUELS = [
+        'diesel_renovable', 'gasolina_renovable', 'biodiesel', 'bioetanol',
+        'gnc', 'gnl', 'biogas_natural_comprimido', 'biogas_natural_licuado', 'hidrogeno',
+    ];
+
+    /**
      * Gasolineras dentro de un radio circular alrededor de (lat, lon),
      * ordenadas por precio o distancia, ruta /stations/near.
      */
@@ -412,7 +425,7 @@ class StationsController
         if ($fuel === null || $fuel === '') {
             return null;
         }
-        if (!in_array($fuel, self::VALID_FUELS, true)) {
+        if (!in_array($fuel, self::VALID_FUELS, true) && !in_array($fuel, self::ALTERNATIVE_FUELS, true)) {
             return null;
         }
         return $fuel;
