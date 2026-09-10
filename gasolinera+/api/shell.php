@@ -116,8 +116,16 @@
         <section id="view-map" hidden>
             <div id="map-controls">
                 <button id="heatmap-toggle" type="button" class="pill" aria-pressed="false">Mapa de calor de precio</button>
+                <button id="locate-me" type="button" class="pill">Mi ubicación</button>
             </div>
-            <div id="map"></div>
+            <div id="map-wrap">
+                <div id="map"></div>
+                <div id="map-legend">
+                    <span>Barata</span>
+                    <span id="map-legend-gradient"></span>
+                    <span>Cara</span>
+                </div>
+            </div>
         </section>
 
     </main>
