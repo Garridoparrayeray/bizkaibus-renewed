@@ -187,6 +187,19 @@ header {
     margin-top: -4px;
 }
 
+#geo-toggle {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.76rem;
+    padding: 0 0 12px;
+    cursor: pointer;
+    text-align: left;
+}
+#geo-toggle:hover { color: var(--primary); }
+
 #filters-bar {
     display: grid;
     grid-template-columns: 1fr 1fr;

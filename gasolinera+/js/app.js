@@ -59,6 +59,7 @@
         geoAsk: document.getElementById('geo-ask'),
         geoAllow: document.getElementById('geo-allow'),
         geoSkip: document.getElementById('geo-skip'),
+        geoToggle: document.getElementById('geo-toggle'),
         geoFallback: document.getElementById('geo-fallback'),
         geoRetry: document.getElementById('geo-retry'),
         legalOpen: document.getElementById('legal-open'),
@@ -325,6 +326,7 @@
                 state.userLon = position.coords.longitude;
                 el.geoAsk.hidden = true;
                 el.geoFallback.hidden = true;
+                updateGeoToggle();
                 loadNearby();
                 if (state.currentView === 'map') {
                     locateOnMap();
@@ -333,6 +335,7 @@
             () => {
                 el.geoAsk.hidden = true;
                 el.geoFallback.hidden = false;
+                updateGeoToggle();
             },
             { timeout: 8000 }
         );
@@ -359,6 +362,7 @@
                 if (status.state === 'denied') {
                     el.geoAsk.hidden = true;
                     el.geoFallback.hidden = false;
+                    updateGeoToggle();
                     return;
                 }
             } catch (e) {
@@ -367,6 +371,36 @@
             }
         }
         el.geoAsk.hidden = false;
+    }
+
+    // Control permanente para activar/desactivar la ubicacion despues de la
+    // primera decision (el aviso inicial #geo-ask solo se ve una vez).
+    function updateGeoToggle() {
+        el.geoToggle.hidden = false;
+        if (state.userLat !== null) {
+            el.geoToggle.textContent = '📍 Ubicación activada · Desactivar';
+        } else {
+            el.geoToggle.textContent = '📍 Ubicación desactivada · Activar';
+        }
+    }
+
+    function toggleLocation() {
+        if (state.userLat !== null) {
+            state.userLat = null;
+            state.userLon = null;
+            if (state.stationsMode !== 'search') {
+                state.currentStations = [];
+                renderList(state.currentStations);
+                updatePaginationControls();
+            }
+            if (state.userMarker && state.map) {
+                state.map.removeLayer(state.userMarker);
+                state.userMarker = null;
+            }
+            updateGeoToggle();
+        } else {
+            requestGeolocation();
+        }
     }
 
     // ---- Estadísticas nacionales ----
@@ -1359,7 +1393,9 @@
     });
     el.geoSkip.addEventListener('click', () => {
         el.geoAsk.hidden = true;
+        updateGeoToggle();
     });
+    el.geoToggle.addEventListener('click', toggleLocation);
     el.geoRetry.addEventListener('click', requestGeolocation);
     el.legalOpen.addEventListener('click', () => el.legalPanel.showModal());
     el.legalClose.addEventListener('click', () => el.legalPanel.close());
