@@ -62,7 +62,7 @@ header {
 }
 
 .home-link-wrap { display: flex; align-items: center; gap: 10px; }
-#app-logomark svg { width: 32px; height: 32px; border-radius: 8px; }
+#app-logomark svg { width: 46px; height: 46px; border-radius: 11px; flex-shrink: 0; }
 #app-logomark { display: flex; }
 
 .home-link-wrap strong {
