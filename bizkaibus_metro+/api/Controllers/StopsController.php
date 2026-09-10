@@ -15,136 +15,136 @@ use Services\SiriVehicleMonitoringClient;
 class StopsController
 {
 
-    public function show(Request $request, array $params): void
+    public function show(Request $Req, array $aParams): void
     {
-        $pdo = Database::connection();
-        $stopModel = new Stop($pdo);
-        $stop = $stopModel->find((int)$params['id']);
-        if ($stop === null) {
+        $Pdo = Database::connection();
+        $StopModel = new Stop($Pdo);
+        $aStop = $StopModel->find((int)$aParams['id']);
+        if ($aStop === null) {
             Response::error('Stop not found', 404);
             return;
         }
-        $stop['lines'] = $stopModel->linesServing((int)$params['id']);
-        Response::json($stop);
+        $aStop['lines'] = $StopModel->linesServing((int)$aParams['id']);
+        Response::json($aStop);
     }
 
-    public function departures(Request $request, array $params): void
+    public function departures(Request $Req, array $aParams): void
     {
-        $pdo = Database::connection();
-        $stopId = (int)$params['id'];
+        $Pdo = Database::connection();
+        $iStopId = (int)$aParams['id'];
 
-        $stop = (new Stop($pdo))->find($stopId);
-        if ($stop === null) {
+        $aStop = (new Stop($Pdo))->find($iStopId);
+        if ($aStop === null) {
             Response::error('Stop not found', 404);
             return;
         }
 
-        $limit = $request->queryInt('limit', 8);
-        $journeyModel = new ServiceJourney($pdo);
-        $config = Config::current();
-        $referenceStopId = null;
-        if (isset($config['direction_reference_stop_id'])) {
-            $referenceStopId = $config['direction_reference_stop_id'];
+        $iLimit = $Req->queryInt('limit', 8);
+        $JourneyModel = new ServiceJourney($Pdo);
+        $aConfig = Config::current();
+        $iReferenceStopId = null;
+        if (isset($aConfig['direction_reference_stop_id'])) {
+            $iReferenceStopId = $aConfig['direction_reference_stop_id'];
         }
-        $rows = $journeyModel->upcomingAtStop($stopId, $limit, 4 * 3600, $referenceStopId);
+        $aRows = $JourneyModel->upcomingAtStop($iStopId, $iLimit, 4 * 3600, $iReferenceStopId);
 
-        $vmMap = [];
-        if (isset($config['siri'])) {
-            $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
+        $aVmMap = [];
+        if (isset($aConfig['siri'])) {
+            $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
         }
 
-        $matcher = new RealtimeMatcher($vmMap, $journeyModel);
-        $enriched = $matcher->enrich($rows);
+        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        $aEnriched = $Matcher->enrich($aRows);
 
-        $network = 'bus';
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $sNetwork = 'bus';
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         }
-        $isMetro = $network === 'metro';
+        $bIsMetro = $sNetwork === 'metro';
 
-        $now = Calendar::nowSecondsSinceMidnight();
-        $departures = array_map(function ($row) use ($now, $isMetro) {
-            $headsign = $row['headsign'];
-            if ($isMetro && !empty($row['last_stop_name'])) {
-                $headsign = $row['last_stop_name'];
+        $iNow = Calendar::nowSecondsSinceMidnight();
+        $aDepartures = array_map(function ($aRow) use ($iNow, $bIsMetro) {
+            $sHeadsign = $aRow['headsign'];
+            if ($bIsMetro && !empty($aRow['last_stop_name'])) {
+                $sHeadsign = $aRow['last_stop_name'];
             }
-            $delayMinutes = 0;
-            if ($row['delaySeconds'] !== 0) {
-                $delayMinutes = (int)round($row['delaySeconds'] / 60);
+            $iDelayMinutes = 0;
+            if ($aRow['delaySeconds'] !== 0) {
+                $iDelayMinutes = (int)round($aRow['delaySeconds'] / 60);
             }
-            $direction = null;
-            if (isset($row['direction'])) {
-                $direction = $row['direction'];
+            $sDirection = null;
+            if (isset($aRow['direction'])) {
+                $sDirection = $aRow['direction'];
             }
             return [
-                'lineId' => (int)$row['line_id'],
-                'lineCode' => $row['line_code'],
-                'lineName' => $row['line_name'],
-                'headsign' => $headsign,
-                'tripKey' => $row['line_id'] . '-' . $row['trip_number'] . '-' . $row['first_departure_seconds'],
-                'scheduledTime' => Calendar::secondsToHm((int)$row['arrival_seconds']),
-                'etaMinutes' => (int)round(($row['etaSeconds'] - $now) / 60),
-                'status' => $row['status'],
-                'delayMinutes' => $delayMinutes,
-                'direction' => $direction,
+                'lineId' => (int)$aRow['line_id'],
+                'lineCode' => $aRow['line_code'],
+                'lineName' => $aRow['line_name'],
+                'headsign' => $sHeadsign,
+                'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
+                'scheduledTime' => Calendar::secondsToHm((int)$aRow['arrival_seconds']),
+                'etaMinutes' => (int)round(($aRow['etaSeconds'] - $iNow) / 60),
+                'status' => $aRow['status'],
+                'delayMinutes' => $iDelayMinutes,
+                'direction' => $sDirection,
             ];
-        }, $enriched);
+        }, $aEnriched);
 
-        $departures = array_values(array_filter($departures, fn($d) => $d['etaMinutes'] >= -2));
-        $departures = array_slice($departures, 0, $limit);
+        $aDepartures = array_values(array_filter($aDepartures, fn($aD) => $aD['etaMinutes'] >= -2));
+        $aDepartures = array_slice($aDepartures, 0, $iLimit);
 
         Response::json([
-            'stop' => ['id' => $stop['id'], 'name' => $stop['name']],
-            'departures' => $departures,
-            'attribution' => $config['attribution'],
+            'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
+            'departures' => $aDepartures,
+            'attribution' => $aConfig['attribution'],
         ]);
     }
 
-    public function tripStops(Request $request, array $params): void
+    public function tripStops(Request $Req, array $aParams): void
     {
-        $tripKeyParts = array_pad(explode('-', $params['tripKey'], 3), 3, null);
-        [$lineId, $tripNumber, $firstDepartureSeconds] = $tripKeyParts;
-        if ($lineId === null || $tripNumber === null || $firstDepartureSeconds === null) {
+        $aTripKeyParts = array_pad(explode('-', $aParams['tripKey'], 3), 3, null);
+        [$sLineIdRaw, $sTripNumber, $sFirstDepartureSecondsRaw] = $aTripKeyParts;
+        if ($sLineIdRaw === null || $sTripNumber === null || $sFirstDepartureSecondsRaw === null) {
             Response::error('Invalid trip key', 422);
             return;
         }
-        $lineId = (int)$lineId;
-        $firstDepartureSeconds = (int)$firstDepartureSeconds;
-        $targetStopId = $request->queryInt('stopId');
+        $iLineId = (int)$sLineIdRaw;
+        $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
+        $iTargetStopId = $Req->queryInt('stopId');
 
-        $pdo = Database::connection();
-        $journeyModel = new ServiceJourney($pdo);
-        $journey = $journeyModel->findByLineAndTrip($lineId, $tripNumber, $firstDepartureSeconds);
-        if ($journey === null) {
+        $Pdo = Database::connection();
+        $JourneyModel = new ServiceJourney($Pdo);
+        $aJourney = $JourneyModel->findByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        if ($aJourney === null) {
             Response::error('Trip not found', 404);
             return;
         }
 
-        $stops = $journeyModel->stopsForJourney($journey['id']);
-        $stopsOut = array_map(function ($stop) use ($targetStopId) {
+        $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
+        $aStopsOut = array_map(function ($aStop) use ($iTargetStopId) {
             return [
-                'stopId' => (int)$stop['stop_id'],
-                'name' => $stop['name'],
-                'scheduledTime' => Calendar::secondsToHm((int)$stop['arrival_seconds']),
-                'isTarget' => $targetStopId !== null && (int)$stop['stop_id'] === $targetStopId,
+                'stopId' => (int)$aStop['stop_id'],
+                'name' => $aStop['name'],
+                'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
+                'isTarget' => $iTargetStopId !== null && (int)$aStop['stop_id'] === $iTargetStopId,
             ];
-        }, $stops);
+        }, $aStops);
 
-        $headsign = $journey['headsign'];
-        $config = Config::current();
-        $network = 'bus';
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $sHeadsign = $aJourney['headsign'];
+        $aConfig = Config::current();
+        $sNetwork = 'bus';
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         }
-        if ($network === 'metro' && !empty($stops)) {
-            $headsign = end($stops)['name'];
+        if ($sNetwork === 'metro' && !empty($aStops)) {
+            $sHeadsign = end($aStops)['name'];
         }
 
         Response::json([
-            'lineCode' => $journey['line_code'],
-            'lineName' => $journey['line_name'],
-            'headsign' => $headsign,
-            'stops' => $stopsOut,
+            'lineCode' => $aJourney['line_code'],
+            'lineName' => $aJourney['line_name'],
+            'headsign' => $sHeadsign,
+            'stops' => $aStopsOut,
         ]);
     }
 }
