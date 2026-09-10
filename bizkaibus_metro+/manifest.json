@@ -1,0 +1,54 @@
+{
+    "id": "/?homescreen=1",
+    "name": "BizkaiBus+",
+    "short_name": "BizkaiBus+",
+    "description": "Horarios y tiempo real de Bizkaibus",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "portrait",
+    "dir": "ltr",
+    "launch_handler": { "client_mode": "focus-existing" },
+    "shortcuts": [
+        {
+            "name": "Bizkaibus",
+            "short_name": "Bizkaibus",
+            "description": "Horarios y tiempo real de Bizkaibus",
+            "url": "/?red=bus",
+            "icons": [{ "src": "icons-pro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Metro Bilbao",
+            "short_name": "Metro+",
+            "description": "Horarios de Metro Bilbao",
+            "url": "/?red=metro",
+            "icons": [{ "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        }
+    ],
+    "background_color": "#f4f6f4",
+    "theme_color": "#01573C",
+    "lang": "es",
+    "categories": ["travel", "navigation", "utilities"],
+    "icons": [
+        { "src": "icons-pro/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons-pro/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons-pro/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/narrow-1.png",
+            "sizes": "1170x1992",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Busca una parada y consulta el próximo autobús"
+        },
+        {
+            "src": "screenshots/wide-1.png",
+            "sizes": "1280x800",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "BizkaiBus+ en pantalla ancha"
+        }
+    ]
+}

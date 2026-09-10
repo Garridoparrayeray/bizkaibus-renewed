@@ -1,0 +1,9 @@
+.env
+.env.local
+.vercel
+*.log
+Thumbs.db
+.DS_Store
+.phpdoc
+
+.vercel

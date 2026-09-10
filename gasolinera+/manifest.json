@@ -1,0 +1,17 @@
+{
+    "name": "Gasolinera+",
+    "short_name": "Gasolinera+",
+    "description": "Precios de gasolina y diésel cerca de ti, actualizados a diario",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f7f5f0",
+    "theme_color": "#B8860B",
+    "lang": "es",
+    "icons": [
+        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

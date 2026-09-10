@@ -1,0 +1,336 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
+
+:root {
+    /* Un solo color de marca, igual criterio que bizkaibus+/Metro+: el color
+       institucional REAL de la fuente de los datos, no uno inventado. Metro+
+       usa el rojo corporativo real de Metro Bilbao; aquí --primary-light es
+       el amarillo oficial verificado del Ministerio para la Transición
+       Ecológica (msapplication-TileColor de miteco.gob.es, #FFDB00),
+       --primary es ese mismo tono oscurecido lo justo para tener contraste
+       legible como color de botones/texto. */
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e6ddc6;
+    --primary: #B8860B;
+    --primary-light: #FFDB00;
+    --primary-dark: #7A5A05;
+    --primary-tint: #FBF3D9;
+    --text: #221d12;
+    --text-secondary: #6b6152;
+    --shadow-soft: 0 1px 3px rgba(184, 134, 11, 0.1), 0 1px 2px rgba(184, 134, 11, 0.08);
+    --status-up: #B3261E;
+    --status-down: #1B6B3A;
+    --status-muted: #8A8A8A;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+/* Esquinas a inglete y trazo algo más grueso en vez del set redondeado por
+   defecto de cualquier librería de iconos generada, para que no lea como
+   plantilla genérica (misma convención que el resto de la red de apps). */
+svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    margin: 0;
+    padding: 20px 20px 60px;
+    color: var(--text);
+    min-height: 100vh;
+}
+
+.app-container { max-width: 480px; margin: 0 auto; position: relative; }
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.home-link-wrap { display: flex; align-items: center; gap: 10px; }
+#app-logomark svg { width: 32px; height: 32px; }
+#app-logomark { display: flex; }
+
+.home-link-wrap strong {
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    display: block;
+    letter-spacing: -0.01em;
+}
+.home-link-wrap strong .plus { color: var(--primary); }
+.home-link-wrap #app-subtitle {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.header-actions { display: flex; gap: 8px; }
+
+.btn-icon {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text);
+}
+.btn-icon svg { width: 18px; height: 18px; stroke-width: 2.1; }
+
+.count-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--primary);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    border-radius: 3px;
+    padding: 1px 5px;
+    min-width: 16px;
+    text-align: center;
+}
+
+#national-stats {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+#national-stats-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text);
+}
+#national-stats-toggle svg { width: 16px; height: 16px; flex-shrink: 0; transition: transform 0.15s ease; }
+#national-stats-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+.national-stats__figures { display: flex; gap: 20px; }
+.national-stats__figures span { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.national-stats__figures small { font-size: 0.68rem; color: var(--text-secondary); }
+.national-stats__figures strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1rem; }
+
+#national-stats-detail { padding: 4px 14px 14px; border-top: 1px solid var(--border); }
+#national-stats-note { font-size: 0.76rem; color: var(--text-secondary); margin: 8px 0 0; }
+
+#search-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+#search-input {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: var(--text);
+}
+#search-form > button {
+    flex-shrink: 0;
+}
+
+#filters-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+#filters-bar select {
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.84rem;
+    color: var(--text);
+}
+
+#view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+#view-toggle button {
+    flex: 1;
+    padding: 9px;
+    border: none;
+    background: var(--surface);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+#view-toggle button[aria-selected="true"] {
+    background: var(--primary-tint);
+    color: var(--primary-dark);
+}
+
+#geo-fallback {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+#geo-retry {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 0;
+}
+
+#stations-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.station-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 14px;
+    box-shadow: var(--shadow-soft);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+.station-card__main { display: flex; flex-direction: column; gap: 2px; }
+.station-card__main strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 0.95rem; }
+.station-card__address { font-size: 0.78rem; color: var(--text-secondary); }
+.station-card__distance { font-size: 0.76rem; color: var(--primary-dark); font-weight: 600; }
+.station-card__prices { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; text-align: right; white-space: nowrap; }
+
+.badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--primary-tint);
+    color: var(--primary-dark);
+}
+.badge--24h { background: var(--primary); color: white; }
+
+#stations-empty { color: var(--text-secondary); text-align: center; padding: 24px; font-size: 0.9rem; }
+
+#map-controls { margin-bottom: 8px; }
+.pill {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text);
+    text-decoration: none;
+    display: inline-block;
+}
+.pill[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
+
+#map { height: 60vh; min-height: 360px; border-radius: 4px; border: 1px solid var(--border); }
+
+dialog {
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 12px 40px rgba(34, 29, 18, 0.25);
+    padding: 20px;
+    max-width: 420px;
+    width: calc(100% - 40px);
+    color: var(--text);
+    font-family: inherit;
+}
+dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
+
+#station-modal h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 4px; font-size: 1.2rem; }
+#modal-municipio, #modal-horario { color: var(--text-secondary); font-size: 0.85rem; margin: 2px 0; }
+
+#modal-fuels {
+    list-style: none;
+    padding: 0;
+    margin: 14px 0;
+    border-top: 1px solid var(--border);
+}
+#modal-fuels li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+#modal-zone-comparison {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+#modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+#modal-actions .pill { flex: 1; text-align: center; }
+#modal-directions { background: var(--primary); color: white; border-color: var(--primary); }
+
+#compare-table table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+#compare-table th, #compare-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+#compare-table th:first-child, #compare-table td:first-child { color: var(--text-secondary); font-weight: 500; }
+
+.leaflet-popup-content .popup-view-btn {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: white;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16130c;
+        --surface: #211c12;
+        --border: #392f1c;
+        --text: #f2ece0;
+        --text-secondary: #b0a48a;
+        --primary-tint: #3a2f0f;
+    }
+}

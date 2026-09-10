@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: false
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -23,17 +25,17 @@ jobs:
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
       - name: Rebuild BizkaiBus+ database (fetches latest GTFS, geocodes any new stops)
-        run: php scripts/build-database.php --network=bus
+        run: php bizkaibus_metro+/scripts/build-database.php --network=bus
 
       - name: Rebuild Metro+ database (fetches latest GTFS)
-        run: php scripts/build-database.php --network=metro
+        run: php bizkaibus_metro+/scripts/build-database.php --network=metro
 
       - name: Commit updated geocache, if it changed
         run: |
-          if ! git diff --quiet scripts/geocache.json; then
+          if ! git diff --quiet bizkaibus_metro+/scripts/geocache.json; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add scripts/geocache.json
+            git add bizkaibus_metro+/scripts/geocache.json
             git commit -m "chore: update geocache with newly seen stop coordinates"
             git push
           else
@@ -47,4 +49,4 @@ jobs:
         env:
           VERCEL_ORG_ID: team_5ficEwZMlnchKQlOobqNZmVj
           VERCEL_PROJECT_ID: prj_jnUQknRYqnlAtxPBIXCznGlcKf4s
-        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        run: vercel deploy ./bizkaibus_metro+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
