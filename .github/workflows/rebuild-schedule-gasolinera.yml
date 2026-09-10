@@ -2,9 +2,7 @@ name: Rebuild schedule data gasolinera
 
 # Actualiza data/gasolinera.sqlite a diario desde el feed oficial de precios
 # de carburantes. A diferencia de bizkaibus+ (que regenera su .sqlite entero
-# y no lo comitea), aquí el histórico de precios se acumula día a día: el
-# .sqlite SÍ está comiteado al repo, y cada ejecución parte de él (vía
-# actions/checkout) para no perder el histórico acumulado hasta ahora.
+# y no lo comitea)
 
 on:
   schedule:
