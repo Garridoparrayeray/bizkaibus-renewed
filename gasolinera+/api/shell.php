@@ -41,6 +41,10 @@
                 </span>
             </div>
             <span class="header-actions">
+                <button id="favorites-open" class="btn-icon" type="button" aria-label="Ver favoritas">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.5C12 20.5 3.5 15.4 3.5 9.5C3.5 6.5 5.8 4.5 8.5 4.5C10.1 4.5 11.3 5.3 12 6.5C12.7 5.3 13.9 4.5 15.5 4.5C18.2 4.5 20.5 6.5 20.5 9.5C20.5 15.4 12 20.5 12 20.5Z"/></svg>
+                    <span id="favorites-count" class="count-badge" hidden>0</span>
+                </button>
                 <button id="compare-open" class="btn-icon" type="button" aria-label="Ver comparador">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="6" height="11"/><rect x="15" y="4" width="6" height="17"/></svg>
                     <span id="compare-count" class="count-badge" hidden>0</span>
@@ -233,11 +237,21 @@
         <canvas id="modal-chart" height="140"></canvas>
         <div id="modal-actions">
             <a id="modal-directions" class="pill" target="_blank" rel="noopener">Cómo llegar</a>
+            <button id="modal-favorite-toggle" type="button" class="pill">Añadir a favoritas</button>
             <button id="modal-compare-toggle" type="button" class="pill">Añadir a comparar</button>
         </div>
     </dialog>
 
     <dialog id="marker-popup-template" hidden></dialog>
+
+    <dialog id="favorites-panel">
+        <button id="favorites-close" class="btn-icon" type="button" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <h3>Gasolineras favoritas</h3>
+        <p id="favorites-empty">Añade gasolineras desde su ficha para tenerlas siempre a mano aquí.</p>
+        <ul id="favorites-list"></ul>
+    </dialog>
 
     <dialog id="compare-panel">
         <button id="compare-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -247,6 +261,8 @@
         <p id="compare-empty">Añade gasolineras desde su ficha o desde la lista para compararlas aquí, una junto a otra.</p>
         <div id="compare-table"></div>
     </dialog>
+
+    <p id="toast" hidden></p>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
