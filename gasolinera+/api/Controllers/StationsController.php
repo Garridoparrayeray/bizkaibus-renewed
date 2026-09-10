@@ -7,6 +7,7 @@ use Core\Database;
 use Core\Request;
 use Core\Response;
 use Models\Station;
+use Services\PlaceGeocoder;
 
 class StationsController
 {
@@ -107,10 +108,31 @@ class StationsController
             $limit
         );
 
+        $geocodedFrom = null;
+        if ($page['total'] === 0 && $offset === 0) {
+            $place = PlaceGeocoder::resolve($q);
+            if ($place !== null) {
+                $page = $model->near(
+                    $place['lat'],
+                    $place['lon'],
+                    20.0,
+                    $sort,
+                    $fuel,
+                    $open24h,
+                    $openNow,
+                    (int)$config['stale_station_days'],
+                    0,
+                    $limit
+                );
+                $geocodedFrom = $q;
+            }
+        }
+
         Response::json([
             'stations' => $page['items'],
             'total' => $page['total'],
             'hasMore' => ($offset + count($page['items'])) < $page['total'],
+            'geocodedFrom' => $geocodedFrom,
             'attribution' => $config['attribution'],
         ]);
     }

@@ -46,6 +46,7 @@
         viewStats: document.getElementById('view-stats'),
         stationsList: document.getElementById('stations-list'),
         stationsEmpty: document.getElementById('stations-empty'),
+        stationsGeocodedNote: document.getElementById('stations-geocoded-note'),
         paginationNav: document.getElementById('stations-pagination'),
         paginationPrev: document.getElementById('pagination-prev'),
         paginationNext: document.getElementById('pagination-next'),
@@ -87,6 +88,7 @@
         statsNationalChart: document.getElementById('stats-national-chart'),
         statsByFuelChart: document.getElementById('stats-by-fuel-chart'),
         statsProvinceChart: document.getElementById('stats-province-chart'),
+        statsProvinceChartWrap: document.getElementById('stats-province-chart-wrap'),
         statsDistributionChart: document.getElementById('stats-distribution-chart'),
         statsDistributionNote: document.getElementById('stats-distribution-note'),
         statsStationSearch: document.getElementById('stats-station-search'),
@@ -338,9 +340,15 @@
         state.stationsTotal = data.total;
         state.stationsLoading = false;
 
+        if (data.geocodedFrom) {
+            el.stationsGeocodedNote.textContent = `${data.geocodedFrom} no tiene gasolineras propias registradas: se muestran las de alrededor (hasta 20 km).`;
+            el.stationsGeocodedNote.hidden = false;
+        } else {
+            el.stationsGeocodedNote.hidden = true;
+        }
+
         renderList(state.currentStations);
         updatePaginationControls();
-        el.viewList.scrollIntoView({ behavior: 'smooth', block: 'start' });
         if (state.currentView === 'map') {
             refreshMapMarkers();
         }
@@ -849,6 +857,10 @@
             state.statsProvinceChart.destroy();
             state.statsProvinceChart = null;
         }
+        // Con ~52 provincias, una altura fija deja las barras demasiado
+        // finas y Chart.js se salta etiquetas por solape: la altura del
+        // canvas escala con el numero de provincias, una fila por barra.
+        el.statsProvinceChartWrap.style.height = (data.provincias.length * 18) + 'px';
         const cheapest = data.provincias[0];
         const priciest = data.provincias[data.provincias.length - 1];
         state.statsProvinceChart = new Chart(el.statsProvinceChart, {
@@ -864,8 +876,12 @@
             options: {
                 indexAxis: 'y',
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { x: { ticks: { callback: (v) => v.toFixed(2) + ' €' } } },
+                scales: {
+                    x: { ticks: { callback: (v) => v.toFixed(2) + ' €' } },
+                    y: { ticks: { autoSkip: false, font: { size: 9 } } },
+                },
             },
         });
     }
@@ -1084,15 +1100,17 @@
 
     // ---- Eventos ----
 
-    el.paginationPrev.addEventListener('click', () => {
+    el.paginationPrev.addEventListener('click', async () => {
         if (state.stationsPage > 1) {
-            loadStationsPage(state.stationsPage - 1);
+            await loadStationsPage(state.stationsPage - 1);
+            el.viewList.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });
-    el.paginationNext.addEventListener('click', () => {
+    el.paginationNext.addEventListener('click', async () => {
         const totalPages = Math.max(1, Math.ceil(state.stationsTotal / PAGE_SIZE));
         if (state.stationsPage < totalPages) {
-            loadStationsPage(state.stationsPage + 1);
+            await loadStationsPage(state.stationsPage + 1);
+            el.viewList.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });
 
