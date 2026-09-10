@@ -1,30 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
-    /* Un solo color de marca, igual criterio que bizkaibus+/Metro+: el color
-       institucional REAL de la fuente de los datos, no uno inventado. Metro+
-       usa el rojo corporativo real de Metro Bilbao; aquí --primary-light es
-       el amarillo oficial verificado del Ministerio para la Transición
-       Ecológica (msapplication-TileColor de miteco.gob.es, #FFDB00),
-       --primary es ese mismo tono oscurecido lo justo para tener contraste
-       legible como color de botones/texto. */
+    /* Paleta unificada con el icono de app real (gasolinera-appicon.svg):
+       antes --primary-light era el amarillo oficial del Ministerio
+       (verificado, #FFDB00) y el icono usaba un tono distinto aparte; ahora
+       toda la app usa los mismos colores que el icono/lockup, en vez de
+       tener dos paletas doradas ligeramente distintas conviviendo. */
     --bg: #f7f5f0;
     --surface: #ffffff;
     --border: #e6ddc6;
-    --primary: #B8860B;
-    --primary-light: #FFDB00;
-    --primary-dark: #7A5A05;
+    --primary: #8A5A00;
+    --primary-light: #F2B705;
+    --primary-dark: #5C4200;
     --primary-tint: #FBF3D9;
     --text: #221d12;
     --text-secondary: #6b6152;
-    --shadow-soft: 0 1px 3px rgba(184, 134, 11, 0.1), 0 1px 2px rgba(184, 134, 11, 0.08);
+    --shadow-soft: 0 1px 3px rgba(138, 90, 0, 0.1), 0 1px 2px rgba(138, 90, 0, 0.08);
     --status-up: #B3261E;
     --status-down: #1B6B3A;
     --status-muted: #8A8A8A;
-    /* Lockup de cabecera: colores exactos del icono de app proporcionado
-       (gasolinera-appicon.svg), no una aproximacion. */
-    --lockup-bg: #8A5A00;
-    --lockup-gold: #F2B705;
     --lockup-subtitle: #E8CB8F;
 }
 
@@ -60,7 +54,7 @@ header {
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
-    background: var(--lockup-bg);
+    background: var(--primary);
     border-radius: 12px;
     padding: 14px 16px;
 }
@@ -78,7 +72,7 @@ header {
     color: white;
 }
 .home-link-wrap strong .plus {
-    color: var(--lockup-gold); font-size: 1.15em; font-weight: 500;
+    color: var(--primary-light); font-size: 1.15em; font-weight: 500;
     display: inline-block; transform: rotate(-8deg) translateY(-2px);
 }
 .home-link-wrap #app-subtitle {
@@ -187,18 +181,7 @@ header {
     margin-top: -4px;
 }
 
-#geo-toggle {
-    display: block;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-family: inherit;
-    font-size: 0.76rem;
-    padding: 0 0 12px;
-    cursor: pointer;
-    text-align: left;
-}
-#geo-toggle:hover { color: var(--primary); }
+#geo-toggle[aria-pressed="true"] { background: rgba(255, 255, 255, 0.3); }
 
 #filters-bar {
     display: grid;
@@ -239,19 +222,16 @@ header {
     color: var(--primary-dark);
 }
 
-#geo-ask {
-    background: var(--primary-tint);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 12px;
-}
-#geo-ask p { margin: 0 0 10px; font-size: 0.84rem; color: var(--text); }
-#geo-ask-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-#geo-ask-actions .pill { background: var(--primary); color: white; border-color: var(--primary); }
+#geo-ask { text-align: center; }
+#geo-ask-logomark { display: flex; justify-content: center; margin-bottom: 12px; }
+#geo-ask-logomark svg { width: 56px; height: 56px; border-radius: 14px; }
+#geo-ask h3 { margin: 0 0 10px; }
+#geo-ask p { margin: 0 0 16px; font-size: 0.86rem; color: var(--text-secondary); }
+#geo-ask-actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+#geo-ask-actions .pill { background: var(--primary); color: white; border-color: var(--primary); padding: 11px; }
 #geo-skip {
     background: none; border: none; color: var(--text-secondary);
-    font-family: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer;
+    font-family: inherit; font-size: 0.82rem; text-decoration: underline; cursor: pointer; padding: 4px;
 }
 
 #geo-fallback {
@@ -592,7 +572,7 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 
 #dev-footer {
     text-align: center; padding: 20px; margin: auto -20px 0; border-radius: 0;
-    background: var(--lockup-bg); flex-shrink: 0;
+    background: var(--primary); flex-shrink: 0;
     width: calc(100% + 40px);
 }
 #dev-footer p { margin: 0 0 8px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); }

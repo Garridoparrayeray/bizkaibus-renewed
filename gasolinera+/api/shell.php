@@ -12,7 +12,7 @@
     <meta property="og:description" content="Precios de gasolina y diésel cerca de ti, actualizados a diario.">
     <meta property="og:type" content="website">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#B8860B">
+    <meta name="theme-color" content="#8A5A00">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" href="/icons/icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
@@ -40,6 +40,9 @@
                 </span>
             </div>
             <span class="header-actions">
+                <button id="geo-toggle" class="btn-icon" type="button" aria-label="Activar ubicación" aria-pressed="false" hidden>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5C12 21.5 5 15.2 5 9.8C5 5.9 8.1 2.5 12 2.5C15.9 2.5 19 5.9 19 9.8C19 15.2 12 21.5 12 21.5Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+                </button>
                 <button id="favorites-open" class="btn-icon" type="button" aria-label="Ver favoritas">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.5C12 20.5 3.5 15.4 3.5 9.5C3.5 6.5 5.8 4.5 8.5 4.5C10.1 4.5 11.3 5.3 12 6.5C12.7 5.3 13.9 4.5 15.5 4.5C18.2 4.5 20.5 6.5 20.5 9.5C20.5 15.4 12 20.5 12 20.5Z"/></svg>
                     <span id="favorites-count" class="count-badge" hidden>0</span>
@@ -51,14 +54,22 @@
             </span>
         </header>
 
-        <div id="geo-ask">
+        <dialog id="geo-ask">
+            <span id="geo-ask-logomark" aria-hidden="true">
+                <svg class="logo-gasolinera" viewBox="0 0 512 512">
+                    <rect width="512" height="512" rx="116" fill="#8A5A00"/>
+                    <g transform="translate(112,112) scale(4.5)">
+                        <path d="M32 3c1.6 11.6 10.4 16.2 15.6 24.6 5.6 9.1 2.4 22.3-7.3 27.7-2.7 1.6-5.5 2.3-8.3 2.4 5.5-4.6 7.1-11 3.7-16.3-2.1-3.2-5.6-5.1-5.8-10-3.3 3.3-4.6 7.3-3.9 11.5-4.4-2.7-6.4-6.9-6.5-11.8-4.2 4.6-5.6 10-4.2 15.9C10.8 41.5 10.2 33.8 13.5 26.5 17.4 18 30 14.7 32 3z" fill="#F2B705"/>
+                    </g>
+                </svg>
+            </span>
+            <h3>¿Nos dejas tu ubicación?</h3>
             <p>Para enseñarte las gasolineras más cercanas necesitamos tu ubicación. No se guarda en ningún servidor, solo se usa en tu navegador para calcular distancias.</p>
             <div id="geo-ask-actions">
                 <button id="geo-allow" type="button" class="pill">Activar ubicación</button>
                 <button id="geo-skip" type="button">Buscar sin ubicación</button>
             </div>
-        </div>
-        <button id="geo-toggle" type="button" hidden></button>
+        </dialog>
 
         <section id="national-stats">
             <button id="national-stats-toggle" type="button" aria-expanded="false">
