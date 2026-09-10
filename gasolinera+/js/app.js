@@ -315,6 +315,12 @@
 
     // ---- Geolocalización ----
 
+    function closeGeoAsk() {
+        if (el.geoAsk.open) {
+            el.geoAsk.close();
+        }
+    }
+
     function requestGeolocation() {
         if (!('geolocation' in navigator)) {
             el.geoFallback.hidden = false;
@@ -324,7 +330,8 @@
             (position) => {
                 state.userLat = position.coords.latitude;
                 state.userLon = position.coords.longitude;
-                el.geoAsk.hidden = true;
+                saveLocationPref('on');
+                closeGeoAsk();
                 el.geoFallback.hidden = true;
                 updateGeoToggle();
                 loadNearby();
@@ -333,7 +340,7 @@
                 }
             },
             () => {
-                el.geoAsk.hidden = true;
+                closeGeoAsk();
                 el.geoFallback.hidden = false;
                 updateGeoToggle();
             },
@@ -341,47 +348,74 @@
         );
     }
 
-    // No se pide la ubicacion en silencio al cargar: primero se explica para
-    // que se usa y se pide una accion explicita (salvo que el navegador ya
-    // recuerde un permiso concedido de antes, via la Permissions API donde
-    // esta disponible).
+    // No se pide la ubicacion en silencio al cargar: primero se explica en
+    // un dialog que bloquea el resto de la app hasta decidir (salvo que el
+    // navegador ya recuerde un permiso concedido de antes, via la
+    // Permissions API donde esta disponible).
     async function initGeolocationFlow() {
         if (!('geolocation' in navigator)) {
-            el.geoAsk.hidden = true;
             el.geoFallback.hidden = false;
             return;
         }
+
+        // La eleccion explicita (activar/desactivar) se recuerda entre
+        // visitas en localStorage, igual que favoritas/comparador: si ya
+        // dijiste "buscar sin ubicacion" una vez, no hace falta volver a
+        // preguntar cada vez que abres la app.
+        const pref = loadLocationPref();
+        if (pref === 'off') {
+            updateGeoToggle();
+            return;
+        }
+        if (pref === 'on') {
+            requestGeolocation();
+            return;
+        }
+
         if ('permissions' in navigator) {
             try {
                 const status = await navigator.permissions.query({ name: 'geolocation' });
                 if (status.state === 'granted') {
-                    el.geoAsk.hidden = true;
                     requestGeolocation();
                     return;
                 }
                 if (status.state === 'denied') {
-                    el.geoAsk.hidden = true;
                     el.geoFallback.hidden = false;
                     updateGeoToggle();
                     return;
                 }
             } catch (e) {
                 // Permissions API sin soporte para 'geolocation' en este
-                // navegador (Safari, sobre todo): se cae al banner de pedir permiso.
+                // navegador (Safari, sobre todo): se cae al dialog de pedir permiso.
             }
         }
-        el.geoAsk.hidden = false;
+        el.geoAsk.showModal();
+    }
+
+    function loadLocationPref() {
+        try {
+            return localStorage.getItem('gasolinera_location_pref');
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveLocationPref(value) {
+        try {
+            localStorage.setItem('gasolinera_location_pref', value);
+        } catch (e) {
+            // localStorage puede fallar en navegacion privada; simplemente
+            // no se recuerda entre sesiones, la app sigue funcionando igual.
+        }
     }
 
     // Control permanente para activar/desactivar la ubicacion despues de la
     // primera decision (el aviso inicial #geo-ask solo se ve una vez).
     function updateGeoToggle() {
         el.geoToggle.hidden = false;
-        if (state.userLat !== null) {
-            el.geoToggle.textContent = '📍 Ubicación activada · Desactivar';
-        } else {
-            el.geoToggle.textContent = '📍 Ubicación desactivada · Activar';
-        }
+        const active = state.userLat !== null;
+        el.geoToggle.setAttribute('aria-pressed', String(active));
+        el.geoToggle.setAttribute('aria-label', active ? 'Ubicación activada · pulsa para desactivar' : 'Ubicación desactivada · pulsa para activar');
     }
 
     function toggleLocation() {
@@ -397,6 +431,7 @@
                 state.map.removeLayer(state.userMarker);
                 state.userMarker = null;
             }
+            saveLocationPref('off');
             updateGeoToggle();
         } else {
             requestGeolocation();
@@ -462,7 +497,7 @@
                 datasets: [{
                     label: `Media nacional · ${FUEL_LABELS[fuel] || fuel}`,
                     data: data.serie.map((p) => p.media),
-                    borderColor: '#B8860B',
+                    borderColor: '#8A5A00',
                     backgroundColor: 'rgba(184, 134, 11, 0.12)',
                     tension: 0.15,
                     fill: true,
@@ -908,7 +943,7 @@
                 datasets: [{
                     label: `Media nacional · ${FUEL_LABELS[fuel] || fuel}`,
                     data: data.serie.map((p) => p.media),
-                    borderColor: '#B8860B',
+                    borderColor: '#8A5A00',
                     backgroundColor: 'rgba(184, 134, 11, 0.12)',
                     tension: 0.15,
                     fill: true,
@@ -979,7 +1014,7 @@
                 datasets: [{
                     label: FUEL_LABELS[fuel] || fuel,
                     data: data.serie.map((p) => p.precio),
-                    borderColor: '#B8860B',
+                    borderColor: '#8A5A00',
                     backgroundColor: 'rgba(184, 134, 11, 0.12)',
                     tension: 0.15,
                     fill: true,
@@ -1002,9 +1037,9 @@
     }
 
     const FUEL_CHART_COLORS = {
-        gasoleo_a: '#B8860B',
+        gasoleo_a: '#8A5A00',
         gasolina_95_e5: '#1D4E89',
-        gasoleo_premium: '#7A5A05',
+        gasoleo_premium: '#5C4200',
         gasolina_98_e5: '#4A90D9',
         adblue: '#5B8C5A',
         glp: '#B3261E',
@@ -1082,7 +1117,7 @@
                 datasets: [{
                     label: `Media hoy · ${FUEL_LABELS[fuel] || fuel}`,
                     data: data.provincias.map((p) => p.media),
-                    backgroundColor: data.provincias.map((p) => (p.provincia === cheapest.provincia ? '#5B8C5A' : p.provincia === priciest.provincia ? '#B3261E' : '#B8860B')),
+                    backgroundColor: data.provincias.map((p) => (p.provincia === cheapest.provincia ? '#5B8C5A' : p.provincia === priciest.provincia ? '#B3261E' : '#8A5A00')),
                 }],
             },
             options: {
@@ -1122,7 +1157,7 @@
                 datasets: [{
                     label: 'Gasolineras',
                     data: data.buckets.map((b) => b.estaciones),
-                    backgroundColor: '#B8860B',
+                    backgroundColor: '#8A5A00',
                 }],
             },
             options: {
@@ -1257,7 +1292,7 @@
                 datasets: [{
                     label: FUEL_LABELS[fuel] || fuel,
                     data: data.serie.map((p) => p.precio),
-                    borderColor: '#B8860B',
+                    borderColor: '#8A5A00',
                     backgroundColor: 'rgba(184, 134, 11, 0.12)',
                     tension: 0.15,
                     fill: true,
@@ -1388,14 +1423,20 @@
     el.nationalToggle.addEventListener('click', toggleNationalDetail);
 
     el.geoAllow.addEventListener('click', () => {
-        el.geoAsk.hidden = true;
+        closeGeoAsk();
         requestGeolocation();
     });
     el.geoSkip.addEventListener('click', () => {
-        el.geoAsk.hidden = true;
+        closeGeoAsk();
+        saveLocationPref('off');
         updateGeoToggle();
     });
     el.geoToggle.addEventListener('click', toggleLocation);
+    // Red de seguridad: si el dialog se cierra por Escape en vez de un
+    // boton (los otros paneles cierran con click en el fondo, este no, a
+    // proposito, para que la decision sea explicita), el icono permanente
+    // tiene que reflejar igualmente el estado real.
+    el.geoAsk.addEventListener('close', updateGeoToggle);
     el.geoRetry.addEventListener('click', requestGeolocation);
     el.legalOpen.addEventListener('click', () => el.legalPanel.showModal());
     el.legalClose.addEventListener('click', () => el.legalPanel.close());
