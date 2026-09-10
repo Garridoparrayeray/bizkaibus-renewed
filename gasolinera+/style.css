@@ -43,12 +43,16 @@ body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
     margin: 0;
-    padding: 20px 20px 60px;
+    padding: 20px 20px 0;
     color: var(--text);
     min-height: 100vh;
+    display: flex;
 }
 
-.app-container { max-width: 480px; margin: 0 auto; position: relative; }
+.app-container {
+    max-width: 480px; width: 100%; margin: 0 auto; position: relative;
+    display: flex; flex-direction: column;
+}
 
 header {
     display: flex;
@@ -220,6 +224,21 @@ header {
 #view-toggle button[aria-selected="true"] {
     background: var(--primary-tint);
     color: var(--primary-dark);
+}
+
+#geo-ask {
+    background: var(--primary-tint);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+#geo-ask p { margin: 0 0 10px; font-size: 0.84rem; color: var(--text); }
+#geo-ask-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+#geo-ask-actions .pill { background: var(--primary); color: white; border-color: var(--primary); }
+#geo-skip {
+    background: none; border: none; color: var(--text-secondary);
+    font-family: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer;
 }
 
 #geo-fallback {
@@ -557,6 +576,28 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 
 #stats-station-detail { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 #stats-station-name { font-weight: 700; margin: 0 0 2px; }
+
+#dev-footer {
+    text-align: center; padding: 20px; margin: auto -20px 0; border-radius: 0;
+    background: var(--lockup-bg); flex-shrink: 0;
+    width: calc(100% + 40px);
+}
+#dev-footer p { margin: 0 0 8px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); }
+#dev-footer p:last-child { margin-bottom: 0; }
+#dev-footer a {
+    color: white; font-weight: 600; text-decoration: none;
+    margin: 0 10px; font-size: 0.78rem;
+}
+#dev-footer a:hover { text-decoration: underline; }
+#dev-footer button#legal-open {
+    background: none; border: none; color: white; font-weight: 600;
+    font-family: inherit; font-size: 0.78rem; text-decoration: underline;
+    cursor: pointer; margin: 0 10px; padding: 0;
+}
+
+#legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; }
+#legal-panel h3 { margin: 4px 0 14px; }
+#legal-panel strong { color: var(--text); }
 
 @media (prefers-color-scheme: dark) {
     :root {

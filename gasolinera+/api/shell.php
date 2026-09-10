@@ -36,7 +36,7 @@
                 </span>
                 <span>
                     <strong id="app-title">GASOLINERA<span class="plus">+</span></strong>
-                    <span id="app-subtitle">Precios cerca de ti</span>
+                    <span id="app-subtitle">Precios reales de gasolineras</span>
                 </span>
             </div>
             <span class="header-actions">
@@ -50,6 +50,14 @@
                 </button>
             </span>
         </header>
+
+        <div id="geo-ask">
+            <p>Para enseñarte las gasolineras más cercanas necesitamos tu ubicación. No se guarda en ningún servidor, solo se usa en tu navegador para calcular distancias.</p>
+            <div id="geo-ask-actions">
+                <button id="geo-allow" type="button" class="pill">Activar ubicación</button>
+                <button id="geo-skip" type="button">Buscar sin ubicación</button>
+            </div>
+        </div>
 
         <section id="national-stats">
             <button id="national-stats-toggle" type="button" aria-expanded="false">
@@ -221,7 +229,30 @@
             </div>
         </section>
 
+        <footer id="dev-footer">
+            <p>Hecho por Yeray Garrido</p>
+            <p>
+                <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+                <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <button id="legal-open" type="button">Aviso legal y privacidad</button>
+            </p>
+        </footer>
+
     </main>
+
+    <dialog id="legal-panel">
+        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <h3>Aviso legal y privacidad</h3>
+        <p><strong>Proyecto independiente.</strong> Gasolinera+ no está afiliado ni respaldado por el Ministerio para la Transición Ecológica ni por ninguna marca de estaciones de servicio. Los precios se publican tal cual los facilita el Ministerio y pueden no coincidir con el precio real en surtidor.</p>
+        <p><strong>Ubicación.</strong> Si la activas, se usa solo en tu navegador para calcular distancias y ordenar resultados. No se guarda en ningún servidor ni se comparte con terceros; cada vez que recargas la página, se vuelve a pedir.</p>
+        <p><strong>Favoritas y comparador.</strong> Se guardan solo en tu propio navegador (localStorage), no en un servidor. Si borras los datos del sitio o cambias de dispositivo, se pierden.</p>
+        <p><strong>Servicios de terceros.</strong> El mapa usa teselas de OpenStreetMap; la búsqueda de municipios sin gasolinera propia usa el geocodificador Nominatim (OpenStreetMap) para resolver el nombre a coordenadas; las tipografías se sirven desde Google Fonts y las librerías de mapa/gráficas desde CDNs públicos (unpkg, jsDelivr). Estas peticiones las hace tu navegador directamente contra esos servicios.</p>
+        <p><strong>Sin cuentas ni cookies de seguimiento.</strong> No hay registro, no hay anuncios, no hay analítica de terceros.</p>
+        <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
+    </dialog>
 
     <dialog id="station-modal">
         <div id="modal-top-actions">
