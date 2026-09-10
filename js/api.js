@@ -33,8 +33,11 @@ const Api = (() => {
         lines: () => request('/lines'),
         line: (id) => request(`/lines/${id}`),
         lineScheduleText: (id) => request(`/lines/${id}/schedule-text`),
-        timetable: (lineId, { date, hourFrom, hourTo }) => {
+        timetable: (lineId, { date, hourFrom, hourTo, stopId }) => {
             const params = new URLSearchParams({ date, hourFrom, hourTo });
+            // stopId ancla la tabla a la hora de paso por esa parada, no a
+            // la salida desde el origen (ver TimetableController::show()).
+            if (stopId !== undefined && stopId !== null) params.set('stopId', stopId);
             return request(`/lines/${lineId}/timetable?${params}`);
         },
         vehicle: (tripKey) => request(`/vehicles/${tripKey}`),

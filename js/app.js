@@ -14,6 +14,12 @@
     const state = {
         currentStop: null,
         currentLine: null,
+        // Cuando la tabla horaria se abrio desde una parada concreta ("Ver
+        // horario completo"), esto guarda esa parada -- las horas mostradas
+        // pasan a ser la hora de paso por ella, no la salida desde el origen.
+        // null cuando se ve la linea directamente (buscador/favoritos), para
+        // no arrastrar una parada de una navegacion anterior sin relacion.
+        timetableStopId: null,
         favoriteKeys: new Set(),
         departuresRefreshTimer: null,
     };
@@ -56,6 +62,7 @@
         liveLine: document.getElementById('live-line'),
         liveHeadsign: document.getElementById('live-headsign'),
         liveOpenDetail: document.getElementById('live-open-detail'),
+        liveTimetableLink: document.getElementById('live-timetable-link'),
         liveMinutes: document.getElementById('live-minutes'),
         liveStatusDot: document.getElementById('live-status-dot'),
         liveStatusText: document.getElementById('live-status-text'),
@@ -304,6 +311,8 @@
             el.liveStatusDot.className = 'status-dot';
             el.liveIncidentsLink.hidden = true;
             el.liveOpenDetail.disabled = true;
+            el.liveTimetableLink.disabled = true;
+            el.liveTimetableLink.dataset.lineId = '';
             return;
         }
 
@@ -317,6 +326,8 @@
         el.liveIncidentsLink.hidden = IS_METRO;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
+        el.liveTimetableLink.disabled = false;
+        el.liveTimetableLink.dataset.lineId = departure.lineId;
 
         for (const other of others) {
             const li = document.createElement('li');
@@ -333,7 +344,7 @@
                     openVehicleModal(other.tripKey);
                 } else {
                     button.dataset.tapped = 'true';
-                    selectLine(other.lineId);
+                    selectLine(other.lineId, true);
                 }
             });
 
@@ -424,7 +435,13 @@
 
     // ---- Línea / horario ----
 
-    async function selectLine(lineId) {
+    // scopeToCurrentStop: true cuando se entra desde una parada concreta
+    // (panel de anden), para anclar la tabla horaria a la hora de paso por
+    // ESA parada. false (por defecto) cuando se entra directo a la linea
+    // (buscador, favoritos, "mas salidas" de otra parada) -- ahi
+    // state.currentStop podria ser de una parada completamente distinta de
+    // una navegacion anterior, y usarla igualmente daria horas equivocadas.
+    async function selectLine(lineId, scopeToCurrentStop = false) {
         let line;
         try {
             line = await Api.line(lineId);
@@ -432,6 +449,7 @@
             return;
         }
         state.currentLine = { id: line.id, code: line.code, name: line.name };
+        state.timetableStopId = scopeToCurrentStop ? (state.currentStop?.id ?? null) : null;
         updateFavoriteButton(el.timetableFavorite, 'line', line.id);
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
@@ -453,6 +471,7 @@
                 date: el.filterDate.value,
                 hourFrom: el.filterHourFrom.value,
                 hourTo: el.filterHourTo.value,
+                stopId: state.timetableStopId,
             });
         } catch (e) {
             return;
@@ -975,11 +994,14 @@
     el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
     el.platformClose.addEventListener('click', closeLiveCard);
     el.platformTimetableLink.addEventListener('click', () => {
-        if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId);
+        if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });
     el.timetableFavorite.addEventListener('click', () => toggleFavorite('line', state.currentLine?.id, el.timetableFavorite));
     el.timetableClose.addEventListener('click', closeTimetableSection);
     el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey));
+    el.liveTimetableLink.addEventListener('click', () => {
+        if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
+    });
 
     el.filterDate.addEventListener('change', loadTimetable);
     el.filterHourFrom.addEventListener('change', loadTimetable);
