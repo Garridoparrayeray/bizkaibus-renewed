@@ -110,6 +110,24 @@ class Station
     }
 
     /**
+     * Si la búsqueda coincide con el nombre de un municipio real (no solo
+     * con una dirección o marca de paso), el controller la re-geocodifica
+     * y ancla las distancias a ESE punto en vez de a la ubicación del
+     * usuario: "busco Amorebieta" tiene que dar distancias a Amorebieta,
+     * no a donde esté el usuario en ese momento.
+     */
+    public function looksLikePlaceQuery(string $query): bool
+    {
+        $normalized = Search::normalize($query);
+        if ($normalized === '') {
+            return false;
+        }
+        $stmt = $this->pdo->prepare('SELECT 1 FROM stations WHERE municipio_normalizado LIKE ? LIMIT 1');
+        $stmt->execute([$normalized . '%']);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
      * A qué se debe la coincidencia de una fila con la búsqueda, para
      * priorizar "esto ES el municipio/CP que buscas" sobre "esto lo
      * menciona de pasada" (p.ej. una carretera llamada "Bilbao" en Miranda
