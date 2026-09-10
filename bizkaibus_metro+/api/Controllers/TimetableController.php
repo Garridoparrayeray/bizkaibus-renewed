@@ -14,14 +14,7 @@ use Services\SiriVehicleMonitoringClient;
 
 class TimetableController
 {
-    /**
-     * Horario completo de una línea para un día y rango horario dados, ruta
-     * /lines/{id}/timetable. A diferencia de las salidas "en vivo" de
-     * StopsController::departures(), aquí se listan todas las salidas
-     * programadas del rango pedido, no solo las próximas, pensado para la
-     * pantalla "Consultar Horarios". Si la fecha consultada es hoy, enriquece
-     * con SIRI-VM (solo bus); si es otro día, todo queda como "scheduled".
-     */
+
     public function show(Request $request, array $params): void
     {
         $config = Config::current();
@@ -46,22 +39,16 @@ class TimetableController
 
         $hourFrom = $this->hmToSeconds($request->query('hourFrom', '00:00'));
         $hourTo = $this->hmToSeconds($request->query('hourTo', '23:59'));
-        // Un rango tipo 23:00-02:00 cruza medianoche: sin este ajuste, "hasta
-        // las 02:00" (7200s) sería siempre menor que "desde las 23:00"
-        // (82800s) y el BETWEEN nunca encontraría nada. Se interpreta como
-        // que la hora de fin cae en la madrugada del día siguiente, igual
-        // que el propio GTFS representa esas salidas con segundos >86400
-        // (ver ServiceJourney/Calendar::secondsToHm).
+
         if ($hourTo < $hourFrom) {
             $hourTo += 24 * 3600;
         }
 
-        // Cuando se llega desde una parada concreta (panel de anden -> "Ver
-        // horario completo"), el frontend manda su id -- las horas de la
-        // tabla pasan a ser la hora de paso por ESA parada, no la salida
-        // desde el origen de la linea. Ver timetableForLine().
         $stopIdRaw = $request->query('stopId');
-        $stopId = ($stopIdRaw !== null && $stopIdRaw !== '') ? (int)$stopIdRaw : null;
+        $stopId = null;
+        if ($stopIdRaw !== null && $stopIdRaw !== '') {
+            $stopId = (int)$stopIdRaw;
+        }
 
         $journeyModel = new ServiceJourney($pdo);
         $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo, $stopId);
@@ -77,8 +64,6 @@ class TimetableController
             $rows = array_map(fn($r) => $r + ['status' => 'scheduled', 'delaySeconds' => 0], $rows);
         }
 
-        // Ver StopsController::departures() sobre por qué metro usa la
-        // última parada real en vez del headsign de GTFS.
         $network = 'bus';
         if (isset($config['network'])) {
             $network = $config['network'];
@@ -122,7 +107,6 @@ class TimetableController
         ]);
     }
 
-    /** "HH:MM" -> segundos desde medianoche. Formato inválido devuelve 0. */
     private function hmToSeconds(string $hm): int
     {
         if (!preg_match('/^(\d{1,2}):(\d{2})$/', $hm, $m)) {

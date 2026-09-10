@@ -6,32 +6,11 @@ use Services\Calendar;
 
 class ServiceJourney
 {
-    /** Igual que el gap de clustering del build (scripts/build-database.php): dos
-     *  variantes de calendario para el mismo (línea, trip_number) que en esta parada
-     *  caen a menos de esto una de otra son el mismo viaje real, no dos salidas distintas. */
+
     private const DEDUPE_TOLERANCE_SECONDS = 90;
 
-    /** Un bus retrasado puede seguir sin llegar mucho después de su hora
-     *  programada. Si el margen hacia atrás fuera pequeño, se excluiría de
-     *  aquí (por hora programada) antes de que el enriquecido en vivo tenga
-     *  ocasión de comprobar si en realidad sigue en camino, y desaparecería
-     *  de la app justo cuando estuviera "LLEGANDO" sin haber llegado todavía. */
     private const PAST_GRACE_SECONDS = 900;
 
-    /**
-     * El headsign de journey_patterns viene del trip_headsign del GTFS, que
-     * no siempre coincide con la última parada real del recorrido concreto.
-     * Verificado con datos reales de Metro Bilbao: 172 de 265 patrones (65%)
-     * tienen headsign distinto de su última parada, incluyendo casos donde
-     * dos trenes con el MISMO headsign salen a la misma hora pero uno de
-     * ellos en realidad se queda corto (p.ej. "Etxebarri" a las 06:00 dos
-     * veces: uno llega a Etxebarri de verdad, el otro solo hasta Indautxu).
-     * En Bizkaibus esta discrepancia es aún más frecuente (95%) pero ahí es
-     * esperada: el headsign es el destino comercial anunciado del
-     * recorrido, no necesariamente la última parada de cada variante. Por
-     * eso este dato se calcula siempre pero cada red decide en el frontend
-     * si usarlo (Metro+) o seguir mostrando el headsign de GTFS (bus).
-     */
     private const LAST_STOP_NAME_SUBQUERY = '(
         SELECT s2.name FROM passing_times pt2
         JOIN stops s2 ON s2.id = pt2.stop_id
@@ -43,27 +22,7 @@ class ServiceJourney
     {
     }
 
-    /**
-     * Salidas programadas en una parada, desde ahora en adelante, deduplicadas
-     * entre variantes de calendario que coinciden en trip_number/hora (ver
-     * README sobre por qué más de un calendario puede casar con el mismo día).
-     *
-     * $referenceStopId, cuando se pasa, añade una columna "direction" a cada
-     * fila: 'toward_reference' si esta parada va antes que la de referencia
-     * en la secuencia del propio trayecto (o esa parada no aparece en el
-     * trayecto en absoluto, ver más abajo), 'away_from_reference' si va
-     * después. Pensado para Metro+ (referencia = Abando, el centro real de
-     * la red) para agrupar las salidas por sentido de circulación en dos
-     * columnas, como un panel físico de andén. Verificado con datos reales
-     * que comparar el seq_order de la parada consultada contra el de Abando
-     * dentro del MISMO journey_pattern predice el sentido con fiabilidad
-     * total en los patrones que pasan por ambas. No tiene sentido para bus
-     * (sin concepto de "centro" único de red), así que el parámetro es
-     * opcional y por defecto no calcula nada.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function upcomingAtStop(int $stopId, int $limit = 8, int $windowSeconds = 4 * 3600, ?int $referenceStopId = null): array
+    public function upcomingAtStop(int $stopId, int $limit = 8, int $windowSeconds = 4 * 3600, int|null $referenceStopId = null): array
     {
         $now = Calendar::nowSecondsSinceMidnight();
         $weekdayBit = Calendar::todayWeekdayBit();
@@ -125,32 +84,17 @@ class ServiceJourney
         }
         $stmt->execute($params);
 
-        // +5 de margen: algunas de las filas "pasadas" que trae la ventana
-        // ampliada se descartarán después (StopsController) si el enriquecido
-        // en vivo confirma que el bus ya pasó de verdad, así no le quitan
-        // el sitio a una salida futura real en el límite final.
         return $this->dedupeByTrip($stmt->fetchAll(), $limit + 5);
     }
 
-    /**
-     * Salidas programadas de una línea, para el día de la semana en que cae
-     * $date, dentro de un rango horario. Usado en "Tabla Horaria".
-     *
-     * $stopId, cuando se pasa, ancla la hora de cada salida a la hora de
-     * paso por ESA parada concreta (pt.stop_id), no a la salida desde el
-     * origen -- así "Ver horario completo" desde una parada muestra la hora
-     * a la que el bus/metro pasa por allí, igual que ya hace upcomingAtStop()
-     * para el panel de andén. Sin $stopId (viendo la tabla horaria de una
-     * línea directamente, sin partir de una parada) se mantiene el
-     * comportamiento de siempre: hora de salida desde el origen (seq_order 1).
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function timetableForLine(int $lineId, \DateTime $date, int $hourFromSeconds, int $hourToSeconds, ?int $stopId = null): array
+    public function timetableForLine(int $lineId, \DateTime $date, int $hourFromSeconds, int $hourToSeconds, int|null $stopId = null): array
     {
         $weekdayBit = Calendar::weekdayBitFor($date);
         $dateStr = $date->format('Y-m-d');
-        $stopCondition = $stopId !== null ? 'pt.stop_id = :stopId' : 'pt.seq_order = 1';
+        $stopCondition = 'pt.seq_order = 1';
+        if ($stopId !== null) {
+            $stopCondition = 'pt.stop_id = :stopId';
+        }
 
         $stmt = $this->pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.id AS service_journey_id,
@@ -190,15 +134,10 @@ class ServiceJourney
         }
         $stmt->execute($params);
 
-        // 2000: Bizkaibus nunca pasa de ~190 salidas/día por línea, pero
-        // Metro+ agrega TODA la red bajo una única línea (854 salidas/día
-        // hoy). 200 cortaba la tabla de horarios de Metro+ a media mañana,
-        // ocultando tarde y noche enteras en silencio.
         return $this->dedupeByTrip($stmt->fetchAll(), 2000);
     }
 
-    /** Un viaje concreto por su clave (línea, número de trip, primera salida), tal como llega en tripKey desde el frontend. */
-    public function findByLineAndTrip(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
+    public function findByLineAndTrip(int $lineId, string $tripNumber, int $firstDepartureSeconds): array|null
     {
         $stmt = $this->pdo->prepare('
             SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,
@@ -218,12 +157,7 @@ class ServiceJourney
         return $row;
     }
 
-    /**
-     * Hora programada de llegada en una posición concreta (seq_order) de un
-     * viaje. Permite a RealtimeMatcher calcular "tiempo programado restante
-     * desde la última parada confirmada" en vez de solo "hora original + retraso plano".
-     */
-    public function arrivalSecondsAtOrder(string $serviceJourneyId, int $seqOrder): ?int
+    public function arrivalSecondsAtOrder(string $serviceJourneyId, int $seqOrder): int|null
     {
         $stmt = $this->pdo->prepare('
             SELECT arrival_seconds FROM passing_times
@@ -237,13 +171,6 @@ class ServiceJourney
         return (int)$value;
     }
 
-    /**
-     * Recorrido completo de un viaje, parada a parada en orden, con hora
-     * programada de llegada y salida en cada una. Base de las pantallas de
-     * "detalle de trayecto" y del modal sin tiempo real de metro.
-     *
-     * @return array<int, array{seq_order:int, stop_id:int, name:string, arrival_seconds:int, departure_seconds:int}>
-     */
     public function stopsForJourney(string $serviceJourneyId): array
     {
         $stmt = $this->pdo->prepare('
@@ -257,13 +184,6 @@ class ServiceJourney
         return $stmt->fetchAll();
     }
 
-    /**
-     * Colapsa filas del mismo (line_id, trip_number) cuya hora de salida cae
-     * dentro de DEDUPE_TOLERANCE_SECONDS: son variantes de calendario que
-     * casan con el mismo día para el mismo viaje real, no dos salidas
-     * distintas (ver esa constante). Conserva la primera fila de cada grupo,
-     * en el orden en que ya vinieron ordenadas por la consulta SQL.
-     */
     private function dedupeByTrip(array $rows, int $limit): array
     {
         $lastKeptDeparture = [];
