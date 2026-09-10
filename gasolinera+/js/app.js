@@ -30,8 +30,10 @@
         filterOpen: document.getElementById('filter-open'),
         viewListBtn: document.getElementById('view-list-btn'),
         viewMapBtn: document.getElementById('view-map-btn'),
+        viewStatsBtn: document.getElementById('view-stats-btn'),
         viewList: document.getElementById('view-list'),
         viewMap: document.getElementById('view-map'),
+        viewStats: document.getElementById('view-stats'),
         stationsList: document.getElementById('stations-list'),
         stationsEmpty: document.getElementById('stations-empty'),
         paginationNav: document.getElementById('stations-pagination'),
@@ -66,6 +68,16 @@
         nationalGasolina95: document.getElementById('national-gasolina-95'),
         nationalChart: document.getElementById('national-chart'),
         nationalNote: document.getElementById('national-stats-note'),
+        statsFuel: document.getElementById('stats-fuel'),
+        statsGroupToggle: document.getElementById('stats-group-toggle'),
+        statsNationalVariation: document.getElementById('stats-national-variation'),
+        statsNationalChart: document.getElementById('stats-national-chart'),
+        statsStationSearch: document.getElementById('stats-station-search'),
+        statsStationResults: document.getElementById('stats-station-results'),
+        statsStationDetail: document.getElementById('stats-station-detail'),
+        statsStationName: document.getElementById('stats-station-name'),
+        statsStationVariation: document.getElementById('stats-station-variation'),
+        statsStationChart: document.getElementById('stats-station-chart'),
     };
 
     const state = {
@@ -87,6 +99,11 @@
         chart: null,
         nationalChart: null,
         nationalSeries: {},
+        statsGroup: 'day',
+        statsNationalChart: null,
+        statsStationChart: null,
+        statsSelectedIdeess: null,
+        statsSearchTimer: null,
         compareList: loadCompareList(),
     };
 
@@ -587,10 +604,161 @@
         state.currentView = view;
         el.viewList.hidden = view !== 'list';
         el.viewMap.hidden = view !== 'map';
+        el.viewStats.hidden = view !== 'stats';
         el.viewListBtn.setAttribute('aria-selected', String(view === 'list'));
         el.viewMapBtn.setAttribute('aria-selected', String(view === 'map'));
+        el.viewStatsBtn.setAttribute('aria-selected', String(view === 'stats'));
         if (view === 'map') {
             refreshMapMarkers();
+        }
+        if (view === 'stats' && !state.statsNationalChart) {
+            renderStatsNationalChart();
+        }
+    }
+
+    // ---- Estadísticas (pestaña propia: nacional + por estación) ----
+
+    const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+    function periodLabel(periodo) {
+        if (state.statsGroup === 'month') {
+            const [year, month] = periodo.split('-');
+            return `${MONTH_LABELS[Number(month) - 1]} ${year}`;
+        }
+        return periodo.slice(5);
+    }
+
+    function variationText(serie, valueKey) {
+        if (serie.length < 2) {
+            return 'Aún no hay suficiente histórico para calcular una variación.';
+        }
+        const first = serie[0][valueKey];
+        const last = serie[serie.length - 1][valueKey];
+        const diff = last - first;
+        const pct = first !== 0 ? (diff / first) * 100 : 0;
+        const sign = diff > 0 ? '+' : '';
+        const periodWord = state.statsGroup === 'month' ? 'meses' : 'días';
+        return `<strong>${sign}${pct.toFixed(1)}%</strong> (${sign}${diff.toFixed(3)} €) entre ${periodLabel(serie[0].fecha)} y ${periodLabel(serie[serie.length - 1].fecha)} · ${serie.length} ${periodWord} con dato.`;
+    }
+
+    async function renderStatsNationalChart() {
+        const fuel = el.statsFuel.value;
+        const days = state.statsGroup === 'month' ? 730 : 90;
+        let data;
+        try {
+            data = await Api.nationalStats(fuel, days, state.statsGroup);
+        } catch (e) {
+            return;
+        }
+        el.statsNationalVariation.innerHTML = variationText(data.serie, 'media');
+        if (!data.serie.length || typeof Chart === 'undefined') {
+            return;
+        }
+        if (state.statsNationalChart) {
+            state.statsNationalChart.destroy();
+            state.statsNationalChart = null;
+        }
+        state.statsNationalChart = new Chart(el.statsNationalChart, {
+            type: 'line',
+            data: {
+                labels: data.serie.map((p) => periodLabel(p.fecha)),
+                datasets: [{
+                    label: `Media nacional · ${FUEL_LABELS[fuel] || fuel}`,
+                    data: data.serie.map((p) => p.media),
+                    borderColor: '#B8860B',
+                    backgroundColor: 'rgba(184, 134, 11, 0.12)',
+                    tension: 0.15,
+                    fill: true,
+                }],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { callback: (v) => v.toFixed(2) + ' €' } } },
+            },
+        });
+    }
+
+    async function searchStatsStation(query) {
+        el.statsStationResults.innerHTML = '';
+        if (query.trim().length < 2) {
+            return;
+        }
+        let data;
+        try {
+            data = await Api.search({ q: query.trim(), lat: state.userLat, lon: state.userLon, sort: state.userLat !== null ? 'distance' : 'price', limit: 8 });
+        } catch (e) {
+            return;
+        }
+        for (const station of data.stations) {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerHTML = `${escapeHtml(station.rotulo)}<small>${escapeHtml(station.direccion)}, ${escapeHtml(station.municipio)}</small>`;
+            btn.addEventListener('click', () => selectStatsStation(station.ideess, station.rotulo));
+            li.appendChild(btn);
+            el.statsStationResults.appendChild(li);
+        }
+    }
+
+    function selectStatsStation(ideess, rotulo) {
+        state.statsSelectedIdeess = ideess;
+        el.statsStationResults.innerHTML = '';
+        el.statsStationSearch.value = rotulo;
+        el.statsStationDetail.hidden = false;
+        el.statsStationName.textContent = rotulo;
+        renderStatsStationChart();
+    }
+
+    async function renderStatsStationChart() {
+        if (!state.statsSelectedIdeess) {
+            return;
+        }
+        const fuel = el.statsFuel.value;
+        const days = state.statsGroup === 'month' ? 730 : 90;
+        let data;
+        try {
+            data = await Api.history(state.statsSelectedIdeess, fuel, days, state.statsGroup);
+        } catch (e) {
+            return;
+        }
+        el.statsStationVariation.innerHTML = variationText(data.serie, 'precio');
+        if (!data.serie.length || typeof Chart === 'undefined') {
+            return;
+        }
+        if (state.statsStationChart) {
+            state.statsStationChart.destroy();
+            state.statsStationChart = null;
+        }
+        state.statsStationChart = new Chart(el.statsStationChart, {
+            type: 'line',
+            data: {
+                labels: data.serie.map((p) => periodLabel(p.fecha)),
+                datasets: [{
+                    label: FUEL_LABELS[fuel] || fuel,
+                    data: data.serie.map((p) => p.precio),
+                    borderColor: '#B8860B',
+                    backgroundColor: 'rgba(184, 134, 11, 0.12)',
+                    tension: 0.15,
+                    fill: true,
+                }],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { ticks: { callback: (v) => v.toFixed(2) + ' €' } } },
+            },
+        });
+    }
+
+    function setStatsGroup(group) {
+        state.statsGroup = group;
+        el.statsGroupToggle.querySelectorAll('button').forEach((btn) => {
+            btn.setAttribute('aria-pressed', String(btn.dataset.group === group));
+        });
+        renderStatsNationalChart();
+        if (state.statsSelectedIdeess) {
+            renderStatsStationChart();
         }
     }
 
@@ -806,8 +974,24 @@
     el.geoRetry.addEventListener('click', requestGeolocation);
     el.viewListBtn.addEventListener('click', () => switchView('list'));
     el.viewMapBtn.addEventListener('click', () => switchView('map'));
+    el.viewStatsBtn.addEventListener('click', () => switchView('stats'));
     el.heatmapToggle.addEventListener('click', toggleHeatmap);
     el.locateMe.addEventListener('click', locateOnMap);
+
+    el.statsFuel.addEventListener('change', () => {
+        renderStatsNationalChart();
+        if (state.statsSelectedIdeess) {
+            renderStatsStationChart();
+        }
+    });
+    el.statsGroupToggle.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => setStatsGroup(btn.dataset.group));
+    });
+    el.statsStationSearch.addEventListener('input', () => {
+        clearTimeout(state.statsSearchTimer);
+        const query = el.statsStationSearch.value;
+        state.statsSearchTimer = setTimeout(() => searchStatsStation(query), 300);
+    });
 
     el.modalClose.addEventListener('click', () => el.stationModal.close());
     el.stationModal.addEventListener('click', (e) => {

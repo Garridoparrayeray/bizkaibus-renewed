@@ -152,29 +152,47 @@ class StationsController
         Response::json($station);
     }
 
-    /** Serie temporal de precio de un carburante en una estación, para la gráfica de evolución, ruta /stations/{ideess}/history. */
+    /**
+     * Serie temporal de precio de un carburante en una estación, para la
+     * gráfica de evolución, ruta /stations/{ideess}/history. group=month
+     * agrega por mes (media del carburante ese mes) en vez de dato diario,
+     * para ver tendencia en periodos largos sin un punto por día.
+     */
     public function history(Request $request, array $params): void
     {
         $fuel = $request->query('fuel', 'gasoleo_a');
+        $group = $this->normalizeGroup($request->query('group'));
         $days = $request->queryInt('days', 7);
+        $maxDays = $group === 'month' ? 730 : 90;
         if ($days === null || $days <= 0) {
             $days = 7;
         }
-        if ($days > 90) {
-            $days = 90;
+        if ($days > $maxDays) {
+            $days = $maxDays;
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('
-            SELECT fecha, precio FROM price_history
-            WHERE ideess = ? AND carburante = ? AND fecha >= date(\'now\', ?)
-            ORDER BY fecha ASC
-        ');
+        if ($group === 'month') {
+            $stmt = $pdo->prepare("
+                SELECT strftime('%Y-%m', fecha) AS periodo, ROUND(AVG(precio), 4) AS precio
+                FROM price_history
+                WHERE ideess = ? AND carburante = ? AND fecha >= date('now', ?)
+                GROUP BY periodo
+                ORDER BY periodo ASC
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT fecha AS periodo, precio
+                FROM price_history
+                WHERE ideess = ? AND carburante = ? AND fecha >= date('now', ?)
+                ORDER BY fecha ASC
+            ");
+        }
         $stmt->execute([$params['ideess'], $fuel, "-$days days"]);
         $rows = $stmt->fetchAll();
 
-        $series = array_map(fn($r) => ['fecha' => $r['fecha'], 'precio' => (float)$r['precio']], $rows);
-        Response::json(['ideess' => $params['ideess'], 'carburante' => $fuel, 'serie' => $series]);
+        $series = array_map(fn($r) => ['fecha' => $r['periodo'], 'precio' => (float)$r['precio']], $rows);
+        Response::json(['ideess' => $params['ideess'], 'carburante' => $fuel, 'group' => $group, 'serie' => $series]);
     }
 
     /**
@@ -192,27 +210,39 @@ class StationsController
         if ($fuel === null) {
             $fuel = 'gasoleo_a';
         }
+        $group = $this->normalizeGroup($request->query('group'));
         $days = $request->queryInt('days', 14);
+        $maxDays = $group === 'month' ? 730 : 90;
         if ($days === null || $days <= 0) {
             $days = 14;
         }
-        if ($days > 90) {
-            $days = 90;
+        if ($days > $maxDays) {
+            $days = $maxDays;
         }
 
         $pdo = Database::connection();
-        $stmt = $pdo->prepare('
-            SELECT fecha, ROUND(AVG(precio), 4) AS media, COUNT(*) AS estaciones
-            FROM price_history
-            WHERE carburante = ? AND fecha >= date(\'now\', ?)
-            GROUP BY fecha
-            ORDER BY fecha ASC
-        ');
+        if ($group === 'month') {
+            $stmt = $pdo->prepare("
+                SELECT strftime('%Y-%m', fecha) AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
+                FROM price_history
+                WHERE carburante = ? AND fecha >= date('now', ?)
+                GROUP BY periodo
+                ORDER BY periodo ASC
+            ");
+        } else {
+            $stmt = $pdo->prepare("
+                SELECT fecha AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
+                FROM price_history
+                WHERE carburante = ? AND fecha >= date('now', ?)
+                GROUP BY periodo
+                ORDER BY periodo ASC
+            ");
+        }
         $stmt->execute([$fuel, "-$days days"]);
         $rows = $stmt->fetchAll();
 
         $series = array_map(fn($r) => [
-            'fecha' => $r['fecha'],
+            'fecha' => $r['periodo'],
             'media' => (float)$r['media'],
             'estaciones' => (int)$r['estaciones'],
         ], $rows);
@@ -222,7 +252,7 @@ class StationsController
             $today = end($series);
         }
 
-        Response::json(['carburante' => $fuel, 'hoy' => $today, 'serie' => $series]);
+        Response::json(['carburante' => $fuel, 'group' => $group, 'hoy' => $today, 'serie' => $series]);
     }
 
     public function zoneComparison(Request $request, array $params): void
@@ -246,6 +276,14 @@ class StationsController
             return null;
         }
         return $fuel;
+    }
+
+    private function normalizeGroup(?string $group): string
+    {
+        if ($group === 'month') {
+            return 'month';
+        }
+        return 'day';
     }
 
     private function normalizeSort(?string $sort): string

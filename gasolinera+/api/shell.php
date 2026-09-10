@@ -96,6 +96,7 @@
         <div id="view-toggle" role="tablist">
             <button id="view-list-btn" type="button" role="tab" aria-selected="true">Lista</button>
             <button id="view-map-btn" type="button" role="tab" aria-selected="false">Mapa</button>
+            <button id="view-stats-btn" type="button" role="tab" aria-selected="false">Estadísticas</button>
         </div>
 
         <p id="geo-fallback" hidden>
@@ -124,6 +125,41 @@
                     <span>Barata</span>
                     <span id="map-legend-gradient"></span>
                     <span>Cara</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-stats" hidden>
+            <div class="stats-block">
+                <h3>Media nacional</h3>
+                <div class="stats-controls">
+                    <select id="stats-fuel" aria-label="Carburante para las estadísticas">
+                        <option value="gasoleo_a">Gasóleo A</option>
+                        <option value="gasolina_95_e5">Gasolina 95 E5</option>
+                        <option value="gasoleo_premium">Gasóleo Premium</option>
+                        <option value="gasolina_98_e5">Gasolina 98 E5</option>
+                        <option value="adblue">AdBlue</option>
+                        <option value="glp">GLP</option>
+                    </select>
+                    <div id="stats-group-toggle" role="tablist">
+                        <button type="button" class="pill" data-group="day" aria-pressed="true">Diario</button>
+                        <button type="button" class="pill" data-group="month" aria-pressed="false">Mensual</button>
+                    </div>
+                </div>
+                <p id="stats-national-variation"></p>
+                <canvas id="stats-national-chart" height="180"></canvas>
+            </div>
+
+            <div class="stats-block">
+                <h3>Por gasolinera</h3>
+                <div id="stats-station-search-wrap">
+                    <input id="stats-station-search" type="search" placeholder="Buscar una gasolinera…" aria-label="Buscar gasolinera para sus estadísticas" autocomplete="off">
+                    <ul id="stats-station-results"></ul>
+                </div>
+                <div id="stats-station-detail" hidden>
+                    <p id="stats-station-name"></p>
+                    <p id="stats-station-variation"></p>
+                    <canvas id="stats-station-chart" height="180"></canvas>
                 </div>
             </div>
         </section>
