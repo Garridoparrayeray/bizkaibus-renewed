@@ -1,14 +1,14 @@
 <?php
 
-$isMetroShare = isset($_GET['red']) && $_GET['red'] === 'metro';
-if ($isMetroShare) {
-    $ogTitle = 'Metro+';
-    $ogDescription = 'Horarios de Metro Bilbao, sin vueltas.';
-    $ogImage = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
+$bIsMetroShare = isset($_GET['red']) && $_GET['red'] === 'metro';
+if ($bIsMetroShare) {
+    $sOgTitle = 'Metro+';
+    $sOgDescription = 'Horarios de Metro Bilbao, sin vueltas.';
+    $sOgImage = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
 } else {
-    $ogTitle = 'BizkaiBus+';
-    $ogDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
-    $ogImage = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
+    $sOgTitle = 'BizkaiBus+';
+    $sOgDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
+    $sOgImage = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
 }
 ?>
 <!DOCTYPE html>
@@ -19,11 +19,11 @@ if ($isMetroShare) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BizkaiBus+">
-    <title><?= $ogTitle ?></title>
-    <meta name="description" content="<?= $ogDescription ?>">
-    <meta property="og:title" content="<?= $ogTitle ?>">
-    <meta property="og:description" content="<?= $ogDescription ?>">
-    <meta property="og:image" content="<?= $ogImage ?>">
+    <title><?= $sOgTitle ?></title>
+    <meta name="description" content="<?= $sOgDescription ?>">
+    <meta property="og:title" content="<?= $sOgTitle ?>">
+    <meta property="og:description" content="<?= $sOgDescription ?>">
+    <meta property="og:image" content="<?= $sOgImage ?>">
     <meta property="og:type" content="website">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script>

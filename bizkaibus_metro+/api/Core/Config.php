@@ -4,23 +4,23 @@ namespace Core;
 
 class Config
 {
-    private static array|null $current = null;
+    private static array|null $aCurrent = null;
 
-    public static function set(string $network): void
+    public static function set(string $sNetwork): void
     {
-        if ($network === 'metro') {
-            $path = __DIR__ . '/../Config/metro.php';
+        if ($sNetwork === 'metro') {
+            $sPath = __DIR__ . '/../Config/metro.php';
         } else {
-            $path = __DIR__ . '/../Config/config.php';
+            $sPath = __DIR__ . '/../Config/config.php';
         }
-        self::$current = require $path;
+        self::$aCurrent = require $sPath;
     }
 
     public static function current(): array
     {
-        if (self::$current === null) {
+        if (self::$aCurrent === null) {
             self::set('bus');
         }
-        return self::$current;
+        return self::$aCurrent;
     }
 }

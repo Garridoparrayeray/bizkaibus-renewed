@@ -4,59 +4,59 @@ namespace Models;
 
 class Stop
 {
-    public function __construct(private \PDO $pdo)
+    public function __construct(private \PDO $Pdo)
     {
     }
 
-    public function find(int $id): array|null
+    public function find(int $iId): array|null
     {
-        $stmt = $this->safeQuery(
+        $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops WHERE id = ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops WHERE id = ?',
-            [$id]
+            [$iId]
         );
-        $row = $stmt->fetch();
-        if (!$row) {
+        $aRow = $Stmt->fetch();
+        if (!$aRow) {
             return null;
         }
-        return $row;
+        return $aRow;
     }
 
-    public function search(string $query, int $limit = 10): array
+    public function search(string $sQuery, int $iLimit = 10): array
     {
-        $normalized = Search::normalize($query);
-        $like = '%' . $normalized . '%';
-        $stmt = $this->safeQuery(
+        $sNormalized = Search::normalize($sQuery);
+        $sLike = '%' . $sNormalized . '%';
+        $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops
              WHERE name_normalized LIKE ? OR area_normalized LIKE ?
              ORDER BY LENGTH(name) ASC LIMIT ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops
              WHERE name_normalized LIKE ?
              ORDER BY LENGTH(name) ASC LIMIT ?',
-            [$like, $like, $limit],
-            [$like, $limit]
+            [$sLike, $sLike, $iLimit],
+            [$sLike, $iLimit]
         );
-        return $stmt->fetchAll();
+        return $Stmt->fetchAll();
     }
 
-    public function headsignsFor(int $stopId, int $limit = 2): array
+    public function headsignsFor(int $iStopId, int $iLimit = 2): array
     {
-        $stmt = $this->pdo->prepare('
+        $Stmt = $this->Pdo->prepare('
             SELECT DISTINCT jp.headsign
             FROM journey_pattern_stops jps
             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
             WHERE jps.stop_id = ? AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
             LIMIT ?
         ');
-        $stmt->bindValue(1, $stopId, \PDO::PARAM_INT);
-        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $Stmt->bindValue(1, $iStopId, \PDO::PARAM_INT);
+        $Stmt->bindValue(2, $iLimit, \PDO::PARAM_INT);
+        $Stmt->execute();
+        return $Stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
-    public function linesServing(int $stopId): array
+    public function linesServing(int $iStopId): array
     {
-        $stmt = $this->pdo->prepare('
+        $Stmt = $this->Pdo->prepare('
             SELECT DISTINCT l.id, l.code, l.name
             FROM journey_pattern_stops jps
             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
@@ -64,27 +64,27 @@ class Stop
             WHERE jps.stop_id = ?
             ORDER BY l.code
         ');
-        $stmt->execute([$stopId]);
-        return $stmt->fetchAll();
+        $Stmt->execute([$iStopId]);
+        return $Stmt->fetchAll();
     }
 
-    private function safeQuery(string $sql, string $fallbackSql, array $args, array|null $fallbackArgs = null): \PDOStatement
+    private function safeQuery(string $sSql, string $sFallbackSql, array $aArgs, array|null $aFallbackArgs = null): \PDOStatement
     {
         try {
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($args);
-            return $stmt;
-        } catch (\PDOException $e) {
-            if (!str_contains($e->getMessage(), 'no such column')) {
-                throw $e;
+            $Stmt = $this->Pdo->prepare($sSql);
+            $Stmt->execute($aArgs);
+            return $Stmt;
+        } catch (\PDOException $Ex) {
+            if (!str_contains($Ex->getMessage(), 'no such column')) {
+                throw $Ex;
             }
-            $stmt = $this->pdo->prepare($fallbackSql);
-            if (isset($fallbackArgs)) {
-                $stmt->execute($fallbackArgs);
+            $Stmt = $this->Pdo->prepare($sFallbackSql);
+            if (isset($aFallbackArgs)) {
+                $Stmt->execute($aFallbackArgs);
             } else {
-                $stmt->execute($args);
+                $Stmt->execute($aArgs);
             }
-            return $stmt;
+            return $Stmt;
         }
     }
 }

@@ -5,62 +5,62 @@ namespace Core;
 class Router
 {
 
-    private array $routes = [];
+    private array $aRoutes = [];
 
-    public function get(string $pattern, callable $handler): void
+    public function get(string $sPattern, callable $Handler): void
     {
-        $this->add('GET', $pattern, $handler);
+        $this->add('GET', $sPattern, $Handler);
     }
 
-    public function post(string $pattern, callable $handler): void
+    public function post(string $sPattern, callable $Handler): void
     {
-        $this->add('POST', $pattern, $handler);
+        $this->add('POST', $sPattern, $Handler);
     }
 
-    public function delete(string $pattern, callable $handler): void
+    public function delete(string $sPattern, callable $Handler): void
     {
-        $this->add('DELETE', $pattern, $handler);
+        $this->add('DELETE', $sPattern, $Handler);
     }
 
-    private function add(string $method, string $pattern, callable $handler): void
+    private function add(string $sMethod, string $sPattern, callable $Handler): void
     {
-        $paramNames = [];
-        $regex = preg_replace_callback('#\{(\w+)\}#', function ($m) use (&$paramNames) {
-            $paramNames[] = $m[1];
+        $aParamNames = [];
+        $sRegex = preg_replace_callback('#\{(\w+)\}#', function ($aM) use (&$aParamNames) {
+            $aParamNames[] = $aM[1];
             return '([^/]+)';
-        }, $pattern);
+        }, $sPattern);
 
-        $this->routes[] = [
-            'method' => $method,
-            'pattern' => $pattern,
-            'regex' => '#^' . $regex . '$#',
-            'params' => $paramNames,
-            'handler' => $handler,
+        $this->aRoutes[] = [
+            'method' => $sMethod,
+            'pattern' => $sPattern,
+            'regex' => '#^' . $sRegex . '$#',
+            'params' => $aParamNames,
+            'handler' => $Handler,
         ];
     }
 
-    public function dispatch(Request $request): void
+    public function dispatch(Request $Req): void
     {
-        $matchedPath = false;
-        foreach ($this->routes as $route) {
-            if (!preg_match($route['regex'], $request->path, $matches)) {
+        $bMatchedPath = false;
+        foreach ($this->aRoutes as $aRoute) {
+            if (!preg_match($aRoute['regex'], $Req->sPath, $aMatches)) {
                 continue;
             }
-            $matchedPath = true;
-            if ($route['method'] !== $request->method) {
+            $bMatchedPath = true;
+            if ($aRoute['method'] !== $Req->sMethod) {
                 continue;
             }
-            array_shift($matches);
-            $params = array_combine($route['params'], $matches);
+            array_shift($aMatches);
+            $aParams = array_combine($aRoute['params'], $aMatches);
             try {
-                ($route['handler'])($request, $params);
-            } catch (\Throwable $e) {
-                Response::error('Internal error: ' . $e->getMessage(), 500);
+                ($aRoute['handler'])($Req, $aParams);
+            } catch (\Throwable $Ex) {
+                Response::error('Internal error: ' . $Ex->getMessage(), 500);
             }
             return;
         }
 
-        if ($matchedPath) {
+        if ($bMatchedPath) {
             Response::error('Method not allowed', 405);
         } else {
             Response::error('Not found', 404);

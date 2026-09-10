@@ -11,8 +11,8 @@ class Calendar
 
     public static function nowSecondsSinceMidnight(): int
     {
-        $now = self::todayMadrid();
-        return ((int)$now->format('H')) * 3600 + ((int)$now->format('i')) * 60 + (int)$now->format('s');
+        $Now = self::todayMadrid();
+        return ((int)$Now->format('H')) * 3600 + ((int)$Now->format('i')) * 60 + (int)$Now->format('s');
     }
 
     public static function todayWeekdayBit(): int
@@ -20,16 +20,16 @@ class Calendar
         return self::weekdayBitFor(self::todayMadrid());
     }
 
-    public static function weekdayBitFor(\DateTime $date): int
+    public static function weekdayBitFor(\DateTime $Date): int
     {
-        $iso = (int)$date->format('N');
-        return 1 << ($iso - 1);
+        $iIso = (int)$Date->format('N');
+        return 1 << ($iIso - 1);
     }
 
-    public static function secondsToHm(int $seconds): string
+    public static function secondsToHm(int $iSeconds): string
     {
-        $h = intdiv($seconds, 3600) % 24;
-        $m = intdiv($seconds % 3600, 60);
-        return sprintf('%02d:%02d', $h, $m);
+        $iH = intdiv($iSeconds, 3600) % 24;
+        $iM = intdiv($iSeconds % 3600, 60);
+        return sprintf('%02d:%02d', $iH, $iM);
     }
 }

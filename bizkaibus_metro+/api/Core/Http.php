@@ -5,24 +5,24 @@ namespace Core;
 class Http
 {
 
-    public static function get(string $url, int $timeoutSeconds = 8): string
+    public static function get(string $sUrl, int $iTimeoutSeconds = 8): string
     {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        $Ch = curl_init($sUrl);
+        curl_setopt_array($Ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => $timeoutSeconds,
+            CURLOPT_TIMEOUT => $iTimeoutSeconds,
             CURLOPT_FOLLOWLOCATION => true,
         ]);
-        $body = curl_exec($ch);
-        $error = curl_error($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $sBody = curl_exec($Ch);
+        $sError = curl_error($Ch);
+        $iStatus = curl_getinfo($Ch, CURLINFO_HTTP_CODE);
 
-        if ($body === false || $error) {
-            throw new \RuntimeException("GET $url failed: $error");
+        if ($sBody === false || $sError) {
+            throw new \RuntimeException("GET $sUrl failed: $sError");
         }
-        if ($status >= 400) {
-            throw new \RuntimeException("GET $url returned HTTP $status");
+        if ($iStatus >= 400) {
+            throw new \RuntimeException("GET $sUrl returned HTTP $iStatus");
         }
-        return $body;
+        return $sBody;
     }
 }

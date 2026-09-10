@@ -14,147 +14,147 @@ use Services\SiriVehicleMonitoringClient;
 class RealtimeController
 {
 
-    public function lineLive(Request $request, array $params): void
+    public function lineLive(Request $Req, array $aParams): void
     {
-        $lineId = (int)$params['id'];
-        $pdo = Database::connection();
+        $iLineId = (int)$aParams['id'];
+        $Pdo = Database::connection();
 
-        $lineModel = new LineModel($pdo);
-        $line = $lineModel->find($lineId);
-        if ($line === null) {
+        $LineModel = new LineModel($Pdo);
+        $aLine = $LineModel->find($iLineId);
+        if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
 
-        $config = require __DIR__ . '/../Config/config.php';
-        $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
+        $aConfig = require __DIR__ . '/../Config/config.php';
+        $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
 
-        $journeyStmt = $pdo->prepare('
+        $JourneyStmt = $Pdo->prepare('
             SELECT sj.trip_number, jp.headsign
             FROM service_journeys sj
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE sj.line_id = ? AND sj.trip_number = ?
             LIMIT 1
         ');
-        $stopStmt = $pdo->prepare('SELECT id, name, lat, lon FROM stops WHERE id = ?');
+        $StopStmt = $Pdo->prepare('SELECT id, name, lat, lon FROM stops WHERE id = ?');
 
-        $vehicles = [];
-        foreach ($vmMap as $key => $entries) {
-            [$keyLineId, $tripNumber] = explode('|', $key);
-            if ((int)$keyLineId !== $lineId) {
+        $aVehicles = [];
+        foreach ($aVmMap as $sKey => $aEntries) {
+            [$sKeyLineId, $sTripNumber] = explode('|', $sKey);
+            if ((int)$sKeyLineId !== $iLineId) {
                 continue;
             }
-            foreach ($entries as $entry) {
-                if ($entry['currentStopId'] === null) {
+            foreach ($aEntries as $aEntry) {
+                if ($aEntry['currentStopId'] === null) {
                     continue;
                 }
-                $stopStmt->execute([$entry['currentStopId']]);
-                $stop = $stopStmt->fetch();
-                if ($stop === null) {
+                $StopStmt->execute([$aEntry['currentStopId']]);
+                $aStop = $StopStmt->fetch();
+                if ($aStop === null) {
                     continue;
                 }
-                $journeyStmt->execute([$lineId, $tripNumber]);
-                $journey = $journeyStmt->fetch();
-                $headsign = null;
-                if (isset($journey['headsign'])) {
-                    $headsign = $journey['headsign'];
+                $JourneyStmt->execute([$iLineId, $sTripNumber]);
+                $aJourney = $JourneyStmt->fetch();
+                $sHeadsign = null;
+                if (isset($aJourney['headsign'])) {
+                    $sHeadsign = $aJourney['headsign'];
                 }
 
-                $vehicles[] = [
-                    'vehicleRef' => $entry['vehicleRef'],
-                    'delayMinutes' => (int)round($entry['delaySeconds'] / 60),
-                    'headsign' => $headsign,
+                $aVehicles[] = [
+                    'vehicleRef' => $aEntry['vehicleRef'],
+                    'delayMinutes' => (int)round($aEntry['delaySeconds'] / 60),
+                    'headsign' => $sHeadsign,
                     'currentStop' => [
-                        'id' => (int)$stop['id'],
-                        'name' => $stop['name'],
-                        'lat' => (float)$stop['lat'],
-                        'lon' => (float)$stop['lon'],
+                        'id' => (int)$aStop['id'],
+                        'name' => $aStop['name'],
+                        'lat' => (float)$aStop['lat'],
+                        'lon' => (float)$aStop['lon'],
                     ],
                 ];
             }
         }
 
         Response::json([
-            'line' => $line,
-            'patterns' => $lineModel->patternsWithStops($lineId),
-            'vehicles' => $vehicles,
+            'line' => $aLine,
+            'patterns' => $LineModel->patternsWithStops($iLineId),
+            'vehicles' => $aVehicles,
         ]);
     }
 
-    public function vehicle(Request $request, array $params): void
+    public function vehicle(Request $Req, array $aParams): void
     {
-        [$lineId, $tripNumber, $firstDepartureSeconds] = array_pad(explode('-', $params['tripKey'], 3), 3, null);
-        if ($lineId === null || $tripNumber === null || $firstDepartureSeconds === null) {
+        [$sLineIdRaw, $sTripNumber, $sFirstDepartureSecondsRaw] = array_pad(explode('-', $aParams['tripKey'], 3), 3, null);
+        if ($sLineIdRaw === null || $sTripNumber === null || $sFirstDepartureSecondsRaw === null) {
             Response::error('Invalid vehicle key', 422);
             return;
         }
-        $lineId = (int)$lineId;
-        $firstDepartureSeconds = (int)$firstDepartureSeconds;
+        $iLineId = (int)$sLineIdRaw;
+        $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
 
-        $pdo = Database::connection();
-        $journeyModel = new ServiceJourney($pdo);
-        $journey = $journeyModel->findByLineAndTrip($lineId, $tripNumber, $firstDepartureSeconds);
-        if ($journey === null) {
+        $Pdo = Database::connection();
+        $JourneyModel = new ServiceJourney($Pdo);
+        $aJourney = $JourneyModel->findByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        if ($aJourney === null) {
             Response::error('Trip not found', 404);
             return;
         }
 
-        $config = require __DIR__ . '/../Config/config.php';
-        $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
-        $matcher = new RealtimeMatcher($vmMap, $journeyModel);
-        $live = $matcher->lookup($lineId, $tripNumber, $firstDepartureSeconds);
+        $aConfig = require __DIR__ . '/../Config/config.php';
+        $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
+        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        $aLive = $Matcher->lookup($iLineId, $sTripNumber, $iFirstDepartureSeconds);
 
-        $stops = $journeyModel->stopsForJourney($journey['id']);
-        $now = Calendar::nowSecondsSinceMidnight();
+        $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
+        $iNow = Calendar::nowSecondsSinceMidnight();
 
-        $stopsOut = array_map(function ($stop) use ($matcher, $journey, $live, $now) {
+        $aStopsOut = array_map(function ($aStop) use ($Matcher, $aJourney, $aLive, $iNow) {
 
-            $alreadyPassed = $live !== null && $live['order'] !== null && (int)$stop['seq_order'] < (int)$live['order'];
+            $bAlreadyPassed = $aLive !== null && $aLive['order'] !== null && (int)$aStop['seq_order'] < (int)$aLive['order'];
 
-            $etaMinutes = null;
-            if (!$alreadyPassed) {
-                [$eta] = $matcher->etaForStop($journey['id'], (int)$stop['arrival_seconds'], $live);
-                $etaMinutes = (int)round(($eta - $now) / 60);
+            $iEtaMinutes = null;
+            if (!$bAlreadyPassed) {
+                [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive);
+                $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
             }
 
             return [
-                'stopId' => (int)$stop['stop_id'],
-                'name' => $stop['name'],
-                'scheduledTime' => Calendar::secondsToHm((int)$stop['arrival_seconds']),
-                'etaMinutes' => $etaMinutes,
-                'isPast' => $alreadyPassed,
-                'isCurrent' => $live !== null && $live['currentStopId'] === (int)$stop['stop_id'],
+                'stopId' => (int)$aStop['stop_id'],
+                'name' => $aStop['name'],
+                'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
+                'etaMinutes' => $iEtaMinutes,
+                'isPast' => $bAlreadyPassed,
+                'isCurrent' => $aLive !== null && $aLive['currentStopId'] === (int)$aStop['stop_id'],
             ];
-        }, $stops);
+        }, $aStops);
 
-        $delaySeconds = 0;
-        if (isset($live['delaySeconds'])) {
-            $delaySeconds = $live['delaySeconds'];
+        $iDelaySeconds = 0;
+        if (isset($aLive['delaySeconds'])) {
+            $iDelaySeconds = $aLive['delaySeconds'];
         }
 
-        $status = 'scheduled';
-        if ($live !== null) {
-            $status = 'live';
+        $sStatus = 'scheduled';
+        if ($aLive !== null) {
+            $sStatus = 'live';
         }
 
-        $delayMinutes = 0;
-        if ($delaySeconds !== 0) {
-            $delayMinutes = (int)round($delaySeconds / 60);
+        $iDelayMinutes = 0;
+        if ($iDelaySeconds !== 0) {
+            $iDelayMinutes = (int)round($iDelaySeconds / 60);
         }
 
-        $vehicleRef = null;
-        if (isset($live['vehicleRef'])) {
-            $vehicleRef = $live['vehicleRef'];
+        $sVehicleRef = null;
+        if (isset($aLive['vehicleRef'])) {
+            $sVehicleRef = $aLive['vehicleRef'];
         }
 
         Response::json([
-            'lineCode' => $journey['line_code'],
-            'lineName' => $journey['line_name'],
-            'headsign' => $journey['headsign'],
-            'status' => $status,
-            'vehicleRef' => $vehicleRef,
-            'delayMinutes' => $delayMinutes,
-            'stops' => $stopsOut,
+            'lineCode' => $aJourney['line_code'],
+            'lineName' => $aJourney['line_name'],
+            'headsign' => $aJourney['headsign'],
+            'status' => $sStatus,
+            'vehicleRef' => $sVehicleRef,
+            'delayMinutes' => $iDelayMinutes,
+            'stops' => $aStopsOut,
         ]);
     }
 }

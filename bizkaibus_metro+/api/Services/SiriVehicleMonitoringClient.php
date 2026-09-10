@@ -7,102 +7,102 @@ use Core\Http;
 
 class SiriVehicleMonitoringClient
 {
-    private array $config;
+    private array $aConfig;
 
-    public function __construct(array $config)
+    public function __construct(array $aConfig)
     {
-        $this->config = $config;
+        $this->aConfig = $aConfig;
     }
 
     public function fetchActiveTrips(): array
     {
-        $cfg = $this->config['siri'];
-        return Cache::remember('siri_vm', $cfg['cache_ttl_seconds'], function () use ($cfg) {
+        $aCfg = $this->aConfig['siri'];
+        return Cache::remember('siri_vm', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
             try {
-                $xmlString = Http::get($cfg['vehicle_monitoring_url'], $cfg['http_timeout_seconds']);
-            } catch (\Throwable $e) {
+                $sXmlString = Http::get($aCfg['vehicle_monitoring_url'], $aCfg['http_timeout_seconds']);
+            } catch (\Throwable $Ex) {
                 return [];
             }
-            return self::parse($xmlString);
+            return self::parse($sXmlString);
         });
     }
 
-    private static function parse(string $xmlString): array
+    private static function parse(string $sXmlString): array
     {
-        $xml = @simplexml_load_string($xmlString);
-        if ($xml === false) {
+        $Xml = @simplexml_load_string($sXmlString);
+        if ($Xml === false) {
             return [];
         }
-        $activities = [];
-        if (isset($xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity)) {
-            $activities = $xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity;
+        $aActivities = [];
+        if (isset($Xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity)) {
+            $aActivities = $Xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity;
         }
 
-        $map = [];
-        foreach ($activities as $activity) {
-            $mvj = null;
-            if (isset($activity->MonitoredVehicleJourney)) {
-                $mvj = $activity->MonitoredVehicleJourney;
+        $aMap = [];
+        foreach ($aActivities as $Activity) {
+            $Mvj = null;
+            if (isset($Activity->MonitoredVehicleJourney)) {
+                $Mvj = $Activity->MonitoredVehicleJourney;
             }
-            if ($mvj === null || !isset($mvj->VehicleJourneyRef)) {
+            if ($Mvj === null || !isset($Mvj->VehicleJourneyRef)) {
                 continue;
             }
-            $ref = (string)$mvj->VehicleJourneyRef;
-            if (!preg_match('/^trp_[A-Za-z]+(\d+)_(\d+)_[A-Za-z0-9]+_(\d+)/', $ref, $m)) {
+            $sRef = (string)$Mvj->VehicleJourneyRef;
+            if (!preg_match('/^trp_[A-Za-z]+(\d+)_(\d+)_[A-Za-z0-9]+_(\d+)/', $sRef, $aM)) {
                 continue;
             }
-            [, $lineId, $tripNumber, $departureSeconds] = $m;
+            [, $sLineId, $sTripNumber, $sDepartureSeconds] = $aM;
 
-            $delayIso = 'PT0S';
-            if (isset($mvj->Delay)) {
-                $delayIso = (string)$mvj->Delay;
+            $sDelayIso = 'PT0S';
+            if (isset($Mvj->Delay)) {
+                $sDelayIso = (string)$Mvj->Delay;
             }
-            $vehicleRef = '';
-            if (isset($mvj->VehicleRef)) {
-                $vehicleRef = (string)$mvj->VehicleRef;
+            $sVehicleRef = '';
+            if (isset($Mvj->VehicleRef)) {
+                $sVehicleRef = (string)$Mvj->VehicleRef;
             }
-            $currentStopId = null;
-            if (isset($mvj->MonitoredCall->StopPointRef)) {
-                $currentStopId = (int)$mvj->MonitoredCall->StopPointRef;
+            $iCurrentStopId = null;
+            if (isset($Mvj->MonitoredCall->StopPointRef)) {
+                $iCurrentStopId = (int)$Mvj->MonitoredCall->StopPointRef;
             }
-            $order = null;
-            if (isset($mvj->MonitoredCall->Order)) {
-                $order = (int)$mvj->MonitoredCall->Order;
+            $iOrder = null;
+            if (isset($Mvj->MonitoredCall->Order)) {
+                $iOrder = (int)$Mvj->MonitoredCall->Order;
             }
 
-            $key = $lineId . '|' . $tripNumber;
-            $map[$key][] = [
-                'departureSeconds' => (int)$departureSeconds,
-                'delaySeconds' => self::parseIsoDuration($delayIso),
-                'vehicleRef' => $vehicleRef,
-                'currentStopId' => $currentStopId,
-                'order' => $order,
+            $sKey = $sLineId . '|' . $sTripNumber;
+            $aMap[$sKey][] = [
+                'departureSeconds' => (int)$sDepartureSeconds,
+                'delaySeconds' => self::parseIsoDuration($sDelayIso),
+                'vehicleRef' => $sVehicleRef,
+                'currentStopId' => $iCurrentStopId,
+                'order' => $iOrder,
             ];
         }
-        return $map;
+        return $aMap;
     }
 
-    private static function parseIsoDuration(string $iso): int
+    private static function parseIsoDuration(string $sIso): int
     {
-        if (!preg_match('/^(-?)PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $iso, $m)) {
+        if (!preg_match('/^(-?)PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $sIso, $aM)) {
             return 0;
         }
-        $sign = 1;
-        if ($m[1] === '-') {
-            $sign = -1;
+        $iSign = 1;
+        if ($aM[1] === '-') {
+            $iSign = -1;
         }
-        $hours = 0;
-        if (isset($m[2])) {
-            $hours = (int)$m[2];
+        $iHours = 0;
+        if (isset($aM[2])) {
+            $iHours = (int)$aM[2];
         }
-        $minutes = 0;
-        if (isset($m[3])) {
-            $minutes = (int)$m[3];
+        $iMinutes = 0;
+        if (isset($aM[3])) {
+            $iMinutes = (int)$aM[3];
         }
-        $seconds = 0;
-        if (isset($m[4])) {
-            $seconds = (int)$m[4];
+        $iSeconds = 0;
+        if (isset($aM[4])) {
+            $iSeconds = (int)$aM[4];
         }
-        return $sign * ($hours * 3600 + $minutes * 60 + $seconds);
+        return $iSign * ($iHours * 3600 + $iMinutes * 60 + $iSeconds);
     }
 }

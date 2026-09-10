@@ -12,44 +12,44 @@ use Models\Stop;
 class SearchController
 {
 
-    public function search(Request $request): void
+    public function search(Request $Req): void
     {
-        $q = trim((string)$request->query('q', ''));
-        if (mb_strlen($q) < 2) {
+        $sQ = trim((string)$Req->query('q', ''));
+        if (mb_strlen($sQ) < 2) {
             Response::json(['stops' => [], 'lines' => []]);
             return;
         }
 
-        $pdo = Database::connection();
-        $stopModel = new Stop($pdo);
-        $stops = $stopModel->search($q, 60);
-        $lines = (new LineModel($pdo))->search($q, 30);
+        $Pdo = Database::connection();
+        $StopModel = new Stop($Pdo);
+        $aStops = $StopModel->search($sQ, 60);
+        $aLines = (new LineModel($Pdo))->search($sQ, 30);
 
-        $config = Config::current();
-        $network = 'bus';
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $aConfig = Config::current();
+        $sNetwork = 'bus';
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         }
-        if ($network === 'bus') {
-            $stops = $this->addDirectionHints($stopModel, $stops);
+        if ($sNetwork === 'bus') {
+            $aStops = $this->addDirectionHints($StopModel, $aStops);
         } else {
-            foreach ($stops as &$stop) {
-                $stop['hint'] = null;
+            foreach ($aStops as &$aStop) {
+                $aStop['hint'] = null;
             }
         }
 
-        Response::json(['stops' => $stops, 'lines' => $lines]);
+        Response::json(['stops' => $aStops, 'lines' => $aLines]);
     }
 
-    private function addDirectionHints(Stop $stopModel, array $stops): array
+    private function addDirectionHints(Stop $StopModel, array $aStops): array
     {
-        foreach ($stops as &$stop) {
-            $stop['hint'] = null;
-            $headsigns = $stopModel->headsignsFor((int)$stop['id']);
-            if (!empty($headsigns)) {
-                $stop['hint'] = 'hacia ' . implode(', ', $headsigns);
+        foreach ($aStops as &$aStop) {
+            $aStop['hint'] = null;
+            $aHeadsigns = $StopModel->headsignsFor((int)$aStop['id']);
+            if (!empty($aHeadsigns)) {
+                $aStop['hint'] = 'hacia ' . implode(', ', $aHeadsigns);
             }
         }
-        return $stops;
+        return $aStops;
     }
 }

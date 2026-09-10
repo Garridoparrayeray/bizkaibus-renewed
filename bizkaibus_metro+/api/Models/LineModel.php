@@ -4,64 +4,64 @@ namespace Models;
 
 class LineModel
 {
-    public function __construct(private \PDO $pdo)
+    public function __construct(private \PDO $Pdo)
     {
     }
 
-    public function find(int $id): array|null
+    public function find(int $iId): array|null
     {
-        $stmt = $this->pdo->prepare('SELECT id, code, name FROM lines WHERE id = ?');
-        $stmt->execute([$id]);
-        $row = $stmt->fetch();
-        if (!$row) {
+        $Stmt = $this->Pdo->prepare('SELECT id, code, name FROM lines WHERE id = ?');
+        $Stmt->execute([$iId]);
+        $aRow = $Stmt->fetch();
+        if (!$aRow) {
             return null;
         }
-        return $row;
+        return $aRow;
     }
 
     public function all(): array
     {
-        return $this->pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll();
+        return $this->Pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll();
     }
 
-    public function search(string $query, int $limit = 10): array
+    public function search(string $sQuery, int $iLimit = 10): array
     {
-        $normalized = Search::normalize($query);
-        $stmt = $this->pdo->prepare(
+        $sNormalized = Search::normalize($sQuery);
+        $Stmt = $this->Pdo->prepare(
             'SELECT id, code, name FROM lines WHERE name_normalized LIKE ? OR LOWER(code) LIKE ? ORDER BY code LIMIT ?'
         );
-        $like = '%' . $normalized . '%';
-        $stmt->bindValue(1, $like, \PDO::PARAM_STR);
-        $stmt->bindValue(2, $like, \PDO::PARAM_STR);
-        $stmt->bindValue(3, $limit, \PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll();
+        $sLike = '%' . $sNormalized . '%';
+        $Stmt->bindValue(1, $sLike, \PDO::PARAM_STR);
+        $Stmt->bindValue(2, $sLike, \PDO::PARAM_STR);
+        $Stmt->bindValue(3, $iLimit, \PDO::PARAM_INT);
+        $Stmt->execute();
+        return $Stmt->fetchAll();
     }
 
-    public function patterns(int $lineId): array
+    public function patterns(int $iLineId): array
     {
-        $stmt = $this->pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
-        $stmt->execute([$lineId]);
-        return $stmt->fetchAll();
+        $Stmt = $this->Pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
+        $Stmt->execute([$iLineId]);
+        return $Stmt->fetchAll();
     }
 
-    public function patternsWithStops(int $lineId): array
+    public function patternsWithStops(int $iLineId): array
     {
-        $stmt = $this->pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
-        $stmt->execute([$lineId]);
-        $patterns = $stmt->fetchAll();
+        $Stmt = $this->Pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
+        $Stmt->execute([$iLineId]);
+        $aPatterns = $Stmt->fetchAll();
 
-        $stopsStmt = $this->pdo->prepare('
+        $StopsStmt = $this->Pdo->prepare('
             SELECT s.id, s.name, s.lat, s.lon
             FROM journey_pattern_stops jps
             JOIN stops s ON s.id = jps.stop_id
             WHERE jps.journey_pattern_id = ?
             ORDER BY jps.seq_order
         ');
-        foreach ($patterns as &$pattern) {
-            $stopsStmt->execute([$pattern['id']]);
-            $pattern['stops'] = $stopsStmt->fetchAll();
+        foreach ($aPatterns as &$aPattern) {
+            $StopsStmt->execute([$aPattern['id']]);
+            $aPattern['stops'] = $StopsStmt->fetchAll();
         }
-        return $patterns;
+        return $aPatterns;
     }
 }

@@ -11,32 +11,32 @@ use Services\ScheduleTextClient;
 class LinesController
 {
 
-    public function index(Request $request): void
+    public function index(Request $Req): void
     {
-        $pdo = Database::connection();
-        Response::json(['lines' => (new LineModel($pdo))->all()]);
+        $Pdo = Database::connection();
+        Response::json(['lines' => (new LineModel($Pdo))->all()]);
     }
 
-    public function show(Request $request, array $params): void
+    public function show(Request $Req, array $aParams): void
     {
-        $pdo = Database::connection();
-        $lineModel = new LineModel($pdo);
-        $line = $lineModel->find((int)$params['id']);
-        if ($line === null) {
+        $Pdo = Database::connection();
+        $LineModel = new LineModel($Pdo);
+        $aLine = $LineModel->find((int)$aParams['id']);
+        if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
-        $line['patterns'] = $lineModel->patterns((int)$params['id']);
-        Response::json($line);
+        $aLine['patterns'] = $LineModel->patterns((int)$aParams['id']);
+        Response::json($aLine);
     }
 
-    public function scheduleText(Request $request, array $params): void
+    public function scheduleText(Request $Req, array $aParams): void
     {
-        $config = require __DIR__ . '/../Config/config.php';
-        $blocks = (new ScheduleTextClient($config))->fetchForLine((int)$params['id']);
+        $aConfig = require __DIR__ . '/../Config/config.php';
+        $aBlocks = (new ScheduleTextClient($aConfig))->fetchForLine((int)$aParams['id']);
         Response::json([
-            'lineId' => (int)$params['id'],
-            'schedule' => $blocks,
+            'lineId' => (int)$aParams['id'],
+            'schedule' => $aBlocks,
             'source' => 'Bizkaibus (horario oficial vigente, texto libre, no estructurado por parada)',
         ]);
     }

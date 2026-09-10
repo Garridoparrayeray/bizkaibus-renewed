@@ -1,17 +1,17 @@
 <?php
 
-$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$sUri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
-if ($uri === '/api/shell.php') {
+if ($sUri === '/api/shell.php') {
     http_response_code(404);
     return true;
 }
 
-if ($uri !== '/' && is_file(__DIR__ . $uri)) {
+if ($sUri !== '/' && is_file(__DIR__ . $sUri)) {
     return false;
 }
 
-if (str_starts_with($uri, '/api/')) {
+if (str_starts_with($sUri, '/api/')) {
     require __DIR__ . '/api/index.php';
     return true;
 }

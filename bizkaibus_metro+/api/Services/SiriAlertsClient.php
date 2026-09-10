@@ -7,111 +7,111 @@ use Core\Http;
 
 class SiriAlertsClient
 {
-    private array $config;
+    private array $aConfig;
 
-    public function __construct(array $config)
+    public function __construct(array $aConfig)
     {
-        $this->config = $config;
+        $this->aConfig = $aConfig;
     }
 
     public function fetchAlerts(): array
     {
-        $cfg = $this->config['siri'];
-        return Cache::remember('siri_alerts', $cfg['cache_ttl_seconds'], function () use ($cfg) {
+        $aCfg = $this->aConfig['siri'];
+        return Cache::remember('siri_alerts', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
             try {
-                $xmlString = Http::get($cfg['alerts_url'], $cfg['http_timeout_seconds']);
-            } catch (\Throwable $e) {
+                $sXmlString = Http::get($aCfg['alerts_url'], $aCfg['http_timeout_seconds']);
+            } catch (\Throwable $Ex) {
                 return [];
             }
-            return self::parse($xmlString);
+            return self::parse($sXmlString);
         });
     }
 
     public function alertsByLine(): array
     {
-        $byLine = [];
-        foreach ($this->fetchAlerts() as $alert) {
-            foreach ($alert['lineRefs'] as $lineRef) {
-                $byLine[$lineRef][] = [
-                    'summary' => $alert['summary'],
-                    'description' => $alert['description'],
-                    'startTime' => $alert['startTime'],
-                    'endTime' => $alert['endTime'],
+        $aByLine = [];
+        foreach ($this->fetchAlerts() as $aAlert) {
+            foreach ($aAlert['lineRefs'] as $sLineRef) {
+                $aByLine[$sLineRef][] = [
+                    'summary' => $aAlert['summary'],
+                    'description' => $aAlert['description'],
+                    'startTime' => $aAlert['startTime'],
+                    'endTime' => $aAlert['endTime'],
                 ];
             }
         }
-        return $byLine;
+        return $aByLine;
     }
 
-    private static function parse(string $xmlString): array
+    private static function parse(string $sXmlString): array
     {
-        $xml = @simplexml_load_string($xmlString);
-        if ($xml === false) {
+        $Xml = @simplexml_load_string($sXmlString);
+        if ($Xml === false) {
             return [];
         }
-        $situations = [];
-        if (isset($xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement)) {
-            $situations = $xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement;
+        $aSituations = [];
+        if (isset($Xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement)) {
+            $aSituations = $Xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement;
         }
 
-        $alerts = [];
-        foreach ($situations as $situation) {
-            $lineRefs = [];
-            if (isset($situation->Affects->VehicleJourneys->AffectedVehicleJourney)) {
-                foreach ($situation->Affects->VehicleJourneys->AffectedVehicleJourney as $vj) {
-                    if (isset($vj->LineRef)) {
-                        $lineRefs[] = (string)$vj->LineRef;
+        $aAlerts = [];
+        foreach ($aSituations as $Situation) {
+            $aLineRefs = [];
+            if (isset($Situation->Affects->VehicleJourneys->AffectedVehicleJourney)) {
+                foreach ($Situation->Affects->VehicleJourneys->AffectedVehicleJourney as $Vj) {
+                    if (isset($Vj->LineRef)) {
+                        $aLineRefs[] = (string)$Vj->LineRef;
                     }
                 }
             }
 
-            $summaryElements = null;
-            if (isset($situation->Summary)) {
-                $summaryElements = $situation->Summary;
+            $SummaryElements = null;
+            if (isset($Situation->Summary)) {
+                $SummaryElements = $Situation->Summary;
             }
-            $descriptionElements = null;
-            if (isset($situation->Description)) {
-                $descriptionElements = $situation->Description;
-            }
-
-            $startTime = null;
-            if (isset($situation->ValidityPeriod->StartTime)) {
-                $startTime = (string)$situation->ValidityPeriod->StartTime;
-            }
-            $endTime = null;
-            if (isset($situation->ValidityPeriod->EndTime)) {
-                $endTime = (string)$situation->ValidityPeriod->EndTime;
+            $DescriptionElements = null;
+            if (isset($Situation->Description)) {
+                $DescriptionElements = $Situation->Description;
             }
 
-            $alerts[] = [
-                'summary' => self::textByLang($summaryElements, 'es'),
-                'description' => self::textByLang($descriptionElements, 'es'),
-                'startTime' => $startTime,
-                'endTime' => $endTime,
-                'lineRefs' => array_values(array_unique($lineRefs)),
+            $sStartTime = null;
+            if (isset($Situation->ValidityPeriod->StartTime)) {
+                $sStartTime = (string)$Situation->ValidityPeriod->StartTime;
+            }
+            $sEndTime = null;
+            if (isset($Situation->ValidityPeriod->EndTime)) {
+                $sEndTime = (string)$Situation->ValidityPeriod->EndTime;
+            }
+
+            $aAlerts[] = [
+                'summary' => self::textByLang($SummaryElements, 'es'),
+                'description' => self::textByLang($DescriptionElements, 'es'),
+                'startTime' => $sStartTime,
+                'endTime' => $sEndTime,
+                'lineRefs' => array_values(array_unique($aLineRefs)),
             ];
         }
-        return $alerts;
+        return $aAlerts;
     }
 
-    private static function textByLang($elements, string $lang): string
+    private static function textByLang($Elements, string $sLang): string
     {
-        if ($elements === null) {
+        if ($Elements === null) {
             return '';
         }
-        foreach ($elements as $el) {
-            $attrs = $el->attributes('http://www.w3.org/XML/1998/namespace');
-            $elLang = '';
-            if (isset($attrs['lang'])) {
-                $elLang = (string)$attrs['lang'];
+        foreach ($Elements as $El) {
+            $Attrs = $El->attributes('http://www.w3.org/XML/1998/namespace');
+            $sElLang = '';
+            if (isset($Attrs['lang'])) {
+                $sElLang = (string)$Attrs['lang'];
             }
-            if ($elLang === $lang) {
-                return (string)$el;
+            if ($sElLang === $sLang) {
+                return (string)$El;
             }
         }
 
-        foreach ($elements as $el) {
-            return (string)$el;
+        foreach ($Elements as $El) {
+            return (string)$El;
         }
         return '';
     }

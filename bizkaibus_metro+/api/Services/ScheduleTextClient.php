@@ -7,70 +7,70 @@ use Core\Http;
 
 class ScheduleTextClient
 {
-    private array $config;
+    private array $aConfig;
 
-    public function __construct(array $config)
+    public function __construct(array $aConfig)
     {
-        $this->config = $config;
+        $this->aConfig = $aConfig;
     }
 
-    public function fetchForLine(int $lineId): array
+    public function fetchForLine(int $iLineId): array
     {
-        $all = $this->fetchAll();
-        if (isset($all[$lineId])) {
-            return $all[$lineId];
+        $aAll = $this->fetchAll();
+        if (isset($aAll[$iLineId])) {
+            return $aAll[$iLineId];
         }
         return [];
     }
 
     private function fetchAll(): array
     {
-        $cfg = $this->config['schedule_text'];
-        return Cache::remember('schedule_text_all', $cfg['cache_ttl_seconds'], function () use ($cfg) {
+        $aCfg = $this->aConfig['schedule_text'];
+        return Cache::remember('schedule_text_all', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
             try {
-                $xmlString = Http::get($cfg['url'], $cfg['http_timeout_seconds']);
-            } catch (\Throwable $e) {
+                $sXmlString = Http::get($aCfg['url'], $aCfg['http_timeout_seconds']);
+            } catch (\Throwable $Ex) {
                 return [];
             }
-            return self::parse($xmlString);
+            return self::parse($sXmlString);
         });
     }
 
-    private static function parse(string $xmlString): array
+    private static function parse(string $sXmlString): array
     {
-        $xml = @simplexml_load_string($xmlString);
-        if ($xml === false || !isset($xml->{'LINEA-LINEA'})) {
+        $Xml = @simplexml_load_string($sXmlString);
+        if ($Xml === false || !isset($Xml->{'LINEA-LINEA'})) {
             return [];
         }
 
-        $byLine = [];
-        foreach ($xml->{'LINEA-LINEA'} as $linea) {
-            $codeField = null;
-            if (isset($linea->{'KODEA-CODIGO'})) {
-                $codeField = $linea->{'KODEA-CODIGO'};
+        $aByLine = [];
+        foreach ($Xml->{'LINEA-LINEA'} as $Linea) {
+            $CodeField = null;
+            if (isset($Linea->{'KODEA-CODIGO'})) {
+                $CodeField = $Linea->{'KODEA-CODIGO'};
             }
-            if ($codeField === null || !preg_match('/(\d+)/', (string)$codeField, $m)) {
+            if ($CodeField === null || !preg_match('/(\d+)/', (string)$CodeField, $aM)) {
                 continue;
             }
-            $lineId = (int)ltrim($m[1], '0');
+            $iLineId = (int)ltrim($aM[1], '0');
 
-            $horarios = [];
-            if (isset($linea->{'ORDUTEGIA-HORARIO'})) {
-                $horarios = $linea->{'ORDUTEGIA-HORARIO'};
+            $aHorarios = [];
+            if (isset($Linea->{'ORDUTEGIA-HORARIO'})) {
+                $aHorarios = $Linea->{'ORDUTEGIA-HORARIO'};
             }
 
-            $blocks = [];
-            foreach ($horarios as $horario) {
-                $block = [];
-                foreach ($horario->children() as $child) {
-                    $block[$child->getName()] = trim((string)$child);
+            $aBlocks = [];
+            foreach ($aHorarios as $Horario) {
+                $aBlock = [];
+                foreach ($Horario->children() as $Child) {
+                    $aBlock[$Child->getName()] = trim((string)$Child);
                 }
-                if (!empty($block)) {
-                    $blocks[] = $block;
+                if (!empty($aBlock)) {
+                    $aBlocks[] = $aBlock;
                 }
             }
-            $byLine[$lineId] = $blocks;
+            $aByLine[$iLineId] = $aBlocks;
         }
-        return $byLine;
+        return $aByLine;
     }
 }

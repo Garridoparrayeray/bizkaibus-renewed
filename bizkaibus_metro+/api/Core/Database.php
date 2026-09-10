@@ -5,30 +5,30 @@ namespace Core;
 class Database
 {
 
-    private static array $connections = [];
+    private static array $aConnections = [];
 
     public static function connection(): \PDO
     {
-        $config = Config::current();
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $aConfig = Config::current();
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         } else {
-            $network = 'bus';
+            $sNetwork = 'bus';
         }
 
-        if (!isset(self::$connections[$network])) {
-            $path = $config['db_path'];
+        if (!isset(self::$aConnections[$sNetwork])) {
+            $sPath = $aConfig['db_path'];
 
             try {
-                $pdo = new \PDO('sqlite:file:' . $path . '?mode=ro&immutable=1');
-            } catch (\PDOException $e) {
+                $Pdo = new \PDO('sqlite:file:' . $sPath . '?mode=ro&immutable=1');
+            } catch (\PDOException $Ex) {
 
-                $pdo = new \PDO('sqlite:' . $path);
+                $Pdo = new \PDO('sqlite:' . $sPath);
             }
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-            self::$connections[$network] = $pdo;
+            $Pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $Pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+            self::$aConnections[$sNetwork] = $Pdo;
         }
-        return self::$connections[$network];
+        return self::$aConnections[$sNetwork];
     }
 }

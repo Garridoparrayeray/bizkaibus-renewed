@@ -4,82 +4,82 @@ namespace Core;
 
 class Request
 {
-    public string $method;
-    public string $path;
+    public string $sMethod;
+    public string $sPath;
 
-    public array $query;
+    public array $aQuery;
 
-    private array|null $jsonBody = null;
-    private bool $jsonBodyParsed = false;
+    private array|null $aJsonBody = null;
+    private bool $bJsonBodyParsed = false;
 
     public function __construct()
     {
         if (isset($_SERVER['REQUEST_METHOD'])) {
-            $this->method = $_SERVER['REQUEST_METHOD'];
+            $this->sMethod = $_SERVER['REQUEST_METHOD'];
         } else {
-            $this->method = 'GET';
+            $this->sMethod = 'GET';
         }
 
         if (isset($_GET['path'])) {
-            $path = $_GET['path'];
+            $sPath = $_GET['path'];
 
             unset($_GET['path']);
         } else {
 
             if (isset($_SERVER['REQUEST_URI'])) {
-                $uri = $_SERVER['REQUEST_URI'];
+                $sUri = $_SERVER['REQUEST_URI'];
             } else {
-                $uri = '/';
+                $sUri = '/';
             }
-            $path = parse_url($uri, PHP_URL_PATH);
-            if (!$path) {
-                $path = '/';
+            $sPath = parse_url($sUri, PHP_URL_PATH);
+            if (!$sPath) {
+                $sPath = '/';
             }
-            $path = preg_replace('#^/api#', '', $path);
+            $sPath = preg_replace('#^/api#', '', $sPath);
         }
-        $this->path = '/' . ltrim($path, '/');
+        $this->sPath = '/' . ltrim($sPath, '/');
 
-        $this->query = $_GET;
+        $this->aQuery = $_GET;
     }
 
-    public function query(string $key, string|null $default = null): string|null
+    public function query(string $sKey, string|null $sDefault = null): string|null
     {
-        if (isset($this->query[$key])) {
-            return $this->query[$key];
+        if (isset($this->aQuery[$sKey])) {
+            return $this->aQuery[$sKey];
         }
-        return $default;
+        return $sDefault;
     }
 
-    public function queryInt(string $key, int|null $default = null): int|null
+    public function queryInt(string $sKey, int|null $iDefault = null): int|null
     {
-        if (!isset($this->query[$key]) || $this->query[$key] === '') {
-            return $default;
+        if (!isset($this->aQuery[$sKey]) || $this->aQuery[$sKey] === '') {
+            return $iDefault;
         }
-        return (int)$this->query[$key];
+        return (int)$this->aQuery[$sKey];
     }
 
     public function json(): array
     {
-        if (!$this->jsonBodyParsed) {
-            $raw = file_get_contents('php://input');
-            $decoded = null;
-            if ($raw) {
-                $decoded = json_decode($raw, true);
+        if (!$this->bJsonBodyParsed) {
+            $sRaw = file_get_contents('php://input');
+            $aDecoded = null;
+            if ($sRaw) {
+                $aDecoded = json_decode($sRaw, true);
             }
-            if (is_array($decoded)) {
-                $this->jsonBody = $decoded;
+            if (is_array($aDecoded)) {
+                $this->aJsonBody = $aDecoded;
             } else {
-                $this->jsonBody = [];
+                $this->aJsonBody = [];
             }
-            $this->jsonBodyParsed = true;
+            $this->bJsonBodyParsed = true;
         }
-        return $this->jsonBody;
+        return $this->aJsonBody;
     }
 
-    public function cookie(string $name): string|null
+    public function cookie(string $sName): string|null
     {
-        if (isset($_COOKIE[$name])) {
-            return $_COOKIE[$name];
+        if (isset($_COOKIE[$sName])) {
+            return $_COOKIE[$sName];
         }
         return null;
     }
