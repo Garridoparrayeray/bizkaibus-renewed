@@ -28,10 +28,10 @@ jobs:
 
       - name: Commit updated database
         run: |
-          if ! git diff --quiet data/gasolinera.sqlite; then
+          if ! git diff --quiet gasolinera+/data/gasolinera.sqlite; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add data/gasolinera.sqlite
+            git add gasolinera+/data/gasolinera.sqlite
             git commit -m "chore: snapshot diario de precios"
             git push
           else
@@ -45,4 +45,4 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: vercel deploy ./bizkaibus_metro+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        run: vercel deploy ./gasolinera+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
