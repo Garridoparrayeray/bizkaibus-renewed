@@ -64,7 +64,10 @@ header {
     display: block;
     letter-spacing: -0.01em;
 }
-.home-link-wrap strong .plus { color: var(--primary); }
+.home-link-wrap strong .plus {
+    color: var(--primary-light); font-size: 1.15em; font-weight: 500;
+    display: inline-block; transform: rotate(-8deg) translateY(-2px);
+}
 .home-link-wrap #app-subtitle {
     display: block;
     font-size: 0.72rem;
