@@ -254,6 +254,7 @@ header {
 .badge--24h { background: var(--primary); color: white; }
 
 #stations-empty { color: var(--text-secondary); text-align: center; padding: 24px; font-size: 0.9rem; }
+#stations-load-sentinel { color: var(--text-secondary); text-align: center; padding: 16px; font-size: 0.85rem; }
 
 #map-controls { margin-bottom: 8px; }
 .pill {
