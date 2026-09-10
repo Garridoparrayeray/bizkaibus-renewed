@@ -156,43 +156,39 @@ class StationsController
      * Serie temporal de precio de un carburante en una estación, para la
      * gráfica de evolución, ruta /stations/{ideess}/history. group=month
      * agrega por mes (media del carburante ese mes) en vez de dato diario,
-     * para ver tendencia en periodos largos sin un punto por día.
+     * para ver tendencia en periodos largos sin un punto por día. from/to
+     * (YYYY-MM-DD) acotan el rango explícitamente; si no se pasan, cae al
+     * comportamiento anterior (últimos 7 días).
      */
     public function history(Request $request, array $params): void
     {
         $fuel = $request->query('fuel', 'gasoleo_a');
         $group = $this->normalizeGroup($request->query('group'));
-        $days = $request->queryInt('days', 7);
         $maxDays = $group === 'month' ? 730 : 90;
-        if ($days === null || $days <= 0) {
-            $days = 7;
-        }
-        if ($days > $maxDays) {
-            $days = $maxDays;
-        }
+        [$from, $to] = $this->parseDateRange($request, 7, $maxDays);
 
         $pdo = Database::connection();
         if ($group === 'month') {
-            $stmt = $pdo->prepare("
-                SELECT strftime('%Y-%m', fecha) AS periodo, ROUND(AVG(precio), 4) AS precio
+            $stmt = $pdo->prepare('
+                SELECT strftime(\'%Y-%m\', fecha) AS periodo, ROUND(AVG(precio), 4) AS precio
                 FROM price_history
-                WHERE ideess = ? AND carburante = ? AND fecha >= date('now', ?)
+                WHERE ideess = ? AND carburante = ? AND fecha BETWEEN ? AND ?
                 GROUP BY periodo
                 ORDER BY periodo ASC
-            ");
+            ');
         } else {
-            $stmt = $pdo->prepare("
+            $stmt = $pdo->prepare('
                 SELECT fecha AS periodo, precio
                 FROM price_history
-                WHERE ideess = ? AND carburante = ? AND fecha >= date('now', ?)
+                WHERE ideess = ? AND carburante = ? AND fecha BETWEEN ? AND ?
                 ORDER BY fecha ASC
-            ");
+            ');
         }
-        $stmt->execute([$params['ideess'], $fuel, "-$days days"]);
+        $stmt->execute([$params['ideess'], $fuel, $from, $to]);
         $rows = $stmt->fetchAll();
 
         $series = array_map(fn($r) => ['fecha' => $r['periodo'], 'precio' => (float)$r['precio']], $rows);
-        Response::json(['ideess' => $params['ideess'], 'carburante' => $fuel, 'group' => $group, 'serie' => $series]);
+        Response::json(['ideess' => $params['ideess'], 'carburante' => $fuel, 'group' => $group, 'from' => $from, 'to' => $to, 'serie' => $series]);
     }
 
     /**
@@ -211,34 +207,12 @@ class StationsController
             $fuel = 'gasoleo_a';
         }
         $group = $this->normalizeGroup($request->query('group'));
-        $days = $request->queryInt('days', 14);
         $maxDays = $group === 'month' ? 730 : 90;
-        if ($days === null || $days <= 0) {
-            $days = 14;
-        }
-        if ($days > $maxDays) {
-            $days = $maxDays;
-        }
+        [$from, $to] = $this->parseDateRange($request, 14, $maxDays);
 
         $pdo = Database::connection();
-        if ($group === 'month') {
-            $stmt = $pdo->prepare("
-                SELECT strftime('%Y-%m', fecha) AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
-                FROM price_history
-                WHERE carburante = ? AND fecha >= date('now', ?)
-                GROUP BY periodo
-                ORDER BY periodo ASC
-            ");
-        } else {
-            $stmt = $pdo->prepare("
-                SELECT fecha AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
-                FROM price_history
-                WHERE carburante = ? AND fecha >= date('now', ?)
-                GROUP BY periodo
-                ORDER BY periodo ASC
-            ");
-        }
-        $stmt->execute([$fuel, "-$days days"]);
+        $stmt = $this->nationalSeriesStatement($pdo, $group);
+        $stmt->execute([$fuel, $from, $to]);
         $rows = $stmt->fetchAll();
 
         $series = array_map(fn($r) => [
@@ -252,7 +226,135 @@ class StationsController
             $today = end($series);
         }
 
-        Response::json(['carburante' => $fuel, 'group' => $group, 'hoy' => $today, 'serie' => $series]);
+        Response::json(['carburante' => $fuel, 'group' => $group, 'from' => $from, 'to' => $to, 'hoy' => $today, 'serie' => $series]);
+    }
+
+    /**
+     * Igual que nationalStats() pero con varios carburantes a la vez (una
+     * serie por carburante), para el gráfico comparativo entre carburantes,
+     * ruta /stats/by-fuel. Una sola consulta agrupando por (periodo,
+     * carburante) en vez de una consulta por carburante.
+     */
+    public function statsByFuel(Request $request): void
+    {
+        $group = $this->normalizeGroup($request->query('group'));
+        $maxDays = $group === 'month' ? 730 : 90;
+        [$from, $to] = $this->parseDateRange($request, 30, $maxDays);
+
+        $placeholders = implode(',', array_fill(0, count(self::VALID_FUELS), '?'));
+        $periodoExpr = $group === 'month' ? 'strftime(\'%Y-%m\', fecha)' : 'fecha';
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare("
+            SELECT $periodoExpr AS periodo, carburante, ROUND(AVG(precio), 4) AS media
+            FROM price_history
+            WHERE carburante IN ($placeholders) AND fecha BETWEEN ? AND ?
+            GROUP BY periodo, carburante
+            ORDER BY periodo ASC
+        ");
+        $stmt->execute([...self::VALID_FUELS, $from, $to]);
+        $rows = $stmt->fetchAll();
+
+        $series = [];
+        foreach (self::VALID_FUELS as $slug) {
+            $series[$slug] = [];
+        }
+        foreach ($rows as $row) {
+            $series[$row['carburante']][] = ['fecha' => $row['periodo'], 'media' => (float)$row['media']];
+        }
+
+        Response::json(['group' => $group, 'from' => $from, 'to' => $to, 'series' => $series]);
+    }
+
+    /**
+     * Precio medio de hoy por provincia, ruta /stats/by-province. A
+     * diferencia de las series temporales, esto sale de current_prices
+     * (snapshot de hoy), no de price_history, así que no depende de cuánto
+     * histórico haya acumulado todavía.
+     */
+    public function statsByProvince(Request $request): void
+    {
+        $fuel = $this->normalizeFuel($request->query('fuel'));
+        if ($fuel === null) {
+            $fuel = 'gasoleo_a';
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('
+            SELECT s.provincia AS provincia, ROUND(AVG(cp.precio), 4) AS media, COUNT(*) AS estaciones
+            FROM current_prices cp
+            JOIN stations s ON s.ideess = cp.ideess
+            WHERE cp.carburante = ? AND s.provincia IS NOT NULL AND s.provincia != \'\'
+            GROUP BY s.provincia
+            ORDER BY media ASC
+        ');
+        $stmt->execute([$fuel]);
+        $rows = $stmt->fetchAll();
+
+        $provincias = array_map(fn($r) => [
+            'provincia' => $r['provincia'],
+            'media' => (float)$r['media'],
+            'estaciones' => (int)$r['estaciones'],
+        ], $rows);
+
+        Response::json(['carburante' => $fuel, 'provincias' => $provincias]);
+    }
+
+    /**
+     * Histograma de precios de hoy (cuántas estaciones caen en cada franja
+     * de precio), ruta /stats/price-distribution. El ancho de franja se
+     * calcula a partir del rango real min/max del carburante en vez de ser
+     * fijo, para que tenga sentido tanto en carburantes baratos (adblue)
+     * como caros.
+     */
+    public function priceDistribution(Request $request): void
+    {
+        $fuel = $this->normalizeFuel($request->query('fuel'));
+        if ($fuel === null) {
+            $fuel = 'gasoleo_a';
+        }
+
+        $pdo = Database::connection();
+        $rangeStmt = $pdo->prepare('SELECT MIN(precio) AS minimo, MAX(precio) AS maximo, COUNT(*) AS total FROM current_prices WHERE carburante = ?');
+        $rangeStmt->execute([$fuel]);
+        $range = $rangeStmt->fetch();
+        if ($range === false || (int)$range['total'] === 0 || $range['minimo'] === null) {
+            Response::json(['carburante' => $fuel, 'buckets' => []]);
+            return;
+        }
+
+        $minimo = (float)$range['minimo'];
+        $maximo = (float)$range['maximo'];
+        $bucketWidth = 0.02;
+        if ($maximo > $minimo) {
+            $bucketCount = 14;
+            $bucketWidth = round((($maximo - $minimo) / $bucketCount) * 100) / 100;
+            if ($bucketWidth < 0.01) {
+                $bucketWidth = 0.01;
+            }
+        }
+
+        $stmt = $pdo->prepare('SELECT precio FROM current_prices WHERE carburante = ?');
+        $stmt->execute([$fuel]);
+
+        $buckets = [];
+        while (($row = $stmt->fetch()) !== false) {
+            $precio = (float)$row['precio'];
+            $index = (int)floor(($precio - $minimo) / $bucketWidth);
+            if (!isset($buckets[$index])) {
+                $buckets[$index] = 0;
+            }
+            $buckets[$index]++;
+        }
+        ksort($buckets);
+
+        $out = [];
+        foreach ($buckets as $index => $count) {
+            $desde = round($minimo + $index * $bucketWidth, 3);
+            $hasta = round($desde + $bucketWidth, 3);
+            $out[] = ['desde' => $desde, 'hasta' => $hasta, 'estaciones' => $count];
+        }
+
+        Response::json(['carburante' => $fuel, 'buckets' => $out]);
     }
 
     public function zoneComparison(Request $request, array $params): void
@@ -284,6 +386,64 @@ class StationsController
             return 'month';
         }
         return 'day';
+    }
+
+    /**
+     * Rango explícito from/to (YYYY-MM-DD) si el cliente los manda y son
+     * válidos; si no, cae al comportamiento anterior (últimos $defaultDays
+     * días desde hoy). En ambos casos se acota a $maxDays de amplitud y a
+     * no pasarse de hoy, para no dejar que un rango disparatado dispare una
+     * consulta sobre todo price_history.
+     *
+     * @return array{0:string,1:string} [from, to]
+     */
+    private function parseDateRange(Request $request, int $defaultDays, int $maxDays): array
+    {
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $validFrom = $from !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) === 1;
+        $validTo = $to !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) === 1;
+
+        if (!$validFrom || !$validTo) {
+            $to = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-$defaultDays days"));
+            return [$from, $to];
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        $today = date('Y-m-d');
+        if ($to > $today) {
+            $to = $today;
+        }
+        $earliestAllowed = date('Y-m-d', strtotime("-$maxDays days"));
+        if ($from < $earliestAllowed) {
+            $from = $earliestAllowed;
+        }
+
+        return [$from, $to];
+    }
+
+    private function nationalSeriesStatement(\PDO $pdo, string $group): \PDOStatement
+    {
+        if ($group === 'month') {
+            return $pdo->prepare('
+                SELECT strftime(\'%Y-%m\', fecha) AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
+                FROM price_history
+                WHERE carburante = ? AND fecha BETWEEN ? AND ?
+                GROUP BY periodo
+                ORDER BY periodo ASC
+            ');
+        }
+        return $pdo->prepare('
+            SELECT fecha AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
+            FROM price_history
+            WHERE carburante = ? AND fecha BETWEEN ? AND ?
+            GROUP BY periodo
+            ORDER BY periodo ASC
+        ');
     }
 
     private function normalizeSort(?string $sort): string
