@@ -15,103 +15,103 @@ use Services\SiriVehicleMonitoringClient;
 class TimetableController
 {
 
-    public function show(Request $request, array $params): void
+    public function show(Request $Req, array $aParams): void
     {
-        $config = Config::current();
-        $pdo = Database::connection();
-        $lineId = (int)$params['id'];
-        $line = (new LineModel($pdo))->find($lineId);
-        if ($line === null) {
+        $aConfig = Config::current();
+        $Pdo = Database::connection();
+        $iLineId = (int)$aParams['id'];
+        $aLine = (new LineModel($Pdo))->find($iLineId);
+        if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
 
-        $dateStr = $request->query('date');
-        if (!$dateStr) {
-            $dateStr = Calendar::todayMadrid()->format('Y-m-d');
+        $sDateStr = $Req->query('date');
+        if (!$sDateStr) {
+            $sDateStr = Calendar::todayMadrid()->format('Y-m-d');
         }
         try {
-            $date = new \DateTime($dateStr, new \DateTimeZone('Europe/Madrid'));
-        } catch (\Throwable $e) {
+            $Date = new \DateTime($sDateStr, new \DateTimeZone('Europe/Madrid'));
+        } catch (\Throwable $Ex) {
             Response::error('Invalid date', 422);
             return;
         }
 
-        $hourFrom = $this->hmToSeconds($request->query('hourFrom', '00:00'));
-        $hourTo = $this->hmToSeconds($request->query('hourTo', '23:59'));
+        $iHourFrom = $this->hmToSeconds($Req->query('hourFrom', '00:00'));
+        $iHourTo = $this->hmToSeconds($Req->query('hourTo', '23:59'));
 
-        if ($hourTo < $hourFrom) {
-            $hourTo += 24 * 3600;
+        if ($iHourTo < $iHourFrom) {
+            $iHourTo += 24 * 3600;
         }
 
-        $stopIdRaw = $request->query('stopId');
-        $stopId = null;
-        if ($stopIdRaw !== null && $stopIdRaw !== '') {
-            $stopId = (int)$stopIdRaw;
+        $sStopIdRaw = $Req->query('stopId');
+        $iStopId = null;
+        if ($sStopIdRaw !== null && $sStopIdRaw !== '') {
+            $iStopId = (int)$sStopIdRaw;
         }
 
-        $journeyModel = new ServiceJourney($pdo);
-        $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo, $stopId);
+        $JourneyModel = new ServiceJourney($Pdo);
+        $aRows = $JourneyModel->timetableForLine($iLineId, $Date, $iHourFrom, $iHourTo, $iStopId);
 
-        $isToday = $date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
-        if ($isToday && isset($config['siri'])) {
-            $vmMap = (new SiriVehicleMonitoringClient($config))->fetchActiveTrips();
-            $rows = (new RealtimeMatcher($vmMap, $journeyModel))->enrich(array_map(
-                fn($r) => $r + ['arrival_seconds' => $r['departure_seconds']],
-                $rows
+        $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
+        if ($bIsToday && isset($aConfig['siri'])) {
+            $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
+            $aRows = (new RealtimeMatcher($aVmMap, $JourneyModel))->enrich(array_map(
+                fn($aR) => $aR + ['arrival_seconds' => $aR['departure_seconds']],
+                $aRows
             ));
         } else {
-            $rows = array_map(fn($r) => $r + ['status' => 'scheduled', 'delaySeconds' => 0], $rows);
+            $aRows = array_map(fn($aR) => $aR + ['status' => 'scheduled', 'delaySeconds' => 0], $aRows);
         }
 
-        $network = 'bus';
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $sNetwork = 'bus';
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         }
-        $isMetro = $network === 'metro';
+        $bIsMetro = $sNetwork === 'metro';
 
-        $entries = array_map(function ($row) use ($isMetro) {
-            $headsign = $row['headsign'];
-            if ($isMetro && !empty($row['last_stop_name'])) {
-                $headsign = $row['last_stop_name'];
+        $aEntries = array_map(function ($aRow) use ($bIsMetro) {
+            $sHeadsign = $aRow['headsign'];
+            if ($bIsMetro && !empty($aRow['last_stop_name'])) {
+                $sHeadsign = $aRow['last_stop_name'];
             }
-            $delaySeconds = 0;
-            if (isset($row['delaySeconds'])) {
-                $delaySeconds = $row['delaySeconds'];
+            $iDelaySeconds = 0;
+            if (isset($aRow['delaySeconds'])) {
+                $iDelaySeconds = $aRow['delaySeconds'];
             }
-            $delayMinutes = 0;
-            if ($delaySeconds !== 0) {
-                $delayMinutes = (int)round($delaySeconds / 60);
+            $iDelayMinutes = 0;
+            if ($iDelaySeconds !== 0) {
+                $iDelayMinutes = (int)round($iDelaySeconds / 60);
             }
             return [
-                'tripKey' => $row['line_id'] . '-' . $row['trip_number'] . '-' . $row['first_departure_seconds'],
-                'departure' => Calendar::secondsToHm((int)$row['departure_seconds']),
-                'headsign' => $headsign,
-                'status' => $row['status'],
-                'delayMinutes' => $delayMinutes,
+                'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
+                'departure' => Calendar::secondsToHm((int)$aRow['departure_seconds']),
+                'headsign' => $sHeadsign,
+                'status' => $aRow['status'],
+                'delayMinutes' => $iDelayMinutes,
             ];
-        }, $rows);
+        }, $aRows);
 
-        $publishedStmt = $pdo->prepare('SELECT value FROM meta WHERE key = ?');
-        $publishedStmt->execute(['schedule_source_published']);
-        $published = $publishedStmt->fetchColumn();
-        if (!$published) {
-            $published = $config['schedule_source_published'];
+        $PublishedStmt = $Pdo->prepare('SELECT value FROM meta WHERE key = ?');
+        $PublishedStmt->execute(['schedule_source_published']);
+        $sPublished = $PublishedStmt->fetchColumn();
+        if (!$sPublished) {
+            $sPublished = $aConfig['schedule_source_published'];
         }
 
         Response::json([
-            'line' => ['id' => $line['id'], 'code' => $line['code'], 'name' => $line['name']],
-            'date' => $date->format('Y-m-d'),
-            'entries' => $entries,
-            'scheduleSourcePublished' => $published,
+            'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
+            'date' => $Date->format('Y-m-d'),
+            'entries' => $aEntries,
+            'scheduleSourcePublished' => $sPublished,
         ]);
     }
 
-    private function hmToSeconds(string $hm): int
+    private function hmToSeconds(string $sHm): int
     {
-        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $hm, $m)) {
+        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $sHm, $aM)) {
             return 0;
         }
-        return ((int)$m[1]) * 3600 + ((int)$m[2]) * 60;
+        return ((int)$aM[1]) * 3600 + ((int)$aM[2]) * 60;
     }
 }
