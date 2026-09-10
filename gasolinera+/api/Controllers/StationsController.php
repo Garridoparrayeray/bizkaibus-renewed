@@ -88,13 +88,30 @@ class StationsController
 
         $fuel = $this->normalizeFuel($request->query('fuel'));
         $sort = $this->normalizeSort($request->query('sort'));
-        if ($latFloat === null && $sort === 'distance') {
-            $sort = 'price';
-        }
         [$open24h, $openNow] = $this->parseOpenParam($request->query('open'));
         [$offset, $limit] = $this->parsePageParams($request);
 
         $model = new Station(Database::connection());
+
+        // Si la búsqueda coincide con un municipio real, ancla lat/lon a SU
+        // centroide en vez de a la ubicación del usuario: buscar
+        // "Amorebieta" tiene que dar distancias a Amorebieta, no a donde
+        // esté el usuario en ese momento.
+        $place = null;
+        if ($model->looksLikePlaceQuery($q)) {
+            $place = PlaceGeocoder::resolve($q);
+            if ($place !== null) {
+                $latFloat = $place['lat'];
+                $lonFloat = $place['lon'];
+            }
+        }
+
+        if ($latFloat === null && $sort === 'distance') {
+            $sort = 'price';
+        }
+
+        $geocodedFrom = null;
+
         $page = $model->search(
             $q,
             $latFloat,
@@ -108,9 +125,8 @@ class StationsController
             $limit
         );
 
-        $geocodedFrom = null;
         if ($page['total'] === 0 && $offset === 0) {
-            $place = PlaceGeocoder::resolve($q);
+            $place = $place ?? PlaceGeocoder::resolve($q);
             if ($place !== null) {
                 $page = $model->near(
                     $place['lat'],
