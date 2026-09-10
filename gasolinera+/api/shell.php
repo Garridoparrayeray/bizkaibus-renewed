@@ -86,10 +86,11 @@
         </section>
 
         <form id="search-form" autocomplete="off">
-            <input id="search-input" type="search" placeholder="Buscar municipio, dirección o marca…" aria-label="Buscar gasolinera">
+            <input id="search-input" type="search" placeholder="Buscar municipio, dirección o marca…" aria-label="Buscar gasolinera" autocomplete="off">
             <button type="submit" class="btn-icon" aria-label="Buscar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
+            <ul id="search-suggestions" hidden></ul>
         </form>
         <button id="back-to-nearby" type="button" hidden>« Volver a gasolineras cerca de mí</button>
 
