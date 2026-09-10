@@ -254,7 +254,16 @@ header {
 .badge--24h { background: var(--primary); color: white; }
 
 #stations-empty { color: var(--text-secondary); text-align: center; padding: 24px; font-size: 0.9rem; }
-#stations-load-sentinel { color: var(--text-secondary); text-align: center; padding: 16px; font-size: 0.85rem; }
+
+#stations-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 18px 0 6px;
+}
+#stations-pagination .pill:disabled { opacity: 0.4; cursor: default; }
+#pagination-status { color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; }
 
 #map-controls { margin-bottom: 8px; }
 .pill {
