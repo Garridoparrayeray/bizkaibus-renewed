@@ -11,34 +11,34 @@ use Services\SiriAlertsClient;
 class AlertsController
 {
 
-    public function index(Request $request): void
+    public function index(Request $Req): void
     {
-        $config = Config::current();
+        $aConfig = Config::current();
 
-        $network = 'bus';
-        if (isset($config['network'])) {
-            $network = $config['network'];
+        $sNetwork = 'bus';
+        if (isset($aConfig['network'])) {
+            $sNetwork = $aConfig['network'];
         }
 
-        if ($network === 'metro') {
-            $client = new MetroAlertsClient($config);
-            Response::json(['alerts' => $client->fetchAlerts()]);
+        if ($sNetwork === 'metro') {
+            $Client = new MetroAlertsClient($aConfig);
+            Response::json(['alerts' => $Client->fetchAlerts()]);
             return;
         }
 
-        $client = new SiriAlertsClient($config);
+        $Client = new SiriAlertsClient($aConfig);
 
-        $lineFilter = $request->query('line');
-        if ($lineFilter !== null) {
-            $byLine = $client->alertsByLine();
-            $alerts = [];
-            if (isset($byLine[$lineFilter])) {
-                $alerts = $byLine[$lineFilter];
+        $sLineFilter = $Req->query('line');
+        if ($sLineFilter !== null) {
+            $aByLine = $Client->alertsByLine();
+            $aAlerts = [];
+            if (isset($aByLine[$sLineFilter])) {
+                $aAlerts = $aByLine[$sLineFilter];
             }
-            Response::json(['alerts' => $alerts]);
+            Response::json(['alerts' => $aAlerts]);
             return;
         }
 
-        Response::json(['alerts' => $client->fetchAlerts()]);
+        Response::json(['alerts' => $Client->fetchAlerts()]);
     }
 }

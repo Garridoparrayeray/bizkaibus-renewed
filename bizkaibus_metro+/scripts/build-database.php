@@ -29,263 +29,263 @@ const NETWORK_DEFAULTS = [
 const GEOCACHE_PATH = __DIR__ . '/geocache.json';
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 
-function main(array $argv): void
+function main(array $aArgv): void
 {
-    $options = parseArgs($argv);
-    $network = 'bus';
-    if (isset($options['network'])) {
-        $network = $options['network'];
+    $aOptions = parseArgs($aArgv);
+    $sNetwork = 'bus';
+    if (isset($aOptions['network'])) {
+        $sNetwork = $aOptions['network'];
     }
-    if (!isset(NETWORK_DEFAULTS[$network])) {
-        fwrite(STDERR, "Unknown --network=\"$network\" (expected bus|metro)\n");
+    if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro)\n");
         exit(1);
     }
-    $defaults = NETWORK_DEFAULTS[$network];
+    $aDefaults = NETWORK_DEFAULTS[$sNetwork];
 
-    $source = $defaults['source'];
-    if (isset($options['source'])) {
-        $source = $options['source'];
+    $sSource = $aDefaults['source'];
+    if (isset($aOptions['source'])) {
+        $sSource = $aOptions['source'];
     }
-    $output = $defaults['output'];
-    if (isset($options['output'])) {
-        $output = $options['output'];
+    $sOutput = $aDefaults['output'];
+    if (isset($aOptions['output'])) {
+        $sOutput = $aOptions['output'];
     }
-    $skipGeocode = isset($options['skip-geocode']) || $defaults['skipGeocode'];
-    $agencyId = $defaults['agencyId'];
+    $bSkipGeocode = isset($aOptions['skip-geocode']) || $aDefaults['skipGeocode'];
+    $sAgencyId = $aDefaults['agencyId'];
 
-    echo "== {$defaults['label']} database build (GTFS, network=$network) ==\n";
-    $zipPath = resolveZipPath($source);
-    echo "Reading GTFS export from: $source\n";
+    echo "== {$aDefaults['label']} database build (GTFS, network=$sNetwork) ==\n";
+    $sZipPath = resolveZipPath($sSource);
+    echo "Reading GTFS export from: $sSource\n";
 
-    $zip = new ZipArchive();
-    if ($zip->open($zipPath) !== true) {
-        fwrite(STDERR, "Could not open zip: $zipPath\n");
+    $Zip = new ZipArchive();
+    if ($Zip->open($sZipPath) !== true) {
+        fwrite(STDERR, "Could not open zip: $sZipPath\n");
         exit(1);
     }
 
     echo "Parsing routes.txt...\n";
-    $routes = loadRoutes($zip, $agencyId);
-    echo '  ' . count($routes) . " routes\n";
+    $aRoutes = loadRoutes($Zip, $sAgencyId);
+    echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    if ($network === 'metro') {
-        $stops = loadStopsMetro($zip);
+    if ($sNetwork === 'metro') {
+        $aStops = loadStopsMetro($Zip);
     } else {
-        $stops = loadStopsBus($zip);
+        $aStops = loadStopsBus($Zip);
     }
-    echo '  ' . count($stops) . " stops\n";
+    echo '  ' . count($aStops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
-    $stops = geocodeStops($stops, $skipGeocode);
+    $aStops = geocodeStops($aStops, $bSkipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $calendars = loadCalendars($zip);
-    echo '  ' . count($calendars) . " service calendars\n";
+    $aCalendars = loadCalendars($Zip);
+    echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
-    $trips = loadTrips($zip);
-    echo '  ' . count($trips) . " trips\n";
+    $aTrips = loadTrips($Zip);
+    echo '  ' . count($aTrips) . " trips\n";
 
-    $feedInfo = loadFeedInfo($zip);
-    if (isset($feedInfo['feed_version'])) {
-        echo "  feed_version: {$feedInfo['feed_version']} (start: {$feedInfo['feed_start_date']}, end: {$feedInfo['feed_end_date']})\n";
+    $aFeedInfo = loadFeedInfo($Zip);
+    if (isset($aFeedInfo['feed_version'])) {
+        echo "  feed_version: {$aFeedInfo['feed_version']} (start: {$aFeedInfo['feed_start_date']}, end: {$aFeedInfo['feed_end_date']})\n";
     }
 
-    $feedEndIso = '';
-    if (!empty($feedInfo['feed_end_date'])) {
-        $feedEndIso = gtfsDateToIso($feedInfo['feed_end_date']);
+    $sFeedEndIso = '';
+    if (!empty($aFeedInfo['feed_end_date'])) {
+        $sFeedEndIso = gtfsDateToIso($aFeedInfo['feed_end_date']);
     }
-    if ($feedEndIso !== '' && $feedEndIso < date('Y-m-d')) {
-        fwrite(STDERR, "ERROR: el GTFS terminó el $feedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
+    if ($sFeedEndIso !== '' && $sFeedEndIso < date('Y-m-d')) {
+        fwrite(STDERR, "ERROR: el GTFS terminó el $sFeedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
         exit(1);
     }
 
-    if (file_exists($output)) {
-        unlink($output);
+    if (file_exists($sOutput)) {
+        unlink($sOutput);
     }
-    $pdo = new PDO('sqlite:' . $output);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec('PRAGMA journal_mode = DELETE');
-    $pdo->exec('PRAGMA synchronous = OFF');
+    $Pdo = new PDO('sqlite:' . $sOutput);
+    $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $Pdo->exec('PRAGMA journal_mode = DELETE');
+    $Pdo->exec('PRAGMA synchronous = OFF');
 
-    createSchema($pdo);
+    createSchema($Pdo);
 
-    $pdo->beginTransaction();
+    $Pdo->beginTransaction();
 
-    insertStops($pdo, $stops);
-    insertCalendars($pdo, $calendars);
-    insertMeta($pdo, $feedInfo);
+    insertStops($Pdo, $aStops);
+    insertCalendars($Pdo, $aCalendars);
+    insertMeta($Pdo, $aFeedInfo);
 
-    $insertLine = $pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
-    foreach ($routes as $routeId => $route) {
-        $insertLine->execute([$routeId, $route['code'], $route['name'], normalize($route['name'])]);
+    $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+    foreach ($aRoutes as $iRouteId => $aRoute) {
+        $InsertLine->execute([$iRouteId, $aRoute['code'], $aRoute['name'], normalize($aRoute['name'])]);
     }
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
-    $totals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
-    processStopTimes($pdo, $zip, $trips, $routes, $calendars, $totals, $network);
+    $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
+    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork);
 
-    $pdo->commit();
+    $Pdo->commit();
 
     echo "Building indexes...\n";
-    createIndexes($pdo);
+    createIndexes($Pdo);
 
-    $zip->close();
+    $Zip->close();
 
     echo "\n== Summary ==\n";
-    $geocodedCount = $pdo->query("SELECT COUNT(*) FROM stops WHERE area != ''")->fetchColumn();
-    printf("  stops geocoded (municipality/suburb/neighbourhood): %d / %d\n", $geocodedCount, count($stops));
-    printf("  lines:            %d\n", count($routes));
-    printf("  patterns:         %d\n", $totals['patterns']);
-    printf("  service_journeys: %d\n", $totals['journeys']);
-    printf("  passing_times:    %d\n", $totals['passingTimes']);
+    $sGeocodedCount = $Pdo->query("SELECT COUNT(*) FROM stops WHERE area != ''")->fetchColumn();
+    printf("  stops geocoded (municipality/suburb/neighbourhood): %d / %d\n", $sGeocodedCount, count($aStops));
+    printf("  lines:            %d\n", count($aRoutes));
+    printf("  patterns:         %d\n", $aTotals['patterns']);
+    printf("  service_journeys: %d\n", $aTotals['journeys']);
+    printf("  passing_times:    %d\n", $aTotals['passingTimes']);
 
-    echo "\nDatabase written to: $output\n";
-    printf("File size: %.1f MB\n", filesize($output) / 1024 / 1024);
+    echo "\nDatabase written to: $sOutput\n";
+    printf("File size: %.1f MB\n", filesize($sOutput) / 1024 / 1024);
 }
 
-function parseArgs(array $argv): array
+function parseArgs(array $aArgv): array
 {
-    $out = [];
-    foreach ($argv as $arg) {
-        if (preg_match('/^--(network|source|output)=(.+)$/', $arg, $m)) {
-            $out[$m[1]] = $m[2];
-        } elseif ($arg === '--skip-geocode') {
-            $out['skip-geocode'] = true;
+    $aOut = [];
+    foreach ($aArgv as $sArg) {
+        if (preg_match('/^--(network|source|output)=(.+)$/', $sArg, $aM)) {
+            $aOut[$aM[1]] = $aM[2];
+        } elseif ($sArg === '--skip-geocode') {
+            $aOut['skip-geocode'] = true;
         }
     }
-    return $out;
+    return $aOut;
 }
 
-function geocodeStops(array $stops, bool $skip): array
+function geocodeStops(array $aStops, bool $bSkip): array
 {
-    if ($skip) {
-        foreach ($stops as &$stop) {
-            $stop['area'] = '';
+    if ($bSkip) {
+        foreach ($aStops as &$aStop) {
+            $aStop['area'] = '';
         }
-        return $stops;
+        return $aStops;
     }
 
-    $cache = [];
+    $aCache = [];
     if (is_file(GEOCACHE_PATH)) {
-        $cache = json_decode((string)file_get_contents(GEOCACHE_PATH), true);
+        $aCache = json_decode((string)file_get_contents(GEOCACHE_PATH), true);
     }
-    if (!is_array($cache)) {
-        $cache = [];
+    if (!is_array($aCache)) {
+        $aCache = [];
     }
 
-    $clusterKeys = [];
-    foreach ($stops as $id => $stop) {
-        $key = round($stop['lat'], 3) . ',' . round($stop['lon'], 3);
-        $clusterKeys[$id] = $key;
+    $aClusterKeys = [];
+    foreach ($aStops as $iId => $aStop) {
+        $sKey = round($aStop['lat'], 3) . ',' . round($aStop['lon'], 3);
+        $aClusterKeys[$iId] = $sKey;
     }
-    $uniqueKeys = array_unique(array_values($clusterKeys));
-    $missing = array_values(array_diff($uniqueKeys, array_keys($cache)));
+    $aUniqueKeys = array_unique(array_values($aClusterKeys));
+    $aMissing = array_values(array_diff($aUniqueKeys, array_keys($aCache)));
 
-    echo '  ' . count($uniqueKeys) . ' unique ~1km clusters, ' . count($missing) . " not yet cached\n";
+    echo '  ' . count($aUniqueKeys) . ' unique ~1km clusters, ' . count($aMissing) . " not yet cached\n";
 
-    foreach ($missing as $i => $key) {
-        [$lat, $lon] = explode(',', $key);
-        $cache[$key] = reverseGeocode((float)$lat, (float)$lon);
-        if (($i + 1) % 25 === 0 || $i + 1 === count($missing)) {
-            echo '    geocoded ' . ($i + 1) . '/' . count($missing) . "\r";
-            file_put_contents(GEOCACHE_PATH, json_encode($cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    foreach ($aMissing as $iIndex => $sKey) {
+        [$sLat, $sLon] = explode(',', $sKey);
+        $aCache[$sKey] = reverseGeocode((float)$sLat, (float)$sLon);
+        if (($iIndex + 1) % 25 === 0 || $iIndex + 1 === count($aMissing)) {
+            echo '    geocoded ' . ($iIndex + 1) . '/' . count($aMissing) . "\r";
+            file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         }
-        if ($i + 1 < count($missing)) {
+        if ($iIndex + 1 < count($aMissing)) {
             usleep(1_100_000);
         }
     }
-    if (!empty($missing)) {
+    if (!empty($aMissing)) {
         echo "\n";
     }
-    file_put_contents(GEOCACHE_PATH, json_encode($cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
-    foreach ($stops as $id => &$stop) {
-        $stop['area'] = '';
-        if (isset($cache[$clusterKeys[$id]])) {
-            $stop['area'] = $cache[$clusterKeys[$id]];
+    foreach ($aStops as $iId => &$aStop) {
+        $aStop['area'] = '';
+        if (isset($aCache[$aClusterKeys[$iId]])) {
+            $aStop['area'] = $aCache[$aClusterKeys[$iId]];
         }
     }
-    return $stops;
+    return $aStops;
 }
 
-function reverseGeocode(float $lat, float $lon): string
+function reverseGeocode(float $dLat, float $dLon): string
 {
-    $url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
-        'lat' => $lat,
-        'lon' => $lon,
+    $sUrl = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
+        'lat' => $dLat,
+        'lon' => $dLon,
         'format' => 'jsonv2',
         'zoom' => 16,
         'addressdetails' => 1,
     ]);
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
+    $Ch = curl_init($sUrl);
+    curl_setopt_array($Ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 10,
         CURLOPT_HTTPHEADER => ['User-Agent: BizkaiBusPlus-etl/1.0 (' . NOMINATIM_CONTACT . ')'],
     ]);
-    $body = curl_exec($ch);
-    if ($body === false) {
+    $sBody = curl_exec($Ch);
+    if ($sBody === false) {
         return '';
     }
-    $data = json_decode($body, true);
-    $address = [];
-    if (isset($data['address'])) {
-        $address = $data['address'];
+    $aData = json_decode($sBody, true);
+    $aAddress = [];
+    if (isset($aData['address'])) {
+        $aAddress = $aData['address'];
     }
 
-    $neighbourhood = null;
-    if (isset($address['neighbourhood'])) {
-        $neighbourhood = $address['neighbourhood'];
+    $sNeighbourhood = null;
+    if (isset($aAddress['neighbourhood'])) {
+        $sNeighbourhood = $aAddress['neighbourhood'];
     }
-    $suburb = null;
-    if (isset($address['suburb'])) {
-        $suburb = $address['suburb'];
+    $sSuburb = null;
+    if (isset($aAddress['suburb'])) {
+        $sSuburb = $aAddress['suburb'];
     }
-    $townLevel = null;
-    if (isset($address['town'])) {
-        $townLevel = $address['town'];
-    } elseif (isset($address['city'])) {
-        $townLevel = $address['city'];
-    } elseif (isset($address['village'])) {
-        $townLevel = $address['village'];
+    $sTownLevel = null;
+    if (isset($aAddress['town'])) {
+        $sTownLevel = $aAddress['town'];
+    } elseif (isset($aAddress['city'])) {
+        $sTownLevel = $aAddress['city'];
+    } elseif (isset($aAddress['village'])) {
+        $sTownLevel = $aAddress['village'];
     }
 
-    $parts = array_filter([$neighbourhood, $suburb, $townLevel]);
-    return implode(', ', array_unique($parts));
+    $aParts = array_filter([$sNeighbourhood, $sSuburb, $sTownLevel]);
+    return implode(', ', array_unique($aParts));
 }
 
-function resolveZipPath(string $source): string
+function resolveZipPath(string $sSource): string
 {
-    if (preg_match('#^https?://#i', $source)) {
-        $tmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
-        $ch = curl_init($source);
-        $fp = fopen($tmp, 'wb');
-        curl_setopt_array($ch, [
-            CURLOPT_FILE => $fp,
+    if (preg_match('#^https?://#i', $sSource)) {
+        $sTmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
+        $Ch = curl_init($sSource);
+        $Fp = fopen($sTmp, 'wb');
+        curl_setopt_array($Ch, [
+            CURLOPT_FILE => $Fp,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 120,
             CURLOPT_FAILONERROR => true,
         ]);
-        $ok = curl_exec($ch);
-        if ($ok === false) {
-            fwrite(STDERR, 'Download failed: ' . curl_error($ch) . "\n");
+        $bOk = curl_exec($Ch);
+        if ($bOk === false) {
+            fwrite(STDERR, 'Download failed: ' . curl_error($Ch) . "\n");
             exit(1);
         }
-        curl_close($ch);
-        fclose($fp);
-        return $tmp;
+        curl_close($Ch);
+        fclose($Fp);
+        return $sTmp;
     }
-    if (!file_exists($source)) {
-        fwrite(STDERR, "Source file not found: $source\n");
+    if (!file_exists($sSource)) {
+        fwrite(STDERR, "Source file not found: $sSource\n");
         exit(1);
     }
-    return $source;
+    return $sSource;
 }
 
-function normalize(string $text): string
+function normalize(string $sText): string
 {
-    $map = [
+    $aMap = [
         'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a',
         'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
         'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
@@ -299,540 +299,540 @@ function normalize(string $text): string
         'Ú' => 'u', 'Ù' => 'u', 'Ü' => 'u', 'Û' => 'u',
         'Ñ' => 'n', 'Ç' => 'c',
     ];
-    $lower = mb_strtolower(strtr($text, $map), 'UTF-8');
-    return trim(preg_replace('/\s+/', ' ', $lower));
+    $sLower = mb_strtolower(strtr($sText, $aMap), 'UTF-8');
+    return trim(preg_replace('/\s+/', ' ', $sLower));
 }
 
-function readCsv(ZipArchive $zip, string $name): Generator
+function readCsv(ZipArchive $Zip, string $sName): Generator
 {
-    $stream = $zip->getStream($name);
-    if ($stream === false) {
-        throw new RuntimeException("Could not open $name from zip");
+    $Stream = $Zip->getStream($sName);
+    if ($Stream === false) {
+        throw new RuntimeException("Could not open $sName from zip");
     }
-    $header = fgetcsv($stream, 0, ',', '"', '\\');
-    while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
-        if ($row === null || $row === [null]) {
+    $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
+    while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
+        if ($aRow === null || $aRow === [null]) {
             continue;
         }
-        if (count($row) !== count($header)) {
+        if (count($aRow) !== count($aHeader)) {
             continue;
         }
-        yield array_combine($header, $row);
+        yield array_combine($aHeader, $aRow);
     }
-    fclose($stream);
+    fclose($Stream);
 }
 
-function gtfsDateToIso(string $ymd): string
+function gtfsDateToIso(string $sYmd): string
 {
-    return substr($ymd, 0, 4) . '-' . substr($ymd, 4, 2) . '-' . substr($ymd, 6, 2);
+    return substr($sYmd, 0, 4) . '-' . substr($sYmd, 4, 2) . '-' . substr($sYmd, 6, 2);
 }
 
-function loadRoutes(ZipArchive $zip, string|null $expectedAgencyId): array
+function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId): array
 {
-    $routes = [];
-    foreach (readCsv($zip, 'routes.txt') as $row) {
-        $agencyId = '';
-        if (isset($row['agency_id'])) {
-            $agencyId = $row['agency_id'];
+    $aRoutes = [];
+    foreach (readCsv($Zip, 'routes.txt') as $aRow) {
+        $sAgencyId = '';
+        if (isset($aRow['agency_id'])) {
+            $sAgencyId = $aRow['agency_id'];
         }
-        if ($expectedAgencyId !== null && $agencyId !== $expectedAgencyId) {
-            fwrite(STDERR, "  WARNING: skipping route {$row['route_id']} with unexpected agency_id \"{$row['agency_id']}\"\n");
+        if ($sExpectedAgencyId !== null && $sAgencyId !== $sExpectedAgencyId) {
+            fwrite(STDERR, "  WARNING: skipping route {$aRow['route_id']} with unexpected agency_id \"{$aRow['agency_id']}\"\n");
             continue;
         }
-        $routeId = (int)$row['route_id'];
-        $code = $row['route_short_name'];
-        if ($code === '') {
-            $code = $row['route_id'];
+        $iRouteId = (int)$aRow['route_id'];
+        $sCode = $aRow['route_short_name'];
+        if ($sCode === '') {
+            $sCode = $aRow['route_id'];
         }
-        $routes[$routeId] = [
-            'code' => $code,
-            'name' => $row['route_long_name'],
+        $aRoutes[$iRouteId] = [
+            'code' => $sCode,
+            'name' => $aRow['route_long_name'],
         ];
     }
-    return $routes;
+    return $aRoutes;
 }
 
-function realStopRows(ZipArchive $zip): Generator
+function realStopRows(ZipArchive $Zip): Generator
 {
-    foreach (readCsv($zip, 'stops.txt') as $row) {
-        $locationType = '';
-        if (isset($row['location_type'])) {
-            $locationType = $row['location_type'];
+    foreach (readCsv($Zip, 'stops.txt') as $aRow) {
+        $sLocationType = '';
+        if (isset($aRow['location_type'])) {
+            $sLocationType = $aRow['location_type'];
         }
-        if ($locationType !== '' && $locationType !== '0') {
+        if ($sLocationType !== '' && $sLocationType !== '0') {
             continue;
         }
-        yield $row;
+        yield $aRow;
     }
 }
 
-function loadStopsBus(ZipArchive $zip): array
+function loadStopsBus(ZipArchive $Zip): array
 {
-    $stops = [];
-    foreach (realStopRows($zip) as $row) {
-        $id = (int)$row['stop_id'];
-        $name = $row['stop_name'];
-        $stripped = preg_replace('/\s*\(' . preg_quote((string)$id, '/') . '\)$/', '', $name);
-        if ($stripped === $name) {
-            fwrite(STDERR, "  WARNING: stop $id name \"$name\" lacked the expected trailing \"($id)\" suffix\n");
+    $aStops = [];
+    foreach (realStopRows($Zip) as $aRow) {
+        $iId = (int)$aRow['stop_id'];
+        $sName = $aRow['stop_name'];
+        $sStripped = preg_replace('/\s*\(' . preg_quote((string)$iId, '/') . '\)$/', '', $sName);
+        if ($sStripped === $sName) {
+            fwrite(STDERR, "  WARNING: stop $iId name \"$sName\" lacked the expected trailing \"($iId)\" suffix\n");
         } else {
-            $name = $stripped;
+            $sName = $sStripped;
         }
 
-        $stops[$id] = [
-            'name' => $name,
-            'lat' => (float)$row['stop_lat'],
-            'lon' => (float)$row['stop_lon'],
+        $aStops[$iId] = [
+            'name' => $sName,
+            'lat' => (float)$aRow['stop_lat'],
+            'lon' => (float)$aRow['stop_lon'],
         ];
     }
-    return $stops;
+    return $aStops;
 }
 
-function loadStopsMetro(ZipArchive $zip): array
+function loadStopsMetro(ZipArchive $Zip): array
 {
-    $stops = [];
-    foreach (realStopRows($zip) as $row) {
-        $id = (int)$row['stop_id'];
-        $stops[$id] = [
-            'name' => $row['stop_name'],
-            'lat' => (float)$row['stop_lat'],
-            'lon' => (float)$row['stop_lon'],
+    $aStops = [];
+    foreach (realStopRows($Zip) as $aRow) {
+        $iId = (int)$aRow['stop_id'];
+        $aStops[$iId] = [
+            'name' => $aRow['stop_name'],
+            'lat' => (float)$aRow['stop_lat'],
+            'lon' => (float)$aRow['stop_lon'],
         ];
     }
-    return $stops;
+    return $aStops;
 }
 
-function loadCalendars(ZipArchive $zip): array
+function loadCalendars(ZipArchive $Zip): array
 {
-    $ranges = [];
-    $baseWeekdayMask = [];
-    $weekdayColumns = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    foreach (readCsv($zip, 'calendar.txt') as $row) {
-        $ranges[$row['service_id']] = [
-            'from' => gtfsDateToIso($row['start_date']),
-            'to' => gtfsDateToIso($row['end_date']),
+    $aRanges = [];
+    $aBaseWeekdayMask = [];
+    $aWeekdayColumns = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    foreach (readCsv($Zip, 'calendar.txt') as $aRow) {
+        $aRanges[$aRow['service_id']] = [
+            'from' => gtfsDateToIso($aRow['start_date']),
+            'to' => gtfsDateToIso($aRow['end_date']),
         ];
-        $mask = 0;
-        foreach ($weekdayColumns as $i => $column) {
-            $columnValue = 0;
-            if (isset($row[$column])) {
-                $columnValue = (int)$row[$column];
+        $iMask = 0;
+        foreach ($aWeekdayColumns as $iIndex => $sColumn) {
+            $iColumnValue = 0;
+            if (isset($aRow[$sColumn])) {
+                $iColumnValue = (int)$aRow[$sColumn];
             }
-            if ($columnValue === 1) {
-                $mask |= (1 << $i);
+            if ($iColumnValue === 1) {
+                $iMask |= (1 << $iIndex);
             }
         }
-        $baseWeekdayMask[$row['service_id']] = $mask;
+        $aBaseWeekdayMask[$aRow['service_id']] = $iMask;
     }
 
-    $activeDates = [];
-    foreach (readCsv($zip, 'calendar_dates.txt') as $row) {
-        $date = gtfsDateToIso($row['date']);
-        $activeDates[$row['service_id']][$date] = ((int)$row['exception_type']) === 1;
+    $aActiveDates = [];
+    foreach (readCsv($Zip, 'calendar_dates.txt') as $aRow) {
+        $sDate = gtfsDateToIso($aRow['date']);
+        $aActiveDates[$aRow['service_id']][$sDate] = ((int)$aRow['exception_type']) === 1;
     }
 
-    $calendars = [];
-    foreach (array_unique(array_merge(array_keys($ranges), array_keys($activeDates))) as $id) {
-        $dates = [];
-        if (isset($activeDates[$id])) {
-            $dates = $activeDates[$id];
+    $aCalendars = [];
+    foreach (array_unique(array_merge(array_keys($aRanges), array_keys($aActiveDates))) as $sId) {
+        $aDates = [];
+        if (isset($aActiveDates[$sId])) {
+            $aDates = $aActiveDates[$sId];
         }
-        $baseMask = 0;
-        $hasCalendarRow = isset($baseWeekdayMask[$id]);
-        if ($hasCalendarRow) {
-            $baseMask = $baseWeekdayMask[$id];
+        $iBaseMask = 0;
+        $bHasCalendarRow = isset($aBaseWeekdayMask[$sId]);
+        if ($bHasCalendarRow) {
+            $iBaseMask = $aBaseWeekdayMask[$sId];
         }
 
-        $excludedDates = [];
-        $availableDates = [];
-        foreach ($dates as $date => $isAvailable) {
-            if ($isAvailable) {
-                $availableDates[$date] = true;
+        $aExcludedDates = [];
+        $aAvailableDates = [];
+        foreach ($aDates as $sDate => $bIsAvailable) {
+            if ($bIsAvailable) {
+                $aAvailableDates[$sDate] = true;
             } else {
-                $excludedDates[] = $date;
+                $aExcludedDates[] = $sDate;
             }
         }
 
-        $includedDates = [];
-        if ($baseMask !== 0) {
+        $aIncludedDates = [];
+        if ($iBaseMask !== 0) {
 
-            $weekdayMask = $baseMask | computeWeekdayMask($availableDates);
+            $iWeekdayMask = $iBaseMask | computeWeekdayMask($aAvailableDates);
         } else {
-            $weekdayMask = computeWeekdayMaskFromEvidence($availableDates, $includedDates);
+            $iWeekdayMask = computeWeekdayMaskFromEvidence($aAvailableDates, $aIncludedDates);
         }
 
-        $from = '';
-        $to = '';
-        if (isset($ranges[$id])) {
-            $from = $ranges[$id]['from'];
-            $to = $ranges[$id]['to'];
+        $sFrom = '';
+        $sTo = '';
+        if (isset($aRanges[$sId])) {
+            $sFrom = $aRanges[$sId]['from'];
+            $sTo = $aRanges[$sId]['to'];
         }
 
-        $calendars[$id] = [
-            'from' => $from,
-            'to' => $to,
-            'weekdayMask' => $weekdayMask,
-            'activeDateCount' => count(array_filter($dates)),
-            'excludedDates' => $excludedDates,
-            'includedDates' => $includedDates,
+        $aCalendars[$sId] = [
+            'from' => $sFrom,
+            'to' => $sTo,
+            'weekdayMask' => $iWeekdayMask,
+            'activeDateCount' => count(array_filter($aDates)),
+            'excludedDates' => $aExcludedDates,
+            'includedDates' => $aIncludedDates,
         ];
     }
-    return $calendars;
+    return $aCalendars;
 }
 
-function computeWeekdayMask(array $dateAvailability): int
+function computeWeekdayMask(array $aDateAvailability): int
 {
-    $mask = 0;
-    foreach ($dateAvailability as $date => $isAvailable) {
-        if (!$isAvailable) {
+    $iMask = 0;
+    foreach ($aDateAvailability as $sDate => $bIsAvailable) {
+        if (!$bIsAvailable) {
             continue;
         }
-        $weekday = (int)(new DateTime($date))->format('N');
-        $mask |= (1 << ($weekday - 1));
+        $iWeekday = (int)(new DateTime($sDate))->format('N');
+        $iMask |= (1 << ($iWeekday - 1));
     }
-    return $mask;
+    return $iMask;
 }
 
-function computeWeekdayMaskFromEvidence(array $dateAvailability, array &$unbackedDates): int
+function computeWeekdayMaskFromEvidence(array $aDateAvailability, array &$aUnbackedDates): int
 {
-    $byWeekday = [];
-    foreach ($dateAvailability as $date => $isAvailable) {
-        if (!$isAvailable) {
+    $aByWeekday = [];
+    foreach ($aDateAvailability as $sDate => $bIsAvailable) {
+        if (!$bIsAvailable) {
             continue;
         }
-        $weekday = (int)(new DateTime($date))->format('N');
-        $byWeekday[$weekday][] = $date;
+        $iWeekday = (int)(new DateTime($sDate))->format('N');
+        $aByWeekday[$iWeekday][] = $sDate;
     }
 
-    $mask = 0;
-    foreach ($byWeekday as $weekday => $dates) {
-        if (count($dates) >= MIN_OCCURRENCES_FOR_WEEKLY_PATTERN) {
-            $mask |= (1 << ($weekday - 1));
+    $iMask = 0;
+    foreach ($aByWeekday as $iWeekday => $aDates) {
+        if (count($aDates) >= MIN_OCCURRENCES_FOR_WEEKLY_PATTERN) {
+            $iMask |= (1 << ($iWeekday - 1));
         } else {
-            foreach ($dates as $date) {
-                $unbackedDates[] = $date;
+            foreach ($aDates as $sDate) {
+                $aUnbackedDates[] = $sDate;
             }
         }
     }
-    return $mask;
+    return $iMask;
 }
 
-function loadTrips(ZipArchive $zip): array
+function loadTrips(ZipArchive $Zip): array
 {
-    $trips = [];
-    foreach (readCsv($zip, 'trips.txt') as $row) {
-        $tripId = $row['trip_id'];
-        $tripNumber = null;
-        if (preg_match('/^trp_[A-Za-z]*\d+_(\d+)_/', $tripId, $m)) {
-            $tripNumber = $m[1];
+    $aTrips = [];
+    foreach (readCsv($Zip, 'trips.txt') as $aRow) {
+        $sTripId = $aRow['trip_id'];
+        $sTripNumber = null;
+        if (preg_match('/^trp_[A-Za-z]*\d+_(\d+)_/', $sTripId, $aM)) {
+            $sTripNumber = $aM[1];
         }
-        $headsign = '';
-        if (isset($row['trip_headsign'])) {
-            $headsign = $row['trip_headsign'];
+        $sHeadsign = '';
+        if (isset($aRow['trip_headsign'])) {
+            $sHeadsign = $aRow['trip_headsign'];
         }
-        $trips[$tripId] = [
-            'routeId' => (int)$row['route_id'],
-            'serviceId' => $row['service_id'],
-            'headsign' => $headsign,
-            'tripNumber' => $tripNumber,
+        $aTrips[$sTripId] = [
+            'routeId' => (int)$aRow['route_id'],
+            'serviceId' => $aRow['service_id'],
+            'headsign' => $sHeadsign,
+            'tripNumber' => $sTripNumber,
         ];
     }
-    return $trips;
+    return $aTrips;
 }
 
-function streamStopTimesByTrip(ZipArchive $zip): Generator
+function streamStopTimesByTrip(ZipArchive $Zip): Generator
 {
-    $stream = $zip->getStream('stop_times.txt');
-    if ($stream === false) {
+    $Stream = $Zip->getStream('stop_times.txt');
+    if ($Stream === false) {
         fwrite(STDERR, "Could not open stop_times.txt stream\n");
         exit(1);
     }
-    $header = fgetcsv($stream, 0, ',', '"', '\\');
+    $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
 
-    $byTrip = [];
+    $aByTrip = [];
 
-    while (($row = fgetcsv($stream, 0, ',', '"', '\\')) !== false) {
-        if ($row === null || $row === [null] || count($row) !== count($header)) {
+    while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
+        if ($aRow === null || $aRow === [null] || count($aRow) !== count($aHeader)) {
             continue;
         }
-        $assoc = array_combine($header, $row);
-        $tripId = $assoc['trip_id'];
+        $aAssoc = array_combine($aHeader, $aRow);
+        $sTripId = $aAssoc['trip_id'];
 
-        $arrival = null;
-        if ($assoc['arrival_time'] !== '') {
-            $arrival = timeToSeconds($assoc['arrival_time']);
+        $iArrival = null;
+        if ($aAssoc['arrival_time'] !== '') {
+            $iArrival = timeToSeconds($aAssoc['arrival_time']);
         }
-        $departure = $arrival;
-        if ($assoc['departure_time'] !== '') {
-            $departure = timeToSeconds($assoc['departure_time']);
+        $iDeparture = $iArrival;
+        if ($aAssoc['departure_time'] !== '') {
+            $iDeparture = timeToSeconds($aAssoc['departure_time']);
         }
-        if ($arrival === null) {
-            $arrival = $departure;
+        if ($iArrival === null) {
+            $iArrival = $iDeparture;
         }
 
-        $byTrip[$tripId][] = [
-            'seqOrder' => (int)$assoc['stop_sequence'],
-            'stopId' => (int)$assoc['stop_id'],
-            'arrival' => $arrival,
-            'departure' => $departure,
+        $aByTrip[$sTripId][] = [
+            'seqOrder' => (int)$aAssoc['stop_sequence'],
+            'stopId' => (int)$aAssoc['stop_id'],
+            'arrival' => $iArrival,
+            'departure' => $iDeparture,
         ];
     }
-    fclose($stream);
+    fclose($Stream);
 
-    foreach ($byTrip as $tripId => $buffer) {
-        yield $tripId => $buffer;
-        unset($byTrip[$tripId]);
+    foreach ($aByTrip as $sTripId => $aBuffer) {
+        yield $sTripId => $aBuffer;
+        unset($aByTrip[$sTripId]);
     }
 }
 
-function calendarGroupKeyFor(string $network, string $serviceId, array $calendars): string
+function calendarGroupKeyFor(string $sNetwork, string $sServiceId, array $aCalendars): string
 {
-    if ($network !== 'metro') {
+    if ($sNetwork !== 'metro') {
         return '';
     }
-    if (!isset($calendars[$serviceId])) {
+    if (!isset($aCalendars[$sServiceId])) {
         return '';
     }
-    $cal = $calendars[$serviceId];
-    if ($cal['from'] !== '') {
-        return $serviceId;
+    $aCal = $aCalendars[$sServiceId];
+    if ($aCal['from'] !== '') {
+        return $sServiceId;
     }
-    if ($cal['weekdayMask'] === 0 && !empty($cal['includedDates'])) {
-        return $serviceId;
+    if ($aCal['weekdayMask'] === 0 && !empty($aCal['includedDates'])) {
+        return $sServiceId;
     }
     return '';
 }
 
-function processStopTimes(PDO $pdo, ZipArchive $zip, array $trips, array $routes, array $calendars, array &$totals, string $network): void
+function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
-    $signatures = [];
-    $seenTripIds = [];
-    $skippedUnknownTrip = 0;
-    $skippedUnknownRoute = 0;
-    $skippedDuplicateTrip = 0;
+    $aSignatures = [];
+    $aSeenTripIds = [];
+    $iSkippedUnknownTrip = 0;
+    $iSkippedUnknownRoute = 0;
+    $iSkippedDuplicateTrip = 0;
 
-    foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
-        if (isset($seenTripIds[$tripId])) {
-            $skippedDuplicateTrip++;
+    foreach (streamStopTimesByTrip($Zip) as $sTripId => $aBuffer) {
+        if (isset($aSeenTripIds[$sTripId])) {
+            $iSkippedDuplicateTrip++;
             continue;
         }
-        $seenTripIds[$tripId] = true;
+        $aSeenTripIds[$sTripId] = true;
 
-        $trip = null;
-        if (isset($trips[$tripId])) {
-            $trip = $trips[$tripId];
+        $aTrip = null;
+        if (isset($aTrips[$sTripId])) {
+            $aTrip = $aTrips[$sTripId];
         }
-        if ($trip === null) {
-            $skippedUnknownTrip++;
+        if ($aTrip === null) {
+            $iSkippedUnknownTrip++;
             continue;
         }
-        if (!isset($routes[$trip['routeId']])) {
-            $skippedUnknownRoute++;
+        if (!isset($aRoutes[$aTrip['routeId']])) {
+            $iSkippedUnknownRoute++;
             continue;
         }
 
-        usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
-        $stopIds = array_column($buffer, 'stopId');
-        $patternKey = 'gp_' . $trip['routeId'] . '_' . substr(md5(implode(',', $stopIds)), 0, 12);
-        $firstDeparture = $buffer[0]['arrival'];
-        if (isset($buffer[0]['departure'])) {
-            $firstDeparture = $buffer[0]['departure'];
+        usort($aBuffer, fn($aA, $aB) => $aA['seqOrder'] <=> $aB['seqOrder']);
+        $aStopIds = array_column($aBuffer, 'stopId');
+        $sPatternKey = 'gp_' . $aTrip['routeId'] . '_' . substr(md5(implode(',', $aStopIds)), 0, 12);
+        $iFirstDeparture = $aBuffer[0]['arrival'];
+        if (isset($aBuffer[0]['departure'])) {
+            $iFirstDeparture = $aBuffer[0]['departure'];
         }
 
-        $weekdayMask = 0;
-        $includedDates = [];
-        if (isset($calendars[$trip['serviceId']])) {
-            $weekdayMask = $calendars[$trip['serviceId']]['weekdayMask'];
-            $includedDates = $calendars[$trip['serviceId']]['includedDates'];
+        $iWeekdayMask = 0;
+        $aIncludedDates = [];
+        if (isset($aCalendars[$aTrip['serviceId']])) {
+            $iWeekdayMask = $aCalendars[$aTrip['serviceId']]['weekdayMask'];
+            $aIncludedDates = $aCalendars[$aTrip['serviceId']]['includedDates'];
         }
-        $calendarGroupKey = calendarGroupKeyFor($network, $trip['serviceId'], $calendars);
+        $sCalendarGroupKey = calendarGroupKeyFor($sNetwork, $aTrip['serviceId'], $aCalendars);
 
-        $signatures[$tripId] = [
-            'routeId' => $trip['routeId'],
-            'tripNumber' => $trip['tripNumber'],
-            'headsign' => $trip['headsign'],
-            'patternKey' => $patternKey,
-            'firstDeparture' => $firstDeparture,
-            'weekdayMask' => $weekdayMask,
-            'includedDates' => $includedDates,
-            'calendarGroupKey' => $calendarGroupKey,
+        $aSignatures[$sTripId] = [
+            'routeId' => $aTrip['routeId'],
+            'tripNumber' => $aTrip['tripNumber'],
+            'headsign' => $aTrip['headsign'],
+            'patternKey' => $sPatternKey,
+            'firstDeparture' => $iFirstDeparture,
+            'weekdayMask' => $iWeekdayMask,
+            'includedDates' => $aIncludedDates,
+            'calendarGroupKey' => $sCalendarGroupKey,
         ];
     }
 
-    $departureClusterGapSeconds = 90;
+    $iDepartureClusterGapSeconds = 90;
 
-    $byRoutePattern = [];
-    foreach ($signatures as $tripId => $sig) {
-        $tripNumberPart = '';
-        if (isset($sig['tripNumber'])) {
-            $tripNumberPart = $sig['tripNumber'];
+    $aByRoutePattern = [];
+    foreach ($aSignatures as $sTripId => $aSig) {
+        $sTripNumberPart = '';
+        if (isset($aSig['tripNumber'])) {
+            $sTripNumberPart = $aSig['tripNumber'];
         }
 
-        $key = $sig['routeId'] . '|' . $tripNumberPart . '|' . $sig['patternKey'] . '|' . $sig['calendarGroupKey'];
-        $byRoutePattern[$key][] = $tripId;
+        $sKey = $aSig['routeId'] . '|' . $sTripNumberPart . '|' . $aSig['patternKey'] . '|' . $aSig['calendarGroupKey'];
+        $aByRoutePattern[$sKey][] = $sTripId;
     }
 
-    $groups = [];
-    foreach ($byRoutePattern as $tripIds) {
-        usort($tripIds, fn($a, $b) => $signatures[$a]['firstDeparture'] <=> $signatures[$b]['firstDeparture']);
+    $aGroups = [];
+    foreach ($aByRoutePattern as $aTripIds) {
+        usort($aTripIds, fn($sA, $sB) => $aSignatures[$sA]['firstDeparture'] <=> $aSignatures[$sB]['firstDeparture']);
 
-        $clusterKey = null;
-        $previousDeparture = null;
-        foreach ($tripIds as $tripId) {
-            $sig = $signatures[$tripId];
-            if ($previousDeparture === null || ($sig['firstDeparture'] - $previousDeparture) > $departureClusterGapSeconds) {
-                $clusterKey = $tripId;
-                $groups[$clusterKey] = $sig;
-                $groups[$clusterKey]['representativeTripId'] = $tripId;
-                $groups[$clusterKey]['weekdayMask'] = 0;
-                $groups[$clusterKey]['includedDates'] = [];
+        $sClusterKey = null;
+        $iPreviousDeparture = null;
+        foreach ($aTripIds as $sTripId) {
+            $aSig = $aSignatures[$sTripId];
+            if ($iPreviousDeparture === null || ($aSig['firstDeparture'] - $iPreviousDeparture) > $iDepartureClusterGapSeconds) {
+                $sClusterKey = $sTripId;
+                $aGroups[$sClusterKey] = $aSig;
+                $aGroups[$sClusterKey]['representativeTripId'] = $sTripId;
+                $aGroups[$sClusterKey]['weekdayMask'] = 0;
+                $aGroups[$sClusterKey]['includedDates'] = [];
             }
-            $groups[$clusterKey]['weekdayMask'] |= $sig['weekdayMask'];
+            $aGroups[$sClusterKey]['weekdayMask'] |= $aSig['weekdayMask'];
 
-            foreach ($sig['includedDates'] as $date) {
-                $groups[$clusterKey]['includedDates'][$date] = true;
+            foreach ($aSig['includedDates'] as $sDate) {
+                $aGroups[$sClusterKey]['includedDates'][$sDate] = true;
             }
-            $previousDeparture = $sig['firstDeparture'];
+            $iPreviousDeparture = $aSig['firstDeparture'];
         }
     }
 
-    $maskToCalendarId = [];
-    foreach ($calendars as $calId => $cal) {
-        if ($calId === 'PRUEBA') {
+    $aMaskToCalendarId = [];
+    foreach ($aCalendars as $sCalId => $aCal) {
+        if ($sCalId === 'PRUEBA') {
             continue;
         }
-        if ($cal['from'] !== '') {
+        if ($aCal['from'] !== '') {
             continue;
         }
-        if (!isset($maskToCalendarId[$cal['weekdayMask']])) {
-            $maskToCalendarId[$cal['weekdayMask']] = $calId;
+        if (!isset($aMaskToCalendarId[$aCal['weekdayMask']])) {
+            $aMaskToCalendarId[$aCal['weekdayMask']] = $sCalId;
         }
     }
-    $syntheticCalendars = [];
-    $representatives = [];
+    $aSyntheticCalendars = [];
+    $aRepresentatives = [];
 
-    $extraIncludedDatesByCalendarId = [];
-    foreach ($groups as $group) {
+    $aExtraIncludedDatesByCalendarId = [];
+    foreach ($aGroups as $aGroup) {
 
-        if ($group['calendarGroupKey'] !== '') {
-            $group['calendarId'] = $group['calendarGroupKey'];
-            $representatives[$group['representativeTripId']] = $group;
+        if ($aGroup['calendarGroupKey'] !== '') {
+            $aGroup['calendarId'] = $aGroup['calendarGroupKey'];
+            $aRepresentatives[$aGroup['representativeTripId']] = $aGroup;
             continue;
         }
 
-        $mask = $group['weekdayMask'];
-        if (!isset($maskToCalendarId[$mask])) {
-            $newId = 'merged_' . $mask;
-            $maskToCalendarId[$mask] = $newId;
-            $syntheticCalendars[$newId] = $mask;
+        $iMask = $aGroup['weekdayMask'];
+        if (!isset($aMaskToCalendarId[$iMask])) {
+            $sNewId = 'merged_' . $iMask;
+            $aMaskToCalendarId[$iMask] = $sNewId;
+            $aSyntheticCalendars[$sNewId] = $iMask;
         }
-        $calendarId = $maskToCalendarId[$mask];
-        $group['calendarId'] = $calendarId;
-        foreach (array_keys($group['includedDates']) as $date) {
-            $extraIncludedDatesByCalendarId[$calendarId][$date] = true;
+        $sCalendarId = $aMaskToCalendarId[$iMask];
+        $aGroup['calendarId'] = $sCalendarId;
+        foreach (array_keys($aGroup['includedDates']) as $sDate) {
+            $aExtraIncludedDatesByCalendarId[$sCalendarId][$sDate] = true;
         }
-        $representatives[$group['representativeTripId']] = $group;
+        $aRepresentatives[$aGroup['representativeTripId']] = $aGroup;
     }
 
-    printf("  %d raw trips merged into %d distinct journeys (%d synthetic calendars for OR'd weekday masks)\n", count($signatures), count($groups), count($syntheticCalendars));
+    printf("  %d raw trips merged into %d distinct journeys (%d synthetic calendars for OR'd weekday masks)\n", count($aSignatures), count($aGroups), count($aSyntheticCalendars));
 
-    if (!empty($syntheticCalendars)) {
-        $stmt = $pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
-        foreach ($syntheticCalendars as $id => $mask) {
-            $stmt->execute([$id, '', '', $mask]);
+    if (!empty($aSyntheticCalendars)) {
+        $Stmt = $Pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
+        foreach ($aSyntheticCalendars as $sId => $iMask) {
+            $Stmt->execute([$sId, '', '', $iMask]);
         }
     }
 
-    if (!empty($extraIncludedDatesByCalendarId)) {
+    if (!empty($aExtraIncludedDatesByCalendarId)) {
 
-        $alreadyIncluded = [];
-        foreach ($calendars as $calId => $cal) {
-            foreach ($cal['includedDates'] as $date) {
-                $alreadyIncluded[$calId][$date] = true;
+        $aAlreadyIncluded = [];
+        foreach ($aCalendars as $sCalId => $aCal) {
+            foreach ($aCal['includedDates'] as $sDate) {
+                $aAlreadyIncluded[$sCalId][$sDate] = true;
             }
         }
-        $includeStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 1)');
-        foreach ($extraIncludedDatesByCalendarId as $calendarId => $dates) {
-            foreach (array_keys($dates) as $date) {
-                if (isset($alreadyIncluded[$calendarId][$date])) {
+        $IncludeStmt = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 1)');
+        foreach ($aExtraIncludedDatesByCalendarId as $sCalendarId => $aDates) {
+            foreach (array_keys($aDates) as $sDate) {
+                if (isset($aAlreadyIncluded[$sCalendarId][$sDate])) {
                     continue;
                 }
-                $includeStmt->execute([$calendarId, $date]);
+                $IncludeStmt->execute([$sCalendarId, $sDate]);
             }
         }
     }
 
     echo "  Pass 2/2: inserting merged journeys + passing_times...\n";
 
-    $insertPattern = $pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
-    $insertPatternStop = $pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
-    $insertJourney = $pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds) VALUES (?, ?, ?, ?, ?, ?)');
-    $insertPassingTime = $pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
-    $seenPatterns = [];
-    $rowCount = 0;
+    $InsertPattern = $Pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
+    $InsertPatternStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
+    $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds) VALUES (?, ?, ?, ?, ?, ?)');
+    $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+    $aSeenPatterns = [];
+    $iRowCount = 0;
 
-    foreach (streamStopTimesByTrip($zip) as $tripId => $buffer) {
-        $group = null;
-        if (isset($representatives[$tripId])) {
-            $group = $representatives[$tripId];
+    foreach (streamStopTimesByTrip($Zip) as $sTripId => $aBuffer) {
+        $aGroup = null;
+        if (isset($aRepresentatives[$sTripId])) {
+            $aGroup = $aRepresentatives[$sTripId];
         }
-        if ($group === null) {
+        if ($aGroup === null) {
             continue;
         }
 
-        usort($buffer, fn($a, $b) => $a['seqOrder'] <=> $b['seqOrder']);
-        $patternKey = $group['patternKey'];
+        usort($aBuffer, fn($aA, $aB) => $aA['seqOrder'] <=> $aB['seqOrder']);
+        $sPatternKey = $aGroup['patternKey'];
 
-        if (!isset($seenPatterns[$patternKey])) {
-            $seenPatterns[$patternKey] = true;
-            $insertPattern->execute([$patternKey, $group['routeId'], $group['headsign']]);
-            foreach ($buffer as $row) {
-                $insertPatternStop->execute([$patternKey, $row['seqOrder'], $row['stopId']]);
+        if (!isset($aSeenPatterns[$sPatternKey])) {
+            $aSeenPatterns[$sPatternKey] = true;
+            $InsertPattern->execute([$sPatternKey, $aGroup['routeId'], $aGroup['headsign']]);
+            foreach ($aBuffer as $aRow) {
+                $InsertPatternStop->execute([$sPatternKey, $aRow['seqOrder'], $aRow['stopId']]);
             }
-            $totals['patterns']++;
+            $aTotals['patterns']++;
         }
 
-        $tripNumber = $group['tripNumber'];
-        if ($tripNumber === null) {
-            $tripNumber = $tripId;
+        $sTripNumber = $aGroup['tripNumber'];
+        if ($sTripNumber === null) {
+            $sTripNumber = $sTripId;
         }
-        $insertJourney->execute([$tripId, $group['routeId'], $patternKey, $tripNumber, $group['calendarId'], $group['firstDeparture']]);
-        $totals['journeys']++;
+        $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'], $aGroup['firstDeparture']]);
+        $aTotals['journeys']++;
 
-        foreach ($buffer as $row) {
-            $insertPassingTime->execute([$tripId, $row['seqOrder'], $row['stopId'], $row['arrival'], $row['departure']]);
-            $totals['passingTimes']++;
+        foreach ($aBuffer as $aRow) {
+            $InsertPassingTime->execute([$sTripId, $aRow['seqOrder'], $aRow['stopId'], $aRow['arrival'], $aRow['departure']]);
+            $aTotals['passingTimes']++;
         }
 
-        $rowCount += count($buffer);
-        if ($rowCount % 50000 < 40) {
-            printf("  processed ~%d passing_times rows\r", $rowCount);
+        $iRowCount += count($aBuffer);
+        if ($iRowCount % 50000 < 40) {
+            printf("  processed ~%d passing_times rows\r", $iRowCount);
         }
     }
     echo "\n";
 
-    if ($skippedUnknownTrip > 0) {
-        fwrite(STDERR, "  WARNING: $skippedUnknownTrip stop_times groups skipped (trip_id not found in trips.txt)\n");
+    if ($iSkippedUnknownTrip > 0) {
+        fwrite(STDERR, "  WARNING: $iSkippedUnknownTrip stop_times groups skipped (trip_id not found in trips.txt)\n");
     }
-    if ($skippedUnknownRoute > 0) {
-        fwrite(STDERR, "  WARNING: $skippedUnknownRoute stop_times groups skipped (route_id not found in routes.txt)\n");
+    if ($iSkippedUnknownRoute > 0) {
+        fwrite(STDERR, "  WARNING: $iSkippedUnknownRoute stop_times groups skipped (route_id not found in routes.txt)\n");
     }
-    if ($skippedDuplicateTrip > 0) {
-        fwrite(STDERR, "  WARNING: $skippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
+    if ($iSkippedDuplicateTrip > 0) {
+        fwrite(STDERR, "  WARNING: $iSkippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
     }
 }
 
-function timeToSeconds(string $hms): int
+function timeToSeconds(string $sHms): int
 {
-    [$h, $m, $s] = array_map('intval', explode(':', $hms));
-    return $h * 3600 + $m * 60 + $s;
+    [$iH, $iM, $iS] = array_map('intval', explode(':', $sHms));
+    return $iH * 3600 + $iM * 60 + $iS;
 }
 
-function createSchema(PDO $pdo): void
+function createSchema(PDO $Pdo): void
 {
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE stops (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -843,7 +843,7 @@ function createSchema(PDO $pdo): void
             lon REAL NOT NULL
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE lines (
             id INTEGER PRIMARY KEY,
             code TEXT NOT NULL,
@@ -851,21 +851,21 @@ function createSchema(PDO $pdo): void
             name_normalized TEXT NOT NULL
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE journey_patterns (
             id TEXT PRIMARY KEY,
             line_id INTEGER NOT NULL,
             headsign TEXT
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE journey_pattern_stops (
             journey_pattern_id TEXT NOT NULL,
             seq_order INTEGER NOT NULL,
             stop_id INTEGER NOT NULL
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE service_journeys (
             id TEXT PRIMARY KEY,
             line_id INTEGER NOT NULL,
@@ -875,7 +875,7 @@ function createSchema(PDO $pdo): void
             first_departure_seconds INTEGER
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE passing_times (
             service_journey_id TEXT NOT NULL,
             seq_order INTEGER NOT NULL,
@@ -884,7 +884,7 @@ function createSchema(PDO $pdo): void
             departure_seconds INTEGER
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE service_calendars (
             id TEXT PRIMARY KEY,
             from_date TEXT NOT NULL,
@@ -893,14 +893,14 @@ function createSchema(PDO $pdo): void
         )
     ');
 
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE service_calendar_exceptions (
             calendar_id TEXT NOT NULL,
             date TEXT NOT NULL,
             available INTEGER NOT NULL
         )
     ');
-    $pdo->exec('
+    $Pdo->exec('
         CREATE TABLE meta (
             key TEXT PRIMARY KEY,
             value TEXT NOT NULL
@@ -908,87 +908,87 @@ function createSchema(PDO $pdo): void
     ');
 }
 
-function loadFeedInfo(ZipArchive $zip): array
+function loadFeedInfo(ZipArchive $Zip): array
 {
 
-    if ($zip->locateName('feed_info.txt') === false) {
+    if ($Zip->locateName('feed_info.txt') === false) {
         return [];
     }
-    foreach (readCsv($zip, 'feed_info.txt') as $row) {
-        $feedVersion = '';
-        if (isset($row['feed_version'])) {
-            $feedVersion = $row['feed_version'];
+    foreach (readCsv($Zip, 'feed_info.txt') as $aRow) {
+        $sFeedVersion = '';
+        if (isset($aRow['feed_version'])) {
+            $sFeedVersion = $aRow['feed_version'];
         }
-        $feedStartDate = '';
-        if (isset($row['feed_start_date'])) {
-            $feedStartDate = $row['feed_start_date'];
+        $sFeedStartDate = '';
+        if (isset($aRow['feed_start_date'])) {
+            $sFeedStartDate = $aRow['feed_start_date'];
         }
-        $feedEndDate = '';
-        if (isset($row['feed_end_date'])) {
-            $feedEndDate = $row['feed_end_date'];
+        $sFeedEndDate = '';
+        if (isset($aRow['feed_end_date'])) {
+            $sFeedEndDate = $aRow['feed_end_date'];
         }
         return [
-            'feed_version' => $feedVersion,
-            'feed_start_date' => $feedStartDate,
-            'feed_end_date' => $feedEndDate,
+            'feed_version' => $sFeedVersion,
+            'feed_start_date' => $sFeedStartDate,
+            'feed_end_date' => $sFeedEndDate,
         ];
     }
     return [];
 }
 
-function insertMeta(PDO $pdo, array $feedInfo): void
+function insertMeta(PDO $Pdo, array $aFeedInfo): void
 {
-    $publishedDate = date('Y-m-d');
-    if (isset($feedInfo['feed_version']) && preg_match('/^\d{8}$/', $feedInfo['feed_version'])) {
-        $publishedDate = gtfsDateToIso($feedInfo['feed_version']);
+    $sPublishedDate = date('Y-m-d');
+    if (isset($aFeedInfo['feed_version']) && preg_match('/^\d{8}$/', $aFeedInfo['feed_version'])) {
+        $sPublishedDate = gtfsDateToIso($aFeedInfo['feed_version']);
     }
 
-    $stmt = $pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
-    $stmt->execute(['schedule_source_published', $publishedDate]);
-    if (isset($feedInfo['feed_start_date']) && $feedInfo['feed_start_date'] !== '') {
-        $stmt->execute(['feed_start_date', gtfsDateToIso($feedInfo['feed_start_date'])]);
+    $Stmt = $Pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
+    $Stmt->execute(['schedule_source_published', $sPublishedDate]);
+    if (isset($aFeedInfo['feed_start_date']) && $aFeedInfo['feed_start_date'] !== '') {
+        $Stmt->execute(['feed_start_date', gtfsDateToIso($aFeedInfo['feed_start_date'])]);
     }
-    if (isset($feedInfo['feed_end_date']) && $feedInfo['feed_end_date'] !== '') {
-        $stmt->execute(['feed_end_date', gtfsDateToIso($feedInfo['feed_end_date'])]);
+    if (isset($aFeedInfo['feed_end_date']) && $aFeedInfo['feed_end_date'] !== '') {
+        $Stmt->execute(['feed_end_date', gtfsDateToIso($aFeedInfo['feed_end_date'])]);
     }
 }
 
-function createIndexes(PDO $pdo): void
+function createIndexes(PDO $Pdo): void
 {
-    $pdo->exec('CREATE INDEX idx_passing_times_stop ON passing_times (stop_id, departure_seconds)');
-    $pdo->exec('CREATE INDEX idx_passing_times_journey ON passing_times (service_journey_id)');
-    $pdo->exec('CREATE INDEX idx_journeys_line ON service_journeys (line_id, trip_number, first_departure_seconds)');
-    $pdo->exec('CREATE INDEX idx_journeys_calendar ON service_journeys (calendar_id)');
-    $pdo->exec('CREATE INDEX idx_pattern_stops ON journey_pattern_stops (journey_pattern_id, seq_order)');
-    $pdo->exec('CREATE INDEX idx_stops_normalized ON stops (name_normalized)');
-    $pdo->exec('CREATE INDEX idx_lines_normalized ON lines (name_normalized)');
-    $pdo->exec('CREATE INDEX idx_calendar_exceptions ON service_calendar_exceptions (calendar_id, date)');
+    $Pdo->exec('CREATE INDEX idx_passing_times_stop ON passing_times (stop_id, departure_seconds)');
+    $Pdo->exec('CREATE INDEX idx_passing_times_journey ON passing_times (service_journey_id)');
+    $Pdo->exec('CREATE INDEX idx_journeys_line ON service_journeys (line_id, trip_number, first_departure_seconds)');
+    $Pdo->exec('CREATE INDEX idx_journeys_calendar ON service_journeys (calendar_id)');
+    $Pdo->exec('CREATE INDEX idx_pattern_stops ON journey_pattern_stops (journey_pattern_id, seq_order)');
+    $Pdo->exec('CREATE INDEX idx_stops_normalized ON stops (name_normalized)');
+    $Pdo->exec('CREATE INDEX idx_lines_normalized ON lines (name_normalized)');
+    $Pdo->exec('CREATE INDEX idx_calendar_exceptions ON service_calendar_exceptions (calendar_id, date)');
 }
 
-function insertStops(PDO $pdo, array $stops): void
+function insertStops(PDO $Pdo, array $aStops): void
 {
-    $stmt = $pdo->prepare('INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    foreach ($stops as $id => $stop) {
-        $area = '';
-        if (isset($stop['area'])) {
-            $area = $stop['area'];
+    $Stmt = $Pdo->prepare('INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    foreach ($aStops as $iId => $aStop) {
+        $sArea = '';
+        if (isset($aStop['area'])) {
+            $sArea = $aStop['area'];
         }
-        $stmt->execute([$id, $stop['name'], normalize($stop['name']), $area, normalize($area), $stop['lat'], $stop['lon']]);
+        $Stmt->execute([$iId, $aStop['name'], normalize($aStop['name']), $sArea, normalize($sArea), $aStop['lat'], $aStop['lon']]);
     }
 }
 
-function insertCalendars(PDO $pdo, array $calendars): void
+function insertCalendars(PDO $Pdo, array $aCalendars): void
 {
-    $stmt = $pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
-    $excludeStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
-    $includeStmt = $pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 1)');
-    foreach ($calendars as $id => $cal) {
-        $stmt->execute([$id, $cal['from'], $cal['to'], $cal['weekdayMask']]);
-        foreach ($cal['excludedDates'] as $date) {
-            $excludeStmt->execute([$id, $date]);
+    $Stmt = $Pdo->prepare('INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES (?, ?, ?, ?)');
+    $ExcludeStmt = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
+    $IncludeStmt = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 1)');
+    foreach ($aCalendars as $sId => $aCal) {
+        $Stmt->execute([$sId, $aCal['from'], $aCal['to'], $aCal['weekdayMask']]);
+        foreach ($aCal['excludedDates'] as $sDate) {
+            $ExcludeStmt->execute([$sId, $sDate]);
         }
-        foreach ($cal['includedDates'] as $date) {
-            $includeStmt->execute([$id, $date]);
+        foreach ($aCal['includedDates'] as $sDate) {
+            $IncludeStmt->execute([$sId, $sDate]);
         }
     }
 }
