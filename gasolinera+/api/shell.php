@@ -106,6 +106,7 @@
         <section id="view-list">
             <ul id="stations-list"></ul>
             <p id="stations-empty" hidden>No hay gasolineras que coincidan con la búsqueda.</p>
+            <p id="stations-load-sentinel" hidden>Cargando más gasolineras…</p>
         </section>
 
         <section id="view-map" hidden>

@@ -19,6 +19,8 @@
 
     const TREND_SYMBOL = { up: '▲', down: '▼', same: '=' };
 
+    const PAGE_SIZE = 30;
+
     const el = {
         searchForm: document.getElementById('search-form'),
         searchInput: document.getElementById('search-input'),
@@ -32,6 +34,7 @@
         viewMap: document.getElementById('view-map'),
         stationsList: document.getElementById('stations-list'),
         stationsEmpty: document.getElementById('stations-empty'),
+        stationsLoadSentinel: document.getElementById('stations-load-sentinel'),
         geoFallback: document.getElementById('geo-fallback'),
         geoRetry: document.getElementById('geo-retry'),
         heatmapToggle: document.getElementById('heatmap-toggle'),
@@ -65,6 +68,11 @@
         userLat: null,
         userLon: null,
         currentStations: [],
+        stationsMode: null,
+        stationsQuery: '',
+        stationsOffset: 0,
+        stationsHasMore: false,
+        stationsLoading: false,
         currentView: 'list',
         mapReady: false,
         map: null,
@@ -247,37 +255,68 @@
         if (state.userLat === null || state.userLon === null) {
             return;
         }
-        const filters = currentFilters();
-        let data;
-        try {
-            data = await Api.near({ lat: state.userLat, lon: state.userLon, ...filters });
-        } catch (e) {
+        state.stationsMode = 'nearby';
+        await fetchStationsPage(true);
+    }
+
+    async function performSearch(query) {
+        state.stationsMode = 'search';
+        state.stationsQuery = query;
+        await fetchStationsPage(true);
+    }
+
+    // reset=true empieza una búsqueda nueva desde el offset 0; reset=false
+    // añade la siguiente página a la lista ya cargada (scroll infinito).
+    async function fetchStationsPage(reset) {
+        if (state.stationsLoading) {
             return;
         }
-        state.currentStations = data.stations;
-        renderList(data.stations);
+        if (reset) {
+            state.stationsOffset = 0;
+            state.stationsHasMore = false;
+        } else if (!state.stationsHasMore) {
+            return;
+        }
+        state.stationsLoading = true;
+        updateLoadSentinel();
+
+        const filters = currentFilters();
+        const page = { offset: state.stationsOffset, limit: PAGE_SIZE };
+        let data;
+        try {
+            if (state.stationsMode === 'search') {
+                data = await Api.search({ q: state.stationsQuery, lat: state.userLat, lon: state.userLon, ...filters, ...page });
+            } else {
+                data = await Api.near({ lat: state.userLat, lon: state.userLon, ...filters, ...page });
+            }
+        } catch (e) {
+            state.stationsLoading = false;
+            updateLoadSentinel();
+            return;
+        }
+
+        if (reset) {
+            state.currentStations = data.stations;
+        } else {
+            state.currentStations = state.currentStations.concat(data.stations);
+        }
+        state.stationsOffset += data.stations.length;
+        state.stationsHasMore = Boolean(data.hasMore);
+        state.stationsLoading = false;
+
+        renderList(state.currentStations);
+        updateLoadSentinel();
         if (state.currentView === 'map') {
             refreshMapMarkers();
         }
     }
 
-    async function performSearch(query) {
-        const filters = currentFilters();
-        let data;
-        try {
-            data = await Api.search({
-                q: query,
-                lat: state.userLat,
-                lon: state.userLon,
-                ...filters,
-            });
-        } catch (e) {
-            return;
-        }
-        state.currentStations = data.stations;
-        renderList(data.stations);
-        if (state.currentView === 'map') {
-            refreshMapMarkers();
+    function updateLoadSentinel() {
+        el.stationsLoadSentinel.hidden = !state.stationsHasMore && !state.stationsLoading;
+        if (state.stationsLoading) {
+            el.stationsLoadSentinel.textContent = 'Cargando más gasolineras…';
+        } else {
+            el.stationsLoadSentinel.textContent = 'Desplázate para ver más';
         }
     }
 
@@ -701,6 +740,15 @@
             });
         });
     }
+
+    // ---- Scroll infinito ----
+
+    const loadMoreObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            fetchStationsPage(false);
+        }
+    }, { rootMargin: '200px' });
+    loadMoreObserver.observe(el.stationsLoadSentinel);
 
     // ---- Eventos ----
 

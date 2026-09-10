@@ -11,18 +11,22 @@ const Api = (() => {
     }
 
     return {
-        near: ({ lat, lon, radius, sort, fuel, open }) => {
+        near: ({ lat, lon, radius, sort, fuel, open, offset, limit }) => {
             const params = new URLSearchParams({ lat, lon, radius, sort });
             if (fuel) params.set('fuel', fuel);
             if (open) params.set('open', open);
+            if (offset) params.set('offset', offset);
+            if (limit) params.set('limit', limit);
             return request(`/stations/near?${params}`);
         },
-        search: ({ q, lat, lon, sort, fuel, open }) => {
+        search: ({ q, lat, lon, sort, fuel, open, offset, limit }) => {
             const params = new URLSearchParams({ q, sort });
             if (lat !== undefined && lat !== null) params.set('lat', lat);
             if (lon !== undefined && lon !== null) params.set('lon', lon);
             if (fuel) params.set('fuel', fuel);
             if (open) params.set('open', open);
+            if (offset) params.set('offset', offset);
+            if (limit) params.set('limit', limit);
             return request(`/stations/search?${params}`);
         },
         bbox: ({ north, south, east, west, fuel, open }) => {
