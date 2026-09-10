@@ -56,8 +56,15 @@ class TimetableController
             $hourTo += 24 * 3600;
         }
 
+        // Cuando se llega desde una parada concreta (panel de anden -> "Ver
+        // horario completo"), el frontend manda su id -- las horas de la
+        // tabla pasan a ser la hora de paso por ESA parada, no la salida
+        // desde el origen de la linea. Ver timetableForLine().
+        $stopIdRaw = $request->query('stopId');
+        $stopId = ($stopIdRaw !== null && $stopIdRaw !== '') ? (int)$stopIdRaw : null;
+
         $journeyModel = new ServiceJourney($pdo);
-        $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo);
+        $rows = $journeyModel->timetableForLine($lineId, $date, $hourFrom, $hourTo, $stopId);
 
         $isToday = $date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($isToday && isset($config['siri'])) {

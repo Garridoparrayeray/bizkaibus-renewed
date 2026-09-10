@@ -133,16 +133,24 @@ class ServiceJourney
     }
 
     /**
-     * Salidas programadas desde la parada de origen de una línea, para el día
-     * de la semana en que cae $date, dentro de un rango horario. Usado en
-     * "Tabla Horaria".
+     * Salidas programadas de una línea, para el día de la semana en que cae
+     * $date, dentro de un rango horario. Usado en "Tabla Horaria".
+     *
+     * $stopId, cuando se pasa, ancla la hora de cada salida a la hora de
+     * paso por ESA parada concreta (pt.stop_id), no a la salida desde el
+     * origen -- así "Ver horario completo" desde una parada muestra la hora
+     * a la que el bus/metro pasa por allí, igual que ya hace upcomingAtStop()
+     * para el panel de andén. Sin $stopId (viendo la tabla horaria de una
+     * línea directamente, sin partir de una parada) se mantiene el
+     * comportamiento de siempre: hora de salida desde el origen (seq_order 1).
      *
      * @return array<int, array<string, mixed>>
      */
-    public function timetableForLine(int $lineId, \DateTime $date, int $hourFromSeconds, int $hourToSeconds): array
+    public function timetableForLine(int $lineId, \DateTime $date, int $hourFromSeconds, int $hourToSeconds, ?int $stopId = null): array
     {
         $weekdayBit = Calendar::weekdayBitFor($date);
         $dateStr = $date->format('Y-m-d');
+        $stopCondition = $stopId !== null ? 'pt.stop_id = :stopId' : 'pt.seq_order = 1';
 
         $stmt = $this->pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.id AS service_journey_id,
@@ -153,7 +161,7 @@ class ServiceJourney
             JOIN service_calendars sc ON sc.id = sj.calendar_id
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE sj.line_id = :lineId
-              AND pt.seq_order = 1
+              AND ' . $stopCondition . '
               AND sc.id != \'PRUEBA\'
               AND (
                   (sc.weekday_mask & :weekdayBit) != 0
@@ -169,14 +177,18 @@ class ServiceJourney
               AND pt.departure_seconds BETWEEN :hourFrom AND :hourTo
             ORDER BY pt.departure_seconds ASC
         ');
-        $stmt->execute([
+        $params = [
             'lineId' => $lineId,
             'weekdayBit' => $weekdayBit,
             'dateStr' => $dateStr,
             'dateStr2' => $dateStr,
             'hourFrom' => $hourFromSeconds,
             'hourTo' => $hourToSeconds,
-        ]);
+        ];
+        if ($stopId !== null) {
+            $params['stopId'] = $stopId;
+        }
+        $stmt->execute($params);
 
         // 2000: Bizkaibus nunca pasa de ~190 salidas/día por línea, pero
         // Metro+ agrega TODA la red bajo una única línea (854 salidas/día
