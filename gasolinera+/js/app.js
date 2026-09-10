@@ -72,12 +72,20 @@
         modalChart: document.getElementById('modal-chart'),
         modalDirections: document.getElementById('modal-directions'),
         modalCompareToggle: document.getElementById('modal-compare-toggle'),
+        modalFavoriteToggle: document.getElementById('modal-favorite-toggle'),
         compareOpen: document.getElementById('compare-open'),
         compareCount: document.getElementById('compare-count'),
         comparePanel: document.getElementById('compare-panel'),
         compareClose: document.getElementById('compare-close'),
         compareEmpty: document.getElementById('compare-empty'),
         compareTable: document.getElementById('compare-table'),
+        favoritesOpen: document.getElementById('favorites-open'),
+        favoritesCount: document.getElementById('favorites-count'),
+        favoritesPanel: document.getElementById('favorites-panel'),
+        favoritesClose: document.getElementById('favorites-close'),
+        favoritesEmpty: document.getElementById('favorites-empty'),
+        favoritesList: document.getElementById('favorites-list'),
+        toast: document.getElementById('toast'),
         nationalToggle: document.getElementById('national-stats-toggle'),
         nationalDetail: document.getElementById('national-stats-detail'),
         nationalGasoleoA: document.getElementById('national-gasoleo-a'),
@@ -133,6 +141,8 @@
         statsSelectedIdeess: null,
         statsSearchTimer: null,
         compareList: loadCompareList(),
+        favoritesList: loadFavorites(),
+        toastTimer: null,
     };
 
     // ---- Comparador (localStorage) ----
@@ -191,6 +201,109 @@
         const count = state.compareList.length;
         el.compareCount.textContent = String(count);
         el.compareCount.hidden = count === 0;
+    }
+
+    // ---- Favoritas (localStorage) ----
+
+    function loadFavorites() {
+        try {
+            const raw = localStorage.getItem('gasolinera_favorites');
+            let parsed = [];
+            if (raw) {
+                parsed = JSON.parse(raw);
+            }
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+            return [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveFavorites() {
+        try {
+            localStorage.setItem('gasolinera_favorites', JSON.stringify(state.favoritesList));
+        } catch (e) {
+            // localStorage puede fallar en navegación privada; las favoritas
+            // siguen funcionando en memoria durante la sesión, solo no persisten.
+        }
+        updateFavoritesCount();
+    }
+
+    function isFavorite(ideess) {
+        return state.favoritesList.some((s) => s.ideess === ideess);
+    }
+
+    function favoriteToggleLabel(ideess) {
+        if (isFavorite(ideess)) {
+            return 'Quitar de favoritas';
+        }
+        return 'Añadir a favoritas';
+    }
+
+    function addToFavorites(ideess, rotulo, direccion, municipio) {
+        if (isFavorite(ideess)) {
+            return;
+        }
+        state.favoritesList.push({ ideess, rotulo, direccion, municipio });
+        saveFavorites();
+    }
+
+    function removeFromFavorites(ideess) {
+        state.favoritesList = state.favoritesList.filter((s) => s.ideess !== ideess);
+        saveFavorites();
+    }
+
+    function updateFavoritesCount() {
+        const count = state.favoritesList.length;
+        el.favoritesCount.textContent = String(count);
+        el.favoritesCount.hidden = count === 0;
+    }
+
+    function openFavoritesPanel() {
+        renderFavoritesPanel();
+        el.favoritesPanel.showModal();
+    }
+
+    function renderFavoritesPanel() {
+        el.favoritesEmpty.hidden = state.favoritesList.length > 0;
+        el.favoritesList.innerHTML = '';
+        for (const entry of state.favoritesList) {
+            const li = document.createElement('li');
+            const openBtn = document.createElement('button');
+            openBtn.type = 'button';
+            openBtn.className = 'favorites-item-open';
+            openBtn.innerHTML = `<strong>${escapeHtml(entry.rotulo)}</strong><small>${escapeHtml(entry.direccion)}, ${escapeHtml(entry.municipio || '')}</small>`;
+            openBtn.addEventListener('click', () => {
+                el.favoritesPanel.close();
+                openStationModal(entry.ideess);
+            });
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'favorites-item-remove';
+            removeBtn.textContent = 'Quitar';
+            removeBtn.addEventListener('click', () => {
+                removeFromFavorites(entry.ideess);
+                renderFavoritesPanel();
+            });
+            li.appendChild(openBtn);
+            li.appendChild(removeBtn);
+            el.favoritesList.appendChild(li);
+        }
+    }
+
+    // ---- Aviso flotante (toast) ----
+
+    function showToast(message) {
+        clearTimeout(state.toastTimer);
+        el.toast.textContent = message;
+        el.toast.hidden = false;
+        el.toast.style.opacity = '1';
+        state.toastTimer = setTimeout(() => {
+            el.toast.style.opacity = '0';
+            setTimeout(() => { el.toast.hidden = true; }, 200);
+        }, 1600);
     }
 
     // ---- Geolocalización ----
@@ -474,7 +587,7 @@
 
     function stationHeaderCell(d) {
         if (d) {
-            return `<th>${escapeHtml(d.rotulo)}</th>`;
+            return `<th><strong>${escapeHtml(d.rotulo)}</strong><small>${escapeHtml(d.direccion)}, ${escapeHtml(d.municipio)}</small></th>`;
         }
         return '<th>—</th>';
     }
@@ -997,14 +1110,30 @@
 
         el.modalDirections.href = `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`;
 
+        el.modalFavoriteToggle.textContent = favoriteToggleLabel(ideess);
+        el.modalFavoriteToggle.setAttribute('aria-pressed', String(isFavorite(ideess)));
+        el.modalFavoriteToggle.onclick = () => {
+            if (isFavorite(ideess)) {
+                removeFromFavorites(ideess);
+                el.modalFavoriteToggle.textContent = favoriteToggleLabel(ideess);
+                el.modalFavoriteToggle.setAttribute('aria-pressed', 'false');
+            } else {
+                addToFavorites(ideess, station.rotulo, station.direccion, station.municipio);
+                showToast(`${station.rotulo} añadida a favoritas`);
+                setTimeout(() => el.stationModal.close(), 900);
+            }
+        };
+
         el.modalCompareToggle.textContent = compareToggleLabel(ideess);
         el.modalCompareToggle.onclick = () => {
             if (isInCompareList(ideess)) {
                 removeFromCompare(ideess);
+                el.modalCompareToggle.textContent = compareToggleLabel(ideess);
             } else {
                 addToCompare(ideess, station.rotulo, station.direccion);
+                showToast(`${station.rotulo} añadida a comparar`);
+                setTimeout(() => el.stationModal.close(), 900);
             }
-            el.modalCompareToggle.textContent = compareToggleLabel(ideess);
         };
 
         loadZoneComparison(ideess, defaultFuel);
@@ -1226,12 +1355,19 @@
         if (e.target === el.comparePanel) el.comparePanel.close();
     });
 
+    el.favoritesOpen.addEventListener('click', openFavoritesPanel);
+    el.favoritesClose.addEventListener('click', () => el.favoritesPanel.close());
+    el.favoritesPanel.addEventListener('click', (e) => {
+        if (e.target === el.favoritesPanel) el.favoritesPanel.close();
+    });
+
     el.statsTo.value = todayIso();
     el.statsFrom.value = daysAgoIso(30);
     el.statsTo.max = todayIso();
     el.statsFrom.max = todayIso();
 
     updateCompareCount();
+    updateFavoritesCount();
     requestGeolocation();
     loadNationalHeadline();
 })();
