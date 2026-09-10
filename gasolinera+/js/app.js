@@ -34,6 +34,7 @@
     const el = {
         searchForm: document.getElementById('search-form'),
         searchInput: document.getElementById('search-input'),
+        backToNearby: document.getElementById('back-to-nearby'),
         filterFuel: document.getElementById('filter-fuel'),
         filterRadius: document.getElementById('filter-radius'),
         filterSort: document.getElementById('filter-sort'),
@@ -302,12 +303,20 @@
             return;
         }
         state.stationsMode = 'nearby';
+        el.backToNearby.hidden = true;
         await loadStationsPage(1);
+    }
+
+    async function backToNearby() {
+        el.searchInput.value = '';
+        el.stationsGeocodedNote.hidden = true;
+        await loadNearby();
     }
 
     async function performSearch(query) {
         state.stationsMode = 'search';
         state.stationsQuery = query;
+        el.backToNearby.hidden = state.userLat === null;
         await loadStationsPage(1);
     }
 
@@ -1117,11 +1126,23 @@
     el.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const query = el.searchInput.value.trim();
+        if (query.length === 0 && state.stationsMode === 'search') {
+            backToNearby();
+            return;
+        }
         if (query.length < 2) {
             return;
         }
         performSearch(query);
     });
+
+    el.searchInput.addEventListener('input', () => {
+        if (el.searchInput.value.trim().length === 0 && state.stationsMode === 'search') {
+            backToNearby();
+        }
+    });
+
+    el.backToNearby.addEventListener('click', backToNearby);
 
     [el.filterFuel, el.filterRadius, el.filterSort, el.filterOpen].forEach((input) => {
         input.addEventListener('change', () => {
