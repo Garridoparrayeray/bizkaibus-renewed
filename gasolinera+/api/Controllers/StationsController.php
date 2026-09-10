@@ -40,9 +40,10 @@ class StationsController
         $fuel = $this->normalizeFuel($request->query('fuel'));
         $sort = $this->normalizeSort($request->query('sort'));
         [$open24h, $openNow] = $this->parseOpenParam($request->query('open'));
+        [$offset, $limit] = $this->parsePageParams($request);
 
         $model = new Station(Database::connection());
-        $results = $model->near(
+        $page = $model->near(
             (float)$lat,
             (float)$lon,
             (float)$radius,
@@ -50,10 +51,17 @@ class StationsController
             $fuel,
             $open24h,
             $openNow,
-            (int)$config['stale_station_days']
+            (int)$config['stale_station_days'],
+            $offset,
+            $limit
         );
 
-        Response::json(['stations' => $results, 'attribution' => $config['attribution']]);
+        Response::json([
+            'stations' => $page['items'],
+            'total' => $page['total'],
+            'hasMore' => ($offset + count($page['items'])) < $page['total'],
+            'attribution' => $config['attribution'],
+        ]);
     }
 
     /** Buscador de texto (municipio, dirección o marca), alternativa al radio, ruta /stations/search. */
@@ -83,9 +91,10 @@ class StationsController
             $sort = 'price';
         }
         [$open24h, $openNow] = $this->parseOpenParam($request->query('open'));
+        [$offset, $limit] = $this->parsePageParams($request);
 
         $model = new Station(Database::connection());
-        $results = $model->search(
+        $page = $model->search(
             $q,
             $latFloat,
             $lonFloat,
@@ -93,10 +102,17 @@ class StationsController
             $fuel,
             $open24h,
             $openNow,
-            (int)$config['stale_station_days']
+            (int)$config['stale_station_days'],
+            $offset,
+            $limit
         );
 
-        Response::json(['stations' => $results, 'attribution' => $config['attribution']]);
+        Response::json([
+            'stations' => $page['items'],
+            'total' => $page['total'],
+            'hasMore' => ($offset + count($page['items'])) < $page['total'],
+            'attribution' => $config['attribution'],
+        ]);
     }
 
     /**
@@ -250,5 +266,22 @@ class StationsController
             return [false, true];
         }
         return [false, false];
+    }
+
+    /** @return array{0:int,1:int} [offset, limit] */
+    private function parsePageParams(Request $request): array
+    {
+        $offset = $request->queryInt('offset', 0);
+        if ($offset === null || $offset < 0) {
+            $offset = 0;
+        }
+        $limit = $request->queryInt('limit', 30);
+        if ($limit === null || $limit <= 0) {
+            $limit = 30;
+        }
+        if ($limit > 100) {
+            $limit = 100;
+        }
+        return [$offset, $limit];
     }
 }

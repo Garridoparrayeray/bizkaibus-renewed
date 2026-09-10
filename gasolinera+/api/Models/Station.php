@@ -28,28 +28,26 @@ class Station
         ?string $fuel,
         bool $open24h,
         bool $openNow,
-        int $staleStationDays
+        int $staleStationDays,
+        int $offset,
+        int $limit
     ): array {
         $bbox = self::boundingBox($lat, $lon, $radiusKm);
         $rows = $this->fetchInBoundingBox($bbox, $fuel, $open24h, $staleStationDays);
 
-        $results = [];
+        $candidates = [];
         foreach ($rows as $row) {
             $distanceKm = self::haversineKm($lat, $lon, (float)$row['lat'], (float)$row['lon']);
             if ($distanceKm > $radiusKm) {
                 continue;
             }
-            $results[] = $this->buildListItem($row, $distanceKm);
+            if ($openNow && $this->isOpenNow($row['horario_raw']) !== true) {
+                continue;
+            }
+            $candidates[] = ['row' => $row, 'distanceKm' => $distanceKm];
         }
 
-        if ($openNow) {
-            $results = array_values(array_filter($results, function ($item) {
-                return OpeningHours::isOpenAt($item['horarioRaw'], new \DateTime('now', new \DateTimeZone('Europe/Madrid'))) === true;
-            }));
-        }
-
-        self::sortResults($results, $sort, $fuel);
-        return $results;
+        return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
     }
 
     /**
@@ -67,7 +65,9 @@ class Station
         ?string $fuel,
         bool $open24h,
         bool $openNow,
-        int $staleStationDays
+        int $staleStationDays,
+        int $offset,
+        int $limit
     ): array {
         $normalized = Search::normalize($query);
         $like = '%' . $normalized . '%';
@@ -88,23 +88,19 @@ class Station
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        $results = [];
+        $candidates = [];
         foreach ($rows as $row) {
             $distanceKm = null;
             if ($lat !== null && $lon !== null) {
                 $distanceKm = self::haversineKm($lat, $lon, (float)$row['lat'], (float)$row['lon']);
             }
-            $results[] = $this->buildListItem($row, $distanceKm, $fuel);
+            if ($openNow && $this->isOpenNow($row['horario_raw']) !== true) {
+                continue;
+            }
+            $candidates[] = ['row' => $row, 'distanceKm' => $distanceKm];
         }
 
-        if ($openNow) {
-            $results = array_values(array_filter($results, function ($item) {
-                return OpeningHours::isOpenAt($item['horarioRaw'], new \DateTime('now', new \DateTimeZone('Europe/Madrid'))) === true;
-            }));
-        }
-
-        self::sortResults($results, $sort, $fuel);
-        return $results;
+        return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
     }
 
     /**
@@ -371,51 +367,115 @@ class Station
         return $item;
     }
 
-    private static function sortResults(array &$results, string $sort, ?string $fuel): void
+    private function isOpenNow(string $horarioRaw): ?bool
+    {
+        return OpeningHours::isOpenAt($horarioRaw, new \DateTime('now', new \DateTimeZone('Europe/Madrid')));
+    }
+
+    /**
+     * Ordena los candidatos (fila cruda + distancia, sin precios ni
+     * tendencias todavía), pagina, y solo entonces construye el item
+     * completo (con sus dos consultas extra de precio/tendencia) para la
+     * página pedida. Así el coste de las N+1 consultas de buildListItem()
+     * es proporcional al tamaño de página, no al total de coincidencias.
+     *
+     * @param array<int, array{row: array<string, mixed>, distanceKm: ?float}> $candidates
+     */
+    private function sortPaginateAndBuild(array $candidates, string $sort, ?string $fuel, int $offset, int $limit): array
     {
         if ($sort === 'distance') {
-            usort($results, function ($a, $b) {
-                if ($a['distanciaKm'] === null && $b['distanciaKm'] === null) {
+            usort($candidates, function ($a, $b) {
+                if ($a['distanceKm'] === null && $b['distanceKm'] === null) {
                     return 0;
                 }
-                if ($a['distanciaKm'] === null) {
+                if ($a['distanceKm'] === null) {
                     return 1;
                 }
-                if ($b['distanciaKm'] === null) {
+                if ($b['distanceKm'] === null) {
                     return -1;
                 }
-                return $a['distanciaKm'] <=> $b['distanciaKm'];
+                return $a['distanceKm'] <=> $b['distanceKm'];
             });
-            return;
+        } else {
+            $sortFuel = $fuel;
+            if ($sortFuel === null) {
+                $sortFuel = 'gasoleo_a';
+            }
+            $ideessList = array_map(fn($c) => $c['row']['ideess'], $candidates);
+            $priceMap = $this->batchSortPrices($ideessList, $sortFuel);
+            usort($candidates, function ($a, $b) use ($priceMap) {
+                $priceA = $priceMap[$a['row']['ideess']];
+                $priceB = $priceMap[$b['row']['ideess']];
+                if ($priceA === null && $priceB === null) {
+                    return 0;
+                }
+                if ($priceA === null) {
+                    return 1;
+                }
+                if ($priceB === null) {
+                    return -1;
+                }
+                return $priceA <=> $priceB;
+            });
         }
 
-        $sortFuel = $fuel;
-        if ($sortFuel === null) {
-            $sortFuel = 'gasoleo_a';
+        $total = count($candidates);
+        $page = array_slice($candidates, $offset, $limit);
+
+        $items = [];
+        foreach ($page as $candidate) {
+            $items[] = $this->buildListItem($candidate['row'], $candidate['distanceKm'], $fuel);
         }
-        usort($results, function ($a, $b) use ($sortFuel) {
-            $priceA = null;
-            if (isset($a['precios'][$sortFuel])) {
-                $priceA = $a['precios'][$sortFuel];
-            } elseif (isset($a['precios']['gasolina_95_e5'])) {
-                $priceA = $a['precios']['gasolina_95_e5'];
+
+        return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * Precio de $sortFuel (con el mismo fallback a gasolina_95_e5 que usa la
+     * lista visible) para cada ideess, en una sola consulta por lote de
+     * hasta 400 estaciones en vez de una consulta por estación.
+     *
+     * @param array<int, string> $ideessList
+     * @return array<string, ?float>
+     */
+    private function batchSortPrices(array $ideessList, string $sortFuel): array
+    {
+        $result = array_fill_keys($ideessList, null);
+        if (empty($ideessList)) {
+            return $result;
+        }
+
+        $fuels = [$sortFuel];
+        if ($sortFuel !== 'gasolina_95_e5') {
+            $fuels[] = 'gasolina_95_e5';
+        }
+        $fuelPlaceholders = implode(',', array_fill(0, count($fuels), '?'));
+
+        foreach (array_chunk($ideessList, 400) as $chunk) {
+            $idPlaceholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $this->pdo->prepare("
+                SELECT ideess, carburante, precio FROM current_prices
+                WHERE ideess IN ($idPlaceholders) AND carburante IN ($fuelPlaceholders)
+            ");
+            $stmt->execute([...$chunk, ...$fuels]);
+
+            $byStation = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $byStation[$row['ideess']][$row['carburante']] = (float)$row['precio'];
             }
-            $priceB = null;
-            if (isset($b['precios'][$sortFuel])) {
-                $priceB = $b['precios'][$sortFuel];
-            } elseif (isset($b['precios']['gasolina_95_e5'])) {
-                $priceB = $b['precios']['gasolina_95_e5'];
+            foreach ($chunk as $ideess) {
+                $prices = [];
+                if (isset($byStation[$ideess])) {
+                    $prices = $byStation[$ideess];
+                }
+                if (isset($prices[$sortFuel])) {
+                    $result[$ideess] = $prices[$sortFuel];
+                } elseif (isset($prices['gasolina_95_e5'])) {
+                    $result[$ideess] = $prices['gasolina_95_e5'];
+                }
             }
-            if ($priceA === null && $priceB === null) {
-                return 0;
-            }
-            if ($priceA === null) {
-                return 1;
-            }
-            if ($priceB === null) {
-                return -1;
-            }
-            return $priceA <=> $priceB;
-        });
+        }
+
+        return $result;
     }
 }
