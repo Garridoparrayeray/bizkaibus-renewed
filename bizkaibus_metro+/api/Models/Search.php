@@ -2,7 +2,6 @@
 
 namespace Models;
 
-/** Tiene que ser igual que normalize() de scripts/build-database.php para que las búsquedas casen con name_normalized. */
 class Search
 {
     public static function normalize(string $text): string

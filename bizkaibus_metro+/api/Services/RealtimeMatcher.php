@@ -4,35 +4,22 @@ namespace Services;
 
 use Models\ServiceJourney;
 
-/**
- * Enriquece las salidas programadas con datos en vivo de SIRI-VM cuando los
- * hay. Agrupa por (line_id, trip_number) y busca el departure_seconds más
- * cercano dentro de un margen; ver SiriVehicleMonitoringClient para por qué
- * ni el id exacto ni la hora exacta funcionan contra este feed.
- */
 class RealtimeMatcher
 {
     private const STALE_GRACE_SECONDS = 120;
     private const MATCH_TOLERANCE_SECONDS = 180;
-    /** Si la estimación por posición y la de retraso plano difieren más de esto,
-     *  es que el Order del feed en vivo no encaja con nuestra secuencia de
-     *  paradas (verificado: pasa ~1 de cada 9 veces), así que se descarta y se usa el retraso plano. */
+
     private const POSITION_SANITY_SECONDS = 15 * 60;
 
     private array $vmMap;
-    private ?ServiceJourney $journeyModel;
+    private ServiceJourney|null $journeyModel;
 
-    public function __construct(array $vmMap, ?ServiceJourney $journeyModel = null)
+    public function __construct(array $vmMap, ServiceJourney|null $journeyModel = null)
     {
         $this->vmMap = $vmMap;
         $this->journeyModel = $journeyModel;
     }
 
-    /**
-     * @param array<int, array<string, mixed>> $rows cada una debe traer line_id, trip_number,
-     *        first_departure_seconds, arrival_seconds y (para poder calcular ETA por posición) service_journey_id
-     * @return array<int, array<string, mixed>> las mismas filas más status/delaySeconds/etaSeconds/vehicleRef/currentStopId
-     */
     public function enrich(array $rows): array
     {
         $now = Calendar::nowSecondsSinceMidnight();
@@ -85,18 +72,7 @@ class RealtimeMatcher
         }, $rows);
     }
 
-    /**
-     * Prefiere "ahora + tiempo programado restante desde la última parada
-     * confirmada del bus" antes que "hora programada original + retraso
-     * plano reportado", porque se ancla a dónde se vio al bus la última vez
-     * en vez de fiarse de una única cifra de retraso para todo el trayecto
-     * restante. Si la estimación por posición no está disponible o difiere
-     * demasiado, cae al retraso plano. Pública para que RealtimeController
-     * la reutilice por parada en "Detalle del bus".
-     *
-     * @return array{0:int, 1:int} [etaSeconds, delaySecondsToDisplay]
-     */
-    public function etaForStop(?string $serviceJourneyId, int $targetArrivalSeconds, ?array $live): array
+    public function etaForStop(string|null $serviceJourneyId, int $targetArrivalSeconds, array|null $live): array
     {
         if ($live === null) {
             return [$targetArrivalSeconds, 0];
@@ -119,8 +95,7 @@ class RealtimeMatcher
         return [$flatEta, $live['delaySeconds']];
     }
 
-    /** Candidato en vivo más cercano para (line_id, trip_number) dentro del margen de $firstDepartureSeconds, o null. */
-    public function lookup(int $lineId, string $tripNumber, int $firstDepartureSeconds): ?array
+    public function lookup(int $lineId, string $tripNumber, int $firstDepartureSeconds): array|null
     {
         $key = $lineId . '|' . $tripNumber;
         $candidates = [];

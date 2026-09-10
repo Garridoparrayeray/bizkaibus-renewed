@@ -12,7 +12,7 @@ return [
     ],
 
     'schedule_text' => [
-        // Endpoint legado: horario oficial en texto libre por línea (actualizado, pero sin estructurar).
+
         'url' => 'http://apps.bizkaia.eus/BBOA000M/rest/BBOA/GetLineasHorarios',
         'cache_ttl_seconds' => 3600,
         'http_timeout_seconds' => 8,

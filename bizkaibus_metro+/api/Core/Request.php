@@ -6,10 +6,10 @@ class Request
 {
     public string $method;
     public string $path;
-    /** @var array<string,string> */
+
     public array $query;
-    /** @var array<string,mixed>|null */
-    private ?array $jsonBody = null;
+
+    private array|null $jsonBody = null;
     private bool $jsonBodyParsed = false;
 
     public function __construct()
@@ -20,15 +20,12 @@ class Request
             $this->method = 'GET';
         }
 
-        // Este método es robusto para diferentes entornos (Apache, Vercel, local).
-        // Primero, busca un parámetro 'path' que el servidor web nos pasa (vía .htaccess).
         if (isset($_GET['path'])) {
             $path = $_GET['path'];
-            // El parámetro 'path' es solo para el enrutamiento, lo eliminamos para
-            // que no interfiera con los parámetros reales de la consulta (ej. ?q=...).
+
             unset($_GET['path']);
         } else {
-            // Si no hay parámetro 'path', usamos el método para el servidor de desarrollo local.
+
             if (isset($_SERVER['REQUEST_URI'])) {
                 $uri = $_SERVER['REQUEST_URI'];
             } else {
@@ -45,7 +42,7 @@ class Request
         $this->query = $_GET;
     }
 
-    public function query(string $key, ?string $default = null): ?string
+    public function query(string $key, string|null $default = null): string|null
     {
         if (isset($this->query[$key])) {
             return $this->query[$key];
@@ -53,7 +50,7 @@ class Request
         return $default;
     }
 
-    public function queryInt(string $key, ?int $default = null): ?int
+    public function queryInt(string $key, int|null $default = null): int|null
     {
         if (!isset($this->query[$key]) || $this->query[$key] === '') {
             return $default;
@@ -61,7 +58,6 @@ class Request
         return (int)$this->query[$key];
     }
 
-    /** @return array<string,mixed> */
     public function json(): array
     {
         if (!$this->jsonBodyParsed) {
@@ -80,7 +76,7 @@ class Request
         return $this->jsonBody;
     }
 
-    public function cookie(string $name): ?string
+    public function cookie(string $name): string|null
     {
         if (isset($_COOKIE[$name])) {
             return $_COOKIE[$name];

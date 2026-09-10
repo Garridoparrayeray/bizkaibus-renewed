@@ -15,7 +15,6 @@ class Calendar
         return ((int)$now->format('H')) * 3600 + ((int)$now->format('i')) * 60 + (int)$now->format('s');
     }
 
-    /** Día de la semana ISO (1=lunes..7=domingo) como bit de máscara, igual que service_calendars.weekday_mask. */
     public static function todayWeekdayBit(): int
     {
         return self::weekdayBitFor(self::todayMadrid());
@@ -27,7 +26,6 @@ class Calendar
         return 1 << ($iso - 1);
     }
 
-    /** Segundos desde medianoche (puede superar 86400 en viajes que cruzan medianoche) a "HH:MM". */
     public static function secondsToHm(int $seconds): string
     {
         $h = intdiv($seconds, 3600) % 24;

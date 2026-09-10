@@ -8,7 +8,7 @@ class LineModel
     {
     }
 
-    public function find(int $id): ?array
+    public function find(int $id): array|null
     {
         $stmt = $this->pdo->prepare('SELECT id, code, name FROM lines WHERE id = ?');
         $stmt->execute([$id]);
@@ -19,13 +19,11 @@ class LineModel
         return $row;
     }
 
-    /** @return array<int, array{id:int,code:string,name:string}> */
     public function all(): array
     {
         return $this->pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll();
     }
 
-    /** @return array<int, array{id:int,code:string,name:string}> */
     public function search(string $query, int $limit = 10): array
     {
         $normalized = Search::normalize($query);
@@ -40,7 +38,6 @@ class LineModel
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array{id:string,headsign:?string}> patrones/direcciones distintos de una línea */
     public function patterns(int $lineId): array
     {
         $stmt = $this->pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
@@ -48,7 +45,6 @@ class LineModel
         return $stmt->fetchAll();
     }
 
-    /** @return array<int, array{id:string, headsign:?string, stops: array<int, array{id:int,name:string,lat:float,lon:float}>}> */
     public function patternsWithStops(int $lineId): array
     {
         $stmt = $this->pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
