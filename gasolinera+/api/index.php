@@ -28,6 +28,7 @@ $router = new Router();
 $stations = new StationsController();
 $router->get('/stations/near', [$stations, 'near']);
 $router->get('/stations/search', [$stations, 'search']);
+$router->get('/stations/suggest-places', [$stations, 'suggestPlaces']);
 $router->get('/stations/bbox', [$stations, 'bbox']);
 $router->get('/stats/national', [$stations, 'nationalStats']);
 $router->get('/stats/by-fuel', [$stations, 'statsByFuel']);

@@ -38,6 +38,7 @@
     const el = {
         searchForm: document.getElementById('search-form'),
         searchInput: document.getElementById('search-input'),
+        searchSuggestions: document.getElementById('search-suggestions'),
         backToNearby: document.getElementById('back-to-nearby'),
         filterFuel: document.getElementById('filter-fuel'),
         filterRadius: document.getElementById('filter-radius'),
@@ -150,6 +151,7 @@
         compareList: loadCompareList(),
         favoritesList: loadFavorites(),
         toastTimer: null,
+        searchSuggestTimer: null,
     };
 
     // ---- Comparador (localStorage) ----
@@ -544,6 +546,50 @@
         state.stationsQuery = query;
         el.backToNearby.hidden = state.userLat === null;
         await loadStationsPage(1);
+    }
+
+    // ---- Sugerencias de municipio mientras se escribe ----
+
+    function hideSearchSuggestions() {
+        el.searchSuggestions.hidden = true;
+        el.searchSuggestions.innerHTML = '';
+    }
+
+    async function fetchSearchSuggestions(query) {
+        let data;
+        try {
+            data = await Api.suggestPlaces(query);
+        } catch (e) {
+            return;
+        }
+        // La respuesta puede llegar tarde si el usuario ya siguió escribiendo:
+        // si el input ya no coincide con lo que se pidió, se descarta.
+        if (el.searchInput.value.trim() !== query) {
+            return;
+        }
+        renderSearchSuggestions(data.places);
+    }
+
+    function renderSearchSuggestions(places) {
+        el.searchSuggestions.innerHTML = '';
+        if (!places.length) {
+            hideSearchSuggestions();
+            return;
+        }
+        for (const place of places) {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerHTML = `${escapeHtml(place.label)}<small>${escapeHtml(place.sublabel)}</small>`;
+            btn.addEventListener('click', () => {
+                el.searchInput.value = place.label;
+                hideSearchSuggestions();
+                performSearch(place.label);
+            });
+            li.appendChild(btn);
+            el.searchSuggestions.appendChild(li);
+        }
+        el.searchSuggestions.hidden = false;
     }
 
     // Cada página sustituye la lista anterior (paginación real, no scroll
@@ -1382,6 +1428,7 @@
 
     el.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        hideSearchSuggestions();
         const query = el.searchInput.value.trim();
         if (query.length === 0 && state.stationsMode === 'search') {
             backToNearby();
@@ -1394,9 +1441,22 @@
     });
 
     el.searchInput.addEventListener('input', () => {
-        if (el.searchInput.value.trim().length === 0 && state.stationsMode === 'search') {
+        const query = el.searchInput.value.trim();
+        if (query.length === 0 && state.stationsMode === 'search') {
             backToNearby();
         }
+        clearTimeout(state.searchSuggestTimer);
+        if (query.length < 2) {
+            hideSearchSuggestions();
+            return;
+        }
+        state.searchSuggestTimer = setTimeout(() => fetchSearchSuggestions(query), 250);
+    });
+
+    // El blur se retrasa para que el click en una sugerencia (que primero
+    // dispara blur en el input) llegue a registrarse antes de ocultar la lista.
+    el.searchInput.addEventListener('blur', () => {
+        setTimeout(hideSearchSuggestions, 150);
     });
 
     el.backToNearby.addEventListener('click', backToNearby);

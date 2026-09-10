@@ -67,22 +67,23 @@ class Station
         bool $openNow,
         int $staleStationDays,
         int $offset,
-        int $limit
+        int $limit,
+        ?float $nearbyMergeRadiusKm = null
     ): array {
         $normalized = Search::normalize($query);
         $like = '%' . $normalized . '%';
         $rawQuery = trim($query);
         $cpLike = $rawQuery . '%';
 
-        $where = 'WHERE (municipio_normalizado LIKE :q1 OR direccion_normalizada LIKE :q2 OR rotulo_normalizado LIKE :q3 OR cp LIKE :q4)';
-        $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $cpLike];
+        $where = 'WHERE (municipio_normalizado LIKE :q1 OR direccion_normalizada LIKE :q2 OR rotulo_normalizado LIKE :q3 OR cp LIKE :q4 OR localidad_normalizada LIKE :q5)';
+        $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $cpLike, 'q5' => $like];
         $where .= self::staleClause($staleStationDays);
         if ($open24h) {
             $where .= ' AND is_24h = 1';
         }
 
         $stmt = $this->pdo->prepare("
-            SELECT ideess, rotulo, direccion, municipio, cp, lat, lon, horario_raw, is_24h
+            SELECT ideess, rotulo, direccion, municipio, localidad, cp, lat, lon, horario_raw, is_24h
             FROM stations
             $where
             LIMIT 500
@@ -91,6 +92,7 @@ class Station
         $rows = $stmt->fetchAll();
 
         $candidates = [];
+        $seenIdeess = [];
         foreach ($rows as $row) {
             $distanceKm = null;
             if ($lat !== null && $lon !== null) {
@@ -99,11 +101,46 @@ class Station
             if ($openNow && $this->isOpenNow($row['horario_raw']) !== true) {
                 continue;
             }
+            $seenIdeess[$row['ideess']] = true;
             $candidates[] = [
                 'row' => $row,
                 'distanceKm' => $distanceKm,
                 'relevance' => $this->relevanceScore($row, $normalized, $rawQuery),
             ];
+        }
+
+        // Un barrio/localidad (p.ej. "Algorta") no es una entidad
+        // administrativa fiable en el feed oficial: una gasolinera físicamente
+        // ahí puede figurar con otro municipio/localidad si así la etiqueta el
+        // feed (caso real: una estación en Algorta catalogada como "Leioa").
+        // Cuando la búsqueda coincide con un lugar real y hay pocas
+        // coincidencias de texto propio, se completa con las estaciones
+        // dentro de un radio alrededor del punto geocodificado, para que la
+        // frontera administrativa no esconda lo que de verdad está cerca.
+        if ($nearbyMergeRadiusKm !== null && $lat !== null && $lon !== null) {
+            $bbox = self::boundingBox($lat, $lon, $nearbyMergeRadiusKm);
+            $nearbyRows = $this->fetchInBoundingBox($bbox, $fuel, $open24h, $staleStationDays);
+            foreach ($nearbyRows as $row) {
+                if (isset($seenIdeess[$row['ideess']])) {
+                    continue;
+                }
+                $distanceKm = self::haversineKm($lat, $lon, (float)$row['lat'], (float)$row['lon']);
+                if ($distanceKm > $nearbyMergeRadiusKm) {
+                    continue;
+                }
+                if ($openNow && $this->isOpenNow($row['horario_raw']) !== true) {
+                    continue;
+                }
+                $seenIdeess[$row['ideess']] = true;
+                $candidates[] = [
+                    'row' => $row,
+                    'distanceKm' => $distanceKm,
+                    // Menos relevante que cualquier coincidencia textual real
+                    // (relevanceScore va de 0 a 5): son vecinas por
+                    // proximidad, no porque el texto buscado las nombre.
+                    'relevance' => 6,
+                ];
+            }
         }
 
         return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
@@ -116,14 +153,54 @@ class Station
      * usuario: "busco Amorebieta" tiene que dar distancias a Amorebieta,
      * no a donde esté el usuario en ese momento.
      */
+    /**
+     * Lugares (municipios y localidades/barrios) cuyo nombre empieza por
+     * $query, para las sugerencias del buscador. Los barrios (p.ej.
+     * "Algorta") no son una entidad administrativa fiable en el feed
+     * oficial -municipio dice "Getxo"-, así que se sugieren aparte con su
+     * municipio/provincia como aclaración, y solo si de verdad son un nombre
+     * distinto del municipio (si no, sería una sugerencia duplicada). Los
+     * municipios van primero, ambos grupos alfabéticos dentro de sí.
+     *
+     * @return array<int, array{label: string, sublabel: string}>
+     */
+    public function suggestPlaces(string $query, int $limit): array
+    {
+        $normalized = Search::normalize($query);
+        if ($normalized === '') {
+            return [];
+        }
+        $like = $normalized . '%';
+
+        $stmt = $this->pdo->prepare('
+            SELECT label, sublabel FROM (
+                SELECT DISTINCT municipio AS label, provincia AS sublabel, 0 AS grupo
+                FROM stations
+                WHERE municipio_normalizado LIKE :like1
+                UNION
+                SELECT DISTINCT localidad AS label, municipio || \', \' || provincia AS sublabel, 1 AS grupo
+                FROM stations
+                WHERE localidad_normalizada LIKE :like2 AND localidad_normalizada != municipio_normalizado
+            )
+            ORDER BY grupo ASC, label ASC
+            LIMIT :limit
+        ');
+        $stmt->bindValue(':like1', $like, \PDO::PARAM_STR);
+        $stmt->bindValue(':like2', $like, \PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
     public function looksLikePlaceQuery(string $query): bool
     {
         $normalized = Search::normalize($query);
         if ($normalized === '') {
             return false;
         }
-        $stmt = $this->pdo->prepare('SELECT 1 FROM stations WHERE municipio_normalizado LIKE ? LIMIT 1');
-        $stmt->execute([$normalized . '%']);
+        $stmt = $this->pdo->prepare('SELECT 1 FROM stations WHERE municipio_normalizado LIKE ? OR localidad_normalizada LIKE ? LIMIT 1');
+        $stmt->execute([$normalized . '%', $normalized . '%']);
         return $stmt->fetchColumn() !== false;
     }
 
@@ -140,16 +217,17 @@ class Station
             return 5;
         }
         $municipio = Search::normalize($row['municipio']);
-        if ($municipio === $normalizedQuery || (string)$row['cp'] === $rawQuery) {
+        $localidad = Search::normalize($row['localidad'] ?? '');
+        if ($municipio === $normalizedQuery || $localidad === $normalizedQuery || (string)$row['cp'] === $rawQuery) {
             return 0;
         }
-        if (str_starts_with($municipio, $normalizedQuery)) {
+        if (str_starts_with($municipio, $normalizedQuery) || str_starts_with($localidad, $normalizedQuery)) {
             return 1;
         }
         if ($rawQuery !== '' && str_starts_with((string)$row['cp'], $rawQuery)) {
             return 2;
         }
-        if (str_contains($municipio, $normalizedQuery)) {
+        if (str_contains($municipio, $normalizedQuery) || str_contains($localidad, $normalizedQuery)) {
             return 3;
         }
         if (str_contains(Search::normalize($row['rotulo']), $normalizedQuery)) {

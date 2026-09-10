@@ -168,6 +168,7 @@ function ensureSchema(\PDO $pdo): void
             municipio_normalizado TEXT NOT NULL,
             direccion_normalizada TEXT NOT NULL,
             rotulo_normalizado TEXT NOT NULL,
+            localidad_normalizada TEXT NOT NULL DEFAULT \'\',
             last_seen_date TEXT NOT NULL
         )
     ');
@@ -176,6 +177,7 @@ function ensureSchema(\PDO $pdo): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_stations_municipio ON stations (municipio_id)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_stations_municipio_norm ON stations (municipio_normalizado)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_stations_rotulo_norm ON stations (rotulo_normalizado)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_stations_localidad_norm ON stations (localidad_normalizada)');
 
     $pdo->exec('
         CREATE TABLE IF NOT EXISTS current_prices (
@@ -378,8 +380,9 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
                 provincia, provincia_id, ccaa_id, cp, margen, tipo_venta,
                 horario_raw, is_24h, lat, lon,
                 municipio_normalizado, direccion_normalizada, rotulo_normalizado,
+                localidad_normalizada,
                 last_seen_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(ideess) DO UPDATE SET
                 rotulo = excluded.rotulo,
                 direccion = excluded.direccion,
@@ -399,6 +402,7 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
                 municipio_normalizado = excluded.municipio_normalizado,
                 direccion_normalizada = excluded.direccion_normalizada,
                 rotulo_normalizado = excluded.rotulo_normalizado,
+                localidad_normalizada = excluded.localidad_normalizada,
                 last_seen_date = excluded.last_seen_date
         ');
     } else {
@@ -408,8 +412,9 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
                 provincia, provincia_id, ccaa_id, cp, margen, tipo_venta,
                 horario_raw, is_24h, lat, lon,
                 municipio_normalizado, direccion_normalizada, rotulo_normalizado,
+                localidad_normalizada,
                 last_seen_date
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
     }
 
@@ -467,6 +472,7 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
                 \Models\Search::normalize($municipio),
                 \Models\Search::normalize($direccion),
                 \Models\Search::normalize($rotulo),
+                \Models\Search::normalize($localidad),
                 $fechaIso,
             ]);
         } else {
@@ -490,6 +496,7 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
                 \Models\Search::normalize($municipio),
                 \Models\Search::normalize($direccion),
                 \Models\Search::normalize($rotulo),
+                \Models\Search::normalize($localidad),
                 $fechaIso,
             ]);
         }
