@@ -399,6 +399,29 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 }
 #stats-group-toggle { display: flex; gap: 6px; }
 #stats-group-toggle .pill[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
+
+.stats-date-range { display: flex; gap: 14px; flex-wrap: wrap; }
+.stats-date-range label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+}
+.stats-date-range input[type="date"] {
+    padding: 7px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: var(--text);
+}
+#stats-range-note, #stats-distribution-note {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    margin: 8px 0 0;
+}
 #stats-national-variation, #stats-station-variation {
     font-size: 0.82rem;
     color: var(--text-secondary);

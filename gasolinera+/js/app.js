@@ -19,7 +19,17 @@
 
     const TREND_SYMBOL = { up: '▲', down: '▼', same: '=' };
 
-    const PAGE_SIZE = 30;
+    const PAGE_SIZE = 10;
+
+    function todayIso() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    function daysAgoIso(n) {
+        const d = new Date();
+        d.setDate(d.getDate() - n);
+        return d.toISOString().slice(0, 10);
+    }
 
     const el = {
         searchForm: document.getElementById('search-form'),
@@ -70,8 +80,15 @@
         nationalNote: document.getElementById('national-stats-note'),
         statsFuel: document.getElementById('stats-fuel'),
         statsGroupToggle: document.getElementById('stats-group-toggle'),
+        statsFrom: document.getElementById('stats-from'),
+        statsTo: document.getElementById('stats-to'),
+        statsRangeNote: document.getElementById('stats-range-note'),
         statsNationalVariation: document.getElementById('stats-national-variation'),
         statsNationalChart: document.getElementById('stats-national-chart'),
+        statsByFuelChart: document.getElementById('stats-by-fuel-chart'),
+        statsProvinceChart: document.getElementById('stats-province-chart'),
+        statsDistributionChart: document.getElementById('stats-distribution-chart'),
+        statsDistributionNote: document.getElementById('stats-distribution-note'),
         statsStationSearch: document.getElementById('stats-station-search'),
         statsStationResults: document.getElementById('stats-station-results'),
         statsStationDetail: document.getElementById('stats-station-detail'),
@@ -101,6 +118,9 @@
         nationalSeries: {},
         statsGroup: 'day',
         statsNationalChart: null,
+        statsByFuelChart: null,
+        statsProvinceChart: null,
+        statsDistributionChart: null,
         statsStationChart: null,
         statsSelectedIdeess: null,
         statsSearchTimer: null,
@@ -193,8 +213,8 @@
 
     async function loadNationalHeadline() {
         const [gasoleoA, gasolina95] = await Promise.all([
-            Api.nationalStats('gasoleo_a', 14).catch(() => null),
-            Api.nationalStats('gasolina_95_e5', 14).catch(() => null),
+            Api.nationalStats('gasoleo_a', daysAgoIso(14), todayIso()).catch(() => null),
+            Api.nationalStats('gasolina_95_e5', daysAgoIso(14), todayIso()).catch(() => null),
         ]);
         if (gasoleoA) {
             state.nationalSeries.gasoleo_a = gasoleoA;
@@ -232,7 +252,7 @@
         const fuel = el.filterFuel.value || 'gasoleo_a';
         let data = state.nationalSeries[fuel];
         if (!data) {
-            data = await Api.nationalStats(fuel, 14).catch(() => null);
+            data = await Api.nationalStats(fuel, daysAgoIso(14), todayIso()).catch(() => null);
         }
         if (!data || !data.serie.length || typeof Chart === 'undefined') {
             return;
@@ -613,6 +633,9 @@
         }
         if (view === 'stats' && !state.statsNationalChart) {
             renderStatsNationalChart();
+            renderStatsByFuelChart();
+            renderStatsProvinceChart();
+            renderStatsDistributionChart();
         }
     }
 
@@ -643,13 +666,13 @@
 
     async function renderStatsNationalChart() {
         const fuel = el.statsFuel.value;
-        const days = state.statsGroup === 'month' ? 730 : 90;
         let data;
         try {
-            data = await Api.nationalStats(fuel, days, state.statsGroup);
+            data = await Api.nationalStats(fuel, el.statsFrom.value, el.statsTo.value, state.statsGroup);
         } catch (e) {
             return;
         }
+        updateStatsRangeNote(data.from, data.to);
         el.statsNationalVariation.innerHTML = variationText(data.serie, 'media');
         if (!data.serie.length || typeof Chart === 'undefined') {
             return;
@@ -715,10 +738,9 @@
             return;
         }
         const fuel = el.statsFuel.value;
-        const days = state.statsGroup === 'month' ? 730 : 90;
         let data;
         try {
-            data = await Api.history(state.statsSelectedIdeess, fuel, days, state.statsGroup);
+            data = await Api.history(state.statsSelectedIdeess, fuel, el.statsFrom.value, el.statsTo.value, state.statsGroup);
         } catch (e) {
             return;
         }
@@ -751,12 +773,145 @@
         });
     }
 
+    function updateStatsRangeNote(effectiveFrom, effectiveTo) {
+        if (effectiveFrom === el.statsFrom.value && effectiveTo === el.statsTo.value) {
+            el.statsRangeNote.textContent = '';
+            return;
+        }
+        el.statsRangeNote.textContent = `Rango ajustado a los datos disponibles: ${effectiveFrom} a ${effectiveTo}.`;
+    }
+
+    const FUEL_CHART_COLORS = {
+        gasoleo_a: '#B8860B',
+        gasolina_95_e5: '#1D4E89',
+        gasoleo_premium: '#7A5A05',
+        gasolina_98_e5: '#4A90D9',
+        adblue: '#5B8C5A',
+        glp: '#B3261E',
+    };
+
+    async function renderStatsByFuelChart() {
+        let data;
+        try {
+            data = await Api.statsByFuel(el.statsFrom.value, el.statsTo.value, state.statsGroup);
+        } catch (e) {
+            return;
+        }
+        if (typeof Chart === 'undefined') {
+            return;
+        }
+        const allPeriods = new Set();
+        Object.values(data.series).forEach((serie) => serie.forEach((p) => allPeriods.add(p.fecha)));
+        const labels = Array.from(allPeriods).sort();
+
+        const datasets = Object.keys(data.series)
+            .filter((slug) => data.series[slug].length > 0)
+            .map((slug) => {
+                const bySeriesFecha = {};
+                data.series[slug].forEach((p) => { bySeriesFecha[p.fecha] = p.media; });
+                return {
+                    label: FUEL_LABELS[slug] || slug,
+                    data: labels.map((fecha) => bySeriesFecha[fecha] ?? null),
+                    borderColor: FUEL_CHART_COLORS[slug] || '#8A8A8A',
+                    backgroundColor: 'transparent',
+                    tension: 0.15,
+                    spanGaps: true,
+                };
+            });
+
+        if (state.statsByFuelChart) {
+            state.statsByFuelChart.destroy();
+            state.statsByFuelChart = null;
+        }
+        state.statsByFuelChart = new Chart(el.statsByFuelChart, {
+            type: 'line',
+            data: { labels: labels.map(periodLabel), datasets },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
+                scales: { y: { ticks: { callback: (v) => v.toFixed(2) + ' €' } } },
+            },
+        });
+    }
+
+    async function renderStatsProvinceChart() {
+        const fuel = el.statsFuel.value;
+        let data;
+        try {
+            data = await Api.statsByProvince(fuel);
+        } catch (e) {
+            return;
+        }
+        if (!data.provincias.length || typeof Chart === 'undefined') {
+            return;
+        }
+        if (state.statsProvinceChart) {
+            state.statsProvinceChart.destroy();
+            state.statsProvinceChart = null;
+        }
+        const cheapest = data.provincias[0];
+        const priciest = data.provincias[data.provincias.length - 1];
+        state.statsProvinceChart = new Chart(el.statsProvinceChart, {
+            type: 'bar',
+            data: {
+                labels: data.provincias.map((p) => p.provincia),
+                datasets: [{
+                    label: `Media hoy · ${FUEL_LABELS[fuel] || fuel}`,
+                    data: data.provincias.map((p) => p.media),
+                    backgroundColor: data.provincias.map((p) => (p.provincia === cheapest.provincia ? '#5B8C5A' : p.provincia === priciest.provincia ? '#B3261E' : '#B8860B')),
+                }],
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { ticks: { callback: (v) => v.toFixed(2) + ' €' } } },
+            },
+        });
+    }
+
+    async function renderStatsDistributionChart() {
+        const fuel = el.statsFuel.value;
+        let data;
+        try {
+            data = await Api.priceDistribution(fuel);
+        } catch (e) {
+            return;
+        }
+        if (!data.buckets.length || typeof Chart === 'undefined') {
+            return;
+        }
+        const total = data.buckets.reduce((sum, b) => sum + b.estaciones, 0);
+        el.statsDistributionNote.textContent = `${total.toLocaleString('es-ES')} gasolineras con precio de ${FUEL_LABELS[fuel] || fuel} hoy.`;
+        if (state.statsDistributionChart) {
+            state.statsDistributionChart.destroy();
+            state.statsDistributionChart = null;
+        }
+        state.statsDistributionChart = new Chart(el.statsDistributionChart, {
+            type: 'bar',
+            data: {
+                labels: data.buckets.map((b) => `${b.desde.toFixed(2)}-${b.hasta.toFixed(2)}`),
+                datasets: [{
+                    label: 'Gasolineras',
+                    data: data.buckets.map((b) => b.estaciones),
+                    backgroundColor: '#B8860B',
+                }],
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { x: { title: { display: true, text: '€/L', font: { size: 10 } } } },
+            },
+        });
+    }
+
     function setStatsGroup(group) {
         state.statsGroup = group;
         el.statsGroupToggle.querySelectorAll('button').forEach((btn) => {
             btn.setAttribute('aria-pressed', String(btn.dataset.group === group));
         });
         renderStatsNationalChart();
+        renderStatsByFuelChart();
         if (state.statsSelectedIdeess) {
             renderStatsStationChart();
         }
@@ -837,7 +992,7 @@
     async function loadHistoryChart(ideess, fuel) {
         let data;
         try {
-            data = await Api.history(ideess, fuel, 14);
+            data = await Api.history(ideess, fuel, daysAgoIso(14), todayIso());
         } catch (e) {
             return;
         }
@@ -980,12 +1135,23 @@
 
     el.statsFuel.addEventListener('change', () => {
         renderStatsNationalChart();
+        renderStatsProvinceChart();
+        renderStatsDistributionChart();
         if (state.statsSelectedIdeess) {
             renderStatsStationChart();
         }
     });
     el.statsGroupToggle.querySelectorAll('button').forEach((btn) => {
         btn.addEventListener('click', () => setStatsGroup(btn.dataset.group));
+    });
+    [el.statsFrom, el.statsTo].forEach((input) => {
+        input.addEventListener('change', () => {
+            renderStatsNationalChart();
+            renderStatsByFuelChart();
+            if (state.statsSelectedIdeess) {
+                renderStatsStationChart();
+            }
+        });
     });
     el.statsStationSearch.addEventListener('input', () => {
         clearTimeout(state.statsSearchTimer);
@@ -1003,6 +1169,11 @@
     el.comparePanel.addEventListener('click', (e) => {
         if (e.target === el.comparePanel) el.comparePanel.close();
     });
+
+    el.statsTo.value = todayIso();
+    el.statsFrom.value = daysAgoIso(30);
+    el.statsTo.max = todayIso();
+    el.statsFrom.max = todayIso();
 
     updateCompareCount();
     requestGeolocation();

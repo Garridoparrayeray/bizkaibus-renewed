@@ -131,7 +131,7 @@
 
         <section id="view-stats" hidden>
             <div class="stats-block">
-                <h3>Media nacional</h3>
+                <h3>Filtros</h3>
                 <div class="stats-controls">
                     <select id="stats-fuel" aria-label="Carburante para las estadísticas">
                         <option value="gasoleo_a">Gasóleo A</option>
@@ -146,8 +146,33 @@
                         <button type="button" class="pill" data-group="month" aria-pressed="false">Mensual</button>
                     </div>
                 </div>
+                <div class="stats-date-range">
+                    <label>Desde <input id="stats-from" type="date"></label>
+                    <label>Hasta <input id="stats-to" type="date"></label>
+                </div>
+                <p id="stats-range-note"></p>
+            </div>
+
+            <div class="stats-block">
+                <h3>Media nacional</h3>
                 <p id="stats-national-variation"></p>
                 <canvas id="stats-national-chart" height="180"></canvas>
+            </div>
+
+            <div class="stats-block">
+                <h3>Comparativa entre carburantes</h3>
+                <canvas id="stats-by-fuel-chart" height="220"></canvas>
+            </div>
+
+            <div class="stats-block">
+                <h3>Precio medio por provincia hoy</h3>
+                <canvas id="stats-province-chart" height="420"></canvas>
+            </div>
+
+            <div class="stats-block">
+                <h3>Distribución de precios hoy</h3>
+                <p id="stats-distribution-note"></p>
+                <canvas id="stats-distribution-chart" height="200"></canvas>
             </div>
 
             <div class="stats-block">
