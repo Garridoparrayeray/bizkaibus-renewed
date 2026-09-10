@@ -21,6 +21,11 @@
     --status-up: #B3261E;
     --status-down: #1B6B3A;
     --status-muted: #8A8A8A;
+    /* Lockup de cabecera: colores exactos del icono de app proporcionado
+       (gasolinera-appicon.svg), no una aproximacion. */
+    --lockup-bg: #8A5A00;
+    --lockup-gold: #F2B705;
+    --lockup-subtitle: #E8CB8F;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -51,10 +56,13 @@ header {
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 16px;
+    background: var(--lockup-bg);
+    border-radius: 12px;
+    padding: 14px 16px;
 }
 
 .home-link-wrap { display: flex; align-items: center; gap: 10px; }
-#app-logomark svg { width: 32px; height: 32px; }
+#app-logomark svg { width: 32px; height: 32px; border-radius: 8px; }
 #app-logomark { display: flex; }
 
 .home-link-wrap strong {
@@ -63,18 +71,24 @@ header {
     font-weight: 800;
     display: block;
     letter-spacing: -0.01em;
+    color: white;
 }
 .home-link-wrap strong .plus {
-    color: var(--primary-light); font-size: 1.15em; font-weight: 500;
+    color: var(--lockup-gold); font-size: 1.15em; font-weight: 500;
     display: inline-block; transform: rotate(-8deg) translateY(-2px);
 }
 .home-link-wrap #app-subtitle {
     display: block;
     font-size: 0.72rem;
-    color: var(--text-secondary);
+    color: var(--lockup-subtitle);
 }
 
 .header-actions { display: flex; gap: 8px; }
+.header-actions .btn-icon {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: white;
+}
 
 .btn-icon {
     position: relative;
