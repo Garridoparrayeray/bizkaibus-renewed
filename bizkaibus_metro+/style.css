@@ -1,5 +1,3 @@
-/* Misma tipografía que style-pro.css/style-metro.css: Inter para cuerpo,
-   Bricolage Grotesque para títulos y números grandes. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
@@ -7,7 +5,7 @@
     --pink-light: #ff7eb3;
     --pink: #db2777;
     --pink-dark: #be185d;
-    --glass-bg: rgba(255, 255, 255, 0.5); /* Más translúcido */
+    --glass-bg: rgba(255, 255, 255, 0.5);
     --glass-border: 1px solid rgba(255, 255, 255, 0.7);
     --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.05);
     --status-ok: #059669;
@@ -65,19 +63,17 @@ body {
 
 .app-container { max-width: 450px; margin: 0 auto; position: relative; }
 
-/* Efecto Vidrio Premium */
 .glass {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px); /* Desenfoque más Apple */
+    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: var(--glass-border);
-    border-radius: 30px; /* Bordes más redondeados tipo iPhone */
+    border-radius: 30px;
     padding: 20px;
     margin: 20px 0;
     box-shadow: var(--shadow-soft);
 }
 
-/* Botones e insignias reutilizables */
 .badge {
     background: var(--pink); color: white; padding: 4px 12px;
     border-radius: 10px; font-size: 0.7rem; font-weight: 800;
@@ -123,17 +119,8 @@ body {
 .status-warn { color: var(--status-warn); font-weight: bold; }
 .status-muted { color: var(--status-muted); font-weight: bold; }
 
-/* Header */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-/* inline-grid de una columna max-content fija el ancho al del contenido más
-   ancho de los dos (home-link o el banner) — #network-switch lo hereda vía
-   width:100% aunque esté en position:absolute (ver más abajo), así el
-   banner desplegado mide lo mismo que el bloque de arriba. position:relative
-   ancla ese absolute; el header no recorta overflow, así que el banner
-   escapa visualmente del bloque de color del header.
-   SIN overflow:hidden aquí — el banner (#network-switch) es hijo directo
-   de este bloque y necesita escapar hacia abajo sin recortarse; el
-   truncado con ellipsis del título ya lo hace hgroup, más específico. */
+
 .home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; }
 #home-link {
     border: none; background: none; padding: 0; margin: 0; min-width: 0;
@@ -142,17 +129,10 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 #app-logomark { display: none; }
 #dev-footer { display: none; }
 
-/* Botón del header (menú — favoritos vive dentro del menú lateral, ver
-   #menu-favorites-open), más pequeño que el .btn-icon genérico (40px,
-   usado en tarjetas) — menos ancho que reservar junto al título en
-   pantallas estrechas. */
 .header-actions { flex-shrink: 0; }
     .header-actions .btn-icon { width: 34px; height: 34px; }
         .header-actions .btn-icon svg { width: 16px; height: 16px; }
 
-/* Botón casi invisible para volver al tema normal: un punto pequeño fijo en
-   la esquina, con el glass propio de este tema. Sin texto — solo un corazón
-   diminuto, igual que en style-pro.css/style-metro.css. */
 .theme-toggle-link {
     position: fixed; right: 10px; bottom: 10px; z-index: 30;
     display: flex; align-items: center; justify-content: center;
@@ -167,8 +147,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
     .theme-toggle-link:hover, .theme-toggle-link:focus-visible {
         opacity: 1; transform: scale(1.15);
     }
-/* hgroup (h1 + p) es lo único del header que puede ceder ancho de verdad —
-   trunca con ellipsis en vez de forzar overflow al header entero. */
+
 hgroup { min-width: 0; overflow: hidden; }
 h1 {
     font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
@@ -177,9 +156,7 @@ h1 {
     -webkit-background-clip: text; background-clip: text; color: transparent;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* El "+" inclinado, igual que en style-pro.css/style-metro.css — reseteo
-   background-clip/color heredados del degradado del h1 para que el "+"
-   se vea sólido, no transparente con el fondo clippeado. */
+
 #app-title-mark {
     background: none; -webkit-background-clip: unset; background-clip: unset;
     color: var(--pink-light); font-size: 1.15em; font-weight: 500;
@@ -190,7 +167,6 @@ header p {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* Buscador */
 #search-form { position: relative; margin-bottom: 20px; }
 #search-input {
     width: 100%; box-sizing: border-box;
@@ -222,11 +198,8 @@ header p {
 
 .header-actions { display: flex; gap: 8px; align-items: center; }
 
-/* Contenido principal: una columna (móvil/tablet) o dos (escritorio, ver media query al final) */
 .live-column { min-width: 0; }
 
-/* Favoritos: panel que se abre con el icono de la cabecera en móvil/tablet;
-   permanente en su propia esquina a partir del breakpoint de escritorio. */
 #favorites-panel {
     position: fixed; top: 0; right: 0; bottom: 0; left: auto;
     width: 82vw; max-width: 320px; margin: 0;
@@ -250,7 +223,6 @@ header p {
     padding: 12px 4px; white-space: normal;
 }
 
-/* Tarjeta Live */
 .live-card { padding: 30px; position: relative; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     .live-card header { margin-bottom: 1rem; }
 #live-line { color: var(--pink-dark); font-weight: 700; margin: 0 0 4px; }
@@ -284,10 +256,6 @@ header p {
     #live-more-list span:last-child { color: var(--pink); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 #live-empty { text-align: center; color: #886; opacity: 0.7; font-weight: 600; margin: 0 0 20px; }
 
-/* Panel de andén (Metro+): faltaba por completo en este tema — se veía sin
-   estilo alguno al activar mi amor en Metro+. Mismo glassmorphism rosa que
-   el resto de tarjetas, con las columnas en un rosa oscuro translúcido en
-   vez del gris corporativo de style-metro.css. */
 .platform-panel {
     background: var(--glass-bg); border: var(--glass-border); border-radius: 24px;
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -324,7 +292,6 @@ header p {
     .platform-column-list span:first-child { flex: 1; color: rgba(255, 255, 255, 0.85); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .platform-column-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 
-/* Tabla horaria */
 .timetable { padding: 25px; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     .timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; }
     .timetable h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.2rem; margin: 0; font-weight: 700; }
@@ -370,11 +337,9 @@ tbody tr { cursor: pointer; }
 }
     #schedule-text-toggle:disabled { opacity: 0.6; cursor: default; }
 
-/* Atribución */
 #attribution { text-align: center; font-size: 0.75rem; color: #88556b; opacity: 0.7; margin: 10px 0 4px; }
 #disclaimer { text-align: center; font-size: 0.7rem; color: #88556b; opacity: 0.55; margin: 0 0 30px; padding: 0 20px; }
 
-/* Modales (detalle de bus / horario oficial) */
 dialog#schedule-modal {
     border: var(--glass-border); border-radius: 30px; padding: 30px;
     max-width: 380px; width: 90vw; max-height: 80vh; overflow-y: auto;
@@ -383,9 +348,6 @@ dialog#schedule-modal {
     animation: modalIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Detalle del bus: no un popup centrado — una hoja que sube desde abajo en
-   móvil (como todo el rato en esta anchura) y un panel anclado a la derecha
-   en escritorio, aprovechando el hueco junto al horario. */
 dialog#vehicle-modal {
     position: fixed; margin: 0; left: 0; right: 0; bottom: 0; top: auto;
     width: 100%; max-width: none; max-height: 85vh;
@@ -422,7 +384,6 @@ dialog#vehicle-modal {
     #modal-stops li { padding: 8px 0 8px 16px; font-size: 0.85rem; color: #555; }
         #modal-stops li.stop-current { color: var(--pink); font-weight: 800; }
 
-/* Menú lateral (incidencias de favoritos) */
 dialog#side-menu {
     position: fixed; top: 0; right: 0; margin: 0; left: auto; bottom: 0;
     height: 100%; max-height: 100vh; width: 82vw; max-width: 340px;
@@ -444,7 +405,6 @@ dialog#side-menu {
     #menu-alerts-list .alert-summary { display: block; color: var(--status-warn); font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; }
     #menu-alerts-list .alert-description { display: block; color: #555; font-size: 0.78rem; line-height: 1.4; white-space: pre-line; }
 
-/* Horario oficial (texto) */
 .schedule-block { background: rgba(255, 255, 255, 0.5); border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; }
     .schedule-block h4 { margin: 0; color: var(--pink); font-size: 1rem; }
     .schedule-block .schedule-dates { margin: 2px 0 12px; font-size: 0.75rem; color: #886; font-weight: 600; }
@@ -452,35 +412,22 @@ dialog#side-menu {
     .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: #444; line-height: 1.5; white-space: pre-line; }
         .schedule-block p:last-child { margin-bottom: 0; }
 
-/* Banner de cambio de red (selector Bizkaibus+ / Metro+): al tocar el logo
-   se despliega, debajo, una tarjeta con el aspecto real de la OTRA app
-   (su color, su logo, su título) — un preview de a dónde vas a cambiar, no
-   un menú de texto. Colores fijos (no las variables de tema) porque este
-   banner siempre representa a la red contraria. */
 #network-switch {
-    /* El min-width real vive en la regla .open de abajo, no aquí — puesto en
-       el estado cerrado forzaba el header a un ancho mínimo de 260px
-       siempre, desbordando el menú hamburguesa en pantallas de ~390px. Ver
-       style-pro.css para la explicación completa. */
+
     position: absolute; top: 100%; left: 0; width: 100%; z-index: 40;
     display: flex; align-items: center; gap: 12px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 16px;
     border-radius: 0;
     text-decoration: none;
-    /* En mi amor el banner es siempre rosa (el color del propio tema), a
-       diferencia de los temas planos donde cambia según la red destino —
-       aquí mi amor es el tema activo, no algo exclusivo de una red. */
+
     background: var(--pink-dark);
     box-shadow: var(--shadow-soft);
     opacity: 0;
     transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, opacity 0.18s ease;
 }
     #network-switch.open {
-        /* margin-top más generoso: "rozan" sin quedar uno dentro del otro.
-           min-width solo aquí — evita que el banner quede comprimido cuando el
-           ancho de .home-link-wrap actual es menor que lo que necesita el texto
-           de la otra app, sin afectar al layout del header en su estado normal. */
+
         max-height: 150px; padding: 14px 16px; margin-top: 14px; opacity: 1;
         min-width: min(260px, calc(100vw - 40px));
     }
@@ -494,18 +441,12 @@ dialog#side-menu {
 #network-switch-title { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.05rem; font-weight: 800; color: white; }
 #network-switch-sub { font-size: 0.76rem; color: rgba(255, 255, 255, 0.85); font-weight: 500; }
 
-/* Escritorio: dos columnas (próximo bus + favoritos a la izquierda, horarios/mapa a la derecha)
-   en vez de todo apilado. Por debajo de este ancho es exactamente el layout de móvil/tablet de arriba. */
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
 
     .content-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
     .live-column { display: flex; flex-direction: column; }
 
-    /* El buscador no debe estirarse a los 1100px del contenedor — si no, su
-       desplegable de resultados tapa el panel de favoritos (que en escritorio
-       está siempre visible, no oculto como en móvil). Lo alineamos con el
-       ancho de la columna izquierda. */
     #search-form { max-width: 380px; }
 
     #favorites-panel {
@@ -514,8 +455,6 @@ dialog#side-menu {
     }
     #favorites-close { display: none; }
 
-    /* Detalle del bus: panel anclado a la derecha en vez de hoja inferior —
-       hay hueco de sobra junto al horario, no hace falta taparlo todo. */
     dialog#vehicle-modal {
         left: auto; right: 0; top: 0; bottom: 0; height: 100%;
         width: 420px; max-width: 420px; max-height: 100vh;
@@ -523,10 +462,6 @@ dialog#side-menu {
         animation: slideInRight 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    /* Metro+ con mi amor: mismo layout de una sola columna centrada que
-       style-metro.css (sin mapa, panel de andén con sitio real para dos
-       columnas lado a lado) — el grid de dos columnas de arriba es solo
-       para bus. */
     html.is-metro .content-grid { display: block; }
     html.is-metro .live-column { max-width: 1100px; margin: 0 auto; }
     html.is-metro #timetable-section { max-width: 1100px; margin: 20px auto 0; }
