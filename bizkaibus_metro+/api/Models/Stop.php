@@ -8,8 +8,7 @@ class Stop
     {
     }
 
-    /** Ficha básica de una parada/estación por id, sin las líneas que la sirven (ver linesServing). */
-    public function find(int $id): ?array
+    public function find(int $id): array|null
     {
         $stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops WHERE id = ?',
@@ -23,14 +22,6 @@ class Stop
         return $row;
     }
 
-    /**
-     * Búsqueda de paradas/estaciones por nombre o zona, normalizando el texto
-     * de entrada (sin tildes, minúsculas) contra las columnas *_normalized ya
-     * precalculadas por el ETL, para que un usuario que escriba "bilbo" o
-     * "getxo" sin acentos siga encontrando resultados.
-     *
-     * @return array<int, array{id:int,name:string,area:string,lat:float,lon:float}>
-     */
     public function search(string $query, int $limit = 10): array
     {
         $normalized = Search::normalize($query);
@@ -48,14 +39,6 @@ class Stop
         return $stmt->fetchAll();
     }
 
-    /**
-     * Destinos reales (headsigns de patrón) que pasan por esta parada, hasta
-     * $limit valores distintos. Usado como pista para diferenciar paradas
-     * que comparten nombre y zona exacta (p.ej. dos andenes de la misma
-     * marquesina, uno de ida y otro de vuelta) en los resultados de búsqueda.
-     *
-     * @return array<int, string>
-     */
     public function headsignsFor(int $stopId, int $limit = 2): array
     {
         $stmt = $this->pdo->prepare('
@@ -71,7 +54,6 @@ class Stop
         return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
-    /** @return array<int, array{id:int,code:string,name:string}> líneas que pasan por esta parada */
     public function linesServing(int $stopId): array
     {
         $stmt = $this->pdo->prepare('
@@ -86,12 +68,7 @@ class Stop
         return $stmt->fetchAll();
     }
 
-    /**
-     * Prueba primero la consulta con `area`; si esa columna aún no existe
-     * (p.ej. data/bizkaibus.sqlite se generó antes de añadir la
-     * geocodificación, ver scripts/build-database.php), cae a la versión sin ella.
-     */
-    private function safeQuery(string $sql, string $fallbackSql, array $args, ?array $fallbackArgs = null): \PDOStatement
+    private function safeQuery(string $sql, string $fallbackSql, array $args, array|null $fallbackArgs = null): \PDOStatement
     {
         try {
             $stmt = $this->pdo->prepare($sql);

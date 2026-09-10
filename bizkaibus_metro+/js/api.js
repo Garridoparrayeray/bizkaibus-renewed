@@ -1,8 +1,4 @@
 const Api = (() => {
-    // Toda llamada lleva el parámetro de red cuando estamos en Metro+, ya que el
-    // backend (api/index.php) lo usa para decidir qué sqlite/config cargar
-    // (ver Core\Config::set()). window.__bbNetwork lo fija index.html antes
-    // de que se ejecute ningún script, igual que window.__bbTheme.
     function withNetwork(path) {
         if (window.__bbNetwork !== 'metro') {
             return path;
@@ -35,8 +31,6 @@ const Api = (() => {
         lineScheduleText: (id) => request(`/lines/${id}/schedule-text`),
         timetable: (lineId, { date, hourFrom, hourTo, stopId }) => {
             const params = new URLSearchParams({ date, hourFrom, hourTo });
-            // stopId ancla la tabla a la hora de paso por esa parada, no a
-            // la salida desde el origen (ver TimetableController::show()).
             if (stopId !== undefined && stopId !== null) params.set('stopId', stopId);
             return request(`/lines/${lineId}/timetable?${params}`);
         },

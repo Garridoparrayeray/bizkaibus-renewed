@@ -234,6 +234,13 @@ header p {
 .time-display:disabled { cursor: default; }
 .time-display strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 4.5rem; color: white; letter-spacing: -2px; font-weight: 700; }
 .time-display span { font-size: 1.4rem; font-weight: 600; color: var(--primary-light); }
+#live-timetable-link {
+    display: block; width: 100%; margin: 14px 0 0;
+    border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1);
+    padding: 10px; border-radius: 3px; font-weight: 600; color: white;
+    cursor: pointer; font-family: inherit; font-size: 0.85rem;
+}
+#live-timetable-link:hover { background: rgba(255, 255, 255, 0.18); }
 .live-card footer { margin-top: 10px; }
 .live-card footer p { margin: 0; font-weight: 600; font-size: 0.9rem; color: rgba(255, 255, 255, 0.75); }
 #live-incidents-link {
