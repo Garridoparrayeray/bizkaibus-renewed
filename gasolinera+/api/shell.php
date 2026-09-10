@@ -27,12 +27,9 @@
         <header>
             <div class="home-link-wrap">
                 <span id="app-logomark" aria-hidden="true">
-                    <svg class="logo-gasolinera" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 17.5A9 9 0 0 1 21 17.5Z" fill="#FFDB00"/>
-                        <circle cx="4.5" cy="17.5" r="1" fill="#7A5A05"/>
-                        <circle cx="19.5" cy="17.5" r="1" fill="#7A5A05"/>
-                        <path d="M12 17L16.8 8.7" stroke="#7A5A05" stroke-width="1.8" stroke-linecap="round"/>
-                        <circle cx="12" cy="17" r="1.7" fill="#7A5A05"/>
+                    <svg class="logo-gasolinera" viewBox="0 0 24 24">
+                        <rect x="1" y="1" width="22" height="22" rx="6" fill="#7A5A05"/>
+                        <path d="M12 4C9 7.5 7.3 10.3 7.3 13C7.3 16.2 9.4 18.3 12 18.3C14.6 18.3 16.7 16.2 16.7 13C16.7 11.6 16.1 10.1 15.1 8.9C15.2 10.3 14.5 11.4 13.5 11.4C12.7 11.4 12.1 10.7 12.1 9.8C12.1 8.4 13 7 13 5.8C13 5.1 12.6 4.5 12 4Z" fill="#FFDB00"/>
                     </svg>
                 </span>
                 <span>
@@ -225,9 +222,14 @@
     </main>
 
     <dialog id="station-modal">
-        <button id="modal-close" class="btn-icon" type="button" aria-label="Cerrar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-        </button>
+        <div id="modal-top-actions">
+            <button id="modal-close" class="btn-icon" type="button" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+            </button>
+            <button id="modal-favorite-toggle" class="btn-icon" type="button" aria-label="Añadir a favoritas" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.5C12 20.5 3.5 15.4 3.5 9.5C3.5 6.5 5.8 4.5 8.5 4.5C10.1 4.5 11.3 5.3 12 6.5C12.7 5.3 13.9 4.5 15.5 4.5C18.2 4.5 20.5 6.5 20.5 9.5C20.5 15.4 12 20.5 12 20.5Z"/></svg>
+            </button>
+        </div>
         <span id="modal-rotulo" class="badge"></span>
         <h3 id="modal-direccion"></h3>
         <p id="modal-municipio"></p>
@@ -237,7 +239,6 @@
         <canvas id="modal-chart" height="140"></canvas>
         <div id="modal-actions">
             <a id="modal-directions" class="pill" target="_blank" rel="noopener">Cómo llegar</a>
-            <button id="modal-favorite-toggle" type="button" class="pill">Añadir a favoritas</button>
             <button id="modal-compare-toggle" type="button" class="pill">Añadir a comparar</button>
         </div>
     </dialog>

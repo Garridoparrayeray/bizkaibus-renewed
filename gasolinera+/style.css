@@ -374,6 +374,10 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     margin-bottom: 10px;
 }
 
+#modal-top-actions { display: flex; justify-content: space-between; margin-bottom: 10px; }
+#modal-favorite-toggle[aria-pressed="true"] { color: #B3261E; border-color: #B3261E; }
+#modal-favorite-toggle[aria-pressed="true"] svg { fill: #B3261E; }
+
 #modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 #modal-actions .pill { flex: 1; text-align: center; }
 #modal-directions { background: var(--primary); color: white; border-color: var(--primary); }
@@ -413,8 +417,6 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     font-size: 0.78rem;
     text-decoration: underline;
 }
-
-#modal-favorite-toggle[aria-pressed="true"] { background: var(--primary-tint); border-color: var(--primary); color: var(--primary-dark); }
 
 #toast {
     position: fixed;

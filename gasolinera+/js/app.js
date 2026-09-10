@@ -1110,15 +1110,17 @@
 
         el.modalDirections.href = `https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lon}`;
 
-        el.modalFavoriteToggle.textContent = favoriteToggleLabel(ideess);
         el.modalFavoriteToggle.setAttribute('aria-pressed', String(isFavorite(ideess)));
+        el.modalFavoriteToggle.setAttribute('aria-label', favoriteToggleLabel(ideess));
         el.modalFavoriteToggle.onclick = () => {
             if (isFavorite(ideess)) {
                 removeFromFavorites(ideess);
-                el.modalFavoriteToggle.textContent = favoriteToggleLabel(ideess);
                 el.modalFavoriteToggle.setAttribute('aria-pressed', 'false');
+                el.modalFavoriteToggle.setAttribute('aria-label', favoriteToggleLabel(ideess));
             } else {
                 addToFavorites(ideess, station.rotulo, station.direccion, station.municipio);
+                el.modalFavoriteToggle.setAttribute('aria-pressed', 'true');
+                el.modalFavoriteToggle.setAttribute('aria-label', favoriteToggleLabel(ideess));
                 showToast(`${station.rotulo} añadida a favoritas`);
                 setTimeout(() => el.stationModal.close(), 900);
             }
@@ -1131,6 +1133,7 @@
                 el.modalCompareToggle.textContent = compareToggleLabel(ideess);
             } else {
                 addToCompare(ideess, station.rotulo, station.direccion);
+                el.modalCompareToggle.textContent = compareToggleLabel(ideess);
                 showToast(`${station.rotulo} añadida a comparar`);
                 setTimeout(() => el.stationModal.close(), 900);
             }
