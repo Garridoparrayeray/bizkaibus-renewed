@@ -11,13 +11,15 @@ class Http
      * cURL en cada cliente. Cualquier fallo de red o HTTP >=400 lanza
      * excepción, dejando que cada cliente decida si lo captura o lo propaga.
      */
-    public static function get(string $url, int $timeoutSeconds = 8): string
+    /** @param string[] $headers Cabeceras adicionales, p.ej. ['User-Agent: MiApp/1.0 (contacto@ejemplo.com)']. */
+    public static function get(string $url, int $timeoutSeconds = 8, array $headers = []): string
     {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $timeoutSeconds,
             CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTPHEADER => $headers,
         ]);
         $body = curl_exec($ch);
         $error = curl_error($ch);
