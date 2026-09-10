@@ -106,7 +106,11 @@
         <section id="view-list">
             <ul id="stations-list"></ul>
             <p id="stations-empty" hidden>No hay gasolineras que coincidan con la búsqueda.</p>
-            <p id="stations-load-sentinel" hidden>Cargando más gasolineras…</p>
+            <nav id="stations-pagination" hidden aria-label="Paginación de resultados">
+                <button id="pagination-prev" type="button" class="pill">« Anterior</button>
+                <span id="pagination-status"></span>
+                <button id="pagination-next" type="button" class="pill">Siguiente »</button>
+            </nav>
         </section>
 
         <section id="view-map" hidden>
