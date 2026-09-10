@@ -1,11 +1,12 @@
 {
   "functions": {
-    "api/*.php": {
+    "bizkaibus_metro+/api/*.php": {
       "runtime": "vercel-php@0.9.0"
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.php" },
-    { "source": "/", "destination": "/api/shell.php" }
+    { "source": "/api/(.*)", "destination": "/bizkaibus_metro+/api/index.php" },
+    { "source": "/", "destination": "/bizkaibus_metro+/api/shell.php" },
+    { "source": "/(.*)", "destination": "/bizkaibus_metro+/$1" }
   ]
 }
