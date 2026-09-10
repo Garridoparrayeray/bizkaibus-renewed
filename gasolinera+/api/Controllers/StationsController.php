@@ -125,6 +125,13 @@ class StationsController
 
         $geocodedFrom = null;
 
+        // Si se ancló a un lugar real, se completa el resultado con las
+        // estaciones dentro de un radio de ese punto: un barrio (p.ej.
+        // Algorta) no tiene polígono propio en el feed, así que una
+        // gasolinera físicamente ahí pero etiquetada con otro
+        // municipio/localidad no aparecería solo por coincidencia de texto.
+        $nearbyMergeRadiusKm = $place !== null ? 10.0 : null;
+
         $page = $model->search(
             $q,
             $latFloat,
@@ -135,7 +142,8 @@ class StationsController
             $openNow,
             (int)$config['stale_station_days'],
             $offset,
-            $limit
+            $limit,
+            $nearbyMergeRadiusKm
         );
 
         if ($page['total'] === 0 && $offset === 0) {
@@ -164,6 +172,27 @@ class StationsController
             'geocodedFrom' => $geocodedFrom,
             'attribution' => $config['attribution'],
         ]);
+    }
+
+    /**
+     * Municipios que coinciden con el texto (no estaciones), para las
+     * sugerencias mientras se escribe en el buscador, ruta
+     * /stations/suggest-places. Evita el problema de "escribo una ciudad y
+     * no me la encuentra bien": el usuario ve y elige el municipio exacto en
+     * vez de que el buscador adivine con una sola coincidencia de texto.
+     */
+    public function suggestPlaces(Request $request): void
+    {
+        $q = trim((string)$request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            Response::json(['places' => []]);
+            return;
+        }
+
+        $model = new Station(Database::connection());
+        $places = $model->suggestPlaces($q, 8);
+
+        Response::json(['places' => $places]);
     }
 
     /**

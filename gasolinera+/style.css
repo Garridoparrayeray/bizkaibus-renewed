@@ -153,7 +153,38 @@ header {
     display: flex;
     gap: 8px;
     margin-bottom: 12px;
+    position: relative;
 }
+#search-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+#search-suggestions li button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.87rem;
+    color: var(--text);
+    cursor: pointer;
+}
+#search-suggestions li:last-child button { border-bottom: none; }
+#search-suggestions li button:hover { background: var(--primary-tint); }
+#search-suggestions li button small { display: block; color: var(--text-secondary); font-size: 0.76rem; margin-top: 2px; }
 #search-input {
     flex: 1;
     padding: 10px 12px;

@@ -29,6 +29,7 @@ const Api = (() => {
             if (limit) params.set('limit', limit);
             return request(`/stations/search?${params}`);
         },
+        suggestPlaces: (q) => request(`/stations/suggest-places?q=${encodeURIComponent(q)}`),
         bbox: ({ north, south, east, west, fuel, open }) => {
             const params = new URLSearchParams({ north, south, east, west });
             if (fuel) params.set('fuel', fuel);
