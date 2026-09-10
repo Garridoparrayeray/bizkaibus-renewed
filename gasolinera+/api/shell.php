@@ -58,6 +58,7 @@
                 <button id="geo-skip" type="button">Buscar sin ubicación</button>
             </div>
         </div>
+        <button id="geo-toggle" type="button" hidden></button>
 
         <section id="national-stats">
             <button id="national-stats-toggle" type="button" aria-expanded="false">
