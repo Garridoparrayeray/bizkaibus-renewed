@@ -41,6 +41,7 @@
         geoFallback: document.getElementById('geo-fallback'),
         geoRetry: document.getElementById('geo-retry'),
         heatmapToggle: document.getElementById('heatmap-toggle'),
+        locateMe: document.getElementById('locate-me'),
         map: document.getElementById('map'),
         stationModal: document.getElementById('station-modal'),
         modalClose: document.getElementById('modal-close'),
@@ -160,6 +161,9 @@
                 state.userLon = position.coords.longitude;
                 el.geoFallback.hidden = true;
                 loadNearby();
+                if (state.currentView === 'map') {
+                    locateOnMap();
+                }
             },
             () => {
                 el.geoFallback.hidden = false;
@@ -560,6 +564,25 @@
         }
     }
 
+    function locateOnMap() {
+        if (state.userLat === null || state.userLon === null) {
+            requestGeolocation();
+            return;
+        }
+        ensureMap();
+        state.map.setView([state.userLat, state.userLon], 14);
+        if (state.userMarker) {
+            state.map.removeLayer(state.userMarker);
+        }
+        state.userMarker = L.circleMarker([state.userLat, state.userLon], {
+            radius: 8,
+            color: '#1D4E89',
+            fillColor: '#4A90D9',
+            fillOpacity: 1,
+            weight: 2,
+        }).addTo(state.map);
+    }
+
     function switchView(view) {
         state.currentView = view;
         el.viewList.hidden = view !== 'list';
@@ -784,6 +807,7 @@
     el.viewListBtn.addEventListener('click', () => switchView('list'));
     el.viewMapBtn.addEventListener('click', () => switchView('map'));
     el.heatmapToggle.addEventListener('click', toggleHeatmap);
+    el.locateMe.addEventListener('click', locateOnMap);
 
     el.modalClose.addEventListener('click', () => el.stationModal.close());
     el.stationModal.addEventListener('click', (e) => {
