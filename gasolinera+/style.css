@@ -372,6 +372,80 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     cursor: pointer;
 }
 
+.stats-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: var(--shadow-soft);
+    padding: 14px;
+    margin-bottom: 12px;
+}
+.stats-block h3 {
+    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+    font-size: 1rem;
+    margin: 0 0 10px;
+}
+.stats-controls { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.stats-controls select {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 0.84rem;
+    color: var(--text);
+}
+#stats-group-toggle { display: flex; gap: 6px; }
+#stats-group-toggle .pill[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
+#stats-national-variation, #stats-station-variation {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin: 0 0 10px;
+}
+#stats-national-variation strong, #stats-station-variation strong { color: var(--text); }
+
+#stats-station-search-wrap { position: relative; }
+#stats-station-search {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--text);
+    box-sizing: border-box;
+}
+#stats-station-results {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+#stats-station-results:empty { border: none; }
+#stats-station-results li button {
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text);
+    cursor: pointer;
+}
+#stats-station-results li:last-child button { border-bottom: none; }
+#stats-station-results li button:hover { background: var(--primary-tint); }
+#stats-station-results li button small { display: block; color: var(--text-secondary); font-size: 0.76rem; margin-top: 2px; }
+
+#stats-station-detail { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+#stats-station-name { font-weight: 700; margin: 0 0 2px; }
+
 @media (prefers-color-scheme: dark) {
     :root {
         --bg: #16130c;

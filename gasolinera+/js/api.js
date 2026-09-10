@@ -36,8 +36,8 @@ const Api = (() => {
             return request(`/stations/bbox?${params}`);
         },
         station: (ideess) => request(`/stations/${ideess}`),
-        history: (ideess, fuel, days = 7) => request(`/stations/${ideess}/history?fuel=${fuel}&days=${days}`),
+        history: (ideess, fuel, days = 7, group = 'day') => request(`/stations/${ideess}/history?fuel=${fuel}&days=${days}&group=${group}`),
         zoneComparison: (ideess, fuel) => request(`/stations/${ideess}/zone-comparison?fuel=${fuel}`),
-        nationalStats: (fuel, days = 14) => request(`/stats/national?fuel=${fuel}&days=${days}`),
+        nationalStats: (fuel, days = 14, group = 'day') => request(`/stats/national?fuel=${fuel}&days=${days}&group=${group}`),
     };
 })();
