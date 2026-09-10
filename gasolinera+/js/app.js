@@ -34,7 +34,10 @@
         viewMap: document.getElementById('view-map'),
         stationsList: document.getElementById('stations-list'),
         stationsEmpty: document.getElementById('stations-empty'),
-        stationsLoadSentinel: document.getElementById('stations-load-sentinel'),
+        paginationNav: document.getElementById('stations-pagination'),
+        paginationPrev: document.getElementById('pagination-prev'),
+        paginationNext: document.getElementById('pagination-next'),
+        paginationStatus: document.getElementById('pagination-status'),
         geoFallback: document.getElementById('geo-fallback'),
         geoRetry: document.getElementById('geo-retry'),
         heatmapToggle: document.getElementById('heatmap-toggle'),
@@ -70,8 +73,8 @@
         currentStations: [],
         stationsMode: null,
         stationsQuery: '',
-        stationsOffset: 0,
-        stationsHasMore: false,
+        stationsPage: 1,
+        stationsTotal: 0,
         stationsLoading: false,
         currentView: 'list',
         mapReady: false,
@@ -256,32 +259,26 @@
             return;
         }
         state.stationsMode = 'nearby';
-        await fetchStationsPage(true);
+        await loadStationsPage(1);
     }
 
     async function performSearch(query) {
         state.stationsMode = 'search';
         state.stationsQuery = query;
-        await fetchStationsPage(true);
+        await loadStationsPage(1);
     }
 
-    // reset=true empieza una búsqueda nueva desde el offset 0; reset=false
-    // añade la siguiente página a la lista ya cargada (scroll infinito).
-    async function fetchStationsPage(reset) {
+    // Cada página sustituye la lista anterior (paginación real, no scroll
+    // infinito): pageNumber es 1-indexado.
+    async function loadStationsPage(pageNumber) {
         if (state.stationsLoading) {
             return;
         }
-        if (reset) {
-            state.stationsOffset = 0;
-            state.stationsHasMore = false;
-        } else if (!state.stationsHasMore) {
-            return;
-        }
         state.stationsLoading = true;
-        updateLoadSentinel();
+        updatePaginationControls();
 
         const filters = currentFilters();
-        const page = { offset: state.stationsOffset, limit: PAGE_SIZE };
+        const page = { offset: (pageNumber - 1) * PAGE_SIZE, limit: PAGE_SIZE };
         let data;
         try {
             if (state.stationsMode === 'search') {
@@ -291,33 +288,31 @@
             }
         } catch (e) {
             state.stationsLoading = false;
-            updateLoadSentinel();
+            updatePaginationControls();
             return;
         }
 
-        if (reset) {
-            state.currentStations = data.stations;
-        } else {
-            state.currentStations = state.currentStations.concat(data.stations);
-        }
-        state.stationsOffset += data.stations.length;
-        state.stationsHasMore = Boolean(data.hasMore);
+        state.currentStations = data.stations;
+        state.stationsPage = pageNumber;
+        state.stationsTotal = data.total;
         state.stationsLoading = false;
 
         renderList(state.currentStations);
-        updateLoadSentinel();
+        updatePaginationControls();
+        el.viewList.scrollIntoView({ behavior: 'smooth', block: 'start' });
         if (state.currentView === 'map') {
             refreshMapMarkers();
         }
     }
 
-    function updateLoadSentinel() {
-        el.stationsLoadSentinel.hidden = !state.stationsHasMore && !state.stationsLoading;
-        if (state.stationsLoading) {
-            el.stationsLoadSentinel.textContent = 'Cargando más gasolineras…';
-        } else {
-            el.stationsLoadSentinel.textContent = 'Desplázate para ver más';
-        }
+    function updatePaginationControls() {
+        const totalPages = Math.max(1, Math.ceil(state.stationsTotal / PAGE_SIZE));
+        el.paginationNav.hidden = state.stationsTotal <= PAGE_SIZE;
+        el.paginationPrev.disabled = state.stationsLoading || state.stationsPage <= 1;
+        el.paginationNext.disabled = state.stationsLoading || state.stationsPage >= totalPages;
+        el.paginationStatus.textContent = state.stationsLoading
+            ? 'Cargando…'
+            : `Página ${state.stationsPage} de ${totalPages}`;
     }
 
     function fuelPriceLabel(station, fuelSlug) {
@@ -741,16 +736,19 @@
         });
     }
 
-    // ---- Scroll infinito ----
-
-    const loadMoreObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            fetchStationsPage(false);
-        }
-    }, { rootMargin: '200px' });
-    loadMoreObserver.observe(el.stationsLoadSentinel);
-
     // ---- Eventos ----
+
+    el.paginationPrev.addEventListener('click', () => {
+        if (state.stationsPage > 1) {
+            loadStationsPage(state.stationsPage - 1);
+        }
+    });
+    el.paginationNext.addEventListener('click', () => {
+        const totalPages = Math.max(1, Math.ceil(state.stationsTotal / PAGE_SIZE));
+        if (state.stationsPage < totalPages) {
+            loadStationsPage(state.stationsPage + 1);
+        }
+    });
 
     el.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
