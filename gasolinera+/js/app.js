@@ -56,8 +56,14 @@
         paginationPrev: document.getElementById('pagination-prev'),
         paginationNext: document.getElementById('pagination-next'),
         paginationStatus: document.getElementById('pagination-status'),
+        geoAsk: document.getElementById('geo-ask'),
+        geoAllow: document.getElementById('geo-allow'),
+        geoSkip: document.getElementById('geo-skip'),
         geoFallback: document.getElementById('geo-fallback'),
         geoRetry: document.getElementById('geo-retry'),
+        legalOpen: document.getElementById('legal-open'),
+        legalPanel: document.getElementById('legal-panel'),
+        legalClose: document.getElementById('legal-close'),
         heatmapToggle: document.getElementById('heatmap-toggle'),
         locateMe: document.getElementById('locate-me'),
         map: document.getElementById('map'),
@@ -317,6 +323,7 @@
             (position) => {
                 state.userLat = position.coords.latitude;
                 state.userLon = position.coords.longitude;
+                el.geoAsk.hidden = true;
                 el.geoFallback.hidden = true;
                 loadNearby();
                 if (state.currentView === 'map') {
@@ -324,10 +331,42 @@
                 }
             },
             () => {
+                el.geoAsk.hidden = true;
                 el.geoFallback.hidden = false;
             },
             { timeout: 8000 }
         );
+    }
+
+    // No se pide la ubicacion en silencio al cargar: primero se explica para
+    // que se usa y se pide una accion explicita (salvo que el navegador ya
+    // recuerde un permiso concedido de antes, via la Permissions API donde
+    // esta disponible).
+    async function initGeolocationFlow() {
+        if (!('geolocation' in navigator)) {
+            el.geoAsk.hidden = true;
+            el.geoFallback.hidden = false;
+            return;
+        }
+        if ('permissions' in navigator) {
+            try {
+                const status = await navigator.permissions.query({ name: 'geolocation' });
+                if (status.state === 'granted') {
+                    el.geoAsk.hidden = true;
+                    requestGeolocation();
+                    return;
+                }
+                if (status.state === 'denied') {
+                    el.geoAsk.hidden = true;
+                    el.geoFallback.hidden = false;
+                    return;
+                }
+            } catch (e) {
+                // Permissions API sin soporte para 'geolocation' en este
+                // navegador (Safari, sobre todo): se cae al banner de pedir permiso.
+            }
+        }
+        el.geoAsk.hidden = false;
     }
 
     // ---- Estadísticas nacionales ----
@@ -1314,7 +1353,19 @@
 
     el.nationalToggle.addEventListener('click', toggleNationalDetail);
 
+    el.geoAllow.addEventListener('click', () => {
+        el.geoAsk.hidden = true;
+        requestGeolocation();
+    });
+    el.geoSkip.addEventListener('click', () => {
+        el.geoAsk.hidden = true;
+    });
     el.geoRetry.addEventListener('click', requestGeolocation);
+    el.legalOpen.addEventListener('click', () => el.legalPanel.showModal());
+    el.legalClose.addEventListener('click', () => el.legalPanel.close());
+    el.legalPanel.addEventListener('click', (e) => {
+        if (e.target === el.legalPanel) el.legalPanel.close();
+    });
     el.viewListBtn.addEventListener('click', () => switchView('list'));
     el.viewMapBtn.addEventListener('click', () => switchView('map'));
     el.viewStatsBtn.addEventListener('click', () => switchView('stats'));
@@ -1369,8 +1420,8 @@
     el.statsTo.max = todayIso();
     el.statsFrom.max = todayIso();
 
+    initGeolocationFlow();
     updateCompareCount();
     updateFavoritesCount();
-    requestGeolocation();
     loadNationalHeadline();
 })();
