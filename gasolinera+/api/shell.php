@@ -31,6 +31,7 @@
                         <path d="M7 3.5H17L18.5 8C19.2 10.5 19.2 13.5 18.5 16L17 20.5H7L5.5 16C4.8 13.5 4.8 10.5 5.5 8Z" fill="#FFDB00"/>
                         <path d="M5.2 8.8H18.8" stroke="#7A5A05" stroke-width="1.8"/>
                         <path d="M4.9 15.2H19.1" stroke="#7A5A05" stroke-width="1.8"/>
+                        <circle cx="12" cy="4.2" r="1.3" fill="#7A5A05"/>
                     </svg>
                 </span>
                 <span>
@@ -106,6 +107,7 @@
         </p>
 
         <section id="view-list">
+            <p id="stations-geocoded-note" hidden></p>
             <ul id="stations-list"></ul>
             <p id="stations-empty" hidden>No hay gasolineras que coincidan con la búsqueda.</p>
             <nav id="stations-pagination" hidden aria-label="Paginación de resultados">
@@ -167,7 +169,9 @@
 
             <div class="stats-block">
                 <h3>Precio medio por provincia hoy</h3>
-                <canvas id="stats-province-chart" height="420"></canvas>
+                <div id="stats-province-chart-wrap">
+                    <canvas id="stats-province-chart"></canvas>
+                </div>
             </div>
 
             <div class="stats-block">
