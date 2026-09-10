@@ -184,20 +184,23 @@ class Station
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        $priceStmt = null;
+        // El carburante filtra, no solo colorea: si no, un carburante raro
+        // (GNC, hidrogeno...) pinta casi todo el mapa en gris ("sin precio")
+        // en vez de aislar las pocas estaciones que de verdad lo tienen.
+        $priceMap = [];
         if ($fuel !== null) {
-            $priceStmt = $this->pdo->prepare('SELECT precio FROM current_prices WHERE ideess = ? AND carburante = ?');
+            $priceMap = $this->batchFuelPrices(array_column($rows, 'ideess'), $fuel);
         }
 
         $results = [];
         foreach ($rows as $row) {
-            $precio = null;
-            if ($priceStmt !== null) {
-                $priceStmt->execute([$row['ideess'], $fuel]);
-                $value = $priceStmt->fetchColumn();
-                if ($value !== false) {
-                    $precio = (float)$value;
+            if ($fuel !== null) {
+                if (!isset($priceMap[$row['ideess']])) {
+                    continue;
                 }
+                $precio = $priceMap[$row['ideess']];
+            } else {
+                $precio = null;
             }
             $results[] = [
                 'ideess' => $row['ideess'],
@@ -209,6 +212,29 @@ class Station
             ];
         }
         return $results;
+    }
+
+    /** @return array<string, float> Solo las estaciones de $ideessList que tienen precio para $fuel. */
+    private function batchFuelPrices(array $ideessList, string $fuel): array
+    {
+        $result = [];
+        if (empty($ideessList)) {
+            return $result;
+        }
+
+        foreach (array_chunk($ideessList, 400) as $chunk) {
+            $idPlaceholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $this->pdo->prepare("
+                SELECT ideess, precio FROM current_prices
+                WHERE carburante = ? AND ideess IN ($idPlaceholders)
+            ");
+            $stmt->execute([$fuel, ...$chunk]);
+            foreach ($stmt->fetchAll() as $row) {
+                $result[$row['ideess']] = (float)$row['precio'];
+            }
+        }
+
+        return $result;
     }
 
     /** Ficha completa de una estación por id, o null si no existe. */
@@ -444,6 +470,16 @@ class Station
      */
     private function sortPaginateAndBuild(array $candidates, string $sort, ?string $fuel, int $offset, int $limit): array
     {
+        // El carburante seleccionado filtra, no solo ordena: antes una
+        // estacion sin GNC (o sin gasoleo_a) seguia saliendo en la lista con
+        // precio en blanco, lo que con un carburante raro (2 estaciones de
+        // hidrogeno en todo el pais) hacia el filtro inutil.
+        if ($fuel !== null) {
+            $ideessList = array_map(fn($c) => $c['row']['ideess'], $candidates);
+            $hasFuel = $this->batchHasFuel($ideessList, $fuel);
+            $candidates = array_values(array_filter($candidates, fn($c) => $hasFuel[$c['row']['ideess']] ?? false));
+        }
+
         if ($sort === 'distance') {
             usort($candidates, function ($a, $b) {
                 $relevanceCmp = $this->relevanceOf($a) <=> $this->relevanceOf($b);
@@ -507,6 +543,32 @@ class Station
      * @param array<int, string> $ideessList
      * @return array<string, ?float>
      */
+    /**
+     * @param array<int, string> $ideessList
+     * @return array<string, bool>
+     */
+    private function batchHasFuel(array $ideessList, string $fuel): array
+    {
+        $result = array_fill_keys($ideessList, false);
+        if (empty($ideessList)) {
+            return $result;
+        }
+
+        foreach (array_chunk($ideessList, 400) as $chunk) {
+            $idPlaceholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $this->pdo->prepare("
+                SELECT ideess FROM current_prices
+                WHERE carburante = ? AND ideess IN ($idPlaceholders)
+            ");
+            $stmt->execute([$fuel, ...$chunk]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $ideess) {
+                $result[$ideess] = true;
+            }
+        }
+
+        return $result;
+    }
+
     private function batchSortPrices(array $ideessList, string $sortFuel): array
     {
         $result = array_fill_keys($ideessList, null);

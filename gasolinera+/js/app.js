@@ -15,6 +15,10 @@
         hidrogeno: 'Hidrógeno',
         biodiesel: 'Biodiésel',
         bioetanol: 'Bioetanol',
+        diesel_renovable: 'Diésel Renovable',
+        gasolina_renovable: 'Gasolina Renovable',
+        biogas_natural_comprimido: 'Biogás Natural Comprimido',
+        biogas_natural_licuado: 'Biogás Natural Licuado',
     };
 
     const TREND_SYMBOL = { up: '▲', down: '▼', same: '=' };
@@ -107,6 +111,7 @@
         stationsMode: null,
         stationsQuery: '',
         stationsPage: 1,
+        stationsPendingPage: null,
         stationsTotal: 0,
         stationsLoading: false,
         currentView: 'list',
@@ -321,12 +326,18 @@
     }
 
     // Cada página sustituye la lista anterior (paginación real, no scroll
-    // infinito): pageNumber es 1-indexado.
+    // infinito): pageNumber es 1-indexado. Si llega una llamada mientras ya
+    // hay una carga en curso (dos filtros cambiados seguidos, p.ej. radio y
+    // luego carburante), no se descarta sin más: se apunta como pendiente y
+    // se relanza en cuanto termina la que está en curso, para que el
+    // resultado final siempre refleje el ÚLTIMO filtro elegido.
     async function loadStationsPage(pageNumber) {
         if (state.stationsLoading) {
+            state.stationsPendingPage = pageNumber;
             return;
         }
         state.stationsLoading = true;
+        state.stationsPendingPage = null;
         updatePaginationControls();
 
         const filters = currentFilters();
@@ -360,6 +371,12 @@
         updatePaginationControls();
         if (state.currentView === 'map') {
             refreshMapMarkers();
+        }
+
+        if (state.stationsPendingPage !== null) {
+            const nextPage = state.stationsPendingPage;
+            state.stationsPendingPage = null;
+            loadStationsPage(nextPage);
         }
     }
 
