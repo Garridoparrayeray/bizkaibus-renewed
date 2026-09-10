@@ -221,6 +221,7 @@ if ($isMetroShare) {
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
                         <strong id="live-minutes">–</strong><span>min</span>
                     </button>
+                    <button id="live-timetable-link" type="button" class="platform-timetable-link">Ver horario completo</button>
                     <footer>
                         <p>
                             <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>
