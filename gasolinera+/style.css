@@ -265,7 +265,7 @@ header {
 #stations-pagination .pill:disabled { opacity: 0.4; cursor: default; }
 #pagination-status { color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; }
 
-#map-controls { margin-bottom: 8px; }
+#map-controls { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 .pill {
     padding: 7px 14px;
     border-radius: 999px;
@@ -281,7 +281,42 @@ header {
 }
 .pill[aria-pressed="true"] { background: var(--primary); color: white; border-color: var(--primary); }
 
+#map-wrap { position: relative; }
 #map { height: 60vh; min-height: 360px; border-radius: 4px; border: 1px solid var(--border); }
+
+#map-legend {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-soft);
+}
+#map-legend-gradient {
+    width: 60px;
+    height: 8px;
+    border-radius: 999px;
+    background: linear-gradient(to right, hsl(120, 70%, 42%), hsl(60, 70%, 42%), hsl(0, 70%, 42%));
+}
+
+/* Clusters con la paleta de marca en vez del verde/amarillo/naranja por
+   defecto de Leaflet.markercluster, para que no lean como plantilla. */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+    background: rgba(184, 134, 11, 0.25);
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+    background: var(--primary);
+    color: white;
+    font-weight: 700;
+}
 
 dialog {
     border: none;
