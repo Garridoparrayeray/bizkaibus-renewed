@@ -1,0 +1,48 @@
+name: Rebuild schedule data gasolinera
+
+# Actualiza data/gasolinera.sqlite a diario desde el feed oficial de precios
+# de carburantes. A diferencia de bizkaibus+ (que regenera su .sqlite entero
+# y no lo comitea), aquí el histórico de precios se acumula día a día: el
+# .sqlite SÍ está comiteado al repo, y cada ejecución parte de él (vía
+# actions/checkout) para no perder el histórico acumulado hasta ahora.
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # diario, 03:00 UTC
+  workflow_dispatch: {} # permite lanzarlo también a mano desde GitHub
+
+jobs:
+  rebuild-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, mbstring
+
+      - name: Add today's snapshot to gasolinera.sqlite
+        run: php scripts/build-database.php --mode=daily
+
+      - name: Commit updated database
+        run: |
+          if ! git diff --quiet data/gasolinera.sqlite; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/gasolinera.sqlite
+            git commit -m "chore: snapshot diario de precios"
+            git push
+          else
+            echo "gasolinera.sqlite unchanged, nothing to commit"
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy updated database to production
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
