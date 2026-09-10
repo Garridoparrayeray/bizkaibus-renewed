@@ -28,10 +28,9 @@
             <div class="home-link-wrap">
                 <span id="app-logomark" aria-hidden="true">
                     <svg class="logo-gasolinera" viewBox="0 0 24 24" fill="none">
-                        <rect x="2.5" y="5" width="16" height="12" rx="0.5" fill="#FFDB00" transform="rotate(-6 10.5 11)"/>
-                        <line x1="5.5" y1="8.3" x2="15.5" y2="7.2" stroke="#7A5A05" stroke-width="1.4"/>
-                        <line x1="5.5" y1="11.8" x2="12.5" y2="11.1" stroke="#7A5A05" stroke-width="1.4"/>
-                        <rect x="9.5" y="17" width="1.6" height="4" fill="#7A5A05"/>
+                        <path d="M3 5H13L21 13L13 21L3 13Z" fill="#FFDB00"/>
+                        <circle cx="7.5" cy="9.5" r="1.5" fill="#7A5A05"/>
+                        <path d="M13 9V16.5M13 16.5L10 13.5M13 16.5L16 13.5" stroke="#7A5A05" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </span>
                 <span>
