@@ -71,16 +71,18 @@ class Station
     ): array {
         $normalized = Search::normalize($query);
         $like = '%' . $normalized . '%';
+        $rawQuery = trim($query);
+        $cpLike = $rawQuery . '%';
 
-        $where = 'WHERE (municipio_normalizado LIKE :q1 OR direccion_normalizada LIKE :q2 OR rotulo_normalizado LIKE :q3)';
-        $params = ['q1' => $like, 'q2' => $like, 'q3' => $like];
+        $where = 'WHERE (municipio_normalizado LIKE :q1 OR direccion_normalizada LIKE :q2 OR rotulo_normalizado LIKE :q3 OR cp LIKE :q4)';
+        $params = ['q1' => $like, 'q2' => $like, 'q3' => $like, 'q4' => $cpLike];
         $where .= self::staleClause($staleStationDays);
         if ($open24h) {
             $where .= ' AND is_24h = 1';
         }
 
         $stmt = $this->pdo->prepare("
-            SELECT ideess, rotulo, direccion, municipio, lat, lon, horario_raw, is_24h
+            SELECT ideess, rotulo, direccion, municipio, cp, lat, lon, horario_raw, is_24h
             FROM stations
             $where
             LIMIT 500
@@ -97,10 +99,45 @@ class Station
             if ($openNow && $this->isOpenNow($row['horario_raw']) !== true) {
                 continue;
             }
-            $candidates[] = ['row' => $row, 'distanceKm' => $distanceKm];
+            $candidates[] = [
+                'row' => $row,
+                'distanceKm' => $distanceKm,
+                'relevance' => $this->relevanceScore($row, $normalized, $rawQuery),
+            ];
         }
 
         return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
+    }
+
+    /**
+     * A qué se debe la coincidencia de una fila con la búsqueda, para
+     * priorizar "esto ES el municipio/CP que buscas" sobre "esto lo
+     * menciona de pasada" (p.ej. una carretera llamada "Bilbao" en Miranda
+     * de Ebro no debería salir antes que las estaciones de Bilbao). Menor
+     * número = más relevante.
+     */
+    private function relevanceScore(array $row, string $normalizedQuery, string $rawQuery): int
+    {
+        if ($normalizedQuery === '') {
+            return 5;
+        }
+        $municipio = Search::normalize($row['municipio']);
+        if ($municipio === $normalizedQuery || (string)$row['cp'] === $rawQuery) {
+            return 0;
+        }
+        if (str_starts_with($municipio, $normalizedQuery)) {
+            return 1;
+        }
+        if ($rawQuery !== '' && str_starts_with((string)$row['cp'], $rawQuery)) {
+            return 2;
+        }
+        if (str_contains($municipio, $normalizedQuery)) {
+            return 3;
+        }
+        if (str_contains(Search::normalize($row['rotulo']), $normalizedQuery)) {
+            return 4;
+        }
+        return 5;
     }
 
     /**
@@ -367,6 +404,12 @@ class Station
         return $item;
     }
 
+    /** Candidatos de near()/bbox no llevan 'relevance' (todos empatan a 0, no afecta su orden). */
+    private function relevanceOf(array $candidate): int
+    {
+        return $candidate['relevance'] ?? 0;
+    }
+
     private function isOpenNow(string $horarioRaw): ?bool
     {
         return OpeningHours::isOpenAt($horarioRaw, new \DateTime('now', new \DateTimeZone('Europe/Madrid')));
@@ -385,6 +428,10 @@ class Station
     {
         if ($sort === 'distance') {
             usort($candidates, function ($a, $b) {
+                $relevanceCmp = $this->relevanceOf($a) <=> $this->relevanceOf($b);
+                if ($relevanceCmp !== 0) {
+                    return $relevanceCmp;
+                }
                 if ($a['distanceKm'] === null && $b['distanceKm'] === null) {
                     return 0;
                 }
@@ -404,6 +451,10 @@ class Station
             $ideessList = array_map(fn($c) => $c['row']['ideess'], $candidates);
             $priceMap = $this->batchSortPrices($ideessList, $sortFuel);
             usort($candidates, function ($a, $b) use ($priceMap) {
+                $relevanceCmp = $this->relevanceOf($a) <=> $this->relevanceOf($b);
+                if ($relevanceCmp !== 0) {
+                    return $relevanceCmp;
+                }
                 $priceA = $priceMap[$a['row']['ideess']];
                 $priceB = $priceMap[$b['row']['ideess']];
                 if ($priceA === null && $priceB === null) {
