@@ -4,9 +4,9 @@ namespace Models;
 
 class Search
 {
-    public static function normalize(string $text): string
+    public static function normalize(string $sText): string
     {
-        $map = [
+        $aMap = [
             'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a',
             'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
             'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
@@ -20,7 +20,7 @@ class Search
             'Ú' => 'u', 'Ù' => 'u', 'Ü' => 'u', 'Û' => 'u',
             'Ñ' => 'n', 'Ç' => 'c',
         ];
-        $lower = mb_strtolower(strtr($text, $map), 'UTF-8');
-        return trim(preg_replace('/\s+/', ' ', $lower));
+        $sLower = mb_strtolower(strtr($sText, $aMap), 'UTF-8');
+        return trim(preg_replace('/\s+/', ' ', $sLower));
     }
 }

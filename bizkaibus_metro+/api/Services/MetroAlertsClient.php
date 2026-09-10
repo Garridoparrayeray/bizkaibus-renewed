@@ -7,67 +7,67 @@ use Core\Http;
 
 class MetroAlertsClient
 {
-    private array $config;
+    private array $aConfig;
 
-    public function __construct(array $config)
+    public function __construct(array $aConfig)
     {
-        $this->config = $config;
+        $this->aConfig = $aConfig;
     }
 
     public function fetchAlerts(): array
     {
-        $cfg = $this->config['metro_alerts'];
-        return Cache::remember('metro_alerts', $cfg['cache_ttl_seconds'], function () use ($cfg) {
+        $aCfg = $this->aConfig['metro_alerts'];
+        return Cache::remember('metro_alerts', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
             try {
-                $body = Http::get($cfg['url'], $cfg['http_timeout_seconds']);
-            } catch (\Throwable $e) {
+                $sBody = Http::get($aCfg['url'], $aCfg['http_timeout_seconds']);
+            } catch (\Throwable $Ex) {
                 return [];
             }
-            return self::parse($body);
+            return self::parse($sBody);
         });
     }
 
-    private static function parse(string $body): array
+    private static function parse(string $sBody): array
     {
-        $decoded = json_decode($body, true);
-        if (!isset($decoded['data']) || !is_array($decoded['data'])) {
+        $aDecoded = json_decode($sBody, true);
+        if (!isset($aDecoded['data']) || !is_array($aDecoded['data'])) {
             return [];
         }
 
-        $alerts = [];
-        foreach ($decoded['data'] as $row) {
-            $isPublished = false;
-            if (isset($row['is_published'])) {
-                $isPublished = (string)$row['is_published'] === '1';
+        $aAlerts = [];
+        foreach ($aDecoded['data'] as $aRow) {
+            $bIsPublished = false;
+            if (isset($aRow['is_published'])) {
+                $bIsPublished = (string)$aRow['is_published'] === '1';
             }
-            if (!$isPublished) {
+            if (!$bIsPublished) {
                 continue;
             }
-            if (!empty($row['finished_at'])) {
+            if (!empty($aRow['finished_at'])) {
                 continue;
             }
 
-            $summary = '';
-            if (isset($row['title_es'])) {
-                $summary = (string)$row['title_es'];
+            $sSummary = '';
+            if (isset($aRow['title_es'])) {
+                $sSummary = (string)$aRow['title_es'];
             }
 
-            $startTime = null;
-            if (!empty($row['publish_start_date'])) {
-                $startTime = (string)$row['publish_start_date'];
+            $sStartTime = null;
+            if (!empty($aRow['publish_start_date'])) {
+                $sStartTime = (string)$aRow['publish_start_date'];
             }
-            $endTime = null;
-            if (!empty($row['publish_end_date'])) {
-                $endTime = (string)$row['publish_end_date'];
+            $sEndTime = null;
+            if (!empty($aRow['publish_end_date'])) {
+                $sEndTime = (string)$aRow['publish_end_date'];
             }
 
-            $alerts[] = [
-                'summary' => $summary,
+            $aAlerts[] = [
+                'summary' => $sSummary,
                 'description' => '',
-                'startTime' => $startTime,
-                'endTime' => $endTime,
+                'startTime' => $sStartTime,
+                'endTime' => $sEndTime,
             ];
         }
-        return $alerts;
+        return $aAlerts;
     }
 }

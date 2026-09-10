@@ -7,11 +7,11 @@ date_default_timezone_set('Europe/Madrid');
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-spl_autoload_register(function (string $class): void {
+spl_autoload_register(function (string $sClass): void {
 
-    $path = __DIR__ . '/' . str_replace('\\', '/', $class) . '.php';
-    if (is_file($path)) {
-        require $path;
+    $sPath = __DIR__ . '/' . str_replace('\\', '/', $sClass) . '.php';
+    if (is_file($sPath)) {
+        require $sPath;
     }
 });
 
@@ -26,44 +26,44 @@ use Controllers\TimetableController;
 use Controllers\RealtimeController;
 use Controllers\AlertsController;
 
-$request = new Request();
+$Req = new Request();
 
-$network = 'bus';
-if ($request->query('red') === 'metro') {
-    $network = 'metro';
+$sNetwork = 'bus';
+if ($Req->query('red') === 'metro') {
+    $sNetwork = 'metro';
 }
-Config::set($network);
+Config::set($sNetwork);
 
-$router = new Router();
+$Router = new Router();
 
-$search = new SearchController();
-$router->get('/search', [$search, 'search']);
+$Search = new SearchController();
+$Router->get('/search', [$Search, 'search']);
 
-$stops = new StopsController();
-$router->get('/stops/{id}', [$stops, 'show']);
-$router->get('/stops/{id}/departures', [$stops, 'departures']);
-$router->get('/trips/{tripKey}', [$stops, 'tripStops']);
+$Stops = new StopsController();
+$Router->get('/stops/{id}', [$Stops, 'show']);
+$Router->get('/stops/{id}/departures', [$Stops, 'departures']);
+$Router->get('/trips/{tripKey}', [$Stops, 'tripStops']);
 
-$lines = new LinesController();
-$router->get('/lines', [$lines, 'index']);
-$router->get('/lines/{id}', [$lines, 'show']);
+$Lines = new LinesController();
+$Router->get('/lines', [$Lines, 'index']);
+$Router->get('/lines/{id}', [$Lines, 'show']);
 
-$timetable = new TimetableController();
-$router->get('/lines/{id}/timetable', [$timetable, 'show']);
+$Timetable = new TimetableController();
+$Router->get('/lines/{id}/timetable', [$Timetable, 'show']);
 
-$alerts = new AlertsController();
-$router->get('/alerts', [$alerts, 'index']);
+$Alerts = new AlertsController();
+$Router->get('/alerts', [$Alerts, 'index']);
 
-if ($network === 'bus') {
-    $router->get('/lines/{id}/schedule-text', [$lines, 'scheduleText']);
+if ($sNetwork === 'bus') {
+    $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText']);
 
-    $realtime = new RealtimeController();
-    $router->get('/vehicles/{tripKey}', [$realtime, 'vehicle']);
-    $router->get('/lines/{id}/live', [$realtime, 'lineLive']);
+    $Realtime = new RealtimeController();
+    $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle']);
+    $Router->get('/lines/{id}/live', [$Realtime, 'lineLive']);
 }
 
 try {
-    $router->dispatch($request);
-} catch (\Throwable $e) {
-    Response::error('Unhandled error: ' . $e->getMessage(), 500);
+    $Router->dispatch($Req);
+} catch (\Throwable $Ex) {
+    Response::error('Unhandled error: ' . $Ex->getMessage(), 500);
 }
