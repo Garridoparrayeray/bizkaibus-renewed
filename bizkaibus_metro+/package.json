@@ -1,0 +1,14 @@
+{
+  "name": "bizkaibus-renewed",
+  "version": "1.0.0",
+  "description": "BizkaiBus+ - Horarios y tiempo real de Bizkaibus",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-insights.js"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^1.0.12"
+  },
+  "devDependencies": {},
+  "private": true
+}

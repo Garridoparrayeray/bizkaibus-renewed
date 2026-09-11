@@ -339,5 +339,6 @@ if ($bIsMetroShare) {
         }
 </script>
     <script defer src="/_vercel/insights/script.js"></script>
+    <script src="/js/speed-insights.js"></script>
 </body>
 </html>
