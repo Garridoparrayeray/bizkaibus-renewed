@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node check-mosaico.mjs)",
+      "Bash(\"/c/xampp/php/php.exe\" -l \"c:/Users/YGarrido/Documents/art-gallery/public/index.php\")",
+      "Bash(node check-mosaico2.mjs)",
+      "Bash(node check-grid.mjs)"
+    ]
+  }
+}
