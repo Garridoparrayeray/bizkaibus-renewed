@@ -332,8 +332,22 @@ if ($bIsMetroShare) {
             <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
             <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <button id="legal-open" type="button">Aviso legal y privacidad</button>
         </p>
     </footer>
+
+    <dialog id="legal-panel">
+        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+        <h3>Aviso Legal, Privacidad y Cookies</h3>
+        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong> y la <strong>LSSI-CE</strong>, informamos de lo siguiente:</p>
+        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. Sin afiliación con entidades de transporte.</p>
+        <p><strong>Privacidad y Analíticas:</strong> Utilizamos <strong>Vercel Web Analytics</strong> (herramienta respetuosa con la privacidad y libre de cookies) para recoger estadísticas básicas y anónimas de uso (visitas, país, dispositivo). Vercel procesa las direcciones IP temporalmente para generar estas métricas agrupadas, actuando como encargado del tratamiento. Aparte de esto, la app <strong>no recopila, almacena ni cede ningún dato personal tuyo</strong>.</p>
+        <p><strong>Política de Cookies:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento local de tu dispositivo (<code>localStorage</code>) para guardar tus paradas "Favoritas" y el "Tema". Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
+        <p><strong>Datos:</strong> Los horarios provienen de fuentes Open Data bajo CC-BY 4.0.</p>
+    </dialog>
+
     <a id="theme-toggle-link" href="#" class="theme-toggle-link" aria-label="Cambiar tema"></a>
     <script>
         (function () {
