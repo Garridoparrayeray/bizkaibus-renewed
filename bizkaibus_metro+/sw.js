@@ -1,15 +1,17 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const SHELL_FILES = [
     '/',
     '/style.css',
     '/style-pro.css',
     '/style-metro.css',
+    '/style-euskotren.css',
     '/js/api.js',
     '/js/app.js',
     '/manifest.json',
     '/manifest-miamor.json',
     '/manifest-metro.json',
+    '/manifest-euskotren.json',
     '/miamor.html',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
@@ -17,6 +19,8 @@ const SHELL_FILES = [
     '/icons-pro/icon-512.png',
     '/icons-metro/icon-192.png',
     '/icons-metro/icon-512.png',
+    '/icons-euskotren/icon-192.png',
+    '/icons-euskotren/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -31,6 +31,8 @@ $Req = new Request();
 $sNetwork = 'bus';
 if ($Req->query('red') === 'metro') {
     $sNetwork = 'metro';
+} elseif ($Req->query('red') === 'euskotren') {
+    $sNetwork = 'euskotren';
 }
 Config::set($sNetwork);
 
@@ -56,7 +58,9 @@ $Router->get('/alerts', [$Alerts, 'index']);
 
 if ($sNetwork === 'bus') {
     $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText']);
+}
 
+if ($sNetwork === 'bus' || $sNetwork === 'metro' || $sNetwork === 'euskotren') {
     $Realtime = new RealtimeController();
     $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle']);
     $Router->get('/lines/{id}/live', [$Realtime, 'lineLive']);

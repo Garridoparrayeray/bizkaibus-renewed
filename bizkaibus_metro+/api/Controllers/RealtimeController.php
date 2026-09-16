@@ -3,6 +3,7 @@
 namespace Controllers;
 
 use Core\Database;
+use Core\Ids;
 use Core\Request;
 use Core\Response;
 use Models\LineModel;
@@ -16,11 +17,11 @@ class RealtimeController
 
     public function lineLive(Request $Req, array $aParams): void
     {
-        $iLineId = (int)$aParams['id'];
+        $sLineId = $aParams['id'];
         $Pdo = Database::connection();
 
         $LineModel = new LineModel($Pdo);
-        $aLine = $LineModel->find($iLineId);
+        $aLine = $LineModel->find($sLineId);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
@@ -41,7 +42,7 @@ class RealtimeController
         $aVehicles = [];
         foreach ($aVmMap as $sKey => $aEntries) {
             [$sKeyLineId, $sTripNumber] = explode('|', $sKey);
-            if ((int)$sKeyLineId !== $iLineId) {
+            if ((string)$sKeyLineId !== (string)$sLineId) {
                 continue;
             }
             foreach ($aEntries as $aEntry) {
@@ -53,7 +54,7 @@ class RealtimeController
                 if ($aStop === null) {
                     continue;
                 }
-                $JourneyStmt->execute([$iLineId, $sTripNumber]);
+                $JourneyStmt->execute([$sLineId, $sTripNumber]);
                 $aJourney = $JourneyStmt->fetch();
                 $sHeadsign = null;
                 if (isset($aJourney['headsign'])) {
@@ -65,7 +66,7 @@ class RealtimeController
                     'delayMinutes' => (int)round($aEntry['delaySeconds'] / 60),
                     'headsign' => $sHeadsign,
                     'currentStop' => [
-                        'id' => (int)$aStop['id'],
+                        'id' => Ids::forOutput($aStop['id']),
                         'name' => $aStop['name'],
                         'lat' => (float)$aStop['lat'],
                         'lon' => (float)$aStop['lon'],
@@ -76,7 +77,7 @@ class RealtimeController
 
         Response::json([
             'line' => $aLine,
-            'patterns' => $LineModel->patternsWithStops($iLineId),
+            'patterns' => $LineModel->patternsWithStops($sLineId),
             'vehicles' => $aVehicles,
         ]);
     }
@@ -88,12 +89,12 @@ class RealtimeController
             Response::error('Invalid vehicle key', 422);
             return;
         }
-        $iLineId = (int)$sLineIdRaw;
+        $sLineId = $sLineIdRaw;
         $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
 
         $Pdo = Database::connection();
         $JourneyModel = new ServiceJourney($Pdo);
-        $aJourney = $JourneyModel->findByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        $aJourney = $JourneyModel->findByLineAndTrip($sLineId, $sTripNumber, $iFirstDepartureSeconds);
         if ($aJourney === null) {
             Response::error('Trip not found', 404);
             return;
@@ -102,7 +103,7 @@ class RealtimeController
         $aConfig = require __DIR__ . '/../Config/config.php';
         $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
         $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
-        $aLive = $Matcher->lookup($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds);
 
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
@@ -118,12 +119,12 @@ class RealtimeController
             }
 
             return [
-                'stopId' => (int)$aStop['stop_id'],
+                'stopId' => Ids::forOutput($aStop['stop_id']),
                 'name' => $aStop['name'],
                 'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
                 'etaMinutes' => $iEtaMinutes,
                 'isPast' => $bAlreadyPassed,
-                'isCurrent' => $aLive !== null && $aLive['currentStopId'] === (int)$aStop['stop_id'],
+                'isCurrent' => $aLive !== null && $aLive['currentStopId'] === $aStop['stop_id'],
             ];
         }, $aStops);
 

@@ -103,8 +103,11 @@ body {
     #app-logomark svg { width: 100%; height: 100%; }
 
     #app-logomark .logo-metro { display: none; }
+    #app-logomark .logo-euskotren { display: none; }
     #app-logomark.is-metro .logo-bus { display: none; }
     #app-logomark.is-metro .logo-metro { display: block; }
+    #app-logomark.is-euskotren .logo-bus { display: none; }
+    #app-logomark.is-euskotren .logo-euskotren { display: block; }
 
 hgroup { min-width: 0; overflow: hidden; }
 h1 {
@@ -157,6 +160,7 @@ header p {
     #search-results .pill { width: 100%; box-sizing: border-box; text-align: left; border: none; }
 
 .header-actions { display: flex; gap: 8px; align-items: center; }
+
 
 .live-column { min-width: 0; }
 
@@ -232,6 +236,7 @@ header p {
     padding: 10px; border-radius: 3px; font-weight: 600; color: var(--primary);
     cursor: pointer; font-family: inherit; font-size: 0.85rem;
 }
+.platform-timetable-lines { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 14px; }
 #platform-columns { display: flex; flex-direction: column; gap: 14px; }
 
 .platform-column { background: var(--primary-dark); border-radius: 3px; padding: 18px; color: white; }
@@ -345,6 +350,7 @@ dialog#vehicle-modal {
 #modal-stops { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--border); }
     #modal-stops li { padding: 8px 0 8px 16px; font-size: 0.85rem; color: var(--text-secondary); }
         #modal-stops li.stop-current { color: var(--primary); font-weight: 700; }
+        #modal-stops li.stop-past { opacity: 0.45; }
 
 dialog#side-menu {
     position: fixed; top: 0; right: 0; margin: 0; left: auto; bottom: 0;
@@ -373,37 +379,38 @@ dialog#side-menu {
     .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: var(--text); line-height: 1.5; white-space: pre-line; }
         .schedule-block p:last-child { margin-bottom: 0; }
 
-#network-switch {
-
+/* ── Network switcher — tarjeta apilada (mismo patrón en las 4 hojas) ──── */
+#network-switcher {
     position: absolute; top: 100%; left: -14px; width: 100%; z-index: 40;
-    display: flex; align-items: center; gap: 12px;
+    display: flex; flex-direction: column; gap: 4px;
     max-height: 0; overflow: hidden;
     margin: 0; padding: 0 14px;
-    border-radius: 0;
-    text-decoration: none;
-    background: #C8102E;
-    box-shadow: var(--shadow-soft);
+    border-radius: 0 0 6px 6px;
     opacity: 0;
     transition: max-height 0.22s ease, padding 0.22s ease, margin 0.22s ease, opacity 0.18s ease;
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
 }
-    #network-switch.open {
-
-        max-height: 150px; padding: 14px; margin-top: 14px; opacity: 1;
-        min-width: min(260px, calc(100vw - 40px));
+    #network-switcher.open {
+        max-height: 250px; padding: 14px; margin-top: 14px; opacity: 1;
+        min-width: min(280px, calc(100vw - 40px));
     }
-    #network-switch.is-bus { background: #01573C; }
-.network-switch-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
-    .network-switch-logomark svg { width: 100%; height: 100%; }
-    .network-switch-logomark .logo-metro { display: block; }
-    .network-switch-logomark .logo-bus { display: none; }
-        #network-switch.is-bus .network-switch-logomark .logo-metro { display: none; }
-        #network-switch.is-bus .network-switch-logomark .logo-bus { display: block; }
-.network-switch-text { display: flex; flex-direction: column; min-width: 0; }
-#network-switch-title {
-    font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
-    font-size: 1.15rem; font-weight: 800; color: white; letter-spacing: -0.5px;
+.net-card {
+    display: flex; align-items: center; gap: 12px; padding: 10px 8px;
+    text-decoration: none; border-radius: 4px;
+    transition: background 0.15s ease;
 }
-#network-switch-sub { font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); font-weight: 500; }
+    .net-card:hover { background: var(--primary-tint); }
+.net-card-logomark { display: flex; width: 34px; height: 34px; flex-shrink: 0; }
+    .net-card-logomark svg { width: 100%; height: 100%; }
+.net-card-text { display: flex; flex-direction: column; min-width: 0; }
+    .net-card-text strong {
+        font-family: 'Bricolage Grotesque', 'Inter', sans-serif;
+        font-size: 1.05rem; font-weight: 800; color: var(--text); letter-spacing: -0.3px;
+    }
+    .net-card-text span {
+        font-size: 0.76rem; color: var(--text-secondary); font-weight: 500;
+    }
 
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
@@ -420,8 +427,8 @@ dialog#side-menu {
     }
     #favorites-close { display: none; }
 
-    #platform-columns { flex-direction: row; }
-    .platform-column { flex: 1; min-width: 0; }
+    #platform-columns { flex-direction: row; flex-wrap: wrap; }
+    .platform-column { flex: 1 1 230px; }
 
     dialog#vehicle-modal {
         left: auto; right: 0; top: 0; bottom: 0; height: 100%;

@@ -1,0 +1,14 @@
+from_stop_id,to_stop_id,from_route_id,to_route_id,from_trip_id,to_trip_id,transfer_type,min_transfer_time
+ES:Euskotren:StopPlace:1468:,ES:Euskotren:StopPlace:1468:,,,,,2,60
+ES:Euskotren:StopPlace:1480:,ES:Euskotren:StopPlace:2577:,,,,,2,120
+ES:Euskotren:StopPlace:1572:,ES:Euskotren:StopPlace:1572:,,,,,2,60
+ES:Euskotren:StopPlace:2577:,ES:Euskotren:StopPlace:1480:,,,,,2,120
+ES:Euskotren:StopPlace:2581:,ES:Euskotren:StopPlace:2581:,,,,,2,60
+ES:Euskotren:StopPlace:2587:,ES:Euskotren:StopPlace:2587:,,,,,2,60
+ES:Euskotren:StopPlace:2595:,ES:Euskotren:StopPlace:2595:,,,,,2,60
+ES:Euskotren:StopPlace:2624:,ES:Euskotren:StopPlace:2624:,,,,,2,60
+ES:Euskotren:StopPlace:2637:,ES:Euskotren:StopPlace:2637:,,,,,2,30
+ES:Euskotren:StopPlace:2639:,ES:Euskotren:StopPlace:2639:,,,,,2,60
+ES:Euskotren:StopPlace:2651:,ES:Euskotren:StopPlace:2651:,,,,,2,60
+ES:Euskotren:StopPlace:2666:,ES:Euskotren:StopPlace:2666:,,,,,2,60
+ES:Euskotren:StopPlace:2670:,ES:Euskotren:StopPlace:2670:,,,,,2,60
