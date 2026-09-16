@@ -27,7 +27,7 @@ const NETWORK_DEFAULTS = [
     ],
     'euskotren' => [
         'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => __DIR__ . '/../data/Euskotren_gtfs.zip',
+        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
         'output' => __DIR__ . '/../data/euskotren.sqlite',
         'label' => 'Euskotren+',
         'agencyId' => 'ES:Euskotren:Operator:EUS_Tren:',
@@ -311,19 +311,19 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         }
     };
 
-    if (preg_match('#^https?://#i', $sSource)) {
+    if (preg_match('#^(https?|ftp)://#i', $sSource)) {
         echo "  -> Downloading from primary source: $sSource\n";
         $result = $attemptDownload($sSource);
-        if (!str_starts_with($result, 'cURL error') && file_exists($result)) {
+        if (is_string($result) && file_exists($result)) {
             return $result;
         }
         
         fwrite(STDERR, "  -> Primary download failed: $result\n");
         
-        if ($sFallbackSource && preg_match('#^https?://#i', $sFallbackSource)) {
+        if ($sFallbackSource && preg_match('#^(https?|ftp)://#i', $sFallbackSource)) {
             echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
             $fallbackResult = $attemptDownload($sFallbackSource);
-            if (!str_starts_with($fallbackResult, 'cURL error') && file_exists($fallbackResult)) {
+            if (is_string($fallbackResult) && file_exists($fallbackResult)) {
                 return $fallbackResult;
             }
             fwrite(STDERR, "  -> Fallback download failed: $fallbackResult\n");
