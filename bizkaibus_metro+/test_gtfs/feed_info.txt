@@ -1,0 +1,2 @@
+feed_publisher_name,feed_publisher_url,feed_lang,default_lang,feed_start_date,feed_end_date,feed_version,feed_contact_email,feed_contact_url
+Eusko Trenbideak,https://www.euskotren.eus/eu/atencion-a-la-clientela/sugerencias,eu,en,20260916,20261026,20260916043229,,https://www.euskotren.eus/eu

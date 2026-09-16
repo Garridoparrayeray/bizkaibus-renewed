@@ -1,0 +1,5 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
+ES:Euskotren:Operator:EUS_Funi:,Euskotren Funicular Larreineta,https://www.euskotren.eus/eu/funicular,Europe/Madrid,eu,+34944333333,https://www.euskotren.eus/eu/funicular/billetes,oaczaz@euskotren.eus
+ES:Euskotren:Operator:EUS_TrBi:,Euskotren Tranbia Bilbao,https://www.euskotren.eus/eu/tranvia/bilbao,Europe/Madrid,eu,+34944333333,https://www.euskotren.eus/eu/tranvia/billetes,oaczaz@euskotren.eus
+ES:Euskotren:Operator:EUS_TrGa:,Euskotren Tranbia Vitoria-Gasteiz,https://www.euskotren.eus/eu/tranvia/vitoria,Europe/Madrid,eu,+34944333333,https://www.euskotren.eus/eu/tranvia/billetes,oacgas1@euskotren.eus
+ES:Euskotren:Operator:EUS_Tren:,Euskotren Trena,https://www.euskotren.eus/eu/tren,Europe/Madrid,eu,+34944333333,https://www.euskotren.eus/eu/tren/billetes,oaczaz@euskotren.eus

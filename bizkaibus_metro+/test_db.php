@@ -1,0 +1,1 @@
+<?php $p = new PDO("sqlite:data/euskotren.sqlite"); echo "Stops: " . count($p->query("SELECT id FROM stops")->fetchAll()) . "\n"; echo "Lines: " . count($p->query("SELECT id FROM lines")->fetchAll()) . "\n";

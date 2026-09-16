@@ -22,7 +22,7 @@ class ServiceJourney
     {
     }
 
-    public function upcomingAtStop(int $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int|null $iReferenceStopId = null): array
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int|string|null $iReferenceStopId = null): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
         $iWeekdayBit = Calendar::todayWeekdayBit();
@@ -87,13 +87,21 @@ class ServiceJourney
         return $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5);
     }
 
-    public function timetableForLine(int $iLineId, \DateTime $Date, int $iHourFromSeconds, int $iHourToSeconds, int|null $iStopId = null): array
+    public function timetableForLine(int|string $iLineId, \DateTime $Date, int $iHourFromSeconds, int $iHourToSeconds, int|string|null $iStopId = null): array
     {
         $iWeekdayBit = Calendar::weekdayBitFor($Date);
         $sDateStr = $Date->format('Y-m-d');
+        // El id de parada que llega aquí puede ser el de una estación de
+        // Euskotren (agrupa varios andenes, ver Stop::platformsFor) en vez
+        // del id exacto que pasa por passing_times.stop_id (siempre un andén
+        // real para Euskotren, la propia parada para bus/metro que no tienen
+        // ese nivel). Por eso se compara contra el id directo O contra
+        // cualquier andén cuya estación sea ese id — para bus/metro la
+        // segunda mitad simplemente nunca encuentra nada (station_id es
+        // siempre NULL en sus filas).
         $sStopCondition = 'pt.seq_order = 1';
         if ($iStopId !== null) {
-            $sStopCondition = 'pt.stop_id = :stopId';
+            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)';
         }
 
         $Stmt = $this->Pdo->prepare('
@@ -131,13 +139,14 @@ class ServiceJourney
         ];
         if ($iStopId !== null) {
             $aParams['stopId'] = $iStopId;
+            $aParams['stopIdAsStation'] = $iStopId;
         }
         $Stmt->execute($aParams);
 
         return $this->dedupeByTrip($Stmt->fetchAll(), 2000);
     }
 
-    public function findByLineAndTrip(int $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
+    public function findByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
     {
         $Stmt = $this->Pdo->prepare('
             SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,

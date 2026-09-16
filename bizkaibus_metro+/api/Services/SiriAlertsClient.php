@@ -21,7 +21,15 @@ class SiriAlertsClient
             try {
                 $sXmlString = Http::get($aCfg['alerts_url'], $aCfg['http_timeout_seconds']);
             } catch (\Throwable $Ex) {
-                return [];
+                if (isset($aCfg['alerts_fallback_url'])) {
+                    try {
+                        $sXmlString = Http::get($aCfg['alerts_fallback_url'], $aCfg['http_timeout_seconds']);
+                    } catch (\Throwable $ExFallback) {
+                        return [];
+                    }
+                } else {
+                    return [];
+                }
             }
             return self::parse($sXmlString);
         });
