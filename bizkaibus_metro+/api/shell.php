@@ -47,7 +47,7 @@ if ($bIsMetroShare) {
             var redParam = params.get('red');
             window.__bbNetwork = (redParam === 'metro' || redParam === 'euskotren') ? redParam : 'bus';
             var isMetro     = window.__bbNetwork === 'metro';
-           // var isEuskoTren = window.__bbNetwork === 'euskotren';
+            var isEuskoTren = window.__bbNetwork === 'euskotren';
 
             var title      = 'BizkaiBus+';
             var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
@@ -332,6 +332,7 @@ if ($bIsMetroShare) {
 
             <button id="schedule-text-toggle" type="button">Ver horario oficial 2026</button>
         </section>
+        </div>
 
         <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
         <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>
