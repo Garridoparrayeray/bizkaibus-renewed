@@ -115,7 +115,7 @@ if ($bIsMetroShare) {
                             <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                         </svg>
                         <!-- Euskotren logo: custom image -->
-                        <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="Euskotren" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                        <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="Euskotren" style="width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1);">
                     </span>
                     <hgroup>
                         <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
