@@ -1,0 +1,13 @@
+{
+  "name": "Euskotren+",
+  "short_name": "Euskotren+",
+  "description": "Horarios de Euskotren, sin vueltas.",
+  "start_url": "/?red=euskotren",
+  "display": "standalone",
+  "background_color": "#002560",
+  "theme_color": "#003F8C",
+  "icons": [
+    { "src": "icons-euskotren/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons-euskotren/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

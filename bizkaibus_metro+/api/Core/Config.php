@@ -10,6 +10,8 @@ class Config
     {
         if ($sNetwork === 'metro') {
             $sPath = __DIR__ . '/../Config/metro.php';
+        } elseif ($sNetwork === 'euskotren') {
+            $sPath = __DIR__ . '/../Config/euskotren.php';
         } else {
             $sPath = __DIR__ . '/../Config/config.php';
         }

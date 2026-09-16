@@ -1,6 +1,9 @@
 (() => {
     const IS_METRO = window.__bbNetwork === 'metro';
-    const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites' : 'bizkaibus_favorites';
+    const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
+    const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites'
+        : IS_EUSKOTREN ? 'euskotren_favorites'
+        : 'bizkaibus_favorites';
 
     const ICONS = {
         pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
@@ -30,7 +33,7 @@
 
     const el = {
         homeLink: document.getElementById('home-link'),
-        networkSwitch: document.getElementById('network-switch'),
+        networkSwitch: document.getElementById('network-switcher'),
         menuOpen: document.getElementById('menu-open'),
         menuClose: document.getElementById('menu-close'),
         sideMenu: document.getElementById('side-menu'),
@@ -63,6 +66,7 @@
         platformFavorite: document.getElementById('platform-favorite'),
         platformClose: document.getElementById('platform-close'),
         platformTimetableLink: document.getElementById('platform-timetable-link'),
+        platformTimetableLines: document.getElementById('platform-timetable-lines'),
         platformColumns: document.getElementById('platform-columns'),
         timetableSection: document.getElementById('timetable-section'),
         timetableFavorite: document.getElementById('timetable-favorite'),
@@ -221,7 +225,7 @@
         }
         state.currentStop = { id: stop.id, name: stop.name };
         el.liveEmpty.hidden = true;
-        if (IS_METRO) {
+        if (IS_METRO || IS_EUSKOTREN) {
             updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
             el.platformPanelStop.textContent = stop.name;
             el.platformPanel.hidden = false;
@@ -249,15 +253,15 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            if (IS_METRO) {
-                renderPlatformPanel([]);
+            if (IS_METRO || IS_EUSKOTREN) {
+                renderPlatformPanel({ departures: [], platforms: [] });
             } else {
                 renderLiveCard([]);
             }
             return;
         }
-        if (IS_METRO) {
-            renderPlatformPanel(data.departures);
+        if (IS_METRO || IS_EUSKOTREN) {
+            renderPlatformPanel(data);
         } else {
             renderLiveCard(data.departures);
         }
@@ -291,7 +295,7 @@
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
-        el.liveIncidentsLink.hidden = IS_METRO;
+        el.liveIncidentsLink.hidden = IS_METRO || IS_EUSKOTREN;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
         el.liveTimetableLink.disabled = false;
@@ -318,7 +322,7 @@
     }
 
     const PLATFORM_DIRECTIONS = [
-        { key: 'toward_reference', label: 'Sentido Abando / Bilbao centro' },
+        { key: 'toward_reference', label: 'Sentido Bilbao centro' },
         { key: 'away_from_reference', label: 'Sentido contrario' },
     ];
 
@@ -373,15 +377,56 @@
         return column;
     }
 
-    function renderPlatformPanel(departures) {
+    function renderPlatformPanel(data) {
         el.platformColumns.innerHTML = '';
-        for (const direction of PLATFORM_DIRECTIONS) {
-            const columnDepartures = departures.filter((d) => d.direction === direction.key);
-            el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
+        const departures = data.departures || [];
+
+        // Euskotren trae andén real (ver Stop::platformsFor en la API): una
+        // caja por andén real, con sus propios trenes. Metro+ no tiene ese
+        // dato en su GTFS, así que sigue agrupando por la dirección genérica
+        // "hacia / desde" de siempre.
+        if (data.platforms && data.platforms.length) {
+            for (const platform of data.platforms) {
+                const platformDepartures = departures.filter((d) => d.platformId === platform.id);
+                el.platformColumns.appendChild(renderPlatformColumn(platform, platformDepartures));
+            }
+        } else {
+            for (const direction of PLATFORM_DIRECTIONS) {
+                const columnDepartures = departures.filter((d) => d.direction === direction.key);
+                el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
+            }
         }
-        const lineId = departures[0]?.lineId;
-        el.platformTimetableLink.disabled = lineId === undefined;
-        el.platformTimetableLink.dataset.lineId = lineId ?? '';
+        // Una estación puede tener varias líneas a la vez (algunas de
+        // Euskotren, hasta 5): un único botón "ver horario completo" solo
+        // podría apuntar a una. Con una sola línea, se queda el botón
+        // simple de siempre; con varias, una por botón.
+        const distinctLines = [];
+        const seenLineIds = new Set();
+        for (const departure of departures) {
+            if (seenLineIds.has(departure.lineId)) continue;
+            seenLineIds.add(departure.lineId);
+            distinctLines.push(departure);
+        }
+
+        if (distinctLines.length > 1) {
+            el.platformTimetableLink.hidden = true;
+            el.platformTimetableLines.hidden = false;
+            el.platformTimetableLines.innerHTML = '';
+            for (const line of distinctLines) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'pill';
+                button.textContent = line.lineCode;
+                button.addEventListener('click', () => selectLine(line.lineId, true));
+                el.platformTimetableLines.appendChild(button);
+            }
+        } else {
+            el.platformTimetableLink.hidden = false;
+            el.platformTimetableLines.hidden = true;
+            const lineId = distinctLines[0]?.lineId;
+            el.platformTimetableLink.disabled = lineId === undefined;
+            el.platformTimetableLink.dataset.lineId = lineId ?? '';
+        }
     }
 
     async function selectLine(lineId, scopeToCurrentStop = false) {
@@ -398,7 +443,7 @@
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         await loadTimetable();
-        if (!IS_METRO) {
+        if (!IS_METRO && !IS_EUSKOTREN) {
             await loadLineMap(line.id);
             startLineMapRefresh(line.id);
         }
@@ -420,7 +465,9 @@
         renderTimetableRows(data.entries);
         const sourceLabel = IS_METRO
             ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
-            : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
+            : IS_EUSKOTREN
+                ? 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)'
+                : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
         el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
     }
 
@@ -599,7 +646,7 @@
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
-        if (IS_METRO) {
+        if (IS_METRO || IS_EUSKOTREN) {
             await openTripStopsModal(tripKey);
             return;
         }
@@ -653,10 +700,18 @@
         el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
 
+        // Sin GPS en vivo (ni Metro+ ni Euskotren lo publican), pero la hora
+        // programada de cada parada sí permite marcar cuáles ya deberían
+        // haber pasado, comparando contra la hora actual — un estado real,
+        // aunque no sea posición en vivo.
+        const nowHm = new Date().toTimeString().slice(0, 5);
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
             const li = document.createElement('li');
-            li.className = stop.isTarget ? 'stop-current' : '';
+            const classes = [];
+            if (stop.isTarget) classes.push('stop-current');
+            if (stop.scheduledTime < nowHm) classes.push('stop-past');
+            li.className = classes.join(' ');
             li.textContent = `${stop.scheduledTime} · ${stop.name}`;
             el.modalStops.appendChild(li);
         }
@@ -949,6 +1004,15 @@
         el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A.';
         el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
         el.liveEmpty.textContent = 'Busca una estación para ver el próximo metro.';
+    }
+
+    if (IS_EUSKOTREN) {
+        el.lineMap.hidden = true;
+        el.lineMapEmpty.hidden = true;
+        el.scheduleTextToggle.hidden = true;
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.attribution.textContent = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
+        el.liveEmpty.textContent = 'Busca una estación para ver el próximo tren.';
     }
 
     loadFavorites();

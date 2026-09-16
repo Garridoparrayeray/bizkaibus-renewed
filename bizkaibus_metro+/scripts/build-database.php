@@ -10,20 +10,28 @@ const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 
 const NETWORK_DEFAULTS = [
     'bus' => [
-        'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1061',
+        'backdoor_source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
         'output' => __DIR__ . '/../data/bizkaibus.sqlite',
         'label' => 'BizkaiBus+',
         'agencyId' => '200',
         'skipGeocode' => false,
     ],
     'metro' => [
-        'source' => 'https://cms.metrobilbao.eus/es/get/open_data/horarios/es',
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
+        'backdoor_source' => 'https://cms.metrobilbao.eus/es/get/open_data/horarios/es',
         'output' => __DIR__ . '/../data/metrobilbao.sqlite',
         'label' => 'Metro+',
-
         'agencyId' => null,
-
         'skipGeocode' => true,
+    ],
+    'euskotren' => [
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
+        'backdoor_source' => __DIR__ . '/../data/Euskotren_gtfs.zip',
+        'output' => __DIR__ . '/../data/euskotren.sqlite',
+        'label' => 'Euskotren+',
+        'agencyId' => 'ES:Euskotren:Operator:EUS_Tren:',
+        'skipGeocode' => false,
     ],
 ];
 const GEOCACHE_PATH = __DIR__ . '/geocache.json';
@@ -37,12 +45,13 @@ function main(array $aArgv): void
         $sNetwork = $aOptions['network'];
     }
     if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
-        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro)\n");
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren)\n");
         exit(1);
     }
     $aDefaults = NETWORK_DEFAULTS[$sNetwork];
 
     $sSource = $aDefaults['source'];
+    $sFallbackSource = $aDefaults['backdoor_source'] ?? null;
     if (isset($aOptions['source'])) {
         $sSource = $aOptions['source'];
     }
@@ -53,11 +62,11 @@ function main(array $aArgv): void
     $bSkipGeocode = isset($aOptions['skip-geocode']) || $aDefaults['skipGeocode'];
     $sAgencyId = $aDefaults['agencyId'];
 
-    echo "== {$aDefaults['label']} database build (GTFS, network=$sNetwork) ==\n";
-    $sZipPath = resolveZipPath($sSource);
-    echo "Reading GTFS export from: $sSource\n";
+    $sLabel = $aDefaults['label'];
+    echo "== $sLabel database build (GTFS, network=$sNetwork) ==\n\n";
 
-    $Zip = new ZipArchive();
+    echo "Reading GTFS export from: $sSource\n";
+    $sZipPath = resolveZipPath($sSource, $sFallbackSource); $Zip = new ZipArchive();
     if ($Zip->open($sZipPath) !== true) {
         fwrite(STDERR, "Could not open zip: $sZipPath\n");
         exit(1);
@@ -70,6 +79,8 @@ function main(array $aArgv): void
     echo "Parsing stops.txt...\n";
     if ($sNetwork === 'metro') {
         $aStops = loadStopsMetro($Zip);
+    } elseif ($sNetwork === 'euskotren') {
+        $aStops = loadStopsEuskotren($Zip);
     } else {
         $aStops = loadStopsBus($Zip);
     }
@@ -126,6 +137,11 @@ function main(array $aArgv): void
     processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork);
 
     $Pdo->commit();
+
+    $iPruned = pruneUnservedStops($Pdo);
+    if ($iPruned > 0) {
+        echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";
+    }
 
     echo "Building indexes...\n";
     createIndexes($Pdo);
@@ -255,27 +271,67 @@ function reverseGeocode(float $dLat, float $dLon): string
     return implode(', ', array_unique($aParts));
 }
 
-function resolveZipPath(string $sSource): string
+function resolveZipPath(string $sSource, ?string $sFallbackSource = null): string
 {
-    if (preg_match('#^https?://#i', $sSource)) {
+    $attemptDownload = function(string $url) {
         $sTmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
-        $Ch = curl_init($sSource);
+        $Ch = curl_init($url);
         $Fp = fopen($sTmp, 'wb');
-        curl_setopt_array($Ch, [
+        
+        $aCurlOptions = [
             CURLOPT_FILE => $Fp,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 120,
             CURLOPT_FAILONERROR => true,
-        ]);
-        $bOk = curl_exec($Ch);
-        if ($bOk === false) {
-            fwrite(STDERR, 'Download failed: ' . curl_error($Ch) . "\n");
-            exit(1);
+            CURLOPT_USERAGENT => 'BizkaibusMetroApp/1.0',
+        ];
+
+        // Attach NAP ApiKey
+        $sNapKey = getenv('NAP_API_KEY') ?: '60551c6c-50d2-4199-a805-524e1cfff6d4';
+        if ($sNapKey && str_contains(strtolower($url), 'nap.transportes.gob.es')) {
+            $aCurlOptions[CURLOPT_HTTPHEADER] = ['ApiKey: ' . $sNapKey];
         }
+
+        curl_setopt_array($Ch, $aCurlOptions);
+        $bOk = curl_exec($Ch);
+        
+        $error = null;
+        if ($bOk === false) {
+            $error = curl_error($Ch);
+        }
+        
         curl_close($Ch);
         fclose($Fp);
-        return $sTmp;
+        
+        if ($bOk) {
+            return $sTmp;
+        } else {
+            unlink($sTmp);
+            return $error;
+        }
+    };
+
+    if (preg_match('#^https?://#i', $sSource)) {
+        echo "  -> Downloading from primary source: $sSource\n";
+        $result = $attemptDownload($sSource);
+        if (!str_starts_with($result, 'cURL error') && file_exists($result)) {
+            return $result;
+        }
+        
+        fwrite(STDERR, "  -> Primary download failed: $result\n");
+        
+        if ($sFallbackSource && preg_match('#^https?://#i', $sFallbackSource)) {
+            echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
+            $fallbackResult = $attemptDownload($sFallbackSource);
+            if (!str_starts_with($fallbackResult, 'cURL error') && file_exists($fallbackResult)) {
+                return $fallbackResult;
+            }
+            fwrite(STDERR, "  -> Fallback download failed: $fallbackResult\n");
+        }
+        
+        exit(1);
     }
+    
     if (!file_exists($sSource)) {
         fwrite(STDERR, "Source file not found: $sSource\n");
         exit(1);
@@ -339,12 +395,12 @@ function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId): array
             fwrite(STDERR, "  WARNING: skipping route {$aRow['route_id']} with unexpected agency_id \"{$aRow['agency_id']}\"\n");
             continue;
         }
-        $iRouteId = (int)$aRow['route_id'];
+        $sRouteId = $aRow['route_id'];
         $sCode = $aRow['route_short_name'];
         if ($sCode === '') {
             $sCode = $aRow['route_id'];
         }
-        $aRoutes[$iRouteId] = [
+        $aRoutes[$sRouteId] = [
             'code' => $sCode,
             'name' => $aRow['route_long_name'],
         ];
@@ -370,16 +426,16 @@ function loadStopsBus(ZipArchive $Zip): array
 {
     $aStops = [];
     foreach (realStopRows($Zip) as $aRow) {
-        $iId = (int)$aRow['stop_id'];
+        $sId = $aRow['stop_id'];
         $sName = $aRow['stop_name'];
-        $sStripped = preg_replace('/\s*\(' . preg_quote((string)$iId, '/') . '\)$/', '', $sName);
-        if ($sStripped === $sName) {
-            fwrite(STDERR, "  WARNING: stop $iId name \"$sName\" lacked the expected trailing \"($iId)\" suffix\n");
+        $sStripped = preg_replace('/\s*\(' . preg_quote((string)$sId, '/') . '\)$/', '', $sName);
+        if ($sStripped === $sName && is_numeric($sId)) {
+            fwrite(STDERR, "  WARNING: stop $sId name \"$sName\" lacked the expected trailing \"($sId)\" suffix\n");
         } else {
             $sName = $sStripped;
         }
 
-        $aStops[$iId] = [
+        $aStops[$sId] = [
             'name' => $sName,
             'lat' => (float)$aRow['stop_lat'],
             'lon' => (float)$aRow['stop_lon'],
@@ -392,13 +448,94 @@ function loadStopsMetro(ZipArchive $Zip): array
 {
     $aStops = [];
     foreach (realStopRows($Zip) as $aRow) {
-        $iId = (int)$aRow['stop_id'];
-        $aStops[$iId] = [
+        $sId = stripFloatIdSuffix($aRow['stop_id']);
+        $aStops[$sId] = [
             'name' => $aRow['stop_name'],
             'lat' => (float)$aRow['stop_lat'],
             'lon' => (float)$aRow['stop_lon'],
         ];
     }
+    return $aStops;
+}
+
+/**
+ * El GTFS de Euskotren (formato NeTEx) modela cada estación en dos niveles:
+ * location_type=1 ("StopPlace", la estación real, con nombre y coordenadas
+ * propias) y location_type=0 ("Quay", un andén concreto de esa estación,
+ * referenciando su StopPlace en parent_station). A diferencia de Bizkaibus/
+ * Metro (una fila = una parada real, sin más jerarquía), aquí SÍ tenemos el
+ * dato de andén real —incluso estaciones grandes como Amara-Donostia con 9—,
+ * así que en vez de forzarlo al mismo molde de bus/metro (colapsar todo en
+ * la estación) se aprovecha: se guardan AMBOS niveles en la misma tabla
+ * `stops` —la estación (station_id NULL, es lo que devuelve el buscador) y
+ * cada andén (station_id = su estación, platform_label = "Andén N")—, y
+ * stop_times.txt sigue referenciando el andén real sin remapear nada, así
+ * StopsController::departures() puede agrupar las salidas una caja por
+ * andén real en vez de una dirección genérica "hacia / desde" como Metro+.
+ *
+ * @return array<string,array{name:string,lat:float,lon:float,area?:string,stationId?:string,platformLabel?:string}>
+ */
+function loadStopsEuskotren(ZipArchive $Zip): array
+{
+    $aStations = [];
+    $aQuaysByParent = [];
+
+    foreach (readCsv($Zip, 'stops.txt') as $aRow) {
+        $sLocationType = '';
+        if (isset($aRow['location_type'])) {
+            $sLocationType = $aRow['location_type'];
+        }
+
+        if ($sLocationType === '1') {
+            $aStations[$aRow['stop_id']] = [
+                'name' => $aRow['stop_name'],
+                'lat' => (float)$aRow['stop_lat'],
+                'lon' => (float)$aRow['stop_lon'],
+            ];
+            continue;
+        }
+
+        if ($sLocationType === '0') {
+            $sParentId = '';
+            if (isset($aRow['parent_station'])) {
+                $sParentId = $aRow['parent_station'];
+            }
+            if ($sParentId !== '') {
+                $aQuaysByParent[$sParentId][] = $aRow;
+            }
+        }
+    }
+
+    $aStops = $aStations;
+    foreach ($aQuaysByParent as $sParentId => $aQuays) {
+        // Andén sin estación conocida (no debería pasar en este feed, pero
+        // por si acaso): se ignora en vez de crear una parada huérfana.
+        if (!isset($aStations[$sParentId])) {
+            continue;
+        }
+
+        // Orden estable "Andén 1, 2, 3..." por el propio id del andén
+        // (siempre termina en "_Q<n>:" en este feed) para que el numerado
+        // no dependa del orden de aparición en el CSV.
+        usort($aQuays, fn($aA, $aB) => $aA['stop_id'] <=> $aB['stop_id']);
+
+        $iIndex = 1;
+        foreach ($aQuays as $aQuay) {
+            $sLabel = 'Andén ' . $iIndex;
+            if (preg_match('/_Q(\d+):$/', $aQuay['stop_id'], $aM)) {
+                $sLabel = 'Andén ' . $aM[1];
+            }
+            $aStops[$aQuay['stop_id']] = [
+                'name' => $aStations[$sParentId]['name'],
+                'lat' => (float)$aQuay['stop_lat'],
+                'lon' => (float)$aQuay['stop_lon'],
+                'stationId' => $sParentId,
+                'platformLabel' => $sLabel,
+            ];
+            $iIndex++;
+        }
+    }
+
     return $aStops;
 }
 
@@ -531,13 +668,26 @@ function loadTrips(ZipArchive $Zip): array
             $sHeadsign = $aRow['trip_headsign'];
         }
         $aTrips[$sTripId] = [
-            'routeId' => (int)$aRow['route_id'],
+            'routeId' => (string)$aRow['route_id'],
             'serviceId' => $aRow['service_id'],
             'headsign' => $sHeadsign,
             'tripNumber' => $sTripNumber,
         ];
     }
     return $aTrips;
+}
+
+/**
+ * El GTFS "backdoor" de horarios de Metro (metrobilbao.eus, se usa cuando el
+ * NAP oficial está caído) exporta el stop_id del andén real como float
+ * ("1.0" en vez de "1") aunque el mismo id aparece limpio como parent_station
+ * de esa misma fila — verificado en vivo, es un defecto de su exportación,
+ * no del feed NAP. Sin normalizar, ningún id de parada casaría nunca (ni
+ * entre stops.txt y stop_times.txt, ni al buscar una parada por id).
+ */
+function stripFloatIdSuffix(string $sId): string
+{
+    return preg_replace('/\.0$/', '', $sId);
 }
 
 function streamStopTimesByTrip(ZipArchive $Zip): Generator
@@ -572,7 +722,7 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
 
         $aByTrip[$sTripId][] = [
             'seqOrder' => (int)$aAssoc['stop_sequence'],
-            'stopId' => (int)$aAssoc['stop_id'],
+            'stopId' => stripFloatIdSuffix($aAssoc['stop_id']),
             'arrival' => $iArrival,
             'departure' => $iDeparture,
         ];
@@ -834,18 +984,20 @@ function createSchema(PDO $Pdo): void
 {
     $Pdo->exec('
         CREATE TABLE stops (
-            id INTEGER PRIMARY KEY,
+            id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             name_normalized TEXT NOT NULL,
             area TEXT NOT NULL DEFAULT \'\',
             area_normalized TEXT NOT NULL DEFAULT \'\',
             lat REAL NOT NULL,
-            lon REAL NOT NULL
+            lon REAL NOT NULL,
+            station_id TEXT,
+            platform_label TEXT
         )
     ');
     $Pdo->exec('
         CREATE TABLE lines (
-            id INTEGER PRIMARY KEY,
+            id TEXT PRIMARY KEY,
             code TEXT NOT NULL,
             name TEXT NOT NULL,
             name_normalized TEXT NOT NULL
@@ -854,7 +1006,7 @@ function createSchema(PDO $Pdo): void
     $Pdo->exec('
         CREATE TABLE journey_patterns (
             id TEXT PRIMARY KEY,
-            line_id INTEGER NOT NULL,
+            line_id TEXT NOT NULL,
             headsign TEXT
         )
     ');
@@ -862,13 +1014,13 @@ function createSchema(PDO $Pdo): void
         CREATE TABLE journey_pattern_stops (
             journey_pattern_id TEXT NOT NULL,
             seq_order INTEGER NOT NULL,
-            stop_id INTEGER NOT NULL
+            stop_id TEXT NOT NULL
         )
     ');
     $Pdo->exec('
         CREATE TABLE service_journeys (
             id TEXT PRIMARY KEY,
-            line_id INTEGER NOT NULL,
+            line_id TEXT NOT NULL,
             journey_pattern_id TEXT NOT NULL,
             trip_number TEXT,
             calendar_id TEXT NOT NULL,
@@ -879,7 +1031,7 @@ function createSchema(PDO $Pdo): void
         CREATE TABLE passing_times (
             service_journey_id TEXT NOT NULL,
             seq_order INTEGER NOT NULL,
-            stop_id INTEGER NOT NULL,
+            stop_id TEXT NOT NULL,
             arrival_seconds INTEGER,
             departure_seconds INTEGER
         )
@@ -953,6 +1105,32 @@ function insertMeta(PDO $Pdo, array $aFeedInfo): void
     }
 }
 
+/**
+ * Quita de `stops` cualquier parada (andén o estación) que nunca aparece en
+ * `passing_times` — no tiene ni una sola salida real. En Euskotren pasa con
+ * estaciones que solo sirve el tranvía/funicular en el feed NAP combinado
+ * (mismo edificio de StopPlace, pero sus rutas quedan fuera por agencyId al
+ * cargar routes.txt, ver loadRoutes): verificado en vivo, Ribera y Arriaga
+ * en Bilbao Casco Viejo no tienen ningún tren de Euskotren, solo tranvía.
+ * Sin este filtro aparecían en el buscador como si fueran paradas reales.
+ * Genérico para las tres redes por si algún día bus/metro tienen el mismo caso.
+ */
+function pruneUnservedStops(PDO $Pdo): int
+{
+    $iDeletedQuays = $Pdo->exec('
+        DELETE FROM stops
+        WHERE station_id IS NOT NULL
+          AND id NOT IN (SELECT DISTINCT stop_id FROM passing_times)
+    ');
+    $iDeletedStations = $Pdo->exec('
+        DELETE FROM stops
+        WHERE station_id IS NULL
+          AND id NOT IN (SELECT DISTINCT stop_id FROM passing_times)
+          AND id NOT IN (SELECT DISTINCT station_id FROM stops WHERE station_id IS NOT NULL)
+    ');
+    return $iDeletedQuays + $iDeletedStations;
+}
+
 function createIndexes(PDO $Pdo): void
 {
     $Pdo->exec('CREATE INDEX idx_passing_times_stop ON passing_times (stop_id, departure_seconds)');
@@ -961,19 +1139,34 @@ function createIndexes(PDO $Pdo): void
     $Pdo->exec('CREATE INDEX idx_journeys_calendar ON service_journeys (calendar_id)');
     $Pdo->exec('CREATE INDEX idx_pattern_stops ON journey_pattern_stops (journey_pattern_id, seq_order)');
     $Pdo->exec('CREATE INDEX idx_stops_normalized ON stops (name_normalized)');
+    $Pdo->exec('CREATE INDEX idx_stops_station ON stops (station_id)');
     $Pdo->exec('CREATE INDEX idx_lines_normalized ON lines (name_normalized)');
     $Pdo->exec('CREATE INDEX idx_calendar_exceptions ON service_calendar_exceptions (calendar_id, date)');
 }
 
 function insertStops(PDO $Pdo, array $aStops): void
 {
-    $Stmt = $Pdo->prepare('INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $Stmt = $Pdo->prepare('
+        INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon, station_id, platform_label)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ');
     foreach ($aStops as $iId => $aStop) {
         $sArea = '';
         if (isset($aStop['area'])) {
             $sArea = $aStop['area'];
         }
-        $Stmt->execute([$iId, $aStop['name'], normalize($aStop['name']), $sArea, normalize($sArea), $aStop['lat'], $aStop['lon']]);
+        $sStationId = null;
+        if (isset($aStop['stationId'])) {
+            $sStationId = $aStop['stationId'];
+        }
+        $sPlatformLabel = null;
+        if (isset($aStop['platformLabel'])) {
+            $sPlatformLabel = $aStop['platformLabel'];
+        }
+        $Stmt->execute([
+            $iId, $aStop['name'], normalize($aStop['name']), $sArea, normalize($sArea),
+            $aStop['lat'], $aStop['lon'], $sStationId, $sPlatformLabel,
+        ]);
     }
 }
 

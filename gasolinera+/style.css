@@ -44,7 +44,7 @@ body {
 }
 
 .app-container {
-    max-width: 480px; width: 100%; margin: 0 auto; position: relative;
+    width: 100%; margin: 0 auto; position: relative;
     display: flex; flex-direction: column;
 }
 
@@ -250,13 +250,13 @@ header {
 }
 #view-toggle button[aria-selected="true"] {
     background: var(--primary-tint);
-    color: var(--primary-dark);
+    color : white;
 }
 
 #geo-ask { text-align: center; }
 #geo-ask-logomark { display: flex; justify-content: center; margin-bottom: 12px; }
 #geo-ask-logomark svg { width: 56px; height: 56px; border-radius: 14px; }
-#geo-ask h3 { margin: 0 0 10px; }
+#geo-ask h3 { margin: 0 0 10px; color: var(--bg) }
 #geo-ask p { margin: 0 0 16px; font-size: 0.86rem; color: var(--text-secondary); }
 #geo-ask-actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
 #geo-ask-actions .pill { background: var(--primary); color: white; border-color: var(--primary); padding: 11px; }
@@ -309,7 +309,7 @@ header {
 .station-card__main { display: flex; flex-direction: column; gap: 2px; }
 .station-card__main strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 0.95rem; }
 .station-card__address { font-size: 0.78rem; color: var(--text-secondary); }
-.station-card__distance { font-size: 0.76rem; color: var(--primary-dark); font-weight: 600; }
+.station-card__distance { font-size: 0.76rem; color: white; font-weight: 600; }
 .station-card__prices { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; text-align: right; white-space: nowrap; }
 
 .badge {

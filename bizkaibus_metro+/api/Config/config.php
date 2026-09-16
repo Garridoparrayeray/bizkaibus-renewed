@@ -5,8 +5,10 @@ return [
     'db_path' => __DIR__ . '/../../data/bizkaibus.sqlite',
 
     'siri' => [
-        'alerts_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml',
-        'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml',
+        'vehicle_monitoring_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml',
+        'vehicle_monitoring_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml',
+        'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_situation_exchange.xml',
+        'alerts_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml',
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 8,
     ],
