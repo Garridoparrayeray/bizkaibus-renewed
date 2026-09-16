@@ -21,12 +21,13 @@ class LinesController
     {
         $Pdo = Database::connection();
         $LineModel = new LineModel($Pdo);
-        $aLine = $LineModel->find((int)$aParams['id']);
+        $sLineId = $aParams['id'];
+        $aLine = $LineModel->find($sLineId);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
-        $aLine['patterns'] = $LineModel->patterns((int)$aParams['id']);
+        $aLine['patterns'] = $LineModel->patterns($sLineId);
         Response::json($aLine);
     }
 

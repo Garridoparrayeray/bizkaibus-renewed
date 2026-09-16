@@ -21,7 +21,15 @@ class SiriVehicleMonitoringClient
             try {
                 $sXmlString = Http::get($aCfg['vehicle_monitoring_url'], $aCfg['http_timeout_seconds']);
             } catch (\Throwable $Ex) {
-                return [];
+                if (isset($aCfg['vehicle_monitoring_fallback_url'])) {
+                    try {
+                        $sXmlString = Http::get($aCfg['vehicle_monitoring_fallback_url'], $aCfg['http_timeout_seconds']);
+                    } catch (\Throwable $ExFallback) {
+                        return [];
+                    }
+                } else {
+                    return [];
+                }
             }
             return self::parse($sXmlString);
         });
@@ -61,9 +69,9 @@ class SiriVehicleMonitoringClient
             if (isset($Mvj->VehicleRef)) {
                 $sVehicleRef = (string)$Mvj->VehicleRef;
             }
-            $iCurrentStopId = null;
+            $sCurrentStopId = null;
             if (isset($Mvj->MonitoredCall->StopPointRef)) {
-                $iCurrentStopId = (int)$Mvj->MonitoredCall->StopPointRef;
+                $sCurrentStopId = (string)$Mvj->MonitoredCall->StopPointRef;
             }
             $iOrder = null;
             if (isset($Mvj->MonitoredCall->Order)) {
@@ -75,7 +83,7 @@ class SiriVehicleMonitoringClient
                 'departureSeconds' => (int)$sDepartureSeconds,
                 'delaySeconds' => self::parseIsoDuration($sDelayIso),
                 'vehicleRef' => $sVehicleRef,
-                'currentStopId' => $iCurrentStopId,
+                'currentStopId' => $sCurrentStopId,
                 'order' => $iOrder,
             ];
         }

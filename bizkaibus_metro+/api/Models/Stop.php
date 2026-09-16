@@ -2,13 +2,15 @@
 
 namespace Models;
 
+use Core\Ids;
+
 class Stop
 {
     public function __construct(private \PDO $Pdo)
     {
     }
 
-    public function find(int $iId): array|null
+    public function find(int|string $iId): array|null
     {
         $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops WHERE id = ?',
@@ -19,6 +21,7 @@ class Stop
         if (!$aRow) {
             return null;
         }
+        $aRow['id'] = Ids::forOutput($aRow['id']);
         return $aRow;
     }
 
@@ -28,7 +31,7 @@ class Stop
         $sLike = '%' . $sNormalized . '%';
         $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops
-             WHERE name_normalized LIKE ? OR area_normalized LIKE ?
+             WHERE (name_normalized LIKE ? OR area_normalized LIKE ?) AND station_id IS NULL
              ORDER BY LENGTH(name) ASC LIMIT ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops
              WHERE name_normalized LIKE ?
@@ -36,10 +39,30 @@ class Stop
             [$sLike, $sLike, $iLimit],
             [$sLike, $iLimit]
         );
-        return $Stmt->fetchAll();
+        $aRows = $Stmt->fetchAll();
+        foreach ($aRows as &$aRow) {
+            $aRow['id'] = Ids::forOutput($aRow['id']);
+        }
+        return $aRows;
     }
 
-    public function headsignsFor(int $iStopId, int $iLimit = 2): array
+    /**
+     * Andenes reales de una estación (Euskotren, formato NeTEx: ver
+     * loadStopsEuskotren en build-database.php). Vacío para bus/metro, cuyo
+     * GTFS no tiene ese nivel de detalle — sus paradas nunca aparecen como
+     * station_id de otra fila.
+     *
+     * @return array<int,array{id:string,label:string}>
+     */
+    public function platformsFor(string $sStationId): array
+    {
+        $Stmt = $this->Pdo->prepare('SELECT id, platform_label FROM stops WHERE station_id = ? ORDER BY id');
+        $Stmt->execute([$sStationId]);
+        $aRows = $Stmt->fetchAll();
+        return array_map(fn($aRow) => ['id' => Ids::forOutput($aRow['id']), 'label' => $aRow['platform_label']], $aRows);
+    }
+
+    public function headsignsFor(int|string $iStopId, int $iLimit = 2): array
     {
         $Stmt = $this->Pdo->prepare('
             SELECT DISTINCT jp.headsign
@@ -48,13 +71,13 @@ class Stop
             WHERE jps.stop_id = ? AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
             LIMIT ?
         ');
-        $Stmt->bindValue(1, $iStopId, \PDO::PARAM_INT);
+        $Stmt->bindValue(1, $iStopId);
         $Stmt->bindValue(2, $iLimit, \PDO::PARAM_INT);
         $Stmt->execute();
         return $Stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
-    public function linesServing(int $iStopId): array
+    public function linesServing(int|string $iStopId): array
     {
         $Stmt = $this->Pdo->prepare('
             SELECT DISTINCT l.id, l.code, l.name
@@ -65,7 +88,11 @@ class Stop
             ORDER BY l.code
         ');
         $Stmt->execute([$iStopId]);
-        return $Stmt->fetchAll();
+        $aRows = $Stmt->fetchAll();
+        foreach ($aRows as &$aRow) {
+            $aRow['id'] = Ids::forOutput($aRow['id']);
+        }
+        return $aRows;
     }
 
     private function safeQuery(string $sSql, string $sFallbackSql, array $aArgs, array|null $aFallbackArgs = null): \PDOStatement

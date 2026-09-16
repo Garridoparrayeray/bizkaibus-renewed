@@ -22,7 +22,21 @@ class AlertsController
 
         if ($sNetwork === 'metro') {
             $Client = new MetroAlertsClient($aConfig);
-            Response::json(['alerts' => $Client->fetchAlerts()]);
+            $aAlerts = $Client->fetchAlerts();
+            
+            // Merge newly discovered SIRI alerts for Metro Bilbao
+            if (isset($aConfig['siri'])) {
+                $SiriClient = new SiriAlertsClient($aConfig);
+                $aSiriAlerts = $SiriClient->fetchAlerts();
+                foreach ($aSiriAlerts as $aSiri) {
+                    $aAlerts[] = [
+                        'title' => $aSiri['summary'] ?? 'Aviso SIRI',
+                        'description' => $aSiri['description'] ?? '',
+                        'severity' => $aSiri['severity'] ?? 'normal',
+                    ];
+                }
+            }
+            Response::json(['alerts' => $aAlerts]);
             return;
         }
 

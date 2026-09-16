@@ -1,10 +1,11 @@
 const Api = (() => {
     function withNetwork(path) {
-        if (window.__bbNetwork !== 'metro') {
+        const net = window.__bbNetwork;
+        if (net !== 'metro' && net !== 'euskotren') {
             return path;
         }
         const separator = path.includes('?') ? '&' : '?';
-        return `${path}${separator}red=metro`;
+        return `${path}${separator}red=${net}`;
     }
 
     async function request(path, options = {}) {

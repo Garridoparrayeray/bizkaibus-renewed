@@ -4,6 +4,7 @@ namespace Controllers;
 
 use Core\Config;
 use Core\Database;
+use Core\Ids;
 use Core\Request;
 use Core\Response;
 use Models\Stop;
@@ -19,21 +20,23 @@ class StopsController
     {
         $Pdo = Database::connection();
         $StopModel = new Stop($Pdo);
-        $aStop = $StopModel->find((int)$aParams['id']);
+        $sStopId = $aParams['id'];
+        $aStop = $StopModel->find($sStopId);
         if ($aStop === null) {
             Response::error('Stop not found', 404);
             return;
         }
-        $aStop['lines'] = $StopModel->linesServing((int)$aParams['id']);
+        $aStop['lines'] = $StopModel->linesServing($sStopId);
         Response::json($aStop);
     }
 
     public function departures(Request $Req, array $aParams): void
     {
         $Pdo = Database::connection();
-        $iStopId = (int)$aParams['id'];
+        $sStopId = $aParams['id'];
+        $StopModel = new Stop($Pdo);
 
-        $aStop = (new Stop($Pdo))->find($iStopId);
+        $aStop = $StopModel->find($sStopId);
         if ($aStop === null) {
             Response::error('Stop not found', 404);
             return;
@@ -46,15 +49,12 @@ class StopsController
         if (isset($aConfig['direction_reference_stop_id'])) {
             $iReferenceStopId = $aConfig['direction_reference_stop_id'];
         }
-        $aRows = $JourneyModel->upcomingAtStop($iStopId, $iLimit, 4 * 3600, $iReferenceStopId);
 
         $aVmMap = [];
         if (isset($aConfig['siri'])) {
             $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
         }
-
         $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
-        $aEnriched = $Matcher->enrich($aRows);
 
         $sNetwork = 'bus';
         if (isset($aConfig['network'])) {
@@ -62,8 +62,53 @@ class StopsController
         }
         $bIsMetro = $sNetwork === 'metro';
 
+        // Euskotren tiene dato real de andén (ver Stop::platformsFor): una
+        // caja por andén real con sus propios trenes, en vez de la dirección
+        // genérica "hacia / desde" que usa Metro+ (su GTFS no distingue andén).
+        $aPlatforms = $StopModel->platformsFor($sStopId);
+
+        if (!empty($aPlatforms)) {
+            $aDepartures = [];
+            foreach ($aPlatforms as $aPlatform) {
+                $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 4 * 3600);
+                $aEnriched = $Matcher->enrich($aRows);
+                $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bIsMetro, $aPlatform);
+                foreach (array_slice($aPlatformDepartures, 0, $iLimit) as $aDeparture) {
+                    $aDepartures[] = $aDeparture;
+                }
+            }
+
+            Response::json([
+                'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
+                'platforms' => $aPlatforms,
+                'departures' => $aDepartures,
+                'attribution' => $aConfig['attribution'],
+            ]);
+            return;
+        }
+
+        $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600, $iReferenceStopId);
+        $aEnriched = $Matcher->enrich($aRows);
+        $aDepartures = $this->buildDepartureItems($aEnriched, $bIsMetro);
+        $aDepartures = array_slice($aDepartures, 0, $iLimit);
+
+        Response::json([
+            'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
+            'platforms' => [],
+            'departures' => $aDepartures,
+            'attribution' => $aConfig['attribution'],
+        ]);
+    }
+
+    /**
+     * @param array<int,array{id:string,label:string}>|null $aPlatform etiqueta a añadir a cada
+     *        salida cuando se está construyendo la lista de UN andén concreto (ver departures()).
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildDepartureItems(array $aEnriched, bool $bIsMetro, array|null $aPlatform = null): array
+    {
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $aDepartures = array_map(function ($aRow) use ($iNow, $bIsMetro) {
+        $aDepartures = array_map(function ($aRow) use ($iNow, $bIsMetro, $aPlatform) {
             $sHeadsign = $aRow['headsign'];
             if ($bIsMetro && !empty($aRow['last_stop_name'])) {
                 $sHeadsign = $aRow['last_stop_name'];
@@ -76,8 +121,12 @@ class StopsController
             if (isset($aRow['direction'])) {
                 $sDirection = $aRow['direction'];
             }
+            $sPlatformId = null;
+            if ($aPlatform !== null) {
+                $sPlatformId = $aPlatform['id'];
+            }
             return [
-                'lineId' => (int)$aRow['line_id'],
+                'lineId' => Ids::forOutput($aRow['line_id']),
                 'lineCode' => $aRow['line_code'],
                 'lineName' => $aRow['line_name'],
                 'headsign' => $sHeadsign,
@@ -87,17 +136,11 @@ class StopsController
                 'status' => $aRow['status'],
                 'delayMinutes' => $iDelayMinutes,
                 'direction' => $sDirection,
+                'platformId' => $sPlatformId,
             ];
         }, $aEnriched);
 
-        $aDepartures = array_values(array_filter($aDepartures, fn($aD) => $aD['etaMinutes'] >= -2));
-        $aDepartures = array_slice($aDepartures, 0, $iLimit);
-
-        Response::json([
-            'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
-            'departures' => $aDepartures,
-            'attribution' => $aConfig['attribution'],
-        ]);
+        return array_values(array_filter($aDepartures, fn($aD) => $aD['etaMinutes'] >= -2));
     }
 
     public function tripStops(Request $Req, array $aParams): void
@@ -108,25 +151,25 @@ class StopsController
             Response::error('Invalid trip key', 422);
             return;
         }
-        $iLineId = (int)$sLineIdRaw;
+        $sLineId = $sLineIdRaw;
         $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
-        $iTargetStopId = $Req->queryInt('stopId');
+        $sTargetStopId = $Req->query('stopId');
 
         $Pdo = Database::connection();
         $JourneyModel = new ServiceJourney($Pdo);
-        $aJourney = $JourneyModel->findByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        $aJourney = $JourneyModel->findByLineAndTrip($sLineId, $sTripNumber, $iFirstDepartureSeconds);
         if ($aJourney === null) {
             Response::error('Trip not found', 404);
             return;
         }
 
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
-        $aStopsOut = array_map(function ($aStop) use ($iTargetStopId) {
+        $aStopsOut = array_map(function ($aStop) use ($sTargetStopId) {
             return [
-                'stopId' => (int)$aStop['stop_id'],
+                'stopId' => Ids::forOutput($aStop['stop_id']),
                 'name' => $aStop['name'],
                 'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
-                'isTarget' => $iTargetStopId !== null && (int)$aStop['stop_id'] === $iTargetStopId,
+                'isTarget' => $sTargetStopId !== null && $aStop['stop_id'] === $sTargetStopId,
             ];
         }, $aStops);
 

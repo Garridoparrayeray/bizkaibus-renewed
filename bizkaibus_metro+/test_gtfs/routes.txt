@@ -1,0 +1,13 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color,route_sort_order,continuous_pickup,continuous_drop_off,network_id
+ES:Euskotren:Line:11:,ES:Euskotren:Operator:EUS_Tren:,E1,Bilbao-Donostia,,2,,005A8B,FFFFFF,1,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:12:,ES:Euskotren:Operator:EUS_Tren:,E2,Lasarte-Hendaia,,2,,B0BC22,000000,2,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:8:,ES:Euskotren:Operator:EUS_Tren:,E3,Lezama-Kukullaga,,2,,009FE4,000000,3,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:44:,ES:Euskotren:Operator:EUS_Tren:,E3a,Lutxana-Sondika,,2,,99D9EA,000000,4,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:10:,ES:Euskotren:Operator:EUS_Tren:,E4,Bilbao-Bermeo,,2,,240078,FFFFFF,5,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:14:,ES:Euskotren:Operator:EUS_Funi:,FE,Funicular,,7,,A1006B,FFFFFF,6,1,1,ES:Euskotren:Network:6:
+ES:Euskotren:Line:9:,ES:Euskotren:Operator:EUS_Tren:,L3,Matiko-Kukullaga,,2,,D10074,FFFFFF,7,1,1,ES:Euskotren:Network:56:
+ES:Euskotren:Line:42:,ES:Euskotren:Operator:EUS_TrGa:,TG1,Abetxuko-Unibertsitatea,,0,,60AE27,000000,8,1,1,ES:Euskotren:Network:37:
+ES:Euskotren:Line:45:,ES:Euskotren:Operator:EUS_TrGa:,TG2,Ibaiondo-Salburua,,0,,737277,000000,9,1,1,ES:Euskotren:Network:37:
+ES:Euskotren:Line:5:,ES:Euskotren:Operator:EUS_TrBi:,TR,Bolueta-La Casilla,,0,,4EB848,000000,10,1,1,ES:Euskotren:Network:30:
+ES:Euskotren:Line:41:,ES:Euskotren:Operator:EUS_TrGa:,41,Ibaiondo-Unibertsitatea,,0,,000000,FFFFFF,11,1,1,ES:Euskotren:Network:37:
+ES:Euskotren:Line:Inf-56:,ES:Euskotren:Operator:EUS_Tren:,FCC,Línea EuskoTren,,2,,000000,FFFFFF,12,1,1,ES:Euskotren:Network:56:

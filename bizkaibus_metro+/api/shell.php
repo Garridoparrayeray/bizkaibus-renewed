@@ -1,14 +1,20 @@
 <?php
 
-$bIsMetroShare = isset($_GET['red']) && $_GET['red'] === 'metro';
+$bIsMetroShare     = isset($_GET['red']) && $_GET['red'] === 'metro';
+$bIsEuskoTrenShare = isset($_GET['red']) && $_GET['red'] === 'euskotren';
+
 if ($bIsMetroShare) {
-    $sOgTitle = 'Metro+';
+    $sOgTitle       = 'Metro+';
     $sOgDescription = 'Horarios de Metro Bilbao, sin vueltas.';
-    $sOgImage = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
+    $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
+} elseif ($bIsEuskoTrenShare) {
+    $sOgTitle       = 'Euskotren+';
+    $sOgDescription = 'Horarios de Euskotren, sin vueltas.';
+    $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-euskotren/icon-512.png';
 } else {
-    $sOgTitle = 'BizkaiBus+';
+    $sOgTitle       = 'BizkaiBus+';
     $sOgDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
-    $sOgImage = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
+    $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
 }
 ?>
 <!DOCTYPE html>
@@ -38,34 +44,44 @@ if ($bIsMetroShare) {
             }
             window.__bbTheme = isMiamor ? 'miamor' : 'pro';
 
-            window.__bbNetwork = params.get('red') === 'metro' ? 'metro' : 'bus';
-            var isMetro = window.__bbNetwork === 'metro';
+            var redParam = params.get('red');
+            window.__bbNetwork = (redParam === 'metro' || redParam === 'euskotren') ? redParam : 'bus';
+            var isMetro     = window.__bbNetwork === 'metro';
+           // var isEuskoTren = window.__bbNetwork === 'euskotren';
 
-            var title = 'BizkaiBus+';
-            var manifest = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
+            var title      = 'BizkaiBus+';
+            var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
             var themeColor = isMiamor ? '#db2777' : '#01573C';
-            var touchIcon = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
-            var icon = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
+            var touchIcon  = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
+            var icon       = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
             var stylesheet = isMiamor ? 'style.css' : 'style-pro.css';
+
             if (isMetro) {
                 title = 'Metro+';
                 if (isMiamor) {
                     themeColor = '#db2777';
                 } else {
-                    manifest = 'manifest-metro.json';
-                    touchIcon = 'icons-metro/apple-touch-icon.png';
-                    icon = 'icons-metro/icon-192.png';
+                    manifest   = 'manifest-metro.json';
+                    touchIcon  = 'icons-metro/apple-touch-icon.png';
+                    icon       = 'icons-metro/icon-192.png';
                     themeColor = '#C8102E';
                     stylesheet = 'style-metro.css';
                 }
+            } else if (isEuskoTren) {
+                title      = 'Euskotren+';
+                manifest   = 'manifest-euskotren.json';
+                touchIcon  = 'icons-euskotren/apple-touch-icon.png';
+                icon       = 'icons-euskotren/icon-192.png';
+                themeColor = '#003F8C';
+                stylesheet = 'style-euskotren.css';
             }
-            if (isMiamor && !isMetro) {
+
+            if (isMiamor && !isMetro && !isEuskoTren) {
                 title += ' | Para el amor de mi vida';
             }
 
-            if (isMetro) {
-                document.documentElement.classList.add('is-metro');
-            }
+            if (isMetro)     document.documentElement.classList.add('is-metro');
+            if (isEuskoTren) document.documentElement.classList.add('is-euskotren');
 
             document.write(
                 '<title>' + title + '</title>' +
@@ -76,7 +92,7 @@ if ($bIsMetroShare) {
                 '<link rel="stylesheet" href="' + stylesheet + '">'
             );
         })();
-</script>
+    </script>
 </head>
 <body>
 
@@ -86,15 +102,25 @@ if ($bIsMetroShare) {
             <div class="home-link-wrap">
                 <button id="home-link" type="button">
                     <span id="app-logomark" aria-hidden="true">
+                        <!-- BizkaiBus logo: leaf -->
                         <svg class="logo-bus" viewBox="0 0 24 24" fill="none">
                             <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
                             <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
                         </svg>
+                        <!-- Metro logo: 3 rings -->
                         <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
                             <circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                             <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                             <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
+                        </svg>
+                        <!-- Euskotren logo: train front face -->
+                        <svg class="logo-euskotren" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="4" width="18" height="13" rx="3" fill="#003F8C"/>
+                            <rect x="5" y="6" width="14" height="6" rx="1.5" fill="#5B9BD5"/>
+                            <circle cx="7.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
+                            <circle cx="16.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
+                            <rect x="11" y="13" width="2" height="4" rx="0.5" fill="#5B9BD5"/>
                         </svg>
                     </span>
                     <hgroup>
@@ -102,46 +128,94 @@ if ($bIsMetroShare) {
                         <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
                     </hgroup>
                 </button>
-                <a id="network-switch" href="/?red=metro">
-                    <span class="network-switch-logomark" aria-hidden="true">
-                        <svg class="logo-bus" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
-                            <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
-                        </svg>
-                        <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
-                            <circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                            <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                            <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                        </svg>
-                    </span>
-                    <span class="network-switch-text">
-                        <strong id="network-switch-title">METRO+</strong>
-                        <span id="network-switch-sub">Horarios de Metro Bilbao</span>
-                    </span>
-                </a>
-            </div>
-            <script>
-                var isMiamorActive = window.__bbTheme === 'miamor';
-                var networkSwitch = document.getElementById('network-switch');
-                var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
 
-                if (window.__bbNetwork === 'metro') {
-                    document.getElementById('app-logomark').classList.add('is-metro');
-                    document.getElementById('app-title').firstChild.textContent = 'METRO';
-                    document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
-                    networkSwitch.href = isMiamorActive ? '/?tema=miamor' : '/';
-                    networkSwitch.classList.add('is-bus');
-                    document.getElementById('network-switch-title').textContent = 'BIZKAIBUS+';
-                    document.getElementById('network-switch-sub').textContent = 'Horarios y tiempo real de Bizkaibus';
-                } else {
-                    networkSwitch.href = '/?red=metro' + temaSuffix;
-                }
+                <!-- Switcher de red: tarjetas apiladas (mismo lenguaje visual que el
+                     switch bus↔metro original), reveladas al pulsar el logo vía JS.
+                     Solo se muestran las redes DISTINTAS de la actual, igual que el
+                     enlace único original solo apuntaba "a la otra" red. -->
+                <nav id="network-switcher" aria-label="Cambiar red de transporte">
+                    <a class="net-card" id="net-card-bus" href="/">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
+                                <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="net-card-text">
+                            <strong>BizkaiBus+</strong>
+                            <span>Horarios y tiempo real de Bizkaibus</span>
+                        </span>
+                    </a>
+                    <a class="net-card" id="net-card-metro" href="/?red=metro">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
+                                <circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
+                                <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
+                                <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
+                            </svg>
+                        </span>
+                        <span class="net-card-text">
+                            <strong>Metro+</strong>
+                            <span>Horarios de Metro Bilbao</span>
+                        </span>
+                    </a>
+                    <a class="net-card" id="net-card-euskotren" href="/?red=euskotren">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <rect x="3" y="4" width="18" height="13" rx="3" fill="#003F8C"/>
+                                <rect x="5" y="6" width="14" height="6" rx="1.5" fill="#5B9BD5"/>
+                                <circle cx="7.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
+                                <circle cx="16.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
+                                <rect x="11" y="13" width="2" height="4" rx="0.5" fill="#5B9BD5"/>
+                            </svg>
+                        </span>
+                        <span class="net-card-text">
+                            <strong>Euskotren+</strong>
+                            <span>Horarios de Euskotren</span>
+                        </span>
+                    </a>
+                </nav>
 
-                if (isMiamorActive) {
-                    document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
-                }
+                <script>
+                    (function () {
+                        var net = window.__bbNetwork;
+                        var isMiamorActive = window.__bbTheme === 'miamor';
+                        var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
+
+                        // Title / subtitle
+                        if (net === 'metro') {
+                            document.getElementById('app-logomark').classList.add('is-metro');
+                            document.getElementById('app-title').firstChild.textContent = 'METRO';
+                            document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
+                        } else if (net === 'euskotren') {
+                            document.getElementById('app-logomark').classList.add('is-euskotren');
+                            document.getElementById('app-title').firstChild.textContent = 'EUSKOTREN';
+                            document.getElementById('app-subtitle').textContent = 'Horarios de Euskotren';
+                        }
+                        if (isMiamorActive && net === 'bus') {
+                            document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
+                        }
+
+                        // La tarjeta de la red actual no tiene sentido como destino: se oculta,
+                        // igual que el switch original nunca se mostraba a sí mismo.
+                        var currentCardId = net === 'metro' ? 'net-card-metro'
+                            : net === 'euskotren' ? 'net-card-euskotren'
+                            : 'net-card-bus';
+                        var currentCard = document.getElementById(currentCardId);
+                        if (currentCard) currentCard.hidden = true;
+
+                        // Append tema suffix a los destinos que sí se muestran
+                        if (temaSuffix) {
+                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren'].forEach(function (id) {
+                                var card = document.getElementById(id);
+                                if (card && card !== currentCard) card.href += temaSuffix;
+                            });
+                        }
+                    })();
 </script>
+            </div>
+
             <span class="header-actions">
                 <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -211,10 +285,15 @@ if ($bIsMetroShare) {
                         </span>
                     </header>
                     <button id="platform-timetable-link" type="button" class="platform-timetable-link">Ver horario completo</button>
+                    <!-- Estaciones con varias líneas (algunas de Euskotren
+                         tienen hasta 5): en vez de un único botón que solo
+                         puede apuntar a una, una línea por botón. -->
+                    <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <div id="platform-columns"></div>
                 </div>
                 <p id="live-empty">Busca una parada para ver el próximo autobús.</p>
             </div>
+        </div>
 
         <section id="timetable-section" class="timetable glass" hidden>
             <header>
@@ -253,7 +332,6 @@ if ($bIsMetroShare) {
 
             <button id="schedule-text-toggle" type="button">Ver horario oficial 2026</button>
         </section>
-        </div>
 
         <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
         <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>

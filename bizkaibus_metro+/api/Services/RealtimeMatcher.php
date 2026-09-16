@@ -25,7 +25,7 @@ class RealtimeMatcher
         $iNow = Calendar::nowSecondsSinceMidnight();
 
         return array_map(function ($aRow) use ($iNow) {
-            $aLive = $this->lookup((int)$aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']);
+            $aLive = $this->lookup($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']);
 
             if ($aLive === null) {
                 return $aRow + [
@@ -95,7 +95,7 @@ class RealtimeMatcher
         return [$iFlatEta, $aLive['delaySeconds']];
     }
 
-    public function lookup(int $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
+    public function lookup(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
     {
         $sKey = $iLineId . '|' . $sTripNumber;
         $aCandidates = [];

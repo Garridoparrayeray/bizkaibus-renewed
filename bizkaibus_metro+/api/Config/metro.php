@@ -10,6 +10,13 @@ return [
         'http_timeout_seconds' => 8,
     ],
 
+    'siri' => [
+        'vehicle_monitoring_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/metro_bilbao/siri_metro_bilbao_vehicle_monitoring.xml',
+        'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/metro_bilbao/siri_metro_bilbao_situation_exchange.xml',
+        'cache_ttl_seconds' => 25,
+        'http_timeout_seconds' => 8,
+    ],
+
     'schedule_source_published' => date('Y-m-d'),
 
     'direction_reference_stop_id' => 7,

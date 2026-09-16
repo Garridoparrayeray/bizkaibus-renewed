@@ -19,8 +19,8 @@ class TimetableController
     {
         $aConfig = Config::current();
         $Pdo = Database::connection();
-        $iLineId = (int)$aParams['id'];
-        $aLine = (new LineModel($Pdo))->find($iLineId);
+        $sLineId = $aParams['id'];
+        $aLine = (new LineModel($Pdo))->find($sLineId);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
@@ -45,13 +45,13 @@ class TimetableController
         }
 
         $sStopIdRaw = $Req->query('stopId');
-        $iStopId = null;
+        $sStopId = null;
         if ($sStopIdRaw !== null && $sStopIdRaw !== '') {
-            $iStopId = (int)$sStopIdRaw;
+            $sStopId = $sStopIdRaw;
         }
 
         $JourneyModel = new ServiceJourney($Pdo);
-        $aRows = $JourneyModel->timetableForLine($iLineId, $Date, $iHourFrom, $iHourTo, $iStopId);
+        $aRows = $JourneyModel->timetableForLine($sLineId, $Date, $iHourFrom, $iHourTo, $sStopId);
 
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($bIsToday && isset($aConfig['siri'])) {
