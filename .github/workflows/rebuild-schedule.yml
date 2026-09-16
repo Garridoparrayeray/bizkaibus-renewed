@@ -1,9 +1,12 @@
 name: Rebuild schedule data
 
-# Reconstruye y redespliega data/bizkaibus.sqlite y data/metrobilbao.sqlite a
-# diario desde sus respectivos GTFS oficiales. Los .sqlite no se comitean
-# (solo geocache.json si cambia) — se regeneran en el runner y se suben tal
-# cual con el deploy de Vercel.
+# Reconstruye y redespliega data/bizkaibus.sqlite, data/metrobilbao.sqlite y
+# data/euskotren.sqlite a diario desde sus respectivos GTFS oficiales. Los
+# .sqlite no se comitean (solo geocache.json si cambia) — se regeneran en el
+# runner y se suben tal cual con el deploy de Vercel.
+#
+# Fuentes primarias: NAP (nap.transportes.gob.es) con ApiKey.
+# Fuentes fallback:  S3 (Bizkaibus), CMS (Metro), local zip (Euskotren).
 
 on:
   schedule:
@@ -13,6 +16,8 @@ on:
 jobs:
   rebuild-and-deploy:
     runs-on: ubuntu-latest
+    env:
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,11 +29,26 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
-      - name: Rebuild BizkaiBus+ database (fetches latest GTFS, geocodes any new stops)
+      - name: Rebuild BizkaiBus+ database
         run: php bizkaibus_metro+/scripts/build-database.php --network=bus
 
-      - name: Rebuild Metro+ database (fetches latest GTFS)
+      - name: Rebuild Metro+ database
         run: php bizkaibus_metro+/scripts/build-database.php --network=metro
+
+      - name: Rebuild Euskotren+ database
+        run: php bizkaibus_metro+/scripts/build-database.php --network=euskotren
+
+      - name: Verify databases exist and are non-empty
+        run: |
+          for db in bizkaibus_metro+/data/bizkaibus.sqlite \
+                     bizkaibus_metro+/data/metrobilbao.sqlite \
+                     bizkaibus_metro+/data/euskotren.sqlite; do
+            if [ ! -s "$db" ]; then
+              echo "ERROR: $db is missing or empty"
+              exit 1
+            fi
+            echo "OK: $db ($(du -h "$db" | cut -f1))"
+          done
 
       - name: Commit updated geocache, if it changed
         run: |
