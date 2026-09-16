@@ -944,6 +944,17 @@
         if (e.target === el.sideMenu) el.sideMenu.close();
     });
 
+    const legalOpen = document.getElementById('legal-open');
+    const legalPanel = document.getElementById('legal-panel');
+    const legalClose = document.getElementById('legal-close');
+    if (legalOpen && legalPanel && legalClose) {
+        legalOpen.addEventListener('click', () => legalPanel.showModal());
+        legalClose.addEventListener('click', () => legalPanel.close());
+        legalPanel.addEventListener('click', (e) => {
+            if (e.target === legalPanel) legalPanel.close();
+        });
+    }
+
     el.menuFavoritesOpen.addEventListener('click', () => {
         el.sideMenu.close();
         openFavoritesPanel();
