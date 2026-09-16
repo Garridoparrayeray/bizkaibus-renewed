@@ -114,14 +114,8 @@ if ($bIsMetroShare) {
                             <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                             <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                         </svg>
-                        <!-- Euskotren logo: train front face -->
-                        <svg class="logo-euskotren" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="4" width="18" height="13" rx="3" fill="#003F8C"/>
-                            <rect x="5" y="6" width="14" height="6" rx="1.5" fill="#5B9BD5"/>
-                            <circle cx="7.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
-                            <circle cx="16.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
-                            <rect x="11" y="13" width="2" height="4" rx="0.5" fill="#5B9BD5"/>
-                        </svg>
+                        <!-- Euskotren logo: custom image -->
+                        <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="Euskotren" style="width: 100%; height: 100%; object-fit: contain; display: none;">
                     </span>
                     <hgroup>
                         <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
@@ -162,13 +156,7 @@ if ($bIsMetroShare) {
                     </a>
                     <a class="net-card" id="net-card-euskotren" href="/?red=euskotren">
                         <span class="net-card-logomark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <rect x="3" y="4" width="18" height="13" rx="3" fill="#003F8C"/>
-                                <rect x="5" y="6" width="14" height="6" rx="1.5" fill="#5B9BD5"/>
-                                <circle cx="7.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
-                                <circle cx="16.5" cy="15.5" r="1.8" fill="#5B9BD5"/>
-                                <rect x="11" y="13" width="2" height="4" rx="0.5" fill="#5B9BD5"/>
-                            </svg>
+                            <img src="/icons-euskotren/icon-192.png" alt="Euskotren" style="width: 100%; height: 100%; object-fit: contain;">
                         </span>
                         <span class="net-card-text">
                             <strong>Euskotren+</strong>
