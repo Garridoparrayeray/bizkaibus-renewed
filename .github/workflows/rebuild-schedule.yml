@@ -69,4 +69,4 @@ jobs:
         env:
           VERCEL_ORG_ID: team_5ficEwZMlnchKQlOobqNZmVj
           VERCEL_PROJECT_ID: prj_jnUQknRYqnlAtxPBIXCznGlcKf4s
-        run: vercel deploy ./bizkaibus_metro+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
