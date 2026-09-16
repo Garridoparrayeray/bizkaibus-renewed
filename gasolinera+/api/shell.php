@@ -258,12 +258,12 @@
         <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
-        <h3>Aviso legal y privacidad</h3>
-        <p><strong>Proyecto independiente.</strong> Gasolinera+ no está afiliado ni respaldado por el Ministerio para la Transición Ecológica ni por ninguna marca de estaciones de servicio. Los precios se publican tal cual los facilita el Ministerio y pueden no coincidir con el precio real en surtidor.</p>
-        <p><strong>Ubicación.</strong> Si la activas, se usa solo en tu navegador para calcular distancias y ordenar resultados. No se guarda en ningún servidor ni se comparte con terceros; cada vez que recargas la página, se vuelve a pedir.</p>
-        <p><strong>Favoritas y comparador.</strong> Se guardan solo en tu propio navegador (localStorage), no en un servidor. Si borras los datos del sitio o cambias de dispositivo, se pierden.</p>
-        <p><strong>Servicios de terceros.</strong> El mapa usa teselas de OpenStreetMap; la búsqueda de municipios sin gasolinera propia usa el geocodificador Nominatim (OpenStreetMap) para resolver el nombre a coordenadas; las tipografías se sirven desde Google Fonts y las librerías de mapa/gráficas desde CDNs públicos (unpkg, jsDelivr). Estas peticiones las hace tu navegador directamente contra esos servicios.</p>
-        <p><strong>Sin cuentas ni cookies de seguimiento.</strong> No hay registro, no hay anuncios, no hay analítica de terceros.</p>
+        <h3>Aviso Legal, Privacidad y Cookies</h3>
+        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong> y la <strong>LSSI-CE</strong>, informamos de lo siguiente:</p>
+        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. Gasolinera+ no está afiliado ni respaldado por el Ministerio para la Transición Ecológica ni por ninguna marca de estaciones de servicio.</p>
+        <p><strong>Privacidad y Ubicación:</strong> Esta app <strong>no recopila, almacena ni cede datos personales</strong>. Si activas la ubicación, se usa estrictamente a nivel local en tu navegador para calcular distancias. No hay analíticas de terceros. El servicio se aloja de forma segura en Vercel, que procesa direcciones IP temporalmente por motivos técnicos y de seguridad.</p>
+        <p><strong>Política de Cookies y Almacenamiento Local:</strong> No usamos cookies de terceros ni de rastreo. Empleamos el almacenamiento local de tu navegador (<code>localStorage</code>) exclusivamente para guardar tus gasolineras "Favoritas" y el estado del "Comparador". Al ser una petición del usuario de carácter puramente técnico, está exenta del banner de consentimiento bajo el Art. 22.2 de la LSSI. Si borras los datos del navegador, se pierden.</p>
+        <p><strong>Fuentes de Datos:</strong> Los precios se publican tal cual los facilita el Ministerio. El mapa usa teselas de OpenStreetMap y búsquedas por Nominatim.</p>
         <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
     </dialog>
 

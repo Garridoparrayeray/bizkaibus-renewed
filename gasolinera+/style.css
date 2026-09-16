@@ -616,7 +616,11 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 #dev-footer button#legal-open {
     background: none; border: none; color: white; font-weight: 600;
     font-family: inherit; font-size: 0.78rem; text-decoration: underline;
+    font-family: inherit; font-size: 0.78rem; text-decoration: none;
     cursor: pointer; margin: 0 10px; padding: 0;
+}
+#dev-footer button#legal-open:hover {
+    text-decoration: underline;
 }
 
 #legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; }

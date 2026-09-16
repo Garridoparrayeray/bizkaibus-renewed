@@ -479,3 +479,53 @@ dialog#side-menu {
     html.is-metro #platform-columns { flex-direction: row; }
     html.is-metro .platform-column { flex: 1; min-width: 0; }
 }
+
+dialog#legal-panel {
+    border: var(--glass-border, 1px solid rgba(0,0,0,0.1));
+    border-radius: 30px;
+    padding: 30px;
+    max-width: 480px;
+    width: 90vw;
+    background: var(--surface, rgba(255, 245, 248, 0.95));
+    color: var(--text, #444);
+    box-shadow: var(--shadow-soft, 0 10px 25px rgba(0,0,0,0.1));
+}
+dialog#legal-panel::backdrop {
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+}
+dialog#legal-panel h3 {
+    font-family: inherit;
+    font-size: 1.2rem;
+    color: var(--pink-dark, inherit);
+    margin-bottom: 15px;
+}
+dialog#legal-panel p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+dialog#legal-panel strong {
+    color: inherit;
+    font-weight: 600;
+}
+#legal-close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+#dev-footer button#legal-open {
+    background: none;
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 0.78rem;
+    text-decoration: none;
+    cursor: pointer;
+    margin: 0 10px;
+    padding: 0;
+}
+#dev-footer button#legal-open:hover {
+    text-decoration: underline;
+}
