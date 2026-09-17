@@ -16,6 +16,8 @@
     --status-down: #1B6B3A;
     --status-muted: #8A8A8A;
     --lockup-subtitle: #E8CB8F;
+    --page-pad: 20px;
+    --content-max: 640px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -31,14 +33,17 @@ body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
     margin: 0;
-    padding: 20px 20px 0;
+    padding: var(--page-pad) var(--page-pad) 0;
     color: var(--text);
     min-height: 100vh;
     display: flex;
 }
 
 .app-container {
-    width: 100%; margin: 0 auto; position: relative;
+    width: 100%;
+    max-width: var(--content-max);
+    margin: 0 auto;
+    position: relative;
     display: flex; flex-direction: column;
 }
 
@@ -249,14 +254,14 @@ header {
     color: var(--text-secondary);
 }
 #view-toggle button[aria-selected="true"] {
-    background: var(--primary-tint);
-    color : white;
+    background: var(--primary);
+    color: white;
 }
 
 #geo-ask { text-align: center; }
 #geo-ask-logomark { display: flex; justify-content: center; margin-bottom: 12px; }
 #geo-ask-logomark svg { width: 56px; height: 56px; border-radius: 14px; }
-#geo-ask h3 { margin: 0 0 10px; color: var(--bg) }
+#geo-ask h3 { margin: 0 0 10px; color: var(--text); font-family: 'Bricolage Grotesque', 'Inter', sans-serif; }
 #geo-ask p { margin: 0 0 16px; font-size: 0.86rem; color: var(--text-secondary); }
 #geo-ask-actions { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
 #geo-ask-actions .pill { background: var(--primary); color: white; border-color: var(--primary); padding: 11px; }
@@ -306,10 +311,10 @@ header {
     align-items: flex-start;
     gap: 12px;
 }
-.station-card__main { display: flex; flex-direction: column; gap: 2px; }
+.station-card__main { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
 .station-card__main strong { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 0.95rem; }
 .station-card__address { font-size: 0.78rem; color: var(--text-secondary); }
-.station-card__distance { font-size: 0.76rem; color: white; font-weight: 600; }
+.station-card__distance { font-size: 0.76rem; color: var(--primary-dark); font-weight: 600; }
 .station-card__prices { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; text-align: right; white-space: nowrap; }
 
 .badge {
@@ -602,9 +607,12 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 #stats-station-name { font-weight: 700; margin: 0 0 2px; }
 
 #dev-footer {
-    text-align: center; padding: 20px; margin: auto -20px 0; border-radius: 0;
-    background: var(--primary); flex-shrink: 0;
-    width: calc(100% + 40px);
+    text-align: center;
+    padding: 20px;
+    margin-top: auto;
+    border-radius: 4px;
+    background: var(--primary);
+    flex-shrink: 0;
 }
 #dev-footer p { margin: 0 0 8px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); }
 #dev-footer p:last-child { margin-bottom: 0; }
@@ -615,7 +623,6 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 #dev-footer a:hover { text-decoration: underline; }
 #dev-footer button#legal-open {
     background: none; border: none; color: white; font-weight: 600;
-    font-family: inherit; font-size: 0.78rem; text-decoration: underline;
     font-family: inherit; font-size: 0.78rem; text-decoration: none;
     cursor: pointer; margin: 0 10px; padding: 0;
 }
@@ -626,6 +633,50 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 #legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; color: var(--text); }
 #legal-panel h3 { margin: 4px 0 14px; }
 #legal-panel strong { color: var(--text); }
+
+@media (min-width: 768px) {
+    :root { --content-max: 760px; --page-pad: 32px; }
+
+    header { padding: 16px 20px; }
+    #app-logomark svg { width: 50px; height: 50px; }
+    .home-link-wrap strong { font-size: 1.15rem; }
+
+    #filters-bar select { flex: 1 1 160px; }
+
+    #stations-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .station-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .station-card__prices { flex-direction: row; flex-wrap: wrap; text-align: left; gap: 4px 12px; align-items: center; }
+
+    #map { min-height: 440px; }
+
+    .stats-controls { flex-wrap: nowrap; }
+}
+
+@media (min-width: 1024px) {
+    :root { --content-max: 1120px; }
+
+    header { padding: 18px 24px; }
+    #app-logomark svg { width: 54px; height: 54px; }
+    .home-link-wrap strong { font-size: 1.3rem; }
+    .home-link-wrap #app-subtitle { font-size: 0.8rem; }
+
+    #stations-list { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    #map { min-height: 560px; }
+
+    #view-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        align-items: start;
+        gap: 12px;
+    }
+    #view-stats .stats-block:first-child,
+    #view-stats .stats-block:nth-child(4),
+    #view-stats .stats-block:nth-child(5),
+    #view-stats .stats-block:last-child {
+        grid-column: 1 / -1;
+    }
+}
 
 @media (prefers-color-scheme: dark) {
     :root {
