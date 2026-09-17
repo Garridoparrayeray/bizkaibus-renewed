@@ -38,6 +38,15 @@ const SOURCE_HIST_PREFIX = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRES
 const DEFAULT_OUTPUT = __DIR__ . '/../data/gasolinera.sqlite';
 
 /**
+ * Días de price_history que se conservan por estación (ver ensureSchema()
+ * para por qué). Medido en vivo: ~6.5MB/día, así que 10 días deja el
+ * .sqlite en ~70-75MB con margen bajo el límite de 100MB de GitHub, y cubre
+ * de sobra los 7 días que ya usa por defecto el gráfico de evolución de
+ * cada estación.
+ */
+const PRICE_HISTORY_RETENTION_DAYS = 10;
+
+/**
  * Mapeo explícito y fijo del nombre de campo del feed ("Precio <Carburante>")
  * a una clave normalizada estable. Fijo en código (no heurístico) a
  * propósito: si el feed añade un carburante nuevo que no está aquí,
@@ -202,6 +211,22 @@ function ensureSchema(\PDO $pdo): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_station_fuel ON price_history (ideess, carburante, fecha DESC)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_zone_lookup ON price_history (fecha, carburante)');
 
+    // price_history se recorta cada noche a los últimos PRICE_HISTORY_RETENTION_DAYS
+    // (si no, el .sqlite crece ~6.5MB/día y revienta el límite de 100MB de
+    // GitHub en un par de semanas, verificado en vivo). La media nacional por
+    // carburante SÍ se guarda para siempre en esta tabla aparte: apenas pesa
+    // (un puñado de filas al día) y así el histórico nacional no se pierde
+    // aunque el de cada estación se recorte.
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS national_price_history (
+            fecha TEXT NOT NULL,
+            carburante TEXT NOT NULL,
+            media REAL NOT NULL,
+            estaciones INTEGER NOT NULL,
+            PRIMARY KEY (fecha, carburante)
+        )
+    ');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 }
 
@@ -314,6 +339,47 @@ function runDaily(\PDO $pdo, ?string $source): void
     $stmt = $pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
     $stmt->execute(['last_snapshot_date', $fechaIso]);
     $stmt->execute(['source_updated_at', $snapshot['fecha']]);
+
+    updateNationalPriceHistory($pdo, $fechaIso);
+    pruneOldPriceHistory($pdo);
+}
+
+/**
+ * Media nacional de hoy por carburante, calculada sobre current_prices (el
+ * snapshot que se acaba de aplicar) y guardada en national_price_history,
+ * que nunca se recorta. Idempotente: si se repite el cron el mismo día,
+ * REPLACE deja el mismo resultado en vez de duplicar filas.
+ */
+function updateNationalPriceHistory(\PDO $pdo, string $fechaIso): void
+{
+    $rows = $pdo->query('
+        SELECT carburante, ROUND(AVG(precio), 4) AS media, COUNT(*) AS estaciones
+        FROM current_prices
+        GROUP BY carburante
+    ')->fetchAll();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO national_price_history (fecha, carburante, media, estaciones) VALUES (?, ?, ?, ?)
+        ON CONFLICT(fecha, carburante) DO UPDATE SET media = excluded.media, estaciones = excluded.estaciones
+    ');
+    foreach ($rows as $row) {
+        $stmt->execute([$fechaIso, $row['carburante'], (float)$row['media'], (int)$row['estaciones']]);
+    }
+    echo '  media nacional guardada para ' . count($rows) . " carburantes ($fechaIso)\n";
+}
+
+/**
+ * Recorta price_history a PRICE_HISTORY_RETENTION_DAYS y compacta el
+ * fichero con VACUUM (si no, DELETE por sí solo no reduce el tamaño en
+ * disco: SQLite marca las páginas como libres pero no las libera). Solo se
+ * llama desde runDaily(): el backfill nunca debe recortar lo que acaba de
+ * rellenar a propósito, ya se recortará solo en el próximo cron diario.
+ */
+function pruneOldPriceHistory(\PDO $pdo): void
+{
+    $deleted = $pdo->exec('DELETE FROM price_history WHERE fecha < date(\'now\', \'-' . PRICE_HISTORY_RETENTION_DAYS . ' days\')');
+    echo "  recortadas $deleted filas de price_history (fuera de los " . PRICE_HISTORY_RETENTION_DAYS . " días de retención)\n";
+    $pdo->exec('VACUUM');
 }
 
 /**
