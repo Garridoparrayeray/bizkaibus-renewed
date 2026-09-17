@@ -10,6 +10,7 @@
     <meta name="description" content="Precios de gasolina y diésel cerca de ti, actualizados a diario.">
     <meta property="og:title" content="Gasolinera+">
     <meta property="og:description" content="Precios de gasolina y diésel cerca de ti, actualizados a diario.">
+    <meta property="og:image" content="https://bideplus.vercel.app/icons/icon-512.png">
     <meta property="og:type" content="website">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#8A5A00">

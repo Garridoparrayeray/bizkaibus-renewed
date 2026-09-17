@@ -46,3 +46,9 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: vercel deploy ./gasolinera+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Clean up old deployments to save Vercel storage
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel rm gasolineraplus --safe --yes --token="${{ secrets.VERCEL_TOKEN }}"
