@@ -273,12 +273,12 @@ class StationsController
 
     /**
      * Precio medio nacional de un carburante día a día (para una gráfica
-     * global, no de una estación concreta), ruta /stats/national. Misma
-     * fuente que la gráfica de una estación (`price_history`), solo que
-     * agregada por fecha sobre todas las estaciones en vez de filtrada por
-     * `ideess`. Incluye el titular de hoy (media + número de estaciones que
-     * la componen) para no tener que hacer una segunda petición solo para
-     * ese dato.
+     * global, no de una estación concreta), ruta /stats/national. A
+     * diferencia de la gráfica de una estación (`price_history`, recortada a
+     * los últimos días), esto lee de `national_price_history`, que se
+     * guarda para siempre (ver nationalSeriesStatement()). Incluye el
+     * titular de hoy (media + número de estaciones que la componen) para no
+     * tener que hacer una segunda petición solo para ese dato.
      */
     public function nationalStats(Request $request): void
     {
@@ -323,10 +323,11 @@ class StationsController
 
         $placeholders = implode(',', array_fill(0, count(self::VALID_FUELS), '?'));
         $periodoExpr = $group === 'month' ? 'strftime(\'%Y-%m\', fecha)' : 'fecha';
+        // national_price_history, no price_history: ver nationalSeriesStatement().
         $pdo = Database::connection();
         $stmt = $pdo->prepare("
-            SELECT $periodoExpr AS periodo, carburante, ROUND(AVG(precio), 4) AS media
-            FROM price_history
+            SELECT $periodoExpr AS periodo, carburante, ROUND(AVG(media), 4) AS media
+            FROM national_price_history
             WHERE carburante IN ($placeholders) AND fecha BETWEEN ? AND ?
             GROUP BY periodo, carburante
             ORDER BY periodo ASC
@@ -506,22 +507,29 @@ class StationsController
         return [$from, $to];
     }
 
+    /**
+     * A diferencia del resto de consultas de esta clase, esto NO lee de
+     * price_history (se recorta a los últimos días por estación, ver
+     * scripts/build-database.php) sino de national_price_history, la media
+     * nacional diaria que se guarda para siempre — así el histórico
+     * nacional (incluida la vista mensual, hasta 2 años) no depende de
+     * cuánto detalle por estación se conserve.
+     */
     private function nationalSeriesStatement(\PDO $pdo, string $group): \PDOStatement
     {
         if ($group === 'month') {
             return $pdo->prepare('
-                SELECT strftime(\'%Y-%m\', fecha) AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
-                FROM price_history
+                SELECT strftime(\'%Y-%m\', fecha) AS periodo, ROUND(AVG(media), 4) AS media, MAX(estaciones) AS estaciones
+                FROM national_price_history
                 WHERE carburante = ? AND fecha BETWEEN ? AND ?
                 GROUP BY periodo
                 ORDER BY periodo ASC
             ');
         }
         return $pdo->prepare('
-            SELECT fecha AS periodo, ROUND(AVG(precio), 4) AS media, COUNT(DISTINCT ideess) AS estaciones
-            FROM price_history
+            SELECT fecha AS periodo, media, estaciones
+            FROM national_price_history
             WHERE carburante = ? AND fecha BETWEEN ? AND ?
-            GROUP BY periodo
             ORDER BY periodo ASC
         ');
     }
