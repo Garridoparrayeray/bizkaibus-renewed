@@ -45,4 +45,8 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: vercel deploy ./gasolinera+ --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        # El proyecto en Vercel ya tiene su propio Root Directory = gasolinera+
+        # (de cuando era un repo aparte), así que se despliega desde la raíz
+        # del repo sin volver a indicar la carpeta — si no, Vercel la suma dos
+        # veces (gasolinera+/gasolinera+) y falla porque esa ruta no existe.
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
