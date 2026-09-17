@@ -287,7 +287,7 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         ];
 
         // Attach NAP ApiKey
-        $sNapKey = getenv('NAP_API_KEY') ?: '60551c6c-50d2-4199-a805-524e1cfff6d4';
+        $sNapKey = getenv('NAP_API_KEY');
         if ($sNapKey && str_contains(strtolower($url), 'nap.transportes.gob.es')) {
             $aCurlOptions[CURLOPT_HTTPHEADER] = ['ApiKey: ' . $sNapKey];
         }
