@@ -5,19 +5,12 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
-/**
- * Resuelve un nombre de lugar (municipio, localidad, código postal...) a
- * lat/lon vía Nominatim, para el caso en que la búsqueda de texto sobre
- * `stations` no encuentra nada porque ese municipio no tiene ninguna
- * gasolinera propia: en vez de un resultado vacío, se usa el centroide
- * para buscar las gasolineras más cercanas por radio, igual que si el
- * usuario hubiese pulsado "cerca de mí" ahí.
- */
+
 class PlaceGeocoder
 {
     private const CONTACT = 'garridoparrayeraytx@gmail.com';
 
-    /** @return array{lat: float, lon: float}|null */
+    
     public static function resolve(string $query): ?array
     {
         $trimmed = trim($query);

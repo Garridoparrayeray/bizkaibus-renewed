@@ -1,11 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
 
 :root {
-    /* Paleta unificada con el icono de app real (gasolinera-appicon.svg):
-       antes --primary-light era el amarillo oficial del Ministerio
-       (verificado, #FFDB00) y el icono usaba un tono distinto aparte; ahora
-       toda la app usa los mismos colores que el icono/lockup, en vez de
-       tener dos paletas doradas ligeramente distintas conviviendo. */
+    
     --bg: #f7f5f0;
     --surface: #ffffff;
     --border: #e6ddc6;
@@ -25,9 +21,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-/* Esquinas a inglete y trazo algo más grueso en vez del set redondeado por
-   defecto de cualquier librería de iconos generada, para que no lea como
-   plantilla genérica (misma convención que el resto de la red de apps). */
+
 svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
     stroke-linecap: square;
     stroke-linejoin: miter;
@@ -385,8 +379,7 @@ header {
     background: linear-gradient(to right, hsl(120, 70%, 42%), hsl(60, 70%, 42%), hsl(0, 70%, 42%));
 }
 
-/* Clusters con la paleta de marca en vez del verde/amarillo/naranja por
-   defecto de Leaflet.markercluster, para que no lean como plantilla. */
+
 .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
     background: rgba(184, 134, 11, 0.25);
 }
