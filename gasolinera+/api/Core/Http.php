@@ -4,14 +4,8 @@ namespace Core;
 
 class Http
 {
-    /**
-     * GET simple vía cURL, usado por todos los clientes de Services/ (SIRI,
-     * avisos de Metro Bilbao, horario legado de Bizkaibus). Centraliza el
-     * timeout y el manejo de error para no repetir la misma configuración de
-     * cURL en cada cliente. Cualquier fallo de red o HTTP >=400 lanza
-     * excepción, dejando que cada cliente decida si lo captura o lo propaga.
-     */
-    /** @param string[] $headers Cabeceras adicionales, p.ej. ['User-Agent: MiApp/1.0 (contacto@ejemplo.com)']. */
+    
+    
     public static function get(string $url, int $timeoutSeconds = 8, array $headers = []): string
     {
         $ch = curl_init($url);
@@ -24,7 +18,7 @@ class Http
         $body = curl_exec($ch);
         $error = curl_error($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        // curl_close() no hace nada desde PHP 8.0 (deprecado en 8.5): el handle se libera solo.
+        
 
         if ($body === false || $error) {
             throw new \RuntimeException("GET $url failed: $error");

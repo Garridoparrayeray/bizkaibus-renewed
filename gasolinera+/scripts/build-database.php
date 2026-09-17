@@ -1,32 +1,12 @@
 <?php
-/**
- * Genera/actualiza data/gasolinera.sqlite a partir del feed oficial de
- * precios de carburantes del Ministerio para la Transición Ecológica
- * (geoportalgasolineras.es, sin API key).
- *
- * Uso:
- *   php scripts/build-database.php --mode=daily
- *   php scripts/build-database.php --mode=backfill --days=30
- *   php scripts/build-database.php --mode=daily --source=<ruta-o-url> --output=<ruta>
- *
- * A diferencia del ETL de bizkaibus+ (que regenera su .sqlite entero cada
- * vez), este ETL es incremental: el histórico de precios se acumula día a
- * día y nunca se borra. --mode=daily descarga el snapshot de hoy y lo
- * añade; --mode=backfill rellena fechas pasadas usando el endpoint
- * histórico del feed, pensado como paso manual de un solo uso antes del
- * primer lanzamiento (ver README), nunca parte del cron diario.
- *
- * El feed devuelve las coordenadas y los precios como strings con COMA
- * decimal (ej. "39,211417"), herencia del formato numérico español; hay que
- * convertirlos a punto decimal antes de castear a float en toda esta clase.
- */
+
 
 declare(strict_types=1);
 
-// json_decode() de los ~12MB del feed necesita bastante más que el límite
-// por defecto de PHP (128M): el árbol PHP resultante pesa varias veces el
-// tamaño del JSON de origen. Verificado con un fallo real de memoria en
-// --mode=backfill sin este ajuste.
+
+
+
+
 ini_set('memory_limit', '1024M');
 
 require __DIR__ . '/../api/Core/Http.php';
@@ -37,17 +17,10 @@ const SOURCE_CURRENT = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCar
 const SOURCE_HIST_PREFIX = 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestresHist/';
 const DEFAULT_OUTPUT = __DIR__ . '/../data/gasolinera.sqlite';
 
-/**
- * Mapeo explícito y fijo del nombre de campo del feed ("Precio <Carburante>")
- * a una clave normalizada estable. Fijo en código (no heurístico) a
- * propósito: si el feed añade un carburante nuevo que no está aquí,
- * loadFuelPrices() debe avisar en vez de perderlo en silencio (ver abajo).
- *
- * Las seis primeras claves son las que el catálogo de filtros de la API
- * ofrece como selector en la UI (cobertura real >= 9% de las estaciones,
- * verificado contra el feed real); el resto se guarda igual en BD (no se
- * pierde ningún dato) pero no se expone como filtro por baja cobertura.
- */
+
+const PRICE_HISTORY_RETENTION_DAYS = 10;
+
+
 const FUEL_FIELD_MAP = [
     'Precio Gasoleo A' => 'gasoleo_a',
     'Precio Gasolina 95 E5' => 'gasolina_95_e5',
@@ -74,7 +47,7 @@ const FUEL_FIELD_MAP = [
     'Precio Biogas Natural Licuado' => 'biogas_natural_licuado',
 ];
 
-/** Valor string de un campo del feed, o cadena vacía si no viene informado. */
+
 function fieldStr(array $row, string $key): string
 {
     if (isset($row[$key])) {
@@ -118,7 +91,7 @@ function main(array $argv): void
     printf("\nDatabase written to: %s\nFile size: %.1f MB\n", $output, $size / 1024 / 1024);
 }
 
-/** @return array{mode:string, source:?string, output:?string, days:?int} */
+
 function parseArgs(array $argv): array
 {
     $opts = ['mode' => 'daily', 'source' => null, 'output' => null, 'days' => null];
@@ -144,7 +117,7 @@ function openDatabase(string $path): \PDO
     return $pdo;
 }
 
-/** Crea el esquema si no existe. Nunca hace DROP: el histórico es acumulativo. */
+
 function ensureSchema(\PDO $pdo): void
 {
     $pdo->exec('
@@ -202,14 +175,26 @@ function ensureSchema(\PDO $pdo): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_station_fuel ON price_history (ideess, carburante, fecha DESC)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_history_zone_lookup ON price_history (fecha, carburante)');
 
+    
+    
+    
+    
+    
+    
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS national_price_history (
+            fecha TEXT NOT NULL,
+            carburante TEXT NOT NULL,
+            media REAL NOT NULL,
+            estaciones INTEGER NOT NULL,
+            PRIMARY KEY (fecha, carburante)
+        )
+    ');
+
     $pdo->exec('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
 }
 
-/**
- * Convierte "39,211417" (formato numérico español del feed) a 39.211417.
- * Devuelve null para el string vacío, que el feed usa quando un carburante
- * no está disponible en esa estación.
- */
+
 function parseSpanishDecimal(string $value): ?float
 {
     $value = trim($value);
@@ -219,7 +204,7 @@ function parseSpanishDecimal(string $value): ?float
     return (float)str_replace(',', '.', $value);
 }
 
-/** "dd/mm/yyyy HH:ii:ss" (raíz "Fecha" del feed) -> "YYYY-MM-DD". */
+
 function feedDateToIso(string $fecha): string
 {
     $datePart = explode(' ', $fecha)[0];
@@ -227,20 +212,14 @@ function feedDateToIso(string $fecha): string
     return sprintf('%04d-%02d-%02d', (int)$y, (int)$m, (int)$d);
 }
 
-/** "dd-mm-yyyy", formato que exige el endpoint EstacionesTerrestresHist. */
+
 function isoDateToHistParam(string $isoDate): string
 {
     [$y, $m, $d] = explode('-', $isoDate);
     return sprintf('%s-%s-%s', $d, $m, $y);
 }
 
-/**
- * Descarga y decodifica un snapshot del feed (actual o histórico). El feed
- * responde con Content-Type: text/html aunque el cuerpo es JSON real, así
- * que se parsea igual sin fijarse en la cabecera.
- *
- * @return array{fecha:string, estaciones:array<int,array<string,string>>}
- */
+
 function fetchSnapshot(string $url): array
 {
     $body = Http::get($url, 60);
@@ -256,14 +235,7 @@ function fetchSnapshot(string $url): array
     return ['fecha' => $fecha, 'estaciones' => $data['ListaEESSPrecio']];
 }
 
-/**
- * Separa los ~20 campos "Precio <Carburante>" de una fila del feed en un
- * mapa slug->precio, solo para los que tienen valor. Avisa (sin abortar) si
- * aparece un campo "Precio ..." que no está en FUEL_FIELD_MAP, para que un
- * carburante nuevo del feed no se pierda en silencio.
- *
- * @return array<string,float>
- */
+
 function loadFuelPrices(array $row): array
 {
     $prices = [];
@@ -284,19 +256,14 @@ function loadFuelPrices(array $row): array
     return $prices;
 }
 
-/** true si horario_raw indica apertura 24 horas, heurística simple sobre el texto libre del feed. */
+
 function detectIs24h(string $horario): bool
 {
     $normalized = mb_strtoupper(trim($horario), 'UTF-8');
     return str_contains($normalized, '24H') || str_contains($normalized, '24 H') || $normalized === 'L-D: 00:00-24:00';
 }
 
-/**
- * Procesa el snapshot de HOY: upsert de stations, sustitución completa de
- * current_prices, e inserción idempotente en price_history. Si $source es
- * null usa el feed oficial en vivo; si se pasa, permite apuntar a un fichero
- * local para pruebas sin golpear el servicio real en cada ejecución.
- */
+
 function runDaily(\PDO $pdo, ?string $source): void
 {
     $url = $source;
@@ -314,15 +281,39 @@ function runDaily(\PDO $pdo, ?string $source): void
     $stmt = $pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value');
     $stmt->execute(['last_snapshot_date', $fechaIso]);
     $stmt->execute(['source_updated_at', $snapshot['fecha']]);
+
+    updateNationalPriceHistory($pdo, $fechaIso);
+    pruneOldPriceHistory($pdo);
 }
 
-/**
- * Rellena price_history con los últimos $days días anteriores a hoy,
- * usando el endpoint histórico del feed. Nunca toca current_prices (esa
- * tabla solo la actualiza runDaily con el snapshot de HOY). Pensado como
- * paso manual de un solo uso antes del primer lanzamiento, no como parte
- * del cron diario recurrente.
- */
+
+function updateNationalPriceHistory(\PDO $pdo, string $fechaIso): void
+{
+    $rows = $pdo->query('
+        SELECT carburante, ROUND(AVG(precio), 4) AS media, COUNT(*) AS estaciones
+        FROM current_prices
+        GROUP BY carburante
+    ')->fetchAll();
+
+    $stmt = $pdo->prepare('
+        INSERT INTO national_price_history (fecha, carburante, media, estaciones) VALUES (?, ?, ?, ?)
+        ON CONFLICT(fecha, carburante) DO UPDATE SET media = excluded.media, estaciones = excluded.estaciones
+    ');
+    foreach ($rows as $row) {
+        $stmt->execute([$fechaIso, $row['carburante'], (float)$row['media'], (int)$row['estaciones']]);
+    }
+    echo '  media nacional guardada para ' . count($rows) . " carburantes ($fechaIso)\n";
+}
+
+
+function pruneOldPriceHistory(\PDO $pdo): void
+{
+    $deleted = $pdo->exec('DELETE FROM price_history WHERE fecha < date(\'now\', \'-' . PRICE_HISTORY_RETENTION_DAYS . ' days\')');
+    echo "  recortadas $deleted filas de price_history (fuera de los " . PRICE_HISTORY_RETENTION_DAYS . " días de retención)\n";
+    $pdo->exec('VACUUM');
+}
+
+
 function runBackfill(\PDO $pdo, int $days): void
 {
     $today = new \DateTime('now', new \DateTimeZone('Europe/Madrid'));
@@ -342,16 +333,16 @@ function runBackfill(\PDO $pdo, int $days): void
             continue;
         }
 
-        // El histórico también puede traer un valor distinto de $isoDate si
-        // el operador no publicó datos exactos ese día; se usa siempre la
-        // fecha real devuelta por el feed, nunca la que pedimos, para no
-        // desalinear price_history con lo que el operador dice que es.
+        
+        
+        
+        
         $realIso = feedDateToIso($snapshot['fecha']);
         applySnapshot($pdo, $snapshot['estaciones'], $realIso, false);
         $lastCovered = $realIso;
 
-        // Pausa breve entre descargas de ~12MB para no saturar el endpoint
-        // del Ministerio con peticiones seguidas.
+        
+        
         usleep(300000);
     }
 
@@ -361,14 +352,7 @@ function runBackfill(\PDO $pdo, int $days): void
     }
 }
 
-/**
- * Aplica un snapshot (de hoy o de un día pasado) a la base de datos.
- * $updateCurrentAndStations controla si además de price_history se
- * actualiza stations/current_prices: solo debe ser true para el snapshot de
- * HOY (runDaily). El backfill de fechas pasadas solo aporta histórico, y
- * usa INSERT OR IGNORE en stations para no pisar el estado actual real con
- * datos antiguos si una estación cambió de nombre/rótulo entretanto.
- */
+
 function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $updateCurrentAndStations): void
 {
     $pdo->beginTransaction();
@@ -524,7 +508,7 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
     echo "  $count estaciones procesadas para $fechaIso\n";
 }
 
-/** Descarga de una URL remota, o lee de disco si $source apunta a un fichero local existente (para pruebas). */
+
 function fetchLocalOrRemote(string $source): array
 {
     if (is_file($source)) {

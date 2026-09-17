@@ -154,7 +154,7 @@
         searchSuggestTimer: null,
     };
 
-    // ---- Comparador (localStorage) ----
+    
 
     function loadCompareList() {
         try {
@@ -176,8 +176,8 @@
         try {
             localStorage.setItem('gasolinera_compare', JSON.stringify(state.compareList));
         } catch (e) {
-            // localStorage puede fallar en navegación privada; el comparador
-            // sigue funcionando en memoria durante la sesión, solo no persiste.
+            
+            
         }
         updateCompareCount();
     }
@@ -212,7 +212,7 @@
         el.compareCount.hidden = count === 0;
     }
 
-    // ---- Favoritas (localStorage) ----
+    
 
     function loadFavorites() {
         try {
@@ -234,8 +234,8 @@
         try {
             localStorage.setItem('gasolinera_favorites', JSON.stringify(state.favoritesList));
         } catch (e) {
-            // localStorage puede fallar en navegación privada; las favoritas
-            // siguen funcionando en memoria durante la sesión, solo no persisten.
+            
+            
         }
         updateFavoritesCount();
     }
@@ -302,7 +302,7 @@
         }
     }
 
-    // ---- Aviso flotante (toast) ----
+    
 
     function showToast(message) {
         clearTimeout(state.toastTimer);
@@ -315,7 +315,7 @@
         }, 1600);
     }
 
-    // ---- Geolocalización ----
+    
 
     function closeGeoAsk() {
         if (el.geoAsk.open) {
@@ -350,20 +350,20 @@
         );
     }
 
-    // No se pide la ubicacion en silencio al cargar: primero se explica en
-    // un dialog que bloquea el resto de la app hasta decidir (salvo que el
-    // navegador ya recuerde un permiso concedido de antes, via la
-    // Permissions API donde esta disponible).
+    
+    
+    
+    
     async function initGeolocationFlow() {
         if (!('geolocation' in navigator)) {
             el.geoFallback.hidden = false;
             return;
         }
 
-        // La eleccion explicita (activar/desactivar) se recuerda entre
-        // visitas en localStorage, igual que favoritas/comparador: si ya
-        // dijiste "buscar sin ubicacion" una vez, no hace falta volver a
-        // preguntar cada vez que abres la app.
+        
+        
+        
+        
         const pref = loadLocationPref();
         if (pref === 'off') {
             updateGeoToggle();
@@ -387,8 +387,8 @@
                     return;
                 }
             } catch (e) {
-                // Permissions API sin soporte para 'geolocation' en este
-                // navegador (Safari, sobre todo): se cae al dialog de pedir permiso.
+                
+                
             }
         }
         el.geoAsk.showModal();
@@ -406,18 +406,22 @@
         try {
             localStorage.setItem('gasolinera_location_pref', value);
         } catch (e) {
-            // localStorage puede fallar en navegacion privada; simplemente
-            // no se recuerda entre sesiones, la app sigue funcionando igual.
+            
+            
         }
     }
 
-    // Control permanente para activar/desactivar la ubicacion despues de la
-    // primera decision (el aviso inicial #geo-ask solo se ve una vez).
+    
+    
     function updateGeoToggle() {
         el.geoToggle.hidden = false;
         const active = state.userLat !== null;
         el.geoToggle.setAttribute('aria-pressed', String(active));
-        el.geoToggle.setAttribute('aria-label', active ? 'Ubicación activada · pulsa para desactivar' : 'Ubicación desactivada · pulsa para activar');
+        let label = 'Ubicación desactivada · pulsa para activar';
+        if (active) {
+            label = 'Ubicación activada · pulsa para desactivar';
+        }
+        el.geoToggle.setAttribute('aria-label', label);
     }
 
     function toggleLocation() {
@@ -440,7 +444,7 @@
         }
     }
 
-    // ---- Estadísticas nacionales ----
+    
 
     async function loadNationalHeadline() {
         const [gasoleoA, gasolina95] = await Promise.all([
@@ -472,8 +476,8 @@
         if (isOpen) {
             return;
         }
-        // Se renderiza en el primer despliegue, no antes: Chart.js necesita
-        // el canvas ya visible con tamaño real para calcular sus ejes.
+        
+        
         if (!state.nationalChart) {
             await renderNationalChart();
         }
@@ -515,7 +519,7 @@
         el.nationalNote.textContent = `Media de ${last.estaciones.toLocaleString('es-ES')} gasolineras el ${last.fecha}. Datos del Ministerio para la Transición Ecológica.`;
     }
 
-    // ---- Carga y render de lista ----
+    
 
     function currentFilters() {
         return {
@@ -548,7 +552,7 @@
         await loadStationsPage(1);
     }
 
-    // ---- Sugerencias de municipio mientras se escribe ----
+    
 
     function hideSearchSuggestions() {
         el.searchSuggestions.hidden = true;
@@ -562,8 +566,8 @@
         } catch (e) {
             return;
         }
-        // La respuesta puede llegar tarde si el usuario ya siguió escribiendo:
-        // si el input ya no coincide con lo que se pidió, se descarta.
+        
+        
         if (el.searchInput.value.trim() !== query) {
             return;
         }
@@ -592,12 +596,12 @@
         el.searchSuggestions.hidden = false;
     }
 
-    // Cada página sustituye la lista anterior (paginación real, no scroll
-    // infinito): pageNumber es 1-indexado. Si llega una llamada mientras ya
-    // hay una carga en curso (dos filtros cambiados seguidos, p.ej. radio y
-    // luego carburante), no se descarta sin más: se apunta como pendiente y
-    // se relanza en cuanto termina la que está en curso, para que el
-    // resultado final siempre refleje el ÚLTIMO filtro elegido.
+    
+    
+    
+    
+    
+    
     async function loadStationsPage(pageNumber) {
         if (state.stationsLoading) {
             state.stationsPendingPage = pageNumber;
@@ -746,7 +750,7 @@
         return '<th>—</th>';
     }
 
-    // ---- Vista mapa: Leaflet + clustering + capa de calor ----
+    
 
     function ensureMap() {
         if (state.mapReady) {
@@ -789,7 +793,7 @@
             return '#8A8A8A';
         }
         const ratio = (precio - min) / (max - min);
-        // Verde (barato) a rojo (caro), interpolando por el canal rojo/verde en HSL.
+        
         const hue = 120 - ratio * 120;
         return `hsl(${hue}, 70%, 42%)`;
     }
@@ -872,7 +876,7 @@
             return;
         }
         const points = stationsWithPrice.map((s) => {
-            // Intensidad invertida: precio bajo = intensidad alta (más "caliente" visualmente donde es barato).
+            
             let ratio = 0.5;
             if (max !== min) {
                 ratio = 1 - (s.precio - min) / (max - min);
@@ -940,7 +944,7 @@
         }
     }
 
-    // ---- Estadísticas (pestaña propia: nacional + por estación) ----
+    
 
     const MONTH_LABELS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -959,9 +963,18 @@
         const first = serie[0][valueKey];
         const last = serie[serie.length - 1][valueKey];
         const diff = last - first;
-        const pct = first !== 0 ? (diff / first) * 100 : 0;
-        const sign = diff > 0 ? '+' : '';
-        const periodWord = state.statsGroup === 'month' ? 'meses' : 'días';
+        let pct = 0;
+        if (first !== 0) {
+            pct = (diff / first) * 100;
+        }
+        let sign = '';
+        if (diff > 0) {
+            sign = '+';
+        }
+        let periodWord = 'días';
+        if (state.statsGroup === 'month') {
+            periodWord = 'meses';
+        }
         return `<strong>${sign}${pct.toFixed(1)}%</strong> (${sign}${diff.toFixed(3)} €) entre ${periodLabel(serie[0].fecha)} y ${periodLabel(serie[serie.length - 1].fecha)} · ${serie.length} ${periodWord} con dato.`;
     }
 
@@ -1008,9 +1021,13 @@
         if (query.trim().length < 2) {
             return;
         }
+        let sort = 'price';
+        if (state.userLat !== null) {
+            sort = 'distance';
+        }
         let data;
         try {
-            data = await Api.search({ q: query.trim(), lat: state.userLat, lon: state.userLon, sort: state.userLat !== null ? 'distance' : 'price', limit: 8 });
+            data = await Api.search({ q: query.trim(), lat: state.userLat, lon: state.userLon, sort: sort, limit: 8 });
         } catch (e) {
             return;
         }
@@ -1112,7 +1129,12 @@
                 data.series[slug].forEach((p) => { bySeriesFecha[p.fecha] = p.media; });
                 return {
                     label: FUEL_LABELS[slug] || slug,
-                    data: labels.map((fecha) => bySeriesFecha[fecha] ?? null),
+                    data: labels.map((fecha) => {
+                        if (fecha in bySeriesFecha) {
+                            return bySeriesFecha[fecha];
+                        }
+                        return null;
+                    }),
                     borderColor: FUEL_CHART_COLORS[slug] || '#8A8A8A',
                     backgroundColor: 'transparent',
                     tension: 0.15,
@@ -1150,9 +1172,6 @@
             state.statsProvinceChart.destroy();
             state.statsProvinceChart = null;
         }
-        // Con ~52 provincias, una altura fija deja las barras demasiado
-        // finas y Chart.js se salta etiquetas por solape: la altura del
-        // canvas escala con el numero de provincias, una fila por barra.
         el.statsProvinceChartWrap.style.height = (data.provincias.length * 18) + 'px';
         const cheapest = data.provincias[0];
         const priciest = data.provincias[data.provincias.length - 1];
@@ -1163,7 +1182,15 @@
                 datasets: [{
                     label: `Media hoy · ${FUEL_LABELS[fuel] || fuel}`,
                     data: data.provincias.map((p) => p.media),
-                    backgroundColor: data.provincias.map((p) => (p.provincia === cheapest.provincia ? '#5B8C5A' : p.provincia === priciest.provincia ? '#B3261E' : '#8A5A00')),
+                    backgroundColor: data.provincias.map((p) => {
+                        if (p.provincia === cheapest.provincia) {
+                            return '#5B8C5A';
+                        }
+                        if (p.provincia === priciest.provincia) {
+                            return '#B3261E';
+                        }
+                        return '#8A5A00';
+                    }),
                 }],
             },
             options: {
@@ -1226,7 +1253,7 @@
         }
     }
 
-    // ---- Panel de detalle ----
+    
 
     async function openStationModal(ideess) {
         let station;
@@ -1352,7 +1379,7 @@
         });
     }
 
-    // ---- Panel de comparación ----
+    
 
     function openComparePanel() {
         renderComparePanel();
@@ -1410,7 +1437,7 @@
         });
     }
 
-    // ---- Eventos ----
+    
 
     el.paginationPrev.addEventListener('click', async () => {
         if (state.stationsPage > 1) {
@@ -1453,8 +1480,8 @@
         state.searchSuggestTimer = setTimeout(() => fetchSearchSuggestions(query), 250);
     });
 
-    // El blur se retrasa para que el click en una sugerencia (que primero
-    // dispara blur en el input) llegue a registrarse antes de ocultar la lista.
+    
+    
     el.searchInput.addEventListener('blur', () => {
         setTimeout(hideSearchSuggestions, 150);
     });
@@ -1492,10 +1519,10 @@
         updateGeoToggle();
     });
     el.geoToggle.addEventListener('click', toggleLocation);
-    // Red de seguridad: si el dialog se cierra por Escape en vez de un
-    // boton (los otros paneles cierran con click en el fondo, este no, a
-    // proposito, para que la decision sea explicita), el icono permanente
-    // tiene que reflejar igualmente el estado real.
+    
+    
+    
+    
     el.geoAsk.addEventListener('close', updateGeoToggle);
     el.geoRetry.addEventListener('click', requestGeolocation);
     el.legalOpen.addEventListener('click', () => el.legalPanel.showModal());
