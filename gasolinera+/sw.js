@@ -1,6 +1,5 @@
-// El sufijo de versión fuerza a que activate() borre cualquier caché
-// anterior. Subir este número cada vez que cambie SHELL_FILES o el propio
-// HTML/JS del shell de forma significativa.
+
+
 const CACHE_VERSION = 'v1';
 const CACHE_NAME = 'gasolinera-shell-' + CACHE_VERSION;
 const SHELL_FILES = [
@@ -32,8 +31,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Los precios cambian a diario: la API nunca debe servirse desde caché
-    // habiendo red disponible.
+    
+    
     if (url.pathname.startsWith('/api/')) {
         return;
     }
@@ -41,7 +40,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Network-first, cache como fallback offline.
+    
     event.respondWith(
         fetch(event.request)
             .then((response) => {
