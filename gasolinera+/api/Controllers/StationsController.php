@@ -16,23 +16,13 @@ class StationsController
         'gasolina_98_e5', 'adblue', 'glp',
     ];
 
-    /**
-     * Combustibles alternativos/renovables: cobertura real muy por debajo de
-     * VALID_FUELS (del 14% del diésel renovable al 0.0% del hidrógeno, 1-2
-     * estaciones en todo el país), así que no entran en la gráfica
-     * comparativa por carburante (saldrían líneas casi vacías), pero sí son
-     * filtrables/ordenables como cualquier otro: cuanto más raro el
-     * carburante, más falta le hace a quien lo busca poder filtrar por él.
-     */
+    
     private const ALTERNATIVE_FUELS = [
         'diesel_renovable', 'gasolina_renovable', 'biodiesel', 'bioetanol',
         'gnc', 'gnl', 'biogas_natural_comprimido', 'biogas_natural_licuado', 'hidrogeno',
     ];
 
-    /**
-     * Gasolineras dentro de un radio circular alrededor de (lat, lon),
-     * ordenadas por precio o distancia, ruta /stations/near.
-     */
+    
     public function near(Request $request): void
     {
         $lat = $request->query('lat');
@@ -78,7 +68,7 @@ class StationsController
         ]);
     }
 
-    /** Buscador de texto (municipio, dirección o marca), alternativa al radio, ruta /stations/search. */
+    
     public function search(Request $request): void
     {
         $q = trim((string)$request->query('q', ''));
@@ -106,10 +96,10 @@ class StationsController
 
         $model = new Station(Database::connection());
 
-        // Si la búsqueda coincide con un municipio real, ancla lat/lon a SU
-        // centroide en vez de a la ubicación del usuario: buscar
-        // "Amorebieta" tiene que dar distancias a Amorebieta, no a donde
-        // esté el usuario en ese momento.
+        
+        
+        
+        
         $place = null;
         if ($model->looksLikePlaceQuery($q)) {
             $place = PlaceGeocoder::resolve($q);
@@ -125,12 +115,10 @@ class StationsController
 
         $geocodedFrom = null;
 
-        // Si se ancló a un lugar real, se completa el resultado con las
-        // estaciones dentro de un radio de ese punto: un barrio (p.ej.
-        // Algorta) no tiene polígono propio en el feed, así que una
-        // gasolinera físicamente ahí pero etiquetada con otro
-        // municipio/localidad no aparecería solo por coincidencia de texto.
-        $nearbyMergeRadiusKm = $place !== null ? 10.0 : null;
+        $nearbyMergeRadiusKm = null;
+        if ($place !== null) {
+            $nearbyMergeRadiusKm = 10.0;
+        }
 
         $page = $model->search(
             $q,
@@ -147,7 +135,9 @@ class StationsController
         );
 
         if ($page['total'] === 0 && $offset === 0) {
-            $place = $place ?? PlaceGeocoder::resolve($q);
+            if ($place === null) {
+                $place = PlaceGeocoder::resolve($q);
+            }
             if ($place !== null) {
                 $page = $model->near(
                     $place['lat'],
@@ -174,13 +164,7 @@ class StationsController
         ]);
     }
 
-    /**
-     * Municipios que coinciden con el texto (no estaciones), para las
-     * sugerencias mientras se escribe en el buscador, ruta
-     * /stations/suggest-places. Evita el problema de "escribo una ciudad y
-     * no me la encuentra bien": el usuario ve y elige el municipio exacto en
-     * vez de que el buscador adivine con una sola coincidencia de texto.
-     */
+    
     public function suggestPlaces(Request $request): void
     {
         $q = trim((string)$request->query('q', ''));
@@ -195,10 +179,7 @@ class StationsController
         Response::json(['places' => $places]);
     }
 
-    /**
-     * Gasolineras dentro de un rectángulo de coordenadas (la vista actual
-     * del mapa), sin límite de resultados, ruta /stations/bbox.
-     */
+    
     public function bbox(Request $request): void
     {
         $north = $request->query('north');
@@ -219,7 +200,7 @@ class StationsController
         Response::json(['stations' => $results]);
     }
 
-    /** Ficha completa de una estación, ruta /stations/{ideess}. */
+    
     public function show(Request $request, array $params): void
     {
         $model = new Station(Database::connection());
@@ -232,19 +213,15 @@ class StationsController
         Response::json($station);
     }
 
-    /**
-     * Serie temporal de precio de un carburante en una estación, para la
-     * gráfica de evolución, ruta /stations/{ideess}/history. group=month
-     * agrega por mes (media del carburante ese mes) en vez de dato diario,
-     * para ver tendencia en periodos largos sin un punto por día. from/to
-     * (YYYY-MM-DD) acotan el rango explícitamente; si no se pasan, cae al
-     * comportamiento anterior (últimos 7 días).
-     */
+    
     public function history(Request $request, array $params): void
     {
         $fuel = $request->query('fuel', 'gasoleo_a');
         $group = $this->normalizeGroup($request->query('group'));
-        $maxDays = $group === 'month' ? 730 : 90;
+        $maxDays = 90;
+        if ($group === 'month') {
+            $maxDays = 730;
+        }
         [$from, $to] = $this->parseDateRange($request, 7, $maxDays);
 
         $pdo = Database::connection();
@@ -271,15 +248,7 @@ class StationsController
         Response::json(['ideess' => $params['ideess'], 'carburante' => $fuel, 'group' => $group, 'from' => $from, 'to' => $to, 'serie' => $series]);
     }
 
-    /**
-     * Precio medio nacional de un carburante día a día (para una gráfica
-     * global, no de una estación concreta), ruta /stats/national. A
-     * diferencia de la gráfica de una estación (`price_history`, recortada a
-     * los últimos días), esto lee de `national_price_history`, que se
-     * guarda para siempre (ver nationalSeriesStatement()). Incluye el
-     * titular de hoy (media + número de estaciones que la componen) para no
-     * tener que hacer una segunda petición solo para ese dato.
-     */
+    
     public function nationalStats(Request $request): void
     {
         $fuel = $this->normalizeFuel($request->query('fuel'));
@@ -287,7 +256,10 @@ class StationsController
             $fuel = 'gasoleo_a';
         }
         $group = $this->normalizeGroup($request->query('group'));
-        $maxDays = $group === 'month' ? 730 : 90;
+        $maxDays = 90;
+        if ($group === 'month') {
+            $maxDays = 730;
+        }
         [$from, $to] = $this->parseDateRange($request, 14, $maxDays);
 
         $pdo = Database::connection();
@@ -309,21 +281,21 @@ class StationsController
         Response::json(['carburante' => $fuel, 'group' => $group, 'from' => $from, 'to' => $to, 'hoy' => $today, 'serie' => $series]);
     }
 
-    /**
-     * Igual que nationalStats() pero con varios carburantes a la vez (una
-     * serie por carburante), para el gráfico comparativo entre carburantes,
-     * ruta /stats/by-fuel. Una sola consulta agrupando por (periodo,
-     * carburante) en vez de una consulta por carburante.
-     */
+    
     public function statsByFuel(Request $request): void
     {
         $group = $this->normalizeGroup($request->query('group'));
-        $maxDays = $group === 'month' ? 730 : 90;
+        $maxDays = 90;
+        if ($group === 'month') {
+            $maxDays = 730;
+        }
         [$from, $to] = $this->parseDateRange($request, 30, $maxDays);
 
         $placeholders = implode(',', array_fill(0, count(self::VALID_FUELS), '?'));
-        $periodoExpr = $group === 'month' ? 'strftime(\'%Y-%m\', fecha)' : 'fecha';
-        // national_price_history, no price_history: ver nationalSeriesStatement().
+        $periodoExpr = 'fecha';
+        if ($group === 'month') {
+            $periodoExpr = 'strftime(\'%Y-%m\', fecha)';
+        }
         $pdo = Database::connection();
         $stmt = $pdo->prepare("
             SELECT $periodoExpr AS periodo, carburante, ROUND(AVG(media), 4) AS media
@@ -346,12 +318,7 @@ class StationsController
         Response::json(['group' => $group, 'from' => $from, 'to' => $to, 'series' => $series]);
     }
 
-    /**
-     * Precio medio de hoy por provincia, ruta /stats/by-province. A
-     * diferencia de las series temporales, esto sale de current_prices
-     * (snapshot de hoy), no de price_history, así que no depende de cuánto
-     * histórico haya acumulado todavía.
-     */
+    
     public function statsByProvince(Request $request): void
     {
         $fuel = $this->normalizeFuel($request->query('fuel'));
@@ -380,13 +347,7 @@ class StationsController
         Response::json(['carburante' => $fuel, 'provincias' => $provincias]);
     }
 
-    /**
-     * Histograma de precios de hoy (cuántas estaciones caen en cada franja
-     * de precio), ruta /stats/price-distribution. El ancho de franja se
-     * calcula a partir del rango real min/max del carburante en vez de ser
-     * fijo, para que tenga sentido tanto en carburantes baratos (adblue)
-     * como caros.
-     */
+    
     public function priceDistribution(Request $request): void
     {
         $fuel = $this->normalizeFuel($request->query('fuel'));
@@ -469,15 +430,7 @@ class StationsController
         return 'day';
     }
 
-    /**
-     * Rango explícito from/to (YYYY-MM-DD) si el cliente los manda y son
-     * válidos; si no, cae al comportamiento anterior (últimos $defaultDays
-     * días desde hoy). En ambos casos se acota a $maxDays de amplitud y a
-     * no pasarse de hoy, para no dejar que un rango disparatado dispare una
-     * consulta sobre todo price_history.
-     *
-     * @return array{0:string,1:string} [from, to]
-     */
+    
     private function parseDateRange(Request $request, int $defaultDays, int $maxDays): array
     {
         $from = $request->query('from');
@@ -507,14 +460,7 @@ class StationsController
         return [$from, $to];
     }
 
-    /**
-     * A diferencia del resto de consultas de esta clase, esto NO lee de
-     * price_history (se recorta a los últimos días por estación, ver
-     * scripts/build-database.php) sino de national_price_history, la media
-     * nacional diaria que se guarda para siempre — así el histórico
-     * nacional (incluida la vista mensual, hasta 2 años) no depende de
-     * cuánto detalle por estación se conserve.
-     */
+    
     private function nationalSeriesStatement(\PDO $pdo, string $group): \PDOStatement
     {
         if ($group === 'month') {
@@ -542,7 +488,7 @@ class StationsController
         return 'price';
     }
 
-    /** @return array{0:bool,1:bool} [open24h, openNow] */
+    
     private function parseOpenParam(?string $open): array
     {
         if ($open === '24h') {
@@ -554,7 +500,7 @@ class StationsController
         return [false, false];
     }
 
-    /** @return array{0:int,1:int} [offset, limit] */
+    
     private function parsePageParams(Request $request): array
     {
         $offset = $request->queryInt('offset', 0);
