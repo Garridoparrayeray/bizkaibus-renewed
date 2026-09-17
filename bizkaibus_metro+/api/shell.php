@@ -7,14 +7,17 @@ if ($bIsMetroShare) {
     $sOgTitle       = 'Metro+';
     $sOgDescription = 'Horarios de Metro Bilbao, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
+    $sFaviconFolder = 'icons-metro';
 } elseif ($bIsEuskoTrenShare) {
     $sOgTitle       = 'Euskotren+';
     $sOgDescription = 'Horarios de Euskotren, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-euskotren/icon-512.png';
+    $sFaviconFolder = 'icons-euskotren';
 } else {
     $sOgTitle       = 'BizkaiBus+';
     $sOgDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
+    $sFaviconFolder = 'icons-pro';
 }
 ?>
 <!DOCTYPE html>
@@ -31,6 +34,8 @@ if ($bIsMetroShare) {
     <meta property="og:description" content="<?= $sOgDescription ?>">
     <meta property="og:image" content="<?= $sOgImage ?>">
     <meta property="og:type" content="website">
+    <link rel="icon" href="/<?= $sFaviconFolder ?>/icon-192.png">
+    <link rel="apple-touch-icon" href="/<?= $sFaviconFolder ?>/apple-touch-icon.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script>
         (function () {
