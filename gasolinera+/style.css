@@ -408,7 +408,7 @@ dialog {
 }
 dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 
-#station-modal h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 4px; font-size: 1.2rem; }
+#station-modal h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 4px; font-size: 1.2rem; color: #392f1c; }
 #modal-municipio, #modal-horario { color: var(--text-secondary); font-size: 0.85rem; margin: 2px 0; }
 
 #modal-fuels {
@@ -623,7 +623,7 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     text-decoration: underline;
 }
 
-#legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; }
+#legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; color: #3a2f0f; }
 #legal-panel h3 { margin: 4px 0 14px; }
 #legal-panel strong { color: var(--text); }
 
