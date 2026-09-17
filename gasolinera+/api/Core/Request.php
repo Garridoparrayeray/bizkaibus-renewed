@@ -6,9 +6,9 @@ class Request
 {
     public string $method;
     public string $path;
-    /** @var array<string,string> */
+    
     public array $query;
-    /** @var array<string,mixed>|null */
+    
     private ?array $jsonBody = null;
     private bool $jsonBodyParsed = false;
 
@@ -20,15 +20,15 @@ class Request
             $this->method = 'GET';
         }
 
-        // Este método es robusto para diferentes entornos (Apache, Vercel, local).
-        // Primero, busca un parámetro 'path' que el servidor web nos pasa (vía .htaccess).
+        
+        
         if (isset($_GET['path'])) {
             $path = $_GET['path'];
-            // El parámetro 'path' es solo para el enrutamiento, lo eliminamos para
-            // que no interfiera con los parámetros reales de la consulta (ej. ?q=...).
+            
+            
             unset($_GET['path']);
         } else {
-            // Si no hay parámetro 'path', usamos el método para el servidor de desarrollo local.
+            
             if (isset($_SERVER['REQUEST_URI'])) {
                 $uri = $_SERVER['REQUEST_URI'];
             } else {
@@ -61,7 +61,7 @@ class Request
         return (int)$this->query[$key];
     }
 
-    /** @return array<string,mixed> */
+    
     public function json(): array
     {
         if (!$this->jsonBodyParsed) {

@@ -10,16 +10,7 @@ class Station
     {
     }
 
-    /**
-     * Estaciones dentro de un radio circular alrededor de (lat, lon),
-     * ordenadas por precio del carburante pedido o por distancia. SQLite no
-     * tiene extensión espacial garantizada en el runtime de Vercel, así que
-     * primero se filtra por un bounding-box en grados (usando los índices de
-     * lat/lon, barato) y luego se aplica Haversine exacto en PHP solo sobre
-     * ese subconjunto ya reducido, nunca sobre las ~11.500 filas completas.
-     *
-     * @return array<int, array<string, mixed>>
-     */
+    
     public function near(
         float $lat,
         float $lon,
@@ -50,13 +41,7 @@ class Station
         return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
     }
 
-    /**
-     * Igual que near() pero por texto libre (municipio, dirección o rótulo)
-     * en vez de radio. lat/lon son opcionales: si se pasan, cada resultado
-     * lleva distancia y sort=distance funciona; si no, solo sort=price.
-     *
-     * @return array<int, array<string, mixed>>
-     */
+    
     public function search(
         string $query,
         ?float $lat,
@@ -109,14 +94,14 @@ class Station
             ];
         }
 
-        // Un barrio/localidad (p.ej. "Algorta") no es una entidad
-        // administrativa fiable en el feed oficial: una gasolinera físicamente
-        // ahí puede figurar con otro municipio/localidad si así la etiqueta el
-        // feed (caso real: una estación en Algorta catalogada como "Leioa").
-        // Cuando la búsqueda coincide con un lugar real y hay pocas
-        // coincidencias de texto propio, se completa con las estaciones
-        // dentro de un radio alrededor del punto geocodificado, para que la
-        // frontera administrativa no esconda lo que de verdad está cerca.
+        
+        
+        
+        
+        
+        
+        
+        
         if ($nearbyMergeRadiusKm !== null && $lat !== null && $lon !== null) {
             $bbox = self::boundingBox($lat, $lon, $nearbyMergeRadiusKm);
             $nearbyRows = $this->fetchInBoundingBox($bbox, $fuel, $open24h, $staleStationDays);
@@ -135,9 +120,9 @@ class Station
                 $candidates[] = [
                     'row' => $row,
                     'distanceKm' => $distanceKm,
-                    // Menos relevante que cualquier coincidencia textual real
-                    // (relevanceScore va de 0 a 5): son vecinas por
-                    // proximidad, no porque el texto buscado las nombre.
+                    
+                    
+                    
                     'relevance' => 6,
                 ];
             }
@@ -146,24 +131,8 @@ class Station
         return $this->sortPaginateAndBuild($candidates, $sort, $fuel, $offset, $limit);
     }
 
-    /**
-     * Si la búsqueda coincide con el nombre de un municipio real (no solo
-     * con una dirección o marca de paso), el controller la re-geocodifica
-     * y ancla las distancias a ESE punto en vez de a la ubicación del
-     * usuario: "busco Amorebieta" tiene que dar distancias a Amorebieta,
-     * no a donde esté el usuario en ese momento.
-     */
-    /**
-     * Lugares (municipios y localidades/barrios) cuyo nombre empieza por
-     * $query, para las sugerencias del buscador. Los barrios (p.ej.
-     * "Algorta") no son una entidad administrativa fiable en el feed
-     * oficial -municipio dice "Getxo"-, así que se sugieren aparte con su
-     * municipio/provincia como aclaración, y solo si de verdad son un nombre
-     * distinto del municipio (si no, sería una sugerencia duplicada). Los
-     * municipios van primero, ambos grupos alfabéticos dentro de sí.
-     *
-     * @return array<int, array{label: string, sublabel: string}>
-     */
+    
+    
     public function suggestPlaces(string $query, int $limit): array
     {
         $normalized = Search::normalize($query);
@@ -204,20 +173,18 @@ class Station
         return $stmt->fetchColumn() !== false;
     }
 
-    /**
-     * A qué se debe la coincidencia de una fila con la búsqueda, para
-     * priorizar "esto ES el municipio/CP que buscas" sobre "esto lo
-     * menciona de pasada" (p.ej. una carretera llamada "Bilbao" en Miranda
-     * de Ebro no debería salir antes que las estaciones de Bilbao). Menor
-     * número = más relevante.
-     */
+    
     private function relevanceScore(array $row, string $normalizedQuery, string $rawQuery): int
     {
         if ($normalizedQuery === '') {
             return 5;
         }
         $municipio = Search::normalize($row['municipio']);
-        $localidad = Search::normalize($row['localidad'] ?? '');
+        $localidadRaw = '';
+        if (isset($row['localidad'])) {
+            $localidadRaw = $row['localidad'];
+        }
+        $localidad = Search::normalize($localidadRaw);
         if ($municipio === $normalizedQuery || $localidad === $normalizedQuery || (string)$row['cp'] === $rawQuery) {
             return 0;
         }
@@ -236,16 +203,7 @@ class Station
         return 5;
     }
 
-    /**
-     * Estaciones dentro de un rectángulo de coordenadas (la vista actual del
-     * mapa), sin el filtro circular de Haversine porque aquí el área ya es
-     * rectangular. Devuelve solo los campos necesarios para pintar
-     * marcador/cluster/capa de calor, sin límite de resultados: si el
-     * rectángulo pedido es España entera, se devuelven las ~11.500 y el
-     * clustering del lado del cliente decide cómo agruparlas visualmente.
-     *
-     * @return array<int, array<string, mixed>>
-     */
+    
     public function withinBounds(float $north, float $south, float $east, float $west, ?string $fuel, bool $open24h): array
     {
         $where = 'WHERE lat BETWEEN :south AND :north AND lon BETWEEN :west AND :east';
@@ -262,9 +220,9 @@ class Station
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        // El carburante filtra, no solo colorea: si no, un carburante raro
-        // (GNC, hidrogeno...) pinta casi todo el mapa en gris ("sin precio")
-        // en vez de aislar las pocas estaciones que de verdad lo tienen.
+        
+        
+        
         $priceMap = [];
         if ($fuel !== null) {
             $priceMap = $this->batchFuelPrices(array_column($rows, 'ideess'), $fuel);
@@ -292,7 +250,7 @@ class Station
         return $results;
     }
 
-    /** @return array<string, float> Solo las estaciones de $ideessList que tienen precio para $fuel. */
+    
     private function batchFuelPrices(array $ideessList, string $fuel): array
     {
         $result = [];
@@ -315,7 +273,7 @@ class Station
         return $result;
     }
 
-    /** Ficha completa de una estación por id, o null si no existe. */
+    
     public function find(string $ideess): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM stations WHERE ideess = ?');
@@ -353,12 +311,7 @@ class Station
         ];
     }
 
-    /**
-     * Tendencia del precio de hoy de un carburante en una estación,
-     * comparando contra la fecha más reciente anterior a hoy que tenga dato
-     * en price_history. null si no hay ninguna fecha anterior (estación o
-     * carburante recién dado de alta).
-     */
+    
     public function trendFor(string $ideess, string $carburante, float $todayPrice): ?string
     {
         $stmt = $this->pdo->prepare('
@@ -381,12 +334,7 @@ class Station
         return 'down';
     }
 
-    /**
-     * Precio medio del carburante en las estaciones activas del mismo
-     * municipio que $ideess, y el número de estaciones que entran en esa
-     * media (excluyendo la propia estación, para comparar "contra las
-     * demás", no contra sí misma incluida).
-     */
+    
     public function zoneComparison(string $ideess, string $fuel): ?array
     {
         $stmt = $this->pdo->prepare('SELECT municipio_id FROM stations WHERE ideess = ?');
@@ -422,7 +370,7 @@ class Station
         ];
     }
 
-    /** @return array{north:float, south:float, east:float, west:float} */
+    
     private static function boundingBox(float $lat, float $lon, float $radiusKm): array
     {
         $deltaLat = $radiusKm / 111.0;
@@ -439,7 +387,7 @@ class Station
         ];
     }
 
-    /** Distancia en km entre dos puntos, fórmula Haversine estándar. */
+    
     private static function haversineKm(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $earthRadiusKm = 6371.0;
@@ -468,12 +416,7 @@ class Station
         return $stmt->fetchAll();
     }
 
-    /**
-     * Excluye estaciones cuyo último snapshot confirmado es demasiado
-     * antiguo (probablemente cerradas), sin borrarlas de la tabla: su ficha
-     * sigue siendo accesible por id directo, solo desaparecen de los
-     * listados de búsqueda.
-     */
+    
     private static function staleClause(int $staleStationDays): string
     {
         return " AND last_seen_date >= date('now', '-$staleStationDays days')";
@@ -507,9 +450,9 @@ class Station
             'tendencias' => [],
         ];
 
-        // Los dos carburantes casi universales (95%+/98% de cobertura real)
-        // se muestran siempre que existan, más el carburante filtrado si es
-        // distinto de esos dos, para no repetir el mismo dato dos veces.
+        
+        
+        
         $showFuels = ['gasoleo_a', 'gasolina_95_e5'];
         if ($primaryFuel !== null && !in_array($primaryFuel, $showFuels, true)) {
             $showFuels[] = $primaryFuel;
@@ -526,10 +469,13 @@ class Station
         return $item;
     }
 
-    /** Candidatos de near()/bbox no llevan 'relevance' (todos empatan a 0, no afecta su orden). */
+    
     private function relevanceOf(array $candidate): int
     {
-        return $candidate['relevance'] ?? 0;
+        if (isset($candidate['relevance'])) {
+            return $candidate['relevance'];
+        }
+        return 0;
     }
 
     private function isOpenNow(string $horarioRaw): ?bool
@@ -537,25 +483,18 @@ class Station
         return OpeningHours::isOpenAt($horarioRaw, new \DateTime('now', new \DateTimeZone('Europe/Madrid')));
     }
 
-    /**
-     * Ordena los candidatos (fila cruda + distancia, sin precios ni
-     * tendencias todavía), pagina, y solo entonces construye el item
-     * completo (con sus dos consultas extra de precio/tendencia) para la
-     * página pedida. Así el coste de las N+1 consultas de buildListItem()
-     * es proporcional al tamaño de página, no al total de coincidencias.
-     *
-     * @param array<int, array{row: array<string, mixed>, distanceKm: ?float}> $candidates
-     */
+    
     private function sortPaginateAndBuild(array $candidates, string $sort, ?string $fuel, int $offset, int $limit): array
     {
-        // El carburante seleccionado filtra, no solo ordena: antes una
-        // estacion sin GNC (o sin gasoleo_a) seguia saliendo en la lista con
-        // precio en blanco, lo que con un carburante raro (2 estaciones de
-        // hidrogeno en todo el pais) hacia el filtro inutil.
         if ($fuel !== null) {
             $ideessList = array_map(fn($c) => $c['row']['ideess'], $candidates);
             $hasFuel = $this->batchHasFuel($ideessList, $fuel);
-            $candidates = array_values(array_filter($candidates, fn($c) => $hasFuel[$c['row']['ideess']] ?? false));
+            $candidates = array_values(array_filter($candidates, function ($c) use ($hasFuel) {
+                if (isset($hasFuel[$c['row']['ideess']])) {
+                    return $hasFuel[$c['row']['ideess']];
+                }
+                return false;
+            }));
         }
 
         if ($sort === 'distance') {
@@ -613,18 +552,8 @@ class Station
         return ['items' => $items, 'total' => $total];
     }
 
-    /**
-     * Precio de $sortFuel (con el mismo fallback a gasolina_95_e5 que usa la
-     * lista visible) para cada ideess, en una sola consulta por lote de
-     * hasta 400 estaciones en vez de una consulta por estación.
-     *
-     * @param array<int, string> $ideessList
-     * @return array<string, ?float>
-     */
-    /**
-     * @param array<int, string> $ideessList
-     * @return array<string, bool>
-     */
+    
+    
     private function batchHasFuel(array $ideessList, string $fuel): array
     {
         $result = array_fill_keys($ideessList, false);
