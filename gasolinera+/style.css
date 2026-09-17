@@ -396,12 +396,13 @@ dialog {
     padding: 20px;
     max-width: 420px;
     width: calc(100% - 40px);
+    background: var(--surface);
     color: var(--text);
     font-family: inherit;
 }
 dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 
-#station-modal h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 4px; font-size: 1.2rem; color: #392f1c; }
+#station-modal h3 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; margin: 10px 0 4px; font-size: 1.2rem; color: var(--text); }
 #modal-municipio, #modal-horario { color: var(--text-secondary); font-size: 0.85rem; margin: 2px 0; }
 
 #modal-fuels {
@@ -425,8 +426,8 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
 }
 
 #modal-top-actions { display: flex; justify-content: space-between; margin-bottom: 10px; }
-#modal-favorite-toggle[aria-pressed="true"] { color: #B3261E; border-color: #B3261E; }
-#modal-favorite-toggle[aria-pressed="true"] svg { fill: #B3261E; }
+#modal-favorite-toggle[aria-pressed="true"] { color: var(--status-up); border-color: var(--status-up); }
+#modal-favorite-toggle[aria-pressed="true"] svg { fill: var(--status-up); }
 
 #modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 #modal-actions .pill { flex: 1; text-align: center; }
@@ -616,7 +617,7 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     text-decoration: underline;
 }
 
-#legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; color: #3a2f0f; }
+#legal-panel p { font-size: 0.85rem; line-height: 1.5; margin: 0 0 12px; color: var(--text); }
 #legal-panel h3 { margin: 4px 0 14px; }
 #legal-panel strong { color: var(--text); }
 
