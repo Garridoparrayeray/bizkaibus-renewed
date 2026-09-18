@@ -1,25 +1,7 @@
 (function () {
     'use strict';
 
-    const FUEL_LABELS = {
-        gasoleo_a: 'Gasóleo A',
-        gasolina_95_e5: 'Gasolina 95',
-        gasoleo_premium: 'Gasóleo Premium',
-        gasolina_98_e5: 'Gasolina 98',
-        adblue: 'AdBlue',
-        glp: 'GLP',
-        gasoleo_b: 'Gasóleo B',
-        gasolina_95_e5_premium: 'Gasolina 95 Premium',
-        gnc: 'Gas Natural Comprimido',
-        gnl: 'Gas Natural Licuado',
-        hidrogeno: 'Hidrógeno',
-        biodiesel: 'Biodiésel',
-        bioetanol: 'Bioetanol',
-        diesel_renovable: 'Diésel Renovable',
-        gasolina_renovable: 'Gasolina Renovable',
-        biogas_natural_comprimido: 'Biogás Natural Comprimido',
-        biogas_natural_licuado: 'Biogás Natural Licuado',
-    };
+    const FUEL_LABELS = AlertsStore.FUEL_LABELS;
 
     const TREND_SYMBOL = { up: '▲', down: '▼', same: '=' };
 
@@ -238,6 +220,7 @@
             
         }
         updateFavoritesCount();
+        AlertsStore.set('favorites', state.favoritesList).catch(() => {});
     }
 
     function isFavorite(ideess) {
@@ -1584,7 +1567,95 @@
     el.statsTo.max = todayIso();
     el.statsFrom.max = todayIso();
 
+    const offlineBanner = document.getElementById('offline-banner');
+    function syncOfflineBanner() {
+        offlineBanner.hidden = navigator.onLine;
+    }
+    window.addEventListener('online', () => {
+        syncOfflineBanner();
+        showToast('Conexión recuperada');
+    });
+    window.addEventListener('offline', syncOfflineBanner);
+    syncOfflineBanner();
+
+    const alertsToggle = document.getElementById('alerts-toggle');
+    const alertsNote = document.getElementById('alerts-note');
+
+    function showAlertsNote(message) {
+        alertsNote.textContent = message;
+        alertsNote.hidden = message === '';
+    }
+
+    async function enableAlerts() {
+        if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+            return 'Este navegador no admite notificaciones.';
+        }
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            return 'Has bloqueado las notificaciones. Actívalas en los ajustes del navegador para recibir avisos.';
+        }
+        const registration = await navigator.serviceWorker.ready;
+        if (!('periodicSync' in registration)) {
+            return 'Los avisos en segundo plano solo funcionan con la app instalada desde Chrome en Android.';
+        }
+        try {
+            await registration.periodicSync.register('price-drop-check', { minInterval: 12 * 60 * 60 * 1000 });
+        } catch (e) {
+            return 'No se pudieron activar los avisos. Instala primero la app (menú del navegador, Instalar app).';
+        }
+        await AlertsStore.set('favorites', state.favoritesList);
+        await AlertsStore.set('enabled', true);
+        await AlertsStore.checkPrices();
+        return '';
+    }
+
+    async function disableAlerts() {
+        await AlertsStore.set('enabled', false);
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            if ('periodicSync' in registration) await registration.periodicSync.unregister('price-drop-check');
+        } catch (e) {
+            return;
+        }
+    }
+
+    alertsToggle.addEventListener('change', async () => {
+        showAlertsNote('');
+        if (!alertsToggle.checked) {
+            await disableAlerts();
+            return;
+        }
+        const problem = await enableAlerts();
+        if (problem !== '') {
+            alertsToggle.checked = false;
+            showAlertsNote(problem);
+        } else {
+            showAlertsNote('Te avisaremos una vez al día, como mucho, si baja el precio de tus favoritas.');
+        }
+    });
+
+    AlertsStore.set('favorites', state.favoritesList).catch(() => {});
+    AlertsStore.get('enabled').then((enabled) => {
+        alertsToggle.checked = enabled === true && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+        if (alertsToggle.checked) AlertsStore.checkPrices().catch(() => {});
+    }).catch(() => {});
+
+    function handleDeepLink() {
+        const params = new URLSearchParams(location.search);
+        const stationId = params.get('station');
+        if (stationId) openStationModal(stationId);
+        const view = params.get('view');
+        if (view === 'map' || view === 'stats') switchView(view);
+        if (params.get('panel') === 'favorites') openFavoritesPanel();
+        const query = (params.get('q') || '').trim();
+        if (query.length >= 2) {
+            el.searchInput.value = query;
+            performSearch(query);
+        }
+    }
+
     initGeolocationFlow();
+    handleDeepLink();
     updateCompareCount();
     updateFavoritesCount();
     loadNationalHeadline();

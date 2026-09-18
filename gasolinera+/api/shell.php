@@ -59,6 +59,8 @@
             </span>
         </header>
 
+        <p id="offline-banner" role="status" hidden>Sin conexión: los precios no se pueden actualizar hasta que vuelvas a tener internet.</p>
+
         <dialog id="geo-ask">
             <span id="geo-ask-logomark" aria-hidden="true">
                 <svg class="logo-gasolinera" viewBox="0 0 512 512">
@@ -303,6 +305,8 @@
         <h3>Gasolineras favoritas</h3>
         <p id="favorites-empty">Añade gasolineras desde su ficha para tenerlas siempre a mano aquí.</p>
         <ul id="favorites-list"></ul>
+        <label id="alerts-toggle-wrap"><input type="checkbox" id="alerts-toggle"> Avisarme cuando bajen de precio</label>
+        <p id="alerts-note" hidden></p>
     </dialog>
 
     <dialog id="compare-panel">
@@ -320,6 +324,7 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="/js/alerts-store.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/app.js"></script>
     <script>
