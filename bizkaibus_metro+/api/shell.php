@@ -3,21 +3,64 @@
 $bIsMetroShare     = isset($_GET['red']) && $_GET['red'] === 'metro';
 $bIsEuskoTrenShare = isset($_GET['red']) && $_GET['red'] === 'euskotren';
 
+$networkSlug = 'bus';
 if ($bIsMetroShare) {
     $sOgTitle       = 'Metro+';
     $sOgDescription = 'Horarios de Metro Bilbao, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-metro/icon-512.png';
     $sFaviconFolder = 'icons-metro';
+    $networkSlug    = 'metro';
 } elseif ($bIsEuskoTrenShare) {
     $sOgTitle       = 'Euskotren+';
     $sOgDescription = 'Horarios de Euskotren, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-euskotren/icon-512.png';
     $sFaviconFolder = 'icons-euskotren';
+    $networkSlug    = 'euskotren';
 } else {
     $sOgTitle       = 'BizkaiBus+';
     $sOgDescription = 'Horarios y tiempo real de Bizkaibus, sin vueltas.';
     $sOgImage       = 'https://bizkaibus-renewed.vercel.app/icons-pro/icon-512.png';
     $sFaviconFolder = 'icons-pro';
+}
+
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = parse_url($requestUri, PHP_URL_PATH);
+$ogUrl = 'https://bizkaibus-renewed.vercel.app' . $path;
+
+try {
+    if (preg_match('#^/stops/([^/]+)/?$#', $path, $matches)) {
+        $stopId = $matches[1];
+        require_once __DIR__ . '/Core/Config.php';
+        require_once __DIR__ . '/Core/Database.php';
+        \Core\Config::set($networkSlug);
+        $pdo = \Core\Database::connection();
+        $stmt = $pdo->prepare('SELECT name, stop_desc FROM stops WHERE id = ?');
+        $stmt->execute([urldecode($stopId)]);
+        $stop = $stmt->fetch();
+        if ($stop) {
+            $sOgTitle = $stop['name'] . ' - Próximas salidas';
+            $desc = 'Consulta los horarios y tiempos de espera en ' . $stop['name'] . '.';
+            if (!empty($stop['stop_desc'])) {
+                $desc .= ' (' . $stop['stop_desc'] . ')';
+            }
+            $sOgDescription = $desc;
+        }
+    } elseif (preg_match('#^/lines/([^/]+)/?$#', $path, $matches)) {
+        $lineId = $matches[1];
+        require_once __DIR__ . '/Core/Config.php';
+        require_once __DIR__ . '/Core/Database.php';
+        \Core\Config::set($networkSlug);
+        $pdo = \Core\Database::connection();
+        $stmt = $pdo->prepare('SELECT code, name FROM lines WHERE id = ?');
+        $stmt->execute([urldecode($lineId)]);
+        $line = $stmt->fetch();
+        if ($line) {
+            $sOgTitle = 'Línea ' . $line['code'] . ' - ' . $line['name'];
+            $sOgDescription = 'Horarios y recorrido de la línea ' . $line['code'] . ' (' . $line['name'] . ').';
+        }
+    }
+} catch (\Throwable $t) {
+    // Fallback a genérico
 }
 ?>
 <!DOCTYPE html>
