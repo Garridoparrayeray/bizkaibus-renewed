@@ -1324,6 +1324,13 @@
         loadHistoryChart(ideess, defaultFuel);
 
         el.stationModal.showModal();
+        
+        // Deep linking: Push state if opening from list/map
+        if (!window.location.pathname.startsWith('/stations/' + ideess)) {
+            history.pushState({ modal: ideess }, '', '/stations/' + ideess);
+        } else if (!history.state || !history.state.modal) {
+            history.replaceState({ modal: ideess }, '', window.location.href);
+        }
     }
 
     async function loadZoneComparison(ideess, fuel) {
@@ -1562,9 +1569,37 @@
         state.statsSearchTimer = setTimeout(() => searchStatsStation(query), 300);
     });
 
-    el.modalClose.addEventListener('click', () => el.stationModal.close());
+    el.modalClose.addEventListener('click', () => {
+        if (history.state && history.state.modal) {
+            history.back();
+        } else {
+            el.stationModal.close();
+        }
+    });
+    
+    // Configuración del botón compartir
+    const btnShare = document.getElementById('modal-share');
+    if (btnShare) {
+        if (navigator.share) {
+            btnShare.hidden = false;
+            btnShare.addEventListener('click', () => {
+                navigator.share({
+                    title: el.modalRotulo.textContent,
+                    text: `Mira los precios en ${el.modalRotulo.textContent}`,
+                    url: window.location.href
+                }).catch(err => console.log('Error sharing:', err));
+            });
+        }
+    }
+
     el.stationModal.addEventListener('click', (e) => {
-        if (e.target === el.stationModal) el.stationModal.close();
+        if (e.target === el.stationModal) {
+            if (history.state && history.state.modal) {
+                history.back();
+            } else {
+                el.stationModal.close();
+            }
+        }
     });
 
     el.compareOpen.addEventListener('click', openComparePanel);
@@ -1584,8 +1619,30 @@
     el.statsTo.max = todayIso();
     el.statsFrom.max = todayIso();
 
+    window.addEventListener('popstate', (e) => {
+        if (el.stationModal.open && (!e.state || !e.state.modal)) {
+            el.stationModal.close();
+        } else if (e.state && e.state.modal) {
+            openStationModal(e.state.modal);
+        }
+    });
+
+    el.stationModal.addEventListener('close', () => {
+        if (window.location.pathname.startsWith('/stations/')) {
+            history.replaceState(null, '', '/');
+        }
+    });
+
+
+
     initGeolocationFlow();
     updateCompareCount();
     updateFavoritesCount();
     loadNationalHeadline();
+
+    // Check for deep link on load
+    const pathMatch = window.location.pathname.match(/^\/stations\/([^/]+)/);
+    if (pathMatch) {
+        openStationModal(pathMatch[1]);
+    }
 })();
