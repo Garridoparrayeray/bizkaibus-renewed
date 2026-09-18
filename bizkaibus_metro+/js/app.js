@@ -159,6 +159,7 @@
         el.platformPanel.hidden = true;
         el.liveEmpty.hidden = false;
         stopDeparturesRefresh();
+        if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/');
     }
 
     function closeTimetableSection() {
@@ -166,6 +167,7 @@
         el.timetableSection.hidden = true;
         stopLineMapRefresh();
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/');
     }
 
     async function performSearch(query) {
@@ -233,6 +235,12 @@
             updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
             el.liveCard.hidden = false;
         }
+        if (!window.location.pathname.startsWith('/stops/' + stopId)) {
+            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId);
+        } else if (!history.state || !history.state.view) {
+            history.replaceState({ view: 'stop', id: stopId }, '', window.location.href);
+        }
+
         await loadDepartures();
         startDeparturesRefresh();
     }
@@ -442,6 +450,13 @@
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        if (!window.location.pathname.startsWith('/lines/' + lineId)) {
+            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId);
+        } else if (!history.state || !history.state.view) {
+            history.replaceState({ view: 'line', id: lineId }, '', window.location.href);
+        }
+
         await loadTimetable();
         if (!IS_METRO && !IS_EUSKOTREN) {
             await loadLineMap(line.id);
@@ -1027,4 +1042,24 @@
     }
 
     loadFavorites();
+
+    window.addEventListener('popstate', (e) => {
+        if (!e.state || !e.state.view) {
+            closeLiveCard();
+            closeTimetableSection();
+        } else if (e.state.view === 'stop') {
+            selectStop(e.state.id);
+        } else if (e.state.view === 'line') {
+            selectLine(e.state.id);
+        }
+    });
+
+    const pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
+    if (pathMatch) {
+        if (pathMatch[1] === 'stops') {
+            selectStop(pathMatch[2]);
+        } else if (pathMatch[1] === 'lines') {
+            selectLine(pathMatch[2]);
+        }
+    }
 })();
