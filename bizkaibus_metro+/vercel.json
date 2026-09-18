@@ -6,6 +6,8 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.php" },
+    { "source": "/lines/(.*)", "destination": "/api/shell.php" },
+    { "source": "/stops/(.*)", "destination": "/api/shell.php" },
     { "source": "/", "destination": "/api/shell.php" }
   ]
 }
