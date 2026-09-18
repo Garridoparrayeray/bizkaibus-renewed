@@ -48,7 +48,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gasolinera+">
@@ -61,7 +61,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
     <meta property="og:type" content="website">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#8A5A00">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-maskable-192.png">
     <link rel="icon" href="/icons/icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
