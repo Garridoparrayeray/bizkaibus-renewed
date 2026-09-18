@@ -636,6 +636,16 @@ dialog::backdrop { background: rgba(34, 29, 18, 0.5); }
     background: var(--primary);
     flex-shrink: 0;
 }
+#view-list, #view-map, #view-stats { margin-bottom: 24px; }
+
+@media (max-width: 680px) {
+    #dev-footer {
+        margin-left: calc(-1 * var(--page-pad));
+        margin-right: calc(-1 * var(--page-pad));
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        border-radius: 0;
+    }
+}
 #dev-footer p { margin: 0 0 8px; font-size: 0.78rem; color: rgba(255, 255, 255, 0.8); }
 #dev-footer p:last-child { margin-bottom: 0; }
 #dev-footer a {
