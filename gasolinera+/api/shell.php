@@ -1,3 +1,49 @@
+<?php
+$ogTitle = 'Gasolinera+';
+$ogDescription = 'Precios de gasolina y diésel cerca de ti, actualizados a diario.';
+$ogUrl = 'https://bideplus.vercel.app/';
+
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = parse_url($requestUri, PHP_URL_PATH);
+
+if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
+    $ideess = $matches[1];
+    
+    // Conectar a la base de datos de manera ligera solo para SEO
+    require_once __DIR__ . '/Core/Config.php';
+    require_once __DIR__ . '/Core/Database.php';
+    
+    try {
+        $pdo = \Core\Database::connection();
+        $stmt = $pdo->prepare('SELECT rotulo, direccion, municipio FROM stations WHERE ideess = ?');
+        $stmt->execute([$ideess]);
+        $station = $stmt->fetch();
+        
+        if ($station) {
+            $ogTitle = $station['rotulo'] . ' en ' . $station['municipio'];
+            
+            $priceStmt = $pdo->prepare("SELECT carburante, precio FROM current_prices WHERE ideess = ? AND carburante IN ('gasoleo_a', 'gasolina_95_e5')");
+            $priceStmt->execute([$ideess]);
+            $prices = $priceStmt->fetchAll();
+            
+            $priceText = [];
+            foreach ($prices as $p) {
+                $name = $p['carburante'] === 'gasoleo_a' ? 'Gasóleo A' : 'Gasolina 95';
+                $priceText[] = $name . ' a ' . number_format((float)$p['precio'], 3, ',', '.') . '€';
+            }
+            
+            $desc = $station['direccion'];
+            if (!empty($priceText)) {
+                $desc .= '. ' . implode(', ', $priceText);
+            }
+            $ogDescription = $desc . '. Comprueba el precio actual en Gasolinera+.';
+            $ogUrl = 'https://bideplus.vercel.app/stations/' . urlencode($ideess);
+        }
+    } catch (\Throwable $t) {
+        // En caso de error, el frontend se recuperará normalmente. Fallback a genérico.
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,10 +52,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gasolinera+">
-    <title>Gasolinera+</title>
-    <meta name="description" content="Precios de gasolina y diésel cerca de ti, actualizados a diario.">
-    <meta property="og:title" content="Gasolinera+">
-    <meta property="og:description" content="Precios de gasolina y diésel cerca de ti, actualizados a diario.">
+    <title><?= htmlspecialchars($ogTitle) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($ogDescription) ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($ogTitle) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($ogDescription) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($ogUrl) ?>">
     <meta property="og:image" content="https://bideplus.vercel.app/icons/icon-512.png">
     <meta property="og:type" content="website">
     <link rel="manifest" href="/manifest.json">
@@ -278,6 +325,9 @@
         <div id="modal-top-actions">
             <button id="modal-close" class="btn-icon" type="button" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+            </button>
+            <button id="modal-share" class="btn-icon" type="button" aria-label="Compartir" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             </button>
             <button id="modal-favorite-toggle" class="btn-icon" type="button" aria-label="Añadir a favoritas" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20.5C12 20.5 3.5 15.4 3.5 9.5C3.5 6.5 5.8 4.5 8.5 4.5C10.1 4.5 11.3 5.3 12 6.5C12.7 5.3 13.9 4.5 15.5 4.5C18.2 4.5 20.5 6.5 20.5 9.5C20.5 15.4 12 20.5 12 20.5Z"/></svg>
