@@ -1,17 +1,58 @@
 {
+    "id": "/",
     "name": "Gasolinera+",
     "short_name": "Gasolinera+",
     "description": "Precios de gasolina y diésel cerca de ti, actualizados a diario",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
     "orientation": "portrait",
+    "dir": "ltr",
     "background_color": "#f7f5f0",
-    "theme_color": "#B8860B",
+    "theme_color": "#8A5A00",
     "lang": "es",
+    "categories": ["travel", "utilities", "finance"],
+    "prefer_related_applications": false,
+    "related_applications": [],
+    "launch_handler": { "client_mode": "navigate-existing" },
+    "share_target": {
+        "action": "/",
+        "method": "GET",
+        "params": { "text": "q" }
+    },
+    "shortcuts": [
+        {
+            "name": "Mapa de precios",
+            "short_name": "Mapa",
+            "description": "Abrir el mapa de gasolineras",
+            "url": "/?view=map",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Estadísticas",
+            "short_name": "Estadísticas",
+            "description": "Evolución de precios de carburantes",
+            "url": "/?view=stats",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Gasolineras favoritas",
+            "short_name": "Favoritas",
+            "description": "Ver mis gasolineras guardadas",
+            "url": "/?panel=favorites",
+            "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        }
+    ],
     "icons": [
-        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "screenshots": [
+        { "src": "/screenshots/lista-movil.png", "sizes": "540x960", "type": "image/png", "form_factor": "narrow", "label": "Gasolineras cercanas ordenadas por precio" },
+        { "src": "/screenshots/mapa-movil.png", "sizes": "540x960", "type": "image/png", "form_factor": "narrow", "label": "Mapa con precios por zona" },
+        { "src": "/screenshots/lista-escritorio.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "Vista de escritorio" }
     ]
 }

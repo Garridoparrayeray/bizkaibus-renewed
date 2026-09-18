@@ -1,6 +1,13 @@
 const Api = (() => {
     async function request(path) {
-        const response = await fetch(`/api${path}`, { credentials: 'same-origin' });
+        let response;
+        try {
+            response = await fetch(`/api${path}`, { credentials: 'same-origin' });
+        } catch (e) {
+            const error = new Error('Sin conexión a internet');
+            error.status = 0;
+            throw error;
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const error = new Error(data.error || `Error ${response.status}`);

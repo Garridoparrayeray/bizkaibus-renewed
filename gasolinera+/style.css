@@ -58,6 +58,28 @@ header {
     padding: 14px 16px;
 }
 
+#offline-banner {
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    background: var(--status-up);
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+#alerts-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+#alerts-note { margin: 8px 0 0; font-size: 0.78rem; color: var(--text-secondary); }
+
 .home-link-wrap { display: flex; align-items: center; gap: 10px; }
 #app-logomark svg { width: 46px; height: 46px; border-radius: 11px; flex-shrink: 0; }
 #app-logomark { display: flex; }
