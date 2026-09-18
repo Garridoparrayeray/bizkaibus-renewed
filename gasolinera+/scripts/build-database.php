@@ -506,6 +506,15 @@ function applySnapshot(\PDO $pdo, array $estaciones, string $fechaIso, bool $upd
 
     $pdo->commit();
     echo "  $count estaciones procesadas para $fechaIso\n";
+
+    // Mantenemos el tamaño de la base de datos bajo control para no superar
+    // el límite de 100MB de GitHub ni el de Vercel. 10 días de histórico
+    // son suficientes para las gráficas de tendencias en la UI.
+    if ($updateCurrentAndStations) {
+        echo "Limpiando histórico antiguo (manteniendo 10 días)...\n";
+        $pdo->exec("DELETE FROM price_history WHERE fecha <= date('now', '-10 days', 'localtime')");
+        $pdo->exec("VACUUM");
+    }
 }
 
 
