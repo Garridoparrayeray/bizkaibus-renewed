@@ -18,7 +18,7 @@ class SiriVehicleMonitoringClient
     {
         $aCfg = $this->aConfig['siri'];
         $aUrls = array_filter([$aCfg['vehicle_monitoring_url'], $aCfg['vehicle_monitoring_fallback_url'] ?? null]);
-        return Cache::remember('siri_vm', $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
+        return Cache::remember('siri_vm_' . ($this->aConfig['network'] ?? 'bus'), $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
             return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
         });
     }
