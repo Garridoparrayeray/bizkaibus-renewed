@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 const LIVE_API = /\/(departures|live|vehicles|alerts)(\/|\?|$)/;
@@ -6,6 +6,17 @@ const SHELL_FILES = [
     '/',
     '/style.css',
     '/style-app.css',
+    '/fonts/fonts.css',
+    '/fonts/inter-latin.woff2',
+    '/fonts/bricolage-grotesque-latin.woff2',
+    '/fonts/hanken-grotesk-latin.woff2',
+    '/lib/leaflet/leaflet.css',
+    '/lib/leaflet/leaflet.js',
+    '/lib/leaflet/images/layers.png',
+    '/lib/leaflet/images/layers-2x.png',
+    '/lib/leaflet/images/marker-icon.png',
+    '/lib/leaflet/images/marker-icon-2x.png',
+    '/lib/leaflet/images/marker-shadow.png',
     '/js/api.js',
     '/js/app.js',
     '/js/menu.js',

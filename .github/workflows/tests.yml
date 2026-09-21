@@ -60,6 +60,11 @@ jobs:
           CHROME_PATH: google-chrome
         run: node tests/ui-battery.mjs
 
+      - name: UI offline (recursos propios y servicio sin conexion)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-offline.mjs
+
       - name: Server log (on failure)
         if: failure()
         run: cat "$RUNNER_TEMP/php-server.log" || true
