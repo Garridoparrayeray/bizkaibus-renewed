@@ -427,6 +427,8 @@ $jsonLd = [
                 <input id="filter-hour-to" type="time" aria-label="Hora hasta">
             </div>
 
+            <p id="timetable-note" class="timetable-note" role="status" hidden></p>
+
             <div class="table-scroll">
                 <table>
                     <thead>
