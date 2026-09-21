@@ -43,12 +43,9 @@ class SearchController
 
     private function addDirectionHints(Stop $StopModel, array $aStops): array
     {
+        $aHeadsigns = $StopModel->headsignsForMany(array_column($aStops, 'id'));
         foreach ($aStops as &$aStop) {
-            $aStop['hint'] = null;
-            $aHeadsigns = $StopModel->headsignsFor((int)$aStop['id']);
-            if (!empty($aHeadsigns)) {
-                $aStop['hint'] = 'hacia ' . implode(', ', $aHeadsigns);
-            }
+            $aStop['hint'] = isset($aHeadsigns[$aStop['id']]) ? 'hacia ' . implode(', ', $aHeadsigns[$aStop['id']]) : null;
         }
         return $aStops;
     }

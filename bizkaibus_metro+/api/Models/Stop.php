@@ -2,6 +2,7 @@
 
 namespace Models;
 
+use Core\Config;
 use Core\Ids;
 
 class Stop
@@ -46,14 +47,6 @@ class Stop
         return $aRows;
     }
 
-    /**
-     * Andenes reales de una estación (Euskotren, formato NeTEx: ver
-     * loadStopsEuskotren en build-database.php). Vacío para bus/metro, cuyo
-     * GTFS no tiene ese nivel de detalle — sus paradas nunca aparecen como
-     * station_id de otra fila.
-     *
-     * @return array<int,array{id:string,label:string}>
-     */
     public function platformsFor(string $sStationId): array
     {
         $Stmt = $this->Pdo->prepare('SELECT id, platform_label FROM stops WHERE station_id = ? ORDER BY id');
@@ -77,22 +70,49 @@ class Stop
         return $Stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
-    public function linesServing(int|string $iStopId): array
+    public function headsignsForMany(array $aStopIds, int $iLimitPerStop = 2): array
     {
+        if (empty($aStopIds)) {
+            return [];
+        }
+        $sPlaceholders = implode(',', array_fill(0, count($aStopIds), '?'));
         $Stmt = $this->Pdo->prepare('
-            SELECT DISTINCT l.id, l.code, l.name
+            SELECT DISTINCT jps.stop_id, jp.headsign
             FROM journey_pattern_stops jps
             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
-            JOIN lines l ON l.id = jp.line_id
-            WHERE jps.stop_id = ?
-            ORDER BY l.code
+            WHERE jps.stop_id IN (' . $sPlaceholders . ') AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
         ');
-        $Stmt->execute([$iStopId]);
+        $Stmt->execute(array_values($aStopIds));
+        $aByStop = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aByStop[$aRow['stop_id']][] = $aRow['headsign'];
+        }
+        return array_map(fn($aHeadsigns) => array_slice($aHeadsigns, 0, $iLimitPerStop), $aByStop);
+    }
+
+    public function linesServing(int|string $iStopId): array
+    {
+        $Stmt = $this->safeQuery(
+            'SELECT DISTINCT l.id, l.code, l.name
+             FROM journey_pattern_stops jps
+             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+             JOIN lines l ON l.id = jp.line_id
+             WHERE jps.stop_id = ? OR jps.stop_id IN (SELECT id FROM stops WHERE station_id = ?)
+             ORDER BY l.code',
+            'SELECT DISTINCT l.id, l.code, l.name
+             FROM journey_pattern_stops jps
+             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+             JOIN lines l ON l.id = jp.line_id
+             WHERE jps.stop_id = ?
+             ORDER BY l.code',
+            [$iStopId, $iStopId],
+            [$iStopId]
+        );
         $aRows = $Stmt->fetchAll();
         foreach ($aRows as &$aRow) {
             $aRow['id'] = Ids::forOutput($aRow['id']);
         }
-        return $aRows;
+        return Config::withoutHiddenLines($aRows);
     }
 
     private function safeQuery(string $sSql, string $sFallbackSql, array $aArgs, array|null $aFallbackArgs = null): \PDOStatement

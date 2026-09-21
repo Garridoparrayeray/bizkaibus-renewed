@@ -1,9 +1,9 @@
 {
-    "id": "/?homescreen=1",
+    "id": "/?homescreen=BizkaiBus",
     "name": "BizkaiBus+",
     "short_name": "BizkaiBus+",
     "description": "Horarios y tiempo real de Bizkaibus",
-    "start_url": "/",
+    "start_url": "/?red=bus",
     "scope": "/",
     "display": "standalone",
     "display_override": ["standalone", "minimal-ui"],

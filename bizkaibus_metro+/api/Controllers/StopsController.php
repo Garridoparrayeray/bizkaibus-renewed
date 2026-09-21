@@ -15,7 +15,6 @@ use Services\SiriVehicleMonitoringClient;
 
 class StopsController
 {
-
     public function show(Request $Req, array $aParams): void
     {
         $Pdo = Database::connection();
@@ -62,9 +61,6 @@ class StopsController
         }
         $bIsMetro = $sNetwork === 'metro';
 
-        // Euskotren tiene dato real de andén (ver Stop::platformsFor): una
-        // caja por andén real con sus propios trenes, en vez de la dirección
-        // genérica "hacia / desde" que usa Metro+ (su GTFS no distingue andén).
         $aPlatforms = $StopModel->platformsFor($sStopId);
 
         if (!empty($aPlatforms)) {
@@ -87,24 +83,36 @@ class StopsController
             return;
         }
 
-        $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600, $iReferenceStopId);
+        $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600);
+
+        $aDirectionLabels = null;
+        if ($iReferenceStopId !== null) {
+            $aDirections = $JourneyModel->directionsByPattern($sStopId, $iReferenceStopId);
+            foreach ($aRows as &$aRow) {
+                $aRow['direction'] = $aDirections[$aRow['journey_pattern_id']]['direction'] ?? 'toward_reference';
+            }
+            unset($aRow);
+            $aTermini = ['toward_reference' => [], 'away_from_reference' => []];
+            foreach ($aDirections as $aInfo) {
+                if ($aInfo['terminus'] !== $aStop['name'] && !in_array($aInfo['terminus'], $aTermini[$aInfo['direction']], true)) {
+                    $aTermini[$aInfo['direction']][] = $aInfo['terminus'];
+                }
+            }
+            $aDirectionLabels = array_map(fn($aNames) => implode(' · ', $aNames), $aTermini);
+        }
+
         $aEnriched = $Matcher->enrich($aRows);
-        $aDepartures = $this->buildDepartureItems($aEnriched, $bIsMetro);
-        $aDepartures = array_slice($aDepartures, 0, $iLimit);
+        $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bIsMetro), 0, $iLimit);
 
         Response::json([
             'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
             'platforms' => [],
+            'directionLabels' => $aDirectionLabels,
             'departures' => $aDepartures,
             'attribution' => $aConfig['attribution'],
         ]);
     }
 
-    /**
-     * @param array<int,array{id:string,label:string}>|null $aPlatform etiqueta a añadir a cada
-     *        salida cuando se está construyendo la lista de UN andén concreto (ver departures()).
-     * @return array<int,array<string,mixed>>
-     */
     private function buildDepartureItems(array $aEnriched, bool $bIsMetro, array|null $aPlatform = null): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
