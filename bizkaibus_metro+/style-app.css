@@ -530,6 +530,7 @@ tbody tr { cursor: pointer; }
     tbody tr:hover td { background: var(--primary-tint); }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr.is-past td { opacity: .5; }
+.timetable-note { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--warn-tint); color: var(--status-warn); font-size: .82rem; font-weight: 600; line-height: 1.4; }
 #timetable-empty { color: var(--text-secondary); font-weight: 500; text-align: center; }
 #schedule-text-toggle { display: block; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-weight: 600; cursor: pointer; }
     #schedule-text-toggle:hover { background: var(--primary-tint); }
