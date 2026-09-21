@@ -301,6 +301,25 @@ header p {
     cursor: pointer;
 }
     #search-form > button svg { width: 20px; height: 20px; stroke-width: 2.25; }
+.nearby-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin: -4px 0 16px;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--primary);
+    font-size: .92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+    .nearby-btn svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2.25; }
+    .nearby-btn:hover { background: var(--primary-tint); border-color: var(--primary-light); }
 #search-results {
     position: absolute;
     top: calc(100% + 8px);
@@ -319,6 +338,7 @@ header p {
     overscroll-behavior: contain;
 }
     #search-results li + li { margin-top: 4px; }
+    #search-results .search-message { padding: 12px; color: var(--text-secondary); font-size: .9rem; line-height: 1.4; }
     #search-results .pill { width: 100%; border: none; }
 
 /* ===== Favoritos ===== */

@@ -30,6 +30,65 @@ class StopsController
         Response::json($aStop);
     }
 
+    public function nearby(Request $Req): void
+    {
+        $sLat = $Req->query('lat');
+        $sLon = $Req->query('lon');
+        if (!is_numeric($sLat) || !is_numeric($sLon)) {
+            Response::error('lat and lon must be numbers', 422);
+            return;
+        }
+        $dLat = (float)$sLat;
+        $dLon = (float)$sLon;
+        if ($dLat < 42.3 || $dLat > 43.7 || $dLon < -3.7 || $dLon > -1.0) {
+            Response::error('Location outside the covered area', 422);
+            return;
+        }
+        $iLimit = max(1, min(10, $Req->queryInt('limit', 5)));
+
+        $Pdo = Database::connection();
+        $StopModel = new Stop($Pdo);
+        $JourneyModel = new ServiceJourney($Pdo);
+        $bIsMetro = (Config::current()['network'] ?? 'bus') === 'metro';
+
+        $aStops = $StopModel->nearest($dLat, $dLon, $iLimit);
+        foreach ($aStops as &$aStop) {
+            $aStop['next'] = $this->nextScheduledDeparture($StopModel, $JourneyModel, $aStop['id'], $bIsMetro);
+        }
+        unset($aStop);
+
+        Response::json(['stops' => $aStops]);
+    }
+
+    private function nextScheduledDeparture(Stop $StopModel, ServiceJourney $JourneyModel, string|int $StopId, bool $bIsMetro): array|null
+    {
+        $aPlatforms = $StopModel->platformsFor((string)$StopId);
+        $aStopIds = empty($aPlatforms) ? [$StopId] : array_column($aPlatforms, 'id');
+        $iNow = Calendar::nowSecondsSinceMidnight();
+
+        $aBest = null;
+        foreach ($aStopIds as $Id) {
+            foreach ($JourneyModel->upcomingAtStop($Id, 3, 4 * 3600) as $aRow) {
+                if ((int)$aRow['departure_seconds'] < $iNow) {
+                    continue;
+                }
+                if ($aBest === null || (int)$aRow['departure_seconds'] < (int)$aBest['departure_seconds']) {
+                    $aBest = $aRow;
+                }
+                break;
+            }
+        }
+        if ($aBest === null) {
+            return null;
+        }
+        return [
+            'lineCode' => $aBest['line_code'],
+            'headsign' => $bIsMetro && !empty($aBest['last_stop_name']) ? $aBest['last_stop_name'] : $aBest['headsign'],
+            'etaMinutes' => (int)round(((int)$aBest['departure_seconds'] - $iNow) / 60),
+            'scheduledTime' => Calendar::secondsToHm((int)$aBest['departure_seconds']),
+        ];
+    }
+
     public function departures(Request $Req, array $aParams): void
     {
         $Pdo = Database::connection();

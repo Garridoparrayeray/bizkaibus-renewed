@@ -70,6 +70,38 @@ class Stop
         return $Stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
+    public function nearest(float $dLat, float $dLon, int $iLimit = 5, int $iRadiusMeters = 2000): array
+    {
+        $dLatDelta = $iRadiusMeters / 111320;
+        $dLonDelta = $iRadiusMeters / (111320 * max(cos(deg2rad($dLat)), 0.01));
+        $Stmt = $this->Pdo->prepare('
+            SELECT id, name, area, lat, lon FROM stops
+            WHERE station_id IS NULL AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?
+        ');
+        $Stmt->execute([$dLat - $dLatDelta, $dLat + $dLatDelta, $dLon - $dLonDelta, $dLon + $dLonDelta]);
+
+        $aNearby = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $iDistance = (int)round(self::distanceMeters($dLat, $dLon, (float)$aRow['lat'], (float)$aRow['lon']));
+            if ($iDistance > $iRadiusMeters) {
+                continue;
+            }
+            $aRow['id'] = Ids::forOutput($aRow['id']);
+            $aRow['distanceM'] = $iDistance;
+            $aNearby[] = $aRow;
+        }
+        usort($aNearby, fn($aA, $aB) => $aA['distanceM'] <=> $aB['distanceM']);
+        return array_slice($aNearby, 0, $iLimit);
+    }
+
+    private static function distanceMeters(float $dLat1, float $dLon1, float $dLat2, float $dLon2): float
+    {
+        $dPhi1 = deg2rad($dLat1);
+        $dPhi2 = deg2rad($dLat2);
+        $dA = sin(($dPhi2 - $dPhi1) / 2) ** 2 + cos($dPhi1) * cos($dPhi2) * sin(deg2rad($dLon2 - $dLon1) / 2) ** 2;
+        return 2 * 6371000 * asin(min(1, sqrt($dA)));
+    }
+
     public function headsignsForMany(array $aStopIds, int $iLimitPerStop = 2): array
     {
         if (empty($aStopIds)) {

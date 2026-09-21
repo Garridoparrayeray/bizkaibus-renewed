@@ -81,6 +81,32 @@ for name, cfg in NETS.items():
     get(with_net('/api/nope', s), expect=404)
     print(name, 'ok')
 
+NEARBY = {
+    'bus': (43.26347, -2.93506, 'MOYUA'),
+    'metro': (43.32595, -3.00961, 'Areeta'),
+    'euskotren': (43.313179, -1.981685, 'Amara'),
+}
+for name, (lat, lon, fragment) in NEARBY.items():
+    s = NETS[name]['suffix']
+    res = get(with_net(f'/api/nearby?lat={lat}&lon={lon}&limit=5', s)) or {}
+    stops = res.get('stops', [])
+    if not stops:
+        fails.append(f'{name}: nearby no devuelve paradas')
+        continue
+    if fragment.lower() not in stops[0]['name'].lower():
+        fails.append(f"{name}: la parada mas cercana deberia contener {fragment}, es {stops[0]['name']}")
+    distances = [x['distanceM'] for x in stops]
+    if distances != sorted(distances):
+        fails.append(f'{name}: nearby no esta ordenado por distancia {distances}')
+    for x in stops:
+        nxt = x.get('next')
+        if nxt is not None and (nxt['etaMinutes'] < 0 or not nxt['lineCode'] or not nxt['scheduledTime']):
+            fails.append(f'{name}: proxima salida invalida {nxt}')
+    print(name, 'nearby ok', distances)
+get('/api/nearby', expect=422)
+get('/api/nearby?lat=abc&lon=1', expect=422)
+get('/api/nearby?lat=40.4&lon=-3.7', expect=422)
+
 found = (get('/api/search?q=A3513') or {}).get('lines', [])
 if found:
     get(f"/api/lines/{found[0]['id']}/schedule-text")

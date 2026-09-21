@@ -1,7 +1,7 @@
 const CACHE_VERSION = 'v6';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
-const LIVE_API = /\/(departures|live|vehicles|alerts)(\/|\?|$)/;
+const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
     '/style.css',
