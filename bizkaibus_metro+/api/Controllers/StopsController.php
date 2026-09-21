@@ -7,6 +7,7 @@ use Core\Database;
 use Core\Ids;
 use Core\Request;
 use Core\Response;
+use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
@@ -153,14 +154,12 @@ class StopsController
 
     public function tripStops(Request $Req, array $aParams): void
     {
-        $aTripKeyParts = array_pad(explode('-', $aParams['tripKey'], 3), 3, null);
-        [$sLineIdRaw, $sTripNumber, $sFirstDepartureSecondsRaw] = $aTripKeyParts;
-        if ($sLineIdRaw === null || $sTripNumber === null || $sFirstDepartureSecondsRaw === null) {
+        $aTripKey = TripKey::parse($aParams['tripKey']);
+        if ($aTripKey === null) {
             Response::error('Invalid trip key', 422);
             return;
         }
-        $sLineId = $sLineIdRaw;
-        $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
+        [$sLineId, $sTripNumber, $iFirstDepartureSeconds] = $aTripKey;
         $sTargetStopId = $Req->query('stopId');
 
         $Pdo = Database::connection();
