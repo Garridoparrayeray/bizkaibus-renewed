@@ -28,43 +28,36 @@ use Controllers\AlertsController;
 
 $Req = new Request();
 
-$sNetwork = 'bus';
-if ($Req->query('red') === 'metro') {
-    $sNetwork = 'metro';
-} elseif ($Req->query('red') === 'euskotren') {
-    $sNetwork = 'euskotren';
-}
+$sNetwork = in_array($Req->query('red'), ['metro', 'euskotren'], true) ? $Req->query('red') : 'bus';
 Config::set($sNetwork);
 
 $Router = new Router();
 
 $Search = new SearchController();
-$Router->get('/search', [$Search, 'search']);
+$Router->get('/search', [$Search, 'search'], 3600);
 
 $Stops = new StopsController();
-$Router->get('/stops/{id}', [$Stops, 'show']);
-$Router->get('/stops/{id}/departures', [$Stops, 'departures']);
-$Router->get('/trips/{tripKey}', [$Stops, 'tripStops']);
+$Router->get('/stops/{id}', [$Stops, 'show'], 3600);
+$Router->get('/stops/{id}/departures', [$Stops, 'departures'], 10);
+$Router->get('/trips/{tripKey}', [$Stops, 'tripStops'], 60);
 
 $Lines = new LinesController();
-$Router->get('/lines', [$Lines, 'index']);
-$Router->get('/lines/{id}', [$Lines, 'show']);
+$Router->get('/lines', [$Lines, 'index'], 3600);
+$Router->get('/lines/{id}', [$Lines, 'show'], 3600);
 
 $Timetable = new TimetableController();
-$Router->get('/lines/{id}/timetable', [$Timetable, 'show']);
+$Router->get('/lines/{id}/timetable', [$Timetable, 'show'], 60);
 
 $Alerts = new AlertsController();
-$Router->get('/alerts', [$Alerts, 'index']);
+$Router->get('/alerts', [$Alerts, 'index'], 60);
 
 if ($sNetwork === 'bus') {
-    $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText']);
+    $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], 3600);
 }
 
-if ($sNetwork === 'bus' || $sNetwork === 'metro' || $sNetwork === 'euskotren') {
-    $Realtime = new RealtimeController();
-    $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle']);
-    $Router->get('/lines/{id}/live', [$Realtime, 'lineLive']);
-}
+$Realtime = new RealtimeController();
+$Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
+$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
 
 try {
     $Router->dispatch($Req);

@@ -2,6 +2,7 @@
 
 namespace Models;
 
+use Core\Config;
 use Core\Ids;
 
 class LineModel
@@ -28,7 +29,7 @@ class LineModel
         foreach ($aRows as &$aRow) {
             $aRow['id'] = Ids::forOutput($aRow['id']);
         }
-        return $aRows;
+        return Config::withoutHiddenLines($aRows);
     }
 
     public function search(string $sQuery, int $iLimit = 10): array
@@ -46,7 +47,7 @@ class LineModel
         foreach ($aRows as &$aRow) {
             $aRow['id'] = Ids::forOutput($aRow['id']);
         }
-        return $aRows;
+        return Config::withoutHiddenLines($aRows);
     }
 
     public function patterns(int|string $iLineId): array

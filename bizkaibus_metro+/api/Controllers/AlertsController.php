@@ -10,7 +10,6 @@ use Services\SiriAlertsClient;
 
 class AlertsController
 {
-
     public function index(Request $Req): void
     {
         $aConfig = Config::current();
@@ -23,8 +22,7 @@ class AlertsController
         if ($sNetwork === 'metro') {
             $Client = new MetroAlertsClient($aConfig);
             $aAlerts = $Client->fetchAlerts();
-            
-            // Merge newly discovered SIRI alerts for Metro Bilbao
+
             if (isset($aConfig['siri'])) {
                 $SiriClient = new SiriAlertsClient($aConfig);
                 $aSiriAlerts = $SiriClient->fetchAlerts();

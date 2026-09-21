@@ -1,0 +1,42 @@
+{
+    "id": "/?homescreen=bide",
+    "name": "Bide+",
+    "short_name": "Bide+",
+    "description": "Horarios de Bizkaibus, Metro Bilbao y Euskotren en un solo sitio",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "portrait",
+    "dir": "ltr",
+    "lang": "es",
+    "background_color": "#FFFFFF",
+    "theme_color": "#FFFFFF",
+    "categories": ["navigation", "transportation", "travel"],
+    "shortcuts": [
+        {
+            "name": "Bizkaibus+",
+            "short_name": "Bizkaibus",
+            "url": "/?red=bus",
+            "icons": [{ "src": "/icons-pro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Metro+",
+            "short_name": "Metro",
+            "url": "/?red=metro",
+            "icons": [{ "src": "/icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Euskotren+",
+            "short_name": "Euskotren",
+            "url": "/?red=euskotren",
+            "icons": [{ "src": "/icons-euskotren/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        }
+    ],
+    "icons": [
+        { "src": "/icons-bide-rojo/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icons-bide-rojo/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/icons-bide-rojo/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "/icons-bide-rojo/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

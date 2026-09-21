@@ -277,7 +277,7 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         $sTmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
         $Ch = curl_init($url);
         $Fp = fopen($sTmp, 'wb');
-        
+
         $aCurlOptions = [
             CURLOPT_FILE => $Fp,
             CURLOPT_FOLLOWLOCATION => true,
@@ -286,7 +286,6 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
             CURLOPT_USERAGENT => 'BizkaibusMetroApp/1.0',
         ];
 
-        // Attach NAP ApiKey
         $sNapKey = getenv('NAP_API_KEY');
         if ($sNapKey && str_contains(strtolower($url), 'nap.transportes.gob.es')) {
             $aCurlOptions[CURLOPT_HTTPHEADER] = ['ApiKey: ' . $sNapKey];
@@ -294,15 +293,15 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
 
         curl_setopt_array($Ch, $aCurlOptions);
         $bOk = curl_exec($Ch);
-        
+
         $error = null;
         if ($bOk === false) {
             $error = curl_error($Ch);
         }
-        
+
         curl_close($Ch);
         fclose($Fp);
-        
+
         if ($bOk) {
             return $sTmp;
         } else {
@@ -317,9 +316,9 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         if (is_string($result) && file_exists($result)) {
             return $result;
         }
-        
+
         fwrite(STDERR, "  -> Primary download failed: $result\n");
-        
+
         if ($sFallbackSource && preg_match('#^(https?|ftp)://#i', $sFallbackSource)) {
             echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
             $fallbackResult = $attemptDownload($sFallbackSource);
@@ -328,10 +327,10 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
             }
             fwrite(STDERR, "  -> Fallback download failed: $fallbackResult\n");
         }
-        
+
         exit(1);
     }
-    
+
     if (!file_exists($sSource)) {
         fwrite(STDERR, "Source file not found: $sSource\n");
         exit(1);
@@ -458,23 +457,6 @@ function loadStopsMetro(ZipArchive $Zip): array
     return $aStops;
 }
 
-/**
- * El GTFS de Euskotren (formato NeTEx) modela cada estación en dos niveles:
- * location_type=1 ("StopPlace", la estación real, con nombre y coordenadas
- * propias) y location_type=0 ("Quay", un andén concreto de esa estación,
- * referenciando su StopPlace en parent_station). A diferencia de Bizkaibus/
- * Metro (una fila = una parada real, sin más jerarquía), aquí SÍ tenemos el
- * dato de andén real —incluso estaciones grandes como Amara-Donostia con 9—,
- * así que en vez de forzarlo al mismo molde de bus/metro (colapsar todo en
- * la estación) se aprovecha: se guardan AMBOS niveles en la misma tabla
- * `stops` —la estación (station_id NULL, es lo que devuelve el buscador) y
- * cada andén (station_id = su estación, platform_label = "Andén N")—, y
- * stop_times.txt sigue referenciando el andén real sin remapear nada, así
- * StopsController::departures() puede agrupar las salidas una caja por
- * andén real en vez de una dirección genérica "hacia / desde" como Metro+.
- *
- * @return array<string,array{name:string,lat:float,lon:float,area?:string,stationId?:string,platformLabel?:string}>
- */
 function loadStopsEuskotren(ZipArchive $Zip): array
 {
     $aStations = [];
@@ -508,15 +490,10 @@ function loadStopsEuskotren(ZipArchive $Zip): array
 
     $aStops = $aStations;
     foreach ($aQuaysByParent as $sParentId => $aQuays) {
-        // Andén sin estación conocida (no debería pasar en este feed, pero
-        // por si acaso): se ignora en vez de crear una parada huérfana.
         if (!isset($aStations[$sParentId])) {
             continue;
         }
 
-        // Orden estable "Andén 1, 2, 3..." por el propio id del andén
-        // (siempre termina en "_Q<n>:" en este feed) para que el numerado
-        // no dependa del orden de aparición en el CSV.
         usort($aQuays, fn($aA, $aB) => $aA['stop_id'] <=> $aB['stop_id']);
 
         $iIndex = 1;
@@ -592,7 +569,6 @@ function loadCalendars(ZipArchive $Zip): array
 
         $aIncludedDates = [];
         if ($iBaseMask !== 0) {
-
             $iWeekdayMask = $iBaseMask | computeWeekdayMask($aAvailableDates);
         } else {
             $iWeekdayMask = computeWeekdayMaskFromEvidence($aAvailableDates, $aIncludedDates);
@@ -677,14 +653,6 @@ function loadTrips(ZipArchive $Zip): array
     return $aTrips;
 }
 
-/**
- * El GTFS "backdoor" de horarios de Metro (metrobilbao.eus, se usa cuando el
- * NAP oficial está caído) exporta el stop_id del andén real como float
- * ("1.0" en vez de "1") aunque el mismo id aparece limpio como parent_station
- * de esa misma fila — verificado en vivo, es un defecto de su exportación,
- * no del feed NAP. Sin normalizar, ningún id de parada casaría nunca (ni
- * entre stops.txt y stop_times.txt, ni al buscar una parada por id).
- */
 function stripFloatIdSuffix(string $sId): string
 {
     return preg_replace('/\.0$/', '', $sId);
@@ -865,7 +833,6 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
     $aExtraIncludedDatesByCalendarId = [];
     foreach ($aGroups as $aGroup) {
-
         if ($aGroup['calendarGroupKey'] !== '') {
             $aGroup['calendarId'] = $aGroup['calendarGroupKey'];
             $aRepresentatives[$aGroup['representativeTripId']] = $aGroup;
@@ -896,7 +863,6 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     }
 
     if (!empty($aExtraIncludedDatesByCalendarId)) {
-
         $aAlreadyIncluded = [];
         foreach ($aCalendars as $sCalId => $aCal) {
             foreach ($aCal['includedDates'] as $sDate) {
@@ -1062,7 +1028,6 @@ function createSchema(PDO $Pdo): void
 
 function loadFeedInfo(ZipArchive $Zip): array
 {
-
     if ($Zip->locateName('feed_info.txt') === false) {
         return [];
     }
@@ -1105,16 +1070,6 @@ function insertMeta(PDO $Pdo, array $aFeedInfo): void
     }
 }
 
-/**
- * Quita de `stops` cualquier parada (andén o estación) que nunca aparece en
- * `passing_times` — no tiene ni una sola salida real. En Euskotren pasa con
- * estaciones que solo sirve el tranvía/funicular en el feed NAP combinado
- * (mismo edificio de StopPlace, pero sus rutas quedan fuera por agencyId al
- * cargar routes.txt, ver loadRoutes): verificado en vivo, Ribera y Arriaga
- * en Bilbao Casco Viejo no tienen ningún tren de Euskotren, solo tranvía.
- * Sin este filtro aparecían en el buscador como si fueran paradas reales.
- * Genérico para las tres redes por si algún día bus/metro tienen el mismo caso.
- */
 function pruneUnservedStops(PDO $Pdo): int
 {
     $iDeletedQuays = $Pdo->exec('

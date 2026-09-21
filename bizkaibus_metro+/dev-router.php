@@ -16,4 +16,13 @@ if (str_starts_with($sUri, '/api/')) {
     return true;
 }
 
-require __DIR__ . '/api/shell.php';
+if ($sUri === '/' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/')) {
+    if (isset($_COOKIE['lento'])) {
+        usleep((int) $_COOKIE['lento'] * 1000);
+    }
+    require __DIR__ . '/api/shell.php';
+    return true;
+}
+
+http_response_code(404);
+readfile(__DIR__ . '/404.html');
