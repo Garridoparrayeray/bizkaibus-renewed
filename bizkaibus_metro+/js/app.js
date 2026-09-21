@@ -49,6 +49,7 @@
         searchForm: document.getElementById('search-form'),
         searchInput: document.getElementById('search-input'),
         searchResults: document.getElementById('search-results'),
+        nearbyBtn: document.getElementById('nearby-btn'),
         favoritesList: document.getElementById('favorites-list'),
         favoritesEmpty: document.getElementById('favorites-empty'),
         liveCard: document.getElementById('live-card'),
@@ -224,6 +225,73 @@
             el.searchResults.appendChild(li);
         }
         el.searchResults.hidden = false;
+    }
+
+    function showSearchMessage(text) {
+        el.searchResults.innerHTML = '';
+        const li = document.createElement('li');
+        li.className = 'search-message';
+        li.textContent = text;
+        el.searchResults.appendChild(li);
+        el.searchResults.hidden = false;
+    }
+
+    function formatDistance(meters) {
+        return meters < 1000 ? `${Math.max(10, Math.round(meters / 10) * 10)} m` : `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
+    }
+
+    function renderNearbyResults(stops) {
+        el.searchResults.innerHTML = '';
+        for (const stop of stops) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'pill';
+            const next = stop.next
+                ? `${stop.next.lineCode} → ${stop.next.headsign} · ${Math.max(stop.next.etaMinutes, 0)} min`
+                : 'Sin salidas próximas';
+            setPillContent(button, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
+            button.addEventListener('click', () => {
+                el.searchResults.hidden = true;
+                selectStop(stop.id);
+            });
+            li.appendChild(button);
+            el.searchResults.appendChild(li);
+        }
+        el.searchResults.hidden = false;
+    }
+
+    async function findNearby() {
+        if (!('geolocation' in navigator)) {
+            showSearchMessage('Tu dispositivo no permite obtener la ubicación.');
+            return;
+        }
+        showSearchMessage('Buscando tu ubicación…');
+        let position;
+        try {
+            position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+            });
+        } catch (error) {
+            showSearchMessage(error.code === 1
+                ? 'Has denegado el permiso de ubicación. Actívalo en los ajustes del navegador para ver las paradas cercanas.'
+                : 'No se pudo obtener tu ubicación. Inténtalo de nuevo.');
+            return;
+        }
+        let data;
+        try {
+            data = await Api.nearby(position.coords.latitude.toFixed(5), position.coords.longitude.toFixed(5));
+        } catch (error) {
+            showSearchMessage(error.status === 422
+                ? 'Tu ubicación está fuera de la zona cubierta por esta app.'
+                : 'No se pudieron consultar las paradas cercanas.');
+            return;
+        }
+        if (data.stops.length === 0) {
+            showSearchMessage('No hay paradas a menos de 2 km de ti.');
+            return;
+        }
+        renderNearbyResults(data.stops);
     }
 
     async function selectStop(stopId) {
@@ -1043,6 +1111,7 @@
     });
     el.favoritesClose.addEventListener('click', closeFavoritesPanel);
 
+    el.nearbyBtn.addEventListener('click', findNearby);
     el.searchInput.addEventListener('input', debounce((e) => performSearch(e.target.value), 300));
     el.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
