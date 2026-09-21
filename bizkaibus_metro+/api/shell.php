@@ -149,12 +149,12 @@ $jsonLd = [
     <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
     <link rel="icon" href="/<?= $sFaviconFolder ?>/icon-192.png">
     <link rel="apple-touch-icon" href="/<?= $sFaviconFolder ?>/apple-touch-icon.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <script>
         (function () {
             var params = new URLSearchParams(location.search);
@@ -533,7 +533,7 @@ $jsonLd = [
         <ul id="menu-alerts-list"></ul>
     </dialog>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/lib/leaflet/leaflet.js"></script>
     <script src="js/api.js"></script>
     <script src="js/app.js"></script>
     <script>

@@ -95,6 +95,8 @@ for (const size of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366,
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
         const todayValue = await ev("document.getElementById('filter-date').value");
+        const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
+        check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         check(`${tag} aviso de fecha sin publicar oculto hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
         await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
         await sleep(2000);
