@@ -37,6 +37,7 @@ $Search = new SearchController();
 $Router->get('/search', [$Search, 'search'], 3600);
 
 $Stops = new StopsController();
+$Router->get('/nearby', [$Stops, 'nearby']);
 $Router->get('/stops/{id}', [$Stops, 'show'], 3600);
 $Router->get('/stops/{id}/departures', [$Stops, 'departures'], 10);
 $Router->get('/trips/{tripKey}', [$Stops, 'tripStops'], 60);
