@@ -7,9 +7,9 @@ class Router
 
     private array $aRoutes = [];
 
-    public function get(string $sPattern, callable $Handler): void
+    public function get(string $sPattern, callable $Handler, int $iCacheSeconds = 0): void
     {
-        $this->add('GET', $sPattern, $Handler);
+        $this->add('GET', $sPattern, $Handler, $iCacheSeconds);
     }
 
     public function post(string $sPattern, callable $Handler): void
@@ -22,7 +22,7 @@ class Router
         $this->add('DELETE', $sPattern, $Handler);
     }
 
-    private function add(string $sMethod, string $sPattern, callable $Handler): void
+    private function add(string $sMethod, string $sPattern, callable $Handler, int $iCacheSeconds = 0): void
     {
         $aParamNames = [];
         $sRegex = preg_replace_callback('#\{(\w+)\}#', function ($aM) use (&$aParamNames) {
@@ -36,6 +36,7 @@ class Router
             'regex' => '#^' . $sRegex . '$#',
             'params' => $aParamNames,
             'handler' => $Handler,
+            'cache' => $iCacheSeconds,
         ];
     }
 
@@ -52,6 +53,7 @@ class Router
             }
             array_shift($aMatches);
             $aParams = array_combine($aRoute['params'], $aMatches);
+            Response::$iCacheSeconds = $aRoute['cache'];
             try {
                 ($aRoute['handler'])($Req, $aParams);
             } catch (\Throwable $Ex) {

@@ -17,21 +17,9 @@ class SiriVehicleMonitoringClient
     public function fetchActiveTrips(): array
     {
         $aCfg = $this->aConfig['siri'];
-        return Cache::remember('siri_vm', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
-            try {
-                $sXmlString = Http::get($aCfg['vehicle_monitoring_url'], $aCfg['http_timeout_seconds']);
-            } catch (\Throwable $Ex) {
-                if (isset($aCfg['vehicle_monitoring_fallback_url'])) {
-                    try {
-                        $sXmlString = Http::get($aCfg['vehicle_monitoring_fallback_url'], $aCfg['http_timeout_seconds']);
-                    } catch (\Throwable $ExFallback) {
-                        return [];
-                    }
-                } else {
-                    return [];
-                }
-            }
-            return self::parse($sXmlString);
+        $aUrls = array_filter([$aCfg['vehicle_monitoring_url'], $aCfg['vehicle_monitoring_fallback_url'] ?? null]);
+        return Cache::remember('siri_vm', $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
+            return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
         });
     }
 

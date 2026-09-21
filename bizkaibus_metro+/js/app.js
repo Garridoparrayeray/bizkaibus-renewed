@@ -1,6 +1,10 @@
 (() => {
     const IS_METRO = window.__bbNetwork === 'metro';
     const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
+    let networkQuery = '';
+    if (IS_METRO || IS_EUSKOTREN) {
+        networkQuery = '?red=' + window.__bbNetwork;
+    }
     const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites'
         : IS_EUSKOTREN ? 'euskotren_favorites'
         : 'bizkaibus_favorites';
@@ -120,6 +124,8 @@
                 ? { text: `Retraso +${delayMinutes}m`, className: 'status-warn' }
                 : { text: 'En hora', className: 'status-ok' };
         }
+        if (status === 'finished') return { text: 'Finalizado', className: 'status-muted' };
+        if (status === 'departed') return { text: 'Ya salió', className: 'status-muted' };
         return { text: 'Programado', className: 'status-muted' };
     }
 
@@ -146,11 +152,13 @@
     }
 
     function toggleNetworkMenu() {
-        el.networkSwitch.classList.toggle('open');
+        const isOpen = el.networkSwitch.classList.toggle('open');
+        el.homeLink.setAttribute('aria-expanded', String(isOpen));
     }
 
     function closeNetworkMenu() {
         el.networkSwitch.classList.remove('open');
+        el.homeLink.setAttribute('aria-expanded', 'false');
     }
 
     function closeLiveCard() {
@@ -159,7 +167,7 @@
         el.platformPanel.hidden = true;
         el.liveEmpty.hidden = false;
         stopDeparturesRefresh();
-        if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/');
+        if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
     function closeTimetableSection() {
@@ -167,7 +175,7 @@
         el.timetableSection.hidden = true;
         stopLineMapRefresh();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/');
+        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
     async function performSearch(query) {
@@ -225,7 +233,7 @@
         } catch (e) {
             return;
         }
-        state.currentStop = { id: stop.id, name: stop.name };
+        state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
         el.liveEmpty.hidden = true;
         if (IS_METRO || IS_EUSKOTREN) {
             updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
@@ -236,7 +244,7 @@
             el.liveCard.hidden = false;
         }
         if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId);
+            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'stop', id: stopId }, '', window.location.href);
         }
@@ -330,8 +338,8 @@
     }
 
     const PLATFORM_DIRECTIONS = [
-        { key: 'toward_reference', label: 'Sentido Bilbao centro' },
-        { key: 'away_from_reference', label: 'Sentido contrario' },
+        { key: 'toward_reference', label: 'Sentido 1' },
+        { key: 'away_from_reference', label: 'Sentido 2' },
     ];
 
     function renderPlatformColumn(direction, departures) {
@@ -388,11 +396,10 @@
     function renderPlatformPanel(data) {
         el.platformColumns.innerHTML = '';
         const departures = data.departures || [];
+        const platformNotice = document.getElementById('platform-notice');
+        platformNotice.hidden = departures.length > 0;
+        platformNotice.textContent = `No hay ${IS_METRO ? 'metros' : 'trenes'} en las próximas 4 horas: puede ser fuera de horario o sin servicio en esta estación. Consulta el horario completo.`;
 
-        // Euskotren trae andén real (ver Stop::platformsFor en la API): una
-        // caja por andén real, con sus propios trenes. Metro+ no tiene ese
-        // dato en su GTFS, así que sigue agrupando por la dirección genérica
-        // "hacia / desde" de siempre.
         if (data.platforms && data.platforms.length) {
             for (const platform of data.platforms) {
                 const platformDepartures = departures.filter((d) => d.platformId === platform.id);
@@ -401,19 +408,22 @@
         } else {
             for (const direction of PLATFORM_DIRECTIONS) {
                 const columnDepartures = departures.filter((d) => d.direction === direction.key);
-                el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
+                const termini = data.directionLabels && data.directionLabels[direction.key];
+                const label = termini ? 'Hacia ' + termini : direction.label;
+                el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
             }
         }
-        // Una estación puede tener varias líneas a la vez (algunas de
-        // Euskotren, hasta 5): un único botón "ver horario completo" solo
-        // podría apuntar a una. Con una sola línea, se queda el botón
-        // simple de siempre; con varias, una por botón.
         const distinctLines = [];
         const seenLineIds = new Set();
         for (const departure of departures) {
             if (seenLineIds.has(departure.lineId)) continue;
             seenLineIds.add(departure.lineId);
             distinctLines.push(departure);
+        }
+        if (distinctLines.length === 0) {
+            for (const line of state.currentStop?.lines || []) {
+                distinctLines.push({ lineId: line.id, lineCode: line.code });
+            }
         }
 
         if (distinctLines.length > 1) {
@@ -452,7 +462,7 @@
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         if (!window.location.pathname.startsWith('/lines/' + lineId)) {
-            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId);
+            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'line', id: lineId }, '', window.location.href);
         }
@@ -493,6 +503,7 @@
         for (const entry of entries) {
             const { text, className } = statusLabel(entry.status, entry.delayMinutes);
             const tr = document.createElement('tr');
+            if (entry.status === 'departed') tr.className = 'is-past';
 
             const departureCell = document.createElement('td');
             departureCell.textContent = entry.departure;
@@ -679,7 +690,9 @@
         el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
         el.modalVehicle.textContent = data.vehicleRef
             ? `Vehículo en seguimiento en vivo · Ref. ${data.vehicleRef}`
-            : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
+            : data.status === 'finished'
+                ? 'Este viaje ya ha finalizado. Se muestra el horario programado.'
+                : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
 
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = 'Ver incidencias';
@@ -715,10 +728,6 @@
         el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
 
-        // Sin GPS en vivo (ni Metro+ ni Euskotren lo publican), pero la hora
-        // programada de cada parada sí permite marcar cuáles ya deberían
-        // haber pasado, comparando contra la hora actual — un estado real,
-        // aunque no sea posición en vivo.
         const nowHm = new Date().toTimeString().slice(0, 5);
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
@@ -944,6 +953,18 @@
         }
         loadFavorites();
     }
+
+    const netBanner = document.getElementById('net-banner');
+    window.addEventListener('bb:api', (event) => {
+        netBanner.hidden = event.detail.ok;
+    });
+    window.addEventListener('offline', () => { netBanner.hidden = false; });
+    window.addEventListener('online', () => { netBanner.hidden = true; });
+    document.getElementById('net-retry').addEventListener('click', () => {
+        if (state.currentStop) loadDepartures();
+        if (state.currentLine) loadTimetable();
+        if (!state.currentStop && !state.currentLine) netBanner.hidden = true;
+    });
 
     el.homeLink.addEventListener('click', toggleNetworkMenu);
     document.addEventListener('click', (e) => {

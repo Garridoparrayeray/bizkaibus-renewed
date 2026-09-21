@@ -136,6 +136,14 @@ class RealtimeController
         $sStatus = 'scheduled';
         if ($aLive !== null) {
             $sStatus = 'live';
+        } elseif (!empty($aStops)) {
+            $iFirstArrival = (int)$aStops[0]['arrival_seconds'];
+            $iLastArrival = (int)$aStops[count($aStops) - 1]['arrival_seconds'];
+            if ($iNow > $iLastArrival) {
+                $sStatus = 'finished';
+            } elseif ($iNow >= $iFirstArrival) {
+                $sStatus = 'departed';
+            }
         }
 
         $iDelayMinutes = 0;

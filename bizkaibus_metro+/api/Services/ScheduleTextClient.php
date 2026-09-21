@@ -16,23 +16,14 @@ class ScheduleTextClient
 
     public function fetchForLine(int $iLineId): array
     {
-        $aAll = $this->fetchAll();
-        if (isset($aAll[$iLineId])) {
-            return $aAll[$iLineId];
-        }
-        return [];
+        return $this->fetchAll()[$iLineId] ?? [];
     }
 
     private function fetchAll(): array
     {
         $aCfg = $this->aConfig['schedule_text'];
         return Cache::remember('schedule_text_all', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
-            try {
-                $sXmlString = Http::get($aCfg['url'], $aCfg['http_timeout_seconds']);
-            } catch (\Throwable $Ex) {
-                return [];
-            }
-            return self::parse($sXmlString);
+            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']));
         });
     }
 
