@@ -652,6 +652,9 @@ dialog#side-menu {
     #menu-alerts-list .alert-summary { display: block; margin-bottom: 2px; color: var(--status-warn); font-size: .8rem; font-weight: 700; }
     #menu-alerts-list .alert-description { display: block; color: var(--text-secondary); font-size: .78rem; line-height: 1.4; white-space: pre-line; }
 .schedule-block { margin-bottom: 14px; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+    .schedule-block.is-current { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+    .schedule-block.is-past { opacity: .55; }
+    .schedule-current-tag { display: inline-block; margin: 0 0 6px 8px; padding: 2px 8px; border-radius: 999px; background: var(--primary); color: #fff; font-size: .68rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
     .schedule-block h4 { margin: 0; color: var(--primary); font-size: 1rem; font-weight: 700; }
     .schedule-block .schedule-dates { margin: 2px 0 12px; color: var(--text-secondary); font-size: .75rem; font-weight: 600; }
     .schedule-block h5 { margin: 0 0 4px; font-size: .8rem; letter-spacing: .5px; text-transform: uppercase; }

@@ -650,14 +650,35 @@
             p.textContent = 'No hay horario oficial en texto disponible para esta línea.';
             el.scheduleModalContent.appendChild(p);
         } else {
-            for (const rawBlock of data.schedule) {
+            const parseDate = (text) => {
+                const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text || '');
+                return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
+            };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const entries = data.schedule.map((rawBlock) => {
                 const fields = extractScheduleFields(rawBlock);
+                const from = parseDate(fields.from);
+                const to = parseDate(fields.to);
+                const isCurrent = from !== null && to !== null && from <= today && today <= to;
+                return { fields, isCurrent, isPast: to !== null && to < today };
+            });
+            entries.sort((x, y) => Number(y.isCurrent) - Number(x.isCurrent) || Number(x.isPast) - Number(y.isPast));
+
+            for (const { fields, isCurrent, isPast } of entries) {
                 const block = document.createElement('div');
-                block.className = 'schedule-block';
+                block.className = 'schedule-block' + (isCurrent ? ' is-current' : '') + (isPast ? ' is-past' : '');
 
                 const h4 = document.createElement('h4');
                 h4.textContent = fields.season || 'Horario';
                 block.appendChild(h4);
+                if (isCurrent) {
+                    const tag = document.createElement('span');
+                    tag.className = 'schedule-current-tag';
+                    tag.textContent = 'Vigente hoy';
+                    h4.appendChild(tag);
+                }
 
                 if (fields.from || fields.to) {
                     const dates = document.createElement('p');
