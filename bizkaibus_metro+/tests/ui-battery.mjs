@@ -94,6 +94,14 @@ for (const size of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366,
         await sleep(2500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
+        const todayValue = await ev("document.getElementById('filter-date').value");
+        check(`${tag} aviso de fecha sin publicar oculto hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
+        await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
+        await sleep(2000);
+        check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
+        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+        await sleep(2000);
+        check(`${tag} aviso vuelve a ocultarse al volver a hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
         await ev("document.querySelector('#timetable-body tr').click()");
         await sleep(2500);
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));

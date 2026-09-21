@@ -507,6 +507,12 @@
             return;
         }
         renderTimetableRows(data.entries);
+        const timetableNote = document.getElementById('timetable-note');
+        timetableNote.hidden = !data.beyondPublished;
+        if (data.beyondPublished) {
+            const [year, month, day] = data.publishedUntil.split('-');
+            timetableNote.textContent = `El operador solo ha publicado horarios hasta el ${day}/${month}/${year}; para este día se muestra el de un día normal y puede no coincidir.`;
+        }
         const sourceLabel = IS_METRO
             ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
             : IS_EUSKOTREN
