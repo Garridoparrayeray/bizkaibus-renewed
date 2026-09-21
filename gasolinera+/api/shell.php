@@ -1,7 +1,7 @@
 <?php
 $ogTitle = 'Gasolinera+';
 $ogDescription = 'Precios de gasolina y diésel cerca de ti, actualizados a diario.';
-$ogUrl = 'https://bideplus.vercel.app/';
+$ogUrl = 'https://gasolineraplus.vercel.app/';
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = parse_url($requestUri, PHP_URL_PATH);
@@ -37,7 +37,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
                 $desc .= '. ' . implode(', ', $priceText);
             }
             $ogDescription = $desc . '. Comprueba el precio actual en Gasolinera+.';
-            $ogUrl = 'https://bideplus.vercel.app/stations/' . urlencode($ideess);
+            $ogUrl = 'https://gasolineraplus.vercel.app/stations/' . urlencode($ideess);
         }
     } catch (\Throwable $t) {
         // En caso de error, el frontend se recuperará normalmente. Fallback a genérico.
@@ -57,8 +57,13 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
     <meta property="og:title" content="<?= htmlspecialchars($ogTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($ogDescription) ?>">
     <meta property="og:url" content="<?= htmlspecialchars($ogUrl) ?>">
-    <meta property="og:image" content="https://bideplus.vercel.app/icons/icon-512.png">
+    <meta property="og:image" content="https://gasolineraplus.vercel.app/icons/icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:site_name" content="Gasolinera+">
     <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:image" content="https://gasolineraplus.vercel.app/icons/icon-512.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#8A5A00">
     <link rel="apple-touch-icon" href="/icons/icon-maskable-192.png">
