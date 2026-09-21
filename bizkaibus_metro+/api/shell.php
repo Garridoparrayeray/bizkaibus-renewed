@@ -349,6 +349,10 @@ $jsonLd = [
                 </button>
                 <ul id="search-results" hidden></ul>
             </form>
+            <button id="nearby-btn" class="nearby-btn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/></svg>
+                <span>Cerca de mí</span>
+            </button>
                 <div id="favorites-panel" class="glass">
                     <header>
                         <h2>Tus favoritos</h2>
@@ -471,6 +475,7 @@ $jsonLd = [
         <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. Sin afiliación con entidades de transporte.</p>
         <p><strong>Privacidad y Analíticas:</strong> Utilizamos <strong>Vercel Web Analytics</strong> (herramienta respetuosa con la privacidad y libre de cookies) para recoger estadísticas básicas y anónimas de uso (visitas, país, dispositivo). Vercel procesa las direcciones IP temporalmente para generar estas métricas agrupadas, actuando como encargado del tratamiento. Aparte de esto, la app <strong>no recopila, almacena ni cede ningún dato personal tuyo</strong>.</p>
         <p><strong>Política de Cookies:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento local de tu dispositivo (<code>localStorage</code>) para guardar tus paradas "Favoritas" y el "Tema". Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
+        <p><strong>Ubicación:</strong> Si pulsas «Cerca de mí», tu navegador te pide permiso y la ubicación se envía solo para buscar las paradas más cercanas. No se guarda ni se comparte.</p>
         <p><strong>Datos:</strong> Los horarios provienen de fuentes Open Data bajo CC-BY 4.0.</p>
     </dialog>
 

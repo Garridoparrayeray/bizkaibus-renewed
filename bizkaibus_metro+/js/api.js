@@ -32,6 +32,7 @@ const Api = (() => {
 
     return {
         search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+        nearby: (lat, lon) => request(`/nearby?lat=${lat}&lon=${lon}`),
         stop: (id) => request(`/stops/${id}`),
         stopDepartures: (id, limit = 8) => request(`/stops/${id}/departures?limit=${limit}`),
         lines: () => request('/lines'),
