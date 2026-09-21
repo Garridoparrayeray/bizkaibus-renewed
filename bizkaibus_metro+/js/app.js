@@ -283,6 +283,24 @@
         }
     }
 
+    function renderStopLines(lines) {
+        const single = lines.length === 1;
+        el.liveTimetableLink.hidden = lines.length > 1;
+        el.liveTimetableLink.disabled = !single;
+        el.liveTimetableLink.dataset.lineId = single ? lines[0].id : '';
+        if (lines.length < 2) return;
+
+        for (const line of lines) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.innerHTML = `<strong>${line.code}</strong><span>${line.name}</span>`;
+            button.addEventListener('click', () => selectLine(line.id, true));
+            li.appendChild(button);
+            el.liveMoreList.appendChild(li);
+        }
+    }
+
     function renderLiveCard(departures) {
         const favoriteIndex = departures.findIndex((d) => state.favoriteKeys.has(favoriteKey('line', d.lineId)));
         const heroIndex = favoriteIndex !== -1 ? favoriteIndex : 0;
@@ -299,10 +317,11 @@
             el.liveStatusDot.className = 'status-dot';
             el.liveIncidentsLink.hidden = true;
             el.liveOpenDetail.disabled = true;
-            el.liveTimetableLink.disabled = true;
-            el.liveTimetableLink.dataset.lineId = '';
+            renderStopLines(state.currentStop.lines || []);
             return;
         }
+
+        el.liveTimetableLink.hidden = false;
 
         const { text, className } = statusLabel(departure.status, departure.delayMinutes);
         el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
