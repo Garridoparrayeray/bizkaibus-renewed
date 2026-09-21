@@ -1,0 +1,65 @@
+name: Tests
+
+on:
+  push:
+    paths:
+      - 'bizkaibus_metro+/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'bizkaibus_metro+/**'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch: {}
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: bizkaibus_metro+
+    env:
+      CI: 'true'
+      BASE_URL: http://localhost:8011
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, mbstring
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Start local server
+        run: |
+          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs -o /dev/null http://localhost:8011/; then exit 0; fi
+            sleep 1
+          done
+          echo "El servidor local no arranca"
+          cat "$RUNNER_TEMP/php-server.log"
+          exit 1
+
+      - name: Static checks
+        run: python tests/static-checks.py
+
+      - name: API smoke tests
+        run: python tests/api-smoke.py
+
+      - name: UI battery
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-battery.mjs
+
+      - name: Server log (on failure)
+        if: failure()
+        run: cat "$RUNNER_TEMP/php-server.log" || true
