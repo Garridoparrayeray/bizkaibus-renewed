@@ -103,6 +103,13 @@ for name, (lat, lon, fragment) in NEARBY.items():
         if nxt is not None and (nxt['etaMinutes'] < 0 or not nxt['lineCode'] or not nxt['scheduledTime']):
             fails.append(f'{name}: proxima salida invalida {nxt}')
     print(name, 'nearby ok', distances)
+bus_alerts = (get('/api/alerts') or {}).get('alerts', [])
+for name in ('metro', 'euskotren'):
+    other = (get(with_net('/api/alerts', NETS[name]['suffix'])) or {}).get('alerts', [])
+    if bus_alerts and other == bus_alerts:
+        fails.append(f'{name}: los avisos son identicos a los de Bizkaibus (cache compartida entre redes)')
+    if any('Bizkaibus' in (x.get('description') or '') + (x.get('summary') or '') + (x.get('title') or '') for x in other):
+        fails.append(f'{name}: aparecen avisos de Bizkaibus')
 get('/api/nearby', expect=422)
 get('/api/nearby?lat=abc&lon=1', expect=422)
 get('/api/nearby?lat=40.4&lon=-3.7', expect=422)
