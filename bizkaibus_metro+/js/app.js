@@ -1083,10 +1083,9 @@
         if (e.target === el.scheduleModal) el.scheduleModal.close();
     });
 
-    el.filterDate.value = new Date().toISOString().slice(0, 10);
-
     const now = new Date();
     const pad2 = (n) => String(n).padStart(2, '0');
+    el.filterDate.value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
     el.filterHourFrom.value = `${pad2(now.getHours())}:00`;
     el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
 
