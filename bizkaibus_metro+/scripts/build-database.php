@@ -34,8 +34,11 @@ const NETWORK_DEFAULTS = [
         'skipGeocode' => false,
     ],
 ];
-const GEOCACHE_PATH = __DIR__ . '/geocache.json';
+define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
+define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)(getenv('GEOCODE_MAX_NEW') !== false ? getenv('GEOCODE_MAX_NEW') : 300));
+define('GEOCODE_MAX_EMPTY_RETRIES_PER_RUN', (int)(getenv('GEOCODE_MAX_RETRIES') !== false ? getenv('GEOCODE_MAX_RETRIES') : 40));
+define('GEOCODE_PAUSE_MICROSECONDS', (int)(getenv('GEOCODE_PAUSE_US') !== false ? getenv('GEOCODE_PAUSE_US') : 1_100_000));
 
 function main(array $aArgv): void
 {
@@ -173,15 +176,15 @@ function parseArgs(array $aArgv): array
     return $aOut;
 }
 
-function geocodeStops(array $aStops, bool $bSkip): array
+function geocodeStops(array $aStops, bool $bSkip, ?callable $Lookup = null): array
 {
+    $Lookup = $Lookup ?? 'reverseGeocode';
     if ($bSkip) {
         foreach ($aStops as &$aStop) {
             $aStop['area'] = '';
         }
         return $aStops;
     }
-
     $aCache = [];
     if (is_file(GEOCACHE_PATH)) {
         $aCache = json_decode((string)file_get_contents(GEOCACHE_PATH), true);
@@ -189,49 +192,80 @@ function geocodeStops(array $aStops, bool $bSkip): array
     if (!is_array($aCache)) {
         $aCache = [];
     }
-
     $aClusterKeys = [];
     foreach ($aStops as $iId => $aStop) {
-        $sKey = round($aStop['lat'], 3) . ',' . round($aStop['lon'], 3);
-        $aClusterKeys[$iId] = $sKey;
+        $aClusterKeys[$iId] = round($aStop['lat'], 3) . ',' . round($aStop['lon'], 3);
     }
     $aUniqueKeys = array_unique(array_values($aClusterKeys));
     $aMissing = array_values(array_diff($aUniqueKeys, array_keys($aCache)));
+    $aEmpty = array_values(array_filter($aUniqueKeys, fn($sKey) => isset($aCache[$sKey]) && $aCache[$sKey] === ''));
+    $aPending = array_merge(
+        array_slice($aMissing, 0, GEOCODE_MAX_NEW_LOOKUPS_PER_RUN),
+        array_slice($aEmpty, 0, GEOCODE_MAX_EMPTY_RETRIES_PER_RUN)
+    );
+    echo '  ' . count($aUniqueKeys) . ' unique ~1km clusters, ' . count($aMissing) . ' not yet cached, '
+        . count($aEmpty) . ' cached empty; looking up ' . count($aPending) . "\n";
 
-    echo '  ' . count($aUniqueKeys) . ' unique ~1km clusters, ' . count($aMissing) . " not yet cached\n";
-
-    foreach ($aMissing as $iIndex => $sKey) {
+    $iDone = 0;
+    $iFailed = 0;
+    foreach ($aPending as $iIndex => $sKey) {
         [$sLat, $sLon] = explode(',', $sKey);
-        $aCache[$sKey] = reverseGeocode((float)$sLat, (float)$sLon);
-        if (($iIndex + 1) % 25 === 0 || $iIndex + 1 === count($aMissing)) {
-            echo '    geocoded ' . ($iIndex + 1) . '/' . count($aMissing) . "\r";
+        $sArea = $Lookup((float)$sLat, (float)$sLon);
+        if ($sArea === null) {
+            $iFailed++;
+        } else {
+            $aCache[$sKey] = $sArea;
+        }
+        $iDone++;
+        if ($iDone % 25 === 0 || $iDone === count($aPending)) {
+            echo '    geocoded ' . $iDone . '/' . count($aPending) . "\r";
             file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         }
-        if ($iIndex + 1 < count($aMissing)) {
-            usleep(1_100_000);
+        if ($iDone < count($aPending) && GEOCODE_PAUSE_MICROSECONDS > 0) {
+            usleep(GEOCODE_PAUSE_MICROSECONDS);
         }
     }
-    if (!empty($aMissing)) {
+    if (!empty($aPending)) {
         echo "\n";
     }
+    if ($iFailed > 0) {
+        echo "  $iFailed lookups failed and were not cached (they will be retried next run)\n";
+    }
     file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
     foreach ($aStops as $iId => &$aStop) {
-        $aStop['area'] = '';
-        if (isset($aCache[$aClusterKeys[$iId]])) {
-            $aStop['area'] = $aCache[$aClusterKeys[$iId]];
-        }
+        $aStop['area'] = $aCache[$aClusterKeys[$iId]] ?? '';
     }
     return $aStops;
 }
 
-function reverseGeocode(float $dLat, float $dLon): string
+function reverseGeocode(float $dLat, float $dLon): ?string
+{
+    $aAddress = nominatimAddress($dLat, $dLon, 16);
+    if ($aAddress === null) {
+        return null;
+    }
+    $sArea = formatAddress($aAddress);
+    if ($sArea !== '') {
+        return $sArea;
+    }
+
+    if (GEOCODE_PAUSE_MICROSECONDS > 0) {
+        usleep(GEOCODE_PAUSE_MICROSECONDS);
+    }
+    $aWiderAddress = nominatimAddress($dLat, $dLon, 10);
+    if ($aWiderAddress === null) {
+        return null;
+    }
+    return formatAddress($aWiderAddress);
+}
+
+function nominatimAddress(float $dLat, float $dLon, int $iZoom): ?array
 {
     $sUrl = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
         'lat' => $dLat,
         'lon' => $dLon,
         'format' => 'jsonv2',
-        'zoom' => 16,
+        'zoom' => $iZoom,
         'addressdetails' => 1,
     ]);
     $Ch = curl_init($sUrl);
@@ -241,33 +275,22 @@ function reverseGeocode(float $dLat, float $dLon): string
         CURLOPT_HTTPHEADER => ['User-Agent: BizkaiBusPlus-etl/1.0 (' . NOMINATIM_CONTACT . ')'],
     ]);
     $sBody = curl_exec($Ch);
-    if ($sBody === false) {
-        return '';
+    $iStatus = (int)curl_getinfo($Ch, CURLINFO_HTTP_CODE);
+    curl_close($Ch);
+    if ($sBody === false || $iStatus !== 200) {
+        return null;
     }
     $aData = json_decode($sBody, true);
-    $aAddress = [];
-    if (isset($aData['address'])) {
-        $aAddress = $aData['address'];
+    if (!is_array($aData)) {
+        return null;
     }
+    return $aData['address'] ?? [];
+}
 
-    $sNeighbourhood = null;
-    if (isset($aAddress['neighbourhood'])) {
-        $sNeighbourhood = $aAddress['neighbourhood'];
-    }
-    $sSuburb = null;
-    if (isset($aAddress['suburb'])) {
-        $sSuburb = $aAddress['suburb'];
-    }
-    $sTownLevel = null;
-    if (isset($aAddress['town'])) {
-        $sTownLevel = $aAddress['town'];
-    } elseif (isset($aAddress['city'])) {
-        $sTownLevel = $aAddress['city'];
-    } elseif (isset($aAddress['village'])) {
-        $sTownLevel = $aAddress['village'];
-    }
-
-    $aParts = array_filter([$sNeighbourhood, $sSuburb, $sTownLevel]);
+function formatAddress(array $aAddress): string
+{
+    $sTownLevel = $aAddress['town'] ?? $aAddress['city'] ?? $aAddress['village'] ?? $aAddress['hamlet'] ?? $aAddress['municipality'] ?? null;
+    $aParts = array_filter([$aAddress['neighbourhood'] ?? null, $aAddress['suburb'] ?? null, $sTownLevel]);
     return implode(', ', array_unique($aParts));
 }
 
@@ -1141,4 +1164,6 @@ function insertCalendars(PDO $Pdo, array $aCalendars): void
     }
 }
 
-main(array_slice($argv, 1));
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === realpath(__FILE__)) {
+    main(array_slice($argv, 1));
+}

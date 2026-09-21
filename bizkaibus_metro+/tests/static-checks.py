@@ -49,5 +49,10 @@ print('archivos del precache que no existen:', missing_files or 'ninguno')
 if missing_files:
     failures.append('precache con archivos inexistentes')
 
+geo = subprocess.run([PHP, ROOT + 'tests/geocache-test.php'], capture_output=True, text=True)
+print('geocache (caché de geocodificación):', 'OK' if geo.returncode == 0 else geo.stdout[-400:] + geo.stderr[-200:])
+if geo.returncode != 0:
+    failures.append('prueba de geocache')
+
 print('RESULTADO estatico:', 'OK' if not failures else 'FALLA -> ' + '; '.join(failures))
 sys.exit(1 if failures else 0)
