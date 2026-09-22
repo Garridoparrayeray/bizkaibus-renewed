@@ -33,49 +33,111 @@
             let data = await loadData();
             data = applyFilters(data, fuel);
             
-            const withDist = data.map(s => ({ ...s, dist_km: haversine(lat, lon, s.lat, s.lon) }))
-                                 .filter(s => s.dist_km <= radius);
+            // distanciaKm (no dist_km) y redondeada a 2 decimales: mismo nombre y
+            // formato que Models\Station::buildListItem(), que es lo que lee
+            // renderList() en app.js.
+            const withDist = data.map(s => ({ ...s, distanciaKm: Math.round(haversine(lat, lon, s.lat, s.lon) * 100) / 100 }))
+                                 .filter(s => s.distanciaKm <= radius);
 
             if (sort === 'price') {
                 withDist.sort((a, b) => (a.precios[fuel] || 999) - (b.precios[fuel] || 999));
             } else {
-                withDist.sort((a, b) => a.dist_km - b.dist_km);
+                withDist.sort((a, b) => a.distanciaKm - b.distanciaKm);
             }
 
-            return { data: withDist.slice(offset, offset + limit), total: withDist.length };
+            return { stations: withDist.slice(offset, offset + limit), total: withDist.length };
         },
         bbox: async ({ north, south, east, west, fuel }) => {
-            let data = await loadData();
-            data = applyFilters(data, fuel);
-            return data.filter(s => s.lat <= north && s.lat >= south && s.lon <= east && s.lon >= west);
+            const data = await loadData();
+            const inBounds = data.filter(s => s.lat <= north && s.lat >= south && s.lon <= east && s.lon >= west);
+
+            const stations = inBounds.map(s => {
+                let precio = null;
+                if (fuel && s.precios[fuel] !== undefined) {
+                    precio = s.precios[fuel];
+                }
+                return {
+                    ideess: s.ideess,
+                    rotulo: s.rotulo,
+                    lat: s.lat,
+                    lon: s.lon,
+                    is24h: !!s.is_24h,
+                    precio,
+                };
+            });
+
+            return { stations: fuel ? stations.filter(s => s.precio !== null) : stations };
         },
         search: async ({ q, lat, lon, sort = 'price', fuel = 'gasolina_95_e5', offset = 0, limit = 20 }) => {
             let data = await loadData();
             data = applyFilters(data, fuel);
-            
+
             const nq = normalize(q);
-            const matches = data.filter(s => 
-                normalize(s.rotulo).includes(nq) || 
+            const rawQuery = (q || '').trim();
+            const hasLocation = lat !== undefined && lat !== null && lon !== undefined && lon !== null;
+
+            const matches = data.filter(s =>
+                normalize(s.rotulo).includes(nq) ||
                 normalize(s.municipio).includes(nq) ||
-                normalize(s.direccion).includes(nq)
+                normalize(s.localidad).includes(nq) ||
+                normalize(s.direccion).includes(nq) ||
+                (rawQuery !== '' && String(s.cp || '').startsWith(rawQuery))
             );
 
-            if (lat !== undefined && lon !== undefined) {
-                matches.forEach(s => s.dist_km = haversine(lat, lon, s.lat, s.lon));
-                if (sort === 'distance') {
-                    matches.sort((a, b) => a.dist_km - b.dist_km);
-                } else {
-                    matches.sort((a, b) => (a.precios[fuel] || 999) - (b.precios[fuel] || 999));
-                }
-            } else {
-                matches.sort((a, b) => (a.precios[fuel] || 999) - (b.precios[fuel] || 999));
+            function relevance(s) {
+                const muni = normalize(s.municipio);
+                const loc = normalize(s.localidad);
+                if (muni === nq || loc === nq || String(s.cp || '') === rawQuery) return 0;
+                if (muni.startsWith(nq) || loc.startsWith(nq)) return 1;
+                if (rawQuery !== '' && String(s.cp || '').startsWith(rawQuery)) return 2;
+                if (muni.includes(nq) || loc.includes(nq)) return 3;
+                if (normalize(s.rotulo).includes(nq)) return 4;
+                return 5;
             }
 
-            return { data: matches.slice(offset, offset + limit), total: matches.length };
+            matches.forEach(s => {
+                s.relevance = relevance(s);
+                s.distanciaKm = null;
+                if (hasLocation) {
+                    s.distanciaKm = Math.round(haversine(lat, lon, s.lat, s.lon) * 100) / 100;
+                }
+            });
+
+            matches.sort((a, b) => {
+                if (a.relevance !== b.relevance) return a.relevance - b.relevance;
+                if (hasLocation && sort === 'distance') return a.distanciaKm - b.distanciaKm;
+                return (a.precios[fuel] || 999) - (b.precios[fuel] || 999);
+            });
+
+            return { stations: matches.slice(offset, offset + limit), total: matches.length };
         },
         station: async (ideess) => {
             let data = await loadData();
             return data.find(s => String(s.ideess) === String(ideess));
+        },
+
+        suggestPlaces: async (q) => {
+            const nq = normalize(q);
+            if (!nq) return [];
+            const data = await loadData();
+
+            const municipios = new Map();
+            const localidades = new Map();
+            for (const s of data) {
+                const muniNorm = normalize(s.municipio);
+                if (s.municipio && muniNorm.startsWith(nq) && !municipios.has(muniNorm)) {
+                    municipios.set(muniNorm, { label: s.municipio, sublabel: s.provincia });
+                }
+                const locNorm = normalize(s.localidad);
+                if (s.localidad && locNorm.startsWith(nq) && locNorm !== muniNorm && !localidades.has(locNorm)) {
+                    localidades.set(locNorm, { label: s.localidad, sublabel: `${s.municipio}, ${s.provincia}` });
+                }
+            }
+
+            const byLabel = (a, b) => a.label.localeCompare(b.label, 'es');
+            return [...municipios.values()].sort(byLabel)
+                .concat([...localidades.values()].sort(byLabel))
+                .slice(0, 8);
         }
     };
 })();
@@ -134,7 +196,7 @@ const Api = (() => {
             try {
                 return await request('/stations/suggest-places?q=' + encodeURIComponent(q));
             } catch (e) {
-                if (e.status === 0) return { places: [] }; // No geocoding offline without full DB
+                if (e.status === 0) return { places: await OfflineEngine.suggestPlaces(q) };
                 throw e;
             }
         },
