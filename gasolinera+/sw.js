@@ -1,7 +1,8 @@
 importScripts('/js/alerts-store.js');
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = 'gasolinera-shell-' + CACHE_VERSION;
+const API_CACHE_NAME = 'gasolinera-api-' + CACHE_VERSION;
 const SHELL_FILES = [
     '/',
     '/style.css',
@@ -23,7 +24,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+            Promise.all(keys.filter((key) => key !== CACHE_NAME && key !== API_CACHE_NAME).map((key) => caches.delete(key)))
         )
     );
     self.clients.claim();
@@ -32,24 +33,41 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    if (url.pathname.startsWith('/api/')) {
-        return;
-    }
-    if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+    // Cache OpenStreetMap tiles, Leaflet, and Chart.js from CDNs
+    const isCDN = url.hostname === 'unpkg.com' || url.hostname === 'cdn.jsdelivr.net' || url.hostname.endsWith('tile.openstreetmap.org');
+
+    if (event.request.method !== 'GET') {
         return;
     }
 
-    event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                }
-                return response;
-            })
-            .catch(() => caches.match(event.request))
-    );
+    if (url.pathname.startsWith('/api/')) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(API_CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+        return;
+    }
+
+    if (url.origin === self.location.origin || isCDN) {
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(isCDN ? CACHE_NAME : CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+    }
 });
 
 function formatPrice(value) {
