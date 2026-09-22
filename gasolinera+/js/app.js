@@ -309,6 +309,7 @@
     function requestGeolocation() {
         if (!('geolocation' in navigator)) {
             el.geoFallback.hidden = false;
+            performSearch('');
             return;
         }
         navigator.geolocation.getCurrentPosition(
@@ -328,6 +329,7 @@
                 closeGeoAsk();
                 el.geoFallback.hidden = false;
                 updateGeoToggle();
+                performSearch('');
             },
             { timeout: 8000 }
         );
@@ -350,6 +352,7 @@
         const pref = loadLocationPref();
         if (pref === 'off') {
             updateGeoToggle();
+            performSearch('');
             return;
         }
         if (pref === 'on') {
@@ -367,6 +370,7 @@
                 if (status.state === 'denied') {
                     el.geoFallback.hidden = false;
                     updateGeoToggle();
+                    performSearch('');
                     return;
                 }
             } catch (e) {
@@ -649,7 +653,10 @@
         if (price === undefined) {
             return null;
         }
-        const trend = station.tendencias[fuelSlug];
+        let trend = null;
+        if (station.tendencias) {
+            trend = station.tendencias[fuelSlug];
+        }
         let symbol = '';
         if (trend && TREND_SYMBOL[trend]) {
             symbol = TREND_SYMBOL[trend];
@@ -750,7 +757,7 @@
 
         state.map = L.map(el.map).setView([initialLat, initialLon], initialZoom);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
             maxZoom: 19,
         }).addTo(state.map);
 
@@ -1507,6 +1514,7 @@
         closeGeoAsk();
         saveLocationPref('off');
         updateGeoToggle();
+        performSearch('');
     });
     el.geoToggle.addEventListener('click', toggleLocation);
     
