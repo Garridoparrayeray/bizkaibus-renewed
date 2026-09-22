@@ -75,4 +75,4 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
-        run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
+        run: vercel rm bideplus --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
