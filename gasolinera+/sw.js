@@ -12,6 +12,7 @@ const SHELL_FILES = [
     '/manifest.json',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
+    '/data/stations-lite.json'
 ];
 
 self.addEventListener('install', (event) => {
