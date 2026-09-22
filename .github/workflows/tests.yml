@@ -3,11 +3,11 @@ name: Tests
 on:
   push:
     paths:
-      - 'bizkaibus_metro+/**'
+      - 'bideplus/**'
       - '.github/workflows/tests.yml'
   pull_request:
     paths:
-      - 'bizkaibus_metro+/**'
+      - 'bideplus/**'
       - '.github/workflows/tests.yml'
   workflow_dispatch: {}
 
@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 25
     defaults:
       run:
-        working-directory: bizkaibus_metro+
+        working-directory: bideplus
     env:
       CI: 'true'
       BASE_URL: http://localhost:8011
