@@ -539,33 +539,37 @@ function fetchLocalOrRemote(string $source): array
 require __DIR__ . '/../api/Models/Search.php';
 
 function generateLiteJson(string $dbPath): void {
-    echo "Generando JSON offline (stations-lite.json)...\n";
+    echo "Generando JSON offline con todos los datos de hoy...\n";
     $pdo = new PDO('sqlite:' . $dbPath);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    
+    // Obtener todas las gasolineras (quitamos campos internos normalizados para ahorrar un poco de peso)
     $stmt = $pdo->query('
         SELECT 
-            s.ideess as i,
-            s.lat as l,
-            s.lon as g,
-            s.rotulo as n,
-            s.direccion as d,
-            s.municipio as m,
-            s.horario_raw as h,
-            p95.precio as p95,
-            pa.precio as p
-        FROM stations s
-        LEFT JOIN current_prices p95 ON s.ideess = p95.ideess AND p95.carburante = \'gasolina_95_e5\'
-        LEFT JOIN current_prices pa ON s.ideess = pa.ideess AND pa.carburante = \'gasoleo_a\'
+            ideess, rotulo, direccion, localidad, municipio, municipio_id, provincia, provincia_id, ccaa_id, cp, margen, tipo_venta, horario_raw, is_24h, lat, lon 
+        FROM stations
     ');
     $stations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Obtener absolutamente todos los precios actuales de todos los carburantes
+    $prices = $pdo->query('SELECT ideess, carburante, precio FROM current_prices')->fetchAll(PDO::FETCH_ASSOC);
+    
+    $pricesById = [];
+    foreach ($prices as $p) {
+        $pricesById[$p['ideess']][$p['carburante']] = $p['precio'];
+    }
+    
+    // Unir precios con gasolineras
     foreach ($stations as &$st) {
-        $st['l'] = round((float)$st['l'], 5);
-        $st['g'] = round((float)$st['g'], 5);
-        if ($st['p95'] !== null) $st['p95'] = round((float)$st['p95'], 3);
-        else unset($st['p95']);
-        if ($st['p'] !== null) $st['p'] = round((float)$st['p'], 3);
-        else unset($st['p']);
+        if (isset($pricesById[$st['ideess']])) {
+            $st['precios'] = $pricesById[$st['ideess']];
+        } else {
+            $st['precios'] = new stdClass(); // Objeto vacío
+        }
+        
+        // Redondear lat/lon para no desperdiciar bytes
+        $st['lat'] = round((float)$st['lat'], 5);
+        $st['lon'] = round((float)$st['lon'], 5);
     }
     unset($st);
 
@@ -573,8 +577,8 @@ function generateLiteJson(string $dbPath): void {
     $outputPath = dirname($dbPath) . '/stations-lite.json';
     file_put_contents($outputPath, $json);
     
-    $kb = round(filesize($outputPath) / 1024, 2);
-    echo "Archivo JSON offline guardado: stations-lite.json ($kb KB)\n";
+    $mb = round(filesize($outputPath) / 1024 / 1024, 2);
+    echo "Archivo JSON offline guardado con éxito: stations-lite.json ($mb MB sin comprimir)\n";
 }
 
 main(array_slice($argv, 1));
