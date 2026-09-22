@@ -1,7 +1,7 @@
 <?php
 $ogTitle = 'Gasolinera+';
 $ogDescription = 'Precios de gasolina y diésel cerca de ti, actualizados a diario.';
-$ogUrl = 'https://bideplus.vercel.app/';
+$ogUrl = 'https://gasolineraplus.vercel.app/';
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = parse_url($requestUri, PHP_URL_PATH);
@@ -37,7 +37,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
                 $desc .= '. ' . implode(', ', $priceText);
             }
             $ogDescription = $desc . '. Comprueba el precio actual en Gasolinera+.';
-            $ogUrl = 'https://bideplus.vercel.app/stations/' . urlencode($ideess);
+            $ogUrl = 'https://gasolineraplus.vercel.app/stations/' . urlencode($ideess);
         }
     } catch (\Throwable $t) {
         // En caso de error, el frontend se recuperará normalmente. Fallback a genérico.
@@ -57,15 +57,20 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
     <meta property="og:title" content="<?= htmlspecialchars($ogTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($ogDescription) ?>">
     <meta property="og:url" content="<?= htmlspecialchars($ogUrl) ?>">
-    <meta property="og:image" content="https://bideplus.vercel.app/icons/icon-512.png">
+    <meta property="og:image" content="https://gasolineraplus.vercel.app/icons/icon-512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:site_name" content="Gasolinera+">
     <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:image" content="https://gasolineraplus.vercel.app/icons/icon-512.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#8A5A00">
     <link rel="apple-touch-icon" href="/icons/icon-maskable-192.png">
     <link rel="icon" href="/icons/icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
     <link rel="stylesheet" href="/style.css">
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -106,7 +111,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
             </span>
         </header>
 
-        <p id="offline-banner" role="status" hidden>Sin conexión: los precios no se pueden actualizar hasta que vuelvas a tener internet.</p>
+        <p id="offline-banner" role="status" hidden>Estás en modo local sin conexión: precios del último día sincronizado, sin histórico ni tendencias. Cuando te conectes otra vez a internet se actualizarán automáticamente.</p>
 
         <dialog id="geo-ask">
             <span id="geo-ask-logomark" aria-hidden="true">
@@ -313,11 +318,13 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
         <h3>Aviso Legal, Privacidad y Cookies</h3>
-        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong> y la <strong>LSSI-CE</strong>, informamos de lo siguiente:</p>
+        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong>, la <strong>LSSI-CE</strong> y la <strong>Ley 37/2007 de reutilización de la información del sector público</strong>, informamos de lo siguiente:</p>
         <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. Gasolinera+ no está afiliado ni respaldado por el Ministerio para la Transición Ecológica ni por ninguna marca de estaciones de servicio.</p>
-        <p><strong>Privacidad y Ubicación:</strong> Esta app <strong>no recopila, almacena ni cede datos personales</strong>. Si activas la ubicación, se usa estrictamente a nivel local en tu navegador para calcular distancias. No hay analíticas de terceros. El servicio se aloja de forma segura en Vercel, que procesa direcciones IP temporalmente por motivos técnicos y de seguridad.</p>
-        <p><strong>Política de Cookies y Almacenamiento Local:</strong> No usamos cookies de terceros ni de rastreo. Empleamos el almacenamiento local de tu navegador (<code>localStorage</code>) exclusivamente para guardar tus gasolineras "Favoritas" y el estado del "Comparador". Al ser una petición del usuario de carácter puramente técnico, está exenta del banner de consentimiento bajo el Art. 22.2 de la LSSI. Si borras los datos del navegador, se pierden.</p>
-        <p><strong>Fuentes de Datos:</strong> Los precios se publican tal cual los facilita el Ministerio. El mapa usa teselas de OpenStreetMap y búsquedas por Nominatim.</p>
+        <p><strong>Privacidad y ubicación:</strong> Esta app <strong>no recopila ni almacena datos personales en ningún servidor</strong>. Si activas la ubicación: con conexión a internet, tus coordenadas se envían de forma puntual a nuestro servidor únicamente para calcular las gasolineras más cercanas, sin guardarse; sin conexión, ese cálculo se hace enteramente en tu propio navegador y las coordenadas no salen de tu dispositivo.</p>
+        <p><strong>Analíticas:</strong> Usamos Vercel Web Analytics, una herramienta sin cookies que identifica cada visita con un hash no persistente (no un identificador de usuario) y descarta los datos a las 24 horas. Solo recoge estadísticas agregadas y anónimas (página vista, ubicación aproximada por ciudad, tipo de dispositivo y navegador): no permite identificarte ni rastrearte entre webs. Más información en <a href="https://vercel.com/docs/analytics/privacy-policy" target="_blank" rel="noopener noreferrer">la política de privacidad de Vercel</a>. El servicio se aloja de forma segura en Vercel, que procesa direcciones IP temporalmente por motivos técnicos y de seguridad.</p>
+        <p><strong>Cookies y almacenamiento local:</strong> No usamos cookies de terceros ni de rastreo. Empleamos el almacenamiento de tu propio navegador (<code>localStorage</code> e <code>IndexedDB</code>) exclusivamente para guardar tus gasolineras "Favoritas", el estado del "Comparador" y, si los activas, tus avisos de bajada de precio; todo queda solo en tu dispositivo. Al ser una petición del usuario de carácter puramente técnico, está exento del banner de consentimiento bajo el Art. 22.2 de la LSSI. Si borras los datos del navegador, se pierden.</p>
+        <p><strong>Modo sin conexión:</strong> Sin internet, la app sigue funcionando con la última copia de datos descargada (normalmente, la del día anterior). No están disponibles el histórico de precios, las tendencias, la comparación con la media de la zona ni la búsqueda de localidades sin gasolineras propias: todo eso requiere conexión. Al recuperar internet, la app se actualiza sola.</p>
+        <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los precios se publican tal cual los facilita el Ministerio para la Transición Ecológica, con actualización diaria automática y sin alterarlos; el mapa usa teselas de © OpenStreetMap contributors y búsquedas de lugares mediante Nominatim. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos, que pueden no coincidir con el precio real en el momento de repostar. Esta aplicación es meramente informativa, no sustituye la comprobación del precio en el propio surtidor, y su uso es responsabilidad exclusiva de quien la utiliza.</p>
         <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
     </dialog>
 
@@ -371,9 +378,9 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
     <p id="toast" hidden></p>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin=""></script>
     <script src="/js/alerts-store.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/app.js"></script>

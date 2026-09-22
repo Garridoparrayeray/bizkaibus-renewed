@@ -15,5 +15,10 @@ if (str_starts_with($uri, '/api/')) {
     require __DIR__ . '/api/index.php';
     return true;
 }
+if ($uri === '/' || preg_match('#^/stations/#', $uri)) {
+    require __DIR__ . '/api/shell.php';
+    return true;
+}
 
-require __DIR__ . '/api/shell.php';
+http_response_code(404);
+echo 'Not found';
