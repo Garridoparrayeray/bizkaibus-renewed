@@ -620,10 +620,12 @@
 
     function ensureLineMap() {
         if (mapState.map) return mapState.map;
-        mapState.map = L.map('line-map', { zoomControl: false, attributionControl: false });
+        // attributionControl activo a propósito: la licencia ODbL de OpenStreetMap
+        // exige que la atribución sea visible, no solo estar puesta en el string.
+        mapState.map = L.map('line-map', { zoomControl: false });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
         }).addTo(mapState.map);
         L.control.attribution({ prefix: false }).addTo(mapState.map);
         return mapState.map;
