@@ -34,8 +34,11 @@ const NETWORK_DEFAULTS = [
         'skipGeocode' => false,
     ],
 ];
-const GEOCACHE_PATH = __DIR__ . '/geocache.json';
+define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
+define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)(getenv('GEOCODE_MAX_NEW') !== false ? getenv('GEOCODE_MAX_NEW') : 300));
+define('GEOCODE_MAX_EMPTY_RETRIES_PER_RUN', (int)(getenv('GEOCODE_MAX_RETRIES') !== false ? getenv('GEOCODE_MAX_RETRIES') : 40));
+define('GEOCODE_PAUSE_MICROSECONDS', (int)(getenv('GEOCODE_PAUSE_US') !== false ? getenv('GEOCODE_PAUSE_US') : 1_100_000));
 
 function main(array $aArgv): void
 {
@@ -173,15 +176,15 @@ function parseArgs(array $aArgv): array
     return $aOut;
 }
 
-function geocodeStops(array $aStops, bool $bSkip): array
+function geocodeStops(array $aStops, bool $bSkip, ?callable $Lookup = null): array
 {
+    $Lookup = $Lookup ?? 'reverseGeocode';
     if ($bSkip) {
         foreach ($aStops as &$aStop) {
             $aStop['area'] = '';
         }
         return $aStops;
     }
-
     $aCache = [];
     if (is_file(GEOCACHE_PATH)) {
         $aCache = json_decode((string)file_get_contents(GEOCACHE_PATH), true);
@@ -189,49 +192,80 @@ function geocodeStops(array $aStops, bool $bSkip): array
     if (!is_array($aCache)) {
         $aCache = [];
     }
-
     $aClusterKeys = [];
     foreach ($aStops as $iId => $aStop) {
-        $sKey = round($aStop['lat'], 3) . ',' . round($aStop['lon'], 3);
-        $aClusterKeys[$iId] = $sKey;
+        $aClusterKeys[$iId] = round($aStop['lat'], 3) . ',' . round($aStop['lon'], 3);
     }
     $aUniqueKeys = array_unique(array_values($aClusterKeys));
     $aMissing = array_values(array_diff($aUniqueKeys, array_keys($aCache)));
+    $aEmpty = array_values(array_filter($aUniqueKeys, fn($sKey) => isset($aCache[$sKey]) && $aCache[$sKey] === ''));
+    $aPending = array_merge(
+        array_slice($aMissing, 0, GEOCODE_MAX_NEW_LOOKUPS_PER_RUN),
+        array_slice($aEmpty, 0, GEOCODE_MAX_EMPTY_RETRIES_PER_RUN)
+    );
+    echo '  ' . count($aUniqueKeys) . ' unique ~1km clusters, ' . count($aMissing) . ' not yet cached, '
+        . count($aEmpty) . ' cached empty; looking up ' . count($aPending) . "\n";
 
-    echo '  ' . count($aUniqueKeys) . ' unique ~1km clusters, ' . count($aMissing) . " not yet cached\n";
-
-    foreach ($aMissing as $iIndex => $sKey) {
+    $iDone = 0;
+    $iFailed = 0;
+    foreach ($aPending as $iIndex => $sKey) {
         [$sLat, $sLon] = explode(',', $sKey);
-        $aCache[$sKey] = reverseGeocode((float)$sLat, (float)$sLon);
-        if (($iIndex + 1) % 25 === 0 || $iIndex + 1 === count($aMissing)) {
-            echo '    geocoded ' . ($iIndex + 1) . '/' . count($aMissing) . "\r";
+        $sArea = $Lookup((float)$sLat, (float)$sLon);
+        if ($sArea === null) {
+            $iFailed++;
+        } else {
+            $aCache[$sKey] = $sArea;
+        }
+        $iDone++;
+        if ($iDone % 25 === 0 || $iDone === count($aPending)) {
+            echo '    geocoded ' . $iDone . '/' . count($aPending) . "\r";
             file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
         }
-        if ($iIndex + 1 < count($aMissing)) {
-            usleep(1_100_000);
+        if ($iDone < count($aPending) && GEOCODE_PAUSE_MICROSECONDS > 0) {
+            usleep(GEOCODE_PAUSE_MICROSECONDS);
         }
     }
-    if (!empty($aMissing)) {
+    if (!empty($aPending)) {
         echo "\n";
     }
+    if ($iFailed > 0) {
+        echo "  $iFailed lookups failed and were not cached (they will be retried next run)\n";
+    }
     file_put_contents(GEOCACHE_PATH, json_encode($aCache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
     foreach ($aStops as $iId => &$aStop) {
-        $aStop['area'] = '';
-        if (isset($aCache[$aClusterKeys[$iId]])) {
-            $aStop['area'] = $aCache[$aClusterKeys[$iId]];
-        }
+        $aStop['area'] = $aCache[$aClusterKeys[$iId]] ?? '';
     }
     return $aStops;
 }
 
-function reverseGeocode(float $dLat, float $dLon): string
+function reverseGeocode(float $dLat, float $dLon): ?string
+{
+    $aAddress = nominatimAddress($dLat, $dLon, 16);
+    if ($aAddress === null) {
+        return null;
+    }
+    $sArea = formatAddress($aAddress);
+    if ($sArea !== '') {
+        return $sArea;
+    }
+
+    if (GEOCODE_PAUSE_MICROSECONDS > 0) {
+        usleep(GEOCODE_PAUSE_MICROSECONDS);
+    }
+    $aWiderAddress = nominatimAddress($dLat, $dLon, 10);
+    if ($aWiderAddress === null) {
+        return null;
+    }
+    return formatAddress($aWiderAddress);
+}
+
+function nominatimAddress(float $dLat, float $dLon, int $iZoom): ?array
 {
     $sUrl = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
         'lat' => $dLat,
         'lon' => $dLon,
         'format' => 'jsonv2',
-        'zoom' => 16,
+        'zoom' => $iZoom,
         'addressdetails' => 1,
     ]);
     $Ch = curl_init($sUrl);
@@ -241,33 +275,22 @@ function reverseGeocode(float $dLat, float $dLon): string
         CURLOPT_HTTPHEADER => ['User-Agent: BizkaiBusPlus-etl/1.0 (' . NOMINATIM_CONTACT . ')'],
     ]);
     $sBody = curl_exec($Ch);
-    if ($sBody === false) {
-        return '';
+    $iStatus = (int)curl_getinfo($Ch, CURLINFO_HTTP_CODE);
+    curl_close($Ch);
+    if ($sBody === false || $iStatus !== 200) {
+        return null;
     }
     $aData = json_decode($sBody, true);
-    $aAddress = [];
-    if (isset($aData['address'])) {
-        $aAddress = $aData['address'];
+    if (!is_array($aData)) {
+        return null;
     }
+    return $aData['address'] ?? [];
+}
 
-    $sNeighbourhood = null;
-    if (isset($aAddress['neighbourhood'])) {
-        $sNeighbourhood = $aAddress['neighbourhood'];
-    }
-    $sSuburb = null;
-    if (isset($aAddress['suburb'])) {
-        $sSuburb = $aAddress['suburb'];
-    }
-    $sTownLevel = null;
-    if (isset($aAddress['town'])) {
-        $sTownLevel = $aAddress['town'];
-    } elseif (isset($aAddress['city'])) {
-        $sTownLevel = $aAddress['city'];
-    } elseif (isset($aAddress['village'])) {
-        $sTownLevel = $aAddress['village'];
-    }
-
-    $aParts = array_filter([$sNeighbourhood, $sSuburb, $sTownLevel]);
+function formatAddress(array $aAddress): string
+{
+    $sTownLevel = $aAddress['town'] ?? $aAddress['city'] ?? $aAddress['village'] ?? $aAddress['hamlet'] ?? $aAddress['municipality'] ?? null;
+    $aParts = array_filter([$aAddress['neighbourhood'] ?? null, $aAddress['suburb'] ?? null, $sTownLevel]);
     return implode(', ', array_unique($aParts));
 }
 
@@ -277,7 +300,7 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         $sTmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
         $Ch = curl_init($url);
         $Fp = fopen($sTmp, 'wb');
-        
+
         $aCurlOptions = [
             CURLOPT_FILE => $Fp,
             CURLOPT_FOLLOWLOCATION => true,
@@ -286,7 +309,6 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
             CURLOPT_USERAGENT => 'BizkaibusMetroApp/1.0',
         ];
 
-        // Attach NAP ApiKey
         $sNapKey = getenv('NAP_API_KEY');
         if ($sNapKey && str_contains(strtolower($url), 'nap.transportes.gob.es')) {
             $aCurlOptions[CURLOPT_HTTPHEADER] = ['ApiKey: ' . $sNapKey];
@@ -294,15 +316,15 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
 
         curl_setopt_array($Ch, $aCurlOptions);
         $bOk = curl_exec($Ch);
-        
+
         $error = null;
         if ($bOk === false) {
             $error = curl_error($Ch);
         }
-        
+
         curl_close($Ch);
         fclose($Fp);
-        
+
         if ($bOk) {
             return $sTmp;
         } else {
@@ -317,9 +339,9 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         if (is_string($result) && file_exists($result)) {
             return $result;
         }
-        
+
         fwrite(STDERR, "  -> Primary download failed: $result\n");
-        
+
         if ($sFallbackSource && preg_match('#^(https?|ftp)://#i', $sFallbackSource)) {
             echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
             $fallbackResult = $attemptDownload($sFallbackSource);
@@ -328,10 +350,10 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
             }
             fwrite(STDERR, "  -> Fallback download failed: $fallbackResult\n");
         }
-        
+
         exit(1);
     }
-    
+
     if (!file_exists($sSource)) {
         fwrite(STDERR, "Source file not found: $sSource\n");
         exit(1);
@@ -458,23 +480,6 @@ function loadStopsMetro(ZipArchive $Zip): array
     return $aStops;
 }
 
-/**
- * El GTFS de Euskotren (formato NeTEx) modela cada estación en dos niveles:
- * location_type=1 ("StopPlace", la estación real, con nombre y coordenadas
- * propias) y location_type=0 ("Quay", un andén concreto de esa estación,
- * referenciando su StopPlace en parent_station). A diferencia de Bizkaibus/
- * Metro (una fila = una parada real, sin más jerarquía), aquí SÍ tenemos el
- * dato de andén real —incluso estaciones grandes como Amara-Donostia con 9—,
- * así que en vez de forzarlo al mismo molde de bus/metro (colapsar todo en
- * la estación) se aprovecha: se guardan AMBOS niveles en la misma tabla
- * `stops` —la estación (station_id NULL, es lo que devuelve el buscador) y
- * cada andén (station_id = su estación, platform_label = "Andén N")—, y
- * stop_times.txt sigue referenciando el andén real sin remapear nada, así
- * StopsController::departures() puede agrupar las salidas una caja por
- * andén real en vez de una dirección genérica "hacia / desde" como Metro+.
- *
- * @return array<string,array{name:string,lat:float,lon:float,area?:string,stationId?:string,platformLabel?:string}>
- */
 function loadStopsEuskotren(ZipArchive $Zip): array
 {
     $aStations = [];
@@ -508,15 +513,10 @@ function loadStopsEuskotren(ZipArchive $Zip): array
 
     $aStops = $aStations;
     foreach ($aQuaysByParent as $sParentId => $aQuays) {
-        // Andén sin estación conocida (no debería pasar en este feed, pero
-        // por si acaso): se ignora en vez de crear una parada huérfana.
         if (!isset($aStations[$sParentId])) {
             continue;
         }
 
-        // Orden estable "Andén 1, 2, 3..." por el propio id del andén
-        // (siempre termina en "_Q<n>:" en este feed) para que el numerado
-        // no dependa del orden de aparición en el CSV.
         usort($aQuays, fn($aA, $aB) => $aA['stop_id'] <=> $aB['stop_id']);
 
         $iIndex = 1;
@@ -592,7 +592,6 @@ function loadCalendars(ZipArchive $Zip): array
 
         $aIncludedDates = [];
         if ($iBaseMask !== 0) {
-
             $iWeekdayMask = $iBaseMask | computeWeekdayMask($aAvailableDates);
         } else {
             $iWeekdayMask = computeWeekdayMaskFromEvidence($aAvailableDates, $aIncludedDates);
@@ -677,14 +676,6 @@ function loadTrips(ZipArchive $Zip): array
     return $aTrips;
 }
 
-/**
- * El GTFS "backdoor" de horarios de Metro (metrobilbao.eus, se usa cuando el
- * NAP oficial está caído) exporta el stop_id del andén real como float
- * ("1.0" en vez de "1") aunque el mismo id aparece limpio como parent_station
- * de esa misma fila — verificado en vivo, es un defecto de su exportación,
- * no del feed NAP. Sin normalizar, ningún id de parada casaría nunca (ni
- * entre stops.txt y stop_times.txt, ni al buscar una parada por id).
- */
 function stripFloatIdSuffix(string $sId): string
 {
     return preg_replace('/\.0$/', '', $sId);
@@ -865,7 +856,6 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
     $aExtraIncludedDatesByCalendarId = [];
     foreach ($aGroups as $aGroup) {
-
         if ($aGroup['calendarGroupKey'] !== '') {
             $aGroup['calendarId'] = $aGroup['calendarGroupKey'];
             $aRepresentatives[$aGroup['representativeTripId']] = $aGroup;
@@ -896,7 +886,6 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     }
 
     if (!empty($aExtraIncludedDatesByCalendarId)) {
-
         $aAlreadyIncluded = [];
         foreach ($aCalendars as $sCalId => $aCal) {
             foreach ($aCal['includedDates'] as $sDate) {
@@ -1062,7 +1051,6 @@ function createSchema(PDO $Pdo): void
 
 function loadFeedInfo(ZipArchive $Zip): array
 {
-
     if ($Zip->locateName('feed_info.txt') === false) {
         return [];
     }
@@ -1105,16 +1093,6 @@ function insertMeta(PDO $Pdo, array $aFeedInfo): void
     }
 }
 
-/**
- * Quita de `stops` cualquier parada (andén o estación) que nunca aparece en
- * `passing_times` — no tiene ni una sola salida real. En Euskotren pasa con
- * estaciones que solo sirve el tranvía/funicular en el feed NAP combinado
- * (mismo edificio de StopPlace, pero sus rutas quedan fuera por agencyId al
- * cargar routes.txt, ver loadRoutes): verificado en vivo, Ribera y Arriaga
- * en Bilbao Casco Viejo no tienen ningún tren de Euskotren, solo tranvía.
- * Sin este filtro aparecían en el buscador como si fueran paradas reales.
- * Genérico para las tres redes por si algún día bus/metro tienen el mismo caso.
- */
 function pruneUnservedStops(PDO $Pdo): int
 {
     $iDeletedQuays = $Pdo->exec('
@@ -1186,4 +1164,6 @@ function insertCalendars(PDO $Pdo, array $aCalendars): void
     }
 }
 
-main(array_slice($argv, 1));
+if (PHP_SAPI === 'cli' && isset($argv[0]) && realpath($argv[0]) === realpath(__FILE__)) {
+    main(array_slice($argv, 1));
+}

@@ -40,7 +40,9 @@ class TimetableController
         $iHourFrom = $this->hmToSeconds($Req->query('hourFrom', '00:00'));
         $iHourTo = $this->hmToSeconds($Req->query('hourTo', '23:59'));
 
-        if ($iHourTo < $iHourFrom) {
+        $bCrossesMidnight = $iHourTo < $iHourFrom;
+        $iNextDayHourTo = $iHourTo;
+        if ($bCrossesMidnight) {
             $iHourTo += 24 * 3600;
         }
 
@@ -52,6 +54,17 @@ class TimetableController
 
         $JourneyModel = new ServiceJourney($Pdo);
         $aRows = $JourneyModel->timetableForLine($sLineId, $Date, $iHourFrom, $iHourTo, $sStopId);
+
+        if ($bCrossesMidnight) {
+            $NextDate = (clone $Date)->modify('+1 day');
+            $aNextDayRows = $JourneyModel->timetableForLine($sLineId, $NextDate, 0, $iNextDayHourTo, $sStopId);
+            foreach ($aNextDayRows as &$aNextDayRow) {
+                $aNextDayRow['departure_seconds'] = (int)$aNextDayRow['departure_seconds'] + 24 * 3600;
+            }
+            unset($aNextDayRow);
+            $aRows = array_merge($aRows, $aNextDayRows);
+            usort($aRows, fn($aA, $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        }
 
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($bIsToday && isset($aConfig['siri'])) {
@@ -70,7 +83,11 @@ class TimetableController
         }
         $bIsMetro = $sNetwork === 'metro';
 
-        $aEntries = array_map(function ($aRow) use ($bIsMetro) {
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $sDate = $Date->format('Y-m-d');
+        $iNow = Calendar::nowSecondsSinceMidnight();
+
+        $aEntries = array_map(function ($aRow) use ($bIsMetro, $sToday, $sDate, $iNow) {
             $sHeadsign = $aRow['headsign'];
             if ($bIsMetro && !empty($aRow['last_stop_name'])) {
                 $sHeadsign = $aRow['last_stop_name'];
@@ -83,11 +100,15 @@ class TimetableController
             if ($iDelaySeconds !== 0) {
                 $iDelayMinutes = (int)round($iDelaySeconds / 60);
             }
+            $sStatus = $aRow['status'];
+            if ($sStatus === 'scheduled' && ($sDate < $sToday || ($sDate === $sToday && (int)$aRow['departure_seconds'] < $iNow))) {
+                $sStatus = 'departed';
+            }
             return [
                 'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
                 'departure' => Calendar::secondsToHm((int)$aRow['departure_seconds']),
                 'headsign' => $sHeadsign,
-                'status' => $aRow['status'],
+                'status' => $sStatus,
                 'delayMinutes' => $iDelayMinutes,
             ];
         }, $aRows);
@@ -99,11 +120,20 @@ class TimetableController
             $sPublished = $aConfig['schedule_source_published'];
         }
 
+        $FeedEndStmt = $Pdo->prepare('SELECT value FROM meta WHERE key = ?');
+        $FeedEndStmt->execute(['feed_end_date']);
+        $sPublishedUntil = $FeedEndStmt->fetchColumn();
+        if (!$sPublishedUntil) {
+            $sPublishedUntil = $Pdo->query('SELECT MAX(to_date) FROM service_calendars')->fetchColumn();
+        }
+
         Response::json([
             'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
             'date' => $Date->format('Y-m-d'),
             'entries' => $aEntries,
             'scheduleSourcePublished' => $sPublished,
+            'publishedUntil' => $sPublishedUntil ?: null,
+            'beyondPublished' => $sPublishedUntil ? $sDate > $sPublishedUntil : false,
         ]);
     }
 
