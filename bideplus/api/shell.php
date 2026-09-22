@@ -16,7 +16,15 @@ $bIsMetroShare     = isset($_GET['red']) && $_GET['red'] === 'metro';
 $bIsEuskoTrenShare = isset($_GET['red']) && $_GET['red'] === 'euskotren';
 
 $networkSlug = 'bus';
-if ($bIsMetroShare) {
+if ($isMiamorDomain) {
+    // Vista previa al compartir el enlace (WhatsApp, etc.): crawlers no
+    // ejecutan JS, así que la detección de tema por hostname del script
+    // de más abajo no les llega — esto se resuelve aquí, en servidor.
+    $sOgTitle       = 'Para el amor de mi vida 💕';
+    $sOgDescription = 'Horarios y tiempo real de tu transporte, hecho con cariño para ti.';
+    $sOgImage       = 'https://bideplusmiamor.vercel.app/icons/icon-512.png';
+    $sFaviconFolder = 'icons';
+} elseif ($bIsMetroShare) {
     $sOgTitle       = 'Metro+ · Horarios de Metro Bilbao';
     $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los avisos de servicio, sin vueltas.';
     $sOgImage       = $site['url'] . '/icons-metro/icon-512.png';
@@ -37,9 +45,10 @@ if ($bIsMetroShare) {
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = parse_url($requestUri, PHP_URL_PATH);
-$ogUrl = $site['url'] . $path;
+$ogSiteUrl = $isMiamorDomain ? 'https://bideplusmiamor.vercel.app' : $site['url'];
+$ogUrl = $ogSiteUrl . $path;
 if ($path === '/' || $path === '') {
-    $ogUrl = $site['url'] . '/?red=' . $networkSlug;
+    $ogUrl = $isMiamorDomain ? $ogSiteUrl . '/' : $ogSiteUrl . '/?red=' . $networkSlug;
 }
 $ogAlt = 'Icono de ' . $sOgTitle;
 

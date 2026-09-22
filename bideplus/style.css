@@ -106,6 +106,19 @@ body {
     .pill small { display: block; font-weight: 500; opacity: 0.7; font-size: 0.75em; white-space: normal; }
         .pill small.pill-hint { font-style: italic; }
 
+.nearby-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; margin: -4px 0 16px; padding: 12px 16px;
+    border: none; border-radius: 20px;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    color: var(--pink-dark); font-weight: 600; cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+    .nearby-btn svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2.25; }
+    .nearby-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08); }
+    .nearby-btn:active { transform: scale(0.97); }
+
 .status-dot {
     display: inline-block; width: 9px; height: 9px; border-radius: 50%;
     background: var(--status-muted); margin-right: 6px;
