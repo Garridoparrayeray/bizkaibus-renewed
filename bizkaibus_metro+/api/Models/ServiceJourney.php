@@ -6,7 +6,6 @@ use Services\Calendar;
 
 class ServiceJourney
 {
-
     private const DEDUPE_TOLERANCE_SECONDS = 90;
 
     private const PAST_GRACE_SECONDS = 900;
@@ -22,33 +21,16 @@ class ServiceJourney
     {
     }
 
-    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int|string|null $iReferenceStopId = null): array
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $iWeekdayBit = Calendar::todayWeekdayBit();
         $sToday = Calendar::todayMadrid()->format('Y-m-d');
-
-        $sDirectionSelect = '';
-        if ($iReferenceStopId !== null) {
-            $sDirectionSelect = ',
-                CASE WHEN (
-                    SELECT jps_ref.seq_order FROM journey_pattern_stops jps_ref
-                    WHERE jps_ref.journey_pattern_id = jp.id AND jps_ref.stop_id = :referenceStopId
-                    LIMIT 1
-                ) IS NULL THEN \'toward_reference\'
-                WHEN pt.seq_order < (
-                    SELECT jps_ref.seq_order FROM journey_pattern_stops jps_ref
-                    WHERE jps_ref.journey_pattern_id = jp.id AND jps_ref.stop_id = :referenceStopId2
-                    LIMIT 1
-                ) THEN \'toward_reference\'
-                ELSE \'away_from_reference\' END AS direction';
-        }
 
         $Stmt = $this->Pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
-                   l.code AS line_code, l.name AS line_name, jp.headsign,
+                   l.code AS line_code, l.name AS line_name, jp.id AS journey_pattern_id, jp.headsign,
                    pt.arrival_seconds, pt.departure_seconds,
-                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name' . $sDirectionSelect . '
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
             JOIN service_calendars sc ON sc.id = sj.calendar_id
@@ -56,6 +38,7 @@ class ServiceJourney
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE pt.stop_id = :stopId
               AND sc.id != \'PRUEBA\'
+              AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
               AND (
                   (sc.weekday_mask & :weekdayBit) != 0
                   OR EXISTS (
@@ -67,38 +50,71 @@ class ServiceJourney
                   SELECT 1 FROM service_calendar_exceptions sce
                   WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
               )
-              AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
             ORDER BY pt.departure_seconds ASC
         ');
-        $aParams = [
+        $Stmt->execute([
             'stopId' => $iStopId,
-            'weekdayBit' => $iWeekdayBit,
+            'weekdayBit' => Calendar::todayWeekdayBit(),
             'today' => $sToday,
             'today2' => $sToday,
             'windowStart' => $iNow - self::PAST_GRACE_SECONDS,
             'windowEnd' => $iNow + $iWindowSeconds,
-        ];
-        if ($iReferenceStopId !== null) {
-            $aParams['referenceStopId'] = $iReferenceStopId;
-            $aParams['referenceStopId2'] = $iReferenceStopId;
-        }
-        $Stmt->execute($aParams);
+        ]);
 
         return $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5);
+    }
+
+    public function directionsByPattern(int|string $iStopId, int|string $iReferenceStopId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT jp.id AS pattern_id,
+                   j.seq_order AS stop_seq,
+                   (SELECT jr.seq_order FROM journey_pattern_stops jr
+                    WHERE jr.journey_pattern_id = jp.id AND jr.stop_id = :ref LIMIT 1) AS ref_seq,
+                   last_stop.name AS last_name,
+                   last_stop.lon AS last_lon
+            FROM journey_patterns jp
+            JOIN journey_pattern_stops j ON j.journey_pattern_id = jp.id AND j.stop_id = :stop
+            JOIN stops last_stop ON last_stop.id = (
+                SELECT jl.stop_id FROM journey_pattern_stops jl
+                WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1
+            )
+        ');
+        $Stmt->execute(['ref' => $iReferenceStopId, 'stop' => $iStopId]);
+        $aRows = $Stmt->fetchAll();
+        if (empty($aRows)) {
+            return [];
+        }
+
+        $LonStmt = $this->Pdo->prepare('SELECT lon FROM stops WHERE id = ?');
+        $LonStmt->execute([$iStopId]);
+        $dStopLon = (float)$LonStmt->fetchColumn();
+        $LonStmt->execute([$iReferenceStopId]);
+        $dReferenceLon = (float)$LonStmt->fetchColumn();
+
+        $aDirections = [];
+        foreach ($aRows as $aRow) {
+            $bSameSideAsReference = ((float)$aRow['last_lon'] - $dStopLon) * ($dReferenceLon - $dStopLon) > 0;
+            if ($aRow['ref_seq'] !== null && (int)$aRow['stop_seq'] !== (int)$aRow['ref_seq']) {
+                $bToward = (int)$aRow['stop_seq'] < (int)$aRow['ref_seq'];
+            } elseif ((string)$iStopId === (string)$iReferenceStopId) {
+                $bToward = (float)$aRow['last_lon'] > $dStopLon;
+            } else {
+                $bToward = $bSameSideAsReference;
+            }
+            $aDirections[$aRow['pattern_id']] = [
+                'direction' => $bToward ? 'toward_reference' : 'away_from_reference',
+                'terminus' => $aRow['last_name'],
+            ];
+        }
+        return $aDirections;
     }
 
     public function timetableForLine(int|string $iLineId, \DateTime $Date, int $iHourFromSeconds, int $iHourToSeconds, int|string|null $iStopId = null): array
     {
         $iWeekdayBit = Calendar::weekdayBitFor($Date);
         $sDateStr = $Date->format('Y-m-d');
-        // El id de parada que llega aquí puede ser el de una estación de
-        // Euskotren (agrupa varios andenes, ver Stop::platformsFor) en vez
-        // del id exacto que pasa por passing_times.stop_id (siempre un andén
-        // real para Euskotren, la propia parada para bus/metro que no tienen
-        // ese nivel). Por eso se compara contra el id directo O contra
-        // cualquier andén cuya estación sea ese id — para bus/metro la
-        // segunda mitad simplemente nunca encuentra nada (station_id es
-        // siempre NULL en sus filas).
+
         $sStopCondition = 'pt.seq_order = 1';
         if ($iStopId !== null) {
             $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)';

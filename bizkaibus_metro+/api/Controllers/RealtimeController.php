@@ -6,6 +6,7 @@ use Core\Database;
 use Core\Ids;
 use Core\Request;
 use Core\Response;
+use Core\TripKey;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
@@ -84,13 +85,12 @@ class RealtimeController
 
     public function vehicle(Request $Req, array $aParams): void
     {
-        [$sLineIdRaw, $sTripNumber, $sFirstDepartureSecondsRaw] = array_pad(explode('-', $aParams['tripKey'], 3), 3, null);
-        if ($sLineIdRaw === null || $sTripNumber === null || $sFirstDepartureSecondsRaw === null) {
+        $aTripKey = TripKey::parse($aParams['tripKey']);
+        if ($aTripKey === null) {
             Response::error('Invalid vehicle key', 422);
             return;
         }
-        $sLineId = $sLineIdRaw;
-        $iFirstDepartureSeconds = (int)$sFirstDepartureSecondsRaw;
+        [$sLineId, $sTripNumber, $iFirstDepartureSeconds] = $aTripKey;
 
         $Pdo = Database::connection();
         $JourneyModel = new ServiceJourney($Pdo);
@@ -136,6 +136,14 @@ class RealtimeController
         $sStatus = 'scheduled';
         if ($aLive !== null) {
             $sStatus = 'live';
+        } elseif (!empty($aStops)) {
+            $iFirstArrival = (int)$aStops[0]['arrival_seconds'];
+            $iLastArrival = (int)$aStops[count($aStops) - 1]['arrival_seconds'];
+            if ($iNow > $iLastArrival) {
+                $sStatus = 'finished';
+            } elseif ($iNow >= $iFirstArrival) {
+                $sStatus = 'departed';
+            }
         }
 
         $iDelayMinutes = 0;

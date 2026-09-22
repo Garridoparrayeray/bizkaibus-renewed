@@ -18,12 +18,7 @@ class MetroAlertsClient
     {
         $aCfg = $this->aConfig['metro_alerts'];
         return Cache::remember('metro_alerts', $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
-            try {
-                $sBody = Http::get($aCfg['url'], $aCfg['http_timeout_seconds']);
-            } catch (\Throwable $Ex) {
-                return [];
-            }
-            return self::parse($sBody);
+            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']));
         });
     }
 

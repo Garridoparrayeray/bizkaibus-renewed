@@ -18,6 +18,15 @@ class Config
         self::$aCurrent = require $sPath;
     }
 
+    public static function withoutHiddenLines(array $aLines): array
+    {
+        $aHidden = self::current()['hidden_line_codes'] ?? [];
+        if (empty($aHidden)) {
+            return $aLines;
+        }
+        return array_values(array_filter($aLines, fn($aLine) => !in_array($aLine['code'], $aHidden, true)));
+    }
+
     public static function current(): array
     {
         if (self::$aCurrent === null) {
