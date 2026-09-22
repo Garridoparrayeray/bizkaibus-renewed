@@ -159,7 +159,10 @@ $jsonLd = [
         (function () {
             var params = new URLSearchParams(location.search);
             var qTema = params.get('tema');
-            var isMiamor = qTema === 'miamor';
+            // bideplusmiamor.vercel.app es un dominio dedicado, sin toggle ni
+            // forma de salir del tema: siempre "mi amor" en ese dominio.
+            var isMiamorDomain = location.hostname === 'bideplusmiamor.vercel.app';
+            var isMiamor = isMiamorDomain || qTema === 'miamor';
             if (qTema === 'miamor' || qTema === 'pro') {
                 params.delete('tema');
                 var qs = params.toString();
@@ -480,31 +483,6 @@ $jsonLd = [
         <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los horarios estáticos y, cuando existe, el tiempo real proceden de las fuentes oficiales de cada operador: BizkaiBus+ (Bizkaibus / Open Data Bizkaia, CC-BY 4.0), Metro+ (Metro Bilbao / Open Data Metro Bilbao) y Euskotren+ (Euskotren / Open Data Euskadi, CC-BY 4.0), publicados sin alterarlos. El mapa en vivo de Bizkaibus usa teselas de © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, cuyos datos también se han usado para asignar zona o barrio a las paradas. La posición de los vehículos y el tiempo estimado de llegada en tiempo real son una estimación (contrastada con el horario oficial dentro de un margen de tolerancia) y pueden no coincidir exactamente con la realidad: no los uses como única referencia para no perder un servicio. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos; esta aplicación es meramente informativa y su uso es responsabilidad exclusiva de quien la utiliza.</p>
         <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
     </dialog>
-
-    <a id="theme-toggle-link" href="#" class="theme-toggle-link" aria-label="Cambiar tema"></a>
-    <script>
-        (function () {
-            var isMiamorActive = window.__bbTheme === 'miamor';
-            var redSuffix = '?red=bus';
-            if (window.__bbNetwork === 'metro') {
-                redSuffix = '?red=metro';
-            } else if (window.__bbNetwork === 'euskotren') {
-                redSuffix = '?red=euskotren';
-            }
-            var themeToggleLink = document.getElementById('theme-toggle-link');
-            if (isMiamorActive) {
-                themeToggleLink.href = '/' + redSuffix;
-                themeToggleLink.setAttribute('aria-label', 'Volver al tema normal');
-            } else {
-                var joiner = '?';
-                if (redSuffix) {
-                    joiner = '&';
-                }
-                themeToggleLink.href = '/' + redSuffix + joiner + 'tema=miamor';
-                themeToggleLink.setAttribute('aria-label', 'Cambiar al tema mi amor');
-            }
-        })();
-</script>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
