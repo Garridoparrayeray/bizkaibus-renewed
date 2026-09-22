@@ -219,7 +219,7 @@ const Api = (() => {
                 if (e.status === 0) {
                     const st = await OfflineEngine.station(ideess);
                     if (!st) throw new Error("No encontrada");
-                    return { station: st, history: [] }; // No history offline
+                    return { station: st, history: [] };
                 }
                 throw e;
             }
