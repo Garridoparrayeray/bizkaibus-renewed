@@ -111,7 +111,7 @@ if (preg_match('#^/stations/([^/]+)/?$#', $path, $matches)) {
             </span>
         </header>
 
-        <p id="offline-banner" role="status" hidden>Sin conexión: los precios no se pueden actualizar hasta que vuelvas a tener internet.</p>
+        <p id="offline-banner" role="status" hidden>Estás en modo local sin conexión. Puede haber variación en los precios mostrados. Cuando te conectes otra vez a internet se actualizarán automáticamente.</p>
 
         <dialog id="geo-ask">
             <span id="geo-ask-logomark" aria-hidden="true">
