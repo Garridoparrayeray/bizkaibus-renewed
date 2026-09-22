@@ -34,7 +34,7 @@ ws.onmessage = e => {
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') problems.push(`[${where}] console.error ${(m.params.args[0]?.value || m.params.args[0]?.description || '').toString().slice(0, 140)}`);
     if (m.method === 'Network.responseReceived') {
         const { status, url } = m.params.response;
-        if (status >= 400 && !/favicon|_vercel/.test(url) && !(where === 'nearby' && /lat=40\.4/.test(url))) problems.push(`[${where}] HTTP ${status} ${url.replace(BASE, '')}`);
+        if (status >= 400 && !/favicon|_vercel/.test(url)) problems.push(`[${where}] HTTP ${status} ${url.replace(BASE, '')}`);
     }
     if (m.method === 'Network.loadingFailed' && m.params.errorText !== 'net::ERR_ABORTED' && !/_vercel|unpkg|googleapis|gstatic|tile\.openstreetmap|cartocdn/.test(m.params.errorText)) {
         problems.push(`[${where}] carga fallida ${m.params.errorText}`);
@@ -48,7 +48,11 @@ const ev = async expr => {
 await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
 
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    const line = `${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`;
+    results.push(line);
+    if (process.env.VERBOSE) console.log(line);
+};
 const skip = (name, why) => results.push(`SKIP ${name} — ${why}`);
 const go = async (url, wait = 2800) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 const search = async (q, wait = 3200) => {
@@ -62,9 +66,13 @@ const apps = [
     { key: 'euskotren', url: '/?red=euskotren', q: 'amara', panel: 'platform-panel' },
 ];
 
-for (const size of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }]) {
+const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
+const sizeFilter = process.env.SIZES ? process.env.SIZES.split(',') : null;
+const appFilter = process.env.APPS ? process.env.APPS.split(',') : null;
+for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n)))) {
     await send('Emulation.setDeviceMetricsOverride', { width: size.w, height: size.h, deviceScaleFactor: 1, mobile: size.m });
     for (const a of apps) {
+        if (appFilter && !appFilter.includes(a.key)) continue;
         const tag = `${a.key}/${size.n}`;
         where = tag;
         await go(a.url);
@@ -129,36 +137,6 @@ for (const size of [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366,
         await ev('localStorage.clear()');
     }
 }
-
-where = 'nearby';
-await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-const nearbyCases = [
-    { key: 'bus', url: '/?red=bus', lat: 43.26347, lon: -2.93506, expect: 'MOYUA', panel: 'live-card' },
-    { key: 'metro', url: '/?red=metro', lat: 43.32595, lon: -3.00961, expect: 'Areeta', panel: 'platform-panel' },
-    { key: 'euskotren', url: '/?red=euskotren', lat: 43.313179, lon: -1.981685, expect: 'Amara', panel: 'platform-panel' },
-];
-const clickNearby = async () => { await ev("document.getElementById('nearby-btn').click()"); await sleep(3500); };
-for (const c of nearbyCases) {
-    await send('Browser.grantPermissions', { permissions: ['geolocation'], origin: BASE });
-    await send('Emulation.setGeolocationOverride', { latitude: c.lat, longitude: c.lon, accuracy: 20 });
-    await go(c.url);
-    await clickNearby();
-    const firstText = await ev("(document.querySelector('#search-results .pill') || {}).innerText || ''");
-    check(`cerca de mi ${c.key}: la primera parada es la mas cercana`, firstText.toLowerCase().includes(c.expect.toLowerCase()), firstText.split('\n')[0]);
-    check(`cerca de mi ${c.key}: muestra distancia`, / (m|km) ·/.test(firstText), firstText.replace(/\n/g, ' | ').slice(0, 90));
-    await ev("document.querySelector('#search-results .pill').click()");
-    await sleep(3500);
-    check(`cerca de mi ${c.key}: al pulsar se abre la ficha de la parada`, (await ev(`!document.getElementById('${c.panel}').hidden`)) === true);
-}
-await send('Emulation.setGeolocationOverride', { latitude: 40.4, longitude: -3.7, accuracy: 20 });
-await go('/?red=bus');
-await clickNearby();
-check('cerca de mi: ubicacion fuera de la zona muestra aviso', (await ev("(document.querySelector('#search-results .search-message') || {}).innerText || ''")).includes('fuera de la zona'));
-await send('Browser.setPermission', { permission: { name: 'geolocation' }, setting: 'denied', origin: BASE });
-await go('/?red=bus');
-await clickNearby();
-check('cerca de mi: permiso denegado muestra aviso', (await ev("(document.querySelector('#search-results .search-message') || {}).innerText || ''")).includes('denegado'));
-await send('Browser.resetPermissions');
 
 where = 'deep';
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });

@@ -666,6 +666,9 @@ dialog#side-menu {
         #modal-stops li.stop-current { color: var(--primary); font-weight: 700; }
         #modal-stops li.stop-past { opacity: .45; }
 #menu-favorites-open { width: 100%; justify-content: flex-start; margin: 44px 0 24px; }
+.alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--text); font-size: .9rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
+    .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary); }
+.alerts-note { margin: 0 0 14px; color: var(--text-secondary); font-size: .8rem; line-height: 1.4; }
 #menu-alerts-empty { color: var(--text-secondary); font-size: .85rem; }
 #menu-alerts-list { margin: 0; padding: 0; list-style: none; }
     #menu-alerts-list li { margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }

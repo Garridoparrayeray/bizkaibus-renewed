@@ -65,6 +65,16 @@ jobs:
           CHROME_PATH: google-chrome
         run: node tests/ui-offline.mjs
 
+      - name: UI avisos (notificaciones de incidencias)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-alerts.mjs
+
+      - name: UI cerca de mi (GPS)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-nearby.mjs
+
       - name: Server log (on failure)
         if: failure()
         run: cat "$RUNNER_TEMP/php-server.log" || true
