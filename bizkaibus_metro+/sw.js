@@ -1,3 +1,5 @@
+importScripts('/js/alerts-store.js');
+
 const CACHE_VERSION = 'v6';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
@@ -19,6 +21,7 @@ const SHELL_FILES = [
     '/lib/leaflet/images/marker-shadow.png',
     '/js/api.js',
     '/js/app.js',
+    '/js/alerts-store.js',
     '/js/menu.js',
     '/js/menu-view.js',
     '/style-menu.css',
@@ -93,4 +96,31 @@ self.addEventListener('fetch', (event) => {
             })
             .catch(() => caches.match(event.request))
     );
+});
+
+async function notifyNewAlerts() {
+    if (!(await AlertsStore.get('enabled'))) return;
+    const fresh = await AlertsStore.checkAlerts();
+    if (fresh.length > 0) await AlertsStore.notify(self.registration, fresh);
+}
+
+self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'line-alerts-check') {
+        event.waitUntil(notifyNewAlerts());
+    }
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = (event.notification.data && event.notification.data.url) || '/';
+    event.waitUntil((async () => {
+        const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of windows) {
+            if ('navigate' in client) {
+                await client.navigate(url);
+                return client.focus();
+            }
+        }
+        return clients.openWindow(url);
+    })());
 });

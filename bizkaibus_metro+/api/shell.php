@@ -534,19 +534,23 @@ $jsonLd = [
             Tus favoritos
         </button>
         <h3>Incidencias de mis líneas</h3>
+        <label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span>Avisarme de las incidencias nuevas de mis líneas favoritas</span></label>
+        <p id="alerts-note" class="alerts-note" role="status" hidden></p>
         <p id="menu-alerts-empty">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
         <ul id="menu-alerts-list"></ul>
     </dialog>
 
     <script src="/lib/leaflet/leaflet.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/alerts-store.js"></script>
     <script src="js/app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
             let bbSwRefreshed = false;
+            const bbHadController = !!navigator.serviceWorker.controller;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (bbSwRefreshed) return;
+                if (!bbHadController || bbSwRefreshed) return;
                 bbSwRefreshed = true;
                 location.reload();
             });
