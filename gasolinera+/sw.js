@@ -1,6 +1,6 @@
 importScripts('/js/alerts-store.js');
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = 'gasolinera-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'gasolinera-api-' + CACHE_VERSION;
 const SHELL_FILES = [
