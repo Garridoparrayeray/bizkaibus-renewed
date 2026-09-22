@@ -1,7 +1,10 @@
 <?php
 
 $menuPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-if (($menuPath === '/' || $menuPath === '') && !isset($_GET['red']) && !isset($_GET['tema'])) {
+// bideplusmiamor.vercel.app va directa al tema, sin pasar por el menú
+// selector de apps — es un dominio dedicado, no un punto de entrada más.
+$isMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
+if (!$isMiamorDomain && ($menuPath === '/' || $menuPath === '') && !isset($_GET['red']) && !isset($_GET['tema'])) {
     require __DIR__ . '/Views/menu.php';
     exit;
 }
