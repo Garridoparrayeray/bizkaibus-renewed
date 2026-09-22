@@ -1,6 +1,10 @@
 (() => {
     const IS_METRO = window.__bbNetwork === 'metro';
     const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
+    let networkQuery = '';
+    if (IS_METRO || IS_EUSKOTREN) {
+        networkQuery = '?red=' + window.__bbNetwork;
+    }
     const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites'
         : IS_EUSKOTREN ? 'euskotren_favorites'
         : 'bizkaibus_favorites';
@@ -45,6 +49,7 @@
         searchForm: document.getElementById('search-form'),
         searchInput: document.getElementById('search-input'),
         searchResults: document.getElementById('search-results'),
+        nearbyBtn: document.getElementById('nearby-btn'),
         favoritesList: document.getElementById('favorites-list'),
         favoritesEmpty: document.getElementById('favorites-empty'),
         liveCard: document.getElementById('live-card'),
@@ -120,6 +125,8 @@
                 ? { text: `Retraso +${delayMinutes}m`, className: 'status-warn' }
                 : { text: 'En hora', className: 'status-ok' };
         }
+        if (status === 'finished') return { text: 'Finalizado', className: 'status-muted' };
+        if (status === 'departed') return { text: 'Ya salió', className: 'status-muted' };
         return { text: 'Programado', className: 'status-muted' };
     }
 
@@ -146,11 +153,13 @@
     }
 
     function toggleNetworkMenu() {
-        el.networkSwitch.classList.toggle('open');
+        const isOpen = el.networkSwitch.classList.toggle('open');
+        el.homeLink.setAttribute('aria-expanded', String(isOpen));
     }
 
     function closeNetworkMenu() {
         el.networkSwitch.classList.remove('open');
+        el.homeLink.setAttribute('aria-expanded', 'false');
     }
 
     function closeLiveCard() {
@@ -159,7 +168,7 @@
         el.platformPanel.hidden = true;
         el.liveEmpty.hidden = false;
         stopDeparturesRefresh();
-        if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/');
+        if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
     function closeTimetableSection() {
@@ -167,7 +176,7 @@
         el.timetableSection.hidden = true;
         stopLineMapRefresh();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/');
+        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
     async function performSearch(query) {
@@ -218,6 +227,73 @@
         el.searchResults.hidden = false;
     }
 
+    function showSearchMessage(text) {
+        el.searchResults.innerHTML = '';
+        const li = document.createElement('li');
+        li.className = 'search-message';
+        li.textContent = text;
+        el.searchResults.appendChild(li);
+        el.searchResults.hidden = false;
+    }
+
+    function formatDistance(meters) {
+        return meters < 1000 ? `${Math.max(10, Math.round(meters / 10) * 10)} m` : `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
+    }
+
+    function renderNearbyResults(stops) {
+        el.searchResults.innerHTML = '';
+        for (const stop of stops) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'pill';
+            const next = stop.next
+                ? `${stop.next.lineCode} → ${stop.next.headsign} · ${Math.max(stop.next.etaMinutes, 0)} min`
+                : 'Sin salidas próximas';
+            setPillContent(button, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
+            button.addEventListener('click', () => {
+                el.searchResults.hidden = true;
+                selectStop(stop.id);
+            });
+            li.appendChild(button);
+            el.searchResults.appendChild(li);
+        }
+        el.searchResults.hidden = false;
+    }
+
+    async function findNearby() {
+        if (!('geolocation' in navigator)) {
+            showSearchMessage('Tu dispositivo no permite obtener la ubicación.');
+            return;
+        }
+        showSearchMessage('Buscando tu ubicación…');
+        let position;
+        try {
+            position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+            });
+        } catch (error) {
+            showSearchMessage(error.code === 1
+                ? 'Has denegado el permiso de ubicación. Actívalo en los ajustes del navegador para ver las paradas cercanas.'
+                : 'No se pudo obtener tu ubicación. Inténtalo de nuevo.');
+            return;
+        }
+        let data;
+        try {
+            data = await Api.nearby(position.coords.latitude.toFixed(5), position.coords.longitude.toFixed(5));
+        } catch (error) {
+            showSearchMessage(error.status === 422
+                ? 'Tu ubicación está fuera de la zona cubierta por esta app.'
+                : 'No se pudieron consultar las paradas cercanas.');
+            return;
+        }
+        if (data.stops.length === 0) {
+            showSearchMessage('No hay paradas a menos de 2 km de ti.');
+            return;
+        }
+        renderNearbyResults(data.stops);
+    }
+
     async function selectStop(stopId) {
         let stop;
         try {
@@ -225,7 +301,7 @@
         } catch (e) {
             return;
         }
-        state.currentStop = { id: stop.id, name: stop.name };
+        state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
         el.liveEmpty.hidden = true;
         if (IS_METRO || IS_EUSKOTREN) {
             updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
@@ -236,7 +312,7 @@
             el.liveCard.hidden = false;
         }
         if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId);
+            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'stop', id: stopId }, '', window.location.href);
         }
@@ -275,6 +351,24 @@
         }
     }
 
+    function renderStopLines(lines) {
+        const single = lines.length === 1;
+        el.liveTimetableLink.hidden = lines.length > 1;
+        el.liveTimetableLink.disabled = !single;
+        el.liveTimetableLink.dataset.lineId = single ? lines[0].id : '';
+        if (lines.length < 2) return;
+
+        for (const line of lines) {
+            const li = document.createElement('li');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.innerHTML = `<strong>${line.code}</strong><span>${line.name}</span>`;
+            button.addEventListener('click', () => selectLine(line.id, true));
+            li.appendChild(button);
+            el.liveMoreList.appendChild(li);
+        }
+    }
+
     function renderLiveCard(departures) {
         const favoriteIndex = departures.findIndex((d) => state.favoriteKeys.has(favoriteKey('line', d.lineId)));
         const heroIndex = favoriteIndex !== -1 ? favoriteIndex : 0;
@@ -291,10 +385,11 @@
             el.liveStatusDot.className = 'status-dot';
             el.liveIncidentsLink.hidden = true;
             el.liveOpenDetail.disabled = true;
-            el.liveTimetableLink.disabled = true;
-            el.liveTimetableLink.dataset.lineId = '';
+            renderStopLines(state.currentStop.lines || []);
             return;
         }
+
+        el.liveTimetableLink.hidden = false;
 
         const { text, className } = statusLabel(departure.status, departure.delayMinutes);
         el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
@@ -330,8 +425,8 @@
     }
 
     const PLATFORM_DIRECTIONS = [
-        { key: 'toward_reference', label: 'Sentido Bilbao centro' },
-        { key: 'away_from_reference', label: 'Sentido contrario' },
+        { key: 'toward_reference', label: 'Sentido 1' },
+        { key: 'away_from_reference', label: 'Sentido 2' },
     ];
 
     function renderPlatformColumn(direction, departures) {
@@ -388,11 +483,10 @@
     function renderPlatformPanel(data) {
         el.platformColumns.innerHTML = '';
         const departures = data.departures || [];
+        const platformNotice = document.getElementById('platform-notice');
+        platformNotice.hidden = departures.length > 0;
+        platformNotice.textContent = `No hay ${IS_METRO ? 'metros' : 'trenes'} en las próximas 4 horas: puede ser fuera de horario o sin servicio en esta estación. Consulta el horario completo.`;
 
-        // Euskotren trae andén real (ver Stop::platformsFor en la API): una
-        // caja por andén real, con sus propios trenes. Metro+ no tiene ese
-        // dato en su GTFS, así que sigue agrupando por la dirección genérica
-        // "hacia / desde" de siempre.
         if (data.platforms && data.platforms.length) {
             for (const platform of data.platforms) {
                 const platformDepartures = departures.filter((d) => d.platformId === platform.id);
@@ -401,19 +495,22 @@
         } else {
             for (const direction of PLATFORM_DIRECTIONS) {
                 const columnDepartures = departures.filter((d) => d.direction === direction.key);
-                el.platformColumns.appendChild(renderPlatformColumn(direction, columnDepartures));
+                const termini = data.directionLabels && data.directionLabels[direction.key];
+                const label = termini ? 'Hacia ' + termini : direction.label;
+                el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
             }
         }
-        // Una estación puede tener varias líneas a la vez (algunas de
-        // Euskotren, hasta 5): un único botón "ver horario completo" solo
-        // podría apuntar a una. Con una sola línea, se queda el botón
-        // simple de siempre; con varias, una por botón.
         const distinctLines = [];
         const seenLineIds = new Set();
         for (const departure of departures) {
             if (seenLineIds.has(departure.lineId)) continue;
             seenLineIds.add(departure.lineId);
             distinctLines.push(departure);
+        }
+        if (distinctLines.length === 0) {
+            for (const line of state.currentStop?.lines || []) {
+                distinctLines.push({ lineId: line.id, lineCode: line.code });
+            }
         }
 
         if (distinctLines.length > 1) {
@@ -452,7 +549,7 @@
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         if (!window.location.pathname.startsWith('/lines/' + lineId)) {
-            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId);
+            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'line', id: lineId }, '', window.location.href);
         }
@@ -478,6 +575,12 @@
             return;
         }
         renderTimetableRows(data.entries);
+        const timetableNote = document.getElementById('timetable-note');
+        timetableNote.hidden = !data.beyondPublished;
+        if (data.beyondPublished) {
+            const [year, month, day] = data.publishedUntil.split('-');
+            timetableNote.textContent = `El operador solo ha publicado horarios hasta el ${day}/${month}/${year}; para este día se muestra el de un día normal y puede no coincidir.`;
+        }
         const sourceLabel = IS_METRO
             ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
             : IS_EUSKOTREN
@@ -493,6 +596,7 @@
         for (const entry of entries) {
             const { text, className } = statusLabel(entry.status, entry.delayMinutes);
             const tr = document.createElement('tr');
+            if (entry.status === 'departed') tr.className = 'is-past';
 
             const departureCell = document.createElement('td');
             departureCell.textContent = entry.departure;
@@ -516,10 +620,12 @@
 
     function ensureLineMap() {
         if (mapState.map) return mapState.map;
-        mapState.map = L.map('line-map', { zoomControl: false, attributionControl: false });
+        // attributionControl activo a propósito: la licencia ODbL de OpenStreetMap
+        // exige que la atribución sea visible, no solo estar puesta en el string.
+        mapState.map = L.map('line-map', { zoomControl: false });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap',
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
         }).addTo(mapState.map);
         L.control.attribution({ prefix: false }).addTo(mapState.map);
         return mapState.map;
@@ -620,14 +726,35 @@
             p.textContent = 'No hay horario oficial en texto disponible para esta línea.';
             el.scheduleModalContent.appendChild(p);
         } else {
-            for (const rawBlock of data.schedule) {
+            const parseDate = (text) => {
+                const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text || '');
+                return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
+            };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const entries = data.schedule.map((rawBlock) => {
                 const fields = extractScheduleFields(rawBlock);
+                const from = parseDate(fields.from);
+                const to = parseDate(fields.to);
+                const isCurrent = from !== null && to !== null && from <= today && today <= to;
+                return { fields, isCurrent, isPast: to !== null && to < today };
+            });
+            entries.sort((x, y) => Number(y.isCurrent) - Number(x.isCurrent) || Number(x.isPast) - Number(y.isPast));
+
+            for (const { fields, isCurrent, isPast } of entries) {
                 const block = document.createElement('div');
-                block.className = 'schedule-block';
+                block.className = 'schedule-block' + (isCurrent ? ' is-current' : '') + (isPast ? ' is-past' : '');
 
                 const h4 = document.createElement('h4');
                 h4.textContent = fields.season || 'Horario';
                 block.appendChild(h4);
+                if (isCurrent) {
+                    const tag = document.createElement('span');
+                    tag.className = 'schedule-current-tag';
+                    tag.textContent = 'Vigente hoy';
+                    h4.appendChild(tag);
+                }
 
                 if (fields.from || fields.to) {
                     const dates = document.createElement('p');
@@ -679,7 +806,9 @@
         el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
         el.modalVehicle.textContent = data.vehicleRef
             ? `Vehículo en seguimiento en vivo · Ref. ${data.vehicleRef}`
-            : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
+            : data.status === 'finished'
+                ? 'Este viaje ya ha finalizado. Se muestra el horario programado.'
+                : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
 
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = 'Ver incidencias';
@@ -715,10 +844,6 @@
         el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
 
-        // Sin GPS en vivo (ni Metro+ ni Euskotren lo publican), pero la hora
-        // programada de cada parada sí permite marcar cuáles ya deberían
-        // haber pasado, comparando contra la hora actual — un estado real,
-        // aunque no sea posición en vivo.
         const nowHm = new Date().toTimeString().slice(0, 5);
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
@@ -782,6 +907,7 @@
 
     function writeFavorites(favorites) {
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
+        syncAlertFavorites();
     }
 
     async function openSideMenu() {
@@ -945,6 +1071,18 @@
         loadFavorites();
     }
 
+    const netBanner = document.getElementById('net-banner');
+    window.addEventListener('bb:api', (event) => {
+        netBanner.hidden = event.detail.ok;
+    });
+    window.addEventListener('offline', () => { netBanner.hidden = false; });
+    window.addEventListener('online', () => { netBanner.hidden = true; });
+    document.getElementById('net-retry').addEventListener('click', () => {
+        if (state.currentStop) loadDepartures();
+        if (state.currentLine) loadTimetable();
+        if (!state.currentStop && !state.currentLine) netBanner.hidden = true;
+    });
+
     el.homeLink.addEventListener('click', toggleNetworkMenu);
     document.addEventListener('click', (e) => {
         if (!el.homeLink.contains(e.target) && !el.networkSwitch.contains(e.target)) {
@@ -976,6 +1114,99 @@
     });
     el.favoritesClose.addEventListener('click', closeFavoritesPanel);
 
+    const alertsToggle = document.getElementById('alerts-toggle');
+    const alertsNote = document.getElementById('alerts-note');
+    const ALERTS_SYNC_TAG = 'line-alerts-check';
+    const ALERTS_SYNC_INTERVAL_MS = 12 * 60 * 60 * 1000;
+    const ALERTS_FOREGROUND_COOLDOWN_MS = 5 * 60 * 1000;
+    let lastForegroundAlertCheck = 0;
+
+    function syncAlertFavorites() {
+        const lineIds = readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => favorite.refId);
+        return AlertsStore.setFavorites(window.__bbNetwork, lineIds).catch(() => {});
+    }
+
+    function setAlertsNote(message) {
+        alertsNote.textContent = message;
+        alertsNote.hidden = message === '';
+    }
+
+    async function enableLineAlerts() {
+        if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+            setAlertsNote('Tu navegador no admite notificaciones.');
+            return false;
+        }
+        if ((await Notification.requestPermission()) !== 'granted') {
+            setAlertsNote('Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador para recibir avisos.');
+            return false;
+        }
+        const registration = await navigator.serviceWorker.ready;
+        await syncAlertFavorites();
+        await AlertsStore.resetBaseline();
+        await AlertsStore.set('enabled', true);
+        await AlertsStore.checkAlerts();
+
+        let background = false;
+        if ('periodicSync' in registration) {
+            try {
+                await registration.periodicSync.register(ALERTS_SYNC_TAG, { minInterval: ALERTS_SYNC_INTERVAL_MS });
+                background = true;
+            } catch (error) {
+                background = false;
+            }
+        }
+        setAlertsNote(background
+            ? 'Te avisaremos de las incidencias nuevas de tus líneas favoritas, incluso con la app cerrada.'
+            : 'Te avisaremos al abrir la app: tu navegador no permite avisos en segundo plano.');
+        return true;
+    }
+
+    async function disableLineAlerts() {
+        await AlertsStore.set('enabled', false);
+        setAlertsNote('');
+        if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.ready;
+            if ('periodicSync' in registration) await registration.periodicSync.unregister(ALERTS_SYNC_TAG).catch(() => {});
+        }
+    }
+
+    async function runForegroundAlertCheck() {
+        if (Date.now() - lastForegroundAlertCheck < ALERTS_FOREGROUND_COOLDOWN_MS) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        if ((await AlertsStore.get('enabled')) !== true) return;
+        lastForegroundAlertCheck = Date.now();
+        const fresh = await AlertsStore.checkAlerts();
+        if (fresh.length > 0) await AlertsStore.notify(await navigator.serviceWorker.ready, fresh);
+    }
+
+    alertsToggle.addEventListener('change', async () => {
+        alertsToggle.disabled = true;
+        try {
+            if (alertsToggle.checked) {
+                alertsToggle.checked = await enableLineAlerts();
+            } else {
+                await disableLineAlerts();
+            }
+        } catch (error) {
+            alertsToggle.checked = false;
+            setAlertsNote('No se pudieron activar los avisos. Inténtalo de nuevo.');
+        } finally {
+            alertsToggle.disabled = false;
+        }
+    });
+
+    (async () => {
+        await syncAlertFavorites();
+        const enabled = (await AlertsStore.get('enabled')) === true;
+        alertsToggle.checked = enabled && 'Notification' in window && Notification.permission === 'granted';
+        if (alertsToggle.checked) runForegroundAlertCheck();
+    })().catch(() => {});
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') runForegroundAlertCheck().catch(() => {});
+    });
+
+    el.nearbyBtn.addEventListener('click', findNearby);
     el.searchInput.addEventListener('input', debounce((e) => performSearch(e.target.value), 300));
     el.searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -1016,10 +1247,9 @@
         if (e.target === el.scheduleModal) el.scheduleModal.close();
     });
 
-    el.filterDate.value = new Date().toISOString().slice(0, 10);
-
     const now = new Date();
     const pad2 = (n) => String(n).padStart(2, '0');
+    el.filterDate.value = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
     el.filterHourFrom.value = `${pad2(now.getHours())}:00`;
     el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
 
