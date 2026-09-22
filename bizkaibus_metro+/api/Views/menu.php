@@ -1,7 +1,7 @@
 <?php
 $site = require __DIR__ . '/../Config/site.php';
-$title = 'Bide+ · Horarios de Bizkaibus, Metro Bilbao y Euskotren';
-$description = 'Consulta los horarios y el tiempo real de Bizkaibus, Metro Bilbao y Euskotren desde un único menú. Elige tu app y sal de casa sin esperas.';
+$title = 'Bide+ · Tu red de transporte público';
+$description = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
 $canonical = $site['url'] . '/';
 $ogImage = $site['url'] . '/icons-bide-rojo/og-image.png';
 $ogAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
@@ -143,6 +143,12 @@ $jsonLd = [
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
                         <span class="txt"><strong>Euskotren+</strong><span>Tren con horarios y tiempo real</span><span class="last">Última que abriste</span></span>
                     </a>
+                </li>
+                <li>
+                    <div class="tile soon" aria-disabled="true">
+                        <span class="glyph" aria-hidden="true">R</span>
+                        <span class="txt"><strong>Renfe Cercanías+</strong><span>Próximamente</span></span>
+                    </div>
                 </li>
                 <li>
                     <div class="tile soon" aria-disabled="true">
