@@ -30,19 +30,19 @@ jobs:
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
       - name: Rebuild BizkaiBus+ database
-        run: php bizkaibus_metro+/scripts/build-database.php --network=bus
+        run: php bideplus/scripts/build-database.php --network=bus
 
       - name: Rebuild Metro+ database
-        run: php bizkaibus_metro+/scripts/build-database.php --network=metro
+        run: php bideplus/scripts/build-database.php --network=metro
 
       - name: Rebuild Euskotren+ database
-        run: php bizkaibus_metro+/scripts/build-database.php --network=euskotren
+        run: php bideplus/scripts/build-database.php --network=euskotren
 
       - name: Verify databases exist and are non-empty
         run: |
-          for db in bizkaibus_metro+/data/bizkaibus.sqlite \
-                     bizkaibus_metro+/data/metrobilbao.sqlite \
-                     bizkaibus_metro+/data/euskotren.sqlite; do
+          for db in bideplus/data/bizkaibus.sqlite \
+                     bideplus/data/metrobilbao.sqlite \
+                     bideplus/data/euskotren.sqlite; do
             if [ ! -s "$db" ]; then
               echo "ERROR: $db is missing or empty"
               exit 1
@@ -52,10 +52,10 @@ jobs:
 
       - name: Commit updated geocache, if it changed
         run: |
-          if ! git diff --quiet bizkaibus_metro+/scripts/geocache.json; then
+          if ! git diff --quiet bideplus/scripts/geocache.json; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add bizkaibus_metro+/scripts/geocache.json
+            git add bideplus/scripts/geocache.json
             git commit -m "chore: update geocache with newly seen stop coordinates"
             git push
           else
