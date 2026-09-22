@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap');
-
 :root {
     --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #ffc3a0 100%);
     --pink-light: #ff7eb3;
@@ -197,7 +195,6 @@ header p {
     #search-results .pill { width: 100%; box-sizing: border-box; text-align: left; }
 
 .header-actions { display: flex; gap: 8px; align-items: center; }
-
 
 .live-column { min-width: 0; }
 
@@ -415,7 +412,6 @@ dialog#side-menu {
     .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: #444; line-height: 1.5; white-space: pre-line; }
         .schedule-block p:last-child { margin-bottom: 0; }
 
-/* ── Network switcher — tarjeta apilada (mismo patrón en las 4 hojas) ──── */
 #network-switcher {
     position: absolute; top: 100%; left: 0; width: 100%; z-index: 40;
     display: flex; flex-direction: column; gap: 4px;

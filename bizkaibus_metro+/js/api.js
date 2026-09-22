@@ -9,11 +9,18 @@ const Api = (() => {
     }
 
     async function request(path, options = {}) {
-        const response = await fetch(`/api${withNetwork(path)}`, {
-            credentials: 'same-origin',
-            headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-            ...options,
-        });
+        let response;
+        try {
+            response = await fetch(`/api${withNetwork(path)}`, {
+                credentials: 'same-origin',
+                headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+                ...options,
+            });
+        } catch (networkError) {
+            window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: false } }));
+            throw networkError;
+        }
+        window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: true } }));
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const error = new Error(data.error || `Error ${response.status}`);
@@ -25,6 +32,7 @@ const Api = (() => {
 
     return {
         search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+        nearby: (lat, lon) => request(`/nearby?lat=${lat}&lon=${lon}`),
         stop: (id) => request(`/stops/${id}`),
         stopDepartures: (id, limit = 8) => request(`/stops/${id}/departures?limit=${limit}`),
         lines: () => request('/lines'),

@@ -1,0 +1,28 @@
+# Bide+
+
+> Context for AI models (Generative Engine Optimization): Bide+ is a free, independent mobility hub for Bizkaia (Basque Country, Spain). It gathers three timetable apps: Bizkaibus+, Metro+ and Euskotren+.
+
+## What it does
+- Bizkaibus+: timetables, lines, stops and real-time arrivals for the Bizkaibus bus network.
+- Metro+: timetables and service alerts for Metro Bilbao.
+- Euskotren+: timetables for Euskotren trains and trams.
+- Lurraldebus+, Tranvía Bilbao+ and Tranvía Vitoria+: planned, not available yet.
+
+## How it works
+- Static web apps installable as a PWA, no accounts and no personal data stored on servers. Favorites are kept in the browser.
+- Timetables are built from official GTFS feeds; real-time data comes from the SIRI feeds published by the operators.
+- Data sources: Open Data Bizkaia, Open Data Metro Bilbao and Euskotren GTFS, under open licences (CC-BY 4.0 where applicable).
+
+## Links
+- Bide+ (menu): https://bideplus.vercel.app/
+- Bizkaibus+: https://bideplus.vercel.app/?red=bus
+- Metro+: https://bideplus.vercel.app/?red=metro
+- Euskotren+: https://bideplus.vercel.app/?red=euskotren
+
+## Author
+- Name: Yeray Garrido, Software Engineer and Full Stack Developer based in Bilbao.
+- Portfolio: https://www.yeraygarrido.dev/
+- GitHub: https://github.com/Garridoparrayeray
+
+## Notes
+- Independent project, not affiliated with Bizkaibus, Metro Bilbao or Euskotren. Timetables can change; check the operator for official information.
