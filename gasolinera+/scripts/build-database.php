@@ -538,4 +538,44 @@ function fetchLocalOrRemote(string $source): array
 
 require __DIR__ . '/../api/Models/Search.php';
 
+function generateLiteJson(string $dbPath): void {
+    echo "Generando JSON offline (stations-lite.json)...\n";
+    $pdo = new PDO('sqlite:' . $dbPath);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $stmt = $pdo->query('
+        SELECT 
+            s.ideess as i,
+            s.lat as l,
+            s.lon as g,
+            s.rotulo as n,
+            s.direccion as d,
+            s.municipio as m,
+            s.horario_raw as h,
+            p95.precio as p95,
+            pa.precio as p
+        FROM stations s
+        LEFT JOIN current_prices p95 ON s.ideess = p95.ideess AND p95.carburante = \'gasolina_95_e5\'
+        LEFT JOIN current_prices pa ON s.ideess = pa.ideess AND pa.carburante = \'gasoleo_a\'
+    ');
+    $stations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($stations as &$st) {
+        $st['l'] = round((float)$st['l'], 5);
+        $st['g'] = round((float)$st['g'], 5);
+        if ($st['p95'] !== null) $st['p95'] = round((float)$st['p95'], 3);
+        else unset($st['p95']);
+        if ($st['p'] !== null) $st['p'] = round((float)$st['p'], 3);
+        else unset($st['p']);
+    }
+    unset($st);
+
+    $json = json_encode($stations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $outputPath = dirname($dbPath) . '/stations-lite.json';
+    file_put_contents($outputPath, $json);
+    
+    $kb = round(filesize($outputPath) / 1024, 2);
+    echo "Archivo JSON offline guardado: stations-lite.json ($kb KB)\n";
+}
+
 main(array_slice($argv, 1));
+generateLiteJson(__DIR__ . '/../data/gasolinera.sqlite');
