@@ -38,6 +38,11 @@ class AlertsController
             return;
         }
 
+        if (!isset($aConfig['siri'])) {
+            Response::json(['alerts' => []]);
+            return;
+        }
+
         $Client = new SiriAlertsClient($aConfig);
 
         $sLineFilter = $Req->query('line');

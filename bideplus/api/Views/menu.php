@@ -11,6 +11,8 @@ $apps = [
     ['name' => 'Bizkaibus+', 'description' => 'Horarios y tiempo real de Bizkaibus', 'url' => $site['url'] . '/?red=bus'],
     ['name' => 'Metro+', 'description' => 'Horarios de Metro Bilbao', 'url' => $site['url'] . '/?red=metro'],
     ['name' => 'Euskotren+', 'description' => 'Horarios de Euskotren', 'url' => $site['url'] . '/?red=euskotren'],
+    ['name' => 'Tranvía Bilbao+', 'description' => 'Horarios del tranvía de Bilbao', 'url' => $site['url'] . '/?red=tranvia-bilbao'],
+    ['name' => 'Tranvía Vitoria+', 'description' => 'Horarios del tranvía de Vitoria-Gasteiz', 'url' => $site['url'] . '/?red=tranvia-vitoria'],
 ];
 
 $author = ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']];
@@ -157,16 +159,22 @@ $jsonLd = [
                     </div>
                 </li>
                 <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="13" rx="3"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="12" y1="1.5" x2="12" y2="4"/><circle cx="9" cy="14" r="0.6"/><circle cx="15" cy="14" r="0.6"/><line x1="8" y1="17" x2="6.5" y2="21"/><line x1="16" y1="17" x2="17.5" y2="21"/></svg>
-                        <span class="txt"><strong>Tranvía Bilbao+</strong><span>Próximamente</span></span>
-                    </div>
+                    <a class="tile tile--tranvia-bilbao" data-app="tranvia-bilbao" data-name="Tranvía Bilbao+" href="/?red=tranvia-bilbao">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="/icons-tranvia-bilbao/icon-192.png" alt="">
+                        <img class="appicon" src="/icons-tranvia-bilbao/icon-192.png" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city">Bilbao</span><span>Horarios del tranvía</span><span class="last">Última que abriste</span></span>
+                    </a>
                 </li>
                 <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="13" rx="3"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="12" y1="1.5" x2="12" y2="4"/><circle cx="9" cy="14" r="0.6"/><circle cx="15" cy="14" r="0.6"/><line x1="8" y1="17" x2="6.5" y2="21"/><line x1="16" y1="17" x2="17.5" y2="21"/></svg>
-                        <span class="txt"><strong>Tranvía Vitoria+</strong><span>Próximamente</span></span>
-                    </div>
+                    <a class="tile tile--tranvia-vitoria" data-app="tranvia-vitoria" data-name="Tranvía Vitoria+" href="/?red=tranvia-vitoria">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="/icons-tranvia-vitoria/icon-192.png" alt="">
+                        <img class="appicon" src="/icons-tranvia-vitoria/icon-192.png" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city">Vitoria</span><span>Horarios del tranvía</span><span class="last">Última que abriste</span></span>
+                    </a>
                 </li>
             </ul>
         </section>

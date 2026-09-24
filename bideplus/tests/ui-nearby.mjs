@@ -58,6 +58,8 @@ const cases = [
     { key: 'bus', url: '/?red=bus', lat: 43.26347, lon: -2.93506, expect: 'MOYUA', panel: 'live-card' },
     { key: 'metro', url: '/?red=metro', lat: 43.32595, lon: -3.00961, expect: 'Areeta', panel: 'platform-panel' },
     { key: 'euskotren', url: '/?red=euskotren', lat: 43.313179, lon: -1.981685, expect: 'Amara', panel: 'platform-panel' },
+    { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', lat: 43.254113, lon: -2.921513, expect: 'Atxuri', panel: 'platform-panel' },
+    { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', lat: 42.876277, lon: -2.679599, expect: 'Abetxuko', panel: 'platform-panel' },
 ];
 for (const c of cases) {
     await send('Emulation.setGeolocationOverride', { latitude: c.lat, longitude: c.lon, accuracy: 20 });
