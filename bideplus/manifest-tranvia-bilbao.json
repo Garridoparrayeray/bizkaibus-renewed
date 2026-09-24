@@ -1,0 +1,38 @@
+{
+    "id": "/?homescreen=TranviaBilbao",
+    "name": "Tranvía Bilbao+",
+    "short_name": "Tranvía+",
+    "description": "Horarios del tranvía de Bilbao, sin vueltas.",
+    "start_url": "/?red=tranvia-bilbao",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "portrait",
+    "dir": "ltr",
+    "launch_handler": { "client_mode": "focus-existing" },
+    "shortcuts": [
+        {
+            "name": "Bizkaibus",
+            "short_name": "Bizkaibus",
+            "description": "Horarios y tiempo real de Bizkaibus",
+            "url": "/?red=bus",
+            "icons": [{ "src": "icons-pro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        },
+        {
+            "name": "Metro Bilbao",
+            "short_name": "Metro+",
+            "description": "Horarios de Metro Bilbao",
+            "url": "/?red=metro",
+            "icons": [{ "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+        }
+    ],
+    "background_color": "#EAF6E9",
+    "theme_color": "#4EB848",
+    "lang": "es",
+    "categories": ["travel", "navigation", "utilities"],
+    "icons": [
+        { "src": "icons-tranvia-bilbao/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons-tranvia-bilbao/icon-512.png", "sizes": "512x512", "type": "image/png" },
+        { "src": "icons-tranvia-bilbao/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}
