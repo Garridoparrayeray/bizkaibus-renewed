@@ -56,7 +56,7 @@ const results = [];
 const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
 const go = async (url, wait = 3000) => { currentHosts = new Set(); await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 
-for (const [url, name] of [['/', 'menu Bide+'], ['/?red=bus', 'Bizkaibus+'], ['/?red=metro', 'Metro+'], ['/?red=euskotren', 'Euskotren+'], ['/?red=tranvia-bilbao', 'Tranvía Bilbao+'], ['/?red=tranvia-vitoria', 'Tranvía Vitoria+'], ['/pagina-que-no-existe', 'pagina 404']]) {
+for (const [url, name] of [['/', 'menu Bide+'], ['/?red=bus', 'Bizkaibus+'], ['/?red=metro', 'Metro+'], ['/?red=euskotren', 'Euskotren+'], ['/?red=tranvia-bilbao', 'Tranvía Bilbao+'], ['/?red=tranvia-vitoria', 'Tranvía Vitoria+'], ['/?red=renfe', 'Renfe Cercanías+'], ['/pagina-que-no-existe', 'pagina 404']]) {
     await go(url);
     const external = [...currentHosts].filter(h => !allowed(h) && h.includes('.'));
     check(`${name}: solo se piden recursos propios`, external.length === 0, external.join(', '));

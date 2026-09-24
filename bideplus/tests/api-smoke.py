@@ -38,6 +38,7 @@ NETS = {
     'euskotren': {'q': 'ama', 'suffix': 'red=euskotren'},
     'tranvia-bilbao': {'q': 'atxuri', 'suffix': 'red=tranvia-bilbao'},
     'tranvia-vitoria': {'q': 'abetxuko', 'suffix': 'red=tranvia-vitoria'},
+    'renfe': {'q': 'abando', 'suffix': 'red=renfe'},
 }
 
 
@@ -89,6 +90,7 @@ NEARBY = {
     'euskotren': (43.313179, -1.981685, 'Amara'),
     'tranvia-bilbao': (43.254113, -2.921513, 'Atxuri'),
     'tranvia-vitoria': (42.876277, -2.679599, 'Abetxuko'),
+    'renfe': (43.2601304, -2.9285592, 'Abando'),
 }
 for name, (lat, lon, fragment) in NEARBY.items():
     s = NETS[name]['suffix']
@@ -108,7 +110,7 @@ for name, (lat, lon, fragment) in NEARBY.items():
             fails.append(f'{name}: proxima salida invalida {nxt}')
     print(name, 'nearby ok', distances)
 bus_alerts = (get('/api/alerts') or {}).get('alerts', [])
-for name in ('metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'):
+for name in ('metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'):
     other = (get(with_net('/api/alerts', NETS[name]['suffix'])) or {}).get('alerts', [])
     if bus_alerts and other == bus_alerts:
         fails.append(f'{name}: los avisos son identicos a los de Bizkaibus (cache compartida entre redes)')

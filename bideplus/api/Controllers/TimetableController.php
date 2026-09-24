@@ -81,15 +81,15 @@ class TimetableController
         if (isset($aConfig['network'])) {
             $sNetwork = $aConfig['network'];
         }
-        $bIsMetro = $sNetwork === 'metro';
+        $bUseLastStopHeadsign = in_array($sNetwork, ['metro', 'renfe'], true);
 
         $sToday = Calendar::todayMadrid()->format('Y-m-d');
         $sDate = $Date->format('Y-m-d');
         $iNow = Calendar::nowSecondsSinceMidnight();
 
-        $aEntries = array_map(function ($aRow) use ($bIsMetro, $sToday, $sDate, $iNow) {
+        $aEntries = array_map(function ($aRow) use ($bUseLastStopHeadsign, $sToday, $sDate, $iNow) {
             $sHeadsign = $aRow['headsign'];
-            if ($bIsMetro && !empty($aRow['last_stop_name'])) {
+            if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
                 $sHeadsign = $aRow['last_stop_name'];
             }
             $iDelaySeconds = 0;

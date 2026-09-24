@@ -65,6 +65,17 @@ html.is-tranvia-vitoria {
     --text-secondary: #5e6b58;
     --backdrop: rgba(12, 20, 10, .5);
 }
+html.is-renfe {
+    --bg: #fbf3ee;
+    --border: #ecdcd0;
+    --primary: #EE7203;
+    --primary-light: #F7A85C;
+    --primary-dark: #A34E00;
+    --primary-tint: #FDECDD;
+    --text: #2a1f16;
+    --text-secondary: #6b5c4d;
+    --backdrop: rgba(20, 14, 10, .5);
+}
 
 /* ===== Base ===== */
 *, *::before, *::after { box-sizing: border-box; }
@@ -169,6 +180,7 @@ svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
 .status-muted { color: var(--status-muted); font-weight: 700; }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .header-actions .btn-icon { width: 40px; height: 40px; }
+    .header-actions .btn-lang { font-family: var(--font-display); font-size: .78rem; font-weight: 800; letter-spacing: .02em; }
 .glass > header, .platform-panel > header {
     display: flex;
     align-items: center;
@@ -205,10 +217,10 @@ svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
 }
 #app-logomark { display: flex; width: 40px; height: 40px; flex-shrink: 0; }
     #app-logomark svg { width: 100%; height: 100%; }
-    #app-logomark .logo-metro, #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria { display: none; }
-    #app-logomark.is-metro .logo-bus, #app-logomark.is-euskotren .logo-bus, #app-logomark.is-tranvia-bilbao .logo-bus, #app-logomark.is-tranvia-vitoria .logo-bus { display: none; }
-    #app-logomark.is-metro .logo-metro, #app-logomark.is-euskotren .logo-euskotren, #app-logomark.is-tranvia-bilbao .logo-tranvia-bilbao, #app-logomark.is-tranvia-vitoria .logo-tranvia-vitoria { display: block; }
-    #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria {
+    #app-logomark .logo-metro, #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria, #app-logomark .logo-renfe { display: none; }
+    #app-logomark.is-metro .logo-bus, #app-logomark.is-euskotren .logo-bus, #app-logomark.is-tranvia-bilbao .logo-bus, #app-logomark.is-tranvia-vitoria .logo-bus, #app-logomark.is-renfe .logo-bus { display: none; }
+    #app-logomark.is-metro .logo-metro, #app-logomark.is-euskotren .logo-euskotren, #app-logomark.is-tranvia-bilbao .logo-tranvia-bilbao, #app-logomark.is-tranvia-vitoria .logo-tranvia-vitoria, #app-logomark.is-renfe .logo-renfe { display: block; }
+    #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria, #app-logomark .logo-renfe {
         width: 72%;
         height: 72%;
         margin: auto;
@@ -358,6 +370,11 @@ header p {
 }
     .nearby-btn svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2.25; }
     .nearby-btn:hover { background: var(--primary-tint); border-color: var(--primary-light); }
+    .nearby-btn.is-loading { opacity: .7; cursor: default; pointer-events: none; }
+    .nearby-btn.is-loading svg { animation: nearby-spin .8s linear infinite; }
+@keyframes nearby-spin {
+    to { transform: rotate(360deg); }
+}
 #search-results {
     position: absolute;
     top: calc(100% + 8px);
@@ -561,8 +578,8 @@ header p {
 #timetable-line { margin: 4px 0 18px; color: var(--text-secondary); font-weight: 600; }
 #line-map { position: relative; z-index: 0; height: 240px; margin-bottom: 10px; overflow: hidden; border-radius: var(--radius-sm); isolation: isolate; }
 #line-map-empty { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; text-align: center; }
-.bus-marker { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; }
-    .bus-marker svg { width: 15px; height: 15px; }
+.bus-marker { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+    .bus-marker svg { width: 28px; height: 28px; }
 .leaflet-popup-content-wrapper { border-radius: 10px; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
     #filter-date { grid-column: 1 / -1; }
@@ -703,6 +720,8 @@ dialog#side-menu {
     #modal-stops li { padding: 8px 0 8px 16px; color: var(--text-secondary); font-size: .88rem; }
         #modal-stops li.stop-current { color: var(--primary); font-weight: 700; }
         #modal-stops li.stop-past { opacity: .45; }
+        #modal-stops li.stop-clickable { cursor: pointer; border-radius: 6px; transition: background .12s ease, color .12s ease; }
+        #modal-stops li.stop-clickable:hover { background: var(--primary-tint); color: var(--primary); }
 #menu-favorites-open { width: 100%; justify-content: flex-start; margin: 44px 0 24px; }
 .alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--text); font-size: .9rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
     .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary); }

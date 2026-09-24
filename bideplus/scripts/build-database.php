@@ -49,6 +49,15 @@ const NETWORK_DEFAULTS = [
         'agencyId' => 'ES:Euskotren:Operator:EUS_TrGa:',
         'skipGeocode' => false,
     ],
+    'renfe' => [
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1130',
+        'backdoor_source' => null,
+        'output' => __DIR__ . '/../data/renfe.sqlite',
+        'label' => 'Renfe Cercanías+',
+        'agencyId' => null,
+        'routeIdPrefixes' => ['60T', '61T'],
+        'skipGeocode' => false,
+    ],
 ];
 define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
@@ -64,7 +73,7 @@ function main(array $aArgv): void
         $sNetwork = $aOptions['network'];
     }
     if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
-        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria)\n");
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)\n");
         exit(1);
     }
     $aDefaults = NETWORK_DEFAULTS[$sNetwork];
@@ -92,7 +101,7 @@ function main(array $aArgv): void
     }
 
     echo "Parsing routes.txt...\n";
-    $aRoutes = loadRoutes($Zip, $sAgencyId);
+    $aRoutes = loadRoutes($Zip, $sAgencyId, $aDefaults['routeIdPrefixes'] ?? null);
     echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
@@ -100,6 +109,8 @@ function main(array $aArgv): void
         $aStops = loadStopsMetro($Zip);
     } elseif ($sNetwork === 'euskotren' || $sNetwork === 'tranvia-bilbao' || $sNetwork === 'tranvia-vitoria') {
         $aStops = loadStopsEuskotren($Zip);
+    } elseif ($sNetwork === 'renfe') {
+        $aStops = loadStopsRenfe($Zip);
     } else {
         $aStops = loadStopsBus($Zip);
     }
@@ -397,13 +408,17 @@ function normalize(string $sText): string
     return trim(preg_replace('/\s+/', ' ', $sLower));
 }
 
-function readCsv(ZipArchive $Zip, string $sName): Generator
+function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Generator
 {
     $Stream = $Zip->getStream($sName);
     if ($Stream === false) {
-        throw new RuntimeException("Could not open $sName from zip");
+        if ($bRequired) {
+            throw new RuntimeException("Could not open $sName from zip");
+        }
+        return;
     }
     $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
+    $aHeader = array_map('trim', $aHeader);
     while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
         if ($aRow === null || $aRow === [null]) {
             continue;
@@ -411,7 +426,7 @@ function readCsv(ZipArchive $Zip, string $sName): Generator
         if (count($aRow) !== count($aHeader)) {
             continue;
         }
-        yield array_combine($aHeader, $aRow);
+        yield array_combine($aHeader, array_map('trim', $aRow));
     }
     fclose($Stream);
 }
@@ -421,7 +436,7 @@ function gtfsDateToIso(string $sYmd): string
     return substr($sYmd, 0, 4) . '-' . substr($sYmd, 4, 2) . '-' . substr($sYmd, 6, 2);
 }
 
-function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId): array
+function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId, array|null $aRouteIdPrefixes = null): array
 {
     $aRoutes = [];
     foreach (readCsv($Zip, 'routes.txt') as $aRow) {
@@ -433,6 +448,18 @@ function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId): array
             fwrite(STDERR, "  WARNING: skipping route {$aRow['route_id']} with unexpected agency_id \"{$aRow['agency_id']}\"\n");
             continue;
         }
+        if ($aRouteIdPrefixes !== null) {
+            $bMatchesPrefix = false;
+            foreach ($aRouteIdPrefixes as $sPrefix) {
+                if (str_starts_with($aRow['route_id'], $sPrefix)) {
+                    $bMatchesPrefix = true;
+                    break;
+                }
+            }
+            if (!$bMatchesPrefix) {
+                continue;
+            }
+        }
         $sRouteId = $aRow['route_id'];
         $sCode = $aRow['route_short_name'];
         if ($sCode === '') {
@@ -440,7 +467,7 @@ function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId): array
         }
         $aRoutes[$sRouteId] = [
             'code' => $sCode,
-            'name' => $aRow['route_long_name'],
+            'name' => trim(preg_replace('/ {2,}/', ' ', $aRow['route_long_name'])),
         ];
     }
     return $aRoutes;
@@ -458,6 +485,19 @@ function realStopRows(ZipArchive $Zip): Generator
         }
         yield $aRow;
     }
+}
+
+function loadStopsRenfe(ZipArchive $Zip): array
+{
+    $aStops = [];
+    foreach (realStopRows($Zip) as $aRow) {
+        $aStops[$aRow['stop_id']] = [
+            'name' => $aRow['stop_name'],
+            'lat' => (float)$aRow['stop_lat'],
+            'lon' => (float)$aRow['stop_lon'],
+        ];
+    }
+    return $aStops;
 }
 
 function loadStopsBus(ZipArchive $Zip): array
@@ -579,7 +619,7 @@ function loadCalendars(ZipArchive $Zip): array
     }
 
     $aActiveDates = [];
-    foreach (readCsv($Zip, 'calendar_dates.txt') as $aRow) {
+    foreach (readCsv($Zip, 'calendar_dates.txt', false) as $aRow) {
         $sDate = gtfsDateToIso($aRow['date']);
         $aActiveDates[$aRow['service_id']][$sDate] = ((int)$aRow['exception_type']) === 1;
     }
@@ -705,6 +745,7 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
         exit(1);
     }
     $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
+    $aHeader = array_map('trim', $aHeader);
 
     $aByTrip = [];
 
@@ -712,7 +753,7 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
         if ($aRow === null || $aRow === [null] || count($aRow) !== count($aHeader)) {
             continue;
         }
-        $aAssoc = array_combine($aHeader, $aRow);
+        $aAssoc = array_combine($aHeader, array_map('trim', $aRow));
         $sTripId = $aAssoc['trip_id'];
 
         $iArrival = null;
@@ -800,9 +841,11 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
         $iWeekdayMask = 0;
         $aIncludedDates = [];
+        $aExcludedDates = [];
         if (isset($aCalendars[$aTrip['serviceId']])) {
             $iWeekdayMask = $aCalendars[$aTrip['serviceId']]['weekdayMask'];
             $aIncludedDates = $aCalendars[$aTrip['serviceId']]['includedDates'];
+            $aExcludedDates = $aCalendars[$aTrip['serviceId']]['excludedDates'];
         }
         $sCalendarGroupKey = calendarGroupKeyFor($sNetwork, $aTrip['serviceId'], $aCalendars);
 
@@ -814,6 +857,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             'firstDeparture' => $iFirstDeparture,
             'weekdayMask' => $iWeekdayMask,
             'includedDates' => $aIncludedDates,
+            'excludedDates' => $aExcludedDates,
             'calendarGroupKey' => $sCalendarGroupKey,
         ];
     }
@@ -845,11 +889,15 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
                 $aGroups[$sClusterKey]['representativeTripId'] = $sTripId;
                 $aGroups[$sClusterKey]['weekdayMask'] = 0;
                 $aGroups[$sClusterKey]['includedDates'] = [];
+                $aGroups[$sClusterKey]['excludedDates'] = [];
             }
             $aGroups[$sClusterKey]['weekdayMask'] |= $aSig['weekdayMask'];
 
             foreach ($aSig['includedDates'] as $sDate) {
                 $aGroups[$sClusterKey]['includedDates'][$sDate] = true;
+            }
+            foreach ($aSig['excludedDates'] as $sDate) {
+                $aGroups[$sClusterKey]['excludedDates'][$sDate] = true;
             }
             $iPreviousDeparture = $aSig['firstDeparture'];
         }
@@ -863,6 +911,13 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         if ($aCal['from'] !== '') {
             continue;
         }
+        if (!empty($aCal['excludedDates'])) {
+            // No reutilizar un calendario real que ya tiene sus propias
+            // excepciones: si lo compartimos con otro grupo fusionado,
+            // esas fechas excluidas se le pegarian tambien sin que le
+            // correspondan.
+            continue;
+        }
         if (!isset($aMaskToCalendarId[$aCal['weekdayMask']])) {
             $aMaskToCalendarId[$aCal['weekdayMask']] = $sCalId;
         }
@@ -871,6 +926,8 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     $aRepresentatives = [];
 
     $aExtraIncludedDatesByCalendarId = [];
+    $aExtraExcludedDatesByCalendarId = [];
+    $aSignatureToCalendarId = [];
     foreach ($aGroups as $aGroup) {
         if ($aGroup['calendarGroupKey'] !== '') {
             $aGroup['calendarId'] = $aGroup['calendarGroupKey'];
@@ -879,15 +936,34 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         }
 
         $iMask = $aGroup['weekdayMask'];
-        if (!isset($aMaskToCalendarId[$iMask])) {
-            $sNewId = 'merged_' . $iMask;
-            $aMaskToCalendarId[$iMask] = $sNewId;
-            $aSyntheticCalendars[$sNewId] = $iMask;
+        $aExcludedDates = array_keys($aGroup['excludedDates']);
+        sort($aExcludedDates);
+
+        if (empty($aExcludedDates) && isset($aMaskToCalendarId[$iMask])) {
+            $sCalendarId = $aMaskToCalendarId[$iMask];
+        } else {
+            // Un mismo dia de la semana puede tener grupos con distintas
+            // fechas excluidas (p.ej. dos servicios de lunes a viernes,
+            // solo uno de ellos anulado en un festivo concreto): la firma
+            // incluye las fechas excluidas para no fusionarlos y perder
+            // esa excepcion.
+            $sSignature = $iMask . '|' . implode(',', $aExcludedDates);
+            if (!isset($aSignatureToCalendarId[$sSignature])) {
+                $sNewId = 'merged_' . $iMask;
+                if (!empty($aExcludedDates)) {
+                    $sNewId .= '_' . substr(md5($sSignature), 0, 8);
+                }
+                $aSignatureToCalendarId[$sSignature] = $sNewId;
+                $aSyntheticCalendars[$sNewId] = $iMask;
+            }
+            $sCalendarId = $aSignatureToCalendarId[$sSignature];
         }
-        $sCalendarId = $aMaskToCalendarId[$iMask];
         $aGroup['calendarId'] = $sCalendarId;
         foreach (array_keys($aGroup['includedDates']) as $sDate) {
             $aExtraIncludedDatesByCalendarId[$sCalendarId][$sDate] = true;
+        }
+        foreach ($aExcludedDates as $sDate) {
+            $aExtraExcludedDatesByCalendarId[$sCalendarId][$sDate] = true;
         }
         $aRepresentatives[$aGroup['representativeTripId']] = $aGroup;
     }
@@ -915,6 +991,15 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
                     continue;
                 }
                 $IncludeStmt->execute([$sCalendarId, $sDate]);
+            }
+        }
+    }
+
+    if (!empty($aExtraExcludedDatesByCalendarId)) {
+        $ExcludeStmt = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES (?, ?, 0)');
+        foreach ($aExtraExcludedDatesByCalendarId as $sCalendarId => $aDates) {
+            foreach (array_keys($aDates) as $sDate) {
+                $ExcludeStmt->execute([$sCalendarId, $sDate]);
             }
         }
     }

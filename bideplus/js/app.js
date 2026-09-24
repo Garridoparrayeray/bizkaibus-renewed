@@ -3,16 +3,24 @@
     const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
     const IS_TRANVIA_BILBAO = window.__bbNetwork === 'tranvia-bilbao';
     const IS_TRANVIA_VITORIA = window.__bbNetwork === 'tranvia-vitoria';
+    const IS_RENFE = window.__bbNetwork === 'renfe';
     const HAS_PLATFORMS = IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA;
     let networkQuery = '';
-    if (HAS_PLATFORMS) {
+    if (HAS_PLATFORMS || IS_RENFE) {
         networkQuery = '?red=' + window.__bbNetwork;
     }
-    const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites'
-        : IS_EUSKOTREN ? 'euskotren_favorites'
-        : IS_TRANVIA_BILBAO ? 'tranviabilbao_favorites'
-        : IS_TRANVIA_VITORIA ? 'tranviavitoria_favorites'
-        : 'bizkaibus_favorites';
+    let FAVORITES_STORAGE_KEY = 'bizkaibus_favorites';
+    if (IS_METRO) {
+        FAVORITES_STORAGE_KEY = 'metrobilbao_favorites';
+    } else if (IS_EUSKOTREN) {
+        FAVORITES_STORAGE_KEY = 'euskotren_favorites';
+    } else if (IS_TRANVIA_BILBAO) {
+        FAVORITES_STORAGE_KEY = 'tranviabilbao_favorites';
+    } else if (IS_TRANVIA_VITORIA) {
+        FAVORITES_STORAGE_KEY = 'tranviavitoria_favorites';
+    } else if (IS_RENFE) {
+        FAVORITES_STORAGE_KEY = 'renfe_favorites';
+    }
 
     const ICONS = {
         pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
@@ -44,6 +52,8 @@
         homeLink: document.getElementById('home-link'),
         networkSwitch: document.getElementById('network-switcher'),
         menuOpen: document.getElementById('menu-open'),
+        langToggle: document.getElementById('lang-toggle'),
+        appSubtitle: document.getElementById('app-subtitle'),
         menuClose: document.getElementById('menu-close'),
         sideMenu: document.getElementById('side-menu'),
         menuFavoritesOpen: document.getElementById('menu-favorites-open'),
@@ -120,19 +130,19 @@
     }
 
     function liveBadgeText(status, etaMinutes) {
-        if (status !== 'live') return 'PROGRAMADO';
-        return etaMinutes <= 3 ? 'LLEGANDO' : 'EN RUTA';
+        if (status !== 'live') return I18n.t('app.badge.scheduled');
+        if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
+        return I18n.t('app.badge.enRoute');
     }
 
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
-            return delayMinutes > 0
-                ? { text: `Retraso +${delayMinutes}m`, className: 'status-warn' }
-                : { text: 'En hora', className: 'status-ok' };
+            if (delayMinutes > 0) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
+            return { text: I18n.t('app.status.onTime'), className: 'status-ok' };
         }
-        if (status === 'finished') return { text: 'Finalizado', className: 'status-muted' };
-        if (status === 'departed') return { text: 'Ya salió', className: 'status-muted' };
-        return { text: 'Programado', className: 'status-muted' };
+        if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
+        if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
+        return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
     }
 
     function setPillContent(button, iconSvg, label, area, hint) {
@@ -268,35 +278,45 @@
 
     async function findNearby() {
         if (!('geolocation' in navigator)) {
-            showSearchMessage('Tu dispositivo no permite obtener la ubicación.');
+            showSearchMessage(I18n.t('app.nearby.noGeolocation'));
             return;
         }
-        showSearchMessage('Buscando tu ubicación…');
-        let position;
+        el.nearbyBtn.classList.add('is-loading');
+        showSearchMessage(I18n.t('app.nearby.loading'));
         try {
-            position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-            });
-        } catch (error) {
-            showSearchMessage(error.code === 1
-                ? 'Has denegado el permiso de ubicación. Actívalo en los ajustes del navegador para ver las paradas cercanas.'
-                : 'No se pudo obtener tu ubicación. Inténtalo de nuevo.');
-            return;
+            let position;
+            try {
+                position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+                });
+            } catch (error) {
+                if (error.code === 1) {
+                    showSearchMessage(I18n.t('app.nearby.denied'));
+                } else {
+                    showSearchMessage(I18n.t('app.nearby.failed'));
+                }
+                return;
+            }
+            showSearchMessage(I18n.t('app.nearby.loadingStops'));
+            let data;
+            try {
+                data = await Api.nearby(position.coords.latitude.toFixed(5), position.coords.longitude.toFixed(5));
+            } catch (error) {
+                if (error.status === 422) {
+                    showSearchMessage(I18n.t('app.nearby.outOfArea'));
+                } else {
+                    showSearchMessage(I18n.t('app.nearby.apiError'));
+                }
+                return;
+            }
+            if (data.stops.length === 0) {
+                showSearchMessage(I18n.t('app.nearby.empty'));
+                return;
+            }
+            renderNearbyResults(data.stops);
+        } finally {
+            el.nearbyBtn.classList.remove('is-loading');
         }
-        let data;
-        try {
-            data = await Api.nearby(position.coords.latitude.toFixed(5), position.coords.longitude.toFixed(5));
-        } catch (error) {
-            showSearchMessage(error.status === 422
-                ? 'Tu ubicación está fuera de la zona cubierta por esta app.'
-                : 'No se pudieron consultar las paradas cercanas.');
-            return;
-        }
-        if (data.stops.length === 0) {
-            showSearchMessage('No hay paradas a menos de 2 km de ti.');
-            return;
-        }
-        renderNearbyResults(data.stops);
     }
 
     async function selectStop(stopId) {
@@ -383,9 +403,9 @@
 
         if (!departure) {
             el.liveLine.textContent = state.currentStop.name;
-            el.liveHeadsign.textContent = 'Sin próximas salidas';
+            el.liveHeadsign.textContent = I18n.t('app.noUpcomingDepartures');
             el.liveMinutes.textContent = '–';
-            el.liveBadge.textContent = 'Sin datos';
+            el.liveBadge.textContent = I18n.t('app.noData');
             el.liveStatusText.textContent = '';
             el.liveStatusDot.className = 'status-dot';
             el.liveIncidentsLink.hidden = true;
@@ -415,14 +435,7 @@
             button.type = 'button';
             button.innerHTML = `<strong>${other.lineCode}</strong><span>${other.headsign}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
 
-            button.addEventListener('click', () => {
-                if (button.dataset.tapped === 'true') {
-                    openVehicleModal(other.tripKey);
-                } else {
-                    button.dataset.tapped = 'true';
-                    selectLine(other.lineId, true);
-                }
-            });
+            button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
             li.appendChild(button);
             el.liveMoreList.appendChild(li);
@@ -444,7 +457,7 @@
             headsignEl.textContent = direction.label;
             const empty = document.createElement('p');
             empty.className = 'platform-column-empty';
-            empty.textContent = 'Sin próximas salidas';
+            empty.textContent = I18n.t('app.noUpcomingDepartures');
             column.append(headsignEl, empty);
             return column;
         }
@@ -586,15 +599,18 @@
             const [year, month, day] = data.publishedUntil.split('-');
             timetableNote.textContent = `El operador solo ha publicado horarios hasta el ${day}/${month}/${year}; para este día se muestra el de un día normal y puede no coincidir.`;
         }
-        const sourceLabel = IS_METRO
-            ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
-            : IS_EUSKOTREN
-                ? 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)'
-                : IS_TRANVIA_BILBAO
-                    ? 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)'
-                    : IS_TRANVIA_VITORIA
-                        ? 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)'
-                        : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
+        let sourceLabel = 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
+        if (IS_METRO) {
+            sourceLabel = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
+        } else if (IS_EUSKOTREN) {
+            sourceLabel = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
+        } else if (IS_TRANVIA_BILBAO) {
+            sourceLabel = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
+        } else if (IS_TRANVIA_VITORIA) {
+            sourceLabel = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
+        } else if (IS_RENFE) {
+            sourceLabel = 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)';
+        }
         el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
     }
 
@@ -623,8 +639,10 @@
         }
     }
 
+    const MAP_BUS_ICON = '<svg viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="8" fill="#01573C"/><g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="8" width="14" height="14" rx="3"/><line x1="9" y1="14" x2="23" y2="14"/></g><circle cx="12.5" cy="24" r="1.6" fill="#ffffff"/><circle cx="19.5" cy="24" r="1.6" fill="#ffffff"/></svg>';
+
     function busDivIcon() {
-        return L.divIcon({ className: 'bus-marker', html: ICONS.bus, iconSize: [28, 28] });
+        return L.divIcon({ className: 'bus-marker', html: MAP_BUS_ICON, iconSize: [28, 28] });
     }
 
     function ensureLineMap() {
@@ -714,25 +732,25 @@
         if (!state.currentLine) return;
 
         el.scheduleTextToggle.disabled = true;
-        el.scheduleTextToggle.textContent = 'Cargando…';
+        el.scheduleTextToggle.textContent = I18n.t('app.loading');
 
         let data;
         try {
             data = await Api.lineScheduleText(state.currentLine.id);
         } catch (e) {
             el.scheduleTextToggle.disabled = false;
-            el.scheduleTextToggle.textContent = 'Ver horario oficial 2026';
+            el.scheduleTextToggle.textContent = I18n.t('app.officialSchedule2026');
             return;
         }
         el.scheduleTextToggle.disabled = false;
-        el.scheduleTextToggle.textContent = 'Ver horario oficial 2026';
+        el.scheduleTextToggle.textContent = I18n.t('app.officialSchedule2026');
 
         el.scheduleModalLine.textContent = `${state.currentLine.code} · ${state.currentLine.name}`;
         el.scheduleModalContent.innerHTML = '';
 
         if (data.schedule.length === 0) {
             const p = document.createElement('p');
-            p.textContent = 'No hay horario oficial en texto disponible para esta línea.';
+            p.textContent = I18n.t('app.noOfficialScheduleText');
             el.scheduleModalContent.appendChild(p);
         } else {
             const parseDate = (text) => {
@@ -756,12 +774,12 @@
                 block.className = 'schedule-block' + (isCurrent ? ' is-current' : '') + (isPast ? ' is-past' : '');
 
                 const h4 = document.createElement('h4');
-                h4.textContent = fields.season || 'Horario';
+                h4.textContent = fields.season || I18n.t('app.schedule');
                 block.appendChild(h4);
                 if (isCurrent) {
                     const tag = document.createElement('span');
                     tag.className = 'schedule-current-tag';
-                    tag.textContent = 'Vigente hoy';
+                    tag.textContent = I18n.t('app.currentToday');
                     h4.appendChild(tag);
                 }
 
@@ -774,7 +792,7 @@
 
                 if (fields.outbound) {
                     const h5 = document.createElement('h5');
-                    h5.textContent = 'Ida';
+                    h5.textContent = I18n.t('app.outbound');
                     const p = document.createElement('p');
                     p.textContent = fields.outbound;
                     block.append(h5, p);
@@ -782,7 +800,7 @@
 
                 if (fields.returnTrip) {
                     const h5 = document.createElement('h5');
-                    h5.textContent = 'Vuelta';
+                    h5.textContent = I18n.t('app.returnTrip');
                     const p = document.createElement('p');
                     p.textContent = fields.returnTrip;
                     block.append(h5, p);
@@ -812,15 +830,17 @@
         const { text } = statusLabel(data.status, data.delayMinutes);
         el.modalBadge.textContent = text;
         el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
-        el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
-        el.modalVehicle.textContent = data.vehicleRef
-            ? `Vehículo en seguimiento en vivo · Ref. ${data.vehicleRef}`
-            : data.status === 'finished'
-                ? 'Este viaje ya ha finalizado. Se muestra el horario programado.'
-                : 'Sin seguimiento en vivo en este momento. Se muestra el horario programado.';
+        el.modalHeadsign.textContent = I18n.t('app.direction', { headsign: data.headsign });
+        if (data.vehicleRef) {
+            el.modalVehicle.textContent = I18n.t('app.liveTracking', { ref: data.vehicleRef });
+        } else if (data.status === 'finished') {
+            el.modalVehicle.textContent = I18n.t('app.tripFinished');
+        } else {
+            el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
+        }
 
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
-        el.modalAlertsToggle.textContent = 'Ver incidencias';
+        el.modalAlertsToggle.textContent = I18n.t('app.incidents.view');
         el.modalAlertsToggle.disabled = false;
         el.modalAlertsToggle.hidden = false;
         el.modalAlerts.hidden = true;
@@ -831,6 +851,11 @@
             const li = document.createElement('li');
             li.className = stop.isCurrent ? 'stop-current' : '';
             li.textContent = `${stop.scheduledTime} · ${stop.name}`;
+            li.classList.add('stop-clickable');
+            li.addEventListener('click', () => {
+                el.modal.close();
+                selectStop(stop.stopId);
+            });
             el.modalStops.appendChild(li);
         }
 
@@ -845,9 +870,9 @@
             return;
         }
 
-        el.modalBadge.textContent = 'Programado';
+        el.modalBadge.textContent = I18n.t('app.status.scheduled');
         el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
-        el.modalHeadsign.textContent = `Dirección: ${data.headsign}`;
+        el.modalHeadsign.textContent = I18n.t('app.direction', { headsign: data.headsign });
         el.modalVehicle.hidden = true;
         el.modalAlertsToggle.hidden = true;
         el.modalAlerts.hidden = true;
@@ -857,11 +882,15 @@
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
             const li = document.createElement('li');
-            const classes = [];
+            const classes = ['stop-clickable'];
             if (stop.isTarget) classes.push('stop-current');
             if (stop.scheduledTime < nowHm) classes.push('stop-past');
             li.className = classes.join(' ');
             li.textContent = `${stop.scheduledTime} · ${stop.name}`;
+            li.addEventListener('click', () => {
+                el.modal.close();
+                selectStop(stop.stopId);
+            });
             el.modalStops.appendChild(li);
         }
 
@@ -871,20 +900,20 @@
     async function loadModalAlerts() {
         const lineId = el.modalAlertsToggle.dataset.lineId;
         el.modalAlertsToggle.disabled = true;
-        el.modalAlertsToggle.textContent = 'Cargando…';
+        el.modalAlertsToggle.textContent = I18n.t('app.loading');
 
         let alerts;
         try {
             alerts = (await Api.alerts(lineId)).alerts;
         } catch (e) {
-            el.modalAlertsToggle.textContent = 'No se han podido cargar';
+            el.modalAlertsToggle.textContent = I18n.t('app.loadFailed');
             return;
         }
 
         el.modalAlerts.innerHTML = '';
         if (alerts.length === 0) {
             const li = document.createElement('li');
-            li.textContent = 'Sin incidencias activas para esta línea.';
+            li.textContent = I18n.t('app.noActiveIncidents');
             el.modalAlerts.appendChild(li);
         } else {
             for (const alert of alerts) {
@@ -926,17 +955,17 @@
         el.menuAlertsEmpty.hidden = false;
 
         if (IS_METRO) {
-            el.menuAlertsEmpty.textContent = 'Cargando incidencias…';
+            el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
             let metroAlerts;
             try {
                 metroAlerts = (await Api.alerts()).alerts;
             } catch (e) {
-                el.menuAlertsEmpty.textContent = 'No se han podido cargar las incidencias ahora mismo.';
+                el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
                 return;
             }
             el.menuAlertsEmpty.hidden = metroAlerts.length > 0;
             if (metroAlerts.length === 0) {
-                el.menuAlertsEmpty.textContent = 'No hay incidencias activas ahora mismo.';
+                el.menuAlertsEmpty.textContent = I18n.t('app.noActiveIncidentsNow');
                 return;
             }
             for (const alert of metroAlerts) {
@@ -956,7 +985,7 @@
             relevantLineIds.add(String(state.currentLine.id));
         }
 
-        el.menuAlertsEmpty.textContent = 'Guarda una línea en favoritos, o abre una, para ver aquí sus incidencias activas.';
+        el.menuAlertsEmpty.textContent = I18n.t('app.saveLineToSeeIncidents');
 
         if (relevantLineIds.size === 0) {
             return;
@@ -966,7 +995,7 @@
         try {
             allAlerts = (await Api.alerts()).alerts;
         } catch (e) {
-            el.menuAlertsEmpty.textContent = 'No se han podido cargar las incidencias ahora mismo.';
+            el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
             return;
         }
 
@@ -974,7 +1003,7 @@
 
         el.menuAlertsEmpty.hidden = matching.length > 0;
         if (matching.length === 0) {
-            el.menuAlertsEmpty.textContent = 'Ninguna de esas líneas tiene incidencias activas ahora mismo.';
+            el.menuAlertsEmpty.textContent = I18n.t('app.noneOfYourLinesHaveIncidents');
             return;
         }
 
@@ -1215,6 +1244,40 @@
         if (document.visibilityState === 'visible') runForegroundAlertCheck().catch(() => {});
     });
 
+    function updateLangToggleLabel() {
+        if (I18n.getLang() === 'eu') {
+            el.langToggle.textContent = 'ES';
+        } else {
+            el.langToggle.textContent = 'EU';
+        }
+    }
+    function updateNetworkSubtitle() {
+        if (IS_METRO) {
+            el.appSubtitle.textContent = I18n.t('switcher.metro.desc');
+        } else if (IS_EUSKOTREN) {
+            el.appSubtitle.textContent = I18n.t('switcher.euskotren.desc');
+        } else if (IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
+            el.appSubtitle.textContent = I18n.t('app.tram.desc');
+        } else if (IS_RENFE) {
+            el.appSubtitle.textContent = I18n.t('switcher.renfeSubtitle');
+        } else {
+            el.appSubtitle.textContent = I18n.t('switcher.bus.desc');
+        }
+    }
+    I18n.applyTranslations();
+    updateLangToggleLabel();
+    updateNetworkSubtitle();
+    el.langToggle.addEventListener('click', () => {
+        if (I18n.getLang() === 'eu') {
+            I18n.setLang('es');
+        } else {
+            I18n.setLang('eu');
+        }
+        I18n.applyTranslations();
+        updateLangToggleLabel();
+        updateNetworkSubtitle();
+    });
+
     el.nearbyBtn.addEventListener('click', findNearby);
     el.searchInput.addEventListener('input', debounce((e) => performSearch(e.target.value), 300));
     el.searchForm.addEventListener('submit', (e) => {
@@ -1268,34 +1331,43 @@
         el.scheduleTextToggle.hidden = true;
         el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A.';
         el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
-        el.liveEmpty.textContent = 'Busca una estación para ver el próximo metro.';
+        el.liveEmpty.textContent = I18n.t('switcher.metro.liveEmpty');
     }
 
     if (IS_EUSKOTREN) {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
         el.attribution.textContent = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = 'Busca una estación para ver el próximo tren.';
+        el.liveEmpty.textContent = I18n.t('switcher.euskotren.liveEmpty');
     }
 
     if (IS_TRANVIA_BILBAO) {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
         el.attribution.textContent = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = 'Busca una parada para ver el próximo tranvía.';
+        el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
     }
 
     if (IS_TRANVIA_VITORIA) {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
         el.attribution.textContent = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = 'Busca una parada para ver el próximo tranvía.';
+        el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
+    }
+
+    if (IS_RENFE) {
+        el.lineMap.hidden = true;
+        el.lineMapEmpty.hidden = true;
+        el.scheduleTextToggle.hidden = true;
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Renfe. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
+        el.attribution.textContent = 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)';
+        el.liveEmpty.textContent = I18n.t('switcher.renfe.liveEmpty');
     }
 
     loadFavorites();

@@ -66,6 +66,7 @@ const apps = [
     { key: 'euskotren', url: '/?red=euskotren', q: 'amara', panel: 'platform-panel' },
     { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
     { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
+    { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
@@ -85,7 +86,10 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.querySelector('#search-results .pill').click()");
         await sleep(3500);
         check(`${tag} se abre la ficha de la parada`, (await ev(`!document.getElementById('${a.panel}').hidden`)) === true);
-        const favBtn = a.key === 'bus' ? 'live-favorite' : 'platform-favorite';
+        let favBtn = 'platform-favorite';
+        if (a.panel === 'live-card') {
+            favBtn = 'live-favorite';
+        }
         await ev(`document.getElementById('${favBtn}').click()`);
         await sleep(600);
         check(`${tag} guardar favorito`, (await ev("document.querySelectorAll('#favorites-list li:not(#favorites-empty)').length")) === 1);
@@ -94,9 +98,10 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         check(`${tag} menu lateral abre`, (await ev("document.getElementById('side-menu').open")) === true);
         await ev("document.getElementById('menu-close').click()");
         await sleep(300);
-        const pick = a.key === 'bus'
-            ? '#live-timetable-link:not([hidden]), #live-more-list button'
-            : '#platform-timetable-lines .pill, #platform-timetable-link:not([hidden])';
+        let pick = '#platform-timetable-lines .pill, #platform-timetable-link:not([hidden])';
+        if (a.panel === 'live-card') {
+            pick = '#live-timetable-link:not([hidden]), #live-more-list button';
+        }
         await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
         await sleep(3500);
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
@@ -135,7 +140,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.getElementById('home-link').click()");
         await sleep(400);
         const cards = await ev("[...document.querySelectorAll('#network-switcher .net-card:not([hidden])')].length");
-        check(`${tag} selector de app muestra 5 destinos`, cards === 5, `${cards}`);
+        check(`${tag} selector de app muestra 6 destinos`, cards === 6, `${cards}`);
         await ev('localStorage.clear()');
     }
 }
@@ -148,6 +153,7 @@ for (const [url, panel, name] of [
     ['/stops/ES:Euskotren:StopPlace:2581:?red=euskotren', 'platform-panel', 'estacion euskotren'],
     ['/stops/ES:Euskotren:StopPlace:1468:?red=tranvia-bilbao', 'platform-panel', 'parada tranvia bilbao'],
     ['/stops/ES:Euskotren:StopPlace:1560:?red=tranvia-vitoria', 'platform-panel', 'parada tranvia vitoria'],
+    ['/stops/13200?red=renfe', 'live-card', 'parada renfe'],
     ['/lines/MB?red=metro', 'timetable-section', 'linea metro'],
     ['/lines/3516', 'timetable-section', 'linea bus'],
 ]) {
@@ -157,7 +163,7 @@ for (const [url, panel, name] of [
 
 where = 'menu';
 await go('/', 2500);
-check('menu Bide+ carga y tiene 5 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 5);
+check('menu Bide+ carga y tiene 6 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 6);
 await ev("document.querySelector('[data-view-btn=list]').click()"); await sleep(600);
 check('menu vista lista', (await ev("document.documentElement.getAttribute('data-view')")) === 'list');
 await ev("document.querySelector('[data-view-btn=tiles]').click()"); await sleep(600);
