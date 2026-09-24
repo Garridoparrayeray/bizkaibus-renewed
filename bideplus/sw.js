@@ -1,6 +1,6 @@
 importScripts('/js/alerts-store.js');
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
@@ -31,6 +31,8 @@ const SHELL_FILES = [
     '/manifest-miamor.json',
     '/manifest-metro.json',
     '/manifest-euskotren.json',
+    '/manifest-tranvia-bilbao.json',
+    '/manifest-tranvia-vitoria.json',
     '/manifest-bide.json',
     '/miamor.html',
     '/icons/icon-192.png',
@@ -41,6 +43,10 @@ const SHELL_FILES = [
     '/icons-metro/icon-512.png',
     '/icons-euskotren/icon-192.png',
     '/icons-euskotren/icon-512.png',
+    '/icons-tranvia-bilbao/icon-192.png',
+    '/icons-tranvia-bilbao/icon-512.png',
+    '/icons-tranvia-vitoria/icon-192.png',
+    '/icons-tranvia-vitoria/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',
