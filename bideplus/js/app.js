@@ -1,12 +1,17 @@
 (() => {
     const IS_METRO = window.__bbNetwork === 'metro';
     const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
+    const IS_TRANVIA_BILBAO = window.__bbNetwork === 'tranvia-bilbao';
+    const IS_TRANVIA_VITORIA = window.__bbNetwork === 'tranvia-vitoria';
+    const HAS_PLATFORMS = IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA;
     let networkQuery = '';
-    if (IS_METRO || IS_EUSKOTREN) {
+    if (HAS_PLATFORMS) {
         networkQuery = '?red=' + window.__bbNetwork;
     }
     const FAVORITES_STORAGE_KEY = IS_METRO ? 'metrobilbao_favorites'
         : IS_EUSKOTREN ? 'euskotren_favorites'
+        : IS_TRANVIA_BILBAO ? 'tranviabilbao_favorites'
+        : IS_TRANVIA_VITORIA ? 'tranviavitoria_favorites'
         : 'bizkaibus_favorites';
 
     const ICONS = {
@@ -303,7 +308,7 @@
         }
         state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
         el.liveEmpty.hidden = true;
-        if (IS_METRO || IS_EUSKOTREN) {
+        if (HAS_PLATFORMS) {
             updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
             el.platformPanelStop.textContent = stop.name;
             el.platformPanel.hidden = false;
@@ -337,14 +342,14 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            if (IS_METRO || IS_EUSKOTREN) {
+            if (HAS_PLATFORMS) {
                 renderPlatformPanel({ departures: [], platforms: [] });
             } else {
                 renderLiveCard([]);
             }
             return;
         }
-        if (IS_METRO || IS_EUSKOTREN) {
+        if (HAS_PLATFORMS) {
             renderPlatformPanel(data);
         } else {
             renderLiveCard(data.departures);
@@ -398,7 +403,7 @@
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
-        el.liveIncidentsLink.hidden = IS_METRO || IS_EUSKOTREN;
+        el.liveIncidentsLink.hidden = HAS_PLATFORMS;
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
         el.liveTimetableLink.disabled = false;
@@ -555,7 +560,7 @@
         }
 
         await loadTimetable();
-        if (!IS_METRO && !IS_EUSKOTREN) {
+        if (!HAS_PLATFORMS) {
             await loadLineMap(line.id);
             startLineMapRefresh(line.id);
         }
@@ -585,7 +590,11 @@
             ? 'Datos: Metro Bilbao / Open Data Metro Bilbao'
             : IS_EUSKOTREN
                 ? 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)'
-                : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
+                : IS_TRANVIA_BILBAO
+                    ? 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)'
+                    : IS_TRANVIA_VITORIA
+                        ? 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)'
+                        : 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
         el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
     }
 
@@ -788,7 +797,7 @@
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
-        if (IS_METRO || IS_EUSKOTREN) {
+        if (HAS_PLATFORMS) {
             await openTripStopsModal(tripKey);
             return;
         }
@@ -1269,6 +1278,24 @@
         el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
         el.attribution.textContent = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
         el.liveEmpty.textContent = 'Busca una estación para ver el próximo tren.';
+    }
+
+    if (IS_TRANVIA_BILBAO) {
+        el.lineMap.hidden = true;
+        el.lineMapEmpty.hidden = true;
+        el.scheduleTextToggle.hidden = true;
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.attribution.textContent = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
+        el.liveEmpty.textContent = 'Busca una parada para ver el próximo tranvía.';
+    }
+
+    if (IS_TRANVIA_VITORIA) {
+        el.lineMap.hidden = true;
+        el.lineMapEmpty.hidden = true;
+        el.scheduleTextToggle.hidden = true;
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A.';
+        el.attribution.textContent = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
+        el.liveEmpty.textContent = 'Busca una parada para ver el próximo tranvía.';
     }
 
     loadFavorites();
