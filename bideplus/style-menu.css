@@ -7,6 +7,8 @@
     --green: #01573C;
     --red: #C8102E;
     --blue: #003F8C;
+    --tram-bilbao: #4EB848;
+    --tram-vitoria: #60AE27;
 }
 
 /* ===== Base ===== */
@@ -68,6 +70,8 @@ main {
 .tile--bus { --c: var(--green); }
 .tile--metro { --c: var(--red); }
 .tile--euskotren { --c: var(--blue); }
+.tile--tranvia-bilbao { --c: var(--tram-bilbao); }
+.tile--tranvia-vitoria { --c: var(--tram-vitoria); }
 
 /* ===== Fichas de las apps ===== */
 .tiles {
@@ -170,6 +174,29 @@ main {
             line-height: 1.3;
             opacity: .88;
         }
+        .tile strong .tile-mark {
+            display: inline;
+            margin-top: 0;
+            font-size: 1em;
+            color: inherit;
+            font-weight: inherit;
+            opacity: 1;
+        }
+        /* Como el nombre de un elemento en la tabla periódica: pequeño,
+           justo bajo "Tranvía+". En ficha (fondo de color) va en blanco
+           translúcido; en lista (fondo blanco) se recolorea más abajo,
+           con más especificidad que la regla genérica de "[data-view=list]
+           .tile .txt span" para poder ganarle. */
+        .tile .txt .tile-city {
+            margin-top: -3px;
+            font-size: .8rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-align: left;
+            color: rgba(255, 255, 255, .85);
+            opacity: 1;
+        }
 
 /* ===== Ficha "próximamente" ===== */
 .tile.soon {
@@ -245,6 +272,8 @@ main {
         }
         [data-view="list"] .tile .txt { flex: 1; min-width: 0; order: 1; }
             [data-view="list"] .tile .txt span { color: var(--muted); opacity: 1; font-size: 0.92rem; }
+            [data-view="list"] .tile .txt .tile-mark { color: inherit; font-size: 1em; opacity: 1; }
+            [data-view="list"] .tile .txt .tile-city { color: var(--c); opacity: .8; font-size: .8rem; text-align: left; }
             [data-view="list"] .tile.is-last .txt .last {
                 display: block;
                 margin-top: 4px;

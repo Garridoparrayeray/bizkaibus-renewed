@@ -12,8 +12,10 @@ if (!$isMiamorDomain && ($menuPath === '/' || $menuPath === '') && !isset($_GET[
 $site = require __DIR__ . '/Config/site.php';
 $wordmark = require __DIR__ . '/Views/wordmark.php';
 
-$bIsMetroShare     = isset($_GET['red']) && $_GET['red'] === 'metro';
-$bIsEuskoTrenShare = isset($_GET['red']) && $_GET['red'] === 'euskotren';
+$bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';
+$bIsEuskoTrenShare      = isset($_GET['red']) && $_GET['red'] === 'euskotren';
+$bIsTranviaBilbaoShare  = isset($_GET['red']) && $_GET['red'] === 'tranvia-bilbao';
+$bIsTranviaVitoriaShare = isset($_GET['red']) && $_GET['red'] === 'tranvia-vitoria';
 
 $networkSlug = 'bus';
 if ($isMiamorDomain) {
@@ -36,6 +38,18 @@ if ($isMiamorDomain) {
     $sOgImage       = $site['url'] . '/icons-euskotren/icon-512.png';
     $sFaviconFolder = 'icons-euskotren';
     $networkSlug    = 'euskotren';
+} elseif ($bIsTranviaBilbaoShare) {
+    $sOgTitle       = 'Tranvía Bilbao+ · Horarios del tranvía de Bilbao';
+    $sOgDescription = 'Consulta los horarios del tranvía de Bilbao por parada, sin vueltas.';
+    $sOgImage       = $site['url'] . '/icons-tranvia-bilbao/icon-512.png';
+    $sFaviconFolder = 'icons-tranvia-bilbao';
+    $networkSlug    = 'tranvia-bilbao';
+} elseif ($bIsTranviaVitoriaShare) {
+    $sOgTitle       = 'Tranvía Vitoria+ · Horarios del tranvía de Vitoria-Gasteiz';
+    $sOgDescription = 'Consulta los horarios del tranvía de Vitoria-Gasteiz por parada, sin vueltas.';
+    $sOgImage       = $site['url'] . '/icons-tranvia-vitoria/icon-512.png';
+    $sFaviconFolder = 'icons-tranvia-vitoria';
+    $networkSlug    = 'tranvia-vitoria';
 } else {
     $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
     $sOgDescription = 'Consulta los horarios, las líneas, las paradas y las llegadas en tiempo real de Bizkaibus, sin vueltas.';
@@ -79,7 +93,7 @@ try {
         $record = findRecord($networkSlug, $recordType, $recordId);
 
         if ($record === null && !isset($_GET['red'])) {
-            foreach (['metro', 'euskotren'] as $otherNetwork) {
+            foreach (['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'] as $otherNetwork) {
                 if (findRecord($otherNetwork, $recordType, $recordId) !== null) {
                     header('Location: /' . $recordType . '/' . $matches[2] . '?red=' . $otherNetwork, true, 301);
                     exit;
@@ -114,7 +128,7 @@ if ($isNotFound) {
     exit;
 }
 
-$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+'];
+$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+'];
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'SoftwareApplication',
@@ -183,9 +197,11 @@ $jsonLd = [
             window.__bbTheme = isMiamor ? 'miamor' : 'pro';
 
             var redParam = params.get('red');
-            window.__bbNetwork = (redParam === 'metro' || redParam === 'euskotren') ? redParam : 'bus';
-            var isMetro     = window.__bbNetwork === 'metro';
-            var isEuskoTren = window.__bbNetwork === 'euskotren';
+            window.__bbNetwork = (redParam === 'metro' || redParam === 'euskotren' || redParam === 'tranvia-bilbao' || redParam === 'tranvia-vitoria') ? redParam : 'bus';
+            var isMetro          = window.__bbNetwork === 'metro';
+            var isEuskoTren      = window.__bbNetwork === 'euskotren';
+            var isTranviaBilbao  = window.__bbNetwork === 'tranvia-bilbao';
+            var isTranviaVitoria = window.__bbNetwork === 'tranvia-vitoria';
 
             var title      = 'BizkaiBus+';
             var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
@@ -210,14 +226,28 @@ $jsonLd = [
                 touchIcon  = 'icons-euskotren/apple-touch-icon.png';
                 icon       = 'icons-euskotren/icon-192.png';
                 themeColor = '#003F8C';
+            } else if (isTranviaBilbao) {
+                title      = 'Tranvía Bilbao+';
+                manifest   = 'manifest-tranvia-bilbao.json';
+                touchIcon  = 'icons-tranvia-bilbao/apple-touch-icon.png';
+                icon       = 'icons-tranvia-bilbao/icon-192.png';
+                themeColor = '#4EB848';
+            } else if (isTranviaVitoria) {
+                title      = 'Tranvía Vitoria+';
+                manifest   = 'manifest-tranvia-vitoria.json';
+                touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
+                icon       = 'icons-tranvia-vitoria/icon-192.png';
+                themeColor = '#60AE27';
             }
 
-            if (isMiamor && !isMetro && !isEuskoTren) {
+            if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria) {
                 title += ' | Para el amor de mi vida';
             }
 
-            if (isMetro)     document.documentElement.classList.add('is-metro');
-            if (isEuskoTren) document.documentElement.classList.add('is-euskotren');
+            if (isMetro)          document.documentElement.classList.add('is-metro');
+            if (isEuskoTren)      document.documentElement.classList.add('is-euskotren');
+            if (isTranviaBilbao)  document.documentElement.classList.add('is-tranvia-bilbao');
+            if (isTranviaVitoria) document.documentElement.classList.add('is-tranvia-vitoria');
 
             document.write(
                 '<title>' + title + '</title>' +
@@ -259,9 +289,12 @@ $jsonLd = [
                             <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
                         </svg>
                         <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="">
+                        <img class="logo-tranvia-bilbao" src="/icons-tranvia-bilbao/glyph.png" alt="">
+                        <img class="logo-tranvia-vitoria" src="/icons-tranvia-vitoria/glyph.png" alt="">
                     </span>
                     <hgroup>
                         <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
+                        <span id="app-title-city"></span>
                         <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
                     </hgroup>
                 </button>
@@ -302,6 +335,24 @@ $jsonLd = [
                             <span>Horarios de Euskotren</span>
                         </span>
                     </a>
+                    <a class="net-card" id="net-card-tranvia-bilbao" href="/?red=tranvia-bilbao">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <img src="/icons-tranvia-bilbao/icon-192.png" alt="">
+                        </span>
+                        <span class="net-card-text">
+                            <strong>Tranvía Bilbao+</strong>
+                            <span>Horarios del tranvía de Bilbao</span>
+                        </span>
+                    </a>
+                    <a class="net-card" id="net-card-tranvia-vitoria" href="/?red=tranvia-vitoria">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <img src="/icons-tranvia-vitoria/icon-192.png" alt="">
+                        </span>
+                        <span class="net-card-text">
+                            <strong>Tranvía Vitoria+</strong>
+                            <span>Horarios del tranvía de Vitoria-Gasteiz</span>
+                        </span>
+                    </a>
                     <a class="net-card" id="net-card-menu" href="/">
                         <span class="net-card-logomark" aria-hidden="true">
                             <img class="is-full" src="/icons-bide-rojo/icon-192.png" alt="">
@@ -327,19 +378,42 @@ $jsonLd = [
                             document.getElementById('app-logomark').classList.add('is-euskotren');
                             document.getElementById('app-title').firstChild.textContent = 'EUSKOTREN';
                             document.getElementById('app-subtitle').textContent = 'Horarios de Euskotren';
+                        } else if (net === 'tranvia-bilbao') {
+                            document.getElementById('app-logomark').classList.add('is-tranvia-bilbao');
+                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
+                            document.getElementById('app-title-city').textContent = 'BILBAO';
+                            document.getElementById('app-subtitle').textContent = 'Horarios del tranvía';
+                        } else if (net === 'tranvia-vitoria') {
+                            document.getElementById('app-logomark').classList.add('is-tranvia-vitoria');
+                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
+                            document.getElementById('app-title-city').textContent = 'VITORIA';
+                            document.getElementById('app-subtitle').textContent = 'Horarios del tranvía';
                         }
                         if (isMiamorActive && net === 'bus') {
                             document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
                         }
 
+                        var cityEl = document.getElementById('app-title-city');
+                        if (cityEl.textContent) {
+                            // Que "BILBAO"/"VITORIA" termine justo bajo la "A" de
+                            // "TRANVÍA", sin contar el "+": se mide el ancho real en
+                            // vez de adivinarlo, porque el contenedor del título es
+                            // más ancho que el texto (para poder recortar con "…").
+                            var titleWidth = document.getElementById('app-title').getBoundingClientRect().width;
+                            var markWidth = document.getElementById('app-title-mark').getBoundingClientRect().width;
+                            cityEl.style.width = Math.max(0, titleWidth - markWidth) + 'px';
+                        }
+
                         var currentCardId = net === 'metro' ? 'net-card-metro'
                             : net === 'euskotren' ? 'net-card-euskotren'
+                            : net === 'tranvia-bilbao' ? 'net-card-tranvia-bilbao'
+                            : net === 'tranvia-vitoria' ? 'net-card-tranvia-vitoria'
                             : 'net-card-bus';
                         var currentCard = document.getElementById(currentCardId);
                         if (currentCard) currentCard.hidden = true;
 
                         if (temaSuffix) {
-                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren'].forEach(function (id) {
+                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren', 'net-card-tranvia-bilbao', 'net-card-tranvia-vitoria'].forEach(function (id) {
                                 var card = document.getElementById(id);
                                 if (card && card !== currentCard) card.href += temaSuffix;
                             });

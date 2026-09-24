@@ -33,6 +33,22 @@ const NETWORK_DEFAULTS = [
         'agencyId' => 'ES:Euskotren:Operator:EUS_Tren:',
         'skipGeocode' => false,
     ],
+    'tranvia-bilbao' => [
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
+        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
+        'output' => __DIR__ . '/../data/tranviabilbao.sqlite',
+        'label' => 'Tranvía Bilbao+',
+        'agencyId' => 'ES:Euskotren:Operator:EUS_TrBi:',
+        'skipGeocode' => false,
+    ],
+    'tranvia-vitoria' => [
+        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
+        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
+        'output' => __DIR__ . '/../data/tranviavitoria.sqlite',
+        'label' => 'Tranvía Vitoria+',
+        'agencyId' => 'ES:Euskotren:Operator:EUS_TrGa:',
+        'skipGeocode' => false,
+    ],
 ];
 define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
@@ -48,7 +64,7 @@ function main(array $aArgv): void
         $sNetwork = $aOptions['network'];
     }
     if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
-        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren)\n");
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria)\n");
         exit(1);
     }
     $aDefaults = NETWORK_DEFAULTS[$sNetwork];
@@ -82,7 +98,7 @@ function main(array $aArgv): void
     echo "Parsing stops.txt...\n";
     if ($sNetwork === 'metro') {
         $aStops = loadStopsMetro($Zip);
-    } elseif ($sNetwork === 'euskotren') {
+    } elseif ($sNetwork === 'euskotren' || $sNetwork === 'tranvia-bilbao' || $sNetwork === 'tranvia-vitoria') {
         $aStops = loadStopsEuskotren($Zip);
     } else {
         $aStops = loadStopsBus($Zip);

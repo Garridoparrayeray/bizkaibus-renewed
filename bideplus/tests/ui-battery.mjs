@@ -64,6 +64,8 @@ const apps = [
     { key: 'bus', url: '/?red=bus', q: 'moyua', panel: 'live-card' },
     { key: 'metro', url: '/?red=metro', q: 'abando', panel: 'platform-panel' },
     { key: 'euskotren', url: '/?red=euskotren', q: 'amara', panel: 'platform-panel' },
+    { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
+    { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
@@ -133,7 +135,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.getElementById('home-link').click()");
         await sleep(400);
         const cards = await ev("[...document.querySelectorAll('#network-switcher .net-card:not([hidden])')].length");
-        check(`${tag} selector de app muestra 3 destinos`, cards === 3, `${cards}`);
+        check(`${tag} selector de app muestra 5 destinos`, cards === 5, `${cards}`);
         await ev('localStorage.clear()');
     }
 }
@@ -144,6 +146,8 @@ for (const [url, panel, name] of [
     ['/stops/4255', 'live-card', 'parada bus'],
     ['/stops/19?red=metro', 'platform-panel', 'estacion metro'],
     ['/stops/ES:Euskotren:StopPlace:2581:?red=euskotren', 'platform-panel', 'estacion euskotren'],
+    ['/stops/ES:Euskotren:StopPlace:1468:?red=tranvia-bilbao', 'platform-panel', 'parada tranvia bilbao'],
+    ['/stops/ES:Euskotren:StopPlace:1560:?red=tranvia-vitoria', 'platform-panel', 'parada tranvia vitoria'],
     ['/lines/MB?red=metro', 'timetable-section', 'linea metro'],
     ['/lines/3516', 'timetable-section', 'linea bus'],
 ]) {
@@ -153,7 +157,7 @@ for (const [url, panel, name] of [
 
 where = 'menu';
 await go('/', 2500);
-check('menu Bide+ carga y tiene 3 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 3);
+check('menu Bide+ carga y tiene 5 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 5);
 await ev("document.querySelector('[data-view-btn=list]').click()"); await sleep(600);
 check('menu vista lista', (await ev("document.documentElement.getAttribute('data-view')")) === 'list');
 await ev("document.querySelector('[data-view-btn=tiles]').click()"); await sleep(600);

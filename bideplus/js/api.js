@@ -1,7 +1,7 @@
 const Api = (() => {
     function withNetwork(path) {
         const net = window.__bbNetwork;
-        if (net !== 'metro' && net !== 'euskotren') {
+        if (net !== 'metro' && net !== 'euskotren' && net !== 'tranvia-bilbao' && net !== 'tranvia-vitoria') {
             return path;
         }
         const separator = path.includes('?') ? '&' : '?';

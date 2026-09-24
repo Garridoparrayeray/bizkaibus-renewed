@@ -1,14 +1,16 @@
 const AlertsStore = (() => {
     const DB_NAME = 'bide-alerts';
     const STORE = 'kv';
-    const NETWORKS = ['bus', 'metro', 'euskotren'];
+    const NETWORKS = ['bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'];
     const MAX_SEEN = 300;
     const MAX_NOTIFICATIONS = 3;
-    const APP_LABELS = { bus: 'Bizkaibus+', metro: 'Metro+', euskotren: 'Euskotren+' };
+    const APP_LABELS = { bus: 'Bizkaibus+', metro: 'Metro+', euskotren: 'Euskotren+', 'tranvia-bilbao': 'Tranvía Bilbao+', 'tranvia-vitoria': 'Tranvía Vitoria+' };
     const ICONS = {
         bus: '/icons-pro/icon-192.png',
         metro: '/icons-metro/icon-192.png',
         euskotren: '/icons-euskotren/icon-192.png',
+        'tranvia-bilbao': '/icons-tranvia-bilbao/icon-192.png',
+        'tranvia-vitoria': '/icons-tranvia-vitoria/icon-192.png',
     };
 
     function openDb() {

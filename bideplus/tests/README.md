@@ -16,7 +16,7 @@ python tests/static-checks.py && python tests/api-smoke.py && node tests/ui-batt
 | `ui-alerts.mjs` | Avisos de incidencias por línea favorita: línea base sin notificar, aviso nuevo una sola vez, tope de 3 notificaciones más un resumen, fallos de la API, interruptor del menú (permiso concedido y denegado) y notificación real del service worker con sincronización periódica |
 | `ui-nearby.mjs` | Botón «Cerca de mí» con la ubicación simulada en Bizkaibus, Metro y Euskotren (parada más cercana, distancia, próxima salida, abrir ficha), ubicación fuera de la zona y permiso denegado |
 
-Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (bus,metro,euskotren), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
+Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (bus,metro,euskotren,tranvia-bilbao,tranvia-vitoria), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
 
 Los mosaicos del mapa (OpenStreetMap) siguen necesitando internet: sin red se ven la ruta y los marcadores sobre fondo liso.
 

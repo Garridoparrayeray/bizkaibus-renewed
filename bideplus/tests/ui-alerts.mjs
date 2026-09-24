@@ -83,7 +83,7 @@ const extra = n => ({ summary: 'Incidencia', description: `Aviso extra ${n}` });
 await go('/?red=bus');
 await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/alerts*' }] });
 
-await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.resetBaseline(); await AlertsStore.setFavorites('bus', ['3513']); await AlertsStore.setFavorites('metro', []); await AlertsStore.setFavorites('euskotren', []); })()`);
+await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.resetBaseline(); await AlertsStore.setFavorites('bus', ['3513']); await AlertsStore.setFavorites('metro', []); await AlertsStore.setFavorites('euskotren', []); await AlertsStore.setFavorites('tranvia-bilbao', []); await AlertsStore.setFavorites('tranvia-vitoria', []); })()`);
 
 mock.bus = [A];
 const first = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
@@ -115,6 +115,8 @@ mock.metro = [{ title: 'Incidencia', description: 'Metro M1' }, { title: 'Incide
 const metroSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.body))`);
 check('Metro: un aviso nuevo se detecta', Array.isArray(metroSecond) && metroSecond.length === 1 && metroSecond[0] === 'metro:Metro M2', JSON.stringify(metroSecond));
 check('Euskotren sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=euskotren')));
+check('Tranvia Bilbao sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-bilbao')));
+check('Tranvia Vitoria sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-vitoria')));
 
 mock.status = 500;
 mock.bus = [A, B, extra(9)];
