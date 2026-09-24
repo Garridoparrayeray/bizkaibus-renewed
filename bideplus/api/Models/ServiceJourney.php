@@ -38,6 +38,10 @@ class ServiceJourney
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE pt.stop_id = :stopId
               AND sc.id != \'PRUEBA\'
+              AND EXISTS (
+                  SELECT 1 FROM passing_times pt2
+                  WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+              )
               AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
               AND (
                   (sc.weekday_mask & :weekdayBit) != 0
@@ -117,7 +121,11 @@ class ServiceJourney
 
         $sStopCondition = 'pt.seq_order = 1';
         if ($iStopId !== null) {
-            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)';
+            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)
+                AND EXISTS (
+                    SELECT 1 FROM passing_times pt2
+                    WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+                )';
         }
 
         $Stmt = $this->Pdo->prepare('

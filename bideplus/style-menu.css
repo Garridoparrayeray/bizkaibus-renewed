@@ -9,6 +9,7 @@
     --blue: #003F8C;
     --tram-bilbao: #4EB848;
     --tram-vitoria: #60AE27;
+    --renfe: #EE7203;
 }
 
 /* ===== Base ===== */
@@ -72,6 +73,7 @@ main {
 .tile--euskotren { --c: var(--blue); }
 .tile--tranvia-bilbao { --c: var(--tram-bilbao); }
 .tile--tranvia-vitoria { --c: var(--tram-vitoria); }
+.tile--renfe { --c: var(--renfe); }
 
 /* ===== Fichas de las apps ===== */
 .tiles {
@@ -178,6 +180,7 @@ main {
             display: inline;
             margin-top: 0;
             font-size: 1em;
+            line-height: 1.1;
             color: inherit;
             font-weight: inherit;
             opacity: 1;
@@ -188,8 +191,9 @@ main {
            con más especificidad que la regla genérica de "[data-view=list]
            .tile .txt span" para poder ganarle. */
         .tile .txt .tile-city {
-            margin-top: -3px;
+            margin-top: -2px;
             font-size: .8rem;
+            line-height: 1.2;
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
@@ -226,6 +230,26 @@ main {
     border-radius: 12px;
     overflow: hidden;
 }
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.lang-toggle {
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 0.86rem;
+    cursor: pointer;
+}
+    .lang-toggle:hover { background: #FAF9F6; }
+    .lang-toggle:focus-visible { outline: 3px solid var(--green); outline-offset: -3px; }
+
     .view-toggle button {
         width: 44px;
         height: 44px;

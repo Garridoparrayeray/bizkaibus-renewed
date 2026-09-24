@@ -16,6 +16,7 @@ $bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';
 $bIsEuskoTrenShare      = isset($_GET['red']) && $_GET['red'] === 'euskotren';
 $bIsTranviaBilbaoShare  = isset($_GET['red']) && $_GET['red'] === 'tranvia-bilbao';
 $bIsTranviaVitoriaShare = isset($_GET['red']) && $_GET['red'] === 'tranvia-vitoria';
+$bIsRenfeShare          = isset($_GET['red']) && $_GET['red'] === 'renfe';
 
 $networkSlug = 'bus';
 if ($isMiamorDomain) {
@@ -50,6 +51,12 @@ if ($isMiamorDomain) {
     $sOgImage       = $site['url'] . '/icons-tranvia-vitoria/icon-512.png';
     $sFaviconFolder = 'icons-tranvia-vitoria';
     $networkSlug    = 'tranvia-vitoria';
+} elseif ($bIsRenfeShare) {
+    $sOgTitle       = 'Renfe Cercanías+ · Horarios de Cercanías en Bilbao y Donostia';
+    $sOgDescription = 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, sin vueltas.';
+    $sOgImage       = $site['url'] . '/icons-renfe/icon-512.png';
+    $sFaviconFolder = 'icons-renfe';
+    $networkSlug    = 'renfe';
 } else {
     $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
     $sOgDescription = 'Consulta los horarios, las líneas, las paradas y las llegadas en tiempo real de Bizkaibus, sin vueltas.';
@@ -93,7 +100,7 @@ try {
         $record = findRecord($networkSlug, $recordType, $recordId);
 
         if ($record === null && !isset($_GET['red'])) {
-            foreach (['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'] as $otherNetwork) {
+            foreach (['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'] as $otherNetwork) {
                 if (findRecord($otherNetwork, $recordType, $recordId) !== null) {
                     header('Location: /' . $recordType . '/' . $matches[2] . '?red=' . $otherNetwork, true, 301);
                     exit;
@@ -128,7 +135,7 @@ if ($isNotFound) {
     exit;
 }
 
-$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+'];
+$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'SoftwareApplication',
@@ -180,6 +187,7 @@ $jsonLd = [
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
+    <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <script>
         (function () {
@@ -197,11 +205,15 @@ $jsonLd = [
             window.__bbTheme = isMiamor ? 'miamor' : 'pro';
 
             var redParam = params.get('red');
-            window.__bbNetwork = (redParam === 'metro' || redParam === 'euskotren' || redParam === 'tranvia-bilbao' || redParam === 'tranvia-vitoria') ? redParam : 'bus';
+            window.__bbNetwork = 'bus';
+            if (redParam === 'metro' || redParam === 'euskotren' || redParam === 'tranvia-bilbao' || redParam === 'tranvia-vitoria' || redParam === 'renfe') {
+                window.__bbNetwork = redParam;
+            }
             var isMetro          = window.__bbNetwork === 'metro';
             var isEuskoTren      = window.__bbNetwork === 'euskotren';
             var isTranviaBilbao  = window.__bbNetwork === 'tranvia-bilbao';
             var isTranviaVitoria = window.__bbNetwork === 'tranvia-vitoria';
+            var isRenfe          = window.__bbNetwork === 'renfe';
 
             var title      = 'BizkaiBus+';
             var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
@@ -238,9 +250,15 @@ $jsonLd = [
                 touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
                 icon       = 'icons-tranvia-vitoria/icon-192.png';
                 themeColor = '#60AE27';
+            } else if (isRenfe) {
+                title      = 'Renfe Cercanías+';
+                manifest   = 'manifest-renfe.json';
+                touchIcon  = 'icons-renfe/apple-touch-icon.png';
+                icon       = 'icons-renfe/icon-192.png';
+                themeColor = '#EE7203';
             }
 
-            if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria) {
+            if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria && !isRenfe) {
                 title += ' | Para el amor de mi vida';
             }
 
@@ -248,6 +266,7 @@ $jsonLd = [
             if (isEuskoTren)      document.documentElement.classList.add('is-euskotren');
             if (isTranviaBilbao)  document.documentElement.classList.add('is-tranvia-bilbao');
             if (isTranviaVitoria) document.documentElement.classList.add('is-tranvia-vitoria');
+            if (isRenfe)          document.documentElement.classList.add('is-renfe');
 
             document.write(
                 '<title>' + title + '</title>' +
@@ -266,8 +285,8 @@ $jsonLd = [
     <main class="app-container">
 
         <div id="net-banner" class="net-banner" role="status" hidden>
-            <span>Sin conexión con el servidor. Puede que veas datos guardados.</span>
-            <button id="net-retry" type="button">Reintentar</button>
+            <span data-i18n="app.offline.banner">Sin conexión con el servidor. Puede que veas datos guardados.</span>
+            <button id="net-retry" type="button" data-i18n="app.retry">Reintentar</button>
         </div>
 
         <noscript>
@@ -291,6 +310,7 @@ $jsonLd = [
                         <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="">
                         <img class="logo-tranvia-bilbao" src="/icons-tranvia-bilbao/glyph.png" alt="">
                         <img class="logo-tranvia-vitoria" src="/icons-tranvia-vitoria/glyph.png" alt="">
+                        <img class="logo-renfe" src="/icons-renfe/glyph.png" alt="">
                     </span>
                     <hgroup>
                         <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
@@ -308,8 +328,8 @@ $jsonLd = [
                             </svg>
                         </span>
                         <span class="net-card-text">
-                            <strong>BizkaiBus+</strong>
-                            <span>Horarios y tiempo real de Bizkaibus</span>
+                            <strong data-i18n="app.bus.name">BizkaiBus+</strong>
+                            <span data-i18n="switcher.bus.desc">Horarios y tiempo real de Bizkaibus</span>
                         </span>
                     </a>
                     <a class="net-card" id="net-card-metro" href="/?red=metro">
@@ -322,8 +342,8 @@ $jsonLd = [
                             </svg>
                         </span>
                         <span class="net-card-text">
-                            <strong>Metro+</strong>
-                            <span>Horarios de Metro Bilbao</span>
+                            <strong data-i18n="app.metro.name">Metro+</strong>
+                            <span data-i18n="switcher.metro.desc">Horarios de Metro Bilbao</span>
                         </span>
                     </a>
                     <a class="net-card" id="net-card-euskotren" href="/?red=euskotren">
@@ -331,8 +351,8 @@ $jsonLd = [
                             <img src="/icons-euskotren/icon-192.png" alt="">
                         </span>
                         <span class="net-card-text">
-                            <strong>Euskotren+</strong>
-                            <span>Horarios de Euskotren</span>
+                            <strong data-i18n="app.euskotren.name">Euskotren+</strong>
+                            <span data-i18n="switcher.euskotren.desc">Horarios de Euskotren</span>
                         </span>
                     </a>
                     <a class="net-card" id="net-card-tranvia-bilbao" href="/?red=tranvia-bilbao">
@@ -340,8 +360,8 @@ $jsonLd = [
                             <img src="/icons-tranvia-bilbao/icon-192.png" alt="">
                         </span>
                         <span class="net-card-text">
-                            <strong>Tranvía Bilbao+</strong>
-                            <span>Horarios del tranvía de Bilbao</span>
+                            <strong data-i18n="switcher.tranviaBilbao.name">Tranvía Bilbao+</strong>
+                            <span data-i18n="switcher.tranviaBilbao.desc">Horarios del tranvía de Bilbao</span>
                         </span>
                     </a>
                     <a class="net-card" id="net-card-tranvia-vitoria" href="/?red=tranvia-vitoria">
@@ -349,8 +369,17 @@ $jsonLd = [
                             <img src="/icons-tranvia-vitoria/icon-192.png" alt="">
                         </span>
                         <span class="net-card-text">
-                            <strong>Tranvía Vitoria+</strong>
-                            <span>Horarios del tranvía de Vitoria-Gasteiz</span>
+                            <strong data-i18n="switcher.tranviaVitoria.name">Tranvía Vitoria+</strong>
+                            <span data-i18n="switcher.tranviaVitoria.desc">Horarios del tranvía de Vitoria-Gasteiz</span>
+                        </span>
+                    </a>
+                    <a class="net-card" id="net-card-renfe" href="/?red=renfe">
+                        <span class="net-card-logomark" aria-hidden="true">
+                            <img src="/icons-renfe/icon-192.png" alt="">
+                        </span>
+                        <span class="net-card-text">
+                            <strong data-i18n="app.renfe.name">Renfe Cercanías+</strong>
+                            <span data-i18n="switcher.renfe.desc">Horarios de Cercanías en Bilbao y Donostia</span>
                         </span>
                     </a>
                     <a class="net-card" id="net-card-menu" href="/">
@@ -359,7 +388,7 @@ $jsonLd = [
                         </span>
                         <span class="net-card-text">
                             <strong>Bide+</strong>
-                            <span>Todas las apps</span>
+                            <span data-i18n="switcher.allApps">Todas las apps</span>
                         </span>
                     </a>
                 </nav>
@@ -373,21 +402,27 @@ $jsonLd = [
                         if (net === 'metro') {
                             document.getElementById('app-logomark').classList.add('is-metro');
                             document.getElementById('app-title').firstChild.textContent = 'METRO';
-                            document.getElementById('app-subtitle').textContent = 'Horarios de Metro Bilbao';
+                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.metro.desc');
                         } else if (net === 'euskotren') {
                             document.getElementById('app-logomark').classList.add('is-euskotren');
                             document.getElementById('app-title').firstChild.textContent = 'EUSKOTREN';
-                            document.getElementById('app-subtitle').textContent = 'Horarios de Euskotren';
+                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.euskotren.desc');
                         } else if (net === 'tranvia-bilbao') {
                             document.getElementById('app-logomark').classList.add('is-tranvia-bilbao');
                             document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
                             document.getElementById('app-title-city').textContent = 'BILBAO';
-                            document.getElementById('app-subtitle').textContent = 'Horarios del tranvía';
+                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
                         } else if (net === 'tranvia-vitoria') {
                             document.getElementById('app-logomark').classList.add('is-tranvia-vitoria');
                             document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
                             document.getElementById('app-title-city').textContent = 'VITORIA';
-                            document.getElementById('app-subtitle').textContent = 'Horarios del tranvía';
+                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
+                        } else if (net === 'renfe') {
+                            document.getElementById('app-logomark').classList.add('is-renfe');
+                            document.getElementById('app-title').firstChild.textContent = 'RENFE';
+                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.renfeSubtitle');
+                        } else {
+                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.bus.desc');
                         }
                         if (isMiamorActive && net === 'bus') {
                             document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
@@ -404,16 +439,23 @@ $jsonLd = [
                             cityEl.style.width = Math.max(0, titleWidth - markWidth) + 'px';
                         }
 
-                        var currentCardId = net === 'metro' ? 'net-card-metro'
-                            : net === 'euskotren' ? 'net-card-euskotren'
-                            : net === 'tranvia-bilbao' ? 'net-card-tranvia-bilbao'
-                            : net === 'tranvia-vitoria' ? 'net-card-tranvia-vitoria'
-                            : 'net-card-bus';
+                        var currentCardId = 'net-card-bus';
+                        if (net === 'metro') {
+                            currentCardId = 'net-card-metro';
+                        } else if (net === 'euskotren') {
+                            currentCardId = 'net-card-euskotren';
+                        } else if (net === 'tranvia-bilbao') {
+                            currentCardId = 'net-card-tranvia-bilbao';
+                        } else if (net === 'tranvia-vitoria') {
+                            currentCardId = 'net-card-tranvia-vitoria';
+                        } else if (net === 'renfe') {
+                            currentCardId = 'net-card-renfe';
+                        }
                         var currentCard = document.getElementById(currentCardId);
                         if (currentCard) currentCard.hidden = true;
 
                         if (temaSuffix) {
-                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren', 'net-card-tranvia-bilbao', 'net-card-tranvia-vitoria'].forEach(function (id) {
+                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren', 'net-card-tranvia-bilbao', 'net-card-tranvia-vitoria', 'net-card-renfe'].forEach(function (id) {
                                 var card = document.getElementById(id);
                                 if (card && card !== currentCard) card.href += temaSuffix;
                             });
@@ -423,6 +465,7 @@ $jsonLd = [
             </div>
 
             <span class="header-actions">
+                <button id="lang-toggle" class="btn-icon btn-lang" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
                 <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
                 </button>
@@ -432,7 +475,7 @@ $jsonLd = [
         <div class="layout">
             <aside class="sidebar">
             <form id="search-form" autocomplete="off">
-                <input id="search-input" type="search" aria-label="Buscar parada, línea o destino" placeholder="Buscar parada, línea o destino..." minlength="2">
+                <input id="search-input" type="search" data-i18n-attr="aria-label:app.search.placeholder,placeholder:app.search.placeholder" aria-label="Buscar parada, línea o destino" placeholder="Buscar parada, línea o destino..." minlength="2">
                 <button type="submit" aria-label="Buscar">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>
@@ -440,17 +483,17 @@ $jsonLd = [
             </form>
             <button id="nearby-btn" class="nearby-btn" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/></svg>
-                <span>Cerca de mí</span>
+                <span data-i18n="app.nearby">Cerca de mí</span>
             </button>
                 <div id="favorites-panel" class="glass">
                     <header>
-                        <h2>Tus favoritos</h2>
+                        <h2 data-i18n="app.favorites.title">Tus favoritos</h2>
                         <button id="favorites-close" class="btn-icon" type="button" aria-label="Cerrar favoritos">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
                         </button>
                     </header>
                     <ul id="favorites-list">
-                        <li id="favorites-empty">Busca una parada o línea y guárdala para verla aquí.</li>
+                        <li id="favorites-empty" data-i18n="app.favorites.empty">Busca una parada o línea y guárdala para verla aquí.</li>
                     </ul>
                 </div>
 
@@ -472,11 +515,11 @@ $jsonLd = [
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
                         <strong id="live-minutes">–</strong><span>min</span>
                     </button>
-                    <button id="live-timetable-link" type="button" class="platform-timetable-link">Ver horario completo</button>
+                    <button id="live-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <footer>
                         <p>
                             <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>
-                            <button id="live-incidents-link" type="button" hidden>Incidencias</button>
+                            <button id="live-incidents-link" type="button" hidden data-i18n="app.incidents">Incidencias</button>
                         </p>
                     </footer>
                     <ul id="live-more-list"></ul>
@@ -492,16 +535,16 @@ $jsonLd = [
                             </button>
                         </span>
                     </header>
-                    <button id="platform-timetable-link" type="button" class="platform-timetable-link">Ver horario completo</button>
+                    <button id="platform-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" aria-live="polite"></div>
                 </div>
-                <p id="live-empty" role="status">Busca una parada para ver el próximo autobús.</p>
+                <p id="live-empty" role="status" data-i18n="switcher.bus.liveEmpty">Busca una parada para ver el próximo autobús.</p>
 
         <section id="timetable-section" class="timetable glass" hidden>
             <header>
-                <h2>Consultar Horarios</h2>
+                <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
                 <span class="header-actions">
                     <button id="timetable-favorite" class="btn-icon" type="button" aria-label="Guardar línea en favoritos"></button>
                     <button id="timetable-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -512,7 +555,7 @@ $jsonLd = [
             <p id="timetable-line"></p>
 
             <div id="line-map"></div>
-            <p id="line-map-empty">No hay autobuses de esta línea circulando ahora mismo.</p>
+            <p id="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
 
             <div class="filters">
                 <input id="filter-date" type="date" aria-label="Fecha">
@@ -526,17 +569,17 @@ $jsonLd = [
                 <table>
                     <thead>
                         <tr>
-                            <th scope="col">Salida</th>
-                            <th scope="col">Destino</th>
-                            <th scope="col">Estado</th>
+                            <th scope="col" data-i18n="app.departure">Salida</th>
+                            <th scope="col" data-i18n="app.destination">Destino</th>
+                            <th scope="col" data-i18n="app.state">Estado</th>
                         </tr>
                     </thead>
                     <tbody id="timetable-body"></tbody>
                 </table>
             </div>
-            <p id="timetable-empty" hidden>No hay salidas programadas en ese rango.</p>
+            <p id="timetable-empty" hidden data-i18n="app.noDepartures">No hay salidas programadas en ese rango.</p>
 
-            <button id="schedule-text-toggle" type="button">Ver horario oficial 2026</button>
+            <button id="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
         </section>
             </div>
         </div>
@@ -546,12 +589,12 @@ $jsonLd = [
     </main>
 
     <footer id="dev-footer">
-        <p>Hecho por Yeray Garrido</p>
+        <p><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
         <p>
             <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
             <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
             <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <button id="legal-open" type="button">Aviso legal y privacidad</button>
+            <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
         </p>
     </footer>
 
@@ -561,12 +604,12 @@ $jsonLd = [
         </button>
         <h3>Aviso Legal, Privacidad y Cookies</h3>
         <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong>, la <strong>LSSI-CE</strong> y la <strong>Ley 37/2007 de reutilización de la información del sector público</strong>, informamos de lo siguiente:</p>
-        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. BizkaiBus+, Metro+ y Euskotren+ son proyectos independientes, sin afiliación ni respaldo de Bizkaibus, Metro Bilbao S.A., Euskotren ni la Diputación Foral de Bizkaia.</p>
+        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. BizkaiBus+, Metro+, Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+ son proyectos independientes, sin afiliación ni respaldo de Bizkaibus, Metro Bilbao S.A., Euskotren, Renfe ni la Diputación Foral de Bizkaia.</p>
         <p><strong>Privacidad y Analíticas:</strong> Utilizamos <strong>Vercel Web Analytics</strong> (herramienta respetuosa con la privacidad y libre de cookies) para recoger estadísticas básicas y anónimas de uso (visitas, país, dispositivo). Vercel procesa las direcciones IP temporalmente para generar estas métricas agrupadas, actuando como encargado del tratamiento. Aparte de esto, la app <strong>no recopila, almacena ni cede ningún dato personal tuyo</strong>.</p>
-        <p><strong>Política de Cookies y almacenamiento local:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento de tu propio dispositivo (<code>localStorage</code> e <code>IndexedDB</code>) para guardar tus paradas "Favoritas", el "Tema" y, si los activas, tus avisos de incidencias por línea; todo queda solo en tu dispositivo. Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
+        <p><strong>Política de Cookies y almacenamiento local:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento de tu propio dispositivo (<code>localStorage</code> e <code>IndexedDB</code>) para guardar tus paradas "Favoritas", el "Tema", el idioma elegido y, si los activas, tus avisos de incidencias por línea; todo queda solo en tu dispositivo. Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
         <p><strong>Ubicación:</strong> Si pulsas «Cerca de mí», tu navegador te pide permiso y la ubicación se envía solo para buscar las paradas más cercanas, sin guardarse. Esta búsqueda necesita conexión a internet.</p>
         <p><strong>Modo sin conexión:</strong> La app guarda en tu dispositivo lo último que consultaste con conexión (paradas y horarios de líneas ya vistos), para que puedas volver a verlo sin internet. No se actualiza mientras estés sin conexión, y los horarios en tiempo real, la posición de los buses en el mapa, los avisos de incidencias y «Cerca de mí» necesitan conexión: no funcionan en modo sin conexión ni con datos que no hayas consultado antes.</p>
-        <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los horarios estáticos y, cuando existe, el tiempo real proceden de las fuentes oficiales de cada operador: BizkaiBus+ (Bizkaibus / Open Data Bizkaia, CC-BY 4.0), Metro+ (Metro Bilbao / Open Data Metro Bilbao) y Euskotren+ (Euskotren / Open Data Euskadi, CC-BY 4.0), publicados sin alterarlos. El mapa en vivo de Bizkaibus usa teselas de © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, cuyos datos también se han usado para asignar zona o barrio a las paradas. La posición de los vehículos y el tiempo estimado de llegada en tiempo real son una estimación (contrastada con el horario oficial dentro de un margen de tolerancia) y pueden no coincidir exactamente con la realidad: no los uses como única referencia para no perder un servicio. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos; esta aplicación es meramente informativa y su uso es responsabilidad exclusiva de quien la utiliza.</p>
+        <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los horarios estáticos y, cuando existe, el tiempo real proceden de las fuentes oficiales de cada operador: BizkaiBus+ (Bizkaibus / Open Data Bizkaia, CC-BY 4.0), Metro+ (Metro Bilbao / Open Data Metro Bilbao), Euskotren+, Tranvía Bilbao+ y Tranvía Vitoria+ (Euskotren / Open Data Euskadi, CC-BY 4.0), Renfe Cercanías+ (Renfe / NAP, Punto de Acceso Nacional de Transporte), publicados sin alterarlos. Los horarios del tranvía y de Renfe Cercanías+ son el programado oficial; el tiempo real no está disponible ahora mismo. El mapa en vivo de Bizkaibus usa teselas de © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, cuyos datos también se han usado para asignar zona o barrio a las paradas. La posición de los vehículos y el tiempo estimado de llegada en tiempo real son una estimación (contrastada con el horario oficial dentro de un margen de tolerancia) y pueden no coincidir exactamente con la realidad: no los uses como única referencia para no perder un servicio. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos; esta aplicación es meramente informativa y su uso es responsabilidad exclusiva de quien la utiliza. Del mismo modo, no nos hacemos responsables de la puntualidad, frecuencia, cancelaciones ni de la calidad o eficacia del propio servicio de transporte: eso depende exclusivamente del operador que presta el servicio y publica los datos, no de esta aplicación. Los cálculos que hace la app (por ejemplo, combinar horarios, estimar retrasos o agrupar viajes) se basan siempre en los datos que publica cada operador: si esos datos de origen están mal o desactualizados, el resultado mostrado puede heredar ese error, y no somos responsables de fallos que vengan de la fuente original y no de nuestro propio procesamiento.</p>
         <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
     </dialog>
 
@@ -597,12 +640,12 @@ $jsonLd = [
         </button>
         <button id="menu-favorites-open" class="pill" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
-            Tus favoritos
+            <span data-i18n="app.favorites.title">Tus favoritos</span>
         </button>
-        <h3>Incidencias de mis líneas</h3>
-        <label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span>Avisarme de las incidencias nuevas de mis líneas favoritas</span></label>
+        <h3 data-i18n="app.myLinesIncidents">Incidencias de mis líneas</h3>
+        <label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMe">Avisarme de las incidencias nuevas de mis líneas favoritas</span></label>
         <p id="alerts-note" class="alerts-note" role="status" hidden></p>
-        <p id="menu-alerts-empty">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
+        <p id="menu-alerts-empty" data-i18n="app.noFavoriteIncidents">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
         <ul id="menu-alerts-list"></ul>
     </dialog>
 
