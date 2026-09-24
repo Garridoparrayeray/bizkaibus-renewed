@@ -16,6 +16,8 @@ class Config
             $sPath = __DIR__ . '/../Config/tranvia-bilbao.php';
         } elseif ($sNetwork === 'tranvia-vitoria') {
             $sPath = __DIR__ . '/../Config/tranvia-vitoria.php';
+        } elseif ($sNetwork === 'renfe') {
+            $sPath = __DIR__ . '/../Config/renfe.php';
         } else {
             $sPath = __DIR__ . '/../Config/config.php';
         }

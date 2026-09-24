@@ -28,7 +28,10 @@ use Controllers\AlertsController;
 
 $Req = new Request();
 
-$sNetwork = in_array($Req->query('red'), ['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'], true) ? $Req->query('red') : 'bus';
+$sNetwork = 'bus';
+if (in_array($Req->query('red'), ['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'], true)) {
+    $sNetwork = $Req->query('red');
+}
 Config::set($sNetwork);
 
 $Router = new Router();
