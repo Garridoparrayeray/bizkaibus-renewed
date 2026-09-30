@@ -164,6 +164,7 @@ $jsonLd = [
     <meta name="description" content="<?= htmlspecialchars($sOgDescription) ?>">
     <meta name="author" content="<?= htmlspecialchars($site['author']) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="google-site-verification" content="<?= htmlspecialchars($site['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($ogUrl) ?>">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
     <meta property="og:type" content="website">
