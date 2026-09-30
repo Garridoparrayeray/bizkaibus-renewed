@@ -61,6 +61,7 @@ $jsonLd = [
     <meta name="description" content="<?= htmlspecialchars($description) ?>">
     <meta name="author" content="<?= htmlspecialchars($site['author']) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="google-site-verification" content="<?= htmlspecialchars($site['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($canonical) ?>">
 
     <meta property="og:type" content="website">
