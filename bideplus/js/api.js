@@ -46,6 +46,12 @@ const Api = (() => {
         vehicle: (tripKey) => request(`/vehicles/${tripKey}`),
         tripStops: (tripKey, stopId) => request(`/trips/${tripKey}?stopId=${stopId}`),
         lineLive: (lineId) => request(`/lines/${lineId}/live`),
-        alerts: (lineId) => request(lineId ? `/alerts?line=${lineId}` : '/alerts'),
+        alerts: (lineId, stopId) => {
+            const params = new URLSearchParams();
+            if (lineId) params.set('line', lineId);
+            if (stopId) params.set('stop', stopId);
+            const query = params.toString();
+            return request(query ? `/alerts?${query}` : '/alerts');
+        },
     };
 })();

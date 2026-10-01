@@ -27,7 +27,7 @@ let id = 0;
 const pending = new Map();
 const problems = [];
 let registrationId = null;
-const mock = { bus: null, metro: null, status: 200 };
+const mock = { bus: null, metro: null, renfe: null, euskotren: null, status: 200 };
 const requested = [];
 
 ws.onmessage = async e => {
@@ -41,7 +41,7 @@ ws.onmessage = async e => {
     if (m.method === 'Fetch.requestPaused') {
         const { requestId, request } = m.params;
         requested.push(request.url);
-        const body = request.url.includes('red=metro') ? mock.metro : request.url.includes('line=') ? mock.bus : null;
+        const body = request.url.includes('red=metro') ? mock.metro : request.url.includes('red=renfe') ? mock.renfe : request.url.includes('red=euskotren') ? mock.euskotren : request.url.includes('line=') ? mock.bus : null;
         if (body === null && mock.status === 200) {
             send('Fetch.continueRequest', { requestId });
         } else {
@@ -118,6 +118,23 @@ check('Euskotren sin lineas favoritas no consulta avisos', !requested.some(u => 
 check('Tranvia Bilbao sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-bilbao')));
 check('Tranvia Vitoria sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-vitoria')));
 check('Renfe sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=renfe')));
+
+await ev(`AlertsStore.setFavorites('renfe', [], ['13400'])`);
+mock.renfe = [{ summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 1 fuera de servicio' }];
+const renfeFirst = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('Renfe: la primera comprobacion de una parada guardada es linea base', renfeFirst === 0, `${renfeFirst}`);
+mock.renfe = [{ summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 1 fuera de servicio' }, { summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 2 fuera de servicio' }];
+const renfeSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.title + ':' + x.body))`);
+check('Renfe: un aviso nuevo de la parada guardada se detecta, sea del tipo que sea', Array.isArray(renfeSecond) && renfeSecond.length === 1 && renfeSecond[0] === 'renfe:DESERTU-BARAKALDO:Ascensor de via 2 fuera de servicio', JSON.stringify(renfeSecond));
+check('Renfe: se consultan los avisos de la parada guardada', requested.some(u => u.includes('red=renfe&stop=13400')));
+
+await ev(`AlertsStore.setFavorites('euskotren', [], ['ESTACION1'])`);
+mock.euskotren = [{ summary: 'Incidencia', description: 'Euskotren E1' }];
+const euskoFirst = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('Euskotren: con solo paradas favoritas la primera comprobacion es linea base', euskoFirst === 0, `${euskoFirst}`);
+mock.euskotren = [{ summary: 'Incidencia', description: 'Euskotren E1' }, { summary: 'Incidencia', description: 'Euskotren E2' }];
+const euskoSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.body))`);
+check('Euskotren: con solo paradas favoritas se avisa de lo nuevo de la red, como Metro+', Array.isArray(euskoSecond) && euskoSecond.length === 1 && euskoSecond[0] === 'euskotren:Euskotren E2', JSON.stringify(euskoSecond));
 
 mock.status = 500;
 mock.bus = [A, B, extra(9)];
