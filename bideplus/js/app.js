@@ -1338,7 +1338,7 @@
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
         el.attribution.textContent = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
         el.liveEmpty.textContent = I18n.t('switcher.euskotren.liveEmpty');
     }
@@ -1347,7 +1347,7 @@
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
         el.attribution.textContent = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
         el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
     }
@@ -1356,7 +1356,7 @@
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
         el.attribution.textContent = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
         el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
     }
@@ -1365,7 +1365,7 @@
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Renfe. Horarios programados oficiales; el tiempo real no está disponible ahora mismo.';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
         el.attribution.textContent = 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)';
         el.liveEmpty.textContent = I18n.t('switcher.renfe.liveEmpty');
     }
