@@ -13,6 +13,9 @@ class RealtimeMatcher
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
+    private const MAX_DISTANCE_FROM_SHAPE_METERS = 50;
+    private const BEYOND_NEXT_STOP_SLACK_METERS = 100;
+    private const AMBIGUITY_MARGIN_METERS = 20;
     private const NOT_STARTED_GRACE_SECONDS = 60;
     private const MAX_LOCATION_AGE_SECONDS = 10 * 60;
     private const SEGMENTS_BEHIND_NEXT_STOP = 3;
@@ -25,6 +28,8 @@ class RealtimeMatcher
     private array $aJourneyIdByTripRef = [];
     private array $aEntryByJourneyId = [];
     private array $aStopsByJourneyId = [];
+    private array $aShapeByJourneyId = [];
+    private array $aPositionMemo = [];
 
     public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null)
     {
@@ -140,6 +145,15 @@ class RealtimeMatcher
         if (!self::hasLocation($aLive) || !isset($aLive['order'])) {
             return null;
         }
+        $sMemoKey = $sServiceJourneyId . '|' . $aLive['vehicleRef'] . '|' . $aLive['locationSeconds'] . '|' . $aLive['lat'] . '|' . $aLive['lon'] . '|' . $aLive['order'];
+        if (!array_key_exists($sMemoKey, $this->aPositionMemo)) {
+            $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
+        }
+        return $this->aPositionMemo[$sMemoKey];
+    }
+
+    private function computePosition(string $sServiceJourneyId, array $aLive): array|null
+    {
         $iLocationSeconds = (int)$aLive['locationSeconds'];
         if ($this->iNow - $iLocationSeconds > self::MAX_LOCATION_AGE_SECONDS) {
             return null;
@@ -164,11 +178,17 @@ class RealtimeMatcher
             return null;
         }
 
+        $iFirstSegment = max(0, $iNextStopIndex - self::SEGMENTS_BEHIND_NEXT_STOP);
+        $iLastSegment = min(\count($aStops) - 2, $iNextStopIndex + self::SEGMENTS_AHEAD_OF_NEXT_STOP);
+
+        $aShapePoints = $this->shapeFor($sServiceJourneyId);
+        if (!empty($aShapePoints) && self::stopsHaveDistances($aStops, $iFirstSegment, $iLastSegment + 1)) {
+            return $this->positionOnShape($aLive, $aStops, $aShapePoints, $iFirstSegment, $iLastSegment, $iNextStopIndex, $iLocationSeconds);
+        }
+
         $dBestDistance = null;
         $dBestAllowedDistance = null;
         $dBestScheduled = null;
-        $iFirstSegment = max(0, $iNextStopIndex - self::SEGMENTS_BEHIND_NEXT_STOP);
-        $iLastSegment = min(\count($aStops) - 2, $iNextStopIndex + self::SEGMENTS_AHEAD_OF_NEXT_STOP);
         for ($iSegment = $iFirstSegment; $iSegment <= $iLastSegment; $iSegment++) {
             [$dFraction, $dDistance, $dSegmentLength] = self::projectOntoSegment((float)$aLive['lat'], (float)$aLive['lon'], $aStops[$iSegment], $aStops[$iSegment + 1]);
             if ($dBestDistance === null || $dDistance < $dBestDistance) {
@@ -186,7 +206,90 @@ class RealtimeMatcher
         return [
             'scheduledSeconds' => (int)round($dBestScheduled),
             'locationSeconds' => $iLocationSeconds,
+            'offRouteMeters' => $dBestDistance,
+            'method' => 'segment',
         ];
+    }
+
+    private function positionOnShape(array $aLive, array $aStops, array $aShapePoints, int $iFirstSegment, int $iLastSegment, int $iNextStopIndex, int $iLocationSeconds): array|null
+    {
+        $dFromMeters = (float)$aStops[$iFirstSegment]['dist_m'];
+        $dToMeters = (float)$aStops[$iLastSegment + 1]['dist_m'];
+        $dExpectedLimit = (float)$aStops[$iNextStopIndex]['dist_m'] + self::BEYOND_NEXT_STOP_SLACK_METERS;
+
+        $aBestExpected = null;
+        $aBestBeyond = null;
+        $iPoints = \count($aShapePoints);
+        for ($i = 0; $i < $iPoints - 1; $i++) {
+            $aA = $aShapePoints[$i];
+            $aB = $aShapePoints[$i + 1];
+            if ($aB[2] < $dFromMeters || $aA[2] > $dToMeters) {
+                continue;
+            }
+            [$dFraction, $dDistance] = self::projectOntoSegment(
+                (float)$aLive['lat'],
+                (float)$aLive['lon'],
+                ['lat' => $aA[0], 'lon' => $aA[1]],
+                ['lat' => $aB[0], 'lon' => $aB[1]]
+            );
+            $dAlong = $aA[2] + $dFraction * ($aB[2] - $aA[2]);
+            if ($dAlong <= $dExpectedLimit) {
+                if ($aBestExpected === null || $dDistance < $aBestExpected[0]) {
+                    $aBestExpected = [$dDistance, $dAlong];
+                }
+            } elseif ($aBestBeyond === null || $dDistance < $aBestBeyond[0]) {
+                $aBestBeyond = [$dDistance, $dAlong];
+            }
+        }
+
+        $aBest = $aBestExpected;
+        if ($aBestBeyond !== null && ($aBest === null || $aBestBeyond[0] + self::AMBIGUITY_MARGIN_METERS < $aBest[0])) {
+            $aBest = $aBestBeyond;
+        }
+        if ($aBest === null || $aBest[0] > self::MAX_DISTANCE_FROM_SHAPE_METERS) {
+            return null;
+        }
+        [$dBestDistance, $dBestAlong] = $aBest;
+
+        $dBestAlong = max($dFromMeters, min($dToMeters, $dBestAlong));
+        for ($iSegment = $iFirstSegment; $iSegment <= $iLastSegment; $iSegment++) {
+            $dStart = (float)$aStops[$iSegment]['dist_m'];
+            $dEnd = (float)$aStops[$iSegment + 1]['dist_m'];
+            if ($dBestAlong > $dEnd && $iSegment < $iLastSegment) {
+                continue;
+            }
+            $dFraction = 0.0;
+            if ($dEnd > $dStart) {
+                $dFraction = max(0.0, min(1.0, ($dBestAlong - $dStart) / ($dEnd - $dStart)));
+            }
+            $iLeaveSeconds = (int)$aStops[$iSegment]['departure_seconds'];
+            $iReachSeconds = (int)$aStops[$iSegment + 1]['arrival_seconds'];
+            return [
+                'scheduledSeconds' => (int)round($iLeaveSeconds + $dFraction * ($iReachSeconds - $iLeaveSeconds)),
+                'locationSeconds' => $iLocationSeconds,
+                'offRouteMeters' => $dBestDistance,
+                'method' => 'shape',
+            ];
+        }
+        return null;
+    }
+
+    private function shapeFor(string $sServiceJourneyId): array
+    {
+        if (!isset($this->aShapeByJourneyId[$sServiceJourneyId])) {
+            $this->aShapeByJourneyId[$sServiceJourneyId] = $this->JourneyModel->shapePointsForJourney($sServiceJourneyId);
+        }
+        return $this->aShapeByJourneyId[$sServiceJourneyId];
+    }
+
+    private static function stopsHaveDistances(array $aStops, int $iFrom, int $iTo): bool
+    {
+        for ($i = $iFrom; $i <= $iTo; $i++) {
+            if (!isset($aStops[$i]['dist_m'])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public function journeyIdFor(array $aEntry): string|null

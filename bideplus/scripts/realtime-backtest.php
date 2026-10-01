@@ -84,6 +84,7 @@ function analyze(string $sDir): void
     Config::set('bus');
     $JourneyModel = new ServiceJourney(Database::connection());
     $aSnapshots = loadSnapshots($sDir);
+    $aOffRoute = [];
 
     $aTracks = [];
     $aPredictions = [];
@@ -113,6 +114,7 @@ function analyze(string $sDir): void
                     continue;
                 }
                 $aCoverage['posicionados']++;
+                $aOffRoute[$aPosition['method']][] = $aPosition['offRouteMeters'];
 
                 $sTrackKey = $aEntry['vehicleRef'] . '|' . $sJourneyId;
                 $aTracks[$sTrackKey][] = ['t' => $aPosition['locationSeconds'], 'sched' => $aPosition['scheduledSeconds']];
@@ -150,6 +152,18 @@ function analyze(string $sDir): void
     echo "Buses por captura (suma de todas):\n";
     foreach ($aCoverage as $sLabel => $iCount) {
         printf("  %-26s %d\n", $sLabel, $iCount);
+    }
+    foreach ($aOffRoute as $sMethod => $aMeters) {
+        $iWithinTen = count(array_filter($aMeters, fn($dMeters) => $dMeters <= 10));
+        printf(
+            "Distancia del GPS a la ruta (%s, %d posiciones): mediana %.1f m, p75 %.1f m, p90 %.1f m, <=10 m %d%%\n",
+            $sMethod,
+            count($aMeters),
+            percentile($aMeters, 0.5),
+            percentile($aMeters, 0.75),
+            percentile($aMeters, 0.9),
+            intdiv(100 * $iWithinTen, count($aMeters))
+        );
     }
     echo "\nError = tiempo mostrado - llegada real, en minutos. Positivo: el bus llega antes de lo que dice la app.\n";
     echo "antes = horario + 0 (lo que hacia la app); ahora = posicion GPS + horario restante.\n";
