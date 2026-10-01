@@ -17,6 +17,8 @@ class ServiceJourney
         ORDER BY pt2.seq_order DESC LIMIT 1
     )';
 
+    private array $aTableExists = [];
+
     public function __construct(private \PDO $Pdo)
     {
     }
@@ -38,6 +40,10 @@ class ServiceJourney
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE pt.stop_id = :stopId
               AND sc.id != \'PRUEBA\'
+              AND EXISTS (
+                  SELECT 1 FROM passing_times pt2
+                  WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+              )
               AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
               AND (
                   (sc.weekday_mask & :weekdayBit) != 0
@@ -117,7 +123,11 @@ class ServiceJourney
 
         $sStopCondition = 'pt.seq_order = 1';
         if ($iStopId !== null) {
-            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)';
+            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)
+                AND EXISTS (
+                    SELECT 1 FROM passing_times pt2
+                    WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+                )';
         }
 
         $Stmt = $this->Pdo->prepare('
@@ -194,6 +204,74 @@ class ServiceJourney
             return null;
         }
         return (int)$sValue;
+    }
+
+    public function journeyIdsForTripRefs(array $aTripRefs): array
+    {
+        if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
+            return [];
+        }
+        $aResult = [];
+        foreach (array_chunk(array_values(array_unique($aTripRefs)), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE trip_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute($aChunk);
+            foreach ($Stmt->fetchAll() as $aRow) {
+                $aResult[$aRow['trip_id']] = $aRow['service_journey_id'];
+            }
+        }
+        return $aResult;
+    }
+
+    public function shapePointsForJourney(string $sServiceJourneyId): array
+    {
+        if (!$this->hasTable('shapes')) {
+            return [];
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT s.points FROM service_journeys sj
+            JOIN shapes s ON s.id = sj.shape_id
+            WHERE sj.id = ?
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        $sPoints = $Stmt->fetchColumn();
+        if ($sPoints === false) {
+            return [];
+        }
+        $aPoints = json_decode($sPoints, true);
+        if (!\is_array($aPoints)) {
+            return [];
+        }
+        return $aPoints;
+    }
+
+    public function stopsWithCoordinates(string $sServiceJourneyId): array
+    {
+        $sDistanceColumn = 'NULL AS dist_m';
+        if ($this->hasTable('shapes')) {
+            $sDistanceColumn = 'pt.dist_m';
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT pt.seq_order, pt.arrival_seconds, pt.departure_seconds, s.lat, s.lon, ' . $sDistanceColumn . '
+            FROM passing_times pt
+            JOIN stops s ON s.id = pt.stop_id
+            WHERE pt.service_journey_id = ?
+            ORDER BY pt.seq_order
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        return $Stmt->fetchAll();
+    }
+
+    private function hasTable(string $sTable): bool
+    {
+        if (!isset($this->aTableExists[$sTable])) {
+            $Stmt = $this->Pdo->prepare('SELECT 1 FROM sqlite_master WHERE type = \'table\' AND name = ?');
+            $Stmt->execute([$sTable]);
+            $this->aTableExists[$sTable] = $Stmt->fetchColumn() !== false;
+        }
+        return $this->aTableExists[$sTable];
     }
 
     public function stopsForJourney(string $sServiceJourneyId): array
