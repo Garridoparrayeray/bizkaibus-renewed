@@ -948,13 +948,63 @@
         syncAlertFavorites();
     }
 
+    async function renderRenfeAlerts() {
+        const favorites = readFavorites();
+        const stopIds = new Set(favorites.filter((favorite) => favorite.type === 'stop').map((favorite) => String(favorite.refId)));
+        const lineIds = new Set(favorites.filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
+        if (state.currentStop) stopIds.add(String(state.currentStop.id));
+        if (state.currentLine) lineIds.add(String(state.currentLine.id));
+
+        el.menuAlertsEmpty.textContent = I18n.t('app.saveStopOrLineToSeeIncidents');
+        if (stopIds.size === 0 && lineIds.size === 0) return;
+
+        el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
+        const fetched = [];
+        try {
+            for (const stopId of stopIds) fetched.push(...(await Api.alerts(null, stopId)).alerts);
+            for (const lineId of lineIds) fetched.push(...(await Api.alerts(lineId)).alerts);
+        } catch (e) {
+            el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
+            return;
+        }
+
+        const seen = new Set();
+        const alerts = fetched.filter((alert) => {
+            const key = `${alert.summary}|${alert.description}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        el.menuAlertsEmpty.hidden = alerts.length > 0;
+        if (alerts.length === 0) {
+            el.menuAlertsEmpty.textContent = I18n.t('app.noneOfYourStopsHaveIncidents');
+            return;
+        }
+        for (const alert of alerts) {
+            const li = document.createElement('li');
+            const summarySpan = document.createElement('span');
+            summarySpan.className = 'alert-summary';
+            summarySpan.textContent = alert.summary;
+            const descSpan = document.createElement('span');
+            descSpan.className = 'alert-description';
+            descSpan.textContent = alert.description;
+            li.append(summarySpan, descSpan);
+            el.menuAlertsList.appendChild(li);
+        }
+    }
+
     async function openSideMenu() {
         el.sideMenu.showModal();
 
         el.menuAlertsList.innerHTML = '';
         el.menuAlertsEmpty.hidden = false;
 
-        if (IS_METRO) {
+        if (IS_RENFE) {
+            await renderRenfeAlerts();
+            return;
+        }
+
+        if (IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
             el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
             let metroAlerts;
             try {
@@ -972,8 +1022,14 @@
                 const li = document.createElement('li');
                 const summarySpan = document.createElement('span');
                 summarySpan.className = 'alert-summary';
-                summarySpan.textContent = alert.summary;
+                summarySpan.textContent = alert.summary || alert.title || '';
                 li.append(summarySpan);
+                if (!IS_METRO && alert.description) {
+                    const descSpan = document.createElement('span');
+                    descSpan.className = 'alert-description';
+                    descSpan.textContent = alert.description;
+                    li.append(descSpan);
+                }
                 el.menuAlertsList.appendChild(li);
             }
             return;
@@ -1160,8 +1216,10 @@
     let lastForegroundAlertCheck = 0;
 
     function syncAlertFavorites() {
-        const lineIds = readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => favorite.refId);
-        return AlertsStore.setFavorites(window.__bbNetwork, lineIds).catch(() => {});
+        const favorites = readFavorites();
+        const lineIds = favorites.filter((favorite) => favorite.type === 'line').map((favorite) => favorite.refId);
+        const stopIds = favorites.filter((favorite) => favorite.type === 'stop').map((favorite) => favorite.refId);
+        return AlertsStore.setFavorites(window.__bbNetwork, lineIds, stopIds).catch(() => {});
     }
 
     function setAlertsNote(message) {
@@ -1264,6 +1322,16 @@
             el.appSubtitle.textContent = I18n.t('switcher.bus.desc');
         }
     }
+    function setAlertTexts(heading, toggle) {
+        document.querySelector('[data-i18n="app.myLinesIncidents"]').setAttribute('data-i18n', heading);
+        document.querySelector('[data-i18n="app.notifyMe"]').setAttribute('data-i18n', toggle);
+    }
+    if (IS_RENFE) {
+        setAlertTexts('app.myStopsIncidents', 'app.notifyMeStops');
+    } else if (IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
+        setAlertTexts('app.myFavoritesIncidents', 'app.notifyMeFavorites');
+    }
+
     I18n.applyTranslations();
     updateLangToggleLabel();
     updateNetworkSubtitle();
