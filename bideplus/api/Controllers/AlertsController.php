@@ -48,6 +48,12 @@ class AlertsController
             return;
         }
 
+        $sStopFilter = $Req->query('stop');
+        if ($sStopFilter !== null && $Client instanceof RenfeAlertsClient) {
+            Response::json(['alerts' => $Client->alertsForStop($sStopFilter)]);
+            return;
+        }
+
         $sLineFilter = $Req->query('line');
         if ($sLineFilter !== null) {
             $aByLine = $Client->alertsByLine();
