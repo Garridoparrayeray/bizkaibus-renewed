@@ -48,15 +48,28 @@ const AlertsStore = (() => {
         return (value >>> 0).toString(36);
     }
 
-    async function setFavorites(network, lineIds) {
+    async function setFavorites(network, lineIds, stopIds = []) {
         const favorites = (await get('favorites')) || {};
-        favorites[network] = lineIds.map(String);
+        favorites[network] = { lines: lineIds.map(String), stops: stopIds.map(String) };
         await set('favorites', favorites);
     }
 
-    function sourcesFor(network, lineIds) {
+    function favoritesOf(favorites, network) {
+        const entry = favorites[network];
+        if (Array.isArray(entry)) return { lines: entry, stops: [] };
+        if (entry && typeof entry === 'object') return { lines: entry.lines || [], stops: entry.stops || [] };
+        return { lines: [], stops: [] };
+    }
+
+    function sourcesFor(network, favorite) {
         if (network === 'bus') {
-            return lineIds.map((id) => ({ id, url: `/api/alerts?line=${encodeURIComponent(id)}` }));
+            return favorite.lines.map((id) => ({ id, url: `/api/alerts?line=${encodeURIComponent(id)}` }));
+        }
+        if (network === 'renfe') {
+            return [
+                ...favorite.stops.map((id) => ({ id: `stop:${id}`, url: `/api/alerts?red=renfe&stop=${encodeURIComponent(id)}` })),
+                ...favorite.lines.map((id) => ({ id: `line:${id}`, url: `/api/alerts?red=renfe&line=${encodeURIComponent(id)}` })),
+            ];
         }
         return [{ id: '*', url: `/api/alerts?red=${network}` }];
     }
@@ -79,9 +92,9 @@ const AlertsStore = (() => {
         const fresh = [];
 
         for (const network of NETWORKS) {
-            const lineIds = favorites[network] || [];
-            if (lineIds.length === 0) continue;
-            for (const source of sourcesFor(network, lineIds)) {
+            const favorite = favoritesOf(favorites, network);
+            if (favorite.lines.length + favorite.stops.length === 0) continue;
+            for (const source of sourcesFor(network, favorite)) {
                 let alerts;
                 try {
                     alerts = await fetchAlerts(network, source);
