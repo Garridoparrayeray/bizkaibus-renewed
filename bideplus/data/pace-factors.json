@@ -1,0 +1,17 @@
+{
+    "generated": "2026-10-01 22:15",
+    "captures": 24,
+    "samples": 5885,
+    "global": {
+        "laborable.mediodia": 0.974,
+        "laborable.punta_tarde": 0.959
+    },
+    "lines": [],
+    "meta": {
+        "global": {
+            "laborable.mediodia": 37,
+            "laborable.punta_tarde": 200
+        },
+        "lines": []
+    }
+}
