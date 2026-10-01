@@ -116,6 +116,8 @@ php scripts/realtime-backtest.php calibrate capturas --write    # guarda data/pa
 
 `calibrate` calcula `k` como la mediana, entre buses, de (tiempo real restante / horario restante), lo encoge hacia 1 cuando hay pocos buses y exige un mínimo de 8 buses distintos por franja (25 buses y 5 vehículos distintos por línea). Valida con una partición: calibra con la mitad de los buses y mide en la otra mitad. Solo escribe el fichero si el error baja en esa mitad de prueba.
 
+**Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en el adjunto `pace-samples.jsonl` de la release `pace-data` (60 días, unos 300 KB por captura; las releases no disparan despliegues). Los lunes calcula `k` con todo lo acumulado y, solo si el error baja en la mitad de prueba y los factores cambian, hace un commit de `data/pace-factors.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` hace lo mismo en local.
+
 ## Fuente estática: GTFS
 
 Ambas redes se generan desde su export GTFS oficial — Bizkaibus desde el feed de Lantik/CTB (activo, con `feed_info.txt` acotado a la temporada vigente), Metro Bilbao desde su Open Data propio (`cms.metrobilbao.eus`, sin `feed_info.txt`, manejado como opcional en el ETL).
