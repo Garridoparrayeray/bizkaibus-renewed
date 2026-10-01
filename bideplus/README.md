@@ -94,7 +94,27 @@ php scripts/realtime-backtest.php capture <carpeta> 40 45   # 40 min, una consul
 php scripts/realtime-backtest.php analyze <carpeta>
 ```
 
-Compara, por minutos mostrados, lo que mostraba la app antes (horario + 0) con lo que muestra ahora, frente al momento real en que el GPS ve pasar al bus por la parada.
+Compara, por minutos mostrados, lo que mostraba la app antes (horario + 0) con lo que muestra ahora, frente al momento real en que el GPS ve pasar al bus por la parada. `analyze <carpeta> --sin-k` repite la medida con k = 1.
+
+### Factor de ritmo k
+
+Los tiempos por parada del GTFS son aproximados (interpolados a velocidad constante), y en esperas largas los buses suelen llegar algo antes. `RealtimeMatcher::etaForStop` aplica un factor `k` a la resta «horario restante»:
+
+```
+ETA = T_gps + k × (T_destino − T_pos)
+```
+
+`k` sale de `data/pace-factors.json` (lo lee `ServicesPaceFactors`) por franja horaria y tipo de día (`laborable.punta_tarde`, `fin_semana.manana`…) y, cuando hay datos suficientes, por línea. Si no hay valor, `k = 1`, y siempre se limita a 0,6–1,2. No cambia el retraso que se muestra (`T_gps − T_pos`).
+
+Para calibrarlo hay que capturar el feed en distintas franjas y días (cada captura solo se guarda si el feed cambió):
+
+```
+php scripts/realtime-backtest.php capture capturas/manana 120 45
+php scripts/realtime-backtest.php calibrate capturas            # solo informa
+php scripts/realtime-backtest.php calibrate capturas --write    # guarda data/pace-factors.json
+```
+
+`calibrate` calcula `k` como la mediana, entre buses, de (tiempo real restante / horario restante), lo encoge hacia 1 cuando hay pocos buses y exige un mínimo de 8 buses distintos por franja (25 buses y 5 vehículos distintos por línea). Valida con una partición: calibra con la mitad de los buses y mide en la otra mitad. Solo escribe el fichero si el error baja en esa mitad de prueba.
 
 ## Fuente estática: GTFS
 
@@ -147,6 +167,10 @@ La pista "hacia X" en los resultados de búsqueda (`SearchController::addDirecti
 - `data/bizkaibus.sqlite` y `data/metrobilbao.sqlite` deben estar commiteados (son el artefacto de build, no el CSV crudo del GTFS — ese nunca se sube).
 - **Un `git push` a la rama principal no despliega nada por sí solo.** El único disparador es `workflow_dispatch` manual desde GitHub Actions, o el cron diario.
 - `.github/workflows/rebuild-schedule.yml` corre a diario a las 03:00 UTC: reconstruye las dos bases de datos desde el GTFS más reciente de cada operador y redespliega a producción. Cualquier cambio que los operadores publiquen — nuevo evento, corrección de horario, fin de una campaña especial — se refleja solo, sin tocar código, con un margen máximo de 24h.
+
+## Licencia
+
+El código, el diseño y los iconos de este proyecto se publican bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE): se pueden copiar y adaptar citando al autor, sin fines comerciales y compartiendo las obras derivadas con la misma licencia. Los datos de transporte son de sus operadores y mantienen sus propias licencias (véase «Atribución de datos»). Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares.
 
 ## Atribución de datos
 
