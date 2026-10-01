@@ -38,11 +38,31 @@ jobs:
       - name: Rebuild Euskotren+ database
         run: php bideplus/scripts/build-database.php --network=euskotren
 
+      # Los tranvias y Renfe tambien cambian de temporada y horario. Cada base se
+      # genera en un fichero temporal y solo sustituye a la del repositorio si
+      # el build termina bien y no esta vacia: si una fuente falla se conserva
+      # la anterior y el resto del flujo (incluido el despliegue) sigue.
+      - name: Rebuild Tranvia Bilbao+, Tranvia Vitoria+ and Renfe Cercanias+ databases
+        run: |
+          for item in tranvia-bilbao:tranviabilbao tranvia-vitoria:tranviavitoria renfe:renfe; do
+            network="${item%%:*}"
+            file="${item##*:}"
+            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$file.sqlite" && [ -s "$RUNNER_TEMP/$file.sqlite" ]; then
+              mv "$RUNNER_TEMP/$file.sqlite" "bideplus/data/$file.sqlite"
+              echo "OK: $network reconstruida"
+            else
+              echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
+            fi
+          done
+
       - name: Verify databases exist and are non-empty
         run: |
           for db in bideplus/data/bizkaibus.sqlite \
                      bideplus/data/metrobilbao.sqlite \
-                     bideplus/data/euskotren.sqlite; do
+                     bideplus/data/euskotren.sqlite \
+                     bideplus/data/tranviabilbao.sqlite \
+                     bideplus/data/tranviavitoria.sqlite \
+                     bideplus/data/renfe.sqlite; do
             if [ ! -s "$db" ]; then
               echo "ERROR: $db is missing or empty"
               exit 1
