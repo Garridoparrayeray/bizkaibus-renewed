@@ -116,6 +116,16 @@ for name in ('metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe')
         fails.append(f'{name}: los avisos son identicos a los de Bizkaibus (cache compartida entre redes)')
     if any('Bizkaibus' in (x.get('description') or '') + (x.get('summary') or '') + (x.get('title') or '') for x in other):
         fails.append(f'{name}: aparecen avisos de Bizkaibus')
+renfe_alerts = (get('/api/alerts?red=renfe') or {}).get('alerts', [])
+station_alerts = [x for x in renfe_alerts if x.get('scope') == 'stop']
+for sample in station_alerts[:3]:
+    if not sample.get('summary') or not sample.get('description'):
+        fails.append(f'renfe: aviso de estacion sin titulo o descripcion {sample}')
+if renfe_alerts and not any(x.get('scope') in ('stop', 'line') for x in renfe_alerts):
+    fails.append('renfe: los avisos no indican si son de estacion o de linea')
+renfe_stop_alerts = (get('/api/alerts?red=renfe&stop=05451') or {}).get('alerts', [])
+if any(x.get('scope') == 'stop' for x in renfe_stop_alerts):
+    fails.append('renfe: la parada 05451 (Bilbao la Concordia) recibe avisos de otras estaciones')
 get('/api/nearby', expect=422)
 get('/api/nearby?lat=abc&lon=1', expect=422)
 get('/api/nearby?lat=40.4&lon=-3.7', expect=422)
