@@ -43,6 +43,39 @@ html.is-euskotren {
     --text-secondary: #4d5966;
     --backdrop: rgba(10, 14, 20, .5);
 }
+html.is-tranvia-bilbao {
+    --bg: #f4f8f4;
+    --border: #dde8dc;
+    --primary: #4EB848;
+    --primary-light: #8FD675;
+    --primary-dark: #2E7D32;
+    --primary-tint: #EAF7E6;
+    --text: #1c2a1d;
+    --text-secondary: #5c6b5e;
+    --backdrop: rgba(10, 20, 12, .5);
+}
+html.is-tranvia-vitoria {
+    --bg: #f5f8f3;
+    --border: #dfe8da;
+    --primary: #60AE27;
+    --primary-light: #9ED66C;
+    --primary-dark: #3D6E18;
+    --primary-tint: #EEF7E7;
+    --text: #1e2a19;
+    --text-secondary: #5e6b58;
+    --backdrop: rgba(12, 20, 10, .5);
+}
+html.is-renfe {
+    --bg: #f8f4fa;
+    --border: #e6dbec;
+    --primary: #74349A;
+    --primary-light: #B98BD1;
+    --primary-dark: #4A1D66;
+    --primary-tint: #F3EAF8;
+    --text: #24192b;
+    --text-secondary: #65596c;
+    --backdrop: rgba(18, 10, 22, .5);
+}
 
 /* ===== Base ===== */
 *, *::before, *::after { box-sizing: border-box; }
@@ -147,6 +180,7 @@ svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
 .status-muted { color: var(--status-muted); font-weight: 700; }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .header-actions .btn-icon { width: 40px; height: 40px; }
+    .header-actions .btn-lang { font-family: var(--font-display); font-size: .78rem; font-weight: 800; letter-spacing: .02em; }
 .glass > header, .platform-panel > header {
     display: flex;
     align-items: center;
@@ -183,10 +217,10 @@ svg[viewBox] path, svg[viewBox] line, svg[viewBox] circle, svg[viewBox] rect {
 }
 #app-logomark { display: flex; width: 40px; height: 40px; flex-shrink: 0; }
     #app-logomark svg { width: 100%; height: 100%; }
-    #app-logomark .logo-metro, #app-logomark .logo-euskotren { display: none; }
-    #app-logomark.is-metro .logo-bus, #app-logomark.is-euskotren .logo-bus { display: none; }
-    #app-logomark.is-metro .logo-metro, #app-logomark.is-euskotren .logo-euskotren { display: block; }
-    #app-logomark .logo-euskotren {
+    #app-logomark .logo-metro, #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria, #app-logomark .logo-renfe { display: none; }
+    #app-logomark.is-metro .logo-bus, #app-logomark.is-euskotren .logo-bus, #app-logomark.is-tranvia-bilbao .logo-bus, #app-logomark.is-tranvia-vitoria .logo-bus, #app-logomark.is-renfe .logo-bus { display: none; }
+    #app-logomark.is-metro .logo-metro, #app-logomark.is-euskotren .logo-euskotren, #app-logomark.is-tranvia-bilbao .logo-tranvia-bilbao, #app-logomark.is-tranvia-vitoria .logo-tranvia-vitoria, #app-logomark.is-renfe .logo-renfe { display: block; }
+    #app-logomark .logo-euskotren, #app-logomark .logo-tranvia-bilbao, #app-logomark .logo-tranvia-vitoria, #app-logomark .logo-renfe {
         width: 72%;
         height: 72%;
         margin: auto;
@@ -213,6 +247,21 @@ h1 {
     font-weight: 500;
     transform: rotate(-8deg) translateY(-2px);
 }
+/* Como el nombre de un elemento en la tabla periódica: pequeño, justo
+   debajo del símbolo grande (p.ej. "TRANVÍA+" con "BILBAO" debajo). */
+#app-title-city {
+    display: block;
+    margin-top: -1px;
+    color: var(--primary-light);
+    font-family: var(--font-display);
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 1;
+}
+    #app-title-city:empty { display: none; }
 header p {
     margin: 0;
     overflow: hidden;
@@ -244,10 +293,11 @@ header p {
 }
     #network-switcher.open {
         min-width: min(300px, calc(100vw - 28px));
-        max-height: 300px;
+        max-height: min(300px, calc(100vh - 120px));
         margin-top: 14px;
         padding: 12px 14px 14px;
         opacity: 1;
+        overflow-y: auto;
     }
 .net-card {
     display: flex;
@@ -320,6 +370,11 @@ header p {
 }
     .nearby-btn svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2.25; }
     .nearby-btn:hover { background: var(--primary-tint); border-color: var(--primary-light); }
+    .nearby-btn.is-loading { opacity: .7; cursor: default; pointer-events: none; }
+    .nearby-btn.is-loading svg { animation: nearby-spin .8s linear infinite; }
+@keyframes nearby-spin {
+    to { transform: rotate(360deg); }
+}
 #search-results {
     position: absolute;
     top: calc(100% + 8px);
@@ -523,8 +578,8 @@ header p {
 #timetable-line { margin: 4px 0 18px; color: var(--text-secondary); font-weight: 600; }
 #line-map { position: relative; z-index: 0; height: 240px; margin-bottom: 10px; overflow: hidden; border-radius: var(--radius-sm); isolation: isolate; }
 #line-map-empty { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; text-align: center; }
-.bus-marker { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; }
-    .bus-marker svg { width: 15px; height: 15px; }
+.bus-marker { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+    .bus-marker svg { width: 28px; height: 28px; }
 .leaflet-popup-content-wrapper { border-radius: 10px; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
     #filter-date { grid-column: 1 / -1; }
@@ -665,6 +720,8 @@ dialog#side-menu {
     #modal-stops li { padding: 8px 0 8px 16px; color: var(--text-secondary); font-size: .88rem; }
         #modal-stops li.stop-current { color: var(--primary); font-weight: 700; }
         #modal-stops li.stop-past { opacity: .45; }
+        #modal-stops li.stop-clickable { cursor: pointer; border-radius: 6px; transition: background .12s ease, color .12s ease; }
+        #modal-stops li.stop-clickable:hover { background: var(--primary-tint); color: var(--primary); }
 #menu-favorites-open { width: 100%; justify-content: flex-start; margin: 44px 0 24px; }
 .alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--text); font-size: .9rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
     .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary); }
