@@ -15,6 +15,7 @@ use Core\Config;
 use Core\Database;
 use Core\Http;
 use Models\ServiceJourney;
+use Services\PaceFactors;
 use Services\RealtimeMatcher;
 use Services\SiriVehicleMonitoringClient;
 
@@ -23,31 +24,45 @@ const OBSERVED_AFTER_PREDICTION_SECONDS = 600;
 const NOT_STARTED_GRACE_SECONDS = 60;
 const HORIZON_BUCKETS_MINUTES = [[1, 5], [5, 10], [10, 20], [20, 60]];
 
+const MIN_REMAINING_SECONDS_FOR_FACTOR = 120;
+const MIN_TRACKS_PER_BAND = 8;
+const MIN_TRACKS_PER_LINE = 25;
+const MIN_VEHICLES_PER_LINE = 5;
+const SHRINKAGE_TRACKS = 10;
+
 function main(array $aArgv): void
 {
     $sMode = '';
     if (isset($aArgv[1])) {
         $sMode = $aArgv[1];
     }
-    if ($sMode === 'capture' && isset($aArgv[2])) {
+    $aFlags = array_values(array_filter($aArgv, fn($sArg) => str_starts_with($sArg, '--')));
+    $aPositional = array_values(array_filter(array_slice($aArgv, 2), fn($sArg) => !str_starts_with($sArg, '--')));
+
+    if ($sMode === 'capture' && isset($aPositional[0])) {
         $iMinutes = 30;
-        if (isset($aArgv[3])) {
-            $iMinutes = (int)$aArgv[3];
+        if (isset($aPositional[1])) {
+            $iMinutes = (int)$aPositional[1];
         }
         $iIntervalSeconds = 45;
-        if (isset($aArgv[4])) {
-            $iIntervalSeconds = (int)$aArgv[4];
+        if (isset($aPositional[2])) {
+            $iIntervalSeconds = (int)$aPositional[2];
         }
-        capture($aArgv[2], $iMinutes, $iIntervalSeconds);
+        capture($aPositional[0], $iMinutes, $iIntervalSeconds);
         return;
     }
-    if ($sMode === 'analyze' && isset($aArgv[2])) {
-        analyze($aArgv[2]);
+    if ($sMode === 'analyze' && isset($aPositional[0])) {
+        analyze($aPositional[0], !in_array('--sin-k', $aFlags, true));
+        return;
+    }
+    if ($sMode === 'calibrate' && isset($aPositional[0])) {
+        calibrate($aPositional[0], in_array('--write', $aFlags, true));
         return;
     }
     fwrite(STDERR, "Uso:\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php capture <carpeta> [minutos=30] [intervalo_s=45]\n");
-    fwrite(STDERR, "  php scripts/realtime-backtest.php analyze <carpeta>\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php analyze <carpeta> [--sin-k]\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php calibrate <carpeta> [--write]\n");
     exit(1);
 }
 
@@ -79,22 +94,21 @@ function capture(string $sDir, int $iMinutes, int $iIntervalSeconds): void
     echo "$iSaved capturas en $sDir\n";
 }
 
-function analyze(string $sDir): void
+function collect(string $sDir, PaceFactors $Pace): array
 {
     Config::set('bus');
     $JourneyModel = new ServiceJourney(Database::connection());
     $aSnapshots = loadSnapshots($sDir);
-    $aOffRoute = [];
 
     $aTracks = [];
     $aPredictions = [];
+    $aOffRoute = [];
     $aCoverage = ['posicionados' => 0, 'viaje sin empezar' => 0, 'fuera de ruta o sin GPS' => 0, 'sin viaje en la BD' => 0];
 
     foreach ($aSnapshots as $aSnapshot) {
         $sXml = (string)file_get_contents($aSnapshot['file']);
-        $iFeedSeconds = $aSnapshot['seconds'];
         $aVmMap = SiriVehicleMonitoringClient::parse($sXml, $aSnapshot['date']);
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel, $iFeedSeconds);
+        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel, $aSnapshot['seconds'], $Pace, $aSnapshot['date']);
 
         foreach ($aVmMap as $aEntries) {
             foreach ($aEntries as $aEntry) {
@@ -124,36 +138,65 @@ function analyze(string $sDir): void
                         continue;
                     }
                     [$iEta] = $Matcher->etaForStop($sJourneyId, $iArrival, $aEntry);
-                    $aPredictions[] = [$sTrackKey, $aPosition['locationSeconds'], $iArrival, $iEta, $aSnapshot['windowEnd']];
+                    $aPredictions[] = [
+                        'track' => $sTrackKey,
+                        'vehicle' => (string)$aEntry['vehicleRef'],
+                        'line' => (string)($aEntry['lineId'] ?? ''),
+                        'date' => $aSnapshot['date'],
+                        'at' => $aPosition['locationSeconds'],
+                        'sched' => $aPosition['scheduledSeconds'],
+                        'arrival' => $iArrival,
+                        'eta' => $iEta,
+                        'windowEnd' => $aSnapshot['windowEnd'],
+                    ];
                 }
             }
         }
     }
 
+    foreach ($aPredictions as $iIndex => $aPrediction) {
+        $aPredictions[$iIndex]['actual'] = actualPassingTime($aTracks[$aPrediction['track']], $aPrediction['arrival']);
+    }
+
+    return [
+        'snapshots' => $aSnapshots,
+        'predictions' => $aPredictions,
+        'coverage' => $aCoverage,
+        'offRoute' => $aOffRoute,
+    ];
+}
+
+function analyze(string $sDir, bool $bWithFactors): void
+{
+    $Pace = new PaceFactors();
+    if ($bWithFactors) {
+        $Pace = PaceFactors::fromFile();
+    }
+    $aData = collect($sDir, $Pace);
+
     $aErrors = [];
     $iNotSeenPassing = 0;
-    foreach ($aPredictions as [$sTrackKey, $iPredictedAt, $iArrival, $iEta, $iWindowEnd]) {
-        $sBucket = bucketFor(($iEta - $iPredictedAt) / 60);
-        if ($sBucket === null || $iWindowEnd < $iEta + OBSERVED_AFTER_PREDICTION_SECONDS) {
+    foreach ($aData['predictions'] as $aPrediction) {
+        $sBucket = bucketFor(($aPrediction['eta'] - $aPrediction['at']) / 60);
+        if ($sBucket === null || $aPrediction['windowEnd'] < $aPrediction['eta'] + OBSERVED_AFTER_PREDICTION_SECONDS) {
             continue;
         }
-        $dActual = actualPassingTime($aTracks[$sTrackKey], $iArrival);
-        if ($dActual === null) {
+        if ($aPrediction['actual'] === null) {
             $iNotSeenPassing++;
             continue;
         }
-        foreach (['antes' => $iArrival, 'ahora' => $iEta] as $sMethod => $iShown) {
-            $aErrors[$sBucket][$sMethod][] = ($iShown - $dActual) / 60;
-            $aErrors['total'][$sMethod][] = ($iShown - $dActual) / 60;
+        foreach (['antes' => $aPrediction['arrival'], 'ahora' => $aPrediction['eta']] as $sMethod => $iShown) {
+            $aErrors[$sBucket][$sMethod][] = ($iShown - $aPrediction['actual']) / 60;
+            $aErrors['total'][$sMethod][] = ($iShown - $aPrediction['actual']) / 60;
         }
     }
 
-    echo 'Capturas distintas: ' . count($aSnapshots) . "\n";
+    echo 'Capturas distintas: ' . count($aData['snapshots']) . "\n";
     echo "Buses por captura (suma de todas):\n";
-    foreach ($aCoverage as $sLabel => $iCount) {
+    foreach ($aData['coverage'] as $sLabel => $iCount) {
         printf("  %-26s %d\n", $sLabel, $iCount);
     }
-    foreach ($aOffRoute as $sMethod => $aMeters) {
+    foreach ($aData['offRoute'] as $sMethod => $aMeters) {
         $iWithinTen = count(array_filter($aMeters, fn($dMeters) => $dMeters <= 10));
         printf(
             "Distancia del GPS a la ruta (%s, %d posiciones): mediana %.1f m, p75 %.1f m, p90 %.1f m, <=10 m %d%%\n",
@@ -165,8 +208,12 @@ function analyze(string $sDir): void
             intdiv(100 * $iWithinTen, count($aMeters))
         );
     }
+    $sFactorsLabel = 'con factor k';
+    if (!$bWithFactors) {
+        $sFactorsLabel = 'sin factor k (k = 1)';
+    }
     echo "\nError = tiempo mostrado - llegada real, en minutos. Positivo: el bus llega antes de lo que dice la app.\n";
-    echo "antes = horario + 0 (lo que hacia la app); ahora = posicion GPS + horario restante.\n";
+    echo "antes = horario + 0 (lo que hacia la app); ahora = posicion GPS + horario restante, $sFactorsLabel.\n";
     echo 'Filas: minutos que muestra la app nueva. Solo predicciones con la captura abierta ' . (OBSERVED_AFTER_PREDICTION_SECONDS / 60) . " min mas alla de la hora mostrada.\n";
     echo "Predicciones descartadas porque no se vio pasar al bus: $iNotSeenPassing\n\n";
     printf("%-10s | %-40s | %-40s\n", 'muestra', 'antes:  n    sesgo  |err| p90  <=1m <=2m', 'ahora:  n    sesgo  |err| p90  <=1m <=2m');
@@ -188,6 +235,171 @@ function analyze(string $sDir): void
         }
         printf("%-10s | %s | %s\n", $sBucket, $aColumns['antes'], $aColumns['ahora']);
     }
+}
+
+function calibrate(string $sDir, bool $bWrite): void
+{
+    $aData = collect($sDir, new PaceFactors());
+
+    $aSamples = [];
+    foreach ($aData['predictions'] as $aPrediction) {
+        if ($aPrediction['actual'] === null || $aPrediction['windowEnd'] < $aPrediction['arrival'] + OBSERVED_AFTER_PREDICTION_SECONDS) {
+            continue;
+        }
+        $iScheduledRemaining = $aPrediction['arrival'] - $aPrediction['sched'];
+        $dActualRemaining = $aPrediction['actual'] - $aPrediction['at'];
+        if ($iScheduledRemaining < MIN_REMAINING_SECONDS_FOR_FACTOR || $dActualRemaining <= 0) {
+            continue;
+        }
+        $aPrediction['band'] = PaceFactors::bandFor($aPrediction['date'], $aPrediction['at']);
+        $aPrediction['scheduledRemaining'] = $iScheduledRemaining;
+        $aPrediction['actualRemaining'] = $dActualRemaining;
+        $aSamples[] = $aPrediction;
+    }
+
+    echo 'Capturas distintas: ' . count($aData['snapshots']) . ', muestras utiles para calibrar: ' . count($aSamples) . "\n\n";
+    if (empty($aSamples)) {
+        echo "No hay muestras suficientes.\n";
+        return;
+    }
+
+    $aFactors = fitFactors($aSamples);
+    $aHeldOut = crossValidate($aSamples);
+
+    echo "Factor k por franja (global) y por linea. m = buses distintos usados.\n";
+    foreach ($aFactors['global'] as $sBand => $dFactor) {
+        printf("  %-26s k=%.3f  (m=%d)\n", $sBand, $dFactor, $aFactors['meta']['global'][$sBand]);
+    }
+    foreach ($aFactors['lines'] as $sLine => $aBands) {
+        foreach ($aBands as $sBand => $dFactor) {
+            printf("  linea %-8s %-18s k=%.3f  (m=%d)\n", $sLine, $sBand, $dFactor, $aFactors['meta']['lines'][$sLine][$sBand]);
+        }
+    }
+    if (empty($aFactors['global']) && empty($aFactors['lines'])) {
+        echo "  (ninguna franja ni linea alcanza el minimo de " . MIN_TRACKS_PER_BAND . " buses distintos)\n";
+    }
+
+    echo "\nValidacion cruzada (se calibra con la mitad de los buses y se mide en la otra mitad):\n";
+    if ($aHeldOut['n'] === 0) {
+        echo "  sin muestras en la mitad de prueba con factor aplicable\n";
+    } else {
+        printf(
+            "  n=%d  error absoluto medio: %.2f min con k=1  ->  %.2f min con k   (|err| mediana %.2f -> %.2f)\n",
+            $aHeldOut['n'],
+            $aHeldOut['meanBefore'],
+            $aHeldOut['meanAfter'],
+            $aHeldOut['medianBefore'],
+            $aHeldOut['medianAfter']
+        );
+    }
+
+    if (!$bWrite) {
+        echo "\nNo se ha escrito nada (usa --write para guardar data/pace-factors.json).\n";
+        return;
+    }
+    if ($aHeldOut['n'] === 0 || $aHeldOut['meanAfter'] >= $aHeldOut['meanBefore']) {
+        echo "\nNo se escribe: el factor no mejora el error en la mitad de prueba.\n";
+        return;
+    }
+    $aOutput = [
+        'generated' => date('Y-m-d H:i'),
+        'captures' => count($aData['snapshots']),
+        'samples' => count($aSamples),
+        'global' => $aFactors['global'],
+        'lines' => $aFactors['lines'],
+        'meta' => $aFactors['meta'],
+    ];
+    file_put_contents(PaceFactors::defaultPath(), json_encode($aOutput, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
+    echo "\nEscrito " . realpath(PaceFactors::defaultPath()) . "\n";
+}
+
+function fitFactors(array $aSamples): array
+{
+    $aByBand = [];
+    $aByLineBand = [];
+    foreach ($aSamples as $aSample) {
+        $aByBand[$aSample['band']][$aSample['track']][] = $aSample;
+        $aByLineBand[$aSample['line']][$aSample['band']][$aSample['track']][] = $aSample;
+    }
+
+    $aResult = ['global' => [], 'lines' => [], 'meta' => ['global' => [], 'lines' => []]];
+    foreach ($aByBand as $sBand => $aTracks) {
+        $iTracks = count($aTracks);
+        if ($iTracks < MIN_TRACKS_PER_BAND) {
+            continue;
+        }
+        $aResult['global'][$sBand] = shrunkFactor($aTracks);
+        $aResult['meta']['global'][$sBand] = $iTracks;
+    }
+    foreach ($aByLineBand as $sLine => $aBands) {
+        if ($sLine === '') {
+            continue;
+        }
+        foreach ($aBands as $sBand => $aTracks) {
+            $iVehicles = count(array_unique(array_column(array_merge(...array_values($aTracks)), 'vehicle')));
+            if (count($aTracks) < MIN_TRACKS_PER_LINE || $iVehicles < MIN_VEHICLES_PER_LINE) {
+                continue;
+            }
+            $aResult['lines'][$sLine][$sBand] = shrunkFactor($aTracks);
+            $aResult['meta']['lines'][$sLine][$sBand] = count($aTracks);
+        }
+    }
+    return $aResult;
+}
+
+function shrunkFactor(array $aTracks): float
+{
+    $aPerTrack = [];
+    foreach ($aTracks as $aSamples) {
+        $dSumActual = 0.0;
+        $dSumScheduled = 0.0;
+        foreach ($aSamples as $aSample) {
+            $dSumActual += $aSample['actualRemaining'];
+            $dSumScheduled += $aSample['scheduledRemaining'];
+        }
+        $aPerTrack[] = $dSumActual / $dSumScheduled;
+    }
+    $iTracks = count($aPerTrack);
+    $dRaw = percentile($aPerTrack, 0.5);
+    $dShrunk = 1.0 + ($dRaw - 1.0) * $iTracks / ($iTracks + SHRINKAGE_TRACKS);
+    return round(max(PaceFactors::MIN_FACTOR, min(PaceFactors::MAX_FACTOR, $dShrunk)), 3);
+}
+
+function crossValidate(array $aSamples): array
+{
+    $aBefore = [];
+    $aAfter = [];
+    foreach ([0, 1] as $iHeldOutFold) {
+        $aTrain = [];
+        $aTest = [];
+        foreach ($aSamples as $aSample) {
+            if (crc32($aSample['track']) % 2 === $iHeldOutFold) {
+                $aTest[] = $aSample;
+            } else {
+                $aTrain[] = $aSample;
+            }
+        }
+        $aFactors = fitFactors($aTrain);
+        $Pace = new PaceFactors($aFactors);
+        foreach ($aTest as $aSample) {
+            $dFactor = $Pace->factor($aSample['line'], $aSample['date'], $aSample['at']);
+            if ($dFactor === 1.0) {
+                continue;
+            }
+            $aBefore[] = abs($aSample['at'] + $aSample['scheduledRemaining'] - $aSample['actual']) / 60;
+            $aAfter[] = abs($aSample['at'] + $dFactor * $aSample['scheduledRemaining'] - $aSample['actual']) / 60;
+        }
+    }
+    if (empty($aBefore)) {
+        return ['n' => 0];
+    }
+    return [
+        'n' => count($aBefore),
+        'meanBefore' => array_sum($aBefore) / count($aBefore),
+        'meanAfter' => array_sum($aAfter) / count($aAfter),
+        'medianBefore' => percentile($aBefore, 0.5),
+        'medianAfter' => percentile($aAfter, 0.5),
+    ];
 }
 
 function loadSnapshots(string $sDir): array
