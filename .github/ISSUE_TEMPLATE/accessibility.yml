@@ -1,0 +1,48 @@
+name: Barrera de accesibilidad
+description: Algo de la aplicación no puedes usarlo o te cuesta por una cuestión de accesibilidad.
+title: "[Accesibilidad] "
+labels: ["accesibilidad"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por avisar: es de lo más útil que se puede aportar. Mira antes las [limitaciones conocidas](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/ACCESSIBILITY.md).
+  - type: dropdown
+    id: app
+    attributes:
+      label: ¿En qué app?
+      options:
+        - Bizkaibus+
+        - Metro+
+        - Euskotren+
+        - Tranvía Bilbao+
+        - Tranvía Vitoria+
+        - Renfe Cercanías+
+        - Menú de Bide+
+    validations:
+      required: true
+  - type: input
+    id: pantalla
+    attributes:
+      label: Pantalla o función
+      placeholder: "Ej.: horario completo, buscador, mapa en vivo, aviso legal"
+    validations:
+      required: true
+  - type: textarea
+    id: barrera
+    attributes:
+      label: ¿Qué intentabas hacer y qué te lo impidió?
+    validations:
+      required: true
+  - type: input
+    id: tecnologia
+    attributes:
+      label: Dispositivo, navegador y tecnología de apoyo
+      description: Por ejemplo, «iPhone con VoiceOver y Safari», «Windows con NVDA y Firefox», «solo teclado», «zoom al 200 %».
+    validations:
+      required: true
+  - type: textarea
+    id: sugerencia
+    attributes:
+      label: ¿Cómo crees que se podría mejorar?
+      description: Opcional.
