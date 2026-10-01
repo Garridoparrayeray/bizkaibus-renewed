@@ -33,6 +33,6 @@
     "icons": [
         { "src": "icons-tranvia-vitoria/icon-192.png", "sizes": "192x192", "type": "image/png" },
         { "src": "icons-tranvia-vitoria/icon-512.png", "sizes": "512x512", "type": "image/png" },
-        { "src": "icons-tranvia-vitoria/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+        { "src": "icons-tranvia-vitoria/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
     ]
 }

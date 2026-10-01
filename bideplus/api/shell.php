@@ -256,7 +256,7 @@ $jsonLd = [
                 manifest   = 'manifest-renfe.json';
                 touchIcon  = 'icons-renfe/apple-touch-icon.png';
                 icon       = 'icons-renfe/icon-192.png';
-                themeColor = '#EE7203';
+                themeColor = '#74349A';
             }
 
             if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria && !isRenfe) {
