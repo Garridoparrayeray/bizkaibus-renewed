@@ -163,7 +163,7 @@ function main(array $aArgv): void
     }
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
-    $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0];
+    $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0];
     processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork);
 
     $Pdo->commit();
@@ -185,6 +185,7 @@ function main(array $aArgv): void
     printf("  patterns:         %d\n", $aTotals['patterns']);
     printf("  service_journeys: %d\n", $aTotals['journeys']);
     printf("  passing_times:    %d\n", $aTotals['passingTimes']);
+    printf("  trip_aliases:     %d\n", $aTotals['tripAliases']);
 
     echo "\nDatabase written to: $sOutput\n";
     printf("File size: %.1f MB\n", filesize($sOutput) / 1024 / 1024);
@@ -890,7 +891,9 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
                 $aGroups[$sClusterKey]['weekdayMask'] = 0;
                 $aGroups[$sClusterKey]['includedDates'] = [];
                 $aGroups[$sClusterKey]['excludedDates'] = [];
+                $aGroups[$sClusterKey]['memberTripIds'] = [];
             }
+            $aGroups[$sClusterKey]['memberTripIds'][] = $sTripId;
             $aGroups[$sClusterKey]['weekdayMask'] |= $aSig['weekdayMask'];
 
             foreach ($aSig['includedDates'] as $sDate) {
@@ -1010,6 +1013,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     $InsertPatternStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
     $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds) VALUES (?, ?, ?, ?, ?, ?)');
     $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+    $InsertTripAlias = $Pdo->prepare('INSERT OR IGNORE INTO trip_aliases (trip_id, service_journey_id) VALUES (?, ?)');
     $aSeenPatterns = [];
     $iRowCount = 0;
 
@@ -1040,6 +1044,11 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         }
         $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'], $aGroup['firstDeparture']]);
         $aTotals['journeys']++;
+
+        foreach ($aGroup['memberTripIds'] as $sMemberTripId) {
+            $InsertTripAlias->execute([$sMemberTripId, $sTripId]);
+            $aTotals['tripAliases']++;
+        }
 
         foreach ($aBuffer as $aRow) {
             $InsertPassingTime->execute([$sTripId, $aRow['seqOrder'], $aRow['stopId'], $aRow['arrival'], $aRow['departure']]);
@@ -1124,6 +1133,12 @@ function createSchema(PDO $Pdo): void
             stop_id TEXT NOT NULL,
             arrival_seconds INTEGER,
             departure_seconds INTEGER
+        )
+    ');
+    $Pdo->exec('
+        CREATE TABLE trip_aliases (
+            trip_id TEXT PRIMARY KEY,
+            service_journey_id TEXT NOT NULL
         )
     ');
     $Pdo->exec('
