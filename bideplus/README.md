@@ -54,7 +54,7 @@ Se descartó explícitamente `direction_id` de GTFS como fuente: en el feed de M
 
 ## Mapa en vivo por línea (solo Bizkaibus)
 
-Al seleccionar una línea, `GET /api/lines/{id}/live` (`RealtimeController::lineLive`) devuelve la ruta de cada patrón (paradas ordenadas, para dibujar la polyline) y los vehículos activos ahora mismo en esa línea. El feed SIRI-VM no da GPS continuo, solo parada + orden — así que el marcador de cada bus se sitúa en su última parada conocida real, nunca interpolado entre paradas. El frontend refresca esta llamada cada 25s mientras la línea esté abierta.
+Al seleccionar una línea, `GET /api/lines/{id}/live` (`RealtimeController::lineLive`) devuelve la ruta de cada patrón (paradas ordenadas, para dibujar la polyline) y los vehículos activos ahora mismo en esa línea. El marcador de cada bus se sitúa en la parada que da el feed (`StopPointRef`), que es la **próxima** parada del bus, no la última visitada. El retraso que se muestra sale de la posición GPS (ver "Cómo se calcula la llegada"). El frontend refresca esta llamada cada 25s mientras la línea esté abierta.
 
 ## Menú lateral: incidencias
 
@@ -64,15 +64,37 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 
 **Bizkaibus** — dos feeds SIRI en vivo, licencia CC-BY 4.0:
 - Alertas de servicio (SIRI-SX): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml`
-- Posición/retraso de buses (SIRI-VM, mal nombrado "trip-updates" en origen): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml`
+- Posición de buses (SIRI-VM): `https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml` (con GPS), y como respaldo `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml` (mal nombrado "trip-updates" en origen; sin GPS)
 
 **Metro Bilbao** — no publica un feed SIRI equivalente; solo el endpoint JSON de avisos ya mencionado. Sin tiempo real de posición de trenes.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 
-### Por qué el emparejamiento en tiempo real usa un margen de tolerancia
+### Emparejamiento del feed con el horario
 
-El `VehicleJourneyRef` del feed en vivo (p. ej. `trp_A3513_907_OP44LV_61500_...`) **no coincide exactamente** con el `id` de `service_journeys` del export estático — verificado con datos reales. Además, `trip_number` (segundo token) **no identifica una salida única**: es un id de vuelta/bloque de vehículo que se repite en decenas de horarios distintos a lo largo del día. La única clave fiable es `(line_id, trip_number, hora_de_salida_del_primer_parada)`, y aun así la hora del feed en vivo difiere en segundos de la estática. `RealtimeMatcher` agrupa por `(line_id, trip_number)` y elige la coincidencia más cercana dentro de la tolerancia definida en `MATCH_TOLERANCE_SECONDS` — verificado contra tráfico real (>85% de coincidencia). Prefiere calcular el ETA por posición real ("ahora + tiempo programado restante desde la última parada confirmada") antes que por retraso plano; si esa estimación se desvía más de `POSITION_SANITY_SECONDS` de lo esperable, cae al retraso plano.
+El `VehicleJourneyRef` del feed en vivo (p. ej. `trp_A3414_808_OP9LSEPT_54000_...`) es exactamente el `trip_id` del GTFS. Pero el ETL fusiona en un solo `service_journeys` las variantes de calendario de un mismo viaje (misma línea, número de viaje, recorrido y salida a menos de 90 s), así que el `id` guardado puede ser el de otra variante (`OP9LJIN` en vez de `OP9LSEPT`). La tabla `trip_aliases` guarda cada `trip_id` original con el viaje en que se fusionó, y `RealtimeMatcher` empareja primero por ahí (100 % de los buses del feed en las pruebas). Si una base de datos antigua no tiene la tabla, usa el emparejamiento anterior: `(line_id, trip_number)` más la salida más cercana dentro de `MATCH_TOLERANCE_SECONDS`, porque `trip_number` se repite en decenas de salidas a lo largo del día.
+
+### Cómo se calcula la llegada
+
+El feed principal (`opendata.euskadi.eus`) **no publica retraso** (no trae `<Delay>`; el alternativo siempre dice `PT0S`), pero sí la posición GPS de cada bus, su próxima parada (`VisitNumber`) y la hora del dato. Además, los tiempos por parada del GTFS son aproximados (`timepoint=0`, interpolados a velocidad constante), así que "horario + retraso" no sirve: un bus puede ir 15-20 min por delante de ese horario en mitad del recorrido.
+
+Por eso la llegada se calcula por posición:
+
+```
+posición = GPS proyectado sobre el tramo entre paradas más cercano (de 3 tramos atrás a 2 adelante de la próxima parada)
+llegada  = hora del dato GPS + (horario en la parada destino − horario en esa posición)
+```
+
+Solo se usan diferencias de horario entre dos puntos del recorrido, no el horario absoluto. Se usa la hora del dato GPS y no "ahora" porque el feed se actualiza cada 1-2,5 min. Si el viaje aún no ha empezado (el feed asigna al bus su próximo viaje antes de salir), si el GPS está a más de `max(150 m, 15 % del tramo)` de la ruta o si el dato tiene más de 10 min, la salida se muestra como programada.
+
+`scripts/realtime-backtest.php` mide el error con datos reales usando el `RealtimeMatcher` de verdad:
+
+```
+php scripts/realtime-backtest.php capture <carpeta> 40 45   # 40 min, una consulta cada 45 s (solo guarda si el feed cambió)
+php scripts/realtime-backtest.php analyze <carpeta>
+```
+
+Compara, por minutos mostrados, lo que mostraba la app antes (horario + 0) con lo que muestra ahora, frente al momento real en que el GPS ve pasar al bus por la parada.
 
 ## Fuente estática: GTFS
 

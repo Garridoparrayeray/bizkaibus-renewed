@@ -11,6 +11,9 @@ $apps = [
     ['name' => 'Bizkaibus+', 'description' => 'Horarios y tiempo real de Bizkaibus', 'url' => $site['url'] . '/?red=bus'],
     ['name' => 'Metro+', 'description' => 'Horarios de Metro Bilbao', 'url' => $site['url'] . '/?red=metro'],
     ['name' => 'Euskotren+', 'description' => 'Horarios de Euskotren', 'url' => $site['url'] . '/?red=euskotren'],
+    ['name' => 'Tranvía Bilbao+', 'description' => 'Horarios del tranvía de Bilbao', 'url' => $site['url'] . '/?red=tranvia-bilbao'],
+    ['name' => 'Tranvía Vitoria+', 'description' => 'Horarios del tranvía de Vitoria-Gasteiz', 'url' => $site['url'] . '/?red=tranvia-vitoria'],
+    ['name' => 'Renfe Cercanías+', 'description' => 'Horarios de Cercanías en Bilbao y Donostia/Irun', 'url' => $site['url'] . '/?red=renfe'],
 ];
 
 $author = ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']];
@@ -97,6 +100,7 @@ $jsonLd = [
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/menu-view.js"></script>
+    <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/style-menu.css">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
@@ -105,18 +109,21 @@ $jsonLd = [
     <main>
         <header>
             <h1><?= $wordmark ?></h1>
-            <div class="view-toggle" role="group" aria-label="Forma de mostrar las apps">
-                <button type="button" data-view-btn="tiles" aria-pressed="true" aria-label="Ver como fichas grandes" title="Fichas grandes">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
-                </button>
-                <button type="button" data-view-btn="list" aria-pressed="false" aria-label="Ver como lista compacta" title="Lista compacta">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.5" cy="7" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="17" r="1"/></svg>
-                </button>
+            <div class="header-controls">
+                <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle">Euskaraz</button>
+                <div class="view-toggle" role="group" aria-label="Forma de mostrar las apps">
+                    <button type="button" data-view-btn="tiles" aria-pressed="true" data-i18n-attr="aria-label:menu.view.tiles,title:menu.view.tilesTitle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+                    </button>
+                    <button type="button" data-view-btn="list" aria-pressed="false" data-i18n-attr="aria-label:menu.view.list,title:menu.view.listTitle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.5" cy="7" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="17" r="1"/></svg>
+                    </button>
+                </div>
             </div>
-            <p>Movilidad en Euskadi</p>
+            <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
         </header>
 
-        <section id="tr" aria-label="Apps de movilidad">
+        <section id="tr" data-i18n-attr="aria-label:menu.section">
             <ul class="tiles">
                 <li>
                     <a class="tile tile--bus" data-app="bus" data-name="Bizkaibus+" href="/?red=bus">
@@ -124,7 +131,7 @@ $jsonLd = [
                         <img class="mark" src="/icons-pro/icon-192.png" alt="">
                         <img class="appicon" src="/icons-pro/icon-192.png" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong>Bizkaibus+</strong><span>Horarios y tiempo real</span><span class="last">Última que abriste</span></span>
+                        <span class="txt"><strong data-i18n="app.bus.name">Bizkaibus+</strong><span data-i18n="app.bus.desc">Horarios y tiempo real</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
                     </a>
                 </li>
                 <li>
@@ -133,7 +140,7 @@ $jsonLd = [
                         <img class="mark" src="/icons-metro/icon-192.png" alt="">
                         <img class="appicon" src="/icons-metro/icon-192.png" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong>Metro+</strong><span>Metro Bilbao</span><span class="last">Última que abriste</span></span>
+                        <span class="txt"><strong data-i18n="app.metro.name">Metro+</strong><span data-i18n="app.metro.desc">Metro Bilbao</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
                     </a>
                 </li>
                 <li>
@@ -142,39 +149,62 @@ $jsonLd = [
                         <img class="mark" src="/icons-euskotren/icon-192.png" alt="">
                         <img class="appicon" src="/icons-euskotren/icon-192.png" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong>Euskotren+</strong><span>Tren con horarios y tiempo real</span><span class="last">Última que abriste</span></span>
+                        <span class="txt"><strong data-i18n="app.euskotren.name">Euskotren+</strong><span data-i18n="app.euskotren.desc">Tren con horarios oficiales</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+                    </a>
+                </li>
+                <li>
+                    <a class="tile tile--renfe" data-app="renfe" data-name="Renfe Cercanías+" href="/?red=renfe">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="/icons-renfe/icon-192.png" alt="">
+                        <img class="appicon" src="/icons-renfe/icon-192.png" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                        <span class="txt"><strong data-i18n="app.renfe.name">Renfe Cercanías+</strong><span data-i18n="app.renfe.desc">Cercanías en Bilbao y Donostia</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
                     </a>
                 </li>
                 <li>
                     <div class="tile soon" aria-disabled="true">
-                        <span class="glyph" aria-hidden="true">R</span>
-                        <span class="txt"><strong>Renfe Cercanías+</strong><span>Próximamente</span></span>
-                    </div>
-                </li>
-                <li>
-                    <div class="tile soon" aria-disabled="true">
                         <span class="glyph" aria-hidden="true">L</span>
-                        <span class="txt"><strong>Lurraldebus+</strong><span>Próximamente</span></span>
+                        <span class="txt"><strong data-i18n="app.lurraldebus.name">Lurraldebus+</strong><span data-i18n="app.soon">Próximamente</span></span>
                     </div>
                 </li>
                 <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="13" rx="3"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="12" y1="1.5" x2="12" y2="4"/><circle cx="9" cy="14" r="0.6"/><circle cx="15" cy="14" r="0.6"/><line x1="8" y1="17" x2="6.5" y2="21"/><line x1="16" y1="17" x2="17.5" y2="21"/></svg>
-                        <span class="txt"><strong>Tranvía Bilbao+</strong><span>Próximamente</span></span>
-                    </div>
+                    <a class="tile tile--tranvia-bilbao" data-app="tranvia-bilbao" data-name="Tranvía Bilbao+" href="/?red=tranvia-bilbao">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="/icons-tranvia-bilbao/icon-192.png" alt="">
+                        <img class="appicon" src="/icons-tranvia-bilbao/icon-192.png" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="app.tranviaBilbao.city">Bilbao</span><span data-i18n="app.tram.desc">Horarios del tranvía</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+                    </a>
                 </li>
                 <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="13" rx="3"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="12" y1="1.5" x2="12" y2="4"/><circle cx="9" cy="14" r="0.6"/><circle cx="15" cy="14" r="0.6"/><line x1="8" y1="17" x2="6.5" y2="21"/><line x1="16" y1="17" x2="17.5" y2="21"/></svg>
-                        <span class="txt"><strong>Tranvía Vitoria+</strong><span>Próximamente</span></span>
-                    </div>
+                    <a class="tile tile--tranvia-vitoria" data-app="tranvia-vitoria" data-name="Tranvía Vitoria+" href="/?red=tranvia-vitoria">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="/icons-tranvia-vitoria/icon-192.png" alt="">
+                        <img class="appicon" src="/icons-tranvia-vitoria/icon-192.png" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="app.tranviaVitoria.city">Vitoria</span><span data-i18n="app.tram.desc">Horarios del tranvía</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+                    </a>
                 </li>
             </ul>
         </section>
 
 
-        <footer>Proyecto independiente de Yeray Garrido. Horarios a partir de los datos abiertos de Euskadi y Metro Bilbao.</footer>
+        <footer>
+            <p data-i18n="menu.footer">Proyecto independiente de Yeray Garrido. Horarios a partir de los datos abiertos de Euskadi y Metro Bilbao.</p>
+            <p data-i18n="menu.privacy">Esta página no recoge datos personales ni usa analíticas: solo guarda en tu dispositivo la vista y el idioma elegidos. Cada app tiene su aviso legal y de privacidad completo dentro.</p>
+        </footer>
     </main>
     <script src="/js/menu.js" defer></script>
+    <script>
+        I18n.applyTranslations();
+        document.getElementById('lang-toggle').addEventListener('click', function () {
+            if (I18n.getLang() === 'eu') {
+                I18n.setLang('es');
+            } else {
+                I18n.setLang('eu');
+            }
+            I18n.applyTranslations();
+        });
+    </script>
 </body>
 </html>

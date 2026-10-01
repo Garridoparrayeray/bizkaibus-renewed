@@ -49,18 +49,19 @@ class StopsController
         $Pdo = Database::connection();
         $StopModel = new Stop($Pdo);
         $JourneyModel = new ServiceJourney($Pdo);
-        $bIsMetro = (Config::current()['network'] ?? 'bus') === 'metro';
+        $sNetworkForNearby = Config::current()['network'] ?? 'bus';
+        $bUseLastStopHeadsign = in_array($sNetworkForNearby, ['metro', 'renfe'], true);
 
         $aStops = $StopModel->nearest($dLat, $dLon, $iLimit);
         foreach ($aStops as &$aStop) {
-            $aStop['next'] = $this->nextScheduledDeparture($StopModel, $JourneyModel, $aStop['id'], $bIsMetro);
+            $aStop['next'] = $this->nextScheduledDeparture($StopModel, $JourneyModel, $aStop['id'], $bUseLastStopHeadsign);
         }
         unset($aStop);
 
         Response::json(['stops' => $aStops]);
     }
 
-    private function nextScheduledDeparture(Stop $StopModel, ServiceJourney $JourneyModel, string|int $StopId, bool $bIsMetro): array|null
+    private function nextScheduledDeparture(Stop $StopModel, ServiceJourney $JourneyModel, string|int $StopId, bool $bUseLastStopHeadsign): array|null
     {
         $aPlatforms = $StopModel->platformsFor((string)$StopId);
         $aStopIds = empty($aPlatforms) ? [$StopId] : array_column($aPlatforms, 'id');
@@ -81,9 +82,13 @@ class StopsController
         if ($aBest === null) {
             return null;
         }
+        $sHeadsign = $aBest['headsign'];
+        if ($bUseLastStopHeadsign && !empty($aBest['last_stop_name'])) {
+            $sHeadsign = $aBest['last_stop_name'];
+        }
         return [
             'lineCode' => $aBest['line_code'],
-            'headsign' => $bIsMetro && !empty($aBest['last_stop_name']) ? $aBest['last_stop_name'] : $aBest['headsign'],
+            'headsign' => $sHeadsign,
             'etaMinutes' => (int)round(((int)$aBest['departure_seconds'] - $iNow) / 60),
             'scheduledTime' => Calendar::secondsToHm((int)$aBest['departure_seconds']),
         ];
@@ -119,7 +124,7 @@ class StopsController
         if (isset($aConfig['network'])) {
             $sNetwork = $aConfig['network'];
         }
-        $bIsMetro = $sNetwork === 'metro';
+        $bUseLastStopHeadsign = in_array($sNetwork, ['metro', 'renfe'], true);
 
         $aPlatforms = $StopModel->platformsFor($sStopId);
 
@@ -128,7 +133,7 @@ class StopsController
             foreach ($aPlatforms as $aPlatform) {
                 $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 4 * 3600);
                 $aEnriched = $Matcher->enrich($aRows);
-                $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bIsMetro, $aPlatform);
+                $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign, $aPlatform);
                 foreach (array_slice($aPlatformDepartures, 0, $iLimit) as $aDeparture) {
                     $aDepartures[] = $aDeparture;
                 }
@@ -162,7 +167,7 @@ class StopsController
         }
 
         $aEnriched = $Matcher->enrich($aRows);
-        $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bIsMetro), 0, $iLimit);
+        $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign), 0, $iLimit);
 
         Response::json([
             'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
@@ -173,12 +178,12 @@ class StopsController
         ]);
     }
 
-    private function buildDepartureItems(array $aEnriched, bool $bIsMetro, array|null $aPlatform = null): array
+    private function buildDepartureItems(array $aEnriched, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $aDepartures = array_map(function ($aRow) use ($iNow, $bIsMetro, $aPlatform) {
+        $aDepartures = array_map(function ($aRow) use ($iNow, $bUseLastStopHeadsign, $aPlatform) {
             $sHeadsign = $aRow['headsign'];
-            if ($bIsMetro && !empty($aRow['last_stop_name'])) {
+            if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
                 $sHeadsign = $aRow['last_stop_name'];
             }
             $iDelayMinutes = 0;
