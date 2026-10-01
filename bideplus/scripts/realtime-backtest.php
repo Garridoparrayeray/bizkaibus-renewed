@@ -29,6 +29,8 @@ const MIN_TRACKS_PER_BAND = 8;
 const MIN_TRACKS_PER_LINE = 25;
 const MIN_VEHICLES_PER_LINE = 5;
 const SHRINKAGE_TRACKS = 10;
+const MAX_SAMPLES_PER_TRACK = 30;
+const SAMPLES_RETENTION_DAYS = 60;
 
 function main(array $aArgv): void
 {
@@ -55,6 +57,10 @@ function main(array $aArgv): void
         analyze($aPositional[0], !in_array('--sin-k', $aFlags, true));
         return;
     }
+    if ($sMode === 'samples' && isset($aPositional[0], $aPositional[1])) {
+        exportSamples($aPositional[0], $aPositional[1]);
+        return;
+    }
     if ($sMode === 'calibrate' && isset($aPositional[0])) {
         calibrate($aPositional[0], in_array('--write', $aFlags, true));
         return;
@@ -62,7 +68,8 @@ function main(array $aArgv): void
     fwrite(STDERR, "Uso:\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php capture <carpeta> [minutos=30] [intervalo_s=45]\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php analyze <carpeta> [--sin-k]\n");
-    fwrite(STDERR, "  php scripts/realtime-backtest.php calibrate <carpeta> [--write]\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php calibrate <carpeta|acumulado.jsonl> [--write]\n");
     exit(1);
 }
 
@@ -237,10 +244,8 @@ function analyze(string $sDir, bool $bWithFactors): void
     }
 }
 
-function calibrate(string $sDir, bool $bWrite): void
+function buildSamples(array $aData): array
 {
-    $aData = collect($sDir, new PaceFactors());
-
     $aSamples = [];
     foreach ($aData['predictions'] as $aPrediction) {
         if ($aPrediction['actual'] === null || $aPrediction['windowEnd'] < $aPrediction['arrival'] + OBSERVED_AFTER_PREDICTION_SECONDS) {
@@ -251,13 +256,91 @@ function calibrate(string $sDir, bool $bWrite): void
         if ($iScheduledRemaining < MIN_REMAINING_SECONDS_FOR_FACTOR || $dActualRemaining <= 0) {
             continue;
         }
-        $aPrediction['band'] = PaceFactors::bandFor($aPrediction['date'], $aPrediction['at']);
-        $aPrediction['scheduledRemaining'] = $iScheduledRemaining;
-        $aPrediction['actualRemaining'] = $dActualRemaining;
-        $aSamples[] = $aPrediction;
+        $aSamples[] = [
+            'track' => $aPrediction['date'] . '|' . $aPrediction['track'],
+            'vehicle' => $aPrediction['vehicle'],
+            'line' => $aPrediction['line'],
+            'date' => $aPrediction['date'],
+            'at' => $aPrediction['at'],
+            'band' => PaceFactors::bandFor($aPrediction['date'], $aPrediction['at']),
+            'scheduledRemaining' => $iScheduledRemaining,
+            'actualRemaining' => round($dActualRemaining, 1),
+            'actual' => round($aPrediction['actual'], 1),
+        ];
+    }
+    return $aSamples;
+}
+
+function thinSamples(array $aSamples): array
+{
+    $aByTrack = [];
+    foreach ($aSamples as $aSample) {
+        $aByTrack[$aSample['track']][] = $aSample;
+    }
+    $aKept = [];
+    foreach ($aByTrack as $aTrackSamples) {
+        $iCount = count($aTrackSamples);
+        if ($iCount <= MAX_SAMPLES_PER_TRACK) {
+            array_push($aKept, ...$aTrackSamples);
+            continue;
+        }
+        for ($i = 0; $i < MAX_SAMPLES_PER_TRACK; $i++) {
+            $aKept[] = $aTrackSamples[(int)floor($i * $iCount / MAX_SAMPLES_PER_TRACK)];
+        }
+    }
+    return $aKept;
+}
+
+function loadSamplesFile(string $sPath): array
+{
+    $aSamples = [];
+    foreach (file($sPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $sLine) {
+        $aSample = json_decode($sLine, true);
+        if (is_array($aSample) && isset($aSample['track'], $aSample['band'], $aSample['scheduledRemaining'], $aSample['actualRemaining'])) {
+            $aSamples[] = $aSample;
+        }
+    }
+    return $aSamples;
+}
+
+function exportSamples(string $sDir, string $sOutput): void
+{
+    $aData = collect($sDir, new PaceFactors());
+    $aNew = thinSamples(buildSamples($aData));
+
+    $aAll = [];
+    if (is_file($sOutput)) {
+        $sLimit = date('Y-m-d', strtotime('-' . SAMPLES_RETENTION_DAYS . ' days'));
+        foreach (loadSamplesFile($sOutput) as $aSample) {
+            if ($aSample['date'] >= $sLimit) {
+                $aAll[] = $aSample;
+            }
+        }
+    }
+    $iBefore = count($aAll);
+    $aAll = array_merge($aAll, $aNew);
+
+    $sBody = '';
+    foreach ($aAll as $aSample) {
+        $sBody .= json_encode($aSample, JSON_UNESCAPED_UNICODE) . "\n";
+    }
+    file_put_contents($sOutput, $sBody);
+    $iTracks = count(array_unique(array_column($aNew, 'track')));
+    echo 'Capturas: ' . count($aData['snapshots']) . ', muestras nuevas: ' . count($aNew) . " ($iTracks buses), acumulado: $iBefore -> " . count($aAll) . " muestras en $sOutput\n";
+}
+
+function calibrate(string $sSource, bool $bWrite): void
+{
+    $iSnapshots = 0;
+    if (is_file($sSource)) {
+        $aSamples = loadSamplesFile($sSource);
+    } else {
+        $aData = collect($sSource, new PaceFactors());
+        $aSamples = buildSamples($aData);
+        $iSnapshots = count($aData['snapshots']);
     }
 
-    echo 'Capturas distintas: ' . count($aData['snapshots']) . ', muestras utiles para calibrar: ' . count($aSamples) . "\n\n";
+    echo 'Capturas distintas: ' . $iSnapshots . ', muestras utiles para calibrar: ' . count($aSamples) . "\n\n";
     if (empty($aSamples)) {
         echo "No hay muestras suficientes.\n";
         return;
@@ -301,9 +384,16 @@ function calibrate(string $sDir, bool $bWrite): void
         echo "\nNo se escribe: el factor no mejora el error en la mitad de prueba.\n";
         return;
     }
+    if (is_file(PaceFactors::defaultPath())) {
+        $aCurrent = json_decode((string)file_get_contents(PaceFactors::defaultPath()), true);
+        if (is_array($aCurrent) && ($aCurrent['global'] ?? null) == $aFactors['global'] && ($aCurrent['lines'] ?? null) == $aFactors['lines']) {
+            echo "\nSin cambios: los factores son los mismos que los del fichero actual.\n";
+            return;
+        }
+    }
     $aOutput = [
         'generated' => date('Y-m-d H:i'),
-        'captures' => count($aData['snapshots']),
+        'captures' => $iSnapshots,
         'samples' => count($aSamples),
         'global' => $aFactors['global'],
         'lines' => $aFactors['lines'],
