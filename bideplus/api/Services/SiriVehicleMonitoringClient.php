@@ -91,6 +91,7 @@ class SiriVehicleMonitoringClient
             $sKey = $sLineId . '|' . $sTripNumber;
             $aMap[$sKey][] = [
                 'tripRef' => $sRef,
+                'lineId' => $sLineId,
                 'departureSeconds' => (int)$sDepartureSeconds,
                 'delaySeconds' => self::parseIsoDuration($sDelayIso),
                 'vehicleRef' => $sVehicleRef,

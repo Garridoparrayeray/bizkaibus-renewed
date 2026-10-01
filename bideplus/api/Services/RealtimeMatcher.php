@@ -30,8 +30,10 @@ class RealtimeMatcher
     private array $aStopsByJourneyId = [];
     private array $aShapeByJourneyId = [];
     private array $aPositionMemo = [];
+    private PaceFactors $Pace;
+    private string $sDate;
 
-    public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null)
+    public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null)
     {
         $this->aVmMap = $aVmMap;
         $this->JourneyModel = $JourneyModel;
@@ -39,6 +41,8 @@ class RealtimeMatcher
         if ($iNowSeconds !== null) {
             $this->iNow = $iNowSeconds;
         }
+        $this->Pace = $Pace ?? PaceFactors::fromFile();
+        $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
     }
 
@@ -102,8 +106,10 @@ class RealtimeMatcher
 
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
         if ($aPosition !== null) {
-            $iEta = $aPosition['locationSeconds'] + $iTargetArrivalSeconds - $aPosition['scheduledSeconds'];
-            return [$iEta, $iEta - $iTargetArrivalSeconds, true];
+            $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
+            $iRemaining = $iTargetArrivalSeconds - $aPosition['scheduledSeconds'];
+            $iEta = (int)round($aPosition['locationSeconds'] + $dFactor * $iRemaining);
+            return [$iEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
         }
 
         $iFlatEta = $iTargetArrivalSeconds + $aLive['delaySeconds'];
