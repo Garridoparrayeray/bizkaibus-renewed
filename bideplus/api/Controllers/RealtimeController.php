@@ -30,6 +30,7 @@ class RealtimeController
 
         $aConfig = require __DIR__ . '/../Config/config.php';
         $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
+        $Matcher = new RealtimeMatcher($aVmMap, new ServiceJourney($Pdo));
 
         $JourneyStmt = $Pdo->prepare('
             SELECT sj.trip_number, jp.headsign
@@ -62,9 +63,11 @@ class RealtimeController
                     $sHeadsign = $aJourney['headsign'];
                 }
 
+                $iDelaySeconds = $Matcher->currentDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
+
                 $aVehicles[] = [
                     'vehicleRef' => $aEntry['vehicleRef'],
-                    'delayMinutes' => (int)round($aEntry['delaySeconds'] / 60),
+                    'delayMinutes' => (int)round($iDelaySeconds / 60),
                     'headsign' => $sHeadsign,
                     'currentStop' => [
                         'id' => Ids::forOutput($aStop['id']),
@@ -103,18 +106,45 @@ class RealtimeController
         $aConfig = require __DIR__ . '/../Config/config.php';
         $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
         $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
-        $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds);
+        $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aJourney['id']);
+        $bLive = $Matcher->isLive($aJourney['id'], $aLive);
+        $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
 
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
 
-        $aStopsOut = array_map(function ($aStop) use ($Matcher, $aJourney, $aLive, $iNow) {
+        $iNextSeqOrder = null;
+        if ($aPosition !== null) {
+            foreach ($aStops as $aStop) {
+                if ((int)$aStop['arrival_seconds'] >= $aPosition['scheduledSeconds']) {
+                    $iNextSeqOrder = (int)$aStop['seq_order'];
+                    break;
+                }
+            }
+        } elseif ($bLive) {
+            foreach ($aStops as $aStop) {
+                if ($aStop['stop_id'] === $aLive['currentStopId']) {
+                    $iNextSeqOrder = (int)$aStop['seq_order'];
+                    break;
+                }
+            }
+        }
 
-            $bAlreadyPassed = $aLive !== null && $aLive['order'] !== null && (int)$aStop['seq_order'] < (int)$aLive['order'];
+        $aStopsOut = array_map(function ($aStop) use ($Matcher, $aJourney, $aLive, $bLive, $aPosition, $iNextSeqOrder, $iNow) {
+
+            $bAlreadyPassed = false;
+            if ($aPosition !== null) {
+                $bAlreadyPassed = (int)$aStop['arrival_seconds'] < $aPosition['scheduledSeconds'];
+            } elseif ($bLive && isset($aLive['order'])) {
+                $bAlreadyPassed = (int)$aStop['seq_order'] < (int)$aLive['order'];
+            }
 
             $iEtaMinutes = null;
             if (!$bAlreadyPassed) {
-                [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive);
+                $iEta = (int)$aStop['arrival_seconds'];
+                if ($bLive) {
+                    [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive);
+                }
                 $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
             }
 
@@ -124,17 +154,17 @@ class RealtimeController
                 'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
                 'etaMinutes' => $iEtaMinutes,
                 'isPast' => $bAlreadyPassed,
-                'isCurrent' => $aLive !== null && $aLive['currentStopId'] === $aStop['stop_id'],
+                'isCurrent' => $iNextSeqOrder !== null && (int)$aStop['seq_order'] === $iNextSeqOrder,
             ];
         }, $aStops);
 
         $iDelaySeconds = 0;
-        if (isset($aLive['delaySeconds'])) {
-            $iDelaySeconds = $aLive['delaySeconds'];
+        if ($bLive) {
+            $iDelaySeconds = $Matcher->currentDelaySeconds($aJourney['id'], $aLive);
         }
 
         $sStatus = 'scheduled';
-        if ($aLive !== null) {
+        if ($bLive) {
             $sStatus = 'live';
         } elseif (!empty($aStops)) {
             $iFirstArrival = (int)$aStops[0]['arrival_seconds'];
@@ -152,7 +182,7 @@ class RealtimeController
         }
 
         $sVehicleRef = null;
-        if (isset($aLive['vehicleRef'])) {
+        if ($bLive && isset($aLive['vehicleRef'])) {
             $sVehicleRef = $aLive['vehicleRef'];
         }
 

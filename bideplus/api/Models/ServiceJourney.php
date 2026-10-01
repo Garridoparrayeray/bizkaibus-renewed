@@ -204,6 +204,45 @@ class ServiceJourney
         return (int)$sValue;
     }
 
+    public function journeyIdsForTripRefs(array $aTripRefs): array
+    {
+        if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
+            return [];
+        }
+        $aResult = [];
+        foreach (array_chunk(array_values(array_unique($aTripRefs)), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE trip_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute($aChunk);
+            foreach ($Stmt->fetchAll() as $aRow) {
+                $aResult[$aRow['trip_id']] = $aRow['service_journey_id'];
+            }
+        }
+        return $aResult;
+    }
+
+    public function stopsWithCoordinates(string $sServiceJourneyId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT pt.seq_order, pt.arrival_seconds, pt.departure_seconds, s.lat, s.lon
+            FROM passing_times pt
+            JOIN stops s ON s.id = pt.stop_id
+            WHERE pt.service_journey_id = ?
+            ORDER BY pt.seq_order
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        return $Stmt->fetchAll();
+    }
+
+    private function hasTable(string $sTable): bool
+    {
+        $Stmt = $this->Pdo->prepare('SELECT 1 FROM sqlite_master WHERE type = \'table\' AND name = ?');
+        $Stmt->execute([$sTable]);
+        return $Stmt->fetchColumn() !== false;
+    }
+
     public function stopsForJourney(string $sServiceJourneyId): array
     {
         $Stmt = $this->Pdo->prepare('
