@@ -163,7 +163,7 @@ function main(array $aArgv): void
     }
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
-    $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0];
+    $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
     processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork);
 
     $Pdo->commit();
@@ -186,6 +186,7 @@ function main(array $aArgv): void
     printf("  service_journeys: %d\n", $aTotals['journeys']);
     printf("  passing_times:    %d\n", $aTotals['passingTimes']);
     printf("  trip_aliases:     %d\n", $aTotals['tripAliases']);
+    printf("  shapes:           %d\n", $aTotals['shapes']);
 
     echo "\nDatabase written to: $sOutput\n";
     printf("File size: %.1f MB\n", filesize($sOutput) / 1024 / 1024);
@@ -723,11 +724,16 @@ function loadTrips(ZipArchive $Zip): array
         if (isset($aRow['trip_headsign'])) {
             $sHeadsign = $aRow['trip_headsign'];
         }
+        $sShapeId = null;
+        if (isset($aRow['shape_id']) && $aRow['shape_id'] !== '') {
+            $sShapeId = $aRow['shape_id'];
+        }
         $aTrips[$sTripId] = [
             'routeId' => (string)$aRow['route_id'],
             'serviceId' => $aRow['service_id'],
             'headsign' => $sHeadsign,
             'tripNumber' => $sTripNumber,
+            'shapeId' => $sShapeId,
         ];
     }
     return $aTrips;
@@ -768,12 +774,17 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
         if ($iArrival === null) {
             $iArrival = $iDeparture;
         }
+        $dDistance = null;
+        if (isset($aAssoc['shape_dist_traveled']) && $aAssoc['shape_dist_traveled'] !== '') {
+            $dDistance = (float)$aAssoc['shape_dist_traveled'];
+        }
 
         $aByTrip[$sTripId][] = [
             'seqOrder' => (int)$aAssoc['stop_sequence'],
             'stopId' => stripFloatIdSuffix($aAssoc['stop_id']),
             'arrival' => $iArrival,
             'departure' => $iDeparture,
+            'distance' => $dDistance,
         ];
     }
     fclose($Stream);
@@ -1011,8 +1022,9 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
     $InsertPattern = $Pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
     $InsertPatternStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
-    $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds) VALUES (?, ?, ?, ?, ?, ?)');
-    $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+    $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds, shape_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds, dist_m) VALUES (?, ?, ?, ?, ?, ?)');
+    $aUsedShapeIds = [];
     $InsertTripAlias = $Pdo->prepare('INSERT OR IGNORE INTO trip_aliases (trip_id, service_journey_id) VALUES (?, ?)');
     $aSeenPatterns = [];
     $iRowCount = 0;
@@ -1042,7 +1054,12 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         if ($sTripNumber === null) {
             $sTripNumber = $sTripId;
         }
-        $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'], $aGroup['firstDeparture']]);
+        $sShapeId = null;
+        if (isset($aTrips[$sTripId]['shapeId'])) {
+            $sShapeId = $aTrips[$sTripId]['shapeId'];
+            $aUsedShapeIds[$sShapeId] = true;
+        }
+        $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'], $aGroup['firstDeparture'], $sShapeId]);
         $aTotals['journeys']++;
 
         foreach ($aGroup['memberTripIds'] as $sMemberTripId) {
@@ -1051,7 +1068,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         }
 
         foreach ($aBuffer as $aRow) {
-            $InsertPassingTime->execute([$sTripId, $aRow['seqOrder'], $aRow['stopId'], $aRow['arrival'], $aRow['departure']]);
+            $InsertPassingTime->execute([$sTripId, $aRow['seqOrder'], $aRow['stopId'], $aRow['arrival'], $aRow['departure'], $aRow['distance']]);
             $aTotals['passingTimes']++;
         }
 
@@ -1062,6 +1079,8 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     }
     echo "\n";
 
+    $aTotals['shapes'] = insertShapes($Pdo, $Zip, $aUsedShapeIds);
+
     if ($iSkippedUnknownTrip > 0) {
         fwrite(STDERR, "  WARNING: $iSkippedUnknownTrip stop_times groups skipped (trip_id not found in trips.txt)\n");
     }
@@ -1071,6 +1090,36 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     if ($iSkippedDuplicateTrip > 0) {
         fwrite(STDERR, "  WARNING: $iSkippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
     }
+}
+
+function insertShapes(PDO $Pdo, ZipArchive $Zip, array $aUsedShapeIds): int
+{
+    if (empty($aUsedShapeIds) || $Zip->locateName('shapes.txt') === false) {
+        return 0;
+    }
+    $aPointsByShape = [];
+    foreach (readCsv($Zip, 'shapes.txt') as $aRow) {
+        if (!isset($aUsedShapeIds[$aRow['shape_id']])) {
+            continue;
+        }
+        $dDistance = 0.0;
+        if (isset($aRow['shape_dist_traveled']) && $aRow['shape_dist_traveled'] !== '') {
+            $dDistance = (float)$aRow['shape_dist_traveled'];
+        }
+        $aPointsByShape[$aRow['shape_id']][(int)$aRow['shape_pt_sequence']] = [
+            (float)$aRow['shape_pt_lat'],
+            (float)$aRow['shape_pt_lon'],
+            $dDistance,
+        ];
+    }
+
+    $InsertShape = $Pdo->prepare('INSERT INTO shapes (id, points) VALUES (?, ?)');
+    foreach ($aPointsByShape as $sShapeId => $aPoints) {
+        ksort($aPoints);
+        $aRounded = array_map(fn($aPoint) => [round($aPoint[0], 7), round($aPoint[1], 7), round($aPoint[2], 2)], array_values($aPoints));
+        $InsertShape->execute([$sShapeId, json_encode($aRounded)]);
+    }
+    return count($aPointsByShape);
 }
 
 function timeToSeconds(string $sHms): int
@@ -1123,7 +1172,8 @@ function createSchema(PDO $Pdo): void
             journey_pattern_id TEXT NOT NULL,
             trip_number TEXT,
             calendar_id TEXT NOT NULL,
-            first_departure_seconds INTEGER
+            first_departure_seconds INTEGER,
+            shape_id TEXT
         )
     ');
     $Pdo->exec('
@@ -1132,7 +1182,14 @@ function createSchema(PDO $Pdo): void
             seq_order INTEGER NOT NULL,
             stop_id TEXT NOT NULL,
             arrival_seconds INTEGER,
-            departure_seconds INTEGER
+            departure_seconds INTEGER,
+            dist_m REAL
+        )
+    ');
+    $Pdo->exec('
+        CREATE TABLE shapes (
+            id TEXT PRIMARY KEY,
+            points TEXT NOT NULL
         )
     ');
     $Pdo->exec('
