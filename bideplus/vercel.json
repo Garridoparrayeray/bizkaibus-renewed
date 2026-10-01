@@ -4,10 +4,13 @@
       "runtime": "vercel-php@0.9.0"
     }
   },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.php" },
-    { "source": "/lines/(.*)", "destination": "/api/shell.php" },
-    { "source": "/stops/(.*)", "destination": "/api/shell.php" },
-    { "source": "/", "destination": "/api/shell.php" }
+  "routes": [
+    { "src": "^/(data|scripts|tests|test_gtfs)(/.*)?$", "dest": "/api/index.php" },
+    { "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$", "dest": "/api/index.php" },
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/index.php" },
+    { "src": "/lines/(.*)", "dest": "/api/shell.php" },
+    { "src": "/stops/(.*)", "dest": "/api/shell.php" },
+    { "src": "/", "dest": "/api/shell.php" }
   ]
 }
