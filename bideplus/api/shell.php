@@ -10,6 +10,7 @@ if (!$isMiamorDomain && ($menuPath === '/' || $menuPath === '') && !isset($_GET[
 }
 
 $site = require __DIR__ . '/Config/site.php';
+require_once __DIR__ . '/Views/bide-chrome.php';
 $wordmark = require __DIR__ . '/Views/wordmark.php';
 
 $bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';
@@ -254,8 +255,10 @@ if ($breadcrumbName !== null) {
     <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <script src="/js/boot.js"></script>
+    <script src="/js/bide-mode.js"></script>
+    <link rel="stylesheet" href="/style-bide.css">
 </head>
-<body>
+<body class="page-app">
     <div class="splash" aria-hidden="true"><?= $wordmark ?></div>
 
     <main class="app-container">
@@ -269,7 +272,10 @@ if ($breadcrumbName !== null) {
             <p><?= htmlspecialchars($sOgDescription) ?> Esta app necesita JavaScript para mostrar los horarios. <a href="/">Volver a Bide+</a>.</p>
         </noscript>
 
+<?= bideRail($networkSlug) ?>
+
         <header>
+            <a class="bide-home" href="/" data-i18n-attr="aria-label:bide.backToApps" aria-label="Volver a las apps de Bide+"><?= BIDE_ICONS['back'] ?></a>
             <div class="home-link-wrap">
                 <button id="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
                     <span id="app-logomark" aria-hidden="true">
@@ -373,6 +379,7 @@ if ($breadcrumbName !== null) {
             </div>
 
             <span class="header-actions">
+                <?= bideLangSwitch() ?>
                 <button id="lang-toggle" class="btn-icon btn-lang" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
                 <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -450,6 +457,9 @@ if ($breadcrumbName !== null) {
                 </div>
                 <p id="live-empty" role="status" data-i18n="switcher.bus.liveEmpty">Busca una parada para ver el próximo autobús.</p>
 
+            </div>
+
+            <div class="detail">
         <section id="timetable-section" class="timetable glass" hidden>
             <header>
                 <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
@@ -489,38 +499,38 @@ if ($breadcrumbName !== null) {
 
             <button id="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
         </section>
+                <p id="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
             </div>
         </div>
+
+<?= bideViews() ?>
 
         <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
         <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>
     </main>
 
+<?= bideInstallBanner() ?>
+
     <footer id="dev-footer">
-        <p><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
-        <p>
-            <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
-            <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
-        </p>
+        <div class="bide-footer-brand">
+            <span class="bide-wordmark">BIDE<span>+</span></span>
+            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores.</p>
+        </div>
+        <div class="bide-footer-author">
+            <p><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
+            <p>
+                <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+                <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
+            </p>
+        </div>
+        <?= bideAppsLinks() ?>
     </footer>
 
-    <dialog id="legal-panel">
-        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-        </button>
-        <h3>Aviso Legal, Privacidad y Cookies</h3>
-        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong>, la <strong>LSSI-CE</strong> y la <strong>Ley 37/2007 de reutilización de la información del sector público</strong>, informamos de lo siguiente:</p>
-        <p><strong>Propiedad intelectual y licencia:</strong> El código fuente, el diseño y los iconos de esta aplicación son obra de Yeray Garrido y se publican bajo la licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" rel="noopener noreferrer">Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)</a>: puedes copiarlos y adaptarlos citando a su autor, sin fines comerciales y compartiendo las obras derivadas bajo la misma licencia. Los datos de transporte pertenecen a sus operadores y se rigen por sus propias licencias (ver «Fuentes de datos» más abajo). Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus respectivos titulares y esta aplicación no tiene relación con ellos.</p>
-        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. BizkaiBus+, Metro+, Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+ son proyectos independientes, sin afiliación ni respaldo de Bizkaibus, Metro Bilbao S.A., Euskotren, Renfe ni la Diputación Foral de Bizkaia.</p>
-        <p><strong>Privacidad y Analíticas:</strong> Utilizamos <strong>Vercel Web Analytics</strong> (herramienta respetuosa con la privacidad y libre de cookies) para recoger estadísticas básicas y anónimas de uso (visitas, país, dispositivo). Vercel procesa las direcciones IP temporalmente para generar estas métricas agrupadas, actuando como encargado del tratamiento. Aparte de esto, la app <strong>no recopila, almacena ni cede ningún dato personal tuyo</strong>.</p>
-        <p><strong>Política de Cookies y almacenamiento local:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento de tu propio dispositivo (<code>localStorage</code> e <code>IndexedDB</code>) para guardar tus paradas "Favoritas", el "Tema", el idioma elegido y, si los activas, tus avisos de incidencias por línea; todo queda solo en tu dispositivo. Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
-        <p><strong>Ubicación:</strong> Si pulsas «Cerca de mí», tu navegador te pide permiso y la ubicación se envía solo para buscar las paradas más cercanas, sin guardarse. Esta búsqueda necesita conexión a internet.</p>
-        <p><strong>Modo sin conexión:</strong> La app guarda en tu dispositivo lo último que consultaste con conexión (paradas y horarios de líneas ya vistos), para que puedas volver a verlo sin internet. No se actualiza mientras estés sin conexión, y los horarios en tiempo real, la posición de los buses en el mapa, los avisos de incidencias y «Cerca de mí» necesitan conexión: no funcionan en modo sin conexión ni con datos que no hayas consultado antes.</p>
-        <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los horarios estáticos y, cuando existe, el tiempo real proceden de las fuentes oficiales de cada operador: BizkaiBus+ (Bizkaibus / Open Data Bizkaia, CC-BY 4.0), Metro+ (Metro Bilbao / Open Data Metro Bilbao), Euskotren+, Tranvía Bilbao+ y Tranvía Vitoria+ (Euskotren / Open Data Euskadi, CC-BY 4.0), Renfe Cercanías+ (Renfe / NAP, Punto de Acceso Nacional de Transporte), publicados sin alterarlos. Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+ muestran el horario programado oficial: no reflejan retrasos, adelantos ni cancelaciones, salvo los avisos de incidencias que publique el propio operador. Si un tren o tranvía va con retraso y el operador no lo publica, la app no puede saberlo. El mapa en vivo de Bizkaibus usa teselas de © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, cuyos datos también se han usado para asignar zona o barrio a las paradas. En Bizkaibus, la posición de los vehículos y el tiempo estimado de llegada son una estimación calculada a partir de la posición GPS que publica el operador y pueden no coincidir exactamente con la realidad: no los uses como única referencia para no perder un servicio. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos; esta aplicación es meramente informativa y su uso es responsabilidad exclusiva de quien la utiliza. Del mismo modo, no nos hacemos responsables de la puntualidad, frecuencia, cancelaciones ni de la calidad o eficacia del propio servicio de transporte: eso depende exclusivamente del operador que presta el servicio y publica los datos, no de esta aplicación. Los cálculos que hace la app (por ejemplo, combinar horarios, estimar retrasos o agrupar viajes) se basan siempre en los datos que publica cada operador: si esos datos de origen están mal o desactualizados, el resultado mostrado puede heredar ese error, y no somos responsables de fallos que vengan de la fuente original y no de nuestro propio procesamiento.</p>
-        <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
-    </dialog>
+<?= bideTabbar() ?>
+
+<?php require __DIR__ . '/Views/legal.php'; ?>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -562,6 +572,7 @@ if ($breadcrumbName !== null) {
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
     <script src="js/app.js"></script>
+    <script src="/js/bide.js"></script>
     <script src="/js/sw-register.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>

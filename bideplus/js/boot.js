@@ -25,7 +25,7 @@
     var isRenfe          = window.__bbNetwork === 'renfe';
 
     var title      = 'BizkaiBus+';
-    var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
+    var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest-bide.json';
     var themeColor = isMiamor ? '#db2777' : '#01573C';
     var touchIcon  = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
     var icon       = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
@@ -36,33 +36,28 @@
         if (isMiamor) {
             themeColor = '#db2777';
         } else {
-            manifest   = 'manifest-metro.json';
-            touchIcon  = 'icons-metro/apple-touch-icon.png';
+                        touchIcon  = 'icons-metro/apple-touch-icon.png';
             icon       = 'icons-metro/icon-192.png';
             themeColor = '#C8102E';
         }
     } else if (isEuskoTren) {
         title      = 'Euskotren+';
-        manifest   = 'manifest-euskotren.json';
-        touchIcon  = 'icons-euskotren/apple-touch-icon.png';
+                touchIcon  = 'icons-euskotren/apple-touch-icon.png';
         icon       = 'icons-euskotren/icon-192.png';
         themeColor = '#003F8C';
     } else if (isTranviaBilbao) {
         title      = 'Tranvía Bilbao+';
-        manifest   = 'manifest-tranvia-bilbao.json';
-        touchIcon  = 'icons-tranvia-bilbao/apple-touch-icon.png';
+                touchIcon  = 'icons-tranvia-bilbao/apple-touch-icon.png';
         icon       = 'icons-tranvia-bilbao/icon-192.png';
         themeColor = '#4EB848';
     } else if (isTranviaVitoria) {
         title      = 'Tranvía Vitoria+';
-        manifest   = 'manifest-tranvia-vitoria.json';
-        touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
+                touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
         icon       = 'icons-tranvia-vitoria/icon-192.png';
         themeColor = '#60AE27';
     } else if (isRenfe) {
         title      = 'Renfe Cercanías+';
-        manifest   = 'manifest-renfe.json';
-        touchIcon  = 'icons-renfe/apple-touch-icon.png';
+                touchIcon  = 'icons-renfe/apple-touch-icon.png';
         icon       = 'icons-renfe/icon-192.png';
         themeColor = '#74349A';
     }
