@@ -149,7 +149,7 @@ $jsonLd = [
                         <img class="mark" src="/icons-euskotren/icon-192.png" alt="">
                         <img class="appicon" src="/icons-euskotren/icon-192.png" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong data-i18n="app.euskotren.name">Euskotren+</strong><span data-i18n="app.euskotren.desc">Tren con horarios y tiempo real</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+                        <span class="txt"><strong data-i18n="app.euskotren.name">Euskotren+</strong><span data-i18n="app.euskotren.desc">Tren con horarios oficiales</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
                     </a>
                 </li>
                 <li>

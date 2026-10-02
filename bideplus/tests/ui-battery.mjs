@@ -54,6 +54,14 @@ const check = (name, ok, extra = '') => {
     if (process.env.VERBOSE) console.log(line);
 };
 const skip = (name, why) => results.push(`SKIP ${name} — ${why}`);
+const until = async (expr, max = 15000) => {
+    const start = Date.now();
+    while (Date.now() - start < max) {
+        if ((await ev(expr)) === true) return true;
+        await sleep(250);
+    }
+    return false;
+};
 const go = async (url, wait = 2800) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 const search = async (q, wait = 3200) => {
     await ev(`(()=>{const i=document.getElementById('search-input');i.value='${q}';i.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('search-form').requestSubmit();})()`);
@@ -103,10 +111,11 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             pick = '#live-timetable-link:not([hidden]), #live-more-list button';
         }
         await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
-        await sleep(3500);
+        await until("!document.getElementById('timetable-section').hidden");
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
-        await sleep(2500);
+        await until("document.querySelectorAll('#timetable-body tr').length > 0");
+        await sleep(500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
         const todayValue = await ev("document.getElementById('filter-date').value");
@@ -114,13 +123,13 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         check(`${tag} aviso de fecha sin publicar oculto hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
         await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
-        await sleep(2000);
+        await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-        await sleep(2000);
+        await until("document.getElementById('timetable-note').hidden");
         check(`${tag} aviso vuelve a ocultarse al volver a hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
         await ev("document.querySelector('#timetable-body tr').click()");
-        await sleep(2500);
+        await until("document.getElementById('vehicle-modal').open");
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));
         await ev("document.getElementById('modal-close').click()");
         await sleep(300);
