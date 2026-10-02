@@ -66,15 +66,15 @@ html.is-tranvia-vitoria {
     --backdrop: rgba(12, 20, 10, .5);
 }
 html.is-renfe {
-    --bg: #fbf3ee;
-    --border: #ecdcd0;
-    --primary: #EE7203;
-    --primary-light: #F7A85C;
-    --primary-dark: #A34E00;
-    --primary-tint: #FDECDD;
-    --text: #2a1f16;
-    --text-secondary: #6b5c4d;
-    --backdrop: rgba(20, 14, 10, .5);
+    --bg: #f8f4fa;
+    --border: #e6dbec;
+    --primary: #74349A;
+    --primary-light: #B98BD1;
+    --primary-dark: #4A1D66;
+    --primary-tint: #F3EAF8;
+    --text: #24192b;
+    --text-secondary: #65596c;
+    --backdrop: rgba(18, 10, 22, .5);
 }
 
 /* ===== Base ===== */
