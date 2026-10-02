@@ -117,6 +117,11 @@
         modalStops: document.getElementById('modal-stops'),
     };
 
+    // Los textos de los operadores (nombres, destinos, avisos) nunca se insertan como HTML sin escapar.
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+    }
+
     function debounce(fn, delayMs) {
         let timer;
         return (...args) => {
@@ -387,7 +392,7 @@
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = `<strong>${line.code}</strong><span>${line.name}</span>`;
+            button.innerHTML = `<strong>${escapeHtml(line.code)}</strong><span>${escapeHtml(line.name)}</span>`;
             button.addEventListener('click', () => selectLine(line.id, true));
             li.appendChild(button);
             el.liveMoreList.appendChild(li);
@@ -433,7 +438,7 @@
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = `<strong>${other.lineCode}</strong><span>${other.headsign}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
+            button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
 
             button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
@@ -471,7 +476,7 @@
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'time-display';
-        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(next.etaMinutes, 0)}</strong><span>min</span></span>`;
+        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span>`;
         nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
         const scheduled = document.createElement('p');
@@ -487,7 +492,7 @@
                 const li = document.createElement('li');
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.innerHTML = `<span>${departure.headsign}</span><span>${departure.scheduledTime} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
+                button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(departure.scheduledTime)} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
                 button.addEventListener('click', () => openVehicleModal(departure.tripKey));
                 li.appendChild(button);
                 list.appendChild(li);
@@ -679,7 +684,7 @@
             const statusText = vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
-                .bindPopup(`<strong>${vehicle.headsign || ''}</strong><br>${name}<br>${statusText}`);
+                .bindPopup(`<strong>${escapeHtml(vehicle.headsign)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
             mapState.vehicleMarkers.push(marker);
             allPoints.push([lat, lon]);
         }

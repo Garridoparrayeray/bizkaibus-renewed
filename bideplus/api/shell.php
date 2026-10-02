@@ -59,7 +59,7 @@ if ($isMiamorDomain) {
     $networkSlug    = 'renfe';
 } else {
     $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
-    $sOgDescription = 'Consulta horarios, lineas, paradas en tiempo real de Bizkaibus.';
+    $sOgDescription = 'Consulta horarios, líneas, paradas y llegadas en tiempo real de Bizkaibus.';
     $sOgImage       = $site['url'] . '/icons-pro/icon-512.png';
     $sFaviconFolder = 'icons-pro';
 }
@@ -72,6 +72,20 @@ if ($path === '/' || $path === '') {
     $ogUrl = $isMiamorDomain ? $ogSiteUrl . '/' : $ogSiteUrl . '/?red=' . $networkSlug;
 }
 $ogAlt = 'Icono de ' . $sOgTitle;
+
+function linesForStop(string $network, string $id): array
+{
+    $pdo = \Core\Database::connection();
+    $stmt = $pdo->prepare('
+        SELECT DISTINCT l.code FROM journey_pattern_stops jps
+        JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+        JOIN lines l ON l.id = jp.line_id
+        WHERE jps.stop_id = ?
+        ORDER BY l.code
+    ');
+    $stmt->execute([$id]);
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
 
 function findRecord(string $network, string $type, string $id): ?array
 {
@@ -92,7 +106,10 @@ function findRecord(string $network, string $type, string $id): ?array
     return $row;
 }
 
+$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
 $isNotFound = false;
+$placeJsonLd = null;
+$breadcrumbName = null;
 try {
     if (preg_match('#^/(stops|lines)/([^/]+)/?$#', $path, $matches)) {
         $recordType = $matches[1];
@@ -111,15 +128,44 @@ try {
         if ($record === null) {
             $isNotFound = true;
         } elseif ($recordType === 'stops') {
-            $sOgTitle = $record['name'] . ' - Próximas salidas';
-            $desc = 'Consulta los horarios y tiempos de espera en ' . $record['name'] . '.';
-            if (isset($record['stop_desc']) && $record['stop_desc'] !== '') {
-                $desc .= ' (' . $record['stop_desc'] . ')';
+            $appName = $appNames[$networkSlug];
+            $stopLabel = $record['name'];
+            if (isset($record['area']) && $record['area'] !== '') {
+                $stopLabel .= ' (' . $record['area'] . ')';
+            }
+            $sOgTitle = $record['name'] . ' · Horarios y próximas salidas | ' . $appName;
+            $desc = 'Próximas salidas y horarios de ' . $appName . ' en ' . $stopLabel . '.';
+            $stopLines = linesForStop($networkSlug, $recordId);
+            if (!empty($stopLines)) {
+                $shownLines = array_slice($stopLines, 0, 8);
+                $desc .= ' Líneas: ' . implode(', ', $shownLines);
+                if (count($stopLines) > count($shownLines)) {
+                    $desc .= '…';
+                }
+                $desc .= '.';
+            }
+            if ($networkSlug === 'bus') {
+                $desc .= ' Llegadas en tiempo real.';
             }
             $sOgDescription = $desc;
+            $stopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'euskotren' => 'TrainStation', 'tranvia-bilbao' => 'TrainStation', 'tranvia-vitoria' => 'TrainStation', 'renfe' => 'TrainStation'];
+            $placeJsonLd = [
+                '@type' => $stopTypes[$networkSlug],
+                'name' => $record['name'],
+                'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float)$record['lat'], 'longitude' => (float)$record['lon']],
+            ];
+            if (isset($record['area']) && $record['area'] !== '') {
+                $placeJsonLd['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $record['area'], 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
+            }
+            $breadcrumbName = $record['name'];
         } else {
-            $sOgTitle = 'Línea ' . $record['code'] . ' - ' . $record['name'];
-            $sOgDescription = 'Horarios y recorrido de la línea ' . $record['code'] . ' (' . $record['name'] . ').';
+            $appName = $appNames[$networkSlug];
+            $sOgTitle = 'Línea ' . $record['code'] . ' ' . $record['name'] . ' · Horarios | ' . $appName;
+            $sOgDescription = 'Horarios, recorrido y paradas de la línea ' . $record['code'] . ' (' . $record['name'] . ') de ' . $appName . '.';
+            if ($networkSlug === 'bus') {
+                $sOgDescription .= ' Mapa con los autobuses en tiempo real.';
+            }
+            $breadcrumbName = 'Línea ' . $record['code'];
         }
 
         if ($networkSlug !== 'bus') {
@@ -135,9 +181,7 @@ if ($isNotFound) {
     exit;
 }
 
-$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
-$jsonLd = [
-    '@context' => 'https://schema.org',
+$appJsonLd = [
     '@type' => 'SoftwareApplication',
     'name' => $appNames[$networkSlug],
     'description' => $sOgDescription,
@@ -150,6 +194,25 @@ $jsonLd = [
     'author' => ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']],
     'isPartOf' => ['@type' => 'WebSite', 'name' => $site['name'], 'url' => $site['url'] . '/'],
 ];
+$appUrl = $site['url'] . '/?red=' . $networkSlug;
+$jsonLd = ['@context' => 'https://schema.org', '@graph' => [$appJsonLd]];
+if ($breadcrumbName !== null) {
+    $appJsonLd['url'] = $appUrl;
+    $appJsonLd['description'] = 'Horarios de ' . $appNames[$networkSlug] . '.';
+    $webPage = ['@type' => 'WebPage', 'name' => $sOgTitle, 'description' => $sOgDescription, 'url' => $ogUrl, 'inLanguage' => 'es', 'isPartOf' => ['@type' => 'WebSite', 'name' => $site['name'], 'url' => $site['url'] . '/']];
+    if ($placeJsonLd !== null) {
+        $webPage['about'] = $placeJsonLd;
+    }
+    $jsonLd['@graph'] = [
+        $webPage,
+        ['@type' => 'BreadcrumbList', 'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => $site['name'], 'item' => $site['url'] . '/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $appNames[$networkSlug], 'item' => $appUrl],
+            ['@type' => 'ListItem', 'position' => 3, 'name' => $breadcrumbName, 'item' => $ogUrl],
+        ]],
+        $appJsonLd,
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -190,95 +253,7 @@ $jsonLd = [
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
-    <script>
-        (function () {
-            var params = new URLSearchParams(location.search);
-            var qTema = params.get('tema');
-            // bideplusmiamor.vercel.app es un dominio dedicado, sin toggle ni
-            // forma de salir del tema: siempre "mi amor" en ese dominio.
-            var isMiamorDomain = location.hostname === 'bideplusmiamor.vercel.app';
-            var isMiamor = isMiamorDomain || qTema === 'miamor';
-            if (qTema === 'miamor' || qTema === 'pro') {
-                params.delete('tema');
-                var qs = params.toString();
-                history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
-            }
-            window.__bbTheme = isMiamor ? 'miamor' : 'pro';
-
-            var redParam = params.get('red');
-            window.__bbNetwork = 'bus';
-            if (redParam === 'metro' || redParam === 'euskotren' || redParam === 'tranvia-bilbao' || redParam === 'tranvia-vitoria' || redParam === 'renfe') {
-                window.__bbNetwork = redParam;
-            }
-            var isMetro          = window.__bbNetwork === 'metro';
-            var isEuskoTren      = window.__bbNetwork === 'euskotren';
-            var isTranviaBilbao  = window.__bbNetwork === 'tranvia-bilbao';
-            var isTranviaVitoria = window.__bbNetwork === 'tranvia-vitoria';
-            var isRenfe          = window.__bbNetwork === 'renfe';
-
-            var title      = 'BizkaiBus+';
-            var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
-            var themeColor = isMiamor ? '#db2777' : '#01573C';
-            var touchIcon  = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
-            var icon       = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
-            var stylesheet = isMiamor ? 'style.css' : 'style-app.css';
-
-            if (isMetro) {
-                title = 'Metro+';
-                if (isMiamor) {
-                    themeColor = '#db2777';
-                } else {
-                    manifest   = 'manifest-metro.json';
-                    touchIcon  = 'icons-metro/apple-touch-icon.png';
-                    icon       = 'icons-metro/icon-192.png';
-                    themeColor = '#C8102E';
-                }
-            } else if (isEuskoTren) {
-                title      = 'Euskotren+';
-                manifest   = 'manifest-euskotren.json';
-                touchIcon  = 'icons-euskotren/apple-touch-icon.png';
-                icon       = 'icons-euskotren/icon-192.png';
-                themeColor = '#003F8C';
-            } else if (isTranviaBilbao) {
-                title      = 'Tranvía Bilbao+';
-                manifest   = 'manifest-tranvia-bilbao.json';
-                touchIcon  = 'icons-tranvia-bilbao/apple-touch-icon.png';
-                icon       = 'icons-tranvia-bilbao/icon-192.png';
-                themeColor = '#4EB848';
-            } else if (isTranviaVitoria) {
-                title      = 'Tranvía Vitoria+';
-                manifest   = 'manifest-tranvia-vitoria.json';
-                touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
-                icon       = 'icons-tranvia-vitoria/icon-192.png';
-                themeColor = '#60AE27';
-            } else if (isRenfe) {
-                title      = 'Renfe Cercanías+';
-                manifest   = 'manifest-renfe.json';
-                touchIcon  = 'icons-renfe/apple-touch-icon.png';
-                icon       = 'icons-renfe/icon-192.png';
-                themeColor = '#74349A';
-            }
-
-            if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria && !isRenfe) {
-                title += ' | Para el amor de mi vida';
-            }
-
-            if (isMetro)          document.documentElement.classList.add('is-metro');
-            if (isEuskoTren)      document.documentElement.classList.add('is-euskotren');
-            if (isTranviaBilbao)  document.documentElement.classList.add('is-tranvia-bilbao');
-            if (isTranviaVitoria) document.documentElement.classList.add('is-tranvia-vitoria');
-            if (isRenfe)          document.documentElement.classList.add('is-renfe');
-
-            document.write(
-                '<title>' + title + '</title>' +
-                '<link rel="manifest" href="' + manifest + '">' +
-                '<meta name="theme-color" content="' + themeColor + '">' +
-                '<link rel="apple-touch-icon" href="' + touchIcon + '">' +
-                '<link rel="icon" href="' + icon + '">' +
-                '<link rel="stylesheet" href="' + stylesheet + '">'
-            );
-        })();
-    </script>
+    <script src="/js/boot.js"></script>
 </head>
 <body>
     <div class="splash" aria-hidden="true"><?= $wordmark ?></div>
@@ -394,75 +369,7 @@ $jsonLd = [
                     </a>
                 </nav>
 
-                <script>
-                    (function () {
-                        var net = window.__bbNetwork;
-                        var isMiamorActive = window.__bbTheme === 'miamor';
-                        var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
-
-                        if (net === 'metro') {
-                            document.getElementById('app-logomark').classList.add('is-metro');
-                            document.getElementById('app-title').firstChild.textContent = 'METRO';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.metro.desc');
-                        } else if (net === 'euskotren') {
-                            document.getElementById('app-logomark').classList.add('is-euskotren');
-                            document.getElementById('app-title').firstChild.textContent = 'EUSKOTREN';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.euskotren.desc');
-                        } else if (net === 'tranvia-bilbao') {
-                            document.getElementById('app-logomark').classList.add('is-tranvia-bilbao');
-                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
-                            document.getElementById('app-title-city').textContent = 'BILBAO';
-                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
-                        } else if (net === 'tranvia-vitoria') {
-                            document.getElementById('app-logomark').classList.add('is-tranvia-vitoria');
-                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
-                            document.getElementById('app-title-city').textContent = 'VITORIA';
-                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
-                        } else if (net === 'renfe') {
-                            document.getElementById('app-logomark').classList.add('is-renfe');
-                            document.getElementById('app-title').firstChild.textContent = 'RENFE';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.renfeSubtitle');
-                        } else {
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.bus.desc');
-                        }
-                        if (isMiamorActive && net === 'bus') {
-                            document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
-                        }
-
-                        var cityEl = document.getElementById('app-title-city');
-                        if (cityEl.textContent) {
-                            // Que "BILBAO"/"VITORIA" termine justo bajo la "A" de
-                            // "TRANVÍA", sin contar el "+": se mide el ancho real en
-                            // vez de adivinarlo, porque el contenedor del título es
-                            // más ancho que el texto (para poder recortar con "…").
-                            var titleWidth = document.getElementById('app-title').getBoundingClientRect().width;
-                            var markWidth = document.getElementById('app-title-mark').getBoundingClientRect().width;
-                            cityEl.style.width = Math.max(0, titleWidth - markWidth) + 'px';
-                        }
-
-                        var currentCardId = 'net-card-bus';
-                        if (net === 'metro') {
-                            currentCardId = 'net-card-metro';
-                        } else if (net === 'euskotren') {
-                            currentCardId = 'net-card-euskotren';
-                        } else if (net === 'tranvia-bilbao') {
-                            currentCardId = 'net-card-tranvia-bilbao';
-                        } else if (net === 'tranvia-vitoria') {
-                            currentCardId = 'net-card-tranvia-vitoria';
-                        } else if (net === 'renfe') {
-                            currentCardId = 'net-card-renfe';
-                        }
-                        var currentCard = document.getElementById(currentCardId);
-                        if (currentCard) currentCard.hidden = true;
-
-                        if (temaSuffix) {
-                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren', 'net-card-tranvia-bilbao', 'net-card-tranvia-vitoria', 'net-card-renfe'].forEach(function (id) {
-                                var card = document.getElementById(id);
-                                if (card && card !== currentCard) card.href += temaSuffix;
-                            });
-                        }
-                    })();
-</script>
+                <script src="/js/header-brand.js"></script>
             </div>
 
             <span class="header-actions">
@@ -655,18 +562,7 @@ $jsonLd = [
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
     <script src="js/app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
-            let bbSwRefreshed = false;
-            const bbHadController = !!navigator.serviceWorker.controller;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!bbHadController || bbSwRefreshed) return;
-                bbSwRefreshed = true;
-                location.reload();
-            });
-        }
-</script>
+    <script src="/js/sw-register.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

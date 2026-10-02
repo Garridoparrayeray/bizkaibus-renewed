@@ -53,7 +53,7 @@ class RealtimeController
                 }
                 $StopStmt->execute([$aEntry['currentStopId']]);
                 $aStop = $StopStmt->fetch();
-                if ($aStop === null) {
+                if (!\is_array($aStop)) {
                     continue;
                 }
                 $JourneyStmt->execute([$sLineId, $sTripNumber]);

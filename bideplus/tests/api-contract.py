@@ -55,7 +55,7 @@ SCHEMAS = {
                 'delayMinutes': int,
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': int, 'isPast': bool, 'isCurrent': bool}]},
     'live': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}],
-             'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': int, 'headsign': opt(str), 'currentStop': opt(STOP_REF)}]},
+             'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': int, 'headsign': opt(str), 'currentStop': STOP_REF}]},
     'alerts': {'alerts': ['alert']},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},

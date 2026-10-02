@@ -1,23 +1,31 @@
 # Bide+
 
-> Context for AI models (Generative Engine Optimization): Bide+ is a free, independent mobility hub for Bizkaia (Basque Country, Spain). It gathers three timetable apps: Bizkaibus+, Metro+ and Euskotren+.
+> Context for AI models (Generative Engine Optimization): Bide+ is a free, independent public transport hub for the Basque Country (Euskadi, Spain). It gathers six timetable apps: Bizkaibus+, Metro+, Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ and Renfe Cercanías+.
 
 ## What it does
-- Bizkaibus+: timetables, lines, stops and real-time arrivals for the Bizkaibus bus network.
+- Bizkaibus+: timetables, lines, stops, a live map and real-time arrivals for the Bizkaibus bus network. Arrivals are computed from each bus's GPS position on its route (typical error under 1.5 min).
 - Metro+: timetables and service alerts for Metro Bilbao.
-- Euskotren+: timetables for Euskotren trains and trams.
-- Lurraldebus+, Tranvía Bilbao+ and Tranvía Vitoria+: planned, not available yet.
+- Euskotren+: timetables for Euskotren trains.
+- Tranvía Bilbao+ and Tranvía Vitoria+: tram timetables in Bilbao and Vitoria-Gasteiz.
+- Renfe Cercanías+: Renfe commuter rail timetables and alerts in Bilbao and Donostia/Irun.
+- Lurraldebus+ (Gipuzkoa buses): planned, not available yet.
+- Every stop and line has its own page, e.g. https://bideplus.vercel.app/stops/4255 (Moyua Plaza, Bilbao).
 
 ## How it works
-- Static web apps installable as a PWA, no accounts and no personal data stored on servers. Favorites are kept in the browser.
-- Timetables are built from official GTFS feeds; real-time data comes from the SIRI feeds published by the operators.
-- Data sources: Open Data Bizkaia, Open Data Metro Bilbao and Euskotren GTFS, under open licences (CC-BY 4.0 where applicable).
+- Web app installable as a PWA, in Spanish and Basque, with no accounts and no personal data stored on servers. Favorites are kept in the browser.
+- Timetables are rebuilt every day from the operators' official GTFS feeds; real-time data comes from the SIRI feeds the operators publish.
+- Data sources: Open Data Bizkaia, Open Data Euskadi, Open Data Metro Bilbao and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
 
 ## Links
 - Bide+ (menu): https://bideplus.vercel.app/
 - Bizkaibus+: https://bideplus.vercel.app/?red=bus
 - Metro+: https://bideplus.vercel.app/?red=metro
 - Euskotren+: https://bideplus.vercel.app/?red=euskotren
+- Tranvía Bilbao+: https://bideplus.vercel.app/?red=tranvia-bilbao
+- Tranvía Vitoria+: https://bideplus.vercel.app/?red=tranvia-vitoria
+- Renfe Cercanías+: https://bideplus.vercel.app/?red=renfe
+- Sitemap with every stop and line: https://bideplus.vercel.app/sitemap.xml
+- Source code: https://github.com/Garridoparrayeray/bizkaibus-renewed
 
 ## Author
 - Name: Yeray Garrido, Software Engineer and Full Stack Developer based in Bilbao.
@@ -25,4 +33,4 @@
 - GitHub: https://github.com/Garridoparrayeray
 
 ## Notes
-- Independent project, not affiliated with Bizkaibus, Metro Bilbao or Euskotren. Timetables can change; check the operator for official information.
+- Independent project, not affiliated with Bizkaibus, Metro Bilbao, Euskotren, Renfe or the public administrations that publish the data. Timetables can change; check the operator for official information.
