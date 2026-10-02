@@ -38,6 +38,7 @@ Después abre <http://localhost:8011>. Las pruebas y la documentación técnica 
 - [Código de conducta](CODE_OF_CONDUCT.md)
 - [Política de seguridad](SECURITY.md)
 - [Declaración de accesibilidad](ACCESSIBILITY.md)
+- [Hoja de ruta](ROADMAP.md)
 
 Un error en un horario o en una llegada, una idea o una barrera de accesibilidad: abre una [issue](../../issues/new/choose).
 
