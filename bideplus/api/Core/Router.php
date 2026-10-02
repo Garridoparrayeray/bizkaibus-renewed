@@ -57,7 +57,8 @@ class Router
             try {
                 ($aRoute['handler'])($Req, $aParams);
             } catch (\Throwable $Ex) {
-                Response::error('Internal error: ' . $Ex->getMessage(), 500);
+                error_log('Bide+ API: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+                Response::error('Internal error', 500);
             }
             return;
         }
