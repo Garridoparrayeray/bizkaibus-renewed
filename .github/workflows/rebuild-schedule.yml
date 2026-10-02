@@ -70,6 +70,21 @@ jobs:
             echo "OK: $db ($(du -h "$db" | cut -f1))"
           done
 
+      # Puerta antes de desplegar: si las bases nuevas rompen el cálculo de llegadas, la
+      # integridad de los datos o el contrato de la API, no se despliega y producción
+      # sigue con el último despliegue bueno.
+      - name: Check rebuilt data before deploying
+        working-directory: bideplus
+        run: |
+          php tests/unit-test.php
+          php tests/data-integrity.php
+          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs -o /dev/null http://localhost:8011/; then break; fi
+            sleep 1
+          done
+          python3 tests/api-contract.py
+
       - name: Commit updated geocache, if it changed
         run: |
           if ! git diff --quiet bideplus/scripts/geocache.json; then

@@ -49,11 +49,14 @@ jobs:
           cat "$RUNNER_TEMP/php-server.log"
           exit 1
 
-      - name: Static checks
+      - name: Static checks, unit tests and data integrity
         run: python tests/static-checks.py
 
       - name: API smoke tests
         run: python tests/api-smoke.py
+
+      - name: API contract (campos y tipos que usa la app)
+        run: python tests/api-contract.py
 
       - name: UI battery
         env:
