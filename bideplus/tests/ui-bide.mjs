@@ -154,7 +154,8 @@ await ev("document.querySelector('#bide-rail [data-bide-tab=info]').click(); tru
 check('ordenador · Info se abre en el contenido', (await waitTrue(shown('#bide-view-info'))) && (await ev(shown('.layout'))) === false && (await ev(shown('#bide-rail'))));
 check('ordenador · sin desbordar a lo ancho', await ev(noOverflow));
 await go('/');
-check('ordenador · menú: columna de Bide+ y título', (await ev(shown('#bide-rail'))) && (await ev(shown('.bide-page-title'))));
+check('ordenador · menú: columna de Bide+ y sin título repetido', (await ev(shown('#bide-rail'))) && (await ev(shown('.bide-page-title'))) === false);
+check('ordenador · menú: idioma a la izquierda y vista a la derecha, en una fila', await ev("(() => { const l = document.querySelector('.bide-lang').getBoundingClientRect(); const v = document.querySelector('.view-toggle').getBoundingClientRect(); return Math.abs(l.top - v.top) < 4 && l.right < v.left && v.right > window.innerWidth * 0.8; })()"));
 
 // ===== Tema «mi amor»: sin cambios =====
 await phone();

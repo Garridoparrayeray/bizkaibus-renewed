@@ -227,6 +227,13 @@ html.bide body.page-menu header { flex-wrap: nowrap; align-items: center; }
     html.bide body.page-menu .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
     html.bide body.page-menu .view-toggle.bide-seg { padding: 4px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); box-shadow: none; }
         html.bide body.page-menu .view-toggle.bide-seg button { width: auto; min-width: 48px; height: 34px; border-radius: 10px; box-shadow: none; }
+html.bide body.page-menu #tr .tiles li:has(.soon) { order: 1; }
+html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; gap: 10px; max-width: none; }
+    html.bide body.page-menu .menu-footer p { margin: 0; }
+    html.bide body.page-menu .menu-footer .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; }
+    html.bide body.page-menu .menu-footer .bide-wordmark { display: none; }
+    html.bide body.page-menu .menu-footer .bide-apps-links { justify-content: flex-start; }
+        html.bide body.page-menu .menu-footer .bide-apps-links a { color: var(--bide-green); font-weight: 700; text-decoration: none; }
 html.bide body.page-menu .menu-author { line-height: 1.6; }
     html.bide body.page-menu .menu-author a, html.bide body.page-menu .menu-legal { color: var(--bide-green); font-weight: 700; text-decoration: none; }
     html.bide body.page-menu .menu-legal { padding: 0; border: none; background: none; font: inherit; font-weight: 700; cursor: pointer; }
@@ -327,12 +334,31 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
     /* Menú: columna de Bide+ | fichas */
     html.bide body.page-menu main { display: grid; grid-template-columns: 248px minmax(0, 1fr); column-gap: 24px; max-width: 1400px; align-items: start; }
     html.bide body.page-menu #bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
-    html.bide body.page-menu main > :not(#bide-rail) { grid-column: 2; }
+    html.bide body.page-menu main > :not(#bide-rail):not(.menu-footer) { grid-column: 2; }
     html.bide body.page-menu .menu-brand { display: none; }
-    html.bide body.page-menu .bide-page-title { order: 1; display: block; margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.9rem; font-weight: 800; color: var(--bide-ink); }
-    html.bide body.page-menu .header-controls { order: 2; }
-    html.bide body.page-menu header { padding: 14px 18px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
-    html.bide body.page-menu .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    /* Barra superior: idioma a la izquierda y vista a la derecha, en una fila (BIDE+ ya está en la columna). */
+    html.bide body.page-menu .header-controls { flex: 1; flex-direction: row; align-items: center; justify-content: space-between; margin-left: 0; }
+    html.bide body.page-menu header { padding: 10px 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
+    html.bide:not([data-view="list"]) body.page-menu #tr .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    /* Pie verde de Bide+ a todo lo ancho, en tres columnas: datos, apps y autor. */
+    html.bide body.page-menu { padding-bottom: 0; overflow-x: clip; }
+    html.bide body.page-menu .menu-footer {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr;
+        gap: 40px;
+        width: 100vw;
+        margin: 24px 0 0 calc(50% - 50vw);
+        box-sizing: border-box;
+        padding: 30px max(44px, calc((100vw - 1400px) / 2)) 26px;
+        background: var(--bide-green);
+        color: rgba(255, 255, 255, .82);
+        font-size: .82rem;
+    }
+        html.bide body.page-menu .menu-footer .bide-wordmark { display: block; color: #fff; font-size: 1.3rem; }
+            html.bide body.page-menu .menu-footer .bide-wordmark span { color: #ff9b9b; }
+        html.bide body.page-menu .menu-footer .bide-apps-links { flex-direction: column; flex-wrap: nowrap; gap: 7px; }
+            html.bide body.page-menu .menu-footer .bide-apps-links a, html.bide body.page-menu .menu-footer .menu-author a, html.bide body.page-menu .menu-footer .menu-legal { color: #fff; font-weight: 600; }
 
     html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
     html.bide #bide-view-favoritos, html.bide #bide-view-avisos { max-width: 880px; }
