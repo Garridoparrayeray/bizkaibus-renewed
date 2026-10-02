@@ -89,7 +89,7 @@ await ev("localStorage.removeItem('bide_install_dismissed'); true");
 await go('/?red=bus');
 check('navegador · app: botón para volver a Bide+', await ev(shown('.bide-home')));
 check('navegador · app: se mantienen ☰ y pie', (await ev(shown('#menu-open'))) && (await ev(shown('#dev-footer'))));
-check('navegador · app: el pie enlaza a Bide+ y a las 6 apps', (await ev("document.querySelectorAll('#dev-footer .bide-apps-links a').length")) === 7);
+check('navegador · app: el pie enlaza a las 6 apps y al código', (await ev("document.querySelectorAll('#dev-footer .bide-apps-links a').length")) === 6 && (await ev("!!document.querySelector('#dev-footer a[href*=\"bizkaibus-renewed\"]')")));
 check('navegador · app: el aviso legal sigue abriéndose desde el pie', (await ev("document.getElementById('legal-open').click(); document.getElementById('legal-panel').open")) === true);
 await ev("document.getElementById('legal-panel').close(); true");
 check('navegador · app: sin desbordar a lo ancho', await ev(noOverflow));
