@@ -275,7 +275,6 @@ if ($breadcrumbName !== null) {
 <?= bideRail($networkSlug) ?>
 
         <header>
-            <a class="bide-home" href="/" data-i18n-attr="aria-label:bide.backToApps" aria-label="Volver a las apps de Bide+"><?= BIDE_ICONS['back'] ?></a>
             <div class="home-link-wrap">
                 <button id="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
                     <span id="app-logomark" aria-hidden="true">
@@ -557,6 +556,7 @@ if ($breadcrumbName !== null) {
         <button id="menu-close" class="btn-icon" type="button" aria-label="Cerrar menú">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
+        <a class="pill bide-menu-apps" href="/"><?= BIDE_ICONS['apps'] ?><span data-i18n="bide.allApps">Todas las apps</span></a>
         <button id="menu-favorites-open" class="pill" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
             <span data-i18n="app.favorites.title">Tus favoritos</span>
