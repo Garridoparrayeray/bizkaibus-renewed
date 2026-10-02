@@ -56,7 +56,7 @@ SCHEMAS = {
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': int, 'isPast': bool, 'isCurrent': bool}]},
     'live': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}],
              'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': int, 'headsign': opt(str), 'currentStop': opt(STOP_REF)}]},
-    'alerts': {'alerts': [{'summary': opt(str), 'description': opt(str)}]},
+    'alerts': {'alerts': ['alert']},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
     'error': {'error': str},
@@ -73,6 +73,9 @@ def check(value, schema, path, where):
     if schema == 'hm':
         if not isinstance(value, str) or not HM.match(value):
             fails.append(f'{where} {path}: hora HH:MM esperada, llegó {value!r}')
+        return
+    if schema == 'alert':
+        check_alert(value, path, where)
         return
     if schema == 'status':
         if value not in STATUS:
@@ -100,6 +103,30 @@ def check(value, schema, path, where):
         fails.append(f'{where} {path}: {types} esperado, llegó bool')
     elif not isinstance(value, types):
         fails.append(f'{where} {path}: {"/".join(t.__name__ for t in types)} esperado, llegó {type(value).__name__} {value!r:.40}')
+
+
+def check_alert(alert, path, where):
+    """Cada operador publica los avisos con su forma; esto es lo que lee la app de cada uno.
+
+    - Metro, Euskotren y tranvías: muestran `summary || title` (Metro mezcla su CMS, con
+      `summary`, y su SIRI, con `title`) y la descripción si la hay.
+    - Bizkaibus: además filtra por línea con `lineRefs`, que tiene que ser una lista.
+    - Renfe: `summary`, `description` y `scope` (estación o línea).
+    """
+    if not isinstance(alert, dict):
+        fails.append(f'{where} {path}: objeto esperado, llegó {type(alert).__name__}')
+        return
+    if not isinstance(alert.get('summary'), str) and not isinstance(alert.get('title'), str):
+        fails.append(f'{where} {path}: falta el texto del aviso (ni summary ni title)')
+    for key in ('summary', 'title', 'description', 'startTime', 'endTime', 'scope'):
+        if alert.get(key) is not None and not isinstance(alert[key], str):
+            fails.append(f'{where} {path}.{key}: str esperado, llegó {type(alert[key]).__name__}')
+    if where == 'bus' or 'lineRefs' in alert:
+        refs = alert.get('lineRefs')
+        if not isinstance(refs, list) or not all(isinstance(r, (str, int)) for r in refs):
+            fails.append(f'{where} {path}.lineRefs: lista de líneas esperada, llegó {refs!r:.60}')
+    if where == 'renfe' and alert.get('scope') not in ('stop', 'line', 'network', None):
+        fails.append(f"{where} {path}.scope: valor desconocido {alert.get('scope')!r}")
 
 
 def get(path, schema, where, expect=200):
@@ -150,11 +177,13 @@ try:
     madrid_hour = datetime.datetime.now(ZoneInfo('Europe/Madrid')).hour
 except Exception:
     madrid_hour = (datetime.datetime.now(datetime.timezone.utc).hour + 1) % 24
-quiet_hours = madrid_hour < 6
+# Las próximas salidas miran 4 h por delante: de noche una red pequeña puede no tener ninguna.
+quiet_hours = madrid_hour < 8 or madrid_hour >= 21
 for name, (q, s, (lat, lon)) in NETS.items():
     before = len(fails)
     departures_seen = 0
     entries_seen = 0
+    beyond_published = False
     res = get(net('/api/search?q=' + q, s), 'search', name) or {}
     get(net('/api/lines', s), 'lines', name)
     get(net('/api/alerts', s), 'alerts', name)
@@ -172,11 +201,13 @@ for name, (q, s, (lat, lon)) in NETS.items():
             get(net(f'/api/lines/{lid}/live', s), 'live', name)
             tt = get(net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s), 'timetable', name) or {}
             entries_seen += len(tt.get('entries') or [])
+            if tt.get('beyondPublished'):
+                beyond_published = True
             for entry in (tt.get('entries') or [])[:1]:
                 trip = enc(entry['tripKey'])
                 get(net(f'/api/trips/{trip}?stopId={sid}', s), 'trip', name)
                 get(net(f'/api/vehicles/{trip}', s), 'vehicle', name)
-    if entries_seen == 0:
+    if entries_seen == 0 and not beyond_published:
         fails.append(f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)')
     if departures_seen == 0 and not quiet_hours:
         fails.append(f'{name}: ninguna parada muestra próximas salidas')
