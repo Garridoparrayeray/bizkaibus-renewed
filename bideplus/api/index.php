@@ -66,5 +66,6 @@ $Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
 try {
     $Router->dispatch($Req);
 } catch (\Throwable $Ex) {
-    Response::error('Unhandled error: ' . $Ex->getMessage(), 500);
+    error_log('Bide+ API: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+    Response::error('Internal error', 500);
 }

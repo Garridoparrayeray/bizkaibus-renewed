@@ -10,6 +10,7 @@ if (!$isMiamorDomain && ($menuPath === '/' || $menuPath === '') && !isset($_GET[
 }
 
 $site = require __DIR__ . '/Config/site.php';
+require_once __DIR__ . '/Views/bide-components.php';
 $wordmark = require __DIR__ . '/Views/wordmark.php';
 
 $bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';
@@ -59,7 +60,7 @@ if ($isMiamorDomain) {
     $networkSlug    = 'renfe';
 } else {
     $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
-    $sOgDescription = 'Consulta horarios, lineas, paradas en tiempo real de Bizkaibus.';
+    $sOgDescription = 'Consulta horarios, líneas, paradas y llegadas en tiempo real de Bizkaibus.';
     $sOgImage       = $site['url'] . '/icons-pro/icon-512.png';
     $sFaviconFolder = 'icons-pro';
 }
@@ -72,6 +73,20 @@ if ($path === '/' || $path === '') {
     $ogUrl = $isMiamorDomain ? $ogSiteUrl . '/' : $ogSiteUrl . '/?red=' . $networkSlug;
 }
 $ogAlt = 'Icono de ' . $sOgTitle;
+
+function linesForStop(string $network, string $id): array
+{
+    $pdo = \Core\Database::connection();
+    $stmt = $pdo->prepare('
+        SELECT DISTINCT l.code FROM journey_pattern_stops jps
+        JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+        JOIN lines l ON l.id = jp.line_id
+        WHERE jps.stop_id = ?
+        ORDER BY l.code
+    ');
+    $stmt->execute([$id]);
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
 
 function findRecord(string $network, string $type, string $id): ?array
 {
@@ -92,7 +107,10 @@ function findRecord(string $network, string $type, string $id): ?array
     return $row;
 }
 
+$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
 $isNotFound = false;
+$placeJsonLd = null;
+$breadcrumbName = null;
 try {
     if (preg_match('#^/(stops|lines)/([^/]+)/?$#', $path, $matches)) {
         $recordType = $matches[1];
@@ -111,15 +129,44 @@ try {
         if ($record === null) {
             $isNotFound = true;
         } elseif ($recordType === 'stops') {
-            $sOgTitle = $record['name'] . ' - Próximas salidas';
-            $desc = 'Consulta los horarios y tiempos de espera en ' . $record['name'] . '.';
-            if (isset($record['stop_desc']) && $record['stop_desc'] !== '') {
-                $desc .= ' (' . $record['stop_desc'] . ')';
+            $appName = $appNames[$networkSlug];
+            $stopLabel = $record['name'];
+            if (isset($record['area']) && $record['area'] !== '') {
+                $stopLabel .= ' (' . $record['area'] . ')';
+            }
+            $sOgTitle = $record['name'] . ' · Horarios y próximas salidas | ' . $appName;
+            $desc = 'Próximas salidas y horarios de ' . $appName . ' en ' . $stopLabel . '.';
+            $stopLines = linesForStop($networkSlug, $recordId);
+            if (!empty($stopLines)) {
+                $shownLines = array_slice($stopLines, 0, 8);
+                $desc .= ' Líneas: ' . implode(', ', $shownLines);
+                if (count($stopLines) > count($shownLines)) {
+                    $desc .= '…';
+                }
+                $desc .= '.';
+            }
+            if ($networkSlug === 'bus') {
+                $desc .= ' Llegadas en tiempo real.';
             }
             $sOgDescription = $desc;
+            $stopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'euskotren' => 'TrainStation', 'tranvia-bilbao' => 'TrainStation', 'tranvia-vitoria' => 'TrainStation', 'renfe' => 'TrainStation'];
+            $placeJsonLd = [
+                '@type' => $stopTypes[$networkSlug],
+                'name' => $record['name'],
+                'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float)$record['lat'], 'longitude' => (float)$record['lon']],
+            ];
+            if (isset($record['area']) && $record['area'] !== '') {
+                $placeJsonLd['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $record['area'], 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
+            }
+            $breadcrumbName = $record['name'];
         } else {
-            $sOgTitle = 'Línea ' . $record['code'] . ' - ' . $record['name'];
-            $sOgDescription = 'Horarios y recorrido de la línea ' . $record['code'] . ' (' . $record['name'] . ').';
+            $appName = $appNames[$networkSlug];
+            $sOgTitle = 'Línea ' . $record['code'] . ' ' . $record['name'] . ' · Horarios | ' . $appName;
+            $sOgDescription = 'Horarios, recorrido y paradas de la línea ' . $record['code'] . ' (' . $record['name'] . ') de ' . $appName . '.';
+            if ($networkSlug === 'bus') {
+                $sOgDescription .= ' Mapa con los autobuses en tiempo real.';
+            }
+            $breadcrumbName = 'Línea ' . $record['code'];
         }
 
         if ($networkSlug !== 'bus') {
@@ -135,9 +182,7 @@ if ($isNotFound) {
     exit;
 }
 
-$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
-$jsonLd = [
-    '@context' => 'https://schema.org',
+$appJsonLd = [
     '@type' => 'SoftwareApplication',
     'name' => $appNames[$networkSlug],
     'description' => $sOgDescription,
@@ -150,6 +195,25 @@ $jsonLd = [
     'author' => ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']],
     'isPartOf' => ['@type' => 'WebSite', 'name' => $site['name'], 'url' => $site['url'] . '/'],
 ];
+$appUrl = $site['url'] . '/?red=' . $networkSlug;
+$jsonLd = ['@context' => 'https://schema.org', '@graph' => [$appJsonLd]];
+if ($breadcrumbName !== null) {
+    $appJsonLd['url'] = $appUrl;
+    $appJsonLd['description'] = 'Horarios de ' . $appNames[$networkSlug] . '.';
+    $webPage = ['@type' => 'WebPage', 'name' => $sOgTitle, 'description' => $sOgDescription, 'url' => $ogUrl, 'inLanguage' => 'es', 'isPartOf' => ['@type' => 'WebSite', 'name' => $site['name'], 'url' => $site['url'] . '/']];
+    if ($placeJsonLd !== null) {
+        $webPage['about'] = $placeJsonLd;
+    }
+    $jsonLd['@graph'] = [
+        $webPage,
+        ['@type' => 'BreadcrumbList', 'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => $site['name'], 'item' => $site['url'] . '/'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $appNames[$networkSlug], 'item' => $appUrl],
+            ['@type' => 'ListItem', 'position' => 3, 'name' => $breadcrumbName, 'item' => $ogUrl],
+        ]],
+        $appJsonLd,
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -190,97 +254,11 @@ $jsonLd = [
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
-    <script>
-        (function () {
-            var params = new URLSearchParams(location.search);
-            var qTema = params.get('tema');
-            // bideplusmiamor.vercel.app es un dominio dedicado, sin toggle ni
-            // forma de salir del tema: siempre "mi amor" en ese dominio.
-            var isMiamorDomain = location.hostname === 'bideplusmiamor.vercel.app';
-            var isMiamor = isMiamorDomain || qTema === 'miamor';
-            if (qTema === 'miamor' || qTema === 'pro') {
-                params.delete('tema');
-                var qs = params.toString();
-                history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
-            }
-            window.__bbTheme = isMiamor ? 'miamor' : 'pro';
-
-            var redParam = params.get('red');
-            window.__bbNetwork = 'bus';
-            if (redParam === 'metro' || redParam === 'euskotren' || redParam === 'tranvia-bilbao' || redParam === 'tranvia-vitoria' || redParam === 'renfe') {
-                window.__bbNetwork = redParam;
-            }
-            var isMetro          = window.__bbNetwork === 'metro';
-            var isEuskoTren      = window.__bbNetwork === 'euskotren';
-            var isTranviaBilbao  = window.__bbNetwork === 'tranvia-bilbao';
-            var isTranviaVitoria = window.__bbNetwork === 'tranvia-vitoria';
-            var isRenfe          = window.__bbNetwork === 'renfe';
-
-            var title      = 'BizkaiBus+';
-            var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest.json';
-            var themeColor = isMiamor ? '#db2777' : '#01573C';
-            var touchIcon  = isMiamor ? 'icons/apple-touch-icon.png' : 'icons-pro/apple-touch-icon.png';
-            var icon       = isMiamor ? 'icons/icon-192.png' : 'icons-pro/icon-192.png';
-            var stylesheet = isMiamor ? 'style.css' : 'style-app.css';
-
-            if (isMetro) {
-                title = 'Metro+';
-                if (isMiamor) {
-                    themeColor = '#db2777';
-                } else {
-                    manifest   = 'manifest-metro.json';
-                    touchIcon  = 'icons-metro/apple-touch-icon.png';
-                    icon       = 'icons-metro/icon-192.png';
-                    themeColor = '#C8102E';
-                }
-            } else if (isEuskoTren) {
-                title      = 'Euskotren+';
-                manifest   = 'manifest-euskotren.json';
-                touchIcon  = 'icons-euskotren/apple-touch-icon.png';
-                icon       = 'icons-euskotren/icon-192.png';
-                themeColor = '#003F8C';
-            } else if (isTranviaBilbao) {
-                title      = 'Tranvía Bilbao+';
-                manifest   = 'manifest-tranvia-bilbao.json';
-                touchIcon  = 'icons-tranvia-bilbao/apple-touch-icon.png';
-                icon       = 'icons-tranvia-bilbao/icon-192.png';
-                themeColor = '#4EB848';
-            } else if (isTranviaVitoria) {
-                title      = 'Tranvía Vitoria+';
-                manifest   = 'manifest-tranvia-vitoria.json';
-                touchIcon  = 'icons-tranvia-vitoria/apple-touch-icon.png';
-                icon       = 'icons-tranvia-vitoria/icon-192.png';
-                themeColor = '#60AE27';
-            } else if (isRenfe) {
-                title      = 'Renfe Cercanías+';
-                manifest   = 'manifest-renfe.json';
-                touchIcon  = 'icons-renfe/apple-touch-icon.png';
-                icon       = 'icons-renfe/icon-192.png';
-                themeColor = '#74349A';
-            }
-
-            if (isMiamor && !isMetro && !isEuskoTren && !isTranviaBilbao && !isTranviaVitoria && !isRenfe) {
-                title += ' | Para el amor de mi vida';
-            }
-
-            if (isMetro)          document.documentElement.classList.add('is-metro');
-            if (isEuskoTren)      document.documentElement.classList.add('is-euskotren');
-            if (isTranviaBilbao)  document.documentElement.classList.add('is-tranvia-bilbao');
-            if (isTranviaVitoria) document.documentElement.classList.add('is-tranvia-vitoria');
-            if (isRenfe)          document.documentElement.classList.add('is-renfe');
-
-            document.write(
-                '<title>' + title + '</title>' +
-                '<link rel="manifest" href="' + manifest + '">' +
-                '<meta name="theme-color" content="' + themeColor + '">' +
-                '<link rel="apple-touch-icon" href="' + touchIcon + '">' +
-                '<link rel="icon" href="' + icon + '">' +
-                '<link rel="stylesheet" href="' + stylesheet + '">'
-            );
-        })();
-    </script>
+    <script src="/js/boot.js"></script>
+    <script src="/js/bide-mode.js"></script>
+    <link rel="stylesheet" href="/style-bide.css">
 </head>
-<body>
+<body class="page-app">
     <div class="splash" aria-hidden="true"><?= $wordmark ?></div>
 
     <main class="app-container">
@@ -293,6 +271,8 @@ $jsonLd = [
         <noscript>
             <p><?= htmlspecialchars($sOgDescription) ?> Esta app necesita JavaScript para mostrar los horarios. <a href="/">Volver a Bide+</a>.</p>
         </noscript>
+
+<?= bideRail($networkSlug) ?>
 
         <header>
             <div class="home-link-wrap">
@@ -394,78 +374,11 @@ $jsonLd = [
                     </a>
                 </nav>
 
-                <script>
-                    (function () {
-                        var net = window.__bbNetwork;
-                        var isMiamorActive = window.__bbTheme === 'miamor';
-                        var temaSuffix = isMiamorActive ? '&tema=miamor' : '';
-
-                        if (net === 'metro') {
-                            document.getElementById('app-logomark').classList.add('is-metro');
-                            document.getElementById('app-title').firstChild.textContent = 'METRO';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.metro.desc');
-                        } else if (net === 'euskotren') {
-                            document.getElementById('app-logomark').classList.add('is-euskotren');
-                            document.getElementById('app-title').firstChild.textContent = 'EUSKOTREN';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.euskotren.desc');
-                        } else if (net === 'tranvia-bilbao') {
-                            document.getElementById('app-logomark').classList.add('is-tranvia-bilbao');
-                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
-                            document.getElementById('app-title-city').textContent = 'BILBAO';
-                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
-                        } else if (net === 'tranvia-vitoria') {
-                            document.getElementById('app-logomark').classList.add('is-tranvia-vitoria');
-                            document.getElementById('app-title').firstChild.textContent = 'TRANVÍA';
-                            document.getElementById('app-title-city').textContent = 'VITORIA';
-                            document.getElementById('app-subtitle').textContent = I18n.t('app.tram.desc');
-                        } else if (net === 'renfe') {
-                            document.getElementById('app-logomark').classList.add('is-renfe');
-                            document.getElementById('app-title').firstChild.textContent = 'RENFE';
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.renfeSubtitle');
-                        } else {
-                            document.getElementById('app-subtitle').textContent = I18n.t('switcher.bus.desc');
-                        }
-                        if (isMiamorActive && net === 'bus') {
-                            document.getElementById('app-subtitle').textContent = 'Para el amor de mi vida';
-                        }
-
-                        var cityEl = document.getElementById('app-title-city');
-                        if (cityEl.textContent) {
-                            // Que "BILBAO"/"VITORIA" termine justo bajo la "A" de
-                            // "TRANVÍA", sin contar el "+": se mide el ancho real en
-                            // vez de adivinarlo, porque el contenedor del título es
-                            // más ancho que el texto (para poder recortar con "…").
-                            var titleWidth = document.getElementById('app-title').getBoundingClientRect().width;
-                            var markWidth = document.getElementById('app-title-mark').getBoundingClientRect().width;
-                            cityEl.style.width = Math.max(0, titleWidth - markWidth) + 'px';
-                        }
-
-                        var currentCardId = 'net-card-bus';
-                        if (net === 'metro') {
-                            currentCardId = 'net-card-metro';
-                        } else if (net === 'euskotren') {
-                            currentCardId = 'net-card-euskotren';
-                        } else if (net === 'tranvia-bilbao') {
-                            currentCardId = 'net-card-tranvia-bilbao';
-                        } else if (net === 'tranvia-vitoria') {
-                            currentCardId = 'net-card-tranvia-vitoria';
-                        } else if (net === 'renfe') {
-                            currentCardId = 'net-card-renfe';
-                        }
-                        var currentCard = document.getElementById(currentCardId);
-                        if (currentCard) currentCard.hidden = true;
-
-                        if (temaSuffix) {
-                            ['net-card-bus', 'net-card-metro', 'net-card-euskotren', 'net-card-tranvia-bilbao', 'net-card-tranvia-vitoria', 'net-card-renfe'].forEach(function (id) {
-                                var card = document.getElementById(id);
-                                if (card && card !== currentCard) card.href += temaSuffix;
-                            });
-                        }
-                    })();
-</script>
+                <script src="/js/header-brand.js"></script>
             </div>
 
             <span class="header-actions">
+                <?= bideLangSwitch() ?>
                 <button id="lang-toggle" class="btn-icon btn-lang" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
                 <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
@@ -543,6 +456,9 @@ $jsonLd = [
                 </div>
                 <p id="live-empty" role="status" data-i18n="switcher.bus.liveEmpty">Busca una parada para ver el próximo autobús.</p>
 
+            </div>
+
+            <div class="detail">
         <section id="timetable-section" class="timetable glass" hidden>
             <header>
                 <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
@@ -582,38 +498,38 @@ $jsonLd = [
 
             <button id="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
         </section>
+                <p id="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
             </div>
         </div>
+
+<?= bideViews() ?>
 
         <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
         <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>
     </main>
 
+<?= bideInstallBanner() ?>
+
     <footer id="dev-footer">
-        <p><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
-        <p>
-            <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
-            <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
-        </p>
+        <div class="bide-footer-brand">
+            <span class="bide-wordmark">BIDE<span>+</span></span>
+            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+        </div>
+        <?= bideAppsLinks() ?>
+        <div class="bide-footer-author">
+            <p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
+            <p class="bide-footer-links">
+                <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+                <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
+                <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
+            </p>
+        </div>
     </footer>
 
-    <dialog id="legal-panel">
-        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
-        </button>
-        <h3>Aviso Legal, Privacidad y Cookies</h3>
-        <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong>, la <strong>LSSI-CE</strong> y la <strong>Ley 37/2007 de reutilización de la información del sector público</strong>, informamos de lo siguiente:</p>
-        <p><strong>Propiedad intelectual y licencia:</strong> El código fuente, el diseño y los iconos de esta aplicación son obra de Yeray Garrido y se publican bajo la licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" target="_blank" rel="noopener noreferrer">Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)</a>: puedes copiarlos y adaptarlos citando a su autor, sin fines comerciales y compartiendo las obras derivadas bajo la misma licencia. Los datos de transporte pertenecen a sus operadores y se rigen por sus propias licencias (ver «Fuentes de datos» más abajo). Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus respectivos titulares y esta aplicación no tiene relación con ellos.</p>
-        <p><strong>Identidad del responsable:</strong> Proyecto independiente desarrollado sin ánimo de lucro por Yeray Garrido. BizkaiBus+, Metro+, Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+ son proyectos independientes, sin afiliación ni respaldo de Bizkaibus, Metro Bilbao S.A., Euskotren, Renfe ni la Diputación Foral de Bizkaia.</p>
-        <p><strong>Privacidad y Analíticas:</strong> Utilizamos <strong>Vercel Web Analytics</strong> (herramienta respetuosa con la privacidad y libre de cookies) para recoger estadísticas básicas y anónimas de uso (visitas, país, dispositivo). Vercel procesa las direcciones IP temporalmente para generar estas métricas agrupadas, actuando como encargado del tratamiento. Aparte de esto, la app <strong>no recopila, almacena ni cede ningún dato personal tuyo</strong>.</p>
-        <p><strong>Política de Cookies y almacenamiento local:</strong> No usamos cookies de terceros ni de rastreo. Únicamente empleamos el almacenamiento de tu propio dispositivo (<code>localStorage</code> e <code>IndexedDB</code>) para guardar tus paradas "Favoritas", el "Tema", el idioma elegido y, si los activas, tus avisos de incidencias por línea; todo queda solo en tu dispositivo. Al ser almacenamiento puramente técnico y solicitado por ti, está exento de banner de consentimiento según el Art. 22.2 de la LSSI.</p>
-        <p><strong>Ubicación:</strong> Si pulsas «Cerca de mí», tu navegador te pide permiso y la ubicación se envía solo para buscar las paradas más cercanas, sin guardarse. Esta búsqueda necesita conexión a internet.</p>
-        <p><strong>Modo sin conexión:</strong> La app guarda en tu dispositivo lo último que consultaste con conexión (paradas y horarios de líneas ya vistos), para que puedas volver a verlo sin internet. No se actualiza mientras estés sin conexión, y los horarios en tiempo real, la posición de los buses en el mapa, los avisos de incidencias y «Cerca de mí» necesitan conexión: no funcionan en modo sin conexión ni con datos que no hayas consultado antes.</p>
-        <p><strong>Fuentes de datos y exención de responsabilidad:</strong> Los horarios estáticos y, cuando existe, el tiempo real proceden de las fuentes oficiales de cada operador: BizkaiBus+ (Bizkaibus / Open Data Bizkaia, CC-BY 4.0), Metro+ (Metro Bilbao / Open Data Metro Bilbao), Euskotren+, Tranvía Bilbao+ y Tranvía Vitoria+ (Euskotren / Open Data Euskadi, CC-BY 4.0), Renfe Cercanías+ (Renfe / NAP, Punto de Acceso Nacional de Transporte), publicados sin alterarlos. Euskotren+, Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+ muestran el horario programado oficial: no reflejan retrasos, adelantos ni cancelaciones, salvo los avisos de incidencias que publique el propio operador. Si un tren o tranvía va con retraso y el operador no lo publica, la app no puede saberlo. El mapa en vivo de Bizkaibus usa teselas de © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>, cuyos datos también se han usado para asignar zona o barrio a las paradas. En Bizkaibus, la posición de los vehículos y el tiempo estimado de llegada son una estimación calculada a partir de la posición GPS que publica el operador y pueden no coincidir exactamente con la realidad: no los uses como única referencia para no perder un servicio. No garantizamos la exactitud, actualidad ni disponibilidad continua de estos datos; esta aplicación es meramente informativa y su uso es responsabilidad exclusiva de quien la utiliza. Del mismo modo, no nos hacemos responsables de la puntualidad, frecuencia, cancelaciones ni de la calidad o eficacia del propio servicio de transporte: eso depende exclusivamente del operador que presta el servicio y publica los datos, no de esta aplicación. Los cálculos que hace la app (por ejemplo, combinar horarios, estimar retrasos o agrupar viajes) se basan siempre en los datos que publica cada operador: si esos datos de origen están mal o desactualizados, el resultado mostrado puede heredar ese error, y no somos responsables de fallos que vengan de la fuente original y no de nuestro propio procesamiento.</p>
-        <p><strong>Contacto.</strong> <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">yeraygarrido.dev</a></p>
-    </dialog>
+<?= bideTabbar() ?>
+
+<?php require __DIR__ . '/Views/legal.php'; ?>
 
     <dialog id="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -640,6 +556,7 @@ $jsonLd = [
         <button id="menu-close" class="btn-icon" type="button" aria-label="Cerrar menú">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
+        <a class="pill bide-menu-apps" href="/"><?= BIDE_ICONS['apps'] ?><span data-i18n="bide.allApps">Todas las apps</span></a>
         <button id="menu-favorites-open" class="pill" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
             <span data-i18n="app.favorites.title">Tus favoritos</span>
@@ -655,18 +572,8 @@ $jsonLd = [
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
     <script src="js/app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
-            let bbSwRefreshed = false;
-            const bbHadController = !!navigator.serviceWorker.controller;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!bbHadController || bbSwRefreshed) return;
-                bbSwRefreshed = true;
-                location.reload();
-            });
-        }
-</script>
+    <script src="/js/bide.js"></script>
+    <script src="/js/sw-register.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

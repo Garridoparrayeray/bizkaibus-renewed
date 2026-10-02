@@ -134,6 +134,46 @@ found = (get('/api/search?q=A3513') or {}).get('lines', [])
 if found:
     get(f"/api/lines/{found[0]['id']}/schedule-text")
 
+
+# Sitemap: índice válido, un sitemap por red y que sus URLs abran la página con la misma canónica.
+import re as _re
+import xml.dom.minidom as _minidom
+
+
+def fetch_text(path):
+    global count
+    count += 1
+    try:
+        with urllib.request.urlopen(BASE + path, timeout=60) as r:
+            return r.status, r.read().decode('utf-8')
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode('utf-8')
+    except Exception as e:
+        return 0, str(e)
+
+
+code, index = fetch_text('/sitemap.xml')
+try:
+    _minidom.parseString(index)
+except Exception:
+    fails.append(f'/sitemap.xml: XML no válido ({code})')
+    index = ''
+for sub in _re.findall(r'<loc>([^<]+)</loc>', index):
+    path = urllib.parse.urlparse(sub).path
+    code, body = fetch_text(path)
+    locs = _re.findall(r'<loc>([^<]+)</loc>', body)
+    if code != 200 or not locs:
+        fails.append(f'{path}: sin URLs ({code})')
+        continue
+    for loc in locs[::max(1, len(locs) // 4)][:4]:
+        loc = loc.replace('&amp;', '&')
+        parts = urllib.parse.urlparse(loc)
+        code, page = fetch_text(parts.path + ('?' + parts.query if parts.query else ''))
+        canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
+        if code != 200 or canonical != loc:
+            fails.append(f'{path}: {loc} da {code} con canónica {canonical!r}')
+print('sitemap ok')
+
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:
     print(' -', f)

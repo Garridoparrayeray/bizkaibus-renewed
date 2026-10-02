@@ -7,3 +7,4 @@ Thumbs.db
 .phpdoc
 
 .vercel
+__pycache__/
