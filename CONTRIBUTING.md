@@ -22,15 +22,13 @@ La aplicación queda en <http://localhost:8011>. Para que una petición lenta (e
 
 ## Pruebas
 
-Antes de abrir una *pull request*, los tres bloques tienen que salir en verde (con el servidor local en marcha, desde la carpeta `bideplus`):
+Antes de abrir una *pull request*, toda la batería tiene que salir en verde. Desde la carpeta `bideplus` (arranca el servidor local si hace falta):
 
 ```
-python tests/static-checks.py
-python tests/api-smoke.py
-node tests/ui-battery.mjs
+python tests/run-all.py
 ```
 
-También existen `ui-offline.mjs`, `ui-alerts.mjs` y `ui-nearby.mjs`. El detalle de cada prueba está en [bideplus/tests/README.md](bideplus/tests/README.md). Si tu cambio toca el cálculo de llegadas, usa además `php scripts/realtime-backtest.php`, que está explicado en [bideplus/README.md](bideplus/README.md).
+Mientras trabajas, `python tests/run-all.py --rapido` comprueba en unos segundos todo lo que no necesita navegador. El detalle de cada prueba está en [bideplus/tests/README.md](bideplus/tests/README.md), junto con qué prueba ampliar según lo que añadas. Si tu cambio toca el cálculo de llegadas, usa además `php scripts/realtime-backtest.php`, que está explicado en [bideplus/README.md](bideplus/README.md).
 
 ## Estilo del código
 
