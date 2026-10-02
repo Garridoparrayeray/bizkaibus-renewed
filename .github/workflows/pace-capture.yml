@@ -1,0 +1,118 @@
+name: Ritmo de los buses (k)
+
+# Mide cuanto mas rapido o mas lento que el horario van los buses de Bizkaibus
+# y mantiene al dia bideplus/data/pace-factors.json (factor k).
+#
+# - Capturas: varias veces al dia captura el feed en directo unos 25 minutos,
+#   y guarda solo las muestras que hacen falta (no los XML) en un fichero
+#   acumulado que vive como adjunto de la release "pace-data". Las releases no
+#   disparan despliegues de Vercel.
+# - Recalibrado: los lunes calcula k con todo lo acumulado. Solo cambia
+#   pace-factors.json si el error baja en la mitad de prueba y los factores
+#   son distintos; entonces hace un commit y Vercel despliega.
+#
+# Las horas estan en UTC y se han elegido para que caigan en la franja correcta
+# tanto en horario de verano (UTC+2) como de invierno (UTC+1):
+#   05:00 -> 07:00/06:00 punta de manana      08:30 -> 10:30/09:30 manana
+#   12:00 -> 14:00/13:00 mediodia             15:30 -> 17:30/16:30 punta de tarde
+#   19:00 -> 21:00/20:00 noche
+# GitHub puede retrasar unos minutos los trabajos programados.
+
+on:
+  schedule:
+    - cron: '0 5 * * 1-5'
+    - cron: '30 8 * * 1-5'
+    - cron: '0 12 * * 1-5'
+    - cron: '30 15 * * 1-5'
+    - cron: '0 19 * * 1-5'
+    - cron: '0 9 * * 6,0'
+    - cron: '0 16 * * 6'
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Minutos de captura (para probar, 3)'
+        default: '25'
+      recalibrate:
+        description: 'Recalibrar en vez de capturar'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pace-data
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+
+jobs:
+  capture:
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 4 * * 1') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate != 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - name: Reconstruir la base de datos de Bizkaibus
+        env:
+          GEOCODE_MAX_NEW: '0'
+          GEOCODE_MAX_RETRIES: '0'
+        run: php bideplus/scripts/build-database.php --network=bus
+
+      - name: Capturar el feed en directo
+        env:
+          MINUTES: ${{ github.event.inputs.minutes || '25' }}
+        run: php bideplus/scripts/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
+
+      - name: Descargar las muestras acumuladas
+        run: gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay muestras acumuladas"
+
+      - name: Anadir las muestras de esta captura
+        run: php bideplus/scripts/realtime-backtest.php samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/pace-samples.jsonl"
+
+      - name: Guardar las muestras acumuladas
+        run: |
+          gh release view pace-data >/dev/null 2>&1 || gh release create pace-data --prerelease --title "Datos de ritmo (no es una version)" --notes "Muestras acumuladas para calibrar el factor k. Las genera el workflow Ritmo de los buses; no es una version de la app."
+          gh release upload pace-data "$RUNNER_TEMP/pace-samples.jsonl" --clobber
+
+  recalibrate:
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 4 * * 1') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - name: Descargar las muestras acumuladas
+        run: gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP"
+
+      - name: Calibrar
+        run: php bideplus/scripts/realtime-backtest.php calibrate "$RUNNER_TEMP/pace-samples.jsonl" --write
+
+      - name: Guardar el resultado si ha cambiado
+        run: |
+          if git diff --quiet -- bideplus/data/pace-factors.json && [ -z "$(git ls-files --others --exclude-standard bideplus/data/pace-factors.json)" ]; then
+            echo "Sin cambios en pace-factors.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bideplus/data/pace-factors.json
+          git commit -m "chore(bideplus): recalibra el factor k de ritmo"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
