@@ -237,6 +237,7 @@ main {
 }
 .lang-toggle {
     height: 44px;
+    min-width: 120px;
     padding: 0 16px;
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -245,6 +246,7 @@ main {
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
     font-weight: 700;
     font-size: 0.86rem;
+    text-align: center;
     cursor: pointer;
 }
     .lang-toggle:hover { background: #FAF9F6; }

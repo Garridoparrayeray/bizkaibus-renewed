@@ -29,37 +29,37 @@ if ($isMiamorDomain) {
     $sFaviconFolder = 'icons';
 } elseif ($bIsMetroShare) {
     $sOgTitle       = 'Metro+ · Horarios de Metro Bilbao';
-    $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los avisos de servicio, sin vueltas.';
+    $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los avisos de servicio.';
     $sOgImage       = $site['url'] . '/icons-metro/icon-512.png';
     $sFaviconFolder = 'icons-metro';
     $networkSlug    = 'metro';
 } elseif ($bIsEuskoTrenShare) {
     $sOgTitle       = 'Euskotren+ · Horarios de Euskotren';
-    $sOgDescription = 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación, sin vueltas.';
+    $sOgDescription = 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación.';
     $sOgImage       = $site['url'] . '/icons-euskotren/icon-512.png';
     $sFaviconFolder = 'icons-euskotren';
     $networkSlug    = 'euskotren';
 } elseif ($bIsTranviaBilbaoShare) {
     $sOgTitle       = 'Tranvía Bilbao+ · Horarios del tranvía de Bilbao';
-    $sOgDescription = 'Consulta los horarios del tranvía de Bilbao por parada, sin vueltas.';
+    $sOgDescription = 'Consulta los horarios del tranvía de Bilbao por parada.';
     $sOgImage       = $site['url'] . '/icons-tranvia-bilbao/icon-512.png';
     $sFaviconFolder = 'icons-tranvia-bilbao';
     $networkSlug    = 'tranvia-bilbao';
 } elseif ($bIsTranviaVitoriaShare) {
     $sOgTitle       = 'Tranvía Vitoria+ · Horarios del tranvía de Vitoria-Gasteiz';
-    $sOgDescription = 'Consulta los horarios del tranvía de Vitoria-Gasteiz por parada, sin vueltas.';
+    $sOgDescription = 'Consulta los horarios del tranvía de Vitoria-Gasteiz por parada.';
     $sOgImage       = $site['url'] . '/icons-tranvia-vitoria/icon-512.png';
     $sFaviconFolder = 'icons-tranvia-vitoria';
     $networkSlug    = 'tranvia-vitoria';
 } elseif ($bIsRenfeShare) {
     $sOgTitle       = 'Renfe Cercanías+ · Horarios de Cercanías en Bilbao y Donostia';
-    $sOgDescription = 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, sin vueltas.';
+    $sOgDescription = 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada.';
     $sOgImage       = $site['url'] . '/icons-renfe/icon-512.png';
     $sFaviconFolder = 'icons-renfe';
     $networkSlug    = 'renfe';
 } else {
     $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
-    $sOgDescription = 'Consulta los horarios, las líneas, las paradas y las llegadas en tiempo real de Bizkaibus, sin vueltas.';
+    $sOgDescription = 'Consulta horarios, lineas, paradas en tiempo real de Bizkaibus.';
     $sOgImage       = $site['url'] . '/icons-pro/icon-512.png';
     $sFaviconFolder = 'icons-pro';
 }
