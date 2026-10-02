@@ -1,6 +1,7 @@
 :root {
     --bide-green: #01573C;
     --bide-red: #C8102E;
+    --bide-red-bright: #FF4757;
     --bide-ink: #1c211d;
     --bide-muted: #5c665e;
     --bide-line: #dde3dc;
@@ -190,7 +191,7 @@ html.bide .bide-apps-links { display: flex; flex-wrap: wrap; justify-content: ce
 html.bide body.page-app #dev-footer { display: grid; gap: 10px; text-align: center; }
     html.bide body.page-app #dev-footer p { margin: 0; }
     html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
-        html.bide body.page-app .bide-footer-brand .bide-wordmark span { color: #ff9b9b; }
+        html.bide body.page-app .bide-footer-brand .bide-wordmark span { color: var(--bide-red-bright); }
     html.bide body.page-app .bide-footer-brand p { color: rgba(255, 255, 255, .8); font-size: .76rem; line-height: 1.45; }
     html.bide body.page-app #dev-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
         html.bide body.page-app #dev-footer .bide-apps-links a { margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
@@ -324,7 +325,8 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
         html.bide body.page-app #dev-footer .bide-apps-links { flex-direction: column; justify-content: flex-start; gap: 7px; padding-top: 0; border-top: none; }
             html.bide body.page-app #dev-footer .bide-apps-links a { font-size: .85rem; }
         html.bide body.page-app #dev-footer .bide-footer-author p:last-child { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
-            html.bide body.page-app #dev-footer .bide-footer-author a, html.bide body.page-app #dev-footer .bide-footer-author button { margin: 0; }
+            html.bide body.page-app #dev-footer .bide-footer-author a, html.bide body.page-app #dev-footer #legal-open { margin: 0; }
+        html.bide body.page-app #dev-footer .bide-footer-author { display: grid; order: 1; gap: 7px; align-content: start; }
         html.bide body.page-app .bide-footer-brand p { font-size: .82rem; }
 
     html.bide body.page-menu main { display: grid; grid-template-columns: 248px minmax(0, 1fr); column-gap: 24px; max-width: 1400px; align-items: start; }
@@ -349,7 +351,7 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
         font-size: .82rem;
     }
         html.bide body.page-menu .menu-footer .bide-wordmark { display: block; color: #fff; font-size: 1.3rem; }
-            html.bide body.page-menu .menu-footer .bide-wordmark span { color: #ff9b9b; }
+            html.bide body.page-menu .menu-footer .bide-wordmark span { color: var(--bide-red-bright); }
         html.bide body.page-menu .menu-footer .bide-apps-links { flex-direction: column; flex-wrap: nowrap; gap: 7px; }
             html.bide body.page-menu .menu-footer .bide-apps-links a, html.bide body.page-menu .menu-footer .menu-author a, html.bide body.page-menu .menu-footer .menu-legal { color: #fff; font-weight: 600; }
 

@@ -10,7 +10,7 @@ if (!$isMiamorDomain && ($menuPath === '/' || $menuPath === '') && !isset($_GET[
 }
 
 $site = require __DIR__ . '/Config/site.php';
-require_once __DIR__ . '/Views/bide-chrome.php';
+require_once __DIR__ . '/Views/bide-components.php';
 $wordmark = require __DIR__ . '/Views/wordmark.php';
 
 $bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';

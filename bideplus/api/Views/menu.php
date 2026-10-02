@@ -1,6 +1,6 @@
 <?php
 $site = require __DIR__ . '/../Config/site.php';
-require_once __DIR__ . '/bide-chrome.php';
+require_once __DIR__ . '/bide-components.php';
 $title = 'Bide+ · Tu red de transporte público';
 $description = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
 $canonical = $site['url'] . '/';
