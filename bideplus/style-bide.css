@@ -281,17 +281,19 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
     html.bide body.page-app .app-container {
         display: grid;
         grid-template-columns: 248px minmax(0, 1fr);
+        grid-template-rows: repeat(6, auto) 1fr;
         column-gap: 24px;
         align-items: start;
         max-width: 1440px;
     }
-    html.bide body.page-app #net-banner { grid-column: 1 / -1; }
-    html.bide body.page-app .bide-rail { grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 20px; margin-top: 20px; }
-    html.bide body.page-app .app-container > header { grid-column: 2; margin: 20px 0 16px; }
+    html.bide body.page-app #net-banner, html.bide body.page-app .app-container > noscript { grid-column: 1 / -1; grid-row: 1; }
+    html.bide body.page-app .bide-rail { grid-column: 1; grid-row: 2 / -1; position: sticky; top: 20px; margin-top: 20px; }
+    html.bide body.page-app .app-container > header { grid-column: 2; grid-row: 2; margin: 20px 0 16px; }
     html.bide body.page-app .bide-home, html.bide body.page-app #menu-open, html.bide body.page-app #lang-toggle { display: none; }
     html.bide body.page-app .bide-lang { display: inline-flex; }
     html.bide body.page-app .layout {
         grid-column: 2;
+        grid-row: 3;
         display: grid;
         grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr);
         grid-template-areas: "side detail" "main detail";
@@ -300,12 +302,14 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
     }
     html.bide body.page-app .sidebar { grid-area: side; position: static; display: flex; flex-wrap: wrap; gap: 0 10px; }
         html.bide body.page-app #search-form { flex: 1 1 260px; }
-        html.bide body.page-app .nearby-btn { flex: none; width: auto; height: 52px; padding: 0 16px; }
+        html.bide body.page-app .nearby-btn { flex: none; align-self: stretch; width: auto; height: auto; margin-top: 0; padding: 0 16px; }
         html.bide body.page-app #favorites-panel { display: none; }
     html.bide body.page-app .main { grid-area: main; }
     html.bide body.page-app .detail { grid-area: detail; position: sticky; top: 20px; }
     html.bide body.page-app .bide-views, html.bide body.page-app #attribution, html.bide body.page-app #disclaimer { grid-column: 2; }
-    html.bide body.page-app .bide-views { margin-top: 20px; }
+    html.bide body.page-app .bide-views { grid-row: 4; margin-top: 20px; }
+    html.bide body.page-app #attribution { grid-row: 5; }
+    html.bide body.page-app #disclaimer { grid-row: 6; }
     html.bide body.page-app #detail-empty { display: none; margin: 0; padding: 64px 28px; border: 1px dashed var(--bide-line); border-radius: 18px; color: var(--bide-muted); font-weight: 500; text-align: center; }
         html.bide body.page-app #timetable-section[hidden] + #detail-empty { display: block; }
     html.bide body.page-app #dev-footer {

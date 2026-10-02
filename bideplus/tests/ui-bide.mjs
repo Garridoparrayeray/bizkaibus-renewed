@@ -142,6 +142,7 @@ await setStandalone(false);
 await desktop();
 await go('/stops/4255');
 check('ordenador · app: columna de Bide+', await ev(shown('.bide-rail')));
+check('ordenador · buscador y «Cerca de mí» justo bajo la cabecera y alineados', await ev("(() => { const h = document.querySelector('.app-container > header').getBoundingClientRect(); const s = document.querySelector('#search-form').getBoundingClientRect(); const n = document.querySelector('.nearby-btn').getBoundingClientRect(); return s.top - h.bottom < 24 && Math.abs(s.top - n.top) < 2 && Math.abs(s.height - n.height) < 2; })()"));
 check('ordenador · «Todas las apps» empieza plegado', (await ev(shown('.bide-rail-applist'))) === false);
 await ev("document.querySelector('.bide-rail-apps').click(); true");
 check('ordenador · al pulsarlo muestra las 6 apps', (await ev(shown('.bide-rail-applist'))) && (await ev("document.querySelectorAll('.bide-rail-applist a').length")) === 6);
