@@ -1,6 +1,6 @@
 importScripts('/js/alerts-store.js');
 
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
@@ -28,6 +28,10 @@ const SHELL_FILES = [
     '/style-menu.css',
     '/style-splash.css',
     '/js/splash.js',
+    '/js/boot.js',
+    '/js/header-brand.js',
+    '/js/sw-register.js',
+    '/js/menu-lang.js',
     '/manifest.json',
     '/manifest-miamor.json',
     '/manifest-metro.json',
