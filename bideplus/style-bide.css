@@ -1,7 +1,6 @@
 :root {
     --bide-green: #01573C;
     --bide-red: #C8102E;
-    --bide-red-bright: #FF4757;
     --bide-ink: #1c211d;
     --bide-muted: #5c665e;
     --bide-line: #dde3dc;
@@ -186,18 +185,20 @@ html.bide .bide-rail-favorites { padding: 14px; border: 1px solid var(--bide-lin
     html.bide .bide-rail-favorites .bide-fav { padding: 9px 10px; }
     html.bide .bide-rail-favorites .bide-empty { margin: 0; font-size: .85rem; }
 
-/* ===== Pie con enlaces a todas las apps ===== */
-html.bide .bide-apps-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
+/* ===== Pie de Bide+ ===== */
+html.bide .bide-apps-links, html.bide .bide-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
+html.bide .bide-footer-title { flex-basis: 100%; margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+html.bide .bide-footer-legal { padding: 0; border: none; background: none; font: inherit; cursor: pointer; }
 
 /* ===== Página de cada app ===== */
-html.bide body.page-app #dev-footer { display: grid; gap: 10px; text-align: center; }
+html.bide body.page-app #dev-footer { display: grid; gap: 12px; text-align: center; }
     html.bide body.page-app #dev-footer p { margin: 0; }
     html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
-        html.bide body.page-app .bide-footer-brand .bide-wordmark span { color: var(--bide-red-bright); }
     html.bide body.page-app .bide-footer-brand p { color: rgba(255, 255, 255, .8); font-size: .76rem; line-height: 1.45; }
+    html.bide body.page-app #dev-footer .bide-footer-title { color: #9CCD64; }
     html.bide body.page-app #dev-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
-        html.bide body.page-app #dev-footer .bide-apps-links a { margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
-        html.bide body.page-app #dev-footer .bide-apps-links a:hover { text-decoration: underline; }
+        html.bide body.page-app #dev-footer :is(.bide-apps-links, .bide-footer-links) a { margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
+        html.bide body.page-app #dev-footer :is(a, #legal-open):hover { text-decoration: underline; }
 html.bide body.page-app .bide-lang { display: none; }
 html.bide body.page-app .bide-home {
     display: inline-flex;
@@ -228,11 +229,10 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
     html.bide body.page-menu .menu-footer p { margin: 0; }
     html.bide body.page-menu .menu-footer .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; }
     html.bide body.page-menu .menu-footer .bide-wordmark { display: none; }
-    html.bide body.page-menu .menu-footer .bide-apps-links { justify-content: flex-start; }
-        html.bide body.page-menu .menu-footer .bide-apps-links a { color: var(--bide-green); font-weight: 700; text-decoration: none; }
-html.bide body.page-menu .menu-author { line-height: 1.6; }
-    html.bide body.page-menu .menu-author a, html.bide body.page-menu .menu-legal { color: var(--bide-green); font-weight: 700; text-decoration: none; }
-    html.bide body.page-menu .menu-legal { padding: 0; border: none; background: none; font: inherit; font-weight: 700; cursor: pointer; }
+    html.bide body.page-menu .menu-footer .bide-footer-title { color: var(--bide-muted); }
+    html.bide body.page-menu .menu-footer .bide-footer-author { display: flex; flex-direction: column; gap: 4px; }
+    html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) { justify-content: flex-start; }
+        html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { color: var(--bide-green); font-weight: 700; text-decoration: none; }
 
 /* ===== App instalada en el móvil ===== */
 @media (max-width: 1023px) {
@@ -315,21 +315,7 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
     html.bide body.page-app #disclaimer { grid-row: 6; }
     html.bide body.page-app #detail-empty { display: none; margin: 0; padding: 64px 28px; border: 1px dashed var(--bide-line); border-radius: 18px; color: var(--bide-muted); font-weight: 500; text-align: center; }
         html.bide body.page-app #timetable-section[hidden] + #detail-empty { display: block; }
-    html.bide body.page-app #dev-footer {
-        grid-template-columns: 1.3fr 1fr 1fr;
-        gap: 40px;
-        width: auto;
-        margin: 24px 0 0;
-        padding: 30px max(44px, calc((100vw - 1400px) / 2)) 26px;
-        border-radius: 0;
-        text-align: left;
-    }
-        html.bide body.page-app #dev-footer .bide-apps-links { flex-direction: column; justify-content: flex-start; gap: 7px; padding-top: 0; border-top: none; }
-            html.bide body.page-app #dev-footer .bide-apps-links a { font-size: .85rem; }
-        html.bide body.page-app #dev-footer .bide-footer-author p:last-child { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
-            html.bide body.page-app #dev-footer .bide-footer-author a, html.bide body.page-app #dev-footer #legal-open { margin: 0; }
-        html.bide body.page-app #dev-footer .bide-footer-author { display: grid; order: 1; gap: 7px; align-content: start; }
-        html.bide body.page-app .bide-footer-brand p { font-size: .82rem; }
+    html.bide body.page-app #dev-footer { width: auto; margin: 24px 0 0; border-radius: 0; }
 
     html.bide body.page-menu main { display: grid; flex: 1 0 auto; grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: repeat(4, auto) 1fr auto; column-gap: 24px; width: 100%; max-width: 1400px; align-items: start; }
     html.bide body.page-menu .bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
@@ -339,24 +325,25 @@ html.bide body.page-menu .menu-author { line-height: 1.6; }
     html.bide body.page-menu header { padding: 10px 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
     html.bide:not([data-view="list"]) body.page-menu #tr .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     html.bide body.page-menu { display: flex; flex-direction: column; padding-bottom: 0; overflow-x: clip; }
-    html.bide body.page-menu .menu-footer {
-        grid-column: 1 / -1;
-        grid-row: 6;
+    html.bide body.page-menu .menu-footer { grid-column: 1 / -1; grid-row: 6; width: 100vw; margin: 24px 0 0 calc(50% - 50vw); }
+    html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) {
         display: grid;
         grid-template-columns: 1.3fr 1fr 1fr;
         gap: 40px;
-        width: 100vw;
-        margin: 24px 0 0 calc(50% - 50vw);
         box-sizing: border-box;
         padding: 30px max(44px, calc((100vw - 1400px) / 2)) 26px;
         background: var(--bide-green);
-        color: rgba(255, 255, 255, .82);
-        font-size: .82rem;
+        color: #e3efe0;
+        font-size: .84rem;
+        line-height: 1.4;
+        text-align: left;
     }
-        html.bide body.page-menu .menu-footer .bide-wordmark { display: block; color: #fff; font-size: 1.3rem; }
-            html.bide body.page-menu .menu-footer .bide-wordmark span { color: var(--bide-red-bright); }
-        html.bide body.page-menu .menu-footer .bide-apps-links { flex-direction: column; flex-wrap: nowrap; gap: 7px; }
-            html.bide body.page-menu .menu-footer .bide-apps-links a, html.bide body.page-menu .menu-footer .menu-author a, html.bide body.page-menu .menu-footer .menu-legal { color: #fff; font-weight: 600; }
+        html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
+        html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; }
+            html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-brand p { color: #e3efe0; font-size: .84rem; line-height: 1.5; }
+        html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-title { flex-basis: auto; color: #9CCD64; }
+        html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 7px; padding: 0; border: none; }
+        html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, #legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
 
     html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
     html.bide .bide-view[data-bide-view="favoritos"], html.bide .bide-view[data-bide-view="avisos"] { max-width: 880px; }

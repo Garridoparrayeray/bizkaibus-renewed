@@ -108,7 +108,7 @@ function bideInstallBanner(): string
 
 function bideAppsLinks(): string
 {
-    $sHtml = '<nav class="bide-apps-links" data-i18n-attr="aria-label:bide.appsOfBide" aria-label="Apps de Bide+"><a href="/">Bide+</a>';
+    $sHtml = '<nav class="bide-apps-links" data-i18n-attr="aria-label:bide.appsOfBide" aria-label="Apps de Bide+"><p class="bide-footer-title" data-i18n="bide.appsOfBide">Apps de Bide+</p>';
     foreach (BIDE_APPS as [$sApp, $sName]) {
         $sHtml .= '<a href="/?red=' . $sApp . '">' . $sName . '</a>';
     }

@@ -514,18 +514,18 @@ if ($breadcrumbName !== null) {
     <footer id="dev-footer">
         <div class="bide-footer-brand">
             <span class="bide-wordmark">BIDE<span>+</span></span>
-            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores.</p>
+            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
         </div>
+        <?= bideAppsLinks() ?>
         <div class="bide-footer-author">
-            <p><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
-            <p>
+            <p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
+            <p class="bide-footer-links">
                 <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
                 <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
-                <a href="https://github.com/Garridoparrayeray" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
                 <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
             </p>
         </div>
-        <?= bideAppsLinks() ?>
     </footer>
 
 <?= bideTabbar() ?>
