@@ -268,6 +268,7 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
 /* ===== Ordenador ===== */
 @media (min-width: 1024px) {
     html.bide .bide-rail { display: flex; flex-direction: column; gap: 14px; }
+    html.bide .bide-view-back { display: none; }
     html.bide .bide-install { display: none !important; }
 
     html.bide body.page-app .app-container {
