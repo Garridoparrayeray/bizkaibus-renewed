@@ -75,15 +75,15 @@ await ev(`localStorage.clear();
 // ===== Navegador del móvil =====
 await send('Emulation.setUserAgentOverride', { userAgent: IOS_UA });
 await go('/');
-check('navegador · menú: sin barra de pestañas', (await ev(shown('#bide-tabbar'))) === false);
+check('navegador · menú: sin barra de pestañas', (await ev(shown('.bide-tabbar'))) === false);
 check('navegador · menú: con pie', await ev(shown('main > footer')));
 check('navegador · menú: selectores de idioma y vista', (await ev(shown('.bide-lang'))) && (await ev(shown('.view-toggle'))));
 check('navegador · menú: ES marcado', (await ev("document.querySelector('[data-bide-lang=es]').getAttribute('aria-pressed')")) === 'true');
-check('navegador · menú: aviso «Instala Bide+» en iPhone', await waitTrue(shown('#bide-install'), 4000));
+check('navegador · menú: aviso «Instala Bide+» en iPhone', await waitTrue(shown('.bide-install'), 4000));
 check('navegador · menú: sin desbordar a lo ancho', await ev(noOverflow));
-await ev("document.getElementById('bide-install-dismiss').click()");
+await ev("document.querySelector('.bide-install-dismiss').click()");
 await go('/');
-check('navegador · el aviso cerrado no vuelve', (await ev(shown('#bide-install'))) === false);
+check('navegador · el aviso cerrado no vuelve', (await ev(shown('.bide-install'))) === false);
 await ev("localStorage.removeItem('bide_install_dismissed'); true");
 
 await go('/?red=bus');
@@ -98,24 +98,24 @@ await send('Emulation.setUserAgentOverride', { userAgent: '' });
 // ===== App instalada =====
 await setStandalone(true);
 await go('/');
-check('instalada · menú: barra con 4 pestañas', (await ev(shown('#bide-tabbar'))) && (await ev("document.querySelectorAll('#bide-tabbar .bide-tab').length")) === 4);
-check('instalada · menú: «Apps» marcada', (await ev("document.querySelector('#bide-tabbar [data-bide-tab=apps]').getAttribute('aria-current')")) === 'page');
-check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('main > footer'))) === false && (await ev(shown('#bide-install'))) === false);
+check('instalada · menú: barra con 4 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 4);
+check('instalada · menú: «Apps» marcada', (await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').getAttribute('aria-current')")) === 'page');
+check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('main > footer'))) === false && (await ev(shown('.bide-install'))) === false);
 
-await ev("document.querySelector('#bide-tabbar [data-bide-tab=favoritos]').click(); true");
-check('instalada · Favoritos: se abre como página', await waitTrue(shown('#bide-view-favoritos')));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=favoritos]').click(); true");
+check('instalada · Favoritos: se abre como página', await waitTrue(shown('[data-bide-view=favoritos]')));
 check('instalada · Favoritos: oculta las fichas de apps', (await ev(shown('#tr'))) === false);
-check('instalada · Favoritos: agrupa Bizkaibus+ y Metro+', (await ev("[...document.querySelectorAll('#bide-view-favoritos .bide-group')].map(n => n.textContent).join('|')")) === 'Bizkaibus+|Metro+');
-check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('#bide-view-favoritos .bide-fav').length === 3 && document.querySelector('#bide-view-favoritos .bide-fav strong').textContent.includes('MOYUA')"));
-check('instalada · Favoritos: enlaza a la parada en su app', (await ev("document.querySelectorAll('#bide-view-favoritos .bide-fav')[2].getAttribute('href')")) === '/stops/7?red=metro');
+check('instalada · Favoritos: agrupa Bizkaibus+ y Metro+', (await ev("[...document.querySelectorAll('[data-bide-view=favoritos] .bide-group')].map(n => n.textContent).join('|')")) === 'Bizkaibus+|Metro+');
+check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav').length === 3 && document.querySelector('[data-bide-view=favoritos] .bide-fav strong').textContent.includes('MOYUA')"));
+check('instalada · Favoritos: enlaza a la parada en su app', (await ev("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav')[2].getAttribute('href')")) === '/stops/7?red=metro');
 check('instalada · Favoritos: se puede volver con «atrás»', (await ev("location.hash")) === '#favoritos');
 await ev('history.back(); true');
 check('instalada · «atrás» cierra la página', await waitTrue(`${shown('#tr')} && location.hash === ''`));
 check('instalada · Favoritos: sin desbordar a lo ancho', await ev(noOverflow));
 
-await ev("document.querySelector('#bide-tabbar [data-bide-tab=info]').click(); true");
-check('instalada · Info: se abre como página', await waitTrue(shown('#bide-view-info')));
-await ev("document.querySelector('#bide-view-info [data-bide-legal]').click(); true");
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
+check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
+await ev("document.querySelector('[data-bide-view=info] [data-bide-legal]').click(); true");
 check('instalada · Info: abre el aviso legal', (await ev("document.getElementById('legal-panel').open")) === true);
 await ev("document.getElementById('legal-close').click(); true");
 check('instalada · Info: el aviso legal se cierra', (await ev("document.getElementById('legal-panel').open")) === false);
@@ -127,40 +127,41 @@ await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
 
 await go('/?red=bus');
-check('instalada · app: barra de pestañas y botón para volver', (await ev(shown('#bide-tabbar'))) && (await ev(shown('.bide-home'))));
+check('instalada · app: barra de pestañas y botón para volver', (await ev(shown('.bide-tabbar'))) && (await ev(shown('.bide-home'))));
 check('instalada · app: sin ☰ ni pie', (await ev(shown('#menu-open'))) === false && (await ev(shown('#dev-footer'))) === false);
 check('instalada · app: se mantiene «Cerca de mí»', await ev(shown('#nearby-btn')));
-await ev("document.querySelector('#bide-tabbar [data-bide-tab=avisos]').click(); true");
-check('instalada · Avisos: lleva el interruptor de notificaciones', await waitTrue("!!document.querySelector('#bide-view-avisos .alerts-toggle')"));
-await ev("document.querySelector('#bide-tabbar [data-bide-tab=apps]').click(); true");
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
+check('instalada · Avisos: lleva el interruptor de notificaciones', await waitTrue("!!document.querySelector('[data-bide-view=avisos] .alerts-toggle')"));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 check('instalada · «Apps» cierra la página abierta', await waitTrue(shown('.layout')));
-await ev("document.querySelector('#bide-tabbar [data-bide-tab=apps]').click(); true");
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 check('instalada · «Apps» vuelve al menú de Bide+', await waitTrue("location.pathname === '/' && location.search === '' && !!document.getElementById('tr')"));
 await setStandalone(false);
 
 // ===== Ordenador =====
 await desktop();
 await go('/stops/4255');
-check('ordenador · app: columna de Bide+', await ev(shown('#bide-rail')));
-check('ordenador · «Todas las apps» empieza plegado', (await ev(shown('#bide-rail-apps'))) === false);
+check('ordenador · app: columna de Bide+', await ev(shown('.bide-rail')));
+check('ordenador · «Todas las apps» empieza plegado', (await ev(shown('.bide-rail-applist'))) === false);
 await ev("document.querySelector('.bide-rail-apps').click(); true");
-check('ordenador · al pulsarlo muestra las 6 apps', (await ev(shown('#bide-rail-apps'))) && (await ev("document.querySelectorAll('#bide-rail-apps a').length")) === 6);
-check('ordenador · marca la app actual', (await ev("document.querySelector('#bide-rail-apps [aria-current=page]').textContent")) === 'Bizkaibus+');
-check('ordenador · favoritos de todas las apps en la columna', await waitTrue("document.querySelectorAll('#bide-rail .bide-fav').length === 3"));
+check('ordenador · al pulsarlo muestra las 6 apps', (await ev(shown('.bide-rail-applist'))) && (await ev("document.querySelectorAll('.bide-rail-applist a').length")) === 6);
+check('ordenador · cada app con su logo', await waitTrue("[...document.querySelectorAll('.bide-rail-applist .bide-app-logo')].filter(img => img.complete && img.naturalWidth > 0).length === 6"));
+check('ordenador · marca la app actual', (await ev("document.querySelector('.bide-rail-applist [aria-current=page]').textContent")) === 'Bizkaibus+');
+check('ordenador · favoritos de todas las apps en la columna', await waitTrue("document.querySelectorAll('.bide-rail .bide-fav').length === 3"));
 check('ordenador · selector ES | EU en la banda, sin ☰', (await ev(shown('.app-container > header .bide-lang'))) && (await ev(shown('#menu-open'))) === false);
 check('ordenador · pie con las apps', (await ev(shown('#dev-footer'))) && (await ev(shown('#dev-footer .bide-apps-links'))));
 check('ordenador · sin línea abierta, explica el hueco del detalle', await ev(shown('#detail-empty')));
-await ev("document.querySelector('#bide-rail [data-bide-tab=info]').click(); true");
-check('ordenador · Info se abre en el contenido', (await waitTrue(shown('#bide-view-info'))) && (await ev(shown('.layout'))) === false && (await ev(shown('#bide-rail'))));
+await ev("document.querySelector('.bide-rail [data-bide-tab=info]').click(); true");
+check('ordenador · Info se abre en el contenido', (await waitTrue(shown('[data-bide-view=info]'))) && (await ev(shown('.layout'))) === false && (await ev(shown('.bide-rail'))));
 check('ordenador · sin desbordar a lo ancho', await ev(noOverflow));
 await go('/');
-check('ordenador · menú: columna de Bide+ y sin título repetido', (await ev(shown('#bide-rail'))) && (await ev(shown('.bide-page-title'))) === false);
+check('ordenador · menú: columna de Bide+ sin título en la barra', (await ev(shown('.bide-rail'))) && (await ev(shown('.menu-brand'))) === false);
 check('ordenador · menú: idioma a la izquierda y vista a la derecha, en una fila', await ev("(() => { const l = document.querySelector('.bide-lang').getBoundingClientRect(); const v = document.querySelector('.view-toggle').getBoundingClientRect(); return Math.abs(l.top - v.top) < 4 && l.right < v.left && v.right > window.innerWidth * 0.8; })()"));
 
 // ===== Tema «mi amor»: sin cambios =====
 await phone();
 await go('/?red=bus&tema=miamor');
-check('«mi amor»: no usa la navegación de Bide+', (await ev("document.documentElement.classList.contains('bide')")) === false && (await ev(shown('#bide-tabbar'))) === false && (await ev(shown('#bide-rail'))) === false);
+check('«mi amor»: no usa la navegación de Bide+', (await ev("document.documentElement.classList.contains('bide')")) === false && (await ev(shown('.bide-tabbar'))) === false && (await ev(shown('.bide-rail'))) === false);
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];
