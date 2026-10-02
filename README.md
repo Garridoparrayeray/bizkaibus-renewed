@@ -47,4 +47,4 @@ El código, el diseño y los iconos se publican bajo [Creative Commons Reconocim
 
 El uso comercial, la reventa y los despliegues institucionales (administraciones, entidades públicas o privadas) por parte de terceros requieren autorización del titular. Para una licencia comercial, mira la cabecera del archivo [LICENSE](LICENSE).
 
-Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares. Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
+Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares, menos los generados para usar la aplicación que están publicados bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE). Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
