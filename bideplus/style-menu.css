@@ -237,7 +237,7 @@ main {
 }
 .lang-toggle {
     height: 44px;
-    min-width: 120px;
+    min-width: 80px;
     padding: 0 16px;
     border: 1px solid var(--line);
     border-radius: 12px;
