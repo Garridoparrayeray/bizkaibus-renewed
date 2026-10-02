@@ -54,5 +54,11 @@ print('geocache (caché de geocodificación):', 'OK' if geo.returncode == 0 else
 if geo.returncode != 0:
     failures.append('prueba de geocache')
 
+for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('integridad de las bases de datos', 'data-integrity.php')):
+    r = subprocess.run([PHP, ROOT + 'tests/' + script], capture_output=True, text=True)
+    print(label + ':', 'OK' if r.returncode == 0 else '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:])
+    if r.returncode != 0:
+        failures.append(label)
+
 print('RESULTADO estatico:', 'OK' if not failures else 'FALLA -> ' + '; '.join(failures))
 sys.exit(1 if failures else 0)

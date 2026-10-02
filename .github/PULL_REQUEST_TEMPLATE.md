@@ -8,7 +8,8 @@
 
 ## Lista de comprobación
 
-- [ ] `python tests/static-checks.py`, `python tests/api-smoke.py` y `node tests/ui-battery.mjs` salen en verde.
+- [ ] `python tests/run-all.py` sale en verde.
+- [ ] Si añado lógica, rutas, campos u operadores nuevos, he ampliado las pruebas (ver [tests/README.md](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/bideplus/tests/README.md#al-añadir-algo-nuevo)).
 - [ ] El estilo del código es el del entorno (ver la [guía para contribuir](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/CONTRIBUTING.md)).
 - [ ] Si cambia algún texto, está en castellano y en euskera.
 - [ ] No incluyo bases de datos `.sqlite` regeneradas, claves ni datos personales.
