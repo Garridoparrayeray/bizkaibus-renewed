@@ -203,11 +203,18 @@ $jsonLd = [
         <footer class="menu-footer">
             <div class="bide-footer-brand">
                 <span class="bide-wordmark">BIDE<span>+</span></span>
-                <p data-i18n="menu.footer">Proyecto independiente de Yeray Garrido. Horarios a partir de los datos abiertos de Euskadi y Metro Bilbao.</p>
-                <p data-i18n="menu.privacy">Esta página no recoge datos personales ni usa analíticas: solo guarda en tu dispositivo la vista y el idioma elegidos. Cada app tiene su aviso legal y de privacidad completo dentro.</p>
+                <p data-i18n="menu.footer">Datos abiertos de Bizkaibus, Metro Bilbao, Euskotren y Renfe (CC-BY 4.0 donde corresponde). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
             </div>
             <?= bideAppsLinks() ?>
-            <p class="menu-author"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido · <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a> · <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a> · <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer">GitHub</a> · <button type="button" class="menu-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button></p>
+            <div class="bide-footer-author">
+                <p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
+                <p class="bide-footer-links">
+                    <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
+                    <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
+                    <button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>
+                </p>
+            </div>
         </footer>
     </main>
 <?= bideTabbar() ?>
