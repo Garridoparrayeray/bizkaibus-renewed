@@ -10,7 +10,7 @@ python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unit
 O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal:
 
 ```
-python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs
+python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
 ```
 
 | Script | Qué comprueba |
@@ -23,6 +23,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 | `ui-battery.mjs` | Navegador headless en móvil y ordenador: cargar, buscar, ficha, favoritos, menú, horario completo, modal del tren, aviso legal, selector de app, enlaces directos, menú Bide+, tema «mi amor» y 404 reales. Falla si hay errores de consola o de red |
 | `ui-offline.mjs` | Que las cuatro páginas solo piden recursos propios (tipografías y Leaflet ya no vienen de Google ni unpkg), que las tipografías y el mapa cargan, y que con el servidor caído la app arranca desde el service worker y avisa de la falta de conexión |
 | `ui-alerts.mjs` | Avisos de incidencias por línea favorita: línea base sin notificar, aviso nuevo una sola vez, tope de 3 notificaciones más un resumen, fallos de la API, interruptor del menú (permiso concedido y denegado) y notificación real del service worker con sincronización periódica |
+| `ui-bide.mjs` | Bide+ como una sola app: en el navegador del móvil (pie, ☰, aviso «Instala Bide+»), instalada (4 pestañas, sin pie ni ☰, páginas de Favoritos de todas las apps, Avisos e Info, aviso legal, «atrás»), selector ES/EU, en ordenador (columna lateral, «Todas las apps» plegable, banda con idioma, pie con las apps, hueco del detalle) y que el tema «mi amor» no cambia |
 | `ui-nearby.mjs` | Botón «Cerca de mí» con la ubicación simulada en Bizkaibus, Metro y Euskotren (parada más cercana, distancia, próxima salida, abrir ficha), ubicación fuera de la zona y permiso denegado |
 
 Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (bus,metro,euskotren,tranvia-bilbao,tranvia-vitoria,renfe), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.

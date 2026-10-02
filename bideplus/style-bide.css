@@ -1,0 +1,345 @@
+/* ===== Bide+ como una sola app =====
+   Se carga en el menú (body.page-menu) y en cada app (body.page-app). Todo va bajo html.bide,
+   que bide-mode.js no pone en el tema «mi amor».
+   - Navegador del móvil: pie, botón ☰ y aviso «Instala Bide+».
+   - App instalada (html.is-standalone, < 1024 px): barra de pestañas, sin pie ni ☰.
+   - Ordenador (>= 1024 px): columna de Bide+ a la izquierda y pie completo. */
+:root {
+    --bide-green: #01573C;
+    --bide-red: #C8102E;
+    --bide-ink: #1c211d;
+    --bide-muted: #5c665e;
+    --bide-line: #dde3dc;
+    --bide-tint: #EEF6E4;
+    --bide-surface: #ffffff;
+    --bide-bg: #f4f6f4;
+    --bide-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+html.bide [hidden] { display: none !important; }
+.bide-tabbar, .bide-rail, .bide-home, .bide-page-title, #bide-views, .bide-install, .bide-apps-links, #detail-empty { display: none; }
+html.bide #bide-views { display: block; overflow-x: clip; }
+
+/* ===== Piezas comunes ===== */
+html.bide .bide-swatch { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--bide-green); }
+html.bide .bide-swatch--metro { background: #C8102E; }
+html.bide .bide-swatch--euskotren { background: #003F8C; }
+html.bide .bide-swatch--renfe { background: #74349A; }
+html.bide .bide-swatch--tranvia-bilbao { background: #2f7a2a; }
+html.bide .bide-swatch--tranvia-vitoria { background: #3f7f1c; }
+html.bide .bide-wordmark { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; color: var(--bide-green); }
+    html.bide .bide-wordmark span { color: var(--bide-red); }
+
+html.bide .bide-seg {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    background: var(--bide-surface);
+}
+    html.bide .bide-seg button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        height: 34px;
+        padding: 0 10px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--bide-green);
+        font-family: inherit;
+        font-size: .85rem;
+        font-weight: 800;
+        cursor: pointer;
+        transition: background-color .18s ease, color .18s ease, transform .12s ease;
+    }
+        html.bide .bide-seg button svg { width: 18px; height: 18px; }
+        html.bide .bide-seg button[aria-pressed="true"] { background: var(--bide-green); color: #fff; }
+
+/* Pulsación: los botones se hunden un poco. */
+html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .bide-home, .nearby-btn, .pill, #bide-install-accept):active { transform: scale(.95); }
+
+/* ===== Páginas: Favoritos, Avisos, Info ===== */
+html.bide .bide-view { padding: 4px 0 24px; animation: bide-slide .32s var(--bide-ease) both; }
+@keyframes bide-slide { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+@keyframes bide-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+html.bide .bide-view-head, html.bide body.page-menu .bide-view-head { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 12px; margin: 0 0 14px; padding: 0; border: none; background: none; }
+    html.bide .bide-view-head h2 { margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--bide-ink); outline: none; }
+html.bide .bide-view-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--bide-line);
+    border-radius: 50%;
+    background: var(--bide-surface);
+    color: var(--bide-ink);
+    cursor: pointer;
+}
+    html.bide .bide-view-back svg { width: 20px; height: 20px; }
+html.bide .bide-fav-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+html.bide .bide-group { display: flex; align-items: center; gap: 8px; margin: 10px 4px 2px; color: #3d4640; font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+html.bide .bide-fav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    background: var(--bide-surface);
+    color: var(--bide-ink);
+    text-decoration: none;
+    transition: background-color .15s ease, transform .12s ease;
+}
+    html.bide .bide-fav:hover { background: var(--bide-tint); }
+    html.bide .bide-fav .bide-swatch { width: 8px; height: 30px; }
+    html.bide .bide-fav-text { display: flex; flex-direction: column; min-width: 0; }
+        html.bide .bide-fav-text strong { font-size: .95rem; overflow-wrap: anywhere; }
+        html.bide .bide-fav-text span { color: var(--bide-muted); font-size: .8rem; }
+html.bide .bide-empty, html.bide .bide-note { margin: 6px 4px; color: var(--bide-muted); font-size: .9rem; line-height: 1.45; }
+html.bide .bide-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 16px;
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    background: var(--bide-surface);
+    color: var(--bide-ink);
+    font-family: inherit;
+    text-align: left;
+}
+    html.bide .bide-card h3 { margin: 0; color: var(--bide-muted); font-size: .75rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    html.bide .bide-card p { margin: 0; font-size: .92rem; line-height: 1.5; }
+    html.bide .bide-alert strong { color: #B34A14; font-size: .95rem; }
+    html.bide .bide-alert p { color: var(--bide-muted); white-space: pre-line; }
+html.bide .bide-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+    html.bide .bide-links a { color: var(--bide-green); font-weight: 700; text-decoration: none; }
+html.bide .bide-card-link { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; color: var(--bide-green); font-size: 1rem; font-weight: 800; cursor: pointer; }
+    html.bide .bide-card-link svg { width: 18px; height: 18px; }
+html.bide .bide-alerts-toggle-slot:not(:empty) { margin: 0 0 12px; padding: 14px 16px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); }
+    html.bide .bide-alerts-toggle-slot .alerts-toggle { margin: 0; }
+
+/* Con una página abierta se oculta el contenido de la app o del menú. */
+html.bide.bide-view-open body.page-app .app-container > :not(#bide-views):not(#bide-rail):not(#net-banner),
+html.bide.bide-view-open body.page-menu main > :not(#bide-views):not(#bide-rail) { display: none; }
+
+/* ===== Aviso de instalación ===== */
+html.bide .bide-install {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    width: min(100% - 28px, 560px);
+    margin: 0 auto 16px;
+    padding: 12px 8px 12px 14px;
+    border: 1px solid var(--bide-line);
+    border-radius: 18px;
+    background: var(--bide-surface);
+    box-shadow: 0 6px 20px -10px rgba(0, 0, 0, .25);
+    color: var(--bide-ink);
+    animation: bide-drop .3s var(--bide-ease) both;
+}
+    html.bide .bide-install-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--bide-line); border-radius: 11px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; color: var(--bide-green); }
+        html.bide .bide-install-icon span { color: var(--bide-red); }
+    html.bide .bide-install-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        html.bide .bide-install-text strong { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1rem; }
+        html.bide .bide-install-text span { color: var(--bide-muted); font-size: .8rem; line-height: 1.35; }
+    html.bide #bide-install-accept { padding: 9px 14px; border: none; border-radius: 999px; background: var(--bide-green); color: #fff; font-family: inherit; font-size: .88rem; font-weight: 700; cursor: pointer; }
+    html.bide .bide-icon-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; color: var(--bide-muted); cursor: pointer; }
+        html.bide .bide-icon-btn svg { width: 18px; height: 18px; }
+
+/* ===== Columna de Bide+ (se muestra en ordenador) ===== */
+html.bide .bide-rail-brand { display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); color: var(--bide-muted); font-size: .82rem; text-decoration: none; }
+    html.bide .bide-rail-brand .bide-wordmark { font-size: 2.1rem; line-height: 1; }
+        html.bide .bide-rail-brand .bide-wordmark span { font-size: 1.3rem; vertical-align: top; }
+html.bide .bide-rail-nav { display: flex; flex-direction: column; gap: 2px; }
+html.bide .bide-rail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--bide-ink);
+    font-family: inherit;
+    font-size: .92rem;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .15s ease, transform .12s ease;
+}
+    html.bide .bide-rail-item:hover, html.bide .bide-rail-item[aria-current="page"], html.bide .bide-rail-apps[aria-expanded="true"] { background: var(--bide-tint); color: var(--bide-green); }
+    html.bide .bide-rail-item[aria-current="page"] { font-weight: 800; }
+    html.bide .bide-rail-item > svg { width: 18px; height: 18px; flex: none; color: var(--bide-green); }
+html.bide .bide-rail-apps { font-weight: 700; }
+html.bide .bide-rail-chevron { display: flex; margin-left: auto; color: var(--bide-muted); transition: transform .25s var(--bide-ease); }
+    html.bide .bide-rail-chevron svg { width: 16px; height: 16px; }
+    html.bide .bide-rail-apps[aria-expanded="true"] .bide-rail-chevron { transform: rotate(180deg); }
+html.bide .bide-rail-applist { display: flex; flex-direction: column; gap: 2px; margin-left: 14px; padding-left: 8px; border-left: 2px solid var(--bide-line); animation: bide-drop .3s var(--bide-ease) both; }
+html.bide .bide-rail-sep { height: 1px; margin: 8px 0; background: var(--bide-line); }
+html.bide .bide-rail-favorites { padding: 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
+    html.bide .bide-rail-favorites h2 { margin: 0 0 10px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1rem; font-weight: 700; color: var(--bide-ink); }
+    html.bide .bide-rail-favorites .bide-fav { padding: 9px 10px; }
+    html.bide .bide-rail-favorites .bide-empty { margin: 0; font-size: .85rem; }
+
+/* ===== Pie con enlaces a todas las apps ===== */
+html.bide .bide-apps-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
+
+/* ===== Página de cada app ===== */
+html.bide body.page-app #dev-footer { display: grid; gap: 10px; text-align: center; }
+    html.bide body.page-app #dev-footer p { margin: 0; }
+    html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
+        html.bide body.page-app .bide-footer-brand .bide-wordmark span { color: #ff9b9b; }
+    html.bide body.page-app .bide-footer-brand p { color: rgba(255, 255, 255, .8); font-size: .76rem; line-height: 1.45; }
+    html.bide body.page-app #dev-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
+        html.bide body.page-app #dev-footer .bide-apps-links a { margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
+        html.bide body.page-app #dev-footer .bide-apps-links a:hover { text-decoration: underline; }
+html.bide body.page-app .bide-lang { display: none; }
+html.bide body.page-app .bide-home {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .18);
+    color: #fff;
+}
+    html.bide body.page-app .bide-home svg { width: 20px; height: 20px; }
+html.bide body.page-app .app-container > header { justify-content: flex-start; }
+    html.bide body.page-app .app-container > header .home-link-wrap { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+    html.bide body.page-app .app-container > header .header-actions { margin-left: auto; }
+
+/* ===== Menú de Bide+ ===== */
+html.bide body.page-menu header { flex-wrap: nowrap; align-items: center; }
+    html.bide body.page-menu .menu-brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        html.bide body.page-menu .menu-brand p { order: 0; flex-basis: auto; }
+    html.bide body.page-menu .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+    html.bide body.page-menu .view-toggle.bide-seg { padding: 4px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); box-shadow: none; }
+        html.bide body.page-menu .view-toggle.bide-seg button { width: auto; min-width: 48px; height: 34px; border-radius: 10px; box-shadow: none; }
+html.bide body.page-menu .menu-author { line-height: 1.6; }
+    html.bide body.page-menu .menu-author a, html.bide body.page-menu .menu-legal { color: var(--bide-green); font-weight: 700; text-decoration: none; }
+    html.bide body.page-menu .menu-legal { padding: 0; border: none; background: none; font: inherit; font-weight: 700; cursor: pointer; }
+
+/* ===== App instalada en el móvil: pestañas abajo ===== */
+@media (max-width: 1023px) {
+    html.bide.is-standalone .bide-tabbar {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 55;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 2px;
+        padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--bide-line);
+        background: var(--bide-surface);
+        box-shadow: 0 -6px 20px -12px rgba(0, 0, 0, .25);
+    }
+    html.bide .bide-tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        min-height: 52px;
+        border: none;
+        border-radius: 12px;
+        background: none;
+        color: var(--bide-muted);
+        font-family: inherit;
+        font-size: .72rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color .15s ease, transform .12s ease;
+    }
+        html.bide .bide-tab svg { width: 22px; height: 22px; }
+        html.bide .bide-tab[aria-current="page"] { color: var(--bide-green); font-weight: 800; }
+    html.bide.is-standalone body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+    html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+    html.bide.is-standalone body.page-app #dev-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone #menu-open { display: none; }
+    html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
+    html.bide body.page-app #bide-views { padding: 0 2px; }
+}
+
+/* ===== Ordenador ===== */
+@media (min-width: 1024px) {
+    html.bide .bide-rail { display: flex; flex-direction: column; gap: 14px; }
+    html.bide .bide-install { display: none !important; }
+
+    /* Página de una app: columna de Bide+ | contenido */
+    html.bide body.page-app .app-container {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        column-gap: 24px;
+        align-items: start;
+        max-width: 1440px;
+    }
+    html.bide body.page-app #net-banner { grid-column: 1 / -1; }
+    html.bide body.page-app #bide-rail { grid-column: 1; grid-row: 1 / span 6; position: sticky; top: 20px; margin-top: 20px; }
+    html.bide body.page-app .app-container > header { grid-column: 2; margin: 20px 0 16px; }
+    html.bide body.page-app .bide-home, html.bide body.page-app #menu-open, html.bide body.page-app #lang-toggle { display: none; }
+    html.bide body.page-app .bide-lang { display: inline-flex; }
+    html.bide body.page-app .layout {
+        grid-column: 2;
+        display: grid;
+        grid-template-columns: minmax(320px, .9fr) minmax(0, 1.1fr);
+        grid-template-areas: "side detail" "main detail";
+        grid-template-rows: auto 1fr;
+        gap: 0 24px;
+    }
+    html.bide body.page-app .sidebar { grid-area: side; position: static; display: flex; flex-wrap: wrap; gap: 0 10px; }
+        html.bide body.page-app #search-form { flex: 1 1 260px; }
+        html.bide body.page-app .nearby-btn { flex: none; width: auto; height: 52px; padding: 0 16px; }
+        html.bide body.page-app #favorites-panel { display: none; }
+    html.bide body.page-app .main { grid-area: main; }
+    html.bide body.page-app .detail { grid-area: detail; position: sticky; top: 20px; }
+    html.bide body.page-app #bide-views, html.bide body.page-app #attribution, html.bide body.page-app #disclaimer { grid-column: 2; }
+    html.bide body.page-app #bide-views { margin-top: 20px; }
+    html.bide body.page-app #detail-empty { display: none; margin: 0; padding: 64px 28px; border: 1px dashed var(--bide-line); border-radius: 18px; color: var(--bide-muted); font-weight: 500; text-align: center; }
+        html.bide body.page-app #timetable-section[hidden] + #detail-empty { display: block; }
+    html.bide body.page-app #dev-footer {
+        grid-template-columns: 1.3fr 1fr 1fr;
+        gap: 40px;
+        width: auto;
+        margin: 24px 0 0;
+        padding: 30px max(44px, calc((100vw - 1400px) / 2)) 26px;
+        border-radius: 0;
+        text-align: left;
+    }
+        html.bide body.page-app #dev-footer .bide-apps-links { flex-direction: column; justify-content: flex-start; gap: 7px; padding-top: 0; border-top: none; }
+            html.bide body.page-app #dev-footer .bide-apps-links a { font-size: .85rem; }
+        html.bide body.page-app #dev-footer .bide-footer-author p:last-child { display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }
+            html.bide body.page-app #dev-footer .bide-footer-author a, html.bide body.page-app #dev-footer .bide-footer-author button { margin: 0; }
+        html.bide body.page-app .bide-footer-brand p { font-size: .82rem; }
+
+    /* Menú: columna de Bide+ | fichas */
+    html.bide body.page-menu main { display: grid; grid-template-columns: 248px minmax(0, 1fr); column-gap: 24px; max-width: 1400px; align-items: start; }
+    html.bide body.page-menu #bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
+    html.bide body.page-menu main > :not(#bide-rail) { grid-column: 2; }
+    html.bide body.page-menu .menu-brand { display: none; }
+    html.bide body.page-menu .bide-page-title { order: 1; display: block; margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.9rem; font-weight: 800; color: var(--bide-ink); }
+    html.bide body.page-menu .header-controls { order: 2; }
+    html.bide body.page-menu header { padding: 14px 18px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
+    html.bide body.page-menu .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
+    html.bide #bide-view-favoritos, html.bide #bide-view-avisos { max-width: 880px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.bide .bide-view, html.bide .bide-rail-applist, html.bide .bide-install { animation: none; }
+    html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .bide-home, .nearby-btn, .pill, #bide-install-accept):active { transform: none; }
+    html.bide .bide-rail-chevron { transition: none; }
+}
