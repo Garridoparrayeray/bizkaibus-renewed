@@ -26,13 +26,13 @@
             "icons": [{ "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
         }
     ],
-    "background_color": "#FDECDD",
-    "theme_color": "#EE7203",
+    "background_color": "#F3EAF8",
+    "theme_color": "#74349A",
     "lang": "es",
     "categories": ["travel", "navigation", "utilities"],
     "icons": [
         { "src": "icons-renfe/icon-192.png", "sizes": "192x192", "type": "image/png" },
         { "src": "icons-renfe/icon-512.png", "sizes": "512x512", "type": "image/png" },
-        { "src": "icons-renfe/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+        { "src": "icons-renfe/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
     ]
 }

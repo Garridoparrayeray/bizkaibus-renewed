@@ -6,6 +6,7 @@ use Core\Config;
 use Core\Request;
 use Core\Response;
 use Services\MetroAlertsClient;
+use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
 class AlertsController
@@ -38,12 +39,20 @@ class AlertsController
             return;
         }
 
-        if (!isset($aConfig['siri'])) {
+        if (isset($aConfig['renfe_alerts'])) {
+            $Client = new RenfeAlertsClient($aConfig);
+        } elseif (isset($aConfig['siri'])) {
+            $Client = new SiriAlertsClient($aConfig);
+        } else {
             Response::json(['alerts' => []]);
             return;
         }
 
-        $Client = new SiriAlertsClient($aConfig);
+        $sStopFilter = $Req->query('stop');
+        if ($sStopFilter !== null && $Client instanceof RenfeAlertsClient) {
+            Response::json(['alerts' => $Client->alertsForStop($sStopFilter)]);
+            return;
+        }
 
         $sLineFilter = $Req->query('line');
         if ($sLineFilter !== null) {

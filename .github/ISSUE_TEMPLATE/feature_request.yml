@@ -1,0 +1,47 @@
+name: Una idea o mejora
+description: Propón algo nuevo o un cambio en lo que ya existe.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: app
+    attributes:
+      label: ¿Para qué app?
+      options:
+        - Bizkaibus+
+        - Metro+
+        - Euskotren+
+        - Tranvía Bilbao+
+        - Tranvía Vitoria+
+        - Renfe Cercanías+
+        - Menú de Bide+
+        - Una app nueva
+        - Para todas
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: ¿Qué problema o necesidad tienes?
+      description: Cuenta la situación, no solo la solución.
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: ¿Cómo te gustaría que funcionara?
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: ¿Has pensado en otras alternativas?
+  - type: dropdown
+    id: datos
+    attributes:
+      label: ¿Hay datos públicos para hacerlo?
+      description: Muchas ideas dependen de que el operador publique el dato (por ejemplo, la ocupación de los buses no se publica).
+      options:
+        - No lo sé
+        - Sí, y tengo el enlace
+        - No existen

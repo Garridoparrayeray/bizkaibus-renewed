@@ -23,7 +23,7 @@ class SiriVehicleMonitoringClient
         });
     }
 
-    private static function parse(string $sXmlString): array
+    public static function parse(string $sXmlString, string|null $sToday = null): array
     {
         $Xml = @simplexml_load_string($sXmlString);
         if ($Xml === false) {
@@ -32,6 +32,9 @@ class SiriVehicleMonitoringClient
         $aActivities = [];
         if (isset($Xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity)) {
             $aActivities = $Xml->ServiceDelivery->VehicleMonitoringDelivery->VehicleActivity;
+        }
+        if ($sToday === null) {
+            $sToday = Calendar::todayMadrid()->format('Y-m-d');
         }
 
         $aMap = [];
@@ -64,18 +67,59 @@ class SiriVehicleMonitoringClient
             $iOrder = null;
             if (isset($Mvj->MonitoredCall->Order)) {
                 $iOrder = (int)$Mvj->MonitoredCall->Order;
+            } elseif (isset($Mvj->MonitoredCall->VisitNumber)) {
+                $iOrder = (int)$Mvj->MonitoredCall->VisitNumber;
+            }
+
+            $dLat = null;
+            $dLon = null;
+            $iLocationSeconds = null;
+            if (isset($Mvj->VehicleLocation->Latitude, $Mvj->VehicleLocation->Longitude)) {
+                $sRecordedAt = '';
+                if (isset($Mvj->LocationRecordedAtTime)) {
+                    $sRecordedAt = (string)$Mvj->LocationRecordedAtTime;
+                } elseif (isset($Activity->RecordedAtTime)) {
+                    $sRecordedAt = (string)$Activity->RecordedAtTime;
+                }
+                $iLocationSeconds = self::secondsSinceMidnightToday($sRecordedAt, $sToday);
+                if ($iLocationSeconds !== null) {
+                    $dLat = (float)$Mvj->VehicleLocation->Latitude;
+                    $dLon = (float)$Mvj->VehicleLocation->Longitude;
+                }
             }
 
             $sKey = $sLineId . '|' . $sTripNumber;
             $aMap[$sKey][] = [
+                'tripRef' => $sRef,
+                'lineId' => $sLineId,
                 'departureSeconds' => (int)$sDepartureSeconds,
                 'delaySeconds' => self::parseIsoDuration($sDelayIso),
                 'vehicleRef' => $sVehicleRef,
                 'currentStopId' => $sCurrentStopId,
                 'order' => $iOrder,
+                'lat' => $dLat,
+                'lon' => $dLon,
+                'locationSeconds' => $iLocationSeconds,
             ];
         }
         return $aMap;
+    }
+
+    private static function secondsSinceMidnightToday(string $sIsoDateTime, string $sToday): int|null
+    {
+        if ($sIsoDateTime === '') {
+            return null;
+        }
+        try {
+            $Date = new \DateTime($sIsoDateTime);
+        } catch (\Exception $Ex) {
+            return null;
+        }
+        $Date->setTimezone(new \DateTimeZone('Europe/Madrid'));
+        if ($Date->format('Y-m-d') !== $sToday) {
+            return null;
+        }
+        return ((int)$Date->format('H')) * 3600 + ((int)$Date->format('i')) * 60 + (int)$Date->format('s');
     }
 
     private static function parseIsoDuration(string $sIso): int
