@@ -207,10 +207,10 @@ html.bide body.page-app .app-container > header { justify-content: flex-start; }
     html.bide body.page-app .app-container > header .header-actions { margin-left: auto; }
 
 /* ===== Menú de Bide+ ===== */
-html.bide body.page-menu header { flex-wrap: nowrap; align-items: center; }
+html.bide body.page-menu header { flex-wrap: wrap; align-items: center; row-gap: 14px; }
     html.bide body.page-menu .menu-brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
         html.bide body.page-menu .menu-brand p { order: 0; flex-basis: auto; }
-    html.bide body.page-menu .header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
+    html.bide body.page-menu .header-controls { display: flex; flex: 1 1 100%; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; }
     html.bide body.page-menu .view-toggle.bide-seg { padding: 4px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); box-shadow: none; }
         html.bide body.page-menu .view-toggle.bide-seg button { width: auto; min-width: 48px; height: 34px; border-radius: 10px; box-shadow: none; }
 html.bide body.page-menu #tr .tiles li:has(.soon) { order: 1; }
@@ -310,7 +310,7 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
     html.bide body.page-menu .bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
     html.bide body.page-menu main > :not(.bide-rail):not(.menu-footer) { grid-column: 2; }
     html.bide body.page-menu .menu-brand { display: none; }
-    html.bide body.page-menu .header-controls { flex: 1; flex-direction: row; align-items: center; justify-content: space-between; margin-left: 0; }
+    html.bide body.page-menu .header-controls { flex: 1; }
     html.bide body.page-menu header { padding: 10px 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
     html.bide:not([data-view="list"]) body.page-menu #tr .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     html.bide body.page-menu { display: flex; flex-direction: column; padding-bottom: 0; overflow-x: clip; }
