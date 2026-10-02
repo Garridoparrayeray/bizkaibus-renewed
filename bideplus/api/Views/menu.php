@@ -1,5 +1,6 @@
 <?php
 $site = require __DIR__ . '/../Config/site.php';
+require_once __DIR__ . '/bide-chrome.php';
 $title = 'Bide+ · Tu red de transporte público';
 $description = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
 $canonical = $site['url'] . '/';
@@ -100,18 +101,27 @@ $jsonLd = [
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/menu-view.js"></script>
+    <script src="/js/bide-mode.js"></script>
     <script src="/js/i18n.js"></script>
     <link rel="stylesheet" href="/style-menu.css">
+    <link rel="stylesheet" href="/style-bide.css">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
-<body>
+<body class="page-menu">
     <div class="splash" aria-hidden="true"><?= $wordmark ?></div>
     <main>
+<?= bideRail(null) ?>
+
         <header>
-            <h1><?= $wordmark ?></h1>
+            <div class="menu-brand">
+                <h1><?= $wordmark ?></h1>
+                <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
+            </div>
+            <p class="bide-page-title" data-i18n="bide.appsOfBide">Apps de Bide+</p>
             <div class="header-controls">
-                <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle">Euskaraz</button>
-                <div class="view-toggle" role="group" aria-label="Forma de mostrar las apps">
+                <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle" hidden>Euskaraz</button>
+                <?= bideLangSwitch() ?>
+                <div class="view-toggle bide-seg" role="group" aria-label="Forma de mostrar las apps">
                     <button type="button" data-view-btn="tiles" aria-pressed="true" data-i18n-attr="aria-label:menu.view.tiles,title:menu.view.tilesTitle">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
                     </button>
@@ -120,7 +130,6 @@ $jsonLd = [
                     </button>
                 </div>
             </div>
-            <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
         </header>
 
         <section id="tr" data-i18n-attr="aria-label:menu.section">
@@ -188,13 +197,20 @@ $jsonLd = [
             </ul>
         </section>
 
+<?= bideViews() ?>
+
+<?= bideInstallBanner() ?>
 
         <footer>
             <p data-i18n="menu.footer">Proyecto independiente de Yeray Garrido. Horarios a partir de los datos abiertos de Euskadi y Metro Bilbao.</p>
+            <p class="menu-author"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido · <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a> · <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a> · <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer">GitHub</a> · <button type="button" class="menu-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button></p>
             <p data-i18n="menu.privacy">Esta página no recoge datos personales ni usa analíticas: solo guarda en tu dispositivo la vista y el idioma elegidos. Cada app tiene su aviso legal y de privacidad completo dentro.</p>
         </footer>
     </main>
+<?= bideTabbar() ?>
+<?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>
     <script src="/js/menu-lang.js"></script>
+    <script src="/js/bide.js"></script>
 </body>
 </html>

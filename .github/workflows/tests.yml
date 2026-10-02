@@ -78,6 +78,11 @@ jobs:
           CHROME_PATH: google-chrome
         run: node tests/ui-nearby.mjs
 
+      - name: UI Bide+ (pestañas, columna lateral y páginas comunes)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-bide.mjs
+
       - name: Server log (on failure)
         if: failure()
         run: cat "$RUNNER_TEMP/php-server.log" || true

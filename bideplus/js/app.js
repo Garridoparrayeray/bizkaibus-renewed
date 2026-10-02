@@ -951,6 +951,7 @@
     function writeFavorites(favorites) {
         localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites));
         syncAlertFavorites();
+        window.dispatchEvent(new Event('bide:favorites'));
     }
 
     async function renderRenfeAlerts() {
