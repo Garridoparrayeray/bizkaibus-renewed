@@ -11,7 +11,7 @@
 }
 
 html.bide [hidden] { display: none !important; }
-.bide-tabbar, .bide-rail, .bide-home, .bide-views, .bide-install, .bide-apps-links, #detail-empty { display: none; }
+.bide-tabbar, .bide-rail, .bide-menu-apps, .bide-views, .bide-install, .bide-apps-links, #detail-empty { display: none; }
 html.bide .bide-views { display: block; overflow-x: clip; }
 
 /* ===== Piezas comunes ===== */
@@ -54,7 +54,7 @@ html.bide .bide-seg {
     html.bide body.page-app .bide-seg button { color: var(--primary); }
         html.bide body.page-app .bide-seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
 
-html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .bide-home, .nearby-btn, .pill, .bide-install-accept):active { transform: scale(.95); }
+html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: scale(.95); }
 
 /* ===== Páginas: Favoritos, Avisos, Info ===== */
 html.bide .bide-view { padding: 4px 0 24px; animation: bide-slide .32s var(--bide-ease) both; }
@@ -194,25 +194,14 @@ html.bide .bide-footer-legal { padding: 0; border: none; background: none; font:
 html.bide body.page-app #dev-footer { display: grid; gap: 12px; text-align: center; }
     html.bide body.page-app #dev-footer p { margin: 0; }
     html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
-    html.bide body.page-app .bide-footer-brand p { color: rgba(255, 255, 255, .8); font-size: .76rem; line-height: 1.45; }
+    html.bide body.page-app .bide-footer-brand p { display: none; }
     html.bide body.page-app #dev-footer .bide-footer-title { color: #9CCD64; }
     html.bide body.page-app #dev-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
         html.bide body.page-app #dev-footer :is(.bide-apps-links, .bide-footer-links) a { margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
         html.bide body.page-app #dev-footer :is(a, #legal-open):hover { text-decoration: underline; }
 html.bide body.page-app .bide-lang { display: none; }
-html.bide body.page-app .bide-home {
-    display: inline-flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    margin-right: 8px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, .18);
-    color: #fff;
-}
-    html.bide body.page-app .bide-home svg { width: 20px; height: 20px; }
+html.bide body.page-app .bide-menu-apps { display: flex; width: 100%; justify-content: flex-start; margin: 44px 0 10px; font-size: .9rem; text-decoration: none; }
+    html.bide body.page-app .bide-menu-apps + #menu-favorites-open { margin-top: 0; font-size: .9rem; }
 html.bide body.page-app .app-container > header { justify-content: flex-start; }
     html.bide body.page-app .app-container > header .home-link-wrap { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); min-width: 0; }
     html.bide body.page-app .app-container > header .header-actions { margin-left: auto; }
@@ -292,7 +281,7 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
     html.bide body.page-app #net-banner, html.bide body.page-app .app-container > noscript { grid-column: 1 / -1; grid-row: 1; }
     html.bide body.page-app .bide-rail { grid-column: 1; grid-row: 2 / -1; position: sticky; top: 20px; margin-top: 20px; }
     html.bide body.page-app .app-container > header { grid-column: 2; grid-row: 2; margin: 20px 0 16px; }
-    html.bide body.page-app .bide-home, html.bide body.page-app #menu-open, html.bide body.page-app #lang-toggle { display: none; }
+    html.bide body.page-app #menu-open, html.bide body.page-app #lang-toggle { display: none; }
     html.bide body.page-app .bide-lang { display: inline-flex; }
     html.bide body.page-app .layout {
         grid-column: 2;
@@ -340,7 +329,7 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
     }
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; }
-            html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-brand p { color: #e3efe0; font-size: .84rem; line-height: 1.5; }
+            html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-brand p { display: block; color: #e3efe0; font-size: .84rem; line-height: 1.5; }
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) .bide-footer-title { flex-basis: auto; color: #9CCD64; }
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 7px; padding: 0; border: none; }
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, #legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
@@ -351,6 +340,6 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
 
 @media (prefers-reduced-motion: reduce) {
     html.bide .bide-view, html.bide .bide-rail-applist, html.bide .bide-install { animation: none; }
-    html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .bide-home, .nearby-btn, .pill, .bide-install-accept):active { transform: none; }
+    html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: none; }
     html.bide .bide-rail-chevron { transition: none; }
 }
