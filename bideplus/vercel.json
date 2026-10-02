@@ -5,12 +5,54 @@
     }
   },
   "routes": [
-    { "src": "^/(data|scripts|tests|test_gtfs)(/.*)?$", "dest": "/api/index.php" },
-    { "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$", "dest": "/api/index.php" },
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api/index.php" },
-    { "src": "/lines/(.*)", "dest": "/api/shell.php" },
-    { "src": "/stops/(.*)", "dest": "/api/shell.php" },
-    { "src": "/", "dest": "/api/shell.php" }
+    {
+      "src": "/(.*)",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=()",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "X-Permitted-Cross-Domain-Policies": "none"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/(data|scripts|tests|test_gtfs)(/.*)?$",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "^/sitemap[.]xml$",
+      "dest": "/api/sitemap.php"
+    },
+    {
+      "src": "^/sitemap-(apps|bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)[.]xml$",
+      "dest": "/api/sitemap.php?red=$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "/lines/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/stops/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/",
+      "dest": "/api/shell.php"
+    }
   ]
 }
