@@ -117,7 +117,6 @@ $jsonLd = [
                 <h1><?= $wordmark ?></h1>
                 <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
             </div>
-            <p class="bide-page-title" data-i18n="bide.appsOfBide">Apps de Bide+</p>
             <div class="header-controls">
                 <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle" hidden>Euskaraz</button>
                 <?= bideLangSwitch() ?>
