@@ -12,7 +12,7 @@ failures = []
 
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", open(ROOT + 'js/app.js', encoding='utf-8').read()))
 # shell.php más las piezas que incluye (aviso legal y piezas comunes de Bide+).
-shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/shell.php', 'api/Views/legal.php', 'api/Views/bide-chrome.php'))
+shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/shell.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
 ids_html = set(re.findall(r'id="([^"]+)"', shell))
 missing_ids = sorted(ids_js - ids_html)
 print('ids que app.js busca y no existen en shell.php:', missing_ids or 'ninguno')
