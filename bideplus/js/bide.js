@@ -58,6 +58,7 @@
     }
 
     function showView(view, addToHistory) {
+        const wasOpen = !!currentView;
         document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
         document.querySelectorAll('[data-bide-view]').forEach((section) => {
             section.hidden = section.getAttribute('data-bide-view') !== view;
@@ -67,7 +68,8 @@
         setActiveTab(view);
         if (view === 'favoritos') renderFavorites();
         if (view === 'avisos') renderAlerts();
-        if (addToHistory && view) history.pushState({ ...history.state, bideView: view }, '', '#' + view);
+        if (addToHistory && view && wasOpen) history.replaceState({ ...history.state, bideView: view }, '', '#' + view);
+        else if (addToHistory && view) history.pushState({ ...history.state, bideView: view }, '', '#' + view);
         window.scrollTo(0, 0);
         if (view) {
             const heading = document.querySelector(`[data-bide-view="${view}"] h2`);
@@ -283,10 +285,29 @@
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();
     });
 
+    const closedByHistory = new Set();
+
+    function watchDialog(dialog) {
+        new MutationObserver(() => {
+            const inHistory = history.state && history.state.bideDialog === dialog.id;
+            if (dialog.open && !inHistory) history.pushState({ ...history.state, bideDialog: dialog.id }, '', location.href);
+            else if (!dialog.open && closedByHistory.has(dialog)) closedByHistory.delete(dialog);
+            else if (!dialog.open && inHistory) history.back();
+        }).observe(dialog, { attributes: true, attributeFilter: ['open'] });
+    }
+
     window.addEventListener('popstate', (e) => {
+        const openDialog = document.querySelector('dialog[open]');
+        if (openDialog && !(e.state && e.state.bideDialog === openDialog.id)) {
+            closedByHistory.add(openDialog);
+            openDialog.close();
+        }
         const view = e.state && e.state.bideView;
-        showView(VIEWS.includes(view) ? view : null, false);
+        const nextView = VIEWS.includes(view) ? view : null;
+        if (nextView !== currentView) showView(nextView, false);
     });
+
+    document.querySelectorAll('dialog[id]').forEach(watchDialog);
 
     const appsToggle = document.querySelector('.bide-rail-apps');
     if (appsToggle) {
