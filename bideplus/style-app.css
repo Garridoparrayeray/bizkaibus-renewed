@@ -46,9 +46,9 @@ html.is-euskotren {
 html.is-tranvia-bilbao {
     --bg: #f4f8f4;
     --border: #dde8dc;
-    --primary: #4EB848;
-    --primary-light: #8FD675;
-    --primary-dark: #2E7D32;
+    --primary: #2F7A2A;
+    --primary-light: #D8F5C8;
+    --primary-dark: #1E5420;
     --primary-tint: #EAF7E6;
     --text: #1c2a1d;
     --text-secondary: #5c6b5e;
@@ -57,9 +57,9 @@ html.is-tranvia-bilbao {
 html.is-tranvia-vitoria {
     --bg: #f5f8f3;
     --border: #dfe8da;
-    --primary: #60AE27;
-    --primary-light: #9ED66C;
-    --primary-dark: #3D6E18;
+    --primary: #3B7D23;
+    --primary-light: #ECFAE2;
+    --primary-dark: #2A5612;
     --primary-tint: #EEF7E7;
     --text: #1e2a19;
     --text-secondary: #5e6b58;
@@ -613,7 +613,7 @@ tbody tr { cursor: pointer; }
 
 /* ===== Pie ===== */
 #attribution { margin: 12px 0 4px; color: var(--text-secondary); font-size: .75rem; text-align: center; }
-#disclaimer { margin: 0 0 20px; padding: 0 20px; color: var(--text-secondary); font-size: .7rem; text-align: center; opacity: .75; }
+#disclaimer { margin: 0 0 20px; padding: 0 20px; color: var(--text-secondary); font-size: .7rem; text-align: center; }
 #dev-footer {
     flex-shrink: 0;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
