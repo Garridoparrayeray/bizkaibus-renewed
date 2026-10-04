@@ -227,6 +227,44 @@ html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; g
     html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) { justify-content: flex-start; }
         html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { display: inline-flex; align-items: center; min-height: 24px; color: var(--bide-green); font-weight: 700; text-decoration: none; }
 
+/* ===== Aviso legal en el menú ===== */
+html.bide body.page-menu #legal-panel {
+    width: 92vw;
+    max-width: 500px;
+    max-height: 82vh;
+    padding: 28px 24px;
+    overflow-y: auto;
+    border: 1px solid var(--bide-line);
+    border-radius: 18px;
+    background: var(--bide-surface);
+    box-shadow: 0 6px 20px -10px rgba(0, 0, 0, .25);
+    color: var(--bide-ink);
+    font-family: inherit;
+    overscroll-behavior: contain;
+}
+    html.bide body.page-menu #legal-panel::backdrop { background: rgba(10, 14, 12, .5); }
+    html.bide body.page-menu #legal-panel h3 { margin: 10px 0 16px; padding-right: 48px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.2rem; font-weight: 700; }
+    html.bide body.page-menu #legal-panel p { margin: 0 0 12px; font-size: .85rem; line-height: 1.55; }
+    html.bide body.page-menu #legal-panel strong { font-weight: 600; }
+    html.bide body.page-menu #legal-panel a { color: var(--bide-green); }
+html.bide body.page-menu #legal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--bide-line);
+    border-radius: 50%;
+    background: var(--bide-surface);
+    color: var(--bide-muted);
+    cursor: pointer;
+}
+    html.bide body.page-menu #legal-close svg { width: 18px; height: 18px; stroke-width: 2.25; }
+
 /* ===== App instalada en el móvil ===== */
 @media (max-width: 1023px) {
     html.bide.is-standalone .bide-tabbar {

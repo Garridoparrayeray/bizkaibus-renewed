@@ -117,6 +117,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 await ev("document.querySelector('[data-bide-view=info] [data-bide-legal]').click(); true");
 check('instalada · Info: abre el aviso legal', (await ev("document.getElementById('legal-panel').open")) === true);
+check('instalada · menú: el aviso legal tiene su ✕ visible', await ev("(() => { const r = document.getElementById('legal-close').getBoundingClientRect(); const svg = document.querySelector('#legal-close svg').getBoundingClientRect(); return r.width >= 40 && r.height >= 40 && svg.width >= 16; })()"));
 await ev("document.getElementById('legal-close').click(); true");
 check('instalada · Info: el aviso legal se cierra', (await ev("document.getElementById('legal-panel').open")) === false);
 
