@@ -199,6 +199,14 @@
         if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
+    function closeFromButton(view, close) {
+        if (history.state && history.state.view === view && history.state.fromApp) {
+            history.back();
+        } else {
+            close();
+        }
+    }
+
     async function performSearch(query) {
         if (query.trim().length < 2) {
             el.searchResults.hidden = true;
@@ -342,7 +350,7 @@
             el.liveCard.hidden = false;
         }
         if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-            history.pushState({ view: 'stop', id: stopId }, '', '/stops/' + stopId + networkQuery);
+            history.pushState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'stop', id: stopId }, '', window.location.href);
         }
@@ -572,7 +580,7 @@
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         if (!window.location.pathname.startsWith('/lines/' + lineId)) {
-            history.pushState({ view: 'line', id: lineId }, '', '/lines/' + lineId + networkQuery);
+            history.pushState({ view: 'line', id: lineId, fromApp: true }, '', '/lines/' + lineId + networkQuery);
         } else if (!history.state || !history.state.view) {
             history.replaceState({ view: 'line', id: lineId }, '', window.location.href);
         }
@@ -1365,14 +1373,14 @@
     });
 
     el.liveFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.liveFavorite));
-    el.liveClose.addEventListener('click', closeLiveCard);
+    el.liveClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
     el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
-    el.platformClose.addEventListener('click', closeLiveCard);
+    el.platformClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
     el.platformTimetableLink.addEventListener('click', () => {
         if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });
     el.timetableFavorite.addEventListener('click', () => toggleFavorite('line', state.currentLine?.id, el.timetableFavorite));
-    el.timetableClose.addEventListener('click', closeTimetableSection);
+    el.timetableClose.addEventListener('click', () => closeFromButton('line', closeTimetableSection));
     el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey));
     el.liveTimetableLink.addEventListener('click', () => {
         if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
@@ -1449,11 +1457,20 @@
     window.addEventListener('popstate', (e) => {
         if (!e.state || !e.state.view) {
             closeLiveCard();
-            closeTimetableSection();
+            if (state.currentLine) {
+                closeTimetableSection();
+            }
         } else if (e.state.view === 'stop') {
-            selectStop(e.state.id);
+            if (state.currentLine) {
+                closeTimetableSection();
+            }
+            if (!state.currentStop || String(state.currentStop.id) !== String(e.state.id)) {
+                selectStop(e.state.id);
+            }
         } else if (e.state.view === 'line') {
-            selectLine(e.state.id);
+            if (!state.currentLine || String(state.currentLine.id) !== String(e.state.id)) {
+                selectLine(e.state.id);
+            }
         }
     });
 
