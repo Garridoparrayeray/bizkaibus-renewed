@@ -136,6 +136,42 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); t
 check('instalada · «Apps» cierra la página abierta', await waitTrue(shown('.layout')));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 check('instalada · «Apps» vuelve al menú de Bide+', await waitTrue("location.pathname === '/' && location.search === '' && !!document.getElementById('tr')"));
+
+const back = async (wait = 1500) => { await ev('history.back(); true'); await sleep(wait); };
+const openStop = async () => {
+    await ev(`(() => { const i = document.getElementById('search-input'); i.value = 'moyua'; i.dispatchEvent(new Event('input', { bubbles: true })); document.getElementById('search-form').requestSubmit(); return true; })()`);
+    await waitTrue("!!document.querySelector('#search-results .pill')");
+    await ev("document.querySelector('#search-results .pill').click(); true");
+    return waitTrue("location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden");
+};
+await go('/?red=bus');
+check('atrás · se abre una parada', await openStop());
+await waitTrue("!!document.querySelector('#live-more-list button')", 15000);
+await ev("document.querySelector('#live-timetable-link:not([hidden]), #live-more-list button').click(); true");
+check('atrás · se abre una línea desde la parada', await waitTrue("location.pathname.startsWith('/lines/') && !document.getElementById('timetable-section').hidden"));
+await back();
+check('atrás · desde la línea vuelve a la parada y cierra el horario', await waitTrue("location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden && document.getElementById('timetable-section').hidden"));
+await back();
+check('atrás · desde la parada vuelve al inicio de la app', await waitTrue("location.pathname === '/' && location.search === '?red=bus' && document.getElementById('live-card').hidden"));
+check('atrás · se abre otra vez la parada', await openStop());
+await ev("document.getElementById('live-close').click(); true");
+check('atrás · el ✕ de la parada vuelve al inicio de la app', await waitTrue("location.search === '?red=bus' && document.getElementById('live-card').hidden"));
+await back(2500);
+check('atrás · tras el ✕, atrás sale de la app (sin pasos repetidos)', await waitTrue("location.pathname === '/' && location.search === ''"));
+await go('/?red=bus');
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=favoritos]').click(); true");
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
+await back();
+check('atrás · desde Avisos vuelve a la app sin pasar por Favoritos', await waitTrue("!document.documentElement.classList.contains('bide-view-open') && location.hash === ''"));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
+await ev("document.querySelector('[data-bide-view=info] [data-bide-legal]').click(); true");
+check('atrás · se abre el aviso legal sobre Info', await waitTrue("document.getElementById('legal-panel').open"));
+await back();
+check('atrás · cierra el aviso legal y sigue en Info', await waitTrue("!document.getElementById('legal-panel').open && document.documentElement.classList.contains('bide-view-open')"));
+await back();
+check('atrás · después cierra Info', await waitTrue("!document.documentElement.classList.contains('bide-view-open')"));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
+check('instalada · la pestaña activa se marca con fondo', await waitTrue("getComputedStyle(document.querySelector('.bide-tabbar [data-bide-tab=info] svg')).backgroundColor !== 'rgba(0, 0, 0, 0)'"));
 await setStandalone(false);
 
 // ===== Ordenador =====
