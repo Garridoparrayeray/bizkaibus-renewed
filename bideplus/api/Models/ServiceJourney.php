@@ -304,7 +304,7 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
-    private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds): array
+    private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds = PHP_INT_MIN): array
     {
         $aLastKeptDeparture = [];
         $aResult = [];
