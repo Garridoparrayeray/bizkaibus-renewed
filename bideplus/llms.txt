@@ -4,7 +4,7 @@
 
 ## What it does
 - Bizkaibus+: timetables, lines, stops, a live map and real-time arrivals for the Bizkaibus bus network. Arrivals are computed from each bus's GPS position on its route (typical error under 1.5 min).
-- Metro+: timetables and service alerts for Metro Bilbao.
+- Metro+: timetables, real-time arrivals and service alerts for Metro Bilbao.
 - Euskotren+: timetables for Euskotren trains.
 - Tranvía Bilbao+ and Tranvía Vitoria+: tram timetables in Bilbao and Vitoria-Gasteiz.
 - Renfe Cercanías+: Renfe commuter rail timetables and alerts in Bilbao and Donostia/Irun.
@@ -14,7 +14,7 @@
 ## How it works
 - Web app installable as a PWA, in Spanish and Basque, with no accounts and no personal data stored on servers. Favorites are kept in the browser.
 - Timetables are rebuilt every day from the operators' official GTFS feeds; real-time data comes from the SIRI feeds the operators publish.
-- Data sources: Open Data Bizkaia, Open Data Euskadi, Open Data Metro Bilbao and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
+- Data sources: Open Data Bizkaia, Open Data Euskadi, Open Data Metro Bilbao, the Bizkaia Transport Consortium (data.ctb.eus, Metro Bilbao real time) and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
 
 ## Links
 - [Bide+ (menu)](https://bideplus.vercel.app/)

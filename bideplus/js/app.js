@@ -487,11 +487,18 @@
         nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span>`;
         nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = liveBadgeText(next.status, next.etaMinutes);
+
+        const { text, className } = statusLabel(next.status, next.delayMinutes);
+        const dot = document.createElement('span');
+        dot.className = `status-dot ${className}`;
         const scheduled = document.createElement('p');
         scheduled.className = 'platform-column-scheduled';
-        scheduled.textContent = next.scheduledTime;
+        scheduled.append(dot, `${next.scheduledTime} · ${text}`);
 
-        column.append(headsignEl, nextButton, scheduled);
+        column.append(headsignEl, badge, nextButton, scheduled);
 
         if (rest.length > 0) {
             const list = document.createElement('ul');
@@ -1411,8 +1418,8 @@
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A.';
-        el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
+        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.';
+        el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao · Tiempo real: Consorcio de Transportes de Bizkaia (CC-BY 4.0)';
         el.liveEmpty.textContent = I18n.t('switcher.metro.liveEmpty');
     }
 
