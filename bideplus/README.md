@@ -1,6 +1,6 @@
 # BizkaiBus+ / Metro+
 
-Dos aplicaciones de horarios de transporte de Bizkaia — Bizkaibus y Metro Bilbao — servidas desde un único código: PHP nativo (API REST) + HTML/CSS/JS vanilla, datos reales de Open Data Bizkaia y Open Data Metro Bilbao (GTFS + SIRI), desplegable en Vercel.
+Dos aplicaciones de horarios de transporte de Bizkaia — Bizkaibus y Metro Bilbao — servidas desde un único código: PHP nativo (API REST) + HTML/CSS/JS vanilla, datos reales de Open Data Bizkaia y del Consorcio de Transportes de Bizkaia (GTFS, SIRI y GTFS-Realtime), desplegable en Vercel.
 
 ## Arquitectura
 
@@ -66,7 +66,7 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 - Alertas de servicio (SIRI-SX): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml`
 - Posición de buses (SIRI-VM): `https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml` (con GPS), y como respaldo `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml` (mal nombrado "trip-updates" en origen; sin GPS)
 
-**Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Sus `trip_id` no coinciden con los del horario de Open Data Metro Bilbao, así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
+**Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Aunque el horario estático sale del mismo CTB, un mismo `trip_id` del tiempo real no es el mismo tren del horario (se comprobó: los números se reutilizan entre calendarios), así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 
@@ -120,7 +120,7 @@ php scripts/realtime-backtest.php calibrate capturas --write    # guarda data/pa
 
 ## Fuente estática: GTFS
 
-Ambas redes se generan desde su export GTFS oficial — Bizkaibus desde el feed de Lantik/CTB (activo, con `feed_info.txt` acotado a la temporada vigente), Metro Bilbao desde su Open Data propio (`cms.metrobilbao.eus`, sin `feed_info.txt`, manejado como opcional en el ETL).
+Ambas redes se generan desde su export GTFS oficial — Bizkaibus desde el feed de Lantik/CTB (activo, con `feed_info.txt` acotado a la temporada vigente), Metro Bilbao desde el GTFS que publica el Consorcio de Transportes de Bizkaia (`ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip`, el mismo origen que su tiempo real; sin `feed_info.txt`, manejado como opcional en el ETL), con el NAP como respaldo si no responde.
 
 Detalle importante del ETL, común a ambas redes: `streamStopTimesByTrip()` agrupa `stop_times.txt` completo en memoria por `trip_id` antes de generar nada — verificado con datos reales que el mismo `trip_id` puede reaparecer en bloques no contiguos del fichero en ambos operadores. Asumir contigüidad (una versión anterior del script lo hacía) producía patrones de recorrido truncados que colisionaban por casualidad con trips no relacionados, mostrando el mismo destino repetido dos veces con recorridos de longitud distinta.
 
@@ -177,6 +177,6 @@ El código, el diseño y los iconos de este proyecto se publican bajo [Creative 
 ## Atribución de datos
 
 - BizkaiBus+: Bizkaibus / Open Data Bizkaia (CC-BY 4.0).
-- Metro+: Metro Bilbao / Open Data Metro Bilbao (metrobilbao.eus). Tiempo real: Consorcio de Transportes de Bizkaia / [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online) (CC-BY 4.0).
+- Metro+: horario y tiempo real de Metro Bilbao publicados por el Consorcio de Transportes de Bizkaia / [data.ctb.eus](https://data.ctb.eus/dataset/horario-metro-bilbao) (CC-BY 4.0).
 
 Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Metro Bilbao S.A., el Consorcio de Transportes de Bizkaia ni la Diputación Foral de Bizkaia.

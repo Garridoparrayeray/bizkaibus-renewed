@@ -29,5 +29,5 @@ return [
 
     'direction_reference_stop_id' => 7,
 
-    'attribution' => 'Datos: Metro Bilbao / Open Data Metro Bilbao (metrobilbao.eus) · Tiempo real: Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
+    'attribution' => 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real',
 ];

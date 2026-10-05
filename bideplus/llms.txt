@@ -14,7 +14,7 @@
 ## How it works
 - Web app installable as a PWA, in Spanish and Basque, with no accounts and no personal data stored on servers. Favorites are kept in the browser.
 - Timetables are rebuilt every day from the operators' official GTFS feeds; real-time data comes from the SIRI feeds the operators publish.
-- Data sources: Open Data Bizkaia, Open Data Euskadi, Open Data Metro Bilbao, the Bizkaia Transport Consortium (data.ctb.eus, Metro Bilbao real time) and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
+- Data sources: Open Data Bizkaia, Open Data Euskadi, the Bizkaia Transport Consortium (data.ctb.eus, Metro Bilbao timetables and real time) and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
 
 ## Links
 - [Bide+ (menu)](https://bideplus.vercel.app/)

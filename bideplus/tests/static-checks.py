@@ -93,7 +93,7 @@ print('HTML con datos sin escapar:', unescaped or 'ninguno')
 if unescaped:
     failures.append('HTML sin escapar')
 
-for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('integridad de las bases de datos', 'data-integrity.php')):
+for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php')):
     r = subprocess.run([PHP, ROOT + 'tests/' + script], capture_output=True, text=True)
     print(label + ':', 'OK' if r.returncode == 0 else '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:])
     if r.returncode != 0:
