@@ -53,7 +53,7 @@ SCHEMAS = {
              'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'isTarget': bool}]},
     'vehicle': {'lineCode': str, 'lineName': str, 'headsign': opt(str), 'status': 'status', 'vehicleRef': opt(str),
                 'delayMinutes': int,
-                'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': int, 'isPast': bool, 'isCurrent': bool}]},
+                'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'live': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}],
              'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': int, 'headsign': opt(str), 'currentStop': STOP_REF}]},
     'alerts': {'alerts': ['alert']},

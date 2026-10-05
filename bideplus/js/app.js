@@ -621,7 +621,7 @@
         }
         let sourceLabel = 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
         if (IS_METRO) {
-            sourceLabel = 'Datos: Metro Bilbao / Open Data Metro Bilbao';
+            sourceLabel = 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (CC-BY 4.0)';
         } else if (IS_EUSKOTREN) {
             sourceLabel = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
         } else if (IS_TRANVIA_BILBAO) {
@@ -1419,7 +1419,7 @@
         el.lineMapEmpty.hidden = true;
         el.scheduleTextToggle.hidden = true;
         el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.';
-        el.attribution.textContent = 'Datos: Metro Bilbao / Open Data Metro Bilbao · Tiempo real: Consorcio de Transportes de Bizkaia (CC-BY 4.0)';
+        el.attribution.textContent = 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (CC-BY 4.0): horario y tiempo real';
         el.liveEmpty.textContent = I18n.t('switcher.metro.liveEmpty');
     }
 
