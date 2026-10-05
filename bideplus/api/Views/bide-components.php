@@ -20,6 +20,19 @@ const BIDE_ICONS = [
     'close' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>',
 ];
 
+const BIDE_CHANGELOG = [
+    ['2026-10-05', '05/10/2026', 1, 'Metro+ en directo', 'Los próximos trenes de Metro Bilbao llegan en directo y con su retraso, gracias al Consorcio de Transportes de Bizkaia. Arreglados los tranvías que desaparecían algunos días.'],
+    ['2026-10-04', '04/10/2026', 2, 'Más fácil de usar', 'El botón atrás del móvil funciona bien, la pestaña activa se distingue mejor y los colores cumplen las pautas de accesibilidad WCAG 2.1 AA.'],
+    ['2026-10-02', '02/10/2026', 3, 'Bide+, una sola app', 'Todas las apps dentro de Bide+: pestañas en el móvil, columna lateral en el ordenador y páginas de Favoritos, Avisos e Info. Más seguridad y mejor posición en los buscadores.'],
+    ['2026-10-01', '01/10/2026', 4, 'Tranvías, Renfe y bus por GPS', 'Llegan Tranvía Bilbao+, Tranvía Vitoria+ y Renfe Cercanías+. En Bizkaibus+, la llegada se calcula con la posición GPS del autobús sobre su ruta.'],
+    ['2026-09-22', '22/09/2026', 5, 'Nace Bide+', 'Bide+ reúne las apps de transporte de Euskadi. Llegan «Cerca de mí», los avisos de incidencias de tus líneas favoritas y el uso sin conexión.'],
+    ['2026-09-16', '16/09/2026', 6, 'Euskotren+', 'Horarios de Euskotren. Además, diseño nuevo para ordenador, enlace propio para cada parada y línea, y mejoras para iPhone.'],
+    ['2026-09-08', '08/09/2026', 7, 'Instalable como app', 'La app se puede instalar en el móvil, con accesos directos a Bizkaibus+ y Metro+.'],
+    ['2026-08-18', '18/08/2026', 8, 'Metro+', 'Segunda red: horarios de Metro Bilbao, panel de andén por sentido y avisos de incidencias.'],
+    ['2026-07-27', '27/07/2026', 9, 'Horarios siempre al día', 'Los horarios se actualizan solos cada día desde los datos oficiales, y las salidas con retraso ya no desaparecen.'],
+    ['2026-07-16', '16/07/2026', 10, 'Primera versión (v0.8)', 'Nace BizkaiBus+: los horarios de Bizkaibus más fáciles de consultar, con buscador, favoritos y el tema «mi amor».'],
+];
+
 function bideTabbar(): string
 {
     $aTabs = [
@@ -66,6 +79,24 @@ function bideRail(string|null $sCurrentApp): string
     return $sHtml . '</aside>';
 }
 
+function bideChangelogEntry(array $aEntry): string
+{
+    [$sIsoDate, $sDate, $iNumber, $sTitle, $sText] = $aEntry;
+    return '<article class="bide-changelog-entry"><p class="bide-changelog-head"><time datetime="' . $sIsoDate . '">' . $sDate . '</time><strong data-i18n="bide.changelog.' . $iNumber . '.title">' . $sTitle . '</strong></p>'
+        . '<p data-i18n="bide.changelog.' . $iNumber . '.text">' . $sText . '</p></article>';
+}
+
+function bideChangelog(): string
+{
+    $sHtml = '<section class="bide-card bide-changelog"><h3 data-i18n="bide.changelog.title">Novedades</h3>';
+    $sHtml .= bideChangelogEntry(BIDE_CHANGELOG[0]);
+    $sHtml .= '<details class="bide-changelog-more"><summary><span class="bide-changelog-open" data-i18n="bide.changelog.more">Ver todas las novedades</span><span class="bide-changelog-close" data-i18n="bide.changelog.less">Ver menos</span></summary>';
+    foreach (array_slice(BIDE_CHANGELOG, 1) as $aEntry) {
+        $sHtml .= bideChangelogEntry($aEntry);
+    }
+    return $sHtml . '</details></section>';
+}
+
 function bideViews(): string
 {
     $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
@@ -88,8 +119,9 @@ function bideViews(): string
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
-    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><p>Bizkaibus (Open Data Bizkaia, CC-BY 4.0) · Metro Bilbao (Open Data Metro Bilbao) · Euskotren, Tranvía Bilbao y Tranvía Vitoria (Open Data Euskadi, CC-BY 4.0) · Renfe (NAP, Punto de Acceso Nacional de Transporte).</p></section>';
+    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><p>Bizkaibus (Open Data Bizkaia, CC-BY 4.0) · Metro Bilbao (horario y tiempo real: Consorcio de Transportes de Bizkaia, CC-BY 4.0) · Euskotren, Tranvía Bilbao y Tranvía Vitoria (Open Data Euskadi, CC-BY 4.0) · Renfe (NAP, Punto de Acceso Nacional de Transporte).</p></section>';
     $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</h3><p class="bide-links"><a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a><a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a></p></section>';
+    $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
     $sHtml .= '</div></section>';
 
