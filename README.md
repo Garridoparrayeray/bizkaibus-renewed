@@ -7,7 +7,7 @@ Horarios, llegadas y avisos del transporte público de Euskadi en una sola aplic
 | App | Qué muestra |
 |---|---|
 | **Bizkaibus+** | Horarios, llegadas calculadas con la posición GPS de cada bus, mapa en vivo y avisos |
-| **Metro+** | Horarios y avisos de Metro Bilbao |
+| **Metro+** | Horarios, tiempo real y avisos de Metro Bilbao |
 | **Euskotren+** | Horarios de Euskotren |
 | **Tranvía Bilbao+** y **Tranvía Vitoria+** | Horarios de los tranvías |
 | **Renfe Cercanías+** | Horarios y avisos de Cercanías en Bilbao y Donostia/Irun |

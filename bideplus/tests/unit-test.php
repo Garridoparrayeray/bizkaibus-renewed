@@ -14,9 +14,11 @@ spl_autoload_register(function (string $sClass): void {
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\GtfsRealtimeClient;
 use Services\PaceFactors;
 use Services\RealtimeMatcher;
 use Services\SiriVehicleMonitoringClient;
+use Services\TripUpdatesMatcher;
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {
@@ -314,6 +316,102 @@ $expect('Delay PT1M30S = 90 s y -PT45S = -45 s', $aFirst !== null && $aSecond !=
 $expect('lee GPS, hora del dato (08:04:00), parada y VisitNumber', $aFirst !== null && $aFirst['lat'] === 43.27 && $aFirst['locationSeconds'] === T0 + 240 && $aFirst['currentStopId'] === '0123' && $aFirst['order'] === 3);
 $expect('Order tiene prioridad y un GPS de otro día se descarta', $aSecond !== null && $aSecond['order'] === 7 && $aSecond['lat'] === null && $aSecond['locationSeconds'] === null);
 $expect('un XML roto devuelve un mapa vacío', SiriVehicleMonitoringClient::parse('<Siri><roto', DATE_WEEKDAY) === []);
+
+/* ------------------------------------------------------------------ */
+$section('GTFS-Realtime: lectura del feed de Metro Bilbao (CTB)');
+
+function pbVarint(int $iValue): string
+{
+    $sOut = '';
+    do {
+        $iByte = $iValue & 0x7f;
+        $iValue = ($iValue >> 7) & (PHP_INT_MAX >> 6);
+        if ($iValue !== 0) {
+            $iByte |= 0x80;
+        }
+        $sOut .= chr($iByte);
+    } while ($iValue !== 0);
+    return $sOut;
+}
+
+function pbField(int $iField, int|string $Value): string
+{
+    if (is_int($Value)) {
+        return pbVarint($iField << 3) . pbVarint($Value);
+    }
+    return pbVarint(($iField << 3) | 2) . pbVarint(strlen($Value)) . $Value;
+}
+
+function pbStopTime(string $sStopId, int|null $iArrival, int|null $iDeparture = null, int $iRelationship = 0): string
+{
+    $sOut = '';
+    if ($iArrival !== null) {
+        $sOut .= pbField(2, pbField(1, -60) . pbField(2, $iArrival));
+    }
+    if ($iDeparture !== null) {
+        $sOut .= pbField(3, pbField(2, $iDeparture));
+    }
+    $sOut .= pbField(4, $sStopId);
+    if ($iRelationship !== 0) {
+        $sOut .= pbField(5, $iRelationship);
+    }
+    return $sOut;
+}
+
+$aReal = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-trip-updates.pb'));
+$iRealStops = 0;
+foreach ($aReal['trips'] as $aTrip) {
+    $iRealStops += count($aTrip['stops']);
+}
+$expect('feed real: 84 viajes y 661 previsiones (igual que la librería oficial de Google)', count($aReal['trips']) === 84 && $iRealStops === 661, count($aReal['trips']) . ' / ' . $iRealStops);
+$expect('feed real: fecha de generación y primer viaje 899112 en la parada 22 (sin el ".0")', $aReal['generatedAt'] === 1791180803 && $aReal['trips'][0]['tripId'] === '899112' && $aReal['trips'][0]['stops'][0] === ['22', 1791180816]);
+
+$sSynthetic = pbField(1, pbField(1, '2.0') . pbField(3, 1000))
+    . pbField(2, pbField(1, 'e1') . pbField(3, pbField(1, pbField(1, 'T1')) . pbField(2, pbStopTime('7.0', 2000)) . pbField(2, pbStopTime('8.0', null, 2100)) . pbField(2, pbStopTime('9.0', 2200, null, 1))))
+    . pbField(2, pbField(1, 'e2') . pbField(4, pbField(1, 'solo-posicion')));
+$aSynthetic = GtfsRealtimeClient::parseTripUpdates($sSynthetic);
+$expect('lee la hora de generación de la cabecera', $aSynthetic['generatedAt'] === 1000);
+$expect('usa la salida si no hay llegada y descarta las paradas saltadas', $aSynthetic['trips'] === [['tripId' => 'T1', 'stops' => [['7', 2000], ['8', 2100]]]], json_encode($aSynthetic['trips']));
+$expect('ignora entidades sin previsiones (solo posición) y lee retrasos negativos sin romperse', count($aSynthetic['trips']) === 1);
+$bTruncated = false;
+try {
+    GtfsRealtimeClient::parseTripUpdates(substr($sSynthetic, 0, 20));
+} catch (RuntimeException $Ex) {
+    $bTruncated = true;
+}
+$expect('un feed cortado lanza un error (la caché sigue con el último bueno)', $bTruncated);
+
+/* ------------------------------------------------------------------ */
+$section('GTFS-Realtime: asociación de previsiones al horario (Metro+)');
+
+$PdoRt = new PDO('sqlite::memory:');
+$PdoRt->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoRt->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoRt->exec('CREATE TABLE journey_pattern_stops (journey_pattern_id TEXT NOT NULL, seq_order INTEGER NOT NULL, stop_id TEXT NOT NULL)');
+$InsJps = $PdoRt->prepare('INSERT INTO journey_pattern_stops VALUES (?, ?, ?)');
+foreach (['UP' => ['1', '2', '3', '4'], 'DOWN' => ['4', '3', '2', '1']] as $sPattern => $aStops) {
+    foreach ($aStops as $iSeq => $sStop) {
+        $InsJps->execute([$sPattern, $iSeq, $sStop]);
+    }
+}
+$scheduledRow = fn(string $sTrip, string $sPattern, int $iArrival) => [
+    'trip_number' => $sTrip, 'journey_pattern_id' => $sPattern, 'arrival_seconds' => $iArrival,
+    'status' => 'scheduled', 'etaSeconds' => $iArrival, 'delaySeconds' => 0,
+];
+$aRows = [$scheduledRow('up1', 'UP', T0 + 100), $scheduledRow('down1', 'DOWN', T0 + 120), $scheduledRow('up2', 'UP', T0 + 400)];
+$aFeedTrips = [
+    ['tripId' => 'a', 'stops' => [['2', T0 + 150], ['3', T0 + 250]]],
+    ['tripId' => 'b', 'stops' => [['3', T0 + 200], ['2', T0 + 300]]],
+    ['tripId' => 'c', 'stops' => [['2', T0 + 110]]],
+    ['tripId' => 'd', 'stops' => [['2', T0 + 2000], ['3', T0 + 2100]]],
+];
+$aOut = (new TripUpdatesMatcher($aFeedTrips, new ServiceJourney($PdoRt), 600, 0))->enrich('2', $aRows);
+$aByTrip = array_column($aOut, null, 'trip_number');
+$expect('el tren de subida recibe su previsión (50 s cuentan como en hora)', $aByTrip['up1']['status'] === 'live' && $aByTrip['up1']['etaSeconds'] === T0 + 150 && $aByTrip['up1']['delaySeconds'] === 0);
+$expect('el de bajada recibe la del tren que va en su sentido: 3 min de retraso', $aByTrip['down1']['status'] === 'live' && $aByTrip['down1']['delaySeconds'] === 180);
+$expect('una previsión de una sola parada o a más de 10 min no se asocia', $aByTrip['up2']['status'] === 'scheduled' && $aByTrip['up2']['etaSeconds'] === T0 + 400);
+$expect('las salidas quedan ordenadas por la hora prevista', array_column($aOut, 'trip_number') === ['up1', 'down1', 'up2']);
+$expect('sin feed, el horario no cambia', (new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->enrich('2', $aRows) === $aRows);
 
 /* ------------------------------------------------------------------ */
 $section('TripKey y Calendar');

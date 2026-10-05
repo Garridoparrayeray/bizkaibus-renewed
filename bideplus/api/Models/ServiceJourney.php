@@ -10,6 +10,8 @@ class ServiceJourney
 
     private const PAST_GRACE_SECONDS = 900;
 
+    private const COUNTED_PAST_SECONDS = 120;
+
     private const LAST_STOP_NAME_SUBQUERY = '(
         SELECT s2.name FROM passing_times pt2
         JOIN stops s2 ON s2.id = pt2.stop_id
@@ -67,7 +69,7 @@ class ServiceJourney
             'windowEnd' => $iNow + $iWindowSeconds,
         ]);
 
-        return $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5);
+        return $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5, $iNow - self::COUNTED_PAST_SECONDS);
     }
 
     public function directionsByPattern(int|string $iStopId, int|string $iReferenceStopId): array
@@ -274,6 +276,21 @@ class ServiceJourney
         return $this->aTableExists[$sTable];
     }
 
+    public function stopSequencesForPatterns(array $aPatternIds): array
+    {
+        if (empty($aPatternIds)) {
+            return [];
+        }
+        $sPlaceholders = implode(',', array_fill(0, \count($aPatternIds), '?'));
+        $Stmt = $this->Pdo->prepare("SELECT journey_pattern_id, stop_id FROM journey_pattern_stops WHERE journey_pattern_id IN ($sPlaceholders) ORDER BY journey_pattern_id, seq_order");
+        $Stmt->execute(array_values($aPatternIds));
+        $aSequences = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aSequences[$aRow['journey_pattern_id']][] = (string)$aRow['stop_id'];
+        }
+        return $aSequences;
+    }
+
     public function stopsForJourney(string $sServiceJourneyId): array
     {
         $Stmt = $this->Pdo->prepare('
@@ -287,10 +304,11 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
-    private function dedupeByTrip(array $aRows, int $iLimit): array
+    private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds = PHP_INT_MIN): array
     {
         $aLastKeptDeparture = [];
         $aResult = [];
+        $iCounted = 0;
         foreach ($aRows as $aRow) {
             $sKey = $aRow['line_id'] . '|' . $aRow['trip_number'];
             $iDeparture = (int)$aRow['departure_seconds'];
@@ -299,7 +317,10 @@ class ServiceJourney
             }
             $aLastKeptDeparture[$sKey] = $iDeparture;
             $aResult[] = $aRow;
-            if (\count($aResult) >= $iLimit) {
+            if ($iDeparture >= $iCountFromSeconds) {
+                $iCounted++;
+            }
+            if ($iCounted >= $iLimit) {
                 break;
             }
         }
