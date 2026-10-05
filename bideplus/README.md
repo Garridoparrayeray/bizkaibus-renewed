@@ -66,7 +66,7 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 - Alertas de servicio (SIRI-SX): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml`
 - Posición de buses (SIRI-VM): `https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml` (con GPS), y como respaldo `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml` (mal nombrado "trip-updates" en origen; sin GPS)
 
-**Metro Bilbao** — no publica un feed SIRI equivalente; solo el endpoint JSON de avisos ya mencionado. Sin tiempo real de posición de trenes.
+**Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Sus `trip_id` no coinciden con los del horario de Open Data Metro Bilbao, así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 
@@ -177,6 +177,6 @@ El código, el diseño y los iconos de este proyecto se publican bajo [Creative 
 ## Atribución de datos
 
 - BizkaiBus+: Bizkaibus / Open Data Bizkaia (CC-BY 4.0).
-- Metro+: Metro Bilbao / Open Data Metro Bilbao (metrobilbao.eus).
+- Metro+: Metro Bilbao / Open Data Metro Bilbao (metrobilbao.eus). Tiempo real: Consorcio de Transportes de Bizkaia / [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online) (CC-BY 4.0).
 
-Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Metro Bilbao S.A. ni la Diputación Foral de Bizkaia.
+Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Metro Bilbao S.A., el Consorcio de Transportes de Bizkaia ni la Diputación Foral de Bizkaia.
