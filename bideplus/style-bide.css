@@ -119,6 +119,25 @@ html.bide .bide-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
     html.bide .bide-links a { color: var(--bide-green); font-weight: 700; text-decoration: none; }
 html.bide .bide-card-link { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; color: var(--bide-green); font-size: 1rem; font-weight: 800; cursor: pointer; }
     html.bide .bide-card-link svg { width: 18px; height: 18px; }
+html.bide .bide-changelog-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+    html.bide .bide-changelog-head time { color: var(--bide-muted); font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    html.bide .bide-changelog-head strong { color: var(--bide-ink); font-size: .95rem; }
+html.bide .bide-changelog-more > .bide-changelog-entry { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bide-line); }
+html.bide .bide-changelog-more summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    color: var(--bide-green);
+    font-weight: 800;
+    list-style: none;
+    cursor: pointer;
+}
+    html.bide .bide-changelog-more summary::-webkit-details-marker { display: none; }
+    html.bide .bide-changelog-more summary::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s var(--bide-ease); }
+    html.bide .bide-changelog-more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+    html.bide .bide-changelog-close, html.bide .bide-changelog-more[open] .bide-changelog-open { display: none; }
+    html.bide .bide-changelog-more[open] .bide-changelog-close { display: inline; }
 html.bide .bide-alerts-toggle:not(:empty) { margin: 0 0 12px; padding: 14px 16px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); }
     html.bide .bide-alerts-toggle .alerts-toggle { margin: 0; }
 
@@ -383,6 +402,7 @@ html.bide body.page-menu #legal-close {
         html.bide :is(body.page-app #dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, #legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
 
     html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
+        html.bide .bide-changelog { grid-column: 1 / -1; }
     html.bide .bide-view[data-bide-view="favoritos"], html.bide .bide-view[data-bide-view="avisos"] { max-width: 880px; }
 }
 
@@ -390,4 +410,5 @@ html.bide body.page-menu #legal-close {
     html.bide .bide-view, html.bide .bide-rail-applist, html.bide .bide-install { animation: none; }
     html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: none; }
     html.bide .bide-rail-chevron { transition: none; }
+    html.bide .bide-changelog-more summary::after { transition: none; }
 }

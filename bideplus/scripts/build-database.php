@@ -18,8 +18,8 @@ const NETWORK_DEFAULTS = [
         'skipGeocode' => false,
     ],
     'metro' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
-        'backdoor_source' => 'https://cms.metrobilbao.eus/es/get/open_data/horarios/es',
+        'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip',
+        'backdoor_source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
         'output' => __DIR__ . '/../data/metrobilbao.sqlite',
         'label' => 'Metro+',
         'agencyId' => null,
@@ -795,6 +795,36 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
     }
 }
 
+function excludedDatesForGroup(array $aGroup, array $aSignatures): array
+{
+    $aExcluded = [];
+    foreach (array_keys($aGroup['excludedDates']) as $sDate) {
+        $bAnyMemberRuns = false;
+        foreach ($aGroup['memberTripIds'] as $sTripId) {
+            if (signatureRunsOn($aSignatures[$sTripId], $sDate)) {
+                $bAnyMemberRuns = true;
+                break;
+            }
+        }
+        if (!$bAnyMemberRuns) {
+            $aExcluded[$sDate] = true;
+        }
+    }
+    return $aExcluded;
+}
+
+function signatureRunsOn(array $aSig, string $sDate): bool
+{
+    if (in_array($sDate, $aSig['includedDates'], true)) {
+        return true;
+    }
+    if (in_array($sDate, $aSig['excludedDates'], true)) {
+        return false;
+    }
+    $iWeekdayBit = 1 << ((int)(new DateTime($sDate))->format('N') - 1);
+    return ($aSig['weekdayMask'] & $iWeekdayBit) !== 0;
+}
+
 function calendarGroupKeyFor(string $sNetwork, string $sServiceId, array $aCalendars): string
 {
     if ($sNetwork !== 'metro') {
@@ -915,6 +945,10 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             }
             $iPreviousDeparture = $aSig['firstDeparture'];
         }
+    }
+
+    foreach ($aGroups as $sClusterKey => $aGroup) {
+        $aGroups[$sClusterKey]['excludedDates'] = excludedDatesForGroup($aGroup, $aSignatures);
     }
 
     $aMaskToCalendarId = [];
