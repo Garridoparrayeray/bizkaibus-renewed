@@ -115,6 +115,11 @@ check('instalada · Favoritos: sin desbordar a lo ancho', await ev(noOverflow));
 
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
+check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
+await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 10"));
+check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
+await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
 await ev("document.querySelector('[data-bide-view=info] [data-bide-legal]').click(); true");
 check('instalada · Info: abre el aviso legal', (await ev("document.getElementById('legal-panel').open")) === true);
 check('instalada · menú: el aviso legal tiene su ✕ visible', await ev("(() => { const r = document.getElementById('legal-close').getBoundingClientRect(); const svg = document.querySelector('#legal-close svg').getBoundingClientRect(); return r.width >= 40 && r.height >= 40 && svg.width >= 16; })()"));
@@ -123,6 +128,7 @@ check('instalada · Info: el aviso legal se cierra', (await ev("document.getElem
 
 await ev("document.querySelector('[data-bide-lang=eu]').click(); true");
 check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
+check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
 check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));

@@ -12,7 +12,9 @@ use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\RealtimeMatcher;
+use Services\GtfsRealtimeClient;
 use Services\SiriVehicleMonitoringClient;
+use Services\TripUpdatesMatcher;
 
 class StopsController
 {
@@ -119,6 +121,11 @@ class StopsController
             $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
         }
         $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        $TripMatcher = null;
+        if (isset($aConfig['gtfs_rt'])) {
+            $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
+            $TripMatcher = new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds']);
+        }
 
         $sNetwork = 'bus';
         if (isset($aConfig['network'])) {
@@ -133,6 +140,9 @@ class StopsController
             foreach ($aPlatforms as $aPlatform) {
                 $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 4 * 3600);
                 $aEnriched = $Matcher->enrich($aRows);
+                if ($TripMatcher !== null) {
+                    $aEnriched = $TripMatcher->enrich((string)$aPlatform['id'], $aEnriched);
+                }
                 $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign, $aPlatform);
                 foreach (array_slice($aPlatformDepartures, 0, $iLimit) as $aDeparture) {
                     $aDepartures[] = $aDeparture;
@@ -167,6 +177,9 @@ class StopsController
         }
 
         $aEnriched = $Matcher->enrich($aRows);
+        if ($TripMatcher !== null) {
+            $aEnriched = $TripMatcher->enrich((string)$sStopId, $aEnriched);
+        }
         $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign), 0, $iLimit);
 
         Response::json([
