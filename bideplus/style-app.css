@@ -9,8 +9,8 @@
     --primary-tint: #EEF6E4;
     --text: #1c211d;
     --text-secondary: #5c665e;
-    --status-ok: #2E7D32;
-    --status-warn: #B34A14;
+    --status-ok: #ffff;
+    --status-warn: #0000;
     --status-muted: #5f6670;
     --warn-tint: #FBE9E1;
     --shadow-soft: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 20px -10px rgba(0, 0, 0, .18);
