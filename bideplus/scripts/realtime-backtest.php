@@ -590,12 +590,18 @@ function fitSegments(array $aSamples): array
             continue;
         }
         $aSegment = ['n' => count($aGroups['all'])];
+        $bSeveralBands = count($aGroups) > 2;
         foreach ($aGroups as $sGroup => $aActuals) {
+            if ($sGroup === 'all' && !$bSeveralBands) {
+                continue;
+            }
             if (count($aActuals) >= MIN_TRACKS_PER_SEGMENT) {
                 $aSegment[$sGroup] = (int)round(percentile(array_values($aActuals), 0.5));
             }
         }
-        $aSegments[$sKey] = $aSegment;
+        if (count($aSegment) > 1) {
+            $aSegments[$sKey] = $aSegment;
+        }
     }
     ksort($aSegments);
     return $aSegments;
