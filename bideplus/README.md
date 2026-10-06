@@ -116,7 +116,25 @@ php scripts/realtime-backtest.php calibrate capturas --write    # guarda data/pa
 
 `calibrate` calcula `k` como la mediana, entre buses, de (tiempo real restante / horario restante), lo encoge hacia 1 cuando hay pocos buses y exige un mínimo de 8 buses distintos por franja (25 buses y 5 vehículos distintos por línea). Valida con una partición: calibra con la mitad de los buses y mide en la otra mitad. Solo escribe el fichero si el error baja en esa mitad de prueba.
 
-**Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en el adjunto `pace-samples.jsonl` de la release `pace-data` (60 días, unos 300 KB por captura; las releases no disparan despliegues). Los lunes calcula `k` con todo lo acumulado y, solo si el error baja en la mitad de prueba y los factores cambian, hace un commit de `data/pace-factors.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` hace lo mismo en local.
+### Tiempos por tramo
+
+En algunos tramos el horario oficial no se parece a la realidad: por ejemplo, el A3514 hacia Gernika tiene entre 34 y 49 minutos de horario entre Zabalburu y el peaje de Boroa (18 km de autopista), y el bus lo hace en unos 15. Un `k` por línea no lo arregla, porque en la misma línea los buses van más lentos que el horario en la ciudad y mucho más rápidos en la autopista. Por eso `RealtimeMatcher` suma el tiempo restante tramo a tramo (de parada a parada):
+
+```
+ETA = T_gps + Σ tramos hasta la parada (tiempo aprendido del tramo, o k × horario del tramo si no hay datos)
+```
+
+El tiempo aprendido sale de `data/segment-times.json` (lo lee `Services\SegmentTimes`): la mediana de lo que tardan de verdad los buses en cada tramo entre dos paradas (`desde>hasta`, con ids de parada, así que lo comparten todas las líneas que pasan por él), por franja si hay datos y si no general. Hace falta un mínimo de 3 buses distintos por tramo. Sin el fichero, la fórmula es exactamente la de arriba.
+
+```
+php scripts/realtime-backtest.php calibrate-segments capturas            # solo informa
+php scripts/realtime-backtest.php calibrate-segments capturas --write    # guarda data/segment-times.json
+php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
+```
+
+`calibrate-segments` valida igual que `calibrate`: aprende con la mitad de los buses y mide en la otra mitad; solo escribe si el error baja. El tiempo general de un tramo solo se guarda si hay datos de al menos dos franjas, para que lo medido a mediodía no se use en hora punta. `data/segment-samples-seed.jsonl.gz` son las primeras muestras (6 oct 2026, mediodía de laborable, 760 buses): el workflow empieza por ellas si la release aún no tiene `segment-samples.jsonl`.
+
+**Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (60 días; las releases no disparan despliegues). Cada día calcula `k` y los tiempos por tramo con todo lo acumulado y, solo si el error baja en la mitad de prueba y el resultado cambia, hace un commit de `data/pace-factors.json` y `data/segment-times.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` y `segment-samples <carpeta> <tramos.jsonl>` hacen lo mismo en local.
 
 ## Fuente estática: GTFS
 
