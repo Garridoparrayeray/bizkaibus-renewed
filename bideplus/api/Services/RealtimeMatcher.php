@@ -31,9 +31,10 @@ class RealtimeMatcher
     private array $aShapeByJourneyId = [];
     private array $aPositionMemo = [];
     private PaceFactors $Pace;
+    private SegmentTimes $Segments;
     private string $sDate;
 
-    public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null)
+    public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null, SegmentTimes|null $Segments = null)
     {
         $this->aVmMap = $aVmMap;
         $this->JourneyModel = $JourneyModel;
@@ -42,6 +43,7 @@ class RealtimeMatcher
             $this->iNow = $iNowSeconds;
         }
         $this->Pace = $Pace ?? PaceFactors::fromFile();
+        $this->Segments = $Segments ?? SegmentTimes::fromFile();
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
     }
@@ -107,8 +109,8 @@ class RealtimeMatcher
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
         if ($aPosition !== null) {
             $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
-            $iRemaining = $iTargetArrivalSeconds - $aPosition['scheduledSeconds'];
-            $iEta = (int)round($aPosition['locationSeconds'] + $dFactor * $iRemaining);
+            $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
+            $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);
             return [$iEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
         }
 
@@ -126,6 +128,39 @@ class RealtimeMatcher
         }
 
         return [$iFlatEta, $aLive['delaySeconds'], false];
+    }
+
+    private function remainingSeconds(string $sServiceJourneyId, int $iTargetArrivalSeconds, array $aPosition, float $dFactor): float
+    {
+        $iFromSeconds = $aPosition['scheduledSeconds'];
+        if ($this->Segments->isEmpty()) {
+            return $dFactor * ($iTargetArrivalSeconds - $iFromSeconds);
+        }
+
+        $aStops = $this->stopsFor($sServiceJourneyId);
+        $sBand = PaceFactors::bandFor($this->sDate, $aPosition['locationSeconds']);
+        $dRemaining = 0.0;
+        for ($i = 0; $i < \count($aStops) - 1; $i++) {
+            $iLeaveSeconds = (int)$aStops[$i]['arrival_seconds'];
+            $iReachSeconds = (int)$aStops[$i + 1]['arrival_seconds'];
+            if ($iReachSeconds <= $iFromSeconds) {
+                continue;
+            }
+            if ($iLeaveSeconds >= $iTargetArrivalSeconds) {
+                break;
+            }
+            $iScheduled = $iReachSeconds - $iLeaveSeconds;
+            $dSegment = $this->Segments->seconds((string)$aStops[$i]['stop_id'], (string)$aStops[$i + 1]['stop_id'], $sBand);
+            if ($dSegment === null) {
+                $dSegment = $dFactor * $iScheduled;
+            }
+            $dShare = 1.0;
+            if ($iScheduled > 0) {
+                $dShare = (min($iReachSeconds, $iTargetArrivalSeconds) - max($iLeaveSeconds, $iFromSeconds)) / $iScheduled;
+            }
+            $dRemaining += max(0.0, $dShare) * $dSegment;
+        }
+        return $dRemaining;
     }
 
     public function currentDelaySeconds(string|null $sServiceJourneyId, array|null $aLive): int
