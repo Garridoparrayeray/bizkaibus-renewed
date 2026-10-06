@@ -17,6 +17,7 @@ use Core\Http;
 use Models\ServiceJourney;
 use Services\PaceFactors;
 use Services\RealtimeMatcher;
+use Services\SegmentTimes;
 use Services\SiriVehicleMonitoringClient;
 
 const MAX_GAP_BETWEEN_SNAPSHOTS_SECONDS = 300;
@@ -31,6 +32,7 @@ const MIN_VEHICLES_PER_LINE = 5;
 const SHRINKAGE_TRACKS = 10;
 const MAX_SAMPLES_PER_TRACK = 30;
 const SAMPLES_RETENTION_DAYS = 60;
+const MIN_TRACKS_PER_SEGMENT = 3;
 
 function main(array $aArgv): void
 {
@@ -54,7 +56,19 @@ function main(array $aArgv): void
         return;
     }
     if ($sMode === 'analyze' && isset($aPositional[0])) {
-        analyze($aPositional[0], !in_array('--sin-k', $aFlags, true));
+        $Segments = SegmentTimes::fromFile($aPositional[1] ?? null);
+        if (in_array('--sin-tramos', $aFlags, true)) {
+            $Segments = new SegmentTimes();
+        }
+        analyze($aPositional[0], !in_array('--sin-k', $aFlags, true), $Segments);
+        return;
+    }
+    if ($sMode === 'segment-samples' && isset($aPositional[0], $aPositional[1])) {
+        exportSegmentSamples($aPositional[0], $aPositional[1]);
+        return;
+    }
+    if ($sMode === 'calibrate-segments' && isset($aPositional[0])) {
+        calibrateSegments($aPositional[0], in_array('--write', $aFlags, true));
         return;
     }
     if ($sMode === 'samples' && isset($aPositional[0], $aPositional[1])) {
@@ -67,9 +81,11 @@ function main(array $aArgv): void
     }
     fwrite(STDERR, "Uso:\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php capture <carpeta> [minutos=30] [intervalo_s=45]\n");
-    fwrite(STDERR, "  php scripts/realtime-backtest.php analyze <carpeta> [--sin-k]\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php analyze <carpeta> [tiempos-tramos.json] [--sin-k] [--sin-tramos]\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>\n");
     fwrite(STDERR, "  php scripts/realtime-backtest.php calibrate <carpeta|acumulado.jsonl> [--write]\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php segment-samples <carpeta> <tramos.jsonl>\n");
+    fwrite(STDERR, "  php scripts/realtime-backtest.php calibrate-segments <carpeta|tramos.jsonl> [--write]\n");
     exit(1);
 }
 
@@ -101,13 +117,15 @@ function capture(string $sDir, int $iMinutes, int $iIntervalSeconds): void
     echo "$iSaved capturas en $sDir\n";
 }
 
-function collect(string $sDir, PaceFactors $Pace): array
+function collect(string $sDir, PaceFactors $Pace, SegmentTimes|null $Segments = null): array
 {
+    $Segments = $Segments ?? new SegmentTimes();
     Config::set('bus');
     $JourneyModel = new ServiceJourney(Database::connection());
     $aSnapshots = loadSnapshots($sDir);
 
     $aTracks = [];
+    $aTrackInfo = [];
     $aPredictions = [];
     $aOffRoute = [];
     $aCoverage = ['posicionados' => 0, 'viaje sin empezar' => 0, 'fuera de ruta o sin GPS' => 0, 'sin viaje en la BD' => 0];
@@ -115,7 +133,7 @@ function collect(string $sDir, PaceFactors $Pace): array
     foreach ($aSnapshots as $aSnapshot) {
         $sXml = (string)file_get_contents($aSnapshot['file']);
         $aVmMap = SiriVehicleMonitoringClient::parse($sXml, $aSnapshot['date']);
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel, $aSnapshot['seconds'], $Pace, $aSnapshot['date']);
+        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel, $aSnapshot['seconds'], $Pace, $aSnapshot['date'], $Segments);
 
         foreach ($aVmMap as $aEntries) {
             foreach ($aEntries as $aEntry) {
@@ -139,6 +157,7 @@ function collect(string $sDir, PaceFactors $Pace): array
 
                 $sTrackKey = $aEntry['vehicleRef'] . '|' . $sJourneyId;
                 $aTracks[$sTrackKey][] = ['t' => $aPosition['locationSeconds'], 'sched' => $aPosition['scheduledSeconds']];
+                $aTrackInfo[$sTrackKey] = ['journey' => $sJourneyId, 'line' => (string)($aEntry['lineId'] ?? ''), 'date' => $aSnapshot['date']];
                 foreach ($aStops as $aStop) {
                     $iArrival = (int)$aStop['arrival_seconds'];
                     if ($iArrival <= $aPosition['scheduledSeconds']) {
@@ -165,21 +184,45 @@ function collect(string $sDir, PaceFactors $Pace): array
         $aPredictions[$iIndex]['actual'] = actualPassingTime($aTracks[$aPrediction['track']], $aPrediction['arrival']);
     }
 
+    $aSegmentSamples = [];
+    foreach ($aTracks as $sTrackKey => $aTrack) {
+        $aInfo = $aTrackInfo[$sTrackKey];
+        $aStops = journeyStops($JourneyModel, $aInfo['journey']);
+        $aPassing = array_map(fn($aStop) => actualPassingTime($aTrack, (int)$aStop['arrival_seconds']), $aStops);
+        for ($i = 0; $i < count($aStops) - 1; $i++) {
+            if ($aPassing[$i] === null || $aPassing[$i + 1] === null || $aPassing[$i + 1] <= $aPassing[$i]) {
+                continue;
+            }
+            $aSegmentSamples[] = [
+                'track' => $aInfo['date'] . '|' . $sTrackKey,
+                'line' => $aInfo['line'],
+                'date' => $aInfo['date'],
+                'at' => (int)$aPassing[$i],
+                'band' => PaceFactors::bandFor($aInfo['date'], (int)$aPassing[$i]),
+                'from' => (string)$aStops[$i]['stop_id'],
+                'to' => (string)$aStops[$i + 1]['stop_id'],
+                'scheduled' => (int)$aStops[$i + 1]['arrival_seconds'] - (int)$aStops[$i]['arrival_seconds'],
+                'actual' => round($aPassing[$i + 1] - $aPassing[$i], 1),
+            ];
+        }
+    }
+
     return [
         'snapshots' => $aSnapshots,
         'predictions' => $aPredictions,
+        'segmentSamples' => $aSegmentSamples,
         'coverage' => $aCoverage,
         'offRoute' => $aOffRoute,
     ];
 }
 
-function analyze(string $sDir, bool $bWithFactors): void
+function analyze(string $sDir, bool $bWithFactors, SegmentTimes $Segments): void
 {
     $Pace = new PaceFactors();
     if ($bWithFactors) {
         $Pace = PaceFactors::fromFile();
     }
-    $aData = collect($sDir, $Pace);
+    $aData = collect($sDir, $Pace, $Segments);
 
     $aErrors = [];
     $iNotSeenPassing = 0;
@@ -220,7 +263,11 @@ function analyze(string $sDir, bool $bWithFactors): void
         $sFactorsLabel = 'sin factor k (k = 1)';
     }
     echo "\nError = tiempo mostrado - llegada real, en minutos. Positivo: el bus llega antes de lo que dice la app.\n";
-    echo "antes = horario + 0 (lo que hacia la app); ahora = posicion GPS + horario restante, $sFactorsLabel.\n";
+    $sSegmentsLabel = 'sin tiempos por tramo';
+    if (!$Segments->isEmpty()) {
+        $sSegmentsLabel = 'con tiempos aprendidos por tramo';
+    }
+    echo "antes = horario + 0 (lo que hacia la app); ahora = posicion GPS + horario restante, $sFactorsLabel, $sSegmentsLabel.\n";
     echo 'Filas: minutos que muestra la app nueva. Solo predicciones con la captura abierta ' . (OBSERVED_AFTER_PREDICTION_SECONDS / 60) . " min mas alla de la hora mostrada.\n";
     echo "Predicciones descartadas porque no se vio pasar al bus: $iNotSeenPassing\n\n";
     printf("%-10s | %-40s | %-40s\n", 'muestra', 'antes:  n    sesgo  |err| p90  <=1m <=2m', 'ahora:  n    sesgo  |err| p90  <=1m <=2m');
@@ -490,6 +537,136 @@ function crossValidate(array $aSamples): array
         'medianBefore' => percentile($aBefore, 0.5),
         'medianAfter' => percentile($aAfter, 0.5),
     ];
+}
+
+function loadSegmentSamplesFile(string $sPath): array
+{
+    $aSamples = [];
+    foreach (file($sPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $sLine) {
+        $aSample = json_decode($sLine, true);
+        if (is_array($aSample) && isset($aSample['track'], $aSample['at'], $aSample['band'], $aSample['from'], $aSample['to'], $aSample['scheduled'], $aSample['actual'])) {
+            $aSamples[] = $aSample;
+        }
+    }
+    return $aSamples;
+}
+
+function exportSegmentSamples(string $sDir, string $sOutput): void
+{
+    $aNew = collect($sDir, new PaceFactors())['segmentSamples'];
+
+    $aAll = [];
+    if (is_file($sOutput)) {
+        $sLimit = date('Y-m-d', strtotime('-' . SAMPLES_RETENTION_DAYS . ' days'));
+        foreach (loadSegmentSamplesFile($sOutput) as $aSample) {
+            if ($aSample['date'] >= $sLimit) {
+                $aAll[] = $aSample;
+            }
+        }
+    }
+    $iBefore = count($aAll);
+    $aAll = array_merge($aAll, $aNew);
+
+    $sBody = '';
+    foreach ($aAll as $aSample) {
+        $sBody .= json_encode($aSample, JSON_UNESCAPED_UNICODE) . "\n";
+    }
+    file_put_contents($sOutput, $sBody);
+    echo 'Tramos nuevos medidos: ' . count($aNew) . ", acumulado: $iBefore -> " . count($aAll) . " en $sOutput\n";
+}
+
+function fitSegments(array $aSamples): array
+{
+    $aByKey = [];
+    foreach ($aSamples as $aSample) {
+        $sKey = SegmentTimes::key($aSample['from'], $aSample['to']);
+        $aByKey[$sKey]['all'][$aSample['track']] = $aSample['actual'];
+        $aByKey[$sKey][$aSample['band']][$aSample['track']] = $aSample['actual'];
+    }
+
+    $aSegments = [];
+    foreach ($aByKey as $sKey => $aGroups) {
+        if (count($aGroups['all']) < MIN_TRACKS_PER_SEGMENT) {
+            continue;
+        }
+        $aSegment = ['n' => count($aGroups['all'])];
+        foreach ($aGroups as $sGroup => $aActuals) {
+            if (count($aActuals) >= MIN_TRACKS_PER_SEGMENT) {
+                $aSegment[$sGroup] = (int)round(percentile(array_values($aActuals), 0.5));
+            }
+        }
+        $aSegments[$sKey] = $aSegment;
+    }
+    ksort($aSegments);
+    return $aSegments;
+}
+
+function calibrateSegments(string $sSource, bool $bWrite): void
+{
+    if (is_file($sSource)) {
+        $aSamples = loadSegmentSamplesFile($sSource);
+    } else {
+        $aSamples = collect($sSource, new PaceFactors())['segmentSamples'];
+    }
+    echo 'Tramos medidos: ' . count($aSamples) . ' (' . count(array_unique(array_column($aSamples, 'track'))) . " buses)\n";
+
+    $Pace = PaceFactors::fromFile();
+    $aBefore = [];
+    $aAfter = [];
+    foreach ([0, 1] as $iHeldOutFold) {
+        $aTrain = array_filter($aSamples, fn($aSample) => crc32($aSample['track']) % 2 !== $iHeldOutFold);
+        $Segments = new SegmentTimes(['segments' => fitSegments($aTrain)]);
+        foreach ($aSamples as $aSample) {
+            if (crc32($aSample['track']) % 2 !== $iHeldOutFold) {
+                continue;
+            }
+            $dLearned = $Segments->seconds($aSample['from'], $aSample['to'], $aSample['band']);
+            if ($dLearned === null) {
+                continue;
+            }
+            $dFactor = $Pace->factor($aSample['line'], $aSample['date'], (int)$aSample['at']);
+            $aBefore[] = abs($dFactor * $aSample['scheduled'] - $aSample['actual']) / 60;
+            $aAfter[] = abs($dLearned - $aSample['actual']) / 60;
+        }
+    }
+
+    $aSegments = fitSegments($aSamples);
+    echo 'Tramos con tiempo aprendido (minimo ' . MIN_TRACKS_PER_SEGMENT . ' buses distintos): ' . count($aSegments) . "\n";
+    if (empty($aBefore)) {
+        echo "Validacion cruzada: sin tramos repetidos en las dos mitades.\n";
+    } else {
+        printf(
+            "Validacion cruzada (n=%d tramos): error medio por tramo %.2f min con horario y k -> %.2f min con lo aprendido (suma de errores %.0f -> %.0f min)\n",
+            count($aBefore),
+            array_sum($aBefore) / count($aBefore),
+            array_sum($aAfter) / count($aAfter),
+            array_sum($aBefore),
+            array_sum($aAfter)
+        );
+    }
+
+    if (!$bWrite) {
+        echo "No se ha escrito nada (usa --write para guardar data/segment-times.json).\n";
+        return;
+    }
+    if (empty($aBefore) || array_sum($aAfter) >= array_sum($aBefore)) {
+        echo "No se escribe: lo aprendido no mejora el error en la mitad de prueba.\n";
+        return;
+    }
+    if (is_file(SegmentTimes::defaultPath())) {
+        $aCurrent = json_decode((string)file_get_contents(SegmentTimes::defaultPath()), true);
+        if (is_array($aCurrent) && ($aCurrent['segments'] ?? null) == $aSegments) {
+            echo "Sin cambios: los tiempos son los mismos que los del fichero actual.\n";
+            return;
+        }
+    }
+    $aOutput = [
+        'generated' => date('Y-m-d H:i'),
+        'samples' => count($aSamples),
+        'segments' => $aSegments,
+    ];
+    file_put_contents(SegmentTimes::defaultPath(), json_encode($aOutput, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
+    echo 'Escrito ' . realpath(SegmentTimes::defaultPath()) . "\n";
 }
 
 function loadSnapshots(string $sDir): array

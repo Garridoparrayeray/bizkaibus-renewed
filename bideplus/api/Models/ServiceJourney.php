@@ -256,7 +256,7 @@ class ServiceJourney
             $sDistanceColumn = 'pt.dist_m';
         }
         $Stmt = $this->Pdo->prepare('
-            SELECT pt.seq_order, pt.arrival_seconds, pt.departure_seconds, s.lat, s.lon, ' . $sDistanceColumn . '
+            SELECT pt.seq_order, pt.stop_id, pt.arrival_seconds, pt.departure_seconds, s.lat, s.lon, ' . $sDistanceColumn . '
             FROM passing_times pt
             JOIN stops s ON s.id = pt.stop_id
             WHERE pt.service_journey_id = ?
