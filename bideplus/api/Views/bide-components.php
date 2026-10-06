@@ -21,6 +21,7 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-06', '06/10/2026', 11, 'Horarios de Bizkaibus corregidos', 'Algunos buses usaban las horas de paso de otro tipo de día (por ejemplo, las de festivo en un laborable) y la app los daba por pasados antes de tiempo. Ahora cada viaje lleva sus horas oficiales.'],
     ['2026-10-05', '05/10/2026', 1, 'Metro+ en directo', 'Los próximos trenes de Metro Bilbao llegan en directo y con su retraso, gracias al Consorcio de Transportes de Bizkaia. Arreglados los tranvías que desaparecían algunos días.'],
     ['2026-10-04', '04/10/2026', 2, 'Más fácil de usar', 'El botón atrás del móvil funciona bien, la pestaña activa se distingue mejor y los colores cumplen las pautas de accesibilidad WCAG 2.1 AA.'],
     ['2026-10-02', '02/10/2026', 3, 'Bide+, una sola app', 'Todas las apps dentro de Bide+: pestañas en el móvil, columna lateral en el ordenador y páginas de Favoritos, Avisos e Info. Más seguridad y mejor posición en los buscadores.'],
