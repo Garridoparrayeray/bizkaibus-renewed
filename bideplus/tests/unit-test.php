@@ -17,6 +17,7 @@ use Services\Calendar;
 use Services\GtfsRealtimeClient;
 use Services\PaceFactors;
 use Services\RealtimeMatcher;
+use Services\SegmentTimes;
 use Services\SiriVehicleMonitoringClient;
 use Services\TripUpdatesMatcher;
 
@@ -119,9 +120,9 @@ function live(float $dNorthMeters, float $dEastMeters, int $iOrder, int $iLocati
     ];
 }
 
-function matcher(array $aLive, int $iNow, PaceFactors|null $Pace = null, float $dReturnOffset = 40.0, string $sDate = DATE_WEEKDAY): RealtimeMatcher
+function matcher(array $aLive, int $iNow, PaceFactors|null $Pace = null, float $dReturnOffset = 40.0, string $sDate = DATE_WEEKDAY, SegmentTimes|null $Segments = null): RealtimeMatcher
 {
-    return new RealtimeMatcher(['3414|808' => [$aLive]], new ServiceJourney(buildFixture($dReturnOffset)), $iNow, $Pace ?? new PaceFactors(), $sDate);
+    return new RealtimeMatcher(['3414|808' => [$aLive]], new ServiceJourney(buildFixture($dReturnOffset)), $iNow, $Pace ?? new PaceFactors(), $sDate, $Segments ?? new SegmentTimes());
 }
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +149,26 @@ $expect('k no cambia el retraso mostrado', $M->currentDelaySeconds('J_LINE', $aL
 $M = matcher($aLive, $iGps + 30, $Pace, 40.0, DATE_WEEKEND);
 [$iEta] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
 $expect('un factor de laborable no se aplica en fin de semana', $iEta === T0 + 690, hms($iEta));
+
+/* Tramos aprendidos de las capturas (S1>S2, S2>S3); S3>S4 no tiene datos y usa el horario con k. */
+$Segments = new SegmentTimes(['segments' => [
+    'S1>S2' => ['n' => 5, 'all' => 60],
+    'S2>S3' => ['n' => 5, 'all' => 100],
+]]);
+$M = matcher($aLive, $iGps + 30, null, 40.0, DATE_WEEKDAY, $Segments);
+[$iEta, $iDelay] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
+$expect('con tiempos por tramo: medio tramo de 60 s + 100 s + 180 s del horario (08:09:10)', $iEta === T0 + 550, hms($iEta));
+$expect('los tiempos por tramo no cambian el retraso mostrado', $iDelay === -30);
+[$iEta] = $M->etaForStop('J_LINE', T0 + 360, $aLive);
+$expect('con tiempos por tramo solo se suman los tramos hasta la parada pedida (08:04:30)', $iEta === T0 + 270, hms($iEta));
+
+$M = matcher($aLive, $iGps + 30, $Pace, 40.0, DATE_WEEKDAY, $Segments);
+[$iEta] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
+$expect('el factor k solo se aplica a los tramos sin datos (08:08:52)', $iEta === T0 + 532, hms($iEta));
+
+$SegmentsBand = new SegmentTimes(['segments' => ['S1>S2' => ['n' => 9, 'all' => 60, 'laborable.punta_manana' => 120]]]);
+$expect('el tiempo de la franja manda sobre el general', $SegmentsBand->seconds('S1', 'S2', 'laborable.punta_manana') === 120.0 && $SegmentsBand->seconds('S1', 'S2', 'laborable.noche') === 60.0);
+$expect('un tramo sin datos no tiene tiempo aprendido', $SegmentsBand->seconds('S2', 'S1', 'laborable.noche') === null);
 
 $aNear = live(1500, 30, 3, $iGps);
 $expect('a 30 m del trazado sigue en ruta', matcher($aNear, $iGps)->positionFor('J_LINE', $aNear) !== null);
@@ -192,7 +213,7 @@ $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaFor
 $section('RealtimeMatcher: sin trazado (tramos entre paradas)');
 
 $aSeg = live(1500, 100, 3, $iGps, 'trp_A3414_809_X_28800_x');
-$MSeg = new RealtimeMatcher(['3414|809' => [$aSeg]], new ServiceJourney(buildFixture(40)), $iGps, new PaceFactors(), DATE_WEEKDAY);
+$MSeg = new RealtimeMatcher(['3414|809' => [$aSeg]], new ServiceJourney(buildFixture(40)), $iGps, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $aPos = $MSeg->positionFor('J_NOSHAPE', $aSeg);
 $expect('sin shape se proyecta sobre la recta entre paradas', $aPos !== null && $aPos['method'] === 'segment');
 $expect('sin shape el pasillo es max(150 m, 15 %): 100 m vale', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 270);
@@ -220,14 +241,14 @@ $section('RealtimeMatcher: emparejar el feed con el horario y enrich()');
 $M = matcher($aLive, $iGps + 30);
 $expect('el VehicleJourneyRef se empareja por trip_aliases', $M->lookup('3414', '808', T0, 'J_LINE') === $aLive);
 $aVariant = live(1500, 0, 3, $iGps, 'trp_A3414_808_OP9LJIN_28800_x');
-$MVariant = new RealtimeMatcher(['3414|808' => [$aVariant]], new ServiceJourney(buildFixture(40)), $iGps, new PaceFactors(), DATE_WEEKDAY);
+$MVariant = new RealtimeMatcher(['3414|808' => [$aVariant]], new ServiceJourney(buildFixture(40)), $iGps, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $expect('una variante de calendario fusionada (OP9LJIN) apunta al mismo viaje', $MVariant->journeyIdFor($aVariant) === 'J_LINE' && $MVariant->lookup('3414', '808', T0, 'J_LINE') === $aVariant);
 
 $aOld = ['3414|808' => [
     ['departureSeconds' => T0 + 200, 'tag' => 'lejos'],
     ['departureSeconds' => T0 + 60, 'tag' => 'cerca'],
 ]];
-$MOld = new RealtimeMatcher($aOld, null, T0, new PaceFactors(), DATE_WEEKDAY);
+$MOld = new RealtimeMatcher($aOld, null, T0, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $aHit = $MOld->lookup('3414', '808', T0);
 $expect('sin alias, gana la salida más cercana dentro de 180 s', $aHit !== null && $aHit['tag'] === 'cerca');
 $expect('sin alias, más de 180 s de diferencia no empareja', $MOld->lookup('3414', '808', T0 + 600) === null);
@@ -287,6 +308,25 @@ if ($bValid) {
     }
 }
 $expect('data/pace-factors.json es válido (franjas conocidas, k entre 0,6 y 1,2)', $bValid && empty($aBad), implode(', ', $aBad));
+
+$aSegmentsBad = [];
+$sSegmentsPath = SegmentTimes::defaultPath();
+if (is_file($sSegmentsPath)) {
+    $aSegmentsFile = json_decode((string)file_get_contents($sSegmentsPath), true);
+    if (!is_array($aSegmentsFile) || !is_array($aSegmentsFile['segments'] ?? null)) {
+        $aSegmentsBad[] = 'formato';
+    } else {
+        foreach ($aSegmentsFile['segments'] as $sKey => $aSegment) {
+            foreach ($aSegment as $sGroup => $Value) {
+                $bGroupOk = $sGroup === 'n' || $sGroup === 'all' || \in_array($sGroup, $aBands, true);
+                if (!preg_match('/^[^>]+>[^>]+$/', (string)$sKey) || !$bGroupOk || !is_int($Value) || $Value <= 0 || $Value > 3 * 3600) {
+                    $aSegmentsBad[] = $sKey . ':' . $sGroup . '=' . json_encode($Value);
+                }
+            }
+        }
+    }
+}
+$expect('data/segment-times.json es válido si existe (tramos desde>hasta, segundos entre 1 y 3 h)', empty($aSegmentsBad), implode(', ', array_slice($aSegmentsBad, 0, 5)));
 
 /* ------------------------------------------------------------------ */
 $section('SIRI-VM (parseo del feed)');
