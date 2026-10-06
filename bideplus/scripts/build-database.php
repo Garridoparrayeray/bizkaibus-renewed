@@ -843,6 +843,21 @@ function calendarGroupKeyFor(string $sNetwork, string $sServiceId, array $aCalen
     return '';
 }
 
+function timingKeyFor(array $aBuffer, int|null $iFirstDeparture): string
+{
+    $aOffsets = [];
+    foreach ($aBuffer as $aRow) {
+        $iArrival = $aRow['arrival'] ?? $aRow['departure'] ?? null;
+        $iDeparture = $aRow['departure'] ?? $iArrival;
+        if ($iArrival === null) {
+            $aOffsets[] = '-';
+            continue;
+        }
+        $aOffsets[] = ($iArrival - ($iFirstDeparture ?? 0)) . '/' . ($iDeparture - $iArrival);
+    }
+    return substr(md5(implode(',', $aOffsets)), 0, 12);
+}
+
 function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
@@ -890,6 +905,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             $aExcludedDates = $aCalendars[$aTrip['serviceId']]['excludedDates'];
         }
         $sCalendarGroupKey = calendarGroupKeyFor($sNetwork, $aTrip['serviceId'], $aCalendars);
+        $sTimingKey = timingKeyFor($aBuffer, $iFirstDeparture);
 
         $aSignatures[$sTripId] = [
             'routeId' => $aTrip['routeId'],
@@ -901,6 +917,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             'includedDates' => $aIncludedDates,
             'excludedDates' => $aExcludedDates,
             'calendarGroupKey' => $sCalendarGroupKey,
+            'timingKey' => $sTimingKey,
         ];
     }
 
@@ -913,7 +930,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             $sTripNumberPart = $aSig['tripNumber'];
         }
 
-        $sKey = $aSig['routeId'] . '|' . $sTripNumberPart . '|' . $aSig['patternKey'] . '|' . $aSig['calendarGroupKey'];
+        $sKey = $aSig['routeId'] . '|' . $sTripNumberPart . '|' . $aSig['patternKey'] . '|' . $aSig['calendarGroupKey'] . '|' . $aSig['timingKey'];
         $aByRoutePattern[$sKey][] = $sTripId;
     }
 
