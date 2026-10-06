@@ -80,7 +80,7 @@ jobs:
       - name: Descargar las muestras acumuladas
         run: |
           gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay muestras acumuladas"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay tramos acumulados"
+          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
 
       - name: Anadir las muestras de esta captura
         run: |
@@ -108,7 +108,7 @@ jobs:
       - name: Descargar las muestras acumuladas
         run: |
           gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay tramos acumulados"
+          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
 
       - name: Calibrar
         run: |
