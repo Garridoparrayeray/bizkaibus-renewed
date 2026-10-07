@@ -1,25 +1,39 @@
 {
-    "generated": "2026-10-05 12:58",
+    "generated": "2026-10-07 12:49",
     "captures": 0,
-    "samples": 12844,
+    "samples": 25006,
     "global": {
         "laborable.manana": 0.93,
-        "laborable.mediodia": 1.061,
-        "laborable.punta_tarde": 0.933,
-        "laborable.noche": 0.92,
+        "laborable.mediodia": 0.95,
+        "laborable.punta_tarde": 0.914,
+        "laborable.noche": 0.916,
         "fin_semana.punta_tarde": 0.824,
         "fin_semana.noche": 0.856
     },
-    "lines": [],
+    "lines": {
+        "3129": {
+            "laborable.punta_tarde": 0.994
+        },
+        "3136": {
+            "laborable.punta_tarde": 0.872
+        }
+    },
     "meta": {
         "global": {
             "laborable.manana": 157,
-            "laborable.mediodia": 25,
-            "laborable.punta_tarde": 276,
-            "laborable.noche": 119,
+            "laborable.mediodia": 377,
+            "laborable.punta_tarde": 575,
+            "laborable.noche": 313,
             "fin_semana.punta_tarde": 166,
             "fin_semana.noche": 131
         },
-        "lines": []
+        "lines": {
+            "3129": {
+                "laborable.punta_tarde": 34
+            },
+            "3136": {
+                "laborable.punta_tarde": 27
+            }
+        }
     }
 }
