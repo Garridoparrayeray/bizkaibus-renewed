@@ -1,9 +1,10 @@
 {
-    "generated": "2026-10-06 15:49",
-    "samples": 12755,
+    "generated": "2026-10-07 12:49",
+    "samples": 15394,
     "segments": {
         "1003>706": {
-            "n": 3,
+            "n": 5,
+            "all": 143,
             "laborable.mediodia": 148
         },
         "1003>708": {
@@ -19,7 +20,8 @@
             "laborable.mediodia": 49
         },
         "1047>1061": {
-            "n": 6,
+            "n": 9,
+            "all": 126,
             "laborable.mediodia": 131
         },
         "1048>1049": {
@@ -27,7 +29,8 @@
             "laborable.mediodia": 90
         },
         "1048>1106": {
-            "n": 4,
+            "n": 5,
+            "all": 64,
             "laborable.mediodia": 64
         },
         "1049>1050": {
@@ -71,39 +74,48 @@
             "laborable.mediodia": 65
         },
         "1060>1047": {
-            "n": 6,
+            "n": 7,
+            "all": 30,
             "laborable.mediodia": 30
         },
         "1061>1304": {
-            "n": 3,
+            "n": 4,
+            "all": 303,
             "laborable.mediodia": 304
         },
         "1061>4263": {
-            "n": 3,
+            "n": 5,
+            "all": 174,
             "laborable.mediodia": 182
         },
         "1062>1063": {
-            "n": 3,
+            "n": 5,
+            "all": 111,
             "laborable.mediodia": 114
         },
         "1062>1365": {
-            "n": 6,
+            "n": 7,
+            "all": 79,
             "laborable.mediodia": 79
         },
         "1063>1064": {
-            "n": 7,
+            "n": 11,
+            "all": 115,
             "laborable.mediodia": 116
         },
         "1064>1066": {
-            "n": 3,
+            "n": 6,
+            "all": 93,
             "laborable.mediodia": 105
         },
         "1067>1068": {
-            "n": 5,
+            "n": 6,
+            "all": 85,
             "laborable.mediodia": 86
         },
         "1068>1365": {
-            "n": 6,
+            "n": 7,
+            "all": 137,
             "laborable.mediodia": 137
         },
         "1069>4262": {
@@ -111,7 +123,8 @@
             "laborable.mediodia": 122
         },
         "1070>4263": {
-            "n": 6,
+            "n": 7,
+            "all": 214,
             "laborable.mediodia": 206
         },
         "1072>1073": {
@@ -123,55 +136,68 @@
             "laborable.mediodia": 39
         },
         "1084>330": {
-            "n": 5,
+            "n": 6,
+            "all": 197,
             "laborable.mediodia": 233
         },
         "1086>331": {
-            "n": 7,
+            "n": 8,
+            "all": 147,
             "laborable.mediodia": 147
         },
         "1086>523": {
-            "n": 4,
+            "n": 5,
+            "all": 59,
             "laborable.mediodia": 53
         },
         "1097>1098": {
-            "n": 6,
+            "n": 7,
+            "all": 85,
             "laborable.mediodia": 80
         },
         "1098>1099": {
-            "n": 6,
+            "n": 7,
+            "all": 49,
             "laborable.mediodia": 46
         },
         "1099>1100": {
-            "n": 6,
+            "n": 7,
+            "all": 34,
             "laborable.mediodia": 32
         },
         "1100>1084": {
-            "n": 5,
+            "n": 6,
+            "all": 70,
             "laborable.mediodia": 75
         },
         "1106>1107": {
-            "n": 5,
+            "n": 6,
+            "all": 42,
             "laborable.mediodia": 45
         },
         "1107>1108": {
-            "n": 5,
+            "n": 6,
+            "all": 112,
             "laborable.mediodia": 119
         },
         "1108>1109": {
-            "n": 4,
+            "n": 5,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "1111>1112": {
-            "n": 15,
+            "n": 18,
+            "all": 87,
             "laborable.mediodia": 105
         },
         "1112>1113": {
-            "n": 15,
+            "n": 18,
+            "all": 76,
             "laborable.mediodia": 74
         },
         "1113>1147": {
-            "n": 10,
+            "n": 13,
+            "all": 57,
             "laborable.mediodia": 54
         },
         "1113>1180": {
@@ -179,19 +205,23 @@
             "laborable.mediodia": 135
         },
         "1114>1115": {
-            "n": 20,
+            "n": 23,
+            "all": 57,
             "laborable.mediodia": 57
         },
         "1115>1116": {
-            "n": 26,
+            "n": 29,
+            "all": 63,
             "laborable.mediodia": 63
         },
         "1116>1117": {
-            "n": 17,
+            "n": 18,
+            "all": 131,
             "laborable.mediodia": 133
         },
         "1116>4261": {
-            "n": 3,
+            "n": 5,
+            "all": 158,
             "laborable.mediodia": 145
         },
         "1116>757": {
@@ -199,103 +229,142 @@
             "laborable.mediodia": 185
         },
         "1117>1118": {
-            "n": 18,
+            "n": 19,
+            "all": 103,
             "laborable.mediodia": 99
         },
         "1118>1119": {
-            "n": 20,
+            "n": 23,
+            "all": 91,
             "laborable.mediodia": 99
         },
         "1119>1120": {
-            "n": 20,
-            "laborable.mediodia": 86
+            "n": 25,
+            "all": 86,
+            "laborable.mediodia": 86,
+            "laborable.punta_tarde": 85
         },
         "1120>435": {
-            "n": 7,
+            "n": 8,
+            "all": 325,
             "laborable.mediodia": 331
         },
         "1120>679": {
-            "n": 11,
+            "n": 13,
+            "all": 256,
             "laborable.mediodia": 257
         },
         "1134>1135": {
-            "n": 18,
-            "laborable.mediodia": 88
+            "n": 24,
+            "all": 83,
+            "laborable.mediodia": 88,
+            "laborable.punta_tarde": 83,
+            "laborable.noche": 59
         },
         "1135>1136": {
-            "n": 18,
-            "laborable.mediodia": 92
+            "n": 24,
+            "all": 90,
+            "laborable.mediodia": 92,
+            "laborable.punta_tarde": 87,
+            "laborable.noche": 74
         },
         "1136>1137": {
-            "n": 15,
-            "laborable.mediodia": 137
+            "n": 20,
+            "all": 120,
+            "laborable.mediodia": 137,
+            "laborable.punta_tarde": 111
         },
         "1136>1423": {
-            "n": 3,
+            "n": 5,
+            "all": 143,
             "laborable.mediodia": 144
         },
         "1137>1138": {
-            "n": 16,
+            "n": 20,
+            "all": 116,
             "laborable.mediodia": 116
         },
         "1138>1139": {
-            "n": 26,
-            "laborable.mediodia": 69
+            "n": 35,
+            "all": 69,
+            "laborable.mediodia": 69,
+            "laborable.punta_tarde": 62,
+            "laborable.noche": 56
         },
         "1139>1221": {
-            "n": 22,
-            "laborable.mediodia": 72
+            "n": 29,
+            "all": 71,
+            "laborable.mediodia": 72,
+            "laborable.punta_tarde": 55,
+            "laborable.noche": 56
         },
         "1139>1349": {
             "n": 3,
             "laborable.mediodia": 65
         },
         "1141>1142": {
-            "n": 16,
-            "laborable.mediodia": 89
+            "n": 21,
+            "all": 89,
+            "laborable.mediodia": 89,
+            "laborable.punta_tarde": 82
         },
         "1142>1143": {
-            "n": 15,
-            "laborable.mediodia": 110
+            "n": 20,
+            "all": 102,
+            "laborable.mediodia": 110,
+            "laborable.punta_tarde": 91
         },
         "1143>1236": {
-            "n": 3,
+            "n": 4,
+            "all": 208,
             "laborable.mediodia": 225
         },
         "1143>1298": {
-            "n": 12,
+            "n": 14,
+            "all": 223,
             "laborable.mediodia": 220
         },
         "1147>1191": {
-            "n": 10,
+            "n": 12,
+            "all": 183,
             "laborable.mediodia": 188
         },
         "1148>1141": {
-            "n": 11,
+            "n": 13,
+            "all": 80,
             "laborable.mediodia": 81
+        },
+        "1149>1184": {
+            "n": 3,
+            "all": 31
         },
         "1150>1186": {
             "n": 3,
             "laborable.mediodia": 28
         },
         "1152>1153": {
-            "n": 3,
+            "n": 4,
+            "all": 55,
             "laborable.mediodia": 66
         },
         "1153>1154": {
-            "n": 3,
+            "n": 4,
+            "all": 68,
             "laborable.mediodia": 68
         },
         "1154>1169": {
-            "n": 3,
+            "n": 4,
+            "all": 42,
             "laborable.mediodia": 42
         },
         "1169>459": {
-            "n": 3,
+            "n": 4,
+            "all": 138,
             "laborable.mediodia": 138
         },
         "1175>435": {
-            "n": 10,
+            "n": 12,
+            "all": 330,
             "laborable.mediodia": 330
         },
         "1180>1194": {
@@ -303,43 +372,59 @@
             "laborable.mediodia": 95
         },
         "1181>1141": {
-            "n": 4,
+            "n": 6,
+            "all": 106,
             "laborable.mediodia": 108
         },
         "1182>1191": {
-            "n": 10,
+            "n": 12,
+            "all": 96,
             "laborable.mediodia": 86
         },
         "1183>1185": {
             "n": 3,
             "laborable.mediodia": 79
         },
+        "1184>1182": {
+            "n": 3,
+            "all": 80
+        },
         "1185>1150": {
             "n": 3,
             "laborable.mediodia": 43
         },
+        "1187>1149": {
+            "n": 3,
+            "all": 21
+        },
         "1189>675": {
-            "n": 11,
+            "n": 13,
+            "all": 80,
             "laborable.mediodia": 80
         },
         "118>119": {
-            "n": 5,
+            "n": 6,
+            "all": 78,
             "laborable.mediodia": 95
         },
         "1191>1192": {
-            "n": 21,
+            "n": 25,
+            "all": 37,
             "laborable.mediodia": 38
         },
         "1192>1193": {
-            "n": 20,
+            "n": 23,
+            "all": 86,
             "laborable.mediodia": 87
         },
         "1193>1194": {
-            "n": 20,
+            "n": 23,
+            "all": 103,
             "laborable.mediodia": 104
         },
         "1194>1114": {
-            "n": 18,
+            "n": 21,
+            "all": 31,
             "laborable.mediodia": 34
         },
         "1194>1115": {
@@ -347,123 +432,158 @@
             "laborable.mediodia": 90
         },
         "1197>1198": {
-            "n": 10,
+            "n": 12,
+            "all": 97,
             "laborable.mediodia": 100
         },
         "1198>1199": {
-            "n": 10,
+            "n": 12,
+            "all": 116,
             "laborable.mediodia": 120
         },
         "1199>1200": {
-            "n": 10,
+            "n": 13,
+            "all": 80,
             "laborable.mediodia": 77
         },
         "119>120": {
-            "n": 5,
+            "n": 6,
+            "all": 85,
             "laborable.mediodia": 86
         },
         "11>12": {
-            "n": 21,
-            "laborable.mediodia": 100
+            "n": 29,
+            "all": 91,
+            "laborable.mediodia": 100,
+            "laborable.punta_tarde": 82,
+            "laborable.noche": 62
         },
         "1200>1226": {
-            "n": 10,
+            "n": 13,
+            "all": 28,
             "laborable.mediodia": 28
         },
         "1201>1202": {
-            "n": 10,
+            "n": 13,
+            "all": 43,
             "laborable.mediodia": 45
         },
         "1202>1203": {
-            "n": 10,
+            "n": 12,
+            "all": 82,
             "laborable.mediodia": 82
         },
         "1203>1204": {
-            "n": 10,
+            "n": 12,
+            "all": 55,
             "laborable.mediodia": 54
         },
         "1204>1205": {
-            "n": 10,
+            "n": 12,
+            "all": 67,
             "laborable.mediodia": 63
         },
         "1205>1206": {
-            "n": 8,
+            "n": 10,
+            "all": 197,
             "laborable.mediodia": 197
         },
         "1206>1257": {
-            "n": 7,
+            "n": 9,
+            "all": 93,
             "laborable.mediodia": 95
         },
         "1207>1208": {
-            "n": 11,
+            "n": 12,
+            "all": 209,
             "laborable.mediodia": 210
         },
         "1208>1209": {
-            "n": 11,
+            "n": 13,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "1209>1210": {
-            "n": 11,
+            "n": 13,
+            "all": 41,
             "laborable.mediodia": 40
         },
         "120>121": {
-            "n": 12,
+            "n": 15,
+            "all": 137,
             "laborable.mediodia": 138
         },
         "120>4186": {
-            "n": 6,
+            "n": 7,
+            "all": 129,
             "laborable.mediodia": 129
         },
         "1210>1211": {
-            "n": 11,
+            "n": 13,
+            "all": 80,
             "laborable.mediodia": 77
         },
         "1211>1212": {
-            "n": 11,
+            "n": 12,
+            "all": 57,
             "laborable.mediodia": 64
         },
         "1212>1227": {
-            "n": 11,
+            "n": 12,
+            "all": 62,
             "laborable.mediodia": 71
         },
         "1213>1214": {
-            "n": 11,
+            "n": 12,
+            "all": 84,
             "laborable.mediodia": 84
         },
         "1214>1215": {
-            "n": 12,
+            "n": 13,
+            "all": 109,
             "laborable.mediodia": 107
         },
         "1215>1216": {
-            "n": 11,
+            "n": 12,
+            "all": 77,
             "laborable.mediodia": 79
         },
         "1216>1563": {
-            "n": 11,
+            "n": 12,
+            "all": 96,
             "laborable.mediodia": 104
         },
         "121>122": {
-            "n": 11,
+            "n": 14,
+            "all": 79,
             "laborable.mediodia": 80
         },
         "1221>1181": {
-            "n": 4,
+            "n": 6,
+            "all": 123,
             "laborable.mediodia": 123
         },
         "1221>1222": {
-            "n": 18,
-            "laborable.mediodia": 101
+            "n": 23,
+            "all": 101,
+            "laborable.mediodia": 101,
+            "laborable.punta_tarde": 104
         },
         "1222>1223": {
-            "n": 20,
-            "laborable.mediodia": 89
+            "n": 25,
+            "all": 85,
+            "laborable.mediodia": 89,
+            "laborable.punta_tarde": 81
         },
         "1223>1224": {
-            "n": 20,
-            "laborable.mediodia": 26
+            "n": 25,
+            "all": 25,
+            "laborable.mediodia": 26,
+            "laborable.punta_tarde": 23
         },
         "1224>1148": {
-            "n": 10,
+            "n": 12,
+            "all": 170,
             "laborable.mediodia": 170
         },
         "1224>1183": {
@@ -479,23 +599,28 @@
             "laborable.mediodia": 124
         },
         "1226>1201": {
-            "n": 10,
+            "n": 13,
+            "all": 66,
             "laborable.mediodia": 64
         },
         "1227>1213": {
-            "n": 11,
+            "n": 12,
+            "all": 26,
             "laborable.mediodia": 26
         },
         "122>123": {
-            "n": 11,
+            "n": 15,
+            "all": 131,
             "laborable.mediodia": 131
         },
         "1236>1237": {
-            "n": 3,
+            "n": 4,
+            "all": 97,
             "laborable.mediodia": 100
         },
         "1237>1238": {
-            "n": 3,
+            "n": 4,
+            "all": 89,
             "laborable.mediodia": 89
         },
         "1238>1239": {
@@ -507,7 +632,8 @@
             "laborable.mediodia": 57
         },
         "123>4174": {
-            "n": 10,
+            "n": 12,
+            "all": 78,
             "laborable.mediodia": 78
         },
         "1240>1241": {
@@ -523,11 +649,13 @@
             "laborable.mediodia": 74
         },
         "1254>1255": {
-            "n": 3,
+            "n": 4,
+            "all": 72,
             "laborable.mediodia": 85
         },
         "1255>1256": {
-            "n": 3,
+            "n": 4,
+            "all": 87,
             "laborable.mediodia": 87
         },
         "1256>3721": {
@@ -535,59 +663,87 @@
             "laborable.mediodia": 63
         },
         "1257>1258": {
-            "n": 10,
+            "n": 11,
+            "all": 148,
             "laborable.mediodia": 148
         },
         "1258>3722": {
-            "n": 10,
+            "n": 12,
+            "all": 80,
             "laborable.mediodia": 85
         },
         "1259>1260": {
-            "n": 9,
+            "n": 11,
+            "all": 76,
             "laborable.mediodia": 68
         },
         "1260>4292": {
-            "n": 9,
+            "n": 11,
+            "all": 115,
             "laborable.mediodia": 116
         },
         "1267>1268": {
-            "n": 8,
+            "n": 9,
+            "all": 56,
             "laborable.mediodia": 52
         },
         "1268>3723": {
-            "n": 9,
+            "n": 10,
+            "all": 148,
             "laborable.mediodia": 161
         },
         "1269>1270": {
-            "n": 9,
+            "n": 10,
+            "all": 102,
             "laborable.mediodia": 102
         },
+        "126>4132": {
+            "n": 3,
+            "all": 429
+        },
         "1270>1207": {
-            "n": 8,
+            "n": 9,
+            "all": 132,
             "laborable.mediodia": 132
         },
         "127>129": {
             "n": 5,
             "laborable.mediodia": 300
         },
-        "1287>1288": {
+        "1280>1281": {
             "n": 3,
+            "all": 48
+        },
+        "1281>1282": {
+            "n": 3,
+            "all": 91
+        },
+        "1287>1288": {
+            "n": 4,
+            "all": 69,
             "laborable.mediodia": 69
         },
         "1288>1289": {
-            "n": 3,
+            "n": 4,
+            "all": 33,
             "laborable.mediodia": 33
         },
         "1289>1290": {
-            "n": 3,
+            "n": 4,
+            "all": 101,
             "laborable.mediodia": 118
+        },
+        "128>168": {
+            "n": 3,
+            "all": 191
         },
         "1290>3377": {
             "n": 3,
             "laborable.mediodia": 199
         },
         "1298>1063": {
-            "n": 4,
+            "n": 6,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "1298>1069": {
@@ -595,35 +751,57 @@
             "laborable.mediodia": 31
         },
         "1298>1677": {
-            "n": 3,
+            "n": 5,
+            "all": 81,
             "laborable.mediodia": 81
         },
         "1299>1300": {
-            "n": 3,
+            "n": 5,
+            "all": 60,
             "laborable.mediodia": 60
         },
         "129>130": {
-            "n": 11,
+            "n": 13,
+            "all": 112,
             "laborable.mediodia": 117
         },
         "129>808": {
-            "n": 13,
+            "n": 16,
+            "all": 129,
             "laborable.mediodia": 130
         },
         "12>13": {
-            "n": 30,
-            "laborable.mediodia": 90
+            "n": 38,
+            "all": 90,
+            "laborable.mediodia": 90,
+            "laborable.punta_tarde": 75,
+            "laborable.noche": 92
         },
         "12>16": {
-            "n": 4,
+            "n": 5,
+            "all": 164,
             "laborable.mediodia": 158
         },
-        "1304>1362": {
+        "12>4128": {
             "n": 3,
+            "all": 218
+        },
+        "1300>1301": {
+            "n": 4,
+            "all": 116
+        },
+        "1301>1304": {
+            "n": 3,
+            "all": 219
+        },
+        "1304>1362": {
+            "n": 4,
+            "all": 204,
             "laborable.mediodia": 206
         },
         "130>131": {
-            "n": 5,
+            "n": 7,
+            "all": 147,
             "laborable.mediodia": 153
         },
         "130>4104": {
@@ -651,7 +829,8 @@
             "laborable.mediodia": 62
         },
         "131>134": {
-            "n": 5,
+            "n": 7,
+            "all": 159,
             "laborable.mediodia": 159
         },
         "1321>333": {
@@ -671,7 +850,8 @@
             "laborable.mediodia": 75
         },
         "134>137": {
-            "n": 10,
+            "n": 12,
+            "all": 200,
             "laborable.mediodia": 200
         },
         "1351>1352": {
@@ -687,27 +867,37 @@
             "laborable.mediodia": 60
         },
         "1362>1363": {
-            "n": 3,
+            "n": 5,
+            "all": 147,
             "laborable.mediodia": 141
         },
         "1363>1364": {
-            "n": 3,
+            "n": 5,
+            "all": 78,
             "laborable.mediodia": 87
         },
         "1364>1712": {
-            "n": 3,
+            "n": 5,
+            "all": 43,
             "laborable.mediodia": 44
         },
         "1365>1111": {
-            "n": 14,
+            "n": 17,
+            "all": 233,
             "laborable.mediodia": 255
         },
+        "1375>4138": {
+            "n": 4,
+            "all": 59
+        },
         "137>138": {
-            "n": 10,
+            "n": 12,
+            "all": 99,
             "laborable.mediodia": 102
         },
         "1382>1383": {
-            "n": 4,
+            "n": 5,
+            "all": 136,
             "laborable.mediodia": 136
         },
         "1383>463": {
@@ -719,7 +909,8 @@
             "laborable.mediodia": 114
         },
         "138>198": {
-            "n": 4,
+            "n": 6,
+            "all": 107,
             "laborable.mediodia": 107
         },
         "1398>1399": {
@@ -731,16 +922,20 @@
             "laborable.mediodia": 15
         },
         "13>14": {
-            "n": 7,
+            "n": 8,
+            "all": 117,
             "laborable.mediodia": 143
         },
         "13>55": {
-            "n": 11,
+            "n": 13,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "13>56": {
-            "n": 16,
-            "laborable.mediodia": 137
+            "n": 21,
+            "all": 144,
+            "laborable.mediodia": 137,
+            "laborable.noche": 155
         },
         "140>141": {
             "n": 6,
@@ -763,15 +958,18 @@
             "laborable.mediodia": 95
         },
         "1423>1424": {
-            "n": 3,
+            "n": 5,
+            "all": 51,
             "laborable.mediodia": 51
         },
         "1424>4260": {
-            "n": 3,
+            "n": 5,
+            "all": 51,
             "laborable.mediodia": 69
         },
         "1456>71": {
-            "n": 6,
+            "n": 7,
+            "all": 68,
             "laborable.mediodia": 68
         },
         "145>146": {
@@ -779,12 +977,16 @@
             "laborable.mediodia": 103
         },
         "1463>1464": {
-            "n": 15,
-            "laborable.mediodia": 92
+            "n": 20,
+            "all": 92,
+            "laborable.mediodia": 92,
+            "laborable.punta_tarde": 100
         },
         "1464>1476": {
-            "n": 14,
-            "laborable.mediodia": 88
+            "n": 20,
+            "all": 88,
+            "laborable.mediodia": 88,
+            "laborable.punta_tarde": 88
         },
         "1467>1468": {
             "n": 3,
@@ -795,7 +997,8 @@
             "laborable.mediodia": 88
         },
         "146>147": {
-            "n": 13,
+            "n": 15,
+            "all": 103,
             "laborable.mediodia": 113
         },
         "1470>4177": {
@@ -803,15 +1006,18 @@
             "laborable.mediodia": 160
         },
         "1474>1479": {
-            "n": 6,
+            "n": 7,
+            "all": 133,
             "laborable.mediodia": 133
         },
         "1476>4156": {
-            "n": 12,
+            "n": 16,
+            "all": 74,
             "laborable.mediodia": 79
         },
         "1479>1480": {
-            "n": 17,
+            "n": 20,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "147>227": {
@@ -819,99 +1025,126 @@
             "laborable.mediodia": 79
         },
         "147>3552": {
-            "n": 10,
+            "n": 12,
+            "all": 69,
             "laborable.mediodia": 71
         },
         "1480>1481": {
-            "n": 17,
+            "n": 20,
+            "all": 74,
             "laborable.mediodia": 74
         },
         "1481>40": {
-            "n": 9,
+            "n": 10,
+            "all": 96,
             "laborable.mediodia": 96
         },
         "1481>57": {
-            "n": 9,
+            "n": 11,
+            "all": 64,
             "laborable.mediodia": 64
         },
         "1493>671": {
-            "n": 6,
+            "n": 8,
+            "all": 42,
             "laborable.mediodia": 42
         },
         "14>15": {
-            "n": 7,
+            "n": 8,
+            "all": 57,
             "laborable.mediodia": 59
         },
         "150>151": {
-            "n": 6,
+            "n": 7,
+            "all": 89,
             "laborable.mediodia": 89
         },
         "150>838": {
             "n": 6,
             "laborable.mediodia": 113
         },
+        "150>887": {
+            "n": 4,
+            "all": 93
+        },
         "1511>1512": {
-            "n": 5,
+            "n": 7,
+            "all": 236,
             "laborable.mediodia": 246
         },
         "1512>1513": {
-            "n": 5,
+            "n": 7,
+            "all": 130,
             "laborable.mediodia": 130
         },
         "1513>1514": {
-            "n": 5,
+            "n": 7,
+            "all": 46,
             "laborable.mediodia": 46
         },
         "1514>1515": {
-            "n": 5,
+            "n": 7,
+            "all": 46,
             "laborable.mediodia": 46
         },
         "1515>1517": {
-            "n": 5,
+            "n": 7,
+            "all": 129,
             "laborable.mediodia": 193
         },
         "1517>1518": {
-            "n": 5,
+            "n": 7,
+            "all": 52,
             "laborable.mediodia": 51
         },
         "1518>1519": {
-            "n": 8,
+            "n": 10,
+            "all": 53,
             "laborable.mediodia": 58
         },
         "1519>1520": {
-            "n": 8,
+            "n": 10,
+            "all": 59,
             "laborable.mediodia": 59
         },
         "151>153": {
-            "n": 6,
+            "n": 7,
+            "all": 70,
             "laborable.mediodia": 70
         },
         "1520>1521": {
-            "n": 8,
+            "n": 10,
+            "all": 50,
             "laborable.mediodia": 48
         },
         "1521>1522": {
-            "n": 8,
+            "n": 10,
+            "all": 45,
             "laborable.mediodia": 44
         },
         "1522>1523": {
-            "n": 8,
+            "n": 9,
+            "all": 37,
             "laborable.mediodia": 35
         },
         "1523>1524": {
-            "n": 8,
+            "n": 9,
+            "all": 58,
             "laborable.mediodia": 58
         },
         "1524>1525": {
-            "n": 8,
+            "n": 9,
+            "all": 56,
             "laborable.mediodia": 41
         },
         "1525>1526": {
-            "n": 8,
+            "n": 9,
+            "all": 73,
             "laborable.mediodia": 71
         },
         "1526>1527": {
-            "n": 8,
+            "n": 9,
+            "all": 65,
             "laborable.mediodia": 65
         },
         "1527>1528": {
@@ -919,67 +1152,87 @@
             "laborable.mediodia": 108
         },
         "1528>1529": {
-            "n": 8,
+            "n": 9,
+            "all": 47,
             "laborable.mediodia": 47
         },
         "1529>1197": {
-            "n": 11,
+            "n": 13,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "1529>1530": {
-            "n": 5,
+            "n": 6,
+            "all": 84,
             "laborable.mediodia": 98
         },
         "1530>1531": {
-            "n": 5,
+            "n": 6,
+            "all": 36,
             "laborable.mediodia": 42
         },
         "1531>1532": {
-            "n": 5,
+            "n": 6,
+            "all": 120,
             "laborable.mediodia": 127
         },
         "1532>1611": {
-            "n": 3,
+            "n": 4,
+            "all": 129,
             "laborable.mediodia": 132
         },
+        "1533>1534": {
+            "n": 3,
+            "all": 73
+        },
         "153>154": {
-            "n": 6,
+            "n": 7,
+            "all": 40,
             "laborable.mediodia": 38
         },
         "154>156": {
-            "n": 6,
+            "n": 7,
+            "all": 55,
             "laborable.mediodia": 51
         },
         "1560>1561": {
-            "n": 5,
+            "n": 6,
+            "all": 102,
             "laborable.mediodia": 103
         },
         "1561>1562": {
-            "n": 5,
+            "n": 6,
+            "all": 61,
             "laborable.mediodia": 66
         },
         "1562>1563": {
-            "n": 5,
+            "n": 6,
+            "all": 107,
             "laborable.mediodia": 107
         },
         "1563>1564": {
-            "n": 8,
+            "n": 9,
+            "all": 49,
             "laborable.mediodia": 45
         },
         "1564>1565": {
-            "n": 8,
+            "n": 9,
+            "all": 98,
             "laborable.mediodia": 97
         },
         "1565>1566": {
-            "n": 8,
+            "n": 9,
+            "all": 64,
             "laborable.mediodia": 59
         },
         "1566>1567": {
-            "n": 8,
+            "n": 9,
+            "all": 85,
             "laborable.mediodia": 83
         },
         "1567>1568": {
-            "n": 8,
+            "n": 9,
+            "all": 61,
             "laborable.mediodia": 61
         },
         "1568>1569": {
@@ -991,7 +1244,8 @@
             "laborable.mediodia": 38
         },
         "156>157": {
-            "n": 6,
+            "n": 7,
+            "all": 31,
             "laborable.mediodia": 26
         },
         "1570>1571": {
@@ -1011,63 +1265,78 @@
             "laborable.mediodia": 76
         },
         "1574>1575": {
-            "n": 5,
+            "n": 6,
+            "all": 57,
             "laborable.mediodia": 65
         },
         "1575>1577": {
-            "n": 6,
+            "n": 7,
+            "all": 135,
             "laborable.mediodia": 135
         },
         "1577>1578": {
-            "n": 6,
+            "n": 7,
+            "all": 32,
             "laborable.mediodia": 32
         },
         "1578>1579": {
-            "n": 6,
+            "n": 7,
+            "all": 67,
             "laborable.mediodia": 67
         },
         "1579>1580": {
-            "n": 6,
+            "n": 7,
+            "all": 137,
             "laborable.mediodia": 128
         },
         "157>158": {
-            "n": 6,
+            "n": 7,
+            "all": 22,
             "laborable.mediodia": 17
         },
         "1580>1581": {
-            "n": 6,
+            "n": 7,
+            "all": 142,
             "laborable.mediodia": 92
         },
         "1581>352": {
-            "n": 6,
+            "n": 7,
+            "all": 200,
             "laborable.mediodia": 200
         },
         "158>159": {
-            "n": 5,
+            "n": 6,
+            "all": 255,
             "laborable.mediodia": 275
         },
         "159>160": {
-            "n": 10,
+            "n": 12,
+            "all": 57,
             "laborable.mediodia": 57
         },
         "15>16": {
-            "n": 7,
+            "n": 8,
+            "all": 31,
             "laborable.mediodia": 31
         },
         "160>161": {
-            "n": 10,
+            "n": 12,
+            "all": 34,
             "laborable.mediodia": 34
         },
         "1611>1612": {
-            "n": 4,
+            "n": 5,
+            "all": 21,
             "laborable.mediodia": 21
         },
         "1612>1613": {
-            "n": 4,
+            "n": 5,
+            "all": 71,
             "laborable.mediodia": 71
         },
         "1613>1614": {
-            "n": 4,
+            "n": 5,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "1614>1615": {
@@ -1095,11 +1364,13 @@
             "laborable.mediodia": 36
         },
         "161>162": {
-            "n": 4,
+            "n": 5,
+            "all": 183,
             "laborable.mediodia": 183
         },
         "161>241": {
-            "n": 5,
+            "n": 6,
+            "all": 278,
             "laborable.mediodia": 302
         },
         "1620>1621": {
@@ -1139,7 +1410,8 @@
             "laborable.mediodia": 30
         },
         "162>164": {
-            "n": 4,
+            "n": 5,
+            "all": 148,
             "laborable.mediodia": 145
         },
         "1632>1633": {
@@ -1155,107 +1427,140 @@
             "laborable.mediodia": 115
         },
         "1635>1636": {
-            "n": 3,
+            "n": 4,
+            "all": 29,
             "laborable.mediodia": 29
         },
         "1636>1637": {
-            "n": 3,
+            "n": 4,
+            "all": 37,
             "laborable.mediodia": 37
         },
         "1637>1638": {
-            "n": 3,
+            "n": 4,
+            "all": 22,
             "laborable.mediodia": 22
         },
         "1638>1639": {
-            "n": 3,
+            "n": 4,
+            "all": 29,
             "laborable.mediodia": 29
         },
         "1639>1640": {
-            "n": 3,
+            "n": 4,
+            "all": 23,
             "laborable.mediodia": 23
         },
         "163>164": {
-            "n": 5,
+            "n": 6,
+            "all": 63,
             "laborable.mediodia": 64
         },
         "1640>1641": {
-            "n": 3,
+            "n": 4,
+            "all": 19,
             "laborable.mediodia": 19
         },
         "1641>1642": {
-            "n": 3,
+            "n": 4,
+            "all": 29,
             "laborable.mediodia": 29
         },
         "1642>1643": {
-            "n": 3,
+            "n": 4,
+            "all": 93,
             "laborable.mediodia": 93
         },
         "1643>1644": {
-            "n": 3,
+            "n": 4,
+            "all": 38,
             "laborable.mediodia": 38
         },
         "1644>1645": {
-            "n": 3,
+            "n": 4,
+            "all": 49,
             "laborable.mediodia": 56
         },
         "1645>1646": {
-            "n": 3,
+            "n": 4,
+            "all": 73,
             "laborable.mediodia": 76
         },
-        "1647>1648": {
+        "1646>1647": {
             "n": 3,
+            "all": 60
+        },
+        "1647>1648": {
+            "n": 4,
+            "all": 40,
             "laborable.mediodia": 40
         },
         "1648>1649": {
-            "n": 3,
+            "n": 4,
+            "all": 38,
             "laborable.mediodia": 40
         },
         "1649>1650": {
-            "n": 3,
+            "n": 4,
+            "all": 32,
             "laborable.mediodia": 35
         },
         "164>165": {
-            "n": 5,
+            "n": 6,
+            "all": 70,
             "laborable.mediodia": 72
         },
         "164>244": {
-            "n": 4,
+            "n": 5,
+            "all": 186,
             "laborable.mediodia": 150
         },
         "1650>1560": {
-            "n": 4,
+            "n": 5,
+            "all": 99,
             "laborable.mediodia": 96
         },
         "165>244": {
-            "n": 5,
+            "n": 6,
+            "all": 125,
             "laborable.mediodia": 125
         },
         "1677>1299": {
-            "n": 3,
+            "n": 5,
+            "all": 76,
             "laborable.mediodia": 80
         },
         "167>128": {
-            "n": 4,
+            "n": 5,
+            "all": 104,
             "laborable.mediodia": 104
         },
         "167>168": {
-            "n": 21,
+            "n": 24,
+            "all": 214,
             "laborable.mediodia": 219
         },
         "168>169": {
             "n": 11,
             "laborable.mediodia": 132
         },
+        "168>4256": {
+            "n": 3,
+            "all": 192
+        },
         "169>248": {
-            "n": 10,
+            "n": 11,
+            "all": 106,
             "laborable.mediodia": 103
         },
         "16>17": {
-            "n": 11,
+            "n": 13,
+            "all": 86,
             "laborable.mediodia": 86
         },
         "1712>1365": {
-            "n": 3,
+            "n": 4,
+            "all": 79,
             "laborable.mediodia": 108
         },
         "173>174": {
@@ -1267,47 +1572,64 @@
             "laborable.mediodia": 98
         },
         "1756>1757": {
-            "n": 22,
-            "laborable.mediodia": 129
+            "n": 27,
+            "all": 129,
+            "laborable.mediodia": 129,
+            "laborable.punta_tarde": 153
         },
         "1757>183": {
-            "n": 22,
-            "laborable.mediodia": 105
+            "n": 27,
+            "all": 100,
+            "laborable.mediodia": 105,
+            "laborable.punta_tarde": 99
         },
         "1759>1760": {
-            "n": 24,
-            "laborable.mediodia": 101
+            "n": 30,
+            "all": 103,
+            "laborable.mediodia": 101,
+            "laborable.punta_tarde": 105,
+            "laborable.noche": 103
         },
         "1760>264": {
-            "n": 25,
-            "laborable.mediodia": 162
+            "n": 30,
+            "all": 162,
+            "laborable.mediodia": 162,
+            "laborable.noche": 143
         },
         "1765>1790": {
-            "n": 5,
+            "n": 7,
+            "all": 75,
             "laborable.mediodia": 77
         },
         "1766>1768": {
-            "n": 5,
+            "n": 7,
+            "all": 106,
             "laborable.mediodia": 107
         },
         "1767>1766": {
-            "n": 5,
+            "n": 7,
+            "all": 102,
             "laborable.mediodia": 102
         },
         "1768>1769": {
-            "n": 19,
-            "laborable.mediodia": 60
+            "n": 24,
+            "all": 60,
+            "laborable.mediodia": 60,
+            "laborable.noche": 47
         },
         "1769>2615": {
-            "n": 17,
-            "laborable.mediodia": 93
+            "n": 22,
+            "all": 79,
+            "laborable.mediodia": 93,
+            "laborable.noche": 61
         },
         "1770>1771": {
             "n": 6,
             "laborable.mediodia": 75
         },
         "1771>1772": {
-            "n": 3,
+            "n": 4,
+            "all": 25,
             "laborable.mediodia": 27
         },
         "1771>3409": {
@@ -1315,23 +1637,28 @@
             "laborable.mediodia": 68
         },
         "1772>1773": {
-            "n": 3,
+            "n": 4,
+            "all": 50,
             "laborable.mediodia": 50
         },
         "1773>3959": {
-            "n": 3,
+            "n": 4,
+            "all": 66,
             "laborable.mediodia": 80
         },
         "1774>1775": {
-            "n": 3,
+            "n": 4,
+            "all": 54,
             "laborable.mediodia": 66
         },
         "1775>4265": {
-            "n": 3,
+            "n": 4,
+            "all": 64,
             "laborable.mediodia": 65
         },
         "177>178": {
-            "n": 7,
+            "n": 10,
+            "all": 65,
             "laborable.mediodia": 63
         },
         "1782>1783": {
@@ -1355,47 +1682,62 @@
             "laborable.mediodia": 192
         },
         "1787>1788": {
-            "n": 14,
+            "n": 16,
+            "all": 56,
             "laborable.mediodia": 53
         },
         "1787>1789": {
-            "n": 5,
+            "n": 7,
+            "all": 67,
             "laborable.mediodia": 67
         },
         "1788>251": {
-            "n": 14,
+            "n": 16,
+            "all": 44,
             "laborable.mediodia": 44
         },
         "1789>1765": {
-            "n": 5,
+            "n": 7,
+            "all": 64,
             "laborable.mediodia": 72
         },
         "178>944": {
-            "n": 5,
+            "n": 7,
+            "all": 67,
             "laborable.mediodia": 67
         },
         "1790>255": {
-            "n": 5,
+            "n": 7,
+            "all": 86,
             "laborable.mediodia": 97
         },
         "1798>1799": {
-            "n": 24,
-            "laborable.mediodia": 152
+            "n": 32,
+            "all": 147,
+            "laborable.mediodia": 152,
+            "laborable.punta_tarde": 147,
+            "laborable.noche": 103
         },
         "1799>941": {
-            "n": 31,
-            "laborable.mediodia": 70
+            "n": 43,
+            "all": 61,
+            "laborable.mediodia": 70,
+            "laborable.punta_tarde": 57,
+            "laborable.noche": 41
         },
         "1800>1964": {
-            "n": 5,
+            "n": 6,
+            "all": 172,
             "laborable.mediodia": 207
         },
         "1800>3398": {
-            "n": 4,
+            "n": 5,
+            "all": 165,
             "laborable.mediodia": 165
         },
         "1801>1808": {
-            "n": 5,
+            "n": 6,
+            "all": 292,
             "laborable.mediodia": 295
         },
         "1802>1803": {
@@ -1407,16 +1749,23 @@
             "laborable.mediodia": 265
         },
         "1804>4277": {
-            "n": 5,
+            "n": 7,
+            "all": 74,
             "laborable.mediodia": 75
         },
         "1805>1806": {
-            "n": 5,
+            "n": 7,
+            "all": 177,
             "laborable.mediodia": 177
         },
         "1806>2889": {
-            "n": 5,
+            "n": 7,
+            "all": 161,
             "laborable.mediodia": 154
+        },
+        "1808>1809": {
+            "n": 3,
+            "all": 108
         },
         "1808>2864": {
             "n": 3,
@@ -1427,7 +1776,8 @@
             "laborable.mediodia": 50
         },
         "181>182": {
-            "n": 6,
+            "n": 7,
+            "all": 90,
             "laborable.mediodia": 80
         },
         "182>183": {
@@ -1435,7 +1785,8 @@
             "laborable.mediodia": 164
         },
         "1832>1833": {
-            "n": 15,
+            "n": 18,
+            "all": 47,
             "laborable.mediodia": 58
         },
         "1832>1922": {
@@ -1447,7 +1798,8 @@
             "laborable.mediodia": 20
         },
         "1833>2682": {
-            "n": 11,
+            "n": 14,
+            "all": 128,
             "laborable.mediodia": 130
         },
         "1833>2702": {
@@ -1459,8 +1811,10 @@
             "laborable.mediodia": 190
         },
         "1834>2620": {
-            "n": 18,
-            "laborable.mediodia": 51
+            "n": 23,
+            "all": 50,
+            "laborable.mediodia": 51,
+            "laborable.punta_tarde": 50
         },
         "1837>1838": {
             "n": 3,
@@ -1475,55 +1829,78 @@
             "laborable.mediodia": 77
         },
         "183>1759": {
-            "n": 23,
-            "laborable.mediodia": 138
+            "n": 28,
+            "all": 137,
+            "laborable.mediodia": 138,
+            "laborable.punta_tarde": 138
         },
         "183>191": {
             "n": 6,
             "laborable.mediodia": 109
         },
         "1840>3938": {
-            "n": 11,
+            "n": 13,
+            "all": 51,
             "laborable.mediodia": 51
         },
         "1841>3388": {
-            "n": 17,
+            "n": 20,
+            "all": 148,
             "laborable.mediodia": 150
         },
         "1842>1844": {
-            "n": 3,
+            "n": 4,
+            "all": 165,
             "laborable.mediodia": 165
         },
         "1844>3940": {
-            "n": 9,
-            "laborable.mediodia": 135
+            "n": 13,
+            "all": 133,
+            "laborable.mediodia": 135,
+            "laborable.punta_tarde": 122
         },
         "1845>1846": {
-            "n": 9,
-            "laborable.mediodia": 84
+            "n": 13,
+            "all": 79,
+            "laborable.mediodia": 84,
+            "laborable.punta_tarde": 77
         },
         "1846>1847": {
-            "n": 9,
-            "laborable.mediodia": 62
+            "n": 13,
+            "all": 55,
+            "laborable.mediodia": 62,
+            "laborable.punta_tarde": 43
         },
         "1847>1848": {
-            "n": 9,
-            "laborable.mediodia": 74
+            "n": 13,
+            "all": 74,
+            "laborable.mediodia": 74,
+            "laborable.punta_tarde": 78
         },
         "1847>1849": {
-            "n": 5,
+            "n": 6,
+            "all": 265,
             "laborable.mediodia": 323
         },
         "1848>1849": {
-            "n": 10,
-            "laborable.mediodia": 163
+            "n": 15,
+            "all": 163,
+            "laborable.mediodia": 163,
+            "laborable.punta_tarde": 189
+        },
+        "1848>2278": {
+            "n": 3,
+            "all": 121
         },
         "1849>1800": {
-            "n": 10,
-            "laborable.mediodia": 199
+            "n": 14,
+            "all": 196,
+            "laborable.mediodia": 199,
+            "laborable.punta_tarde": 152
         },
         "1850>1905": {
-            "n": 4,
+            "n": 5,
+            "all": 284,
             "laborable.mediodia": 284
         },
         "1851>1852": {
@@ -1567,16 +1944,23 @@
             "laborable.mediodia": 34
         },
         "1865>1866": {
-            "n": 3,
+            "n": 4,
+            "all": 58,
             "laborable.mediodia": 62
         },
         "1866>4347": {
-            "n": 3,
+            "n": 4,
+            "all": 36,
             "laborable.mediodia": 47
         },
         "1867>1868": {
-            "n": 3,
+            "n": 4,
+            "all": 21,
             "laborable.mediodia": 21
+        },
+        "1868>1869": {
+            "n": 3,
+            "all": 76
         },
         "1885>4350": {
             "n": 3,
@@ -1595,31 +1979,39 @@
             "laborable.mediodia": 79
         },
         "1899>1900": {
-            "n": 4,
+            "n": 5,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "1900>3943": {
-            "n": 4,
+            "n": 5,
+            "all": 48,
             "laborable.mediodia": 48
         },
         "1901>1902": {
-            "n": 4,
+            "n": 5,
+            "all": 58,
             "laborable.mediodia": 57
         },
         "1902>1903": {
-            "n": 3,
+            "n": 4,
+            "all": 103,
             "laborable.mediodia": 103
         },
         "1903>2338": {
-            "n": 3,
+            "n": 4,
+            "all": 110,
             "laborable.mediodia": 117
         },
         "1905>1906": {
-            "n": 17,
-            "laborable.mediodia": 144
+            "n": 21,
+            "all": 142,
+            "laborable.mediodia": 144,
+            "laborable.punta_tarde": 92
         },
         "1906>1907": {
-            "n": 12,
+            "n": 15,
+            "all": 133,
             "laborable.mediodia": 138
         },
         "1906>1908": {
@@ -1627,15 +2019,18 @@
             "laborable.mediodia": 210
         },
         "1907>1908": {
-            "n": 10,
+            "n": 12,
+            "all": 62,
             "laborable.mediodia": 62
         },
         "1907>2139": {
-            "n": 3,
+            "n": 4,
+            "all": 52,
             "laborable.mediodia": 62
         },
         "1908>1909": {
-            "n": 10,
+            "n": 12,
+            "all": 67,
             "laborable.mediodia": 64
         },
         "1908>3391": {
@@ -1643,11 +2038,13 @@
             "laborable.mediodia": 749
         },
         "1909>1910": {
-            "n": 9,
+            "n": 11,
+            "all": 75,
             "laborable.mediodia": 68
         },
         "1910>3941": {
-            "n": 10,
+            "n": 11,
+            "all": 32,
             "laborable.mediodia": 32
         },
         "1911>1913": {
@@ -1655,7 +2052,8 @@
             "laborable.mediodia": 190
         },
         "1911>3390": {
-            "n": 7,
+            "n": 8,
+            "all": 238,
             "laborable.mediodia": 245
         },
         "1913>3390": {
@@ -1663,7 +2061,8 @@
             "laborable.mediodia": 84
         },
         "1914>1949": {
-            "n": 5,
+            "n": 6,
+            "all": 243,
             "laborable.mediodia": 271
         },
         "1914>3939": {
@@ -1695,7 +2094,8 @@
             "laborable.mediodia": 153
         },
         "1922>1834": {
-            "n": 15,
+            "n": 18,
+            "all": 34,
             "laborable.mediodia": 41
         },
         "1923>1949": {
@@ -1703,15 +2103,18 @@
             "laborable.mediodia": 80
         },
         "1924>1840": {
-            "n": 8,
+            "n": 10,
+            "all": 54,
             "laborable.mediodia": 56
         },
         "1949>1841": {
-            "n": 6,
+            "n": 7,
+            "all": 295,
             "laborable.mediodia": 295
         },
         "1949>1924": {
-            "n": 8,
+            "n": 9,
+            "all": 80,
             "laborable.mediodia": 69
         },
         "1949>358": {
@@ -1719,83 +2122,103 @@
             "laborable.mediodia": 1002
         },
         "1963>1965": {
-            "n": 5,
+            "n": 6,
+            "all": 133,
             "laborable.mediodia": 146
         },
         "1964>1963": {
-            "n": 5,
+            "n": 6,
+            "all": 75,
             "laborable.mediodia": 75
         },
         "1965>1966": {
-            "n": 5,
+            "n": 7,
+            "all": 86,
             "laborable.mediodia": 85
         },
         "1966>1967": {
-            "n": 6,
+            "n": 8,
+            "all": 46,
             "laborable.mediodia": 45
         },
         "1967>1968": {
-            "n": 6,
+            "n": 8,
+            "all": 82,
             "laborable.mediodia": 74
         },
         "1968>1969": {
-            "n": 6,
+            "n": 8,
+            "all": 72,
             "laborable.mediodia": 72
         },
         "1969>1970": {
-            "n": 6,
+            "n": 8,
+            "all": 112,
             "laborable.mediodia": 112
         },
         "1970>1971": {
-            "n": 6,
+            "n": 8,
+            "all": 90,
             "laborable.mediodia": 77
         },
         "1971>1972": {
-            "n": 6,
+            "n": 8,
+            "all": 57,
             "laborable.mediodia": 53
         },
         "1972>1973": {
-            "n": 6,
+            "n": 8,
+            "all": 51,
             "laborable.mediodia": 57
         },
         "1973>1974": {
-            "n": 6,
+            "n": 8,
+            "all": 92,
             "laborable.mediodia": 92
         },
         "1974>1977": {
-            "n": 6,
+            "n": 8,
+            "all": 135,
             "laborable.mediodia": 134
         },
         "1978>1979": {
-            "n": 5,
+            "n": 6,
+            "all": 210,
             "laborable.mediodia": 218
         },
         "1979>1980": {
-            "n": 5,
+            "n": 6,
+            "all": 103,
             "laborable.mediodia": 103
         },
         "1980>1981": {
-            "n": 5,
+            "n": 6,
+            "all": 48,
             "laborable.mediodia": 56
         },
         "1981>1982": {
-            "n": 5,
+            "n": 6,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "1982>1983": {
-            "n": 5,
+            "n": 6,
+            "all": 77,
             "laborable.mediodia": 77
         },
         "1983>1984": {
-            "n": 5,
+            "n": 6,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "1984>1985": {
-            "n": 5,
+            "n": 6,
+            "all": 60,
             "laborable.mediodia": 79
         },
         "1985>1986": {
-            "n": 5,
+            "n": 6,
+            "all": 66,
             "laborable.mediodia": 72
         },
         "1986>1987": {
@@ -1811,11 +2234,13 @@
             "laborable.mediodia": 73
         },
         "1989>1905": {
-            "n": 6,
+            "n": 7,
+            "all": 176,
             "laborable.mediodia": 174
         },
         "198>199": {
-            "n": 4,
+            "n": 6,
+            "all": 40,
             "laborable.mediodia": 40
         },
         "1991>1989": {
@@ -1823,11 +2248,13 @@
             "laborable.mediodia": 136
         },
         "1999>2000": {
-            "n": 9,
+            "n": 11,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "199>65": {
-            "n": 4,
+            "n": 6,
+            "all": 92,
             "laborable.mediodia": 111
         },
         "1>1467": {
@@ -1835,191 +2262,290 @@
             "laborable.mediodia": 166
         },
         "1>1474": {
-            "n": 6,
+            "n": 7,
+            "all": 216,
             "laborable.mediodia": 205
         },
         "1>1479": {
-            "n": 8,
+            "n": 10,
+            "all": 142,
             "laborable.mediodia": 144
         },
         "2000>3964": {
-            "n": 9,
+            "n": 10,
+            "all": 129,
             "laborable.mediodia": 130
         },
         "2001>3435": {
-            "n": 19,
-            "laborable.mediodia": 81
+            "n": 23,
+            "all": 83,
+            "laborable.mediodia": 81,
+            "laborable.punta_tarde": 93
         },
         "2005>2006": {
-            "n": 9,
+            "n": 10,
+            "all": 78,
             "laborable.mediodia": 78
         },
         "2006>2045": {
-            "n": 7,
+            "n": 8,
+            "all": 70,
             "laborable.mediodia": 70
         },
         "201>203": {
-            "n": 3,
+            "n": 5,
+            "all": 153,
             "laborable.mediodia": 153
         },
         "2031>2032": {
-            "n": 10,
+            "n": 13,
+            "all": 84,
             "laborable.mediodia": 81
         },
         "2032>2033": {
-            "n": 10,
+            "n": 13,
+            "all": 47,
             "laborable.mediodia": 46
         },
         "2033>2034": {
-            "n": 10,
+            "n": 13,
+            "all": 45,
             "laborable.mediodia": 41
         },
         "2034>2035": {
-            "n": 7,
+            "n": 8,
+            "all": 100,
             "laborable.mediodia": 100
         },
+        "2034>3401": {
+            "n": 4,
+            "all": 121
+        },
         "2035>2036": {
-            "n": 7,
+            "n": 8,
+            "all": 66,
             "laborable.mediodia": 67
         },
         "2036>1999": {
-            "n": 7,
+            "n": 8,
+            "all": 76,
             "laborable.mediodia": 79
         },
         "203>204": {
-            "n": 3,
+            "n": 5,
+            "all": 56,
             "laborable.mediodia": 44
         },
         "2045>2046": {
-            "n": 7,
+            "n": 9,
+            "all": 62,
             "laborable.mediodia": 62
         },
         "2046>2047": {
-            "n": 7,
+            "n": 9,
+            "all": 103,
             "laborable.mediodia": 98
         },
         "2047>2048": {
-            "n": 10,
+            "n": 13,
+            "all": 34,
             "laborable.mediodia": 33
         },
         "2048>2049": {
-            "n": 10,
+            "n": 13,
+            "all": 60,
             "laborable.mediodia": 57
         },
         "2049>2050": {
-            "n": 10,
+            "n": 13,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "204>205": {
-            "n": 3,
+            "n": 5,
+            "all": 60,
             "laborable.mediodia": 61
         },
         "2050>928": {
-            "n": 9,
+            "n": 12,
+            "all": 72,
             "laborable.mediodia": 78
         },
+        "205>206": {
+            "n": 4,
+            "all": 38
+        },
+        "206>207": {
+            "n": 4,
+            "all": 41
+        },
+        "207>208": {
+            "n": 4,
+            "all": 55
+        },
         "2080>2081": {
-            "n": 11,
+            "n": 13,
+            "all": 137,
             "laborable.mediodia": 137
         },
         "2081>2082": {
-            "n": 11,
+            "n": 13,
+            "all": 148,
             "laborable.mediodia": 148
         },
         "2082>2251": {
-            "n": 11,
+            "n": 13,
+            "all": 92,
             "laborable.mediodia": 92
+        },
+        "208>150": {
+            "n": 4,
+            "all": 79
         },
         "2090>2091": {
             "n": 3,
             "laborable.mediodia": 77
+        },
+        "2093>2094": {
+            "n": 3,
+            "all": 147
+        },
+        "2094>2095": {
+            "n": 3,
+            "all": 107
+        },
+        "2095>2096": {
+            "n": 3,
+            "all": 144
         },
         "20>8": {
             "n": 9,
             "laborable.mediodia": 88
         },
         "2103>2104": {
-            "n": 8,
+            "n": 10,
+            "all": 131,
             "laborable.mediodia": 141
         },
         "2104>2105": {
-            "n": 8,
+            "n": 9,
+            "all": 151,
             "laborable.mediodia": 147
         },
         "2105>3437": {
-            "n": 8,
+            "n": 9,
+            "all": 139,
             "laborable.mediodia": 139
+        },
+        "211>212": {
+            "n": 4,
+            "all": 58
         },
         "2124>2125": {
             "n": 3,
             "laborable.mediodia": 61
         },
         "2125>2126": {
-            "n": 3,
+            "n": 4,
+            "all": 125,
             "laborable.mediodia": 125
         },
         "2126>2127": {
-            "n": 3,
+            "n": 5,
+            "all": 49,
             "laborable.mediodia": 49
         },
         "2127>2128": {
-            "n": 3,
+            "n": 5,
+            "all": 33,
             "laborable.mediodia": 36
         },
         "2128>2129": {
-            "n": 3,
+            "n": 5,
+            "all": 32,
             "laborable.mediodia": 32
         },
         "2129>2130": {
-            "n": 3,
+            "n": 5,
+            "all": 31,
             "laborable.mediodia": 31
         },
+        "212>213": {
+            "n": 4,
+            "all": 51
+        },
         "2130>2131": {
-            "n": 3,
+            "n": 5,
+            "all": 46,
             "laborable.mediodia": 46
         },
         "2131>1848": {
-            "n": 3,
+            "n": 5,
+            "all": 63,
             "laborable.mediodia": 86
         },
         "2139>2140": {
-            "n": 3,
+            "n": 4,
+            "all": 43,
             "laborable.mediodia": 43
         },
-        "2140>2141": {
+        "213>214": {
             "n": 4,
+            "all": 29
+        },
+        "2140>2141": {
+            "n": 5,
+            "all": 27,
             "laborable.mediodia": 26
         },
         "2141>2142": {
-            "n": 4,
+            "n": 5,
+            "all": 40,
             "laborable.mediodia": 31
         },
         "2142>2143": {
-            "n": 4,
+            "n": 5,
+            "all": 36,
             "laborable.mediodia": 35
         },
         "2143>2144": {
-            "n": 4,
+            "n": 5,
+            "all": 55,
             "laborable.mediodia": 48
         },
         "2144>2145": {
             "n": 4,
             "laborable.mediodia": 149
         },
+        "214>215": {
+            "n": 4,
+            "all": 47
+        },
+        "215>216": {
+            "n": 4,
+            "all": 37
+        },
+        "216>18": {
+            "n": 3,
+            "all": 69
+        },
         "216>220": {
             "n": 3,
             "laborable.mediodia": 63
         },
         "2174>2175": {
-            "n": 5,
+            "n": 6,
+            "all": 129,
             "laborable.mediodia": 134
         },
         "2175>2176": {
-            "n": 5,
+            "n": 6,
+            "all": 150,
             "laborable.mediodia": 152
         },
         "2176>2177": {
-            "n": 5,
+            "n": 6,
+            "all": 47,
             "laborable.mediodia": 47
         },
         "2177>2178": {
@@ -2035,23 +2561,28 @@
             "laborable.mediodia": 104
         },
         "2180>2181": {
-            "n": 6,
+            "n": 7,
+            "all": 59,
             "laborable.mediodia": 58
         },
         "2181>2182": {
-            "n": 6,
+            "n": 7,
+            "all": 114,
             "laborable.mediodia": 114
         },
         "2182>2183": {
-            "n": 6,
+            "n": 7,
+            "all": 162,
             "laborable.mediodia": 161
         },
         "2183>2184": {
-            "n": 6,
+            "n": 7,
+            "all": 103,
             "laborable.mediodia": 99
         },
         "2184>2103": {
-            "n": 8,
+            "n": 10,
+            "all": 104,
             "laborable.mediodia": 104
         },
         "21>216": {
@@ -2079,15 +2610,18 @@
             "laborable.mediodia": 58
         },
         "2251>2252": {
-            "n": 9,
+            "n": 11,
+            "all": 96,
             "laborable.mediodia": 94
         },
         "2252>2253": {
-            "n": 9,
+            "n": 11,
+            "all": 192,
             "laborable.mediodia": 183
         },
         "2253>2254": {
-            "n": 10,
+            "n": 12,
+            "all": 92,
             "laborable.mediodia": 92
         },
         "2254>2255": {
@@ -2099,24 +2633,36 @@
             "laborable.mediodia": 89
         },
         "2256>2257": {
-            "n": 10,
+            "n": 11,
+            "all": 63,
             "laborable.mediodia": 63
         },
         "2257>2258": {
-            "n": 10,
+            "n": 11,
+            "all": 214,
             "laborable.mediodia": 204
         },
         "2258>2259": {
-            "n": 10,
+            "n": 11,
+            "all": 36,
             "laborable.mediodia": 36
         },
         "2259>2175": {
-            "n": 8,
+            "n": 9,
+            "all": 93,
             "laborable.mediodia": 93
+        },
+        "2278>2280": {
+            "n": 3,
+            "all": 91
         },
         "227>228": {
             "n": 3,
             "laborable.mediodia": 67
+        },
+        "2280>2279": {
+            "n": 3,
+            "all": 54
         },
         "2281>1851": {
             "n": 4,
@@ -2147,15 +2693,18 @@
             "laborable.mediodia": 38
         },
         "232>234": {
-            "n": 3,
+            "n": 4,
+            "all": 111,
             "laborable.mediodia": 117
         },
         "2338>3400": {
-            "n": 5,
+            "n": 6,
+            "all": 72,
             "laborable.mediodia": 89
         },
         "234>237": {
-            "n": 3,
+            "n": 4,
+            "all": 116,
             "laborable.mediodia": 136
         },
         "236>999": {
@@ -2203,7 +2752,8 @@
             "laborable.mediodia": 114
         },
         "237>964": {
-            "n": 3,
+            "n": 4,
+            "all": 145,
             "laborable.mediodia": 145
         },
         "2380>2384": {
@@ -2227,7 +2777,8 @@
             "laborable.mediodia": 45
         },
         "2388>1865": {
-            "n": 3,
+            "n": 4,
+            "all": 96,
             "laborable.mediodia": 114
         },
         "23>24": {
@@ -2239,7 +2790,8 @@
             "laborable.mediodia": 28
         },
         "2406>263": {
-            "n": 8,
+            "n": 9,
+            "all": 365,
             "laborable.mediodia": 365
         },
         "2411>2412": {
@@ -2251,151 +2803,196 @@
             "laborable.mediodia": 157
         },
         "241>163": {
-            "n": 5,
+            "n": 6,
+            "all": 59,
             "laborable.mediodia": 71
         },
         "2421>2422": {
-            "n": 8,
+            "n": 9,
+            "all": 54,
             "laborable.mediodia": 50
         },
         "2422>2423": {
-            "n": 10,
+            "n": 11,
+            "all": 54,
             "laborable.mediodia": 52
         },
         "2423>2424": {
-            "n": 10,
+            "n": 11,
+            "all": 45,
             "laborable.mediodia": 45
         },
         "2424>2425": {
-            "n": 10,
+            "n": 11,
+            "all": 70,
             "laborable.mediodia": 62
         },
         "2425>2426": {
-            "n": 10,
+            "n": 11,
+            "all": 52,
             "laborable.mediodia": 51
         },
         "2426>2427": {
-            "n": 3,
+            "n": 4,
+            "all": 87,
             "laborable.mediodia": 87
         },
         "2426>3078": {
-            "n": 9,
+            "n": 10,
+            "all": 81,
             "laborable.mediodia": 81
         },
         "2427>2428": {
-            "n": 3,
+            "n": 4,
+            "all": 45,
             "laborable.mediodia": 45
         },
         "2428>4122": {
-            "n": 3,
+            "n": 4,
+            "all": 29,
             "laborable.mediodia": 29
         },
         "2430>2431": {
-            "n": 3,
+            "n": 4,
+            "all": 105,
             "laborable.mediodia": 105
         },
         "2431>2432": {
-            "n": 3,
+            "n": 4,
+            "all": 23,
             "laborable.mediodia": 23
         },
         "2432>2433": {
-            "n": 3,
+            "n": 4,
+            "all": 33,
             "laborable.mediodia": 34
         },
         "2433>2434": {
-            "n": 3,
+            "n": 4,
+            "all": 36,
             "laborable.mediodia": 41
         },
         "2434>2435": {
-            "n": 3,
+            "n": 4,
+            "all": 49,
             "laborable.mediodia": 61
         },
         "2435>2436": {
-            "n": 3,
+            "n": 4,
+            "all": 41,
             "laborable.mediodia": 43
         },
         "2436>2437": {
-            "n": 3,
+            "n": 4,
+            "all": 45,
             "laborable.mediodia": 48
         },
         "2437>2438": {
-            "n": 3,
+            "n": 4,
+            "all": 44,
             "laborable.mediodia": 44
         },
         "2438>2945": {
-            "n": 3,
+            "n": 4,
+            "all": 29,
             "laborable.mediodia": 29
         },
+        "2439>2440": {
+            "n": 3,
+            "all": 79
+        },
+        "2440>2441": {
+            "n": 3,
+            "all": 77
+        },
         "2443>2933": {
-            "n": 5,
+            "n": 6,
+            "all": 91,
             "laborable.mediodia": 94
         },
         "244>167": {
-            "n": 11,
+            "n": 13,
+            "all": 104,
             "laborable.mediodia": 104
         },
         "2459>2460": {
-            "n": 10,
+            "n": 12,
+            "all": 60,
             "laborable.mediodia": 60
         },
         "2460>2461": {
-            "n": 8,
+            "n": 10,
+            "all": 66,
             "laborable.mediodia": 66
         },
         "2461>2462": {
-            "n": 8,
+            "n": 9,
+            "all": 71,
             "laborable.mediodia": 71
         },
         "2462>2463": {
-            "n": 8,
+            "n": 9,
+            "all": 50,
             "laborable.mediodia": 50
         },
         "2463>2464": {
-            "n": 8,
+            "n": 9,
+            "all": 40,
             "laborable.mediodia": 40
         },
         "2464>2465": {
-            "n": 8,
+            "n": 9,
+            "all": 80,
             "laborable.mediodia": 80
         },
         "2465>272": {
-            "n": 9,
+            "n": 10,
+            "all": 155,
             "laborable.mediodia": 155
         },
         "2474>2475": {
-            "n": 3,
+            "n": 4,
+            "all": 66,
             "laborable.mediodia": 107
         },
         "2475>283": {
-            "n": 3,
+            "n": 4,
+            "all": 53,
             "laborable.mediodia": 59
         },
         "2477>2459": {
-            "n": 8,
+            "n": 9,
+            "all": 54,
             "laborable.mediodia": 54
         },
         "2492>2493": {
-            "n": 5,
+            "n": 6,
+            "all": 148,
             "laborable.mediodia": 149
         },
         "2492>258": {
-            "n": 4,
+            "n": 6,
+            "all": 142,
             "laborable.mediodia": 147
         },
         "2493>2494": {
-            "n": 13,
+            "n": 16,
+            "all": 53,
             "laborable.mediodia": 53
         },
         "2494>2495": {
-            "n": 13,
+            "n": 16,
+            "all": 27,
             "laborable.mediodia": 27
         },
         "2495>2496": {
-            "n": 14,
+            "n": 16,
+            "all": 38,
             "laborable.mediodia": 39
         },
         "2496>268": {
-            "n": 15,
+            "n": 17,
+            "all": 95,
             "laborable.mediodia": 98
         },
         "24>13": {
@@ -2403,35 +3000,45 @@
             "laborable.mediodia": 101
         },
         "2504>2505": {
-            "n": 14,
-            "laborable.mediodia": 42
+            "n": 19,
+            "all": 42,
+            "laborable.mediodia": 42,
+            "laborable.noche": 35
         },
         "2505>2506": {
-            "n": 14,
-            "laborable.mediodia": 34
+            "n": 19,
+            "all": 33,
+            "laborable.mediodia": 34,
+            "laborable.noche": 28
         },
         "2506>2507": {
-            "n": 14,
+            "n": 18,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "2507>2508": {
-            "n": 6,
+            "n": 8,
+            "all": 146,
             "laborable.mediodia": 145
         },
         "2507>287": {
-            "n": 8,
+            "n": 10,
+            "all": 112,
             "laborable.mediodia": 112
         },
         "2508>279": {
-            "n": 12,
+            "n": 16,
+            "all": 140,
             "laborable.mediodia": 124
         },
         "251>252": {
-            "n": 15,
+            "n": 17,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "2522>2523": {
-            "n": 3,
+            "n": 4,
+            "all": 127,
             "laborable.mediodia": 141
         },
         "2523>2529": {
@@ -2439,7 +3046,8 @@
             "laborable.mediodia": 120
         },
         "2523>298": {
-            "n": 3,
+            "n": 5,
+            "all": 329,
             "laborable.mediodia": 387
         },
         "2529>278": {
@@ -2447,99 +3055,130 @@
             "laborable.mediodia": 66
         },
         "252>253": {
-            "n": 19,
+            "n": 23,
+            "all": 74,
             "laborable.mediodia": 80
         },
         "253>255": {
-            "n": 20,
+            "n": 24,
+            "all": 107,
             "laborable.mediodia": 116
         },
         "255>2504": {
-            "n": 14,
-            "laborable.mediodia": 87
+            "n": 19,
+            "all": 87,
+            "laborable.mediodia": 87,
+            "laborable.noche": 61
         },
         "255>256": {
-            "n": 11,
+            "n": 13,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "256>257": {
-            "n": 11,
+            "n": 13,
+            "all": 149,
             "laborable.mediodia": 159
         },
         "2576>126": {
-            "n": 10,
+            "n": 13,
+            "all": 207,
             "laborable.mediodia": 207
         },
         "257>258": {
-            "n": 11,
+            "n": 14,
+            "all": 46,
             "laborable.mediodia": 54
         },
         "258>259": {
-            "n": 22,
-            "laborable.mediodia": 154
+            "n": 30,
+            "all": 150,
+            "laborable.mediodia": 154,
+            "laborable.punta_tarde": 88,
+            "laborable.noche": 105
         },
         "2597>295": {
-            "n": 9,
+            "n": 12,
+            "all": 94,
             "laborable.mediodia": 107
         },
         "259>1798": {
-            "n": 22,
-            "laborable.mediodia": 153
+            "n": 30,
+            "all": 148,
+            "laborable.mediodia": 153,
+            "laborable.punta_tarde": 148,
+            "laborable.noche": 132
         },
         "260>2480": {
-            "n": 8,
+            "n": 11,
+            "all": 283,
             "laborable.mediodia": 266
         },
         "2615>1832": {
-            "n": 16,
-            "laborable.mediodia": 64
+            "n": 20,
+            "all": 62,
+            "laborable.mediodia": 64,
+            "laborable.noche": 59
         },
         "2619>2633": {
-            "n": 6,
+            "n": 7,
+            "all": 164,
             "laborable.mediodia": 164
         },
         "2620>1787": {
-            "n": 16,
-            "laborable.mediodia": 79
+            "n": 21,
+            "all": 75,
+            "laborable.mediodia": 79,
+            "laborable.punta_tarde": 73
         },
         "2622>2623": {
-            "n": 5,
+            "n": 6,
+            "all": 110,
             "laborable.mediodia": 111
         },
         "2623>2624": {
-            "n": 5,
+            "n": 6,
+            "all": 89,
             "laborable.mediodia": 99
         },
         "2624>2625": {
-            "n": 5,
+            "n": 6,
+            "all": 41,
             "laborable.mediodia": 50
         },
         "2625>2626": {
-            "n": 5,
+            "n": 6,
+            "all": 71,
             "laborable.mediodia": 71
         },
         "2626>2627": {
-            "n": 5,
+            "n": 6,
+            "all": 153,
             "laborable.mediodia": 156
         },
         "2627>2628": {
-            "n": 5,
+            "n": 6,
+            "all": 76,
             "laborable.mediodia": 83
         },
         "2628>2629": {
-            "n": 5,
+            "n": 6,
+            "all": 69,
             "laborable.mediodia": 74
         },
         "2629>2630": {
-            "n": 6,
+            "n": 7,
+            "all": 78,
             "laborable.mediodia": 76
         },
         "2630>2631": {
-            "n": 6,
+            "n": 7,
+            "all": 129,
             "laborable.mediodia": 129
         },
         "2631>2632": {
-            "n": 6,
+            "n": 7,
+            "all": 75,
             "laborable.mediodia": 61
         },
         "2632>2619": {
@@ -2547,184 +3186,239 @@
             "laborable.mediodia": 166
         },
         "2633>2634": {
-            "n": 6,
+            "n": 7,
+            "all": 82,
             "laborable.mediodia": 82
         },
         "2634>2635": {
-            "n": 6,
+            "n": 7,
+            "all": 109,
             "laborable.mediodia": 103
         },
         "2635>2636": {
-            "n": 6,
+            "n": 7,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "2636>2637": {
-            "n": 6,
+            "n": 7,
+            "all": 89,
             "laborable.mediodia": 89
         },
         "2637>2638": {
-            "n": 14,
+            "n": 16,
+            "all": 87,
             "laborable.mediodia": 88
         },
         "2638>2639": {
-            "n": 14,
+            "n": 16,
+            "all": 74,
             "laborable.mediodia": 74
         },
         "2639>2640": {
-            "n": 13,
+            "n": 16,
+            "all": 102,
             "laborable.mediodia": 106
         },
         "263>290": {
-            "n": 9,
+            "n": 11,
+            "all": 125,
             "laborable.mediodia": 126
         },
         "2640>2641": {
-            "n": 13,
-            "laborable.mediodia": 124
+            "n": 17,
+            "all": 117,
+            "laborable.mediodia": 124,
+            "laborable.punta_tarde": 80
         },
         "2641>2642": {
-            "n": 13,
-            "laborable.mediodia": 69
+            "n": 17,
+            "all": 68,
+            "laborable.mediodia": 69,
+            "laborable.punta_tarde": 49
         },
         "2642>1922": {
-            "n": 11,
+            "n": 14,
+            "all": 142,
             "laborable.mediodia": 172
         },
         "2643>2997": {
-            "n": 8,
+            "n": 10,
+            "all": 73,
             "laborable.mediodia": 71
         },
         "264>265": {
-            "n": 24,
-            "laborable.mediodia": 192
+            "n": 30,
+            "all": 190,
+            "laborable.mediodia": 192,
+            "laborable.punta_tarde": 180,
+            "laborable.noche": 158
         },
         "265>2508": {
-            "n": 6,
+            "n": 8,
+            "all": 118,
             "laborable.mediodia": 118
         },
         "265>266": {
-            "n": 10,
+            "n": 13,
+            "all": 54,
             "laborable.mediodia": 51
         },
         "265>286": {
-            "n": 8,
+            "n": 9,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "266>267": {
-            "n": 10,
+            "n": 13,
+            "all": 109,
             "laborable.mediodia": 109
         },
         "267>268": {
-            "n": 11,
+            "n": 14,
+            "all": 103,
             "laborable.mediodia": 113
         },
         "2682>2683": {
-            "n": 14,
+            "n": 17,
+            "all": 55,
             "laborable.mediodia": 62
         },
         "2683>2684": {
-            "n": 14,
+            "n": 17,
+            "all": 107,
             "laborable.mediodia": 109
         },
         "2684>2685": {
-            "n": 14,
+            "n": 18,
+            "all": 84,
             "laborable.mediodia": 85
         },
         "2685>2686": {
-            "n": 14,
+            "n": 18,
+            "all": 79,
             "laborable.mediodia": 84
         },
         "2686>2643": {
-            "n": 8,
+            "n": 9,
+            "all": 97,
             "laborable.mediodia": 97
         },
         "2686>2687": {
-            "n": 5,
+            "n": 7,
+            "all": 102,
             "laborable.mediodia": 106
         },
         "2687>2688": {
-            "n": 5,
+            "n": 7,
+            "all": 70,
             "laborable.mediodia": 70
         },
         "2688>2689": {
-            "n": 5,
+            "n": 7,
+            "all": 138,
             "laborable.mediodia": 214
         },
         "2689>2690": {
-            "n": 5,
+            "n": 7,
+            "all": 138,
             "laborable.mediodia": 141
         },
         "268>1767": {
-            "n": 6,
+            "n": 8,
+            "all": 69,
             "laborable.mediodia": 69
         },
         "268>269": {
-            "n": 19,
+            "n": 22,
+            "all": 108,
             "laborable.mediodia": 111
         },
         "2690>2691": {
-            "n": 5,
+            "n": 7,
+            "all": 105,
             "laborable.mediodia": 108
         },
         "2691>2692": {
-            "n": 5,
+            "n": 7,
+            "all": 78,
             "laborable.mediodia": 83
         },
         "2692>3424": {
-            "n": 5,
+            "n": 7,
+            "all": 149,
             "laborable.mediodia": 183
         },
         "2693>2694": {
-            "n": 5,
+            "n": 6,
+            "all": 104,
             "laborable.mediodia": 124
         },
         "2694>2695": {
-            "n": 5,
+            "n": 6,
+            "all": 28,
             "laborable.mediodia": 29
         },
         "2695>2696": {
-            "n": 5,
+            "n": 6,
+            "all": 54,
             "laborable.mediodia": 66
         },
         "2696>2697": {
-            "n": 5,
+            "n": 6,
+            "all": 60,
             "laborable.mediodia": 61
         },
         "2697>2698": {
-            "n": 5,
+            "n": 6,
+            "all": 142,
             "laborable.mediodia": 142
         },
         "2698>2699": {
-            "n": 5,
+            "n": 6,
+            "all": 91,
             "laborable.mediodia": 95
         },
         "2699>2700": {
-            "n": 5,
+            "n": 8,
+            "all": 43,
             "laborable.mediodia": 60
         },
         "269>270": {
-            "n": 21,
-            "laborable.mediodia": 98
+            "n": 25,
+            "all": 92,
+            "laborable.mediodia": 98,
+            "laborable.punta_tarde": 88
         },
         "2700>2701": {
-            "n": 5,
+            "n": 8,
+            "all": 73,
             "laborable.mediodia": 86
         },
         "2701>2702": {
-            "n": 6,
+            "n": 8,
+            "all": 136,
             "laborable.mediodia": 142
         },
         "2702>2703": {
-            "n": 19,
-            "laborable.mediodia": 186
+            "n": 24,
+            "all": 165,
+            "laborable.mediodia": 186,
+            "laborable.punta_tarde": 181
         },
         "2703>2792": {
-            "n": 7,
+            "n": 9,
+            "all": 115,
             "laborable.mediodia": 115
         },
         "2703>2793": {
-            "n": 5,
+            "n": 7,
+            "all": 314,
             "laborable.mediodia": 314
+        },
+        "2703>2809": {
+            "n": 3,
+            "all": 464
         },
         "2704>3968": {
             "n": 3,
@@ -2751,11 +3445,13 @@
             "laborable.mediodia": 86
         },
         "270>4085": {
-            "n": 4,
+            "n": 5,
+            "all": 44,
             "laborable.mediodia": 38
         },
         "270>4087": {
-            "n": 15,
+            "n": 18,
+            "all": 32,
             "laborable.mediodia": 39
         },
         "2710>3971": {
@@ -2767,31 +3463,39 @@
             "laborable.mediodia": 180
         },
         "2712>2840": {
-            "n": 9,
+            "n": 11,
+            "all": 145,
             "laborable.mediodia": 145
         },
         "2713>4088": {
-            "n": 7,
+            "n": 9,
+            "all": 131,
             "laborable.mediodia": 118
         },
         "272>273": {
-            "n": 9,
+            "n": 11,
+            "all": 135,
             "laborable.mediodia": 135
         },
         "273>274": {
-            "n": 14,
-            "laborable.mediodia": 96
+            "n": 18,
+            "all": 94,
+            "laborable.mediodia": 96,
+            "laborable.punta_tarde": 77
         },
         "274>275": {
-            "n": 13,
+            "n": 16,
+            "all": 138,
             "laborable.mediodia": 146
         },
         "275>276": {
-            "n": 16,
+            "n": 19,
+            "all": 100,
             "laborable.mediodia": 98
         },
         "276>277": {
-            "n": 17,
+            "n": 20,
+            "all": 91,
             "laborable.mediodia": 108
         },
         "277>2523": {
@@ -2799,43 +3503,75 @@
             "laborable.mediodia": 360
         },
         "277>2597": {
-            "n": 9,
+            "n": 12,
+            "all": 251,
             "laborable.mediodia": 251
         },
         "277>281": {
-            "n": 5,
+            "n": 6,
+            "all": 226,
             "laborable.mediodia": 226
         },
         "278>279": {
-            "n": 3,
+            "n": 4,
+            "all": 190,
             "laborable.mediodia": 240
         },
         "2792>2805": {
-            "n": 7,
+            "n": 9,
+            "all": 100,
             "laborable.mediodia": 105
+        },
+        "2793>2794": {
+            "n": 3,
+            "all": 417
         },
         "2793>2807": {
             "n": 4,
             "laborable.mediodia": 96
         },
         "2793>2884": {
-            "n": 3,
+            "n": 4,
+            "all": 478,
             "laborable.mediodia": 478
+        },
+        "2793>3977": {
+            "n": 4,
+            "all": 154
+        },
+        "2794>2795": {
+            "n": 3,
+            "all": 221
+        },
+        "2794>3972": {
+            "n": 4,
+            "all": 89
+        },
+        "2795>2796": {
+            "n": 4,
+            "all": 114
         },
         "2798>2799": {
             "n": 4,
             "laborable.mediodia": 190
         },
         "279>280": {
-            "n": 14,
-            "laborable.mediodia": 212
+            "n": 19,
+            "all": 212,
+            "laborable.mediodia": 212,
+            "laborable.noche": 105
+        },
+        "27>28": {
+            "n": 3,
+            "all": 50
         },
         "2800>2801": {
             "n": 3,
             "laborable.mediodia": 115
         },
         "2801>2802": {
-            "n": 5,
+            "n": 6,
+            "all": 141,
             "laborable.mediodia": 141
         },
         "2801>3969": {
@@ -2843,11 +3579,13 @@
             "laborable.mediodia": 86
         },
         "2802>3961": {
-            "n": 7,
+            "n": 8,
+            "all": 129,
             "laborable.mediodia": 135
         },
         "2805>2793": {
-            "n": 8,
+            "n": 10,
+            "all": 152,
             "laborable.mediodia": 161
         },
         "2807>2808": {
@@ -2859,19 +3597,23 @@
             "laborable.mediodia": 151
         },
         "2809>2810": {
-            "n": 8,
+            "n": 10,
+            "all": 92,
             "laborable.mediodia": 92
         },
         "280>281": {
-            "n": 3,
+            "n": 4,
+            "all": 234,
             "laborable.mediodia": 234
         },
         "280>294": {
-            "n": 10,
+            "n": 14,
+            "all": 160,
             "laborable.mediodia": 160
         },
         "2810>2811": {
-            "n": 4,
+            "n": 5,
+            "all": 46,
             "laborable.mediodia": 43
         },
         "2810>2851": {
@@ -2879,19 +3621,23 @@
             "laborable.mediodia": 215
         },
         "2811>2812": {
-            "n": 4,
+            "n": 5,
+            "all": 91,
             "laborable.mediodia": 91
         },
         "2812>2851": {
-            "n": 4,
+            "n": 6,
+            "all": 97,
             "laborable.mediodia": 96
         },
         "281>2474": {
-            "n": 3,
+            "n": 4,
+            "all": 96,
             "laborable.mediodia": 125
         },
         "281>282": {
-            "n": 5,
+            "n": 6,
+            "all": 96,
             "laborable.mediodia": 98
         },
         "2823>2824": {
@@ -2915,39 +3661,48 @@
             "laborable.mediodia": 46
         },
         "282>283": {
-            "n": 5,
+            "n": 6,
+            "all": 87,
             "laborable.mediodia": 88
         },
         "2833>2834": {
-            "n": 4,
+            "n": 5,
+            "all": 100,
             "laborable.mediodia": 83
         },
         "2834>2835": {
-            "n": 4,
+            "n": 5,
+            "all": 45,
             "laborable.mediodia": 42
         },
         "2835>2836": {
-            "n": 4,
+            "n": 5,
+            "all": 77,
             "laborable.mediodia": 71
         },
         "2836>2837": {
-            "n": 5,
+            "n": 6,
+            "all": 126,
             "laborable.mediodia": 126
         },
         "2837>2838": {
-            "n": 5,
+            "n": 6,
+            "all": 74,
             "laborable.mediodia": 74
         },
         "2838>2712": {
-            "n": 5,
+            "n": 7,
+            "all": 77,
             "laborable.mediodia": 78
         },
         "283>284": {
-            "n": 8,
+            "n": 10,
+            "all": 99,
             "laborable.mediodia": 83
         },
         "2840>2713": {
-            "n": 7,
+            "n": 9,
+            "all": 100,
             "laborable.mediodia": 100
         },
         "2849>2823": {
@@ -2955,27 +3710,37 @@
             "laborable.mediodia": 41
         },
         "284>285": {
-            "n": 8,
+            "n": 11,
+            "all": 73,
             "laborable.mediodia": 73
         },
         "2850>2833": {
-            "n": 4,
+            "n": 5,
+            "all": 121,
             "laborable.mediodia": 103
         },
         "2851>2852": {
-            "n": 8,
+            "n": 10,
+            "all": 200,
             "laborable.mediodia": 200
         },
         "2852>2853": {
-            "n": 8,
+            "n": 10,
+            "all": 238,
             "laborable.mediodia": 238
         },
         "2853>2854": {
-            "n": 5,
+            "n": 6,
+            "all": 116,
             "laborable.mediodia": 136
         },
+        "2856>2857": {
+            "n": 3,
+            "all": 176
+        },
         "285>260": {
-            "n": 8,
+            "n": 12,
+            "all": 98,
             "laborable.mediodia": 99
         },
         "2864>2892": {
@@ -2983,23 +3748,32 @@
             "laborable.mediodia": 47
         },
         "286>2493": {
-            "n": 8,
+            "n": 9,
+            "all": 144,
             "laborable.mediodia": 144
         },
         "2878>757": {
-            "n": 5,
+            "n": 6,
+            "all": 698,
             "laborable.mediodia": 698
         },
         "287>258": {
-            "n": 8,
+            "n": 10,
+            "all": 126,
             "laborable.mediodia": 149
         },
         "2884>3434": {
-            "n": 3,
+            "n": 5,
+            "all": 150,
             "laborable.mediodia": 120
         },
-        "2889>1801": {
+        "2885>1804": {
             "n": 4,
+            "all": 167
+        },
+        "2889>1801": {
+            "n": 5,
+            "all": 372,
             "laborable.mediodia": 372
         },
         "2892>2893": {
@@ -3011,35 +3785,43 @@
             "laborable.mediodia": 70
         },
         "2894>2895": {
-            "n": 3,
+            "n": 4,
+            "all": 78,
             "laborable.mediodia": 87
         },
         "2895>2896": {
-            "n": 3,
+            "n": 4,
+            "all": 158,
             "laborable.mediodia": 188
         },
         "2896>2897": {
-            "n": 3,
+            "n": 4,
+            "all": 205,
             "laborable.mediodia": 223
         },
         "290>291": {
-            "n": 9,
+            "n": 11,
+            "all": 74,
             "laborable.mediodia": 76
         },
         "291>292": {
-            "n": 9,
+            "n": 11,
+            "all": 107,
             "laborable.mediodia": 105
         },
         "2927>4024": {
-            "n": 5,
+            "n": 6,
+            "all": 92,
             "laborable.mediodia": 92
         },
         "2928>4345": {
-            "n": 5,
+            "n": 6,
+            "all": 58,
             "laborable.mediodia": 58
         },
         "2929>2930": {
-            "n": 5,
+            "n": 6,
+            "all": 50,
             "laborable.mediodia": 52
         },
         "292>2411": {
@@ -3047,27 +3829,33 @@
             "laborable.mediodia": 61
         },
         "292>293": {
-            "n": 6,
+            "n": 8,
+            "all": 74,
             "laborable.mediodia": 74
         },
         "2930>2994": {
-            "n": 5,
+            "n": 6,
+            "all": 59,
             "laborable.mediodia": 60
         },
         "2931>2932": {
-            "n": 5,
+            "n": 6,
+            "all": 42,
             "laborable.mediodia": 42
         },
         "2932>2443": {
-            "n": 5,
+            "n": 6,
+            "all": 77,
             "laborable.mediodia": 77
         },
         "2933>2934": {
-            "n": 5,
+            "n": 6,
+            "all": 64,
             "laborable.mediodia": 64
         },
         "2934>2935": {
-            "n": 5,
+            "n": 6,
+            "all": 23,
             "laborable.mediodia": 23
         },
         "2935>2936": {
@@ -3091,7 +3879,8 @@
             "laborable.mediodia": 44
         },
         "293>294": {
-            "n": 6,
+            "n": 8,
+            "all": 116,
             "laborable.mediodia": 131
         },
         "2940>2941": {
@@ -3099,23 +3888,28 @@
             "laborable.mediodia": 59
         },
         "2941>2942": {
-            "n": 9,
+            "n": 10,
+            "all": 73,
             "laborable.mediodia": 74
         },
         "2942>2943": {
-            "n": 9,
+            "n": 10,
+            "all": 112,
             "laborable.mediodia": 116
         },
         "2943>2637": {
-            "n": 9,
+            "n": 10,
+            "all": 117,
             "laborable.mediodia": 121
         },
         "2945>2439": {
-            "n": 3,
+            "n": 4,
+            "all": 59,
             "laborable.mediodia": 59
         },
         "2946>3010": {
-            "n": 5,
+            "n": 6,
+            "all": 67,
             "laborable.mediodia": 67
         },
         "294>295": {
@@ -3123,47 +3917,60 @@
             "laborable.mediodia": 104
         },
         "294>298": {
-            "n": 15,
-            "laborable.mediodia": 240
+            "n": 19,
+            "all": 242,
+            "laborable.mediodia": 240,
+            "laborable.punta_tarde": 265
         },
         "295>296": {
-            "n": 12,
+            "n": 14,
+            "all": 173,
             "laborable.mediodia": 180
         },
         "296>2492": {
-            "n": 9,
+            "n": 11,
+            "all": 227,
             "laborable.mediodia": 264
         },
         "296>297": {
-            "n": 3,
+            "n": 4,
+            "all": 87,
             "laborable.mediodia": 127
         },
         "297>2522": {
-            "n": 3,
+            "n": 4,
+            "all": 62,
             "laborable.mediodia": 64
         },
         "298>299": {
-            "n": 18,
-            "laborable.mediodia": 116
+            "n": 23,
+            "all": 113,
+            "laborable.mediodia": 116,
+            "laborable.punta_tarde": 75
         },
         "2994>2931": {
-            "n": 5,
+            "n": 6,
+            "all": 31,
             "laborable.mediodia": 31
         },
         "2997>2998": {
-            "n": 8,
+            "n": 10,
+            "all": 92,
             "laborable.mediodia": 86
         },
         "2998>2999": {
-            "n": 8,
+            "n": 10,
+            "all": 63,
             "laborable.mediodia": 63
         },
         "2999>3000": {
-            "n": 8,
+            "n": 9,
+            "all": 54,
             "laborable.mediodia": 54
         },
         "299>300": {
-            "n": 16,
+            "n": 19,
+            "all": 104,
             "laborable.mediodia": 104
         },
         "2>3": {
@@ -3171,7 +3978,8 @@
             "laborable.mediodia": 72
         },
         "3000>3001": {
-            "n": 8,
+            "n": 9,
+            "all": 42,
             "laborable.mediodia": 38
         },
         "3001>2938": {
@@ -3179,47 +3987,58 @@
             "laborable.mediodia": 109
         },
         "3001>3002": {
-            "n": 5,
+            "n": 6,
+            "all": 117,
             "laborable.mediodia": 117
         },
         "3002>3003": {
-            "n": 6,
+            "n": 7,
+            "all": 75,
             "laborable.mediodia": 75
         },
         "3003>3004": {
-            "n": 6,
+            "n": 7,
+            "all": 80,
             "laborable.mediodia": 79
         },
         "3004>3005": {
-            "n": 6,
+            "n": 7,
+            "all": 82,
             "laborable.mediodia": 82
         },
         "3005>3006": {
-            "n": 5,
+            "n": 6,
+            "all": 33,
             "laborable.mediodia": 33
         },
         "3006>3019": {
-            "n": 5,
+            "n": 6,
+            "all": 106,
             "laborable.mediodia": 109
         },
         "3007>3008": {
-            "n": 5,
+            "n": 6,
+            "all": 66,
             "laborable.mediodia": 66
         },
         "3008>3009": {
-            "n": 5,
+            "n": 6,
+            "all": 35,
             "laborable.mediodia": 35
         },
         "3009>2946": {
-            "n": 5,
+            "n": 6,
+            "all": 37,
             "laborable.mediodia": 37
         },
         "300>301": {
-            "n": 15,
+            "n": 19,
+            "all": 78,
             "laborable.mediodia": 81
         },
         "3010>3011": {
-            "n": 5,
+            "n": 6,
+            "all": 51,
             "laborable.mediodia": 51
         },
         "3011>4346": {
@@ -3231,48 +4050,70 @@
             "laborable.mediodia": 48
         },
         "3019>3007": {
-            "n": 5,
+            "n": 6,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "301>302": {
-            "n": 13,
+            "n": 15,
+            "all": 78,
             "laborable.mediodia": 77
         },
         "3020>4002": {
-            "n": 4,
+            "n": 5,
+            "all": 35,
             "laborable.mediodia": 35
         },
         "3021>3984": {
-            "n": 4,
+            "n": 5,
+            "all": 31,
             "laborable.mediodia": 30
         },
         "3022>4006": {
-            "n": 4,
+            "n": 5,
+            "all": 91,
             "laborable.mediodia": 79
         },
         "3023>3024": {
-            "n": 5,
+            "n": 6,
+            "all": 73,
             "laborable.mediodia": 73
         },
         "3024>3025": {
-            "n": 5,
+            "n": 6,
+            "all": 34,
             "laborable.mediodia": 34
         },
         "3025>3026": {
-            "n": 5,
+            "n": 6,
+            "all": 45,
             "laborable.mediodia": 45
         },
         "3026>3027": {
-            "n": 5,
+            "n": 6,
+            "all": 56,
             "laborable.mediodia": 56
         },
         "3027>2477": {
             "n": 3,
             "laborable.mediodia": 153
         },
-        "3028>3080": {
+        "3027>3028": {
             "n": 3,
+            "all": 82
+        },
+        "3028>2477": {
+            "n": 3,
+            "all": 76
+        },
+        "3028>3080": {
+            "n": 4,
+            "all": 64,
             "laborable.mediodia": 64
+        },
+        "302>273": {
+            "n": 3,
+            "all": 56
         },
         "302>303": {
             "n": 7,
@@ -3283,15 +4124,20 @@
             "laborable.mediodia": 109
         },
         "305>306": {
-            "n": 33,
-            "laborable.mediodia": 94
+            "n": 40,
+            "all": 93,
+            "laborable.mediodia": 94,
+            "laborable.punta_tarde": 73
         },
         "306>307": {
-            "n": 32,
-            "laborable.mediodia": 111
+            "n": 41,
+            "all": 113,
+            "laborable.mediodia": 111,
+            "laborable.punta_tarde": 123
         },
         "3078>3028": {
-            "n": 3,
+            "n": 4,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "3078>3080": {
@@ -3299,19 +4145,25 @@
             "laborable.mediodia": 167
         },
         "307>308": {
-            "n": 32,
-            "laborable.mediodia": 132
+            "n": 41,
+            "all": 137,
+            "laborable.mediodia": 132,
+            "laborable.punta_tarde": 153,
+            "laborable.noche": 140
         },
         "3080>3081": {
-            "n": 6,
+            "n": 7,
+            "all": 68,
             "laborable.mediodia": 68
         },
         "3081>3082": {
-            "n": 6,
+            "n": 7,
+            "all": 45,
             "laborable.mediodia": 43
         },
         "3082>3083": {
-            "n": 6,
+            "n": 7,
+            "all": 39,
             "laborable.mediodia": 37
         },
         "3083>3084": {
@@ -3323,11 +4175,13 @@
             "laborable.mediodia": 221
         },
         "3085>3985": {
-            "n": 8,
+            "n": 9,
+            "all": 32,
             "laborable.mediodia": 32
         },
         "3086>4005": {
-            "n": 8,
+            "n": 9,
+            "all": 44,
             "laborable.mediodia": 44
         },
         "3087>3030": {
@@ -3335,31 +4189,45 @@
             "laborable.mediodia": 194
         },
         "308>309": {
-            "n": 32,
-            "laborable.mediodia": 137
+            "n": 39,
+            "all": 137,
+            "laborable.mediodia": 137,
+            "laborable.punta_tarde": 143,
+            "laborable.noche": 104
         },
         "3099>3100": {
-            "n": 4,
+            "n": 6,
+            "all": 47,
             "laborable.mediodia": 47
         },
         "309>310": {
-            "n": 4,
+            "n": 5,
+            "all": 221,
             "laborable.mediodia": 221
         },
         "309>361": {
-            "n": 30,
-            "laborable.mediodia": 90
+            "n": 37,
+            "all": 87,
+            "laborable.mediodia": 90,
+            "laborable.punta_tarde": 86,
+            "laborable.noche": 69
+        },
+        "3100>4323": {
+            "n": 3,
+            "all": 97
         },
         "3101>4340": {
             "n": 5,
             "laborable.mediodia": 43
         },
         "3102>3103": {
-            "n": 3,
+            "n": 4,
+            "all": 112,
             "laborable.mediodia": 115
         },
         "3103>4203": {
-            "n": 3,
+            "n": 4,
+            "all": 402,
             "laborable.mediodia": 412
         },
         "3104>3105": {
@@ -3387,12 +4255,16 @@
             "laborable.mediodia": 41
         },
         "310>1511": {
-            "n": 5,
+            "n": 7,
+            "all": 159,
             "laborable.mediodia": 159
         },
         "310>311": {
-            "n": 31,
-            "laborable.mediodia": 190
+            "n": 38,
+            "all": 190,
+            "laborable.mediodia": 190,
+            "laborable.punta_tarde": 229,
+            "laborable.noche": 174
         },
         "3110>3111": {
             "n": 3,
@@ -3426,40 +4298,62 @@
             "n": 4,
             "laborable.mediodia": 77
         },
+        "3119>3120": {
+            "n": 3,
+            "all": 102
+        },
         "311>312": {
-            "n": 15,
+            "n": 18,
+            "all": 165,
             "laborable.mediodia": 168
         },
         "311>574": {
-            "n": 17,
-            "laborable.mediodia": 141
+            "n": 22,
+            "all": 135,
+            "laborable.mediodia": 141,
+            "laborable.punta_tarde": 103
         },
         "3120>3121": {
-            "n": 3,
+            "n": 4,
+            "all": 40,
             "laborable.mediodia": 46
         },
         "3121>3122": {
-            "n": 3,
+            "n": 4,
+            "all": 88,
             "laborable.mediodia": 92
         },
+        "3122>3123": {
+            "n": 3,
+            "all": 104
+        },
+        "3123>4221": {
+            "n": 3,
+            "all": 231
+        },
         "312>313": {
-            "n": 15,
+            "n": 18,
+            "all": 51,
             "laborable.mediodia": 51
         },
         "313>314": {
-            "n": 15,
+            "n": 18,
+            "all": 73,
             "laborable.mediodia": 75
         },
         "314>315": {
-            "n": 11,
+            "n": 13,
+            "all": 32,
             "laborable.mediodia": 38
         },
         "314>392": {
-            "n": 5,
+            "n": 6,
+            "all": 125,
             "laborable.mediodia": 144
         },
         "315>373": {
-            "n": 11,
+            "n": 13,
+            "all": 111,
             "laborable.mediodia": 111
         },
         "3163>3118": {
@@ -3467,20 +4361,27 @@
             "laborable.mediodia": 58
         },
         "316>318": {
-            "n": 11,
+            "n": 14,
+            "all": 182,
             "laborable.mediodia": 189
         },
         "318>374": {
-            "n": 26,
-            "laborable.mediodia": 61
+            "n": 35,
+            "all": 60,
+            "laborable.mediodia": 61,
+            "laborable.punta_tarde": 48,
+            "laborable.noche": 36
         },
         "320>321": {
-            "n": 14,
+            "n": 18,
+            "all": 58,
             "laborable.mediodia": 68
         },
         "321>322": {
-            "n": 14,
-            "laborable.mediodia": 75
+            "n": 19,
+            "all": 74,
+            "laborable.mediodia": 75,
+            "laborable.punta_tarde": 64
         },
         "3224>4062": {
             "n": 3,
@@ -3495,83 +4396,113 @@
             "laborable.mediodia": 115
         },
         "322>323": {
-            "n": 14,
-            "laborable.mediodia": 49
+            "n": 19,
+            "all": 59,
+            "laborable.mediodia": 49,
+            "laborable.punta_tarde": 64
         },
         "323>3953": {
-            "n": 14,
-            "laborable.mediodia": 35
+            "n": 19,
+            "all": 36,
+            "laborable.mediodia": 35,
+            "laborable.punta_tarde": 39
         },
         "324>325": {
-            "n": 15,
+            "n": 19,
+            "all": 47,
             "laborable.mediodia": 47
         },
         "325>326": {
-            "n": 15,
+            "n": 19,
+            "all": 125,
             "laborable.mediodia": 129
         },
         "326>327": {
-            "n": 30,
-            "laborable.mediodia": 85
+            "n": 38,
+            "all": 84,
+            "laborable.mediodia": 85,
+            "laborable.punta_tarde": 70,
+            "laborable.noche": 67
         },
         "327>1086": {
             "n": 3,
             "laborable.mediodia": 194
         },
         "327>328": {
-            "n": 28,
-            "laborable.mediodia": 94
+            "n": 36,
+            "all": 94,
+            "laborable.mediodia": 94,
+            "laborable.punta_tarde": 99,
+            "laborable.noche": 66
         },
         "328>1086": {
-            "n": 20,
-            "laborable.mediodia": 79
+            "n": 24,
+            "all": 78,
+            "laborable.mediodia": 79,
+            "laborable.punta_tarde": 77
         },
         "328>523": {
-            "n": 10,
+            "n": 13,
+            "all": 143,
             "laborable.mediodia": 143
         },
         "3291>4061": {
-            "n": 3,
+            "n": 4,
+            "all": 53,
             "laborable.mediodia": 53
         },
         "3292>4063": {
-            "n": 3,
+            "n": 4,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "32>1": {
-            "n": 10,
+            "n": 12,
+            "all": 111,
             "laborable.mediodia": 111
         },
         "330>332": {
-            "n": 5,
+            "n": 6,
+            "all": 338,
             "laborable.mediodia": 338
         },
         "331>442": {
-            "n": 28,
+            "n": 31,
+            "all": 143,
             "laborable.mediodia": 143
         },
         "332>333": {
-            "n": 30,
-            "laborable.mediodia": 82
+            "n": 37,
+            "all": 83,
+            "laborable.mediodia": 82,
+            "laborable.noche": 77
         },
         "333>334": {
-            "n": 34,
-            "laborable.mediodia": 119
+            "n": 41,
+            "all": 115,
+            "laborable.mediodia": 119,
+            "laborable.punta_tarde": 131,
+            "laborable.noche": 85
         },
         "334>335": {
-            "n": 14,
+            "n": 18,
+            "all": 92,
             "laborable.mediodia": 91
         },
         "334>449": {
-            "n": 28,
-            "laborable.mediodia": 99
+            "n": 34,
+            "all": 91,
+            "laborable.mediodia": 99,
+            "laborable.noche": 52
         },
         "335>336": {
-            "n": 14,
+            "n": 18,
+            "all": 80,
             "laborable.mediodia": 77
         },
         "3365>211": {
-            "n": 3,
+            "n": 5,
+            "all": 42,
             "laborable.mediodia": 42
         },
         "3366>86": {
@@ -3579,16 +4510,20 @@
             "laborable.mediodia": 69
         },
         "3369>3370": {
-            "n": 5,
+            "n": 7,
+            "all": 95,
             "laborable.mediodia": 85
         },
         "336>337": {
-            "n": 14,
+            "n": 18,
+            "all": 75,
             "laborable.mediodia": 79
         },
         "3370>476": {
-            "n": 11,
-            "laborable.mediodia": 72
+            "n": 15,
+            "all": 83,
+            "laborable.mediodia": 72,
+            "laborable.noche": 83
         },
         "3377>1111": {
             "n": 3,
@@ -3599,39 +4534,51 @@
             "laborable.mediodia": 73
         },
         "337>338": {
-            "n": 14,
-            "laborable.mediodia": 25
+            "n": 19,
+            "all": 29,
+            "laborable.mediodia": 25,
+            "laborable.punta_tarde": 37
         },
         "3380>900": {
-            "n": 10,
-            "laborable.mediodia": 43
+            "n": 13,
+            "all": 45,
+            "laborable.mediodia": 43,
+            "laborable.punta_tarde": 46
         },
         "3388>1847": {
-            "n": 5,
+            "n": 6,
+            "all": 604,
             "laborable.mediodia": 604
         },
         "3388>3389": {
-            "n": 12,
+            "n": 15,
+            "all": 134,
             "laborable.mediodia": 134
         },
         "3389>1842": {
-            "n": 3,
+            "n": 4,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "3389>1844": {
-            "n": 7,
+            "n": 9,
+            "all": 232,
             "laborable.mediodia": 224
         },
         "338>339": {
-            "n": 14,
-            "laborable.mediodia": 47
+            "n": 19,
+            "all": 52,
+            "laborable.mediodia": 47,
+            "laborable.punta_tarde": 67
         },
         "3390>3391": {
-            "n": 10,
+            "n": 11,
+            "all": 171,
             "laborable.mediodia": 171
         },
         "3391>1914": {
-            "n": 15,
+            "n": 17,
+            "all": 143,
             "laborable.mediodia": 143
         },
         "3392>1804": {
@@ -3639,12 +4586,18 @@
             "laborable.mediodia": 217
         },
         "3394>3395": {
-            "n": 17,
+            "n": 19,
+            "all": 87,
             "laborable.mediodia": 87
         },
         "3395>2001": {
-            "n": 17,
+            "n": 19,
+            "all": 182,
             "laborable.mediodia": 180
+        },
+        "3396>3119": {
+            "n": 3,
+            "all": 100
         },
         "3397>3395": {
             "n": 4,
@@ -3655,7 +4608,8 @@
             "laborable.mediodia": 60
         },
         "339>340": {
-            "n": 14,
+            "n": 18,
+            "all": 61,
             "laborable.mediodia": 62
         },
         "33>4171": {
@@ -3663,8 +4617,25 @@
             "laborable.mediodia": 81
         },
         "3400>1850": {
-            "n": 4,
+            "n": 5,
+            "all": 221,
             "laborable.mediodia": 167
+        },
+        "3401>4257": {
+            "n": 4,
+            "all": 63
+        },
+        "3402>3403": {
+            "n": 4,
+            "all": 72
+        },
+        "3403>3404": {
+            "n": 3,
+            "all": 163
+        },
+        "3404>1999": {
+            "n": 3,
+            "all": 119
         },
         "3405>3406": {
             "n": 3,
@@ -3687,7 +4658,8 @@
             "laborable.mediodia": 80
         },
         "340>341": {
-            "n": 14,
+            "n": 18,
+            "all": 96,
             "laborable.mediodia": 101
         },
         "3410>1785": {
@@ -3695,67 +4667,93 @@
             "laborable.mediodia": 115
         },
         "341>342": {
-            "n": 14,
+            "n": 18,
+            "all": 64,
             "laborable.mediodia": 62
         },
         "3424>2693": {
-            "n": 5,
+            "n": 7,
+            "all": 70,
             "laborable.mediodia": 70
         },
         "342>343": {
-            "n": 14,
+            "n": 18,
+            "all": 75,
             "laborable.mediodia": 75
         },
+        "3434>2885": {
+            "n": 4,
+            "all": 83
+        },
         "3435>2080": {
-            "n": 12,
-            "laborable.mediodia": 129
+            "n": 15,
+            "all": 129,
+            "laborable.mediodia": 129,
+            "laborable.punta_tarde": 111
         },
         "3436>3437": {
-            "n": 15,
+            "n": 18,
+            "all": 85,
             "laborable.mediodia": 85
         },
         "3437>3438": {
-            "n": 25,
-            "laborable.mediodia": 101
+            "n": 29,
+            "all": 101,
+            "laborable.mediodia": 101,
+            "laborable.punta_tarde": 103
+        },
+        "3438>2001": {
+            "n": 3,
+            "all": 89
         },
         "3438>3396": {
-            "n": 14,
+            "n": 16,
+            "all": 126,
             "laborable.mediodia": 127
         },
         "3438>3965": {
-            "n": 9,
+            "n": 11,
+            "all": 145,
             "laborable.mediodia": 145
         },
         "343>345": {
-            "n": 12,
+            "n": 14,
+            "all": 152,
             "laborable.mediodia": 152
         },
         "343>3554": {
-            "n": 5,
+            "n": 6,
+            "all": 173,
             "laborable.mediodia": 175
         },
         "343>3806": {
-            "n": 11,
+            "n": 14,
+            "all": 54,
             "laborable.mediodia": 55
         },
         "345>372": {
-            "n": 10,
+            "n": 12,
+            "all": 119,
             "laborable.mediodia": 119
         },
         "346>347": {
-            "n": 16,
+            "n": 20,
+            "all": 35,
             "laborable.mediodia": 37
         },
         "347>348": {
-            "n": 16,
+            "n": 20,
+            "all": 47,
             "laborable.mediodia": 44
         },
         "348>349": {
-            "n": 16,
+            "n": 20,
+            "all": 60,
             "laborable.mediodia": 56
         },
         "349>350": {
-            "n": 16,
+            "n": 19,
+            "all": 74,
             "laborable.mediodia": 75
         },
         "34>35": {
@@ -3763,11 +4761,13 @@
             "laborable.mediodia": 80
         },
         "34>96": {
-            "n": 10,
+            "n": 12,
+            "all": 169,
             "laborable.mediodia": 165
         },
         "3504>3505": {
-            "n": 12,
+            "n": 14,
+            "all": 75,
             "laborable.mediodia": 73
         },
         "3505>1263": {
@@ -3775,11 +4775,14 @@
             "laborable.mediodia": 117
         },
         "3506>3507": {
-            "n": 12,
-            "laborable.mediodia": 96
+            "n": 15,
+            "all": 96,
+            "laborable.mediodia": 96,
+            "laborable.punta_tarde": 83
         },
         "3507>1267": {
-            "n": 7,
+            "n": 8,
+            "all": 234,
             "laborable.mediodia": 245
         },
         "3507>4293": {
@@ -3787,60 +4790,87 @@
             "laborable.mediodia": 157
         },
         "350>351": {
-            "n": 30,
-            "laborable.mediodia": 144
+            "n": 37,
+            "all": 147,
+            "laborable.mediodia": 144,
+            "laborable.punta_tarde": 154,
+            "laborable.noche": 128
         },
         "351>352": {
-            "n": 32,
-            "laborable.mediodia": 172
+            "n": 39,
+            "all": 176,
+            "laborable.mediodia": 172,
+            "laborable.punta_tarde": 165,
+            "laborable.noche": 190
         },
         "352>353": {
-            "n": 6,
+            "n": 7,
+            "all": 172,
             "laborable.mediodia": 172
         },
         "352>362": {
-            "n": 33,
-            "laborable.mediodia": 56
+            "n": 41,
+            "all": 56,
+            "laborable.mediodia": 56,
+            "laborable.punta_tarde": 59,
+            "laborable.noche": 56
         },
         "353>354": {
-            "n": 31,
-            "laborable.mediodia": 132
+            "n": 38,
+            "all": 126,
+            "laborable.mediodia": 132,
+            "laborable.punta_tarde": 102,
+            "laborable.noche": 96
         },
         "3541>3110": {
             "n": 3,
             "laborable.mediodia": 65
         },
         "354>356": {
-            "n": 31,
-            "laborable.mediodia": 131
+            "n": 39,
+            "all": 126,
+            "laborable.mediodia": 131,
+            "laborable.punta_tarde": 96,
+            "laborable.noche": 107
         },
         "3552>71": {
-            "n": 3,
+            "n": 5,
+            "all": 116,
             "laborable.mediodia": 96
         },
         "3553>150": {
-            "n": 12,
+            "n": 13,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "3554>409": {
-            "n": 5,
+            "n": 6,
+            "all": 239,
             "laborable.mediodia": 239
         },
         "3561>936": {
-            "n": 3,
+            "n": 4,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "356>357": {
-            "n": 33,
-            "laborable.mediodia": 102
+            "n": 40,
+            "all": 106,
+            "laborable.mediodia": 102,
+            "laborable.punta_tarde": 135,
+            "laborable.noche": 115
         },
         "356>4121": {
-            "n": 21,
-            "laborable.mediodia": 236
+            "n": 24,
+            "all": 236,
+            "laborable.mediodia": 236,
+            "laborable.punta_tarde": 287
         },
         "357>358": {
-            "n": 32,
-            "laborable.mediodia": 144
+            "n": 36,
+            "all": 144,
+            "laborable.mediodia": 144,
+            "laborable.punta_tarde": 160
         },
         "35>4155": {
             "n": 3,
@@ -3851,119 +4881,168 @@
             "laborable.mediodia": 93
         },
         "361>310": {
-            "n": 31,
-            "laborable.mediodia": 56
+            "n": 39,
+            "all": 54,
+            "laborable.mediodia": 56,
+            "laborable.punta_tarde": 51,
+            "laborable.noche": 55
         },
         "362>353": {
-            "n": 33,
-            "laborable.mediodia": 100
+            "n": 40,
+            "all": 93,
+            "laborable.mediodia": 100,
+            "laborable.punta_tarde": 64,
+            "laborable.noche": 60
         },
         "36>37": {
-            "n": 10,
+            "n": 12,
+            "all": 99,
             "laborable.mediodia": 99
         },
         "3722>1259": {
-            "n": 9,
+            "n": 11,
+            "all": 149,
             "laborable.mediodia": 157
         },
         "3723>1269": {
-            "n": 9,
+            "n": 10,
+            "all": 63,
             "laborable.mediodia": 73
         },
         "372>346": {
-            "n": 11,
+            "n": 13,
+            "all": 109,
             "laborable.mediodia": 109
         },
         "373>316": {
-            "n": 11,
+            "n": 13,
+            "all": 144,
             "laborable.mediodia": 147
         },
         "374>320": {
-            "n": 13,
-            "laborable.mediodia": 93
+            "n": 18,
+            "all": 89,
+            "laborable.mediodia": 93,
+            "laborable.noche": 98
         },
         "374>375": {
-            "n": 12,
-            "laborable.mediodia": 102
+            "n": 16,
+            "all": 101,
+            "laborable.mediodia": 102,
+            "laborable.punta_tarde": 98
         },
         "375>376": {
-            "n": 13,
-            "laborable.mediodia": 101
+            "n": 17,
+            "all": 90,
+            "laborable.mediodia": 101,
+            "laborable.punta_tarde": 74
         },
         "376>377": {
-            "n": 11,
+            "n": 14,
+            "all": 101,
             "laborable.mediodia": 105
         },
         "377>801": {
-            "n": 25,
-            "laborable.mediodia": 112
+            "n": 30,
+            "all": 109,
+            "laborable.mediodia": 112,
+            "laborable.punta_tarde": 99
         },
         "378>379": {
-            "n": 30,
-            "laborable.mediodia": 85
+            "n": 38,
+            "all": 85,
+            "laborable.mediodia": 85,
+            "laborable.punta_tarde": 87
         },
         "379>433": {
-            "n": 28,
-            "laborable.mediodia": 103
+            "n": 35,
+            "all": 103,
+            "laborable.mediodia": 103,
+            "laborable.punta_tarde": 112
         },
         "37>38": {
-            "n": 10,
+            "n": 12,
+            "all": 57,
             "laborable.mediodia": 57
         },
         "3805>318": {
-            "n": 9,
-            "laborable.mediodia": 77
+            "n": 13,
+            "all": 68,
+            "laborable.mediodia": 77,
+            "laborable.punta_tarde": 53
         },
         "3806>460": {
-            "n": 11,
+            "n": 14,
+            "all": 25,
             "laborable.mediodia": 25
         },
         "382>383": {
-            "n": 21,
-            "laborable.mediodia": 159
+            "n": 29,
+            "all": 145,
+            "laborable.mediodia": 159,
+            "laborable.punta_tarde": 155,
+            "laborable.noche": 110
         },
         "383>384": {
-            "n": 14,
-            "laborable.mediodia": 87
+            "n": 19,
+            "all": 89,
+            "laborable.mediodia": 87,
+            "laborable.noche": 50
         },
         "384>385": {
-            "n": 12,
-            "laborable.mediodia": 71
+            "n": 17,
+            "all": 68,
+            "laborable.mediodia": 71,
+            "laborable.noche": 47
         },
         "385>386": {
-            "n": 15,
-            "laborable.mediodia": 64
+            "n": 20,
+            "all": 55,
+            "laborable.mediodia": 64,
+            "laborable.noche": 44
         },
         "386>343": {
             "n": 3,
             "laborable.mediodia": 178
         },
         "386>387": {
-            "n": 12,
-            "laborable.mediodia": 87
+            "n": 17,
+            "all": 92,
+            "laborable.mediodia": 87,
+            "laborable.punta_tarde": 97
         },
         "387>343": {
-            "n": 12,
+            "n": 15,
+            "all": 76,
             "laborable.mediodia": 69
         },
+        "3886>4098": {
+            "n": 3,
+            "all": 80
+        },
         "389>601": {
-            "n": 11,
+            "n": 14,
+            "all": 235,
             "laborable.mediodia": 237
         },
         "389>649": {
-            "n": 5,
+            "n": 6,
+            "all": 168,
             "laborable.mediodia": 171
         },
         "38>39": {
-            "n": 10,
+            "n": 12,
+            "all": 57,
             "laborable.mediodia": 57
         },
         "390>391": {
-            "n": 10,
+            "n": 13,
+            "all": 108,
             "laborable.mediodia": 108
         },
         "390>408": {
-            "n": 6,
+            "n": 7,
+            "all": 172,
             "laborable.mediodia": 172
         },
         "3915>2894": {
@@ -3971,23 +5050,28 @@
             "laborable.mediodia": 143
         },
         "391>346": {
-            "n": 5,
+            "n": 7,
+            "all": 133,
             "laborable.mediodia": 133
         },
         "391>392": {
-            "n": 4,
+            "n": 6,
+            "all": 159,
             "laborable.mediodia": 160
         },
         "392>393": {
-            "n": 4,
+            "n": 6,
+            "all": 73,
             "laborable.mediodia": 78
         },
         "392>600": {
-            "n": 5,
+            "n": 6,
+            "all": 250,
             "laborable.mediodia": 250
         },
         "3938>1841": {
-            "n": 11,
+            "n": 13,
+            "all": 138,
             "laborable.mediodia": 145
         },
         "3939>1915": {
@@ -3995,15 +5079,19 @@
             "laborable.mediodia": 56
         },
         "393>394": {
-            "n": 24,
+            "n": 27,
+            "all": 62,
             "laborable.mediodia": 64
         },
         "3940>1845": {
-            "n": 9,
-            "laborable.mediodia": 31
+            "n": 13,
+            "all": 30,
+            "laborable.mediodia": 31,
+            "laborable.punta_tarde": 28
         },
         "3941>1911": {
-            "n": 10,
+            "n": 11,
+            "all": 138,
             "laborable.mediodia": 138
         },
         "3942>1854": {
@@ -4011,28 +5099,38 @@
             "laborable.mediodia": 54
         },
         "3943>1901": {
-            "n": 4,
+            "n": 5,
+            "all": 78,
             "laborable.mediodia": 78
         },
         "394>395": {
-            "n": 15,
+            "n": 18,
+            "all": 74,
             "laborable.mediodia": 75
         },
         "3953>324": {
-            "n": 15,
+            "n": 19,
+            "all": 57,
             "laborable.mediodia": 55
         },
         "3954>393": {
             "n": 10,
             "laborable.mediodia": 167
         },
-        "3959>1774": {
+        "3955>3944": {
             "n": 3,
+            "all": 52
+        },
+        "3959>1774": {
+            "n": 4,
+            "all": 33,
             "laborable.mediodia": 37
         },
         "395>396": {
-            "n": 25,
-            "laborable.mediodia": 125
+            "n": 31,
+            "all": 121,
+            "laborable.mediodia": 125,
+            "laborable.punta_tarde": 83
         },
         "3960>1784": {
             "n": 3,
@@ -4047,11 +5145,13 @@
             "laborable.mediodia": 165
         },
         "3964>2001": {
-            "n": 9,
+            "n": 10,
+            "all": 93,
             "laborable.mediodia": 98
         },
         "3965>2005": {
-            "n": 9,
+            "n": 10,
+            "all": 129,
             "laborable.mediodia": 129
         },
         "3966>3963": {
@@ -4067,8 +5167,10 @@
             "laborable.mediodia": 86
         },
         "396>397": {
-            "n": 24,
-            "laborable.mediodia": 134
+            "n": 29,
+            "all": 133,
+            "laborable.mediodia": 134,
+            "laborable.punta_tarde": 128
         },
         "3970>4001": {
             "n": 3,
@@ -4078,6 +5180,10 @@
             "n": 3,
             "laborable.mediodia": 109
         },
+        "3972>2795": {
+            "n": 4,
+            "all": 79
+        },
         "3973>3974": {
             "n": 3,
             "laborable.mediodia": 76
@@ -4085,6 +5191,18 @@
         "3974>3978": {
             "n": 3,
             "laborable.mediodia": 108
+        },
+        "3975>2794": {
+            "n": 4,
+            "all": 167
+        },
+        "3976>3975": {
+            "n": 4,
+            "all": 46
+        },
+        "3977>3976": {
+            "n": 4,
+            "all": 42
         },
         "3978>2712": {
             "n": 3,
@@ -4095,43 +5213,59 @@
             "laborable.mediodia": 82
         },
         "397>418": {
-            "n": 20,
-            "laborable.mediodia": 101
+            "n": 26,
+            "all": 92,
+            "laborable.mediodia": 101,
+            "laborable.punta_tarde": 78,
+            "laborable.noche": 91
         },
         "3984>3022": {
-            "n": 4,
+            "n": 5,
+            "all": 39,
             "laborable.mediodia": 32
         },
         "3985>3086": {
-            "n": 8,
+            "n": 9,
+            "all": 30,
             "laborable.mediodia": 30
         },
+        "3987>3023": {
+            "n": 3,
+            "all": 249
+        },
         "3988>3990": {
-            "n": 7,
+            "n": 8,
+            "all": 38,
             "laborable.mediodia": 38
         },
         "3989>3987": {
-            "n": 3,
+            "n": 4,
+            "all": 165,
             "laborable.mediodia": 165
         },
         "3990>3992": {
-            "n": 7,
+            "n": 8,
+            "all": 108,
             "laborable.mediodia": 113
         },
         "3991>3989": {
-            "n": 6,
+            "n": 7,
+            "all": 44,
             "laborable.mediodia": 43
         },
         "3992>3995": {
-            "n": 7,
+            "n": 8,
+            "all": 108,
             "laborable.mediodia": 125
         },
         "3993>3991": {
-            "n": 6,
+            "n": 7,
+            "all": 131,
             "laborable.mediodia": 131
         },
         "3995>3993": {
-            "n": 6,
+            "n": 7,
+            "all": 166,
             "laborable.mediodia": 166
         },
         "3995>4014": {
@@ -4151,11 +5285,13 @@
             "laborable.mediodia": 76
         },
         "39>1463": {
-            "n": 7,
+            "n": 8,
+            "all": 30,
             "laborable.mediodia": 30
         },
         "39>40": {
-            "n": 3,
+            "n": 4,
+            "all": 99,
             "laborable.mediodia": 100
         },
         "3>4": {
@@ -4171,7 +5307,8 @@
             "laborable.mediodia": 69
         },
         "4002>4004": {
-            "n": 4,
+            "n": 5,
+            "all": 105,
             "laborable.mediodia": 105
         },
         "4003>3087": {
@@ -4179,7 +5316,8 @@
             "laborable.mediodia": 63
         },
         "4004>3021": {
-            "n": 4,
+            "n": 5,
+            "all": 36,
             "laborable.mediodia": 36
         },
         "4005>4003": {
@@ -4203,8 +5341,11 @@
             "laborable.mediodia": 127
         },
         "400>401": {
-            "n": 29,
-            "laborable.mediodia": 63
+            "n": 38,
+            "all": 61,
+            "laborable.mediodia": 63,
+            "laborable.punta_tarde": 61,
+            "laborable.noche": 42
         },
         "4010>4012": {
             "n": 4,
@@ -4227,11 +5368,14 @@
             "laborable.mediodia": 46
         },
         "401>402": {
-            "n": 30,
-            "laborable.mediodia": 174
+            "n": 36,
+            "all": 166,
+            "laborable.mediodia": 174,
+            "laborable.punta_tarde": 128
         },
         "4024>2928": {
-            "n": 5,
+            "n": 6,
+            "all": 78,
             "laborable.mediodia": 78
         },
         "4025>3013": {
@@ -4239,27 +5383,34 @@
             "laborable.mediodia": 104
         },
         "402>350": {
-            "n": 15,
+            "n": 19,
+            "all": 102,
             "laborable.mediodia": 102
         },
         "402>403": {
-            "n": 24,
-            "laborable.mediodia": 116
+            "n": 27,
+            "all": 122,
+            "laborable.mediodia": 116,
+            "laborable.punta_tarde": 161
         },
         "403>1412": {
-            "n": 5,
+            "n": 6,
+            "all": 102,
             "laborable.mediodia": 102
         },
         "403>404": {
-            "n": 19,
+            "n": 20,
+            "all": 53,
             "laborable.mediodia": 53
         },
         "404>405": {
-            "n": 23,
+            "n": 25,
+            "all": 62,
             "laborable.mediodia": 61
         },
         "4057>3995": {
-            "n": 6,
+            "n": 7,
+            "all": 81,
             "laborable.mediodia": 77
         },
         "4058>275": {
@@ -4275,7 +5426,8 @@
             "laborable.mediodia": 64
         },
         "405>600": {
-            "n": 5,
+            "n": 6,
+            "all": 162,
             "laborable.mediodia": 162
         },
         "405>649": {
@@ -4283,28 +5435,46 @@
             "laborable.mediodia": 239
         },
         "4060>3291": {
-            "n": 3,
+            "n": 4,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "4061>3292": {
-            "n": 3,
+            "n": 4,
+            "all": 24,
             "laborable.mediodia": 25
         },
         "4062>3225": {
             "n": 3,
             "laborable.mediodia": 46
         },
+        "4063>4065": {
+            "n": 3,
+            "all": 146
+        },
         "4064>3224": {
             "n": 3,
             "laborable.mediodia": 84
+        },
+        "4065>4067": {
+            "n": 3,
+            "all": 30
         },
         "4066>4064": {
             "n": 3,
             "laborable.mediodia": 148
         },
+        "4067>4069": {
+            "n": 3,
+            "all": 33
+        },
         "4068>4066": {
             "n": 3,
             "laborable.mediodia": 17
+        },
+        "4069>4071": {
+            "n": 3,
+            "all": 40
         },
         "406>392": {
             "n": 4,
@@ -4314,48 +5484,71 @@
             "n": 6,
             "laborable.mediodia": 231
         },
+        "4071>4073": {
+            "n": 3,
+            "all": 33
+        },
+        "4073>3293": {
+            "n": 3,
+            "all": 51
+        },
         "407>408": {
             "n": 6,
             "laborable.mediodia": 138
         },
         "4084>4086": {
-            "n": 4,
+            "n": 6,
+            "all": 81,
             "laborable.mediodia": 76
         },
         "4085>4083": {
-            "n": 3,
+            "n": 5,
+            "all": 88,
             "laborable.mediodia": 113
         },
         "4086>252": {
-            "n": 4,
+            "n": 6,
+            "all": 88,
             "laborable.mediodia": 89
         },
         "4087>1768": {
-            "n": 14,
+            "n": 17,
+            "all": 130,
             "laborable.mediodia": 130
         },
         "4088>2622": {
-            "n": 5,
+            "n": 6,
+            "all": 174,
             "laborable.mediodia": 174
         },
         "408>409": {
-            "n": 6,
+            "n": 7,
+            "all": 149,
             "laborable.mediodia": 145
         },
         "408>4142": {
-            "n": 6,
+            "n": 8,
+            "all": 104,
             "laborable.mediodia": 104
         },
         "4095>607": {
-            "n": 17,
-            "laborable.mediodia": 179
+            "n": 22,
+            "all": 186,
+            "laborable.mediodia": 179,
+            "laborable.punta_tarde": 221
+        },
+        "4097>3887": {
+            "n": 3,
+            "all": 75
         },
         "409>410": {
-            "n": 15,
+            "n": 17,
+            "all": 123,
             "laborable.mediodia": 118
         },
         "40>41": {
-            "n": 14,
+            "n": 16,
+            "all": 90,
             "laborable.mediodia": 90
         },
         "4104>131": {
@@ -4367,23 +5560,28 @@
             "laborable.mediodia": 75
         },
         "410>411": {
-            "n": 15,
+            "n": 17,
+            "all": 161,
             "laborable.mediodia": 161
         },
         "4110>4241": {
-            "n": 8,
+            "n": 11,
+            "all": 60,
             "laborable.mediodia": 54
         },
         "411>504": {
-            "n": 10,
+            "n": 11,
+            "all": 82,
             "laborable.mediodia": 77
         },
         "411>750": {
-            "n": 11,
+            "n": 14,
+            "all": 223,
             "laborable.mediodia": 225
         },
         "4121>1949": {
-            "n": 10,
+            "n": 11,
+            "all": 977,
             "laborable.mediodia": 977
         },
         "4121>2682": {
@@ -4395,16 +5593,23 @@
             "laborable.mediodia": 1443
         },
         "4122>2430": {
-            "n": 3,
+            "n": 4,
+            "all": 30,
             "laborable.mediodia": 30
         },
         "4126>450": {
-            "n": 11,
+            "n": 14,
+            "all": 107,
             "laborable.mediodia": 115
         },
         "4127>90": {
-            "n": 4,
+            "n": 5,
+            "all": 122,
             "laborable.mediodia": 118
+        },
+        "4128>27": {
+            "n": 3,
+            "all": 146
         },
         "4129>12": {
             "n": 5,
@@ -4415,23 +5620,31 @@
             "laborable.mediodia": 69
         },
         "4136>642": {
-            "n": 5,
+            "n": 7,
+            "all": 83,
             "laborable.mediodia": 83
         },
         "4137>40": {
             "n": 4,
             "laborable.mediodia": 50
         },
+        "4138>1118": {
+            "n": 4,
+            "all": 104
+        },
         "4140>666": {
-            "n": 10,
+            "n": 14,
+            "all": 73,
             "laborable.mediodia": 73
         },
         "4141>508": {
-            "n": 5,
+            "n": 7,
+            "all": 64,
             "laborable.mediodia": 63
         },
         "4142>318": {
-            "n": 6,
+            "n": 8,
+            "all": 185,
             "laborable.mediodia": 184
         },
         "4144>3541": {
@@ -4439,23 +5652,28 @@
             "laborable.mediodia": 50
         },
         "4147>4248": {
-            "n": 8,
+            "n": 9,
+            "all": 127,
             "laborable.mediodia": 127
         },
         "4148>45": {
-            "n": 8,
+            "n": 9,
+            "all": 100,
             "laborable.mediodia": 100
         },
         "4150>4151": {
-            "n": 4,
+            "n": 5,
+            "all": 210,
             "laborable.mediodia": 210
         },
         "4151>32": {
-            "n": 5,
+            "n": 8,
+            "all": 88,
             "laborable.mediodia": 92
         },
         "4152>4150": {
-            "n": 4,
+            "n": 5,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "4153>4154": {
@@ -4463,27 +5681,33 @@
             "laborable.mediodia": 49
         },
         "4154>4155": {
-            "n": 7,
+            "n": 8,
+            "all": 112,
             "laborable.mediodia": 112
         },
         "4155>36": {
-            "n": 10,
+            "n": 12,
+            "all": 90,
             "laborable.mediodia": 91
         },
         "4156>4": {
-            "n": 10,
+            "n": 14,
+            "all": 83,
             "laborable.mediodia": 78
         },
         "4157>4158": {
-            "n": 4,
+            "n": 5,
+            "all": 194,
             "laborable.mediodia": 194
         },
         "4158>4159": {
-            "n": 4,
+            "n": 5,
+            "all": 68,
             "laborable.mediodia": 64
         },
         "4159>91": {
-            "n": 4,
+            "n": 5,
+            "all": 116,
             "laborable.mediodia": 116
         },
         "4160>4161": {
@@ -4523,39 +5747,48 @@
             "laborable.mediodia": 25
         },
         "4173>34": {
-            "n": 11,
+            "n": 13,
+            "all": 71,
             "laborable.mediodia": 72
         },
         "4176>71": {
-            "n": 8,
+            "n": 9,
+            "all": 543,
             "laborable.mediodia": 543
         },
         "4177>4178": {
-            "n": 14,
+            "n": 18,
+            "all": 92,
             "laborable.mediodia": 92
         },
         "4178>4179": {
-            "n": 14,
+            "n": 18,
+            "all": 55,
             "laborable.mediodia": 60
         },
         "4179>120": {
-            "n": 11,
-            "laborable.mediodia": 146
+            "n": 15,
+            "all": 164,
+            "laborable.mediodia": 146,
+            "laborable.punta_tarde": 202
         },
         "4179>4185": {
             "n": 3,
             "laborable.mediodia": 146
         },
         "4180>4181": {
-            "n": 8,
+            "n": 9,
+            "all": 66,
             "laborable.mediodia": 66
         },
         "4181>4182": {
-            "n": 8,
+            "n": 10,
+            "all": 89,
             "laborable.mediodia": 87
         },
         "4182>41": {
-            "n": 8,
+            "n": 9,
+            "all": 128,
             "laborable.mediodia": 126
         },
         "4185>120": {
@@ -4563,43 +5796,64 @@
             "laborable.mediodia": 239
         },
         "4186>4187": {
-            "n": 6,
+            "n": 7,
+            "all": 59,
             "laborable.mediodia": 56
         },
         "4187>4188": {
-            "n": 6,
+            "n": 7,
+            "all": 72,
             "laborable.mediodia": 55
         },
         "4188>4189": {
-            "n": 6,
+            "n": 7,
+            "all": 73,
             "laborable.mediodia": 69
         },
         "4189>4190": {
-            "n": 5,
+            "n": 6,
+            "all": 39,
             "laborable.mediodia": 39
         },
         "418>419": {
-            "n": 20,
-            "laborable.mediodia": 132
+            "n": 25,
+            "all": 136,
+            "laborable.mediodia": 132,
+            "laborable.noche": 136
         },
         "4190>4191": {
-            "n": 5,
+            "n": 6,
+            "all": 103,
             "laborable.mediodia": 107
+        },
+        "4191>4320": {
+            "n": 3,
+            "all": 212
         },
         "4192>4253": {
             "n": 3,
             "laborable.mediodia": 125
         },
+        "4192>4320": {
+            "n": 3,
+            "all": 174
+        },
         "419>420": {
-            "n": 31,
-            "laborable.mediodia": 121
+            "n": 39,
+            "all": 121,
+            "laborable.mediodia": 121,
+            "laborable.punta_tarde": 90,
+            "laborable.noche": 104
         },
         "41>42": {
-            "n": 22,
-            "laborable.mediodia": 77
+            "n": 25,
+            "all": 80,
+            "laborable.mediodia": 77,
+            "laborable.punta_tarde": 90
         },
         "4201>98": {
-            "n": 4,
+            "n": 5,
+            "all": 54,
             "laborable.mediodia": 51
         },
         "4202>4203": {
@@ -4607,59 +5861,80 @@
             "laborable.mediodia": 142
         },
         "4203>4204": {
-            "n": 14,
+            "n": 16,
+            "all": 40,
             "laborable.mediodia": 41
         },
         "4204>4205": {
             "n": 3,
             "laborable.mediodia": 57
         },
+        "4204>4240": {
+            "n": 3,
+            "all": 231
+        },
         "4204>4268": {
-            "n": 8,
+            "n": 9,
+            "all": 44,
             "laborable.mediodia": 44
         },
         "4205>4216": {
             "n": 3,
             "laborable.mediodia": 127
         },
+        "4205>4249": {
+            "n": 3,
+            "all": 49
+        },
         "4206>4207": {
-            "n": 8,
+            "n": 10,
+            "all": 169,
             "laborable.mediodia": 138
         },
         "4207>4208": {
-            "n": 8,
+            "n": 10,
+            "all": 97,
             "laborable.mediodia": 97
         },
         "4208>4209": {
-            "n": 8,
+            "n": 10,
+            "all": 76,
             "laborable.mediodia": 76
         },
         "4209>4252": {
-            "n": 8,
+            "n": 10,
+            "all": 120,
             "laborable.mediodia": 120
         },
         "420>421": {
-            "n": 20,
-            "laborable.mediodia": 78
+            "n": 25,
+            "all": 78,
+            "laborable.mediodia": 78,
+            "laborable.punta_tarde": 87
         },
         "420>464": {
-            "n": 11,
+            "n": 15,
+            "all": 83,
             "laborable.mediodia": 102
         },
         "4212>4213": {
-            "n": 8,
+            "n": 10,
+            "all": 63,
             "laborable.mediodia": 68
         },
         "4213>4214": {
-            "n": 8,
+            "n": 10,
+            "all": 65,
             "laborable.mediodia": 64
         },
         "4214>4148": {
-            "n": 8,
+            "n": 9,
+            "all": 54,
             "laborable.mediodia": 54
         },
         "4216>4110": {
-            "n": 8,
+            "n": 10,
+            "all": 114,
             "laborable.mediodia": 114
         },
         "4216>4218": {
@@ -4683,15 +5958,18 @@
             "laborable.mediodia": 192
         },
         "421>479": {
-            "n": 5,
+            "n": 6,
+            "all": 203,
             "laborable.mediodia": 210
         },
         "421>667": {
-            "n": 8,
+            "n": 11,
+            "all": 50,
             "laborable.mediodia": 51
         },
         "421>668": {
-            "n": 5,
+            "n": 6,
+            "all": 81,
             "laborable.mediodia": 87
         },
         "4220>4222": {
@@ -4699,7 +5977,8 @@
             "laborable.mediodia": 73
         },
         "4221>4229": {
-            "n": 3,
+            "n": 4,
+            "all": 50,
             "laborable.mediodia": 90
         },
         "4222>4223": {
@@ -4707,7 +5986,8 @@
             "laborable.mediodia": 20
         },
         "4225>4226": {
-            "n": 3,
+            "n": 4,
+            "all": 36,
             "laborable.mediodia": 36
         },
         "4229>4230": {
@@ -4715,15 +5995,18 @@
             "laborable.mediodia": 56
         },
         "4230>4231": {
-            "n": 5,
+            "n": 6,
+            "all": 53,
             "laborable.mediodia": 60
         },
         "4231>4232": {
-            "n": 5,
+            "n": 6,
+            "all": 31,
             "laborable.mediodia": 31
         },
         "4232>4235": {
-            "n": 5,
+            "n": 6,
+            "all": 40,
             "laborable.mediodia": 40
         },
         "4233>4234": {
@@ -4735,51 +6018,72 @@
             "laborable.mediodia": 89
         },
         "4235>4236": {
-            "n": 5,
+            "n": 6,
+            "all": 27,
             "laborable.mediodia": 27
         },
         "4236>4237": {
-            "n": 5,
+            "n": 6,
+            "all": 45,
             "laborable.mediodia": 45
         },
         "4237>4238": {
-            "n": 5,
+            "n": 6,
+            "all": 60,
             "laborable.mediodia": 60
         },
         "4238>45": {
-            "n": 5,
+            "n": 6,
+            "all": 69,
             "laborable.mediodia": 87
         },
+        "4240>4205": {
+            "n": 3,
+            "all": 178
+        },
         "4240>44": {
-            "n": 11,
+            "n": 12,
+            "all": 105,
             "laborable.mediodia": 105
         },
         "4241>4242": {
-            "n": 8,
+            "n": 10,
+            "all": 71,
             "laborable.mediodia": 71
         },
         "4242>4243": {
-            "n": 7,
+            "n": 9,
+            "all": 60,
             "laborable.mediodia": 74
         },
         "4247>4147": {
-            "n": 8,
+            "n": 9,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "4248>4269": {
-            "n": 8,
+            "n": 9,
+            "all": 43,
             "laborable.mediodia": 43
         },
         "4249>4250": {
-            "n": 11,
+            "n": 13,
+            "all": 25,
             "laborable.mediodia": 25
         },
         "424>425": {
-            "n": 10,
-            "laborable.mediodia": 89
+            "n": 14,
+            "all": 86,
+            "laborable.mediodia": 89,
+            "laborable.punta_tarde": 84
+        },
+        "4250>4331": {
+            "n": 3,
+            "all": 122
         },
         "4252>4216": {
-            "n": 8,
+            "n": 10,
+            "all": 83,
             "laborable.mediodia": 91
         },
         "4253>35": {
@@ -4790,48 +6094,67 @@
             "n": 3,
             "laborable.mediodia": 61
         },
+        "4257>3402": {
+            "n": 4,
+            "all": 132
+        },
         "4258>3407": {
             "n": 3,
             "laborable.mediodia": 57
         },
         "425>3805": {
-            "n": 10,
-            "laborable.mediodia": 37
+            "n": 14,
+            "all": 36,
+            "laborable.mediodia": 37,
+            "laborable.punta_tarde": 34
+        },
+        "4260>1138": {
+            "n": 4,
+            "all": 133
         },
         "4261>1375": {
-            "n": 3,
+            "n": 5,
+            "all": 61,
             "laborable.mediodia": 61
         },
         "4263>1062": {
-            "n": 9,
+            "n": 12,
+            "all": 134,
             "laborable.mediodia": 134
         },
         "4264>544": {
-            "n": 5,
+            "n": 7,
+            "all": 142,
             "laborable.mediodia": 142
         },
         "4268>4206": {
-            "n": 8,
+            "n": 10,
+            "all": 69,
             "laborable.mediodia": 69
         },
         "4269>4249": {
-            "n": 8,
+            "n": 9,
+            "all": 48,
             "laborable.mediodia": 48
         },
         "426>424": {
-            "n": 10,
+            "n": 13,
+            "all": 142,
             "laborable.mediodia": 143
         },
         "426>684": {
-            "n": 9,
+            "n": 12,
+            "all": 83,
             "laborable.mediodia": 89
         },
         "4277>1805": {
-            "n": 5,
+            "n": 7,
+            "all": 51,
             "laborable.mediodia": 51
         },
         "4292>3504": {
-            "n": 12,
+            "n": 15,
+            "all": 115,
             "laborable.mediodia": 115
         },
         "4294>4319": {
@@ -4843,28 +6166,62 @@
             "laborable.mediodia": 58
         },
         "42>43": {
-            "n": 24,
-            "laborable.mediodia": 82
+            "n": 27,
+            "all": 82,
+            "laborable.mediodia": 82,
+            "laborable.punta_tarde": 74
         },
         "4318>269": {
-            "n": 4,
+            "n": 5,
+            "all": 140,
             "laborable.mediodia": 135
+        },
+        "4319>4192": {
+            "n": 3,
+            "all": 38
         },
         "4319>4320": {
             "n": 3,
             "laborable.mediodia": 224
         },
         "4320>3099": {
-            "n": 4,
+            "n": 6,
+            "all": 104,
             "laborable.mediodia": 97
         },
         "4320>3101": {
             "n": 3,
             "laborable.mediodia": 281
         },
+        "4323>4324": {
+            "n": 3,
+            "all": 67
+        },
+        "4324>4325": {
+            "n": 3,
+            "all": 73
+        },
+        "4331>4332": {
+            "n": 3,
+            "all": 67
+        },
+        "4332>4333": {
+            "n": 3,
+            "all": 68
+        },
+        "4333>4334": {
+            "n": 3,
+            "all": 84
+        },
+        "4334>4335": {
+            "n": 3,
+            "all": 49
+        },
         "433>434": {
-            "n": 28,
-            "laborable.mediodia": 77
+            "n": 35,
+            "all": 80,
+            "laborable.mediodia": 77,
+            "laborable.punta_tarde": 170
         },
         "4340>3102": {
             "n": 5,
@@ -4875,7 +6232,8 @@
             "laborable.mediodia": 234
         },
         "4345>2929": {
-            "n": 5,
+            "n": 6,
+            "all": 99,
             "laborable.mediodia": 99
         },
         "4346>3012": {
@@ -4883,7 +6241,8 @@
             "laborable.mediodia": 63
         },
         "4347>1867": {
-            "n": 3,
+            "n": 4,
+            "all": 25,
             "laborable.mediodia": 25
         },
         "4348>1888": {
@@ -4891,51 +6250,65 @@
             "laborable.mediodia": 48
         },
         "434>435": {
-            "n": 24,
-            "laborable.mediodia": 93
+            "n": 30,
+            "all": 94,
+            "laborable.mediodia": 93,
+            "laborable.punta_tarde": 134
         },
         "4350>1886": {
             "n": 3,
             "laborable.mediodia": 67
         },
         "435>436": {
-            "n": 32,
-            "laborable.mediodia": 139
+            "n": 37,
+            "all": 139,
+            "laborable.mediodia": 139,
+            "laborable.punta_tarde": 195
         },
         "435>776": {
-            "n": 9,
+            "n": 12,
+            "all": 109,
             "laborable.mediodia": 114
         },
         "436>326": {
-            "n": 17,
-            "laborable.mediodia": 112
+            "n": 22,
+            "all": 105,
+            "laborable.mediodia": 112,
+            "laborable.punta_tarde": 116
         },
         "436>519": {
-            "n": 14,
+            "n": 15,
+            "all": 153,
             "laborable.mediodia": 153
         },
         "438>328": {
-            "n": 9,
+            "n": 11,
+            "all": 78,
             "laborable.mediodia": 83
         },
         "43>12": {
-            "n": 4,
+            "n": 5,
+            "all": 110,
             "laborable.mediodia": 68
         },
         "43>84": {
-            "n": 21,
+            "n": 23,
+            "all": 85,
             "laborable.mediodia": 93
         },
         "442>443": {
-            "n": 4,
+            "n": 5,
+            "all": 83,
             "laborable.mediodia": 64
         },
         "442>765": {
-            "n": 4,
+            "n": 5,
+            "all": 127,
             "laborable.mediodia": 127
         },
         "443>445": {
-            "n": 5,
+            "n": 6,
+            "all": 127,
             "laborable.mediodia": 141
         },
         "443>528": {
@@ -4943,123 +6316,171 @@
             "laborable.mediodia": 146
         },
         "445>446": {
-            "n": 17,
+            "n": 20,
+            "all": 68,
             "laborable.mediodia": 69
         },
         "446>3955": {
-            "n": 6,
+            "n": 7,
+            "all": 155,
             "laborable.mediodia": 133
         },
         "446>447": {
-            "n": 11,
+            "n": 14,
+            "all": 93,
             "laborable.mediodia": 96
         },
         "447>4126": {
-            "n": 11,
+            "n": 14,
+            "all": 141,
             "laborable.mediodia": 154
         },
         "449>450": {
-            "n": 30,
-            "laborable.mediodia": 126
+            "n": 37,
+            "all": 122,
+            "laborable.mediodia": 126,
+            "laborable.punta_tarde": 121,
+            "laborable.noche": 78
         },
         "44>4247": {
-            "n": 8,
+            "n": 9,
+            "all": 124,
             "laborable.mediodia": 124
         },
         "450>1134": {
-            "n": 7,
+            "n": 9,
+            "all": 296,
             "laborable.mediodia": 296
         },
         "450>1189": {
-            "n": 6,
+            "n": 7,
+            "all": 362,
             "laborable.mediodia": 362
         },
         "450>451": {
-            "n": 24,
-            "laborable.mediodia": 146
+            "n": 31,
+            "all": 155,
+            "laborable.mediodia": 146,
+            "laborable.punta_tarde": 162,
+            "laborable.noche": 151
         },
         "451>452": {
-            "n": 24,
-            "laborable.mediodia": 123
+            "n": 32,
+            "all": 123,
+            "laborable.mediodia": 123,
+            "laborable.punta_tarde": 136,
+            "laborable.noche": 94
         },
         "452>382": {
-            "n": 26,
-            "laborable.mediodia": 72
+            "n": 35,
+            "all": 71,
+            "laborable.mediodia": 72,
+            "laborable.punta_tarde": 77,
+            "laborable.noche": 48
         },
         "459>378": {
-            "n": 3,
+            "n": 4,
+            "all": 79,
             "laborable.mediodia": 79
         },
         "45>4240": {
-            "n": 14,
+            "n": 16,
+            "all": 83,
             "laborable.mediodia": 83
         },
         "460>461": {
-            "n": 11,
+            "n": 14,
+            "all": 110,
             "laborable.mediodia": 110
         },
         "461>426": {
-            "n": 10,
+            "n": 13,
+            "all": 158,
             "laborable.mediodia": 148
         },
         "463>421": {
-            "n": 5,
+            "n": 7,
+            "all": 78,
             "laborable.mediodia": 79
         },
         "463>464": {
-            "n": 20,
-            "laborable.mediodia": 63
+            "n": 27,
+            "all": 63,
+            "laborable.mediodia": 63,
+            "laborable.punta_tarde": 49,
+            "laborable.noche": 53
         },
         "464>465": {
-            "n": 31,
-            "laborable.mediodia": 121
+            "n": 42,
+            "all": 122,
+            "laborable.mediodia": 121,
+            "laborable.punta_tarde": 144,
+            "laborable.noche": 122
         },
         "465>466": {
-            "n": 26,
-            "laborable.mediodia": 107
+            "n": 34,
+            "all": 109,
+            "laborable.mediodia": 107,
+            "laborable.punta_tarde": 119,
+            "laborable.noche": 82
         },
         "465>472": {
-            "n": 6,
+            "n": 8,
+            "all": 61,
             "laborable.mediodia": 62
         },
         "466>467": {
-            "n": 26,
-            "laborable.mediodia": 77
+            "n": 34,
+            "all": 77,
+            "laborable.mediodia": 77,
+            "laborable.punta_tarde": 87,
+            "laborable.noche": 62
         },
         "467>400": {
-            "n": 24,
-            "laborable.mediodia": 65
+            "n": 32,
+            "all": 64,
+            "laborable.mediodia": 65,
+            "laborable.punta_tarde": 58,
+            "laborable.noche": 49
         },
         "468>469": {
-            "n": 5,
+            "n": 6,
+            "all": 71,
             "laborable.mediodia": 76
         },
         "469>765": {
-            "n": 5,
+            "n": 6,
+            "all": 136,
             "laborable.mediodia": 143
         },
         "472>4264": {
-            "n": 6,
+            "n": 8,
+            "all": 134,
             "laborable.mediodia": 132
         },
         "476>389": {
-            "n": 6,
+            "n": 8,
+            "all": 121,
             "laborable.mediodia": 121
         },
         "476>584": {
-            "n": 11,
+            "n": 14,
+            "all": 74,
             "laborable.mediodia": 77
         },
         "478>3370": {
-            "n": 6,
+            "n": 7,
+            "all": 53,
             "laborable.mediodia": 53
         },
         "479>478": {
-            "n": 6,
+            "n": 7,
+            "all": 65,
             "laborable.mediodia": 65
         },
         "4>4157": {
-            "n": 4,
+            "n": 5,
+            "all": 73,
             "laborable.mediodia": 73
         },
         "4>5": {
@@ -5067,11 +6488,13 @@
             "laborable.mediodia": 93
         },
         "504>505": {
-            "n": 15,
+            "n": 17,
+            "all": 87,
             "laborable.mediodia": 94
         },
         "505>4140": {
-            "n": 10,
+            "n": 13,
+            "all": 88,
             "laborable.mediodia": 85
         },
         "505>476": {
@@ -5079,31 +6502,38 @@
             "laborable.mediodia": 47
         },
         "507>3369": {
-            "n": 5,
+            "n": 7,
+            "all": 54,
             "laborable.mediodia": 32
         },
         "508>4136": {
-            "n": 5,
+            "n": 7,
+            "all": 97,
             "laborable.mediodia": 97
         },
         "510>419": {
-            "n": 5,
+            "n": 7,
+            "all": 63,
             "laborable.mediodia": 63
         },
         "519>520": {
-            "n": 14,
+            "n": 16,
+            "all": 60,
             "laborable.mediodia": 60
         },
         "520>521": {
-            "n": 14,
+            "n": 16,
+            "all": 37,
             "laborable.mediodia": 37
         },
         "521>522": {
-            "n": 14,
+            "n": 16,
+            "all": 57,
             "laborable.mediodia": 56
         },
         "522>523": {
-            "n": 14,
+            "n": 16,
+            "all": 131,
             "laborable.mediodia": 127
         },
         "523>1048": {
@@ -5111,7 +6541,8 @@
             "laborable.mediodia": 273
         },
         "523>331": {
-            "n": 21,
+            "n": 25,
+            "all": 105,
             "laborable.mediodia": 106
         },
         "528>1321": {
@@ -5119,7 +6550,8 @@
             "laborable.mediodia": 155
         },
         "528>529": {
-            "n": 16,
+            "n": 19,
+            "all": 94,
             "laborable.mediodia": 94
         },
         "529>332": {
@@ -5127,47 +6559,58 @@
             "laborable.mediodia": 118
         },
         "529>531": {
-            "n": 11,
+            "n": 14,
+            "all": 240,
             "laborable.mediodia": 241
         },
         "531>532": {
-            "n": 11,
+            "n": 15,
+            "all": 35,
             "laborable.mediodia": 36
         },
         "532>533": {
-            "n": 11,
+            "n": 15,
+            "all": 37,
             "laborable.mediodia": 37
         },
         "533>534": {
-            "n": 10,
+            "n": 13,
+            "all": 51,
             "laborable.mediodia": 58
         },
         "534>334": {
-            "n": 10,
+            "n": 13,
+            "all": 167,
             "laborable.mediodia": 170
         },
         "543>1456": {
-            "n": 5,
+            "n": 6,
+            "all": 299,
             "laborable.mediodia": 299
         },
         "544>581": {
-            "n": 5,
+            "n": 7,
+            "all": 77,
             "laborable.mediodia": 78
         },
         "546>510": {
-            "n": 5,
+            "n": 7,
+            "all": 153,
             "laborable.mediodia": 153
         },
         "55>4177": {
-            "n": 11,
+            "n": 14,
+            "all": 54,
             "laborable.mediodia": 54
         },
         "56>118": {
-            "n": 5,
+            "n": 6,
+            "all": 93,
             "laborable.mediodia": 105
         },
         "56>1463": {
-            "n": 8,
+            "n": 12,
+            "all": 98,
             "laborable.mediodia": 86
         },
         "56>57": {
@@ -5175,31 +6618,38 @@
             "laborable.mediodia": 114
         },
         "574>395": {
-            "n": 11,
+            "n": 14,
+            "all": 172,
             "laborable.mediodia": 175
         },
         "574>402": {
-            "n": 6,
+            "n": 7,
+            "all": 138,
             "laborable.mediodia": 124
         },
         "57>58": {
-            "n": 12,
+            "n": 14,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "581>507": {
-            "n": 5,
+            "n": 7,
+            "all": 45,
             "laborable.mediodia": 43
         },
         "584>601": {
-            "n": 11,
+            "n": 15,
+            "all": 121,
             "laborable.mediodia": 121
         },
         "58>59": {
-            "n": 12,
+            "n": 15,
+            "all": 45,
             "laborable.mediodia": 46
         },
         "59>60": {
-            "n": 12,
+            "n": 15,
+            "all": 100,
             "laborable.mediodia": 105
         },
         "5>6": {
@@ -5211,7 +6661,8 @@
             "laborable.mediodia": 82
         },
         "600>649": {
-            "n": 5,
+            "n": 6,
+            "all": 80,
             "laborable.mediodia": 80
         },
         "600>786": {
@@ -5219,51 +6670,65 @@
             "laborable.mediodia": 146
         },
         "601>390": {
-            "n": 22,
-            "laborable.mediodia": 108
+            "n": 28,
+            "all": 109,
+            "laborable.mediodia": 108,
+            "laborable.punta_tarde": 123,
+            "laborable.noche": 95
         },
         "6024>1207": {
             "n": 4,
             "laborable.mediodia": 68
         },
         "607>756": {
-            "n": 25,
-            "laborable.mediodia": 138
+            "n": 30,
+            "all": 138,
+            "laborable.mediodia": 138,
+            "laborable.punta_tarde": 132
         },
         "60>61": {
-            "n": 12,
+            "n": 15,
+            "all": 85,
             "laborable.mediodia": 84
         },
         "61>62": {
-            "n": 11,
+            "n": 14,
+            "all": 136,
             "laborable.mediodia": 136
         },
         "62>63": {
-            "n": 7,
+            "n": 9,
+            "all": 100,
             "laborable.mediodia": 100
         },
         "62>94": {
-            "n": 3,
+            "n": 4,
+            "all": 75,
             "laborable.mediodia": 80
         },
         "632>169": {
-            "n": 6,
+            "n": 8,
+            "all": 146,
             "laborable.mediodia": 146
         },
         "632>4176": {
-            "n": 8,
+            "n": 10,
+            "all": 394,
             "laborable.mediodia": 396
         },
         "632>896": {
-            "n": 11,
+            "n": 13,
+            "all": 159,
             "laborable.mediodia": 159
         },
         "63>33": {
-            "n": 5,
+            "n": 7,
+            "all": 54,
             "laborable.mediodia": 54
         },
         "642>546": {
-            "n": 6,
+            "n": 8,
+            "all": 110,
             "laborable.mediodia": 110
         },
         "649>3553": {
@@ -5271,71 +6736,90 @@
             "laborable.mediodia": 347
         },
         "649>543": {
-            "n": 5,
+            "n": 7,
+            "all": 28,
             "laborable.mediodia": 29
         },
         "649>71": {
-            "n": 5,
+            "n": 7,
+            "all": 407,
             "laborable.mediodia": 415
         },
         "64>201": {
-            "n": 3,
+            "n": 5,
+            "all": 84,
             "laborable.mediodia": 76
         },
         "65>964": {
-            "n": 4,
+            "n": 6,
+            "all": 56,
             "laborable.mediodia": 60
         },
         "666>4141": {
-            "n": 5,
+            "n": 7,
+            "all": 70,
             "laborable.mediodia": 71
         },
         "666>667": {
-            "n": 5,
+            "n": 7,
+            "all": 136,
             "laborable.mediodia": 136
         },
         "667>668": {
-            "n": 13,
-            "laborable.mediodia": 39
+            "n": 18,
+            "all": 34,
+            "laborable.mediodia": 39,
+            "laborable.punta_tarde": 35
         },
         "668>669": {
-            "n": 18,
-            "laborable.mediodia": 52
+            "n": 24,
+            "all": 44,
+            "laborable.mediodia": 52,
+            "laborable.punta_tarde": 34
         },
         "669>426": {
-            "n": 9,
+            "n": 12,
+            "all": 89,
             "laborable.mediodia": 92
         },
         "669>671": {
-            "n": 4,
+            "n": 6,
+            "all": 134,
             "laborable.mediodia": 137
         },
         "669>739": {
-            "n": 5,
+            "n": 6,
+            "all": 208,
             "laborable.mediodia": 208
         },
         "66>68": {
-            "n": 3,
+            "n": 5,
+            "all": 187,
             "laborable.mediodia": 191
         },
         "671>672": {
-            "n": 12,
+            "n": 16,
+            "all": 54,
             "laborable.mediodia": 55
         },
         "672>673": {
-            "n": 12,
+            "n": 16,
+            "all": 87,
             "laborable.mediodia": 91
         },
         "673>674": {
-            "n": 17,
+            "n": 20,
+            "all": 168,
             "laborable.mediodia": 178
         },
         "674>1134": {
-            "n": 10,
+            "n": 14,
+            "all": 212,
             "laborable.mediodia": 212
         },
         "674>1152": {
-            "n": 3,
+            "n": 4,
+            "all": 162,
             "laborable.mediodia": 170
         },
         "674>675": {
@@ -5343,48 +6827,64 @@
             "laborable.mediodia": 72
         },
         "678>1175": {
-            "n": 11,
+            "n": 14,
+            "all": 85,
             "laborable.mediodia": 104
         },
         "678>679": {
-            "n": 5,
+            "n": 7,
+            "all": 71,
             "laborable.mediodia": 71
         },
         "679>680": {
-            "n": 16,
-            "laborable.mediodia": 144
+            "n": 19,
+            "all": 144,
+            "laborable.mediodia": 144,
+            "laborable.punta_tarde": 130
         },
         "680>1382": {
-            "n": 4,
+            "n": 5,
+            "all": 81,
             "laborable.mediodia": 81
         },
         "680>681": {
-            "n": 10,
+            "n": 12,
+            "all": 47,
             "laborable.mediodia": 47
         },
         "681>682": {
-            "n": 10,
+            "n": 12,
+            "all": 45,
             "laborable.mediodia": 47
         },
         "682>683": {
-            "n": 10,
+            "n": 12,
+            "all": 44,
             "laborable.mediodia": 52
         },
         "683>684": {
-            "n": 5,
+            "n": 6,
+            "all": 130,
             "laborable.mediodia": 130
         },
         "683>739": {
-            "n": 5,
+            "n": 6,
+            "all": 131,
             "laborable.mediodia": 131
         },
         "684>685": {
-            "n": 20,
-            "laborable.mediodia": 41
+            "n": 27,
+            "all": 39,
+            "laborable.mediodia": 41,
+            "laborable.punta_tarde": 27,
+            "laborable.noche": 27
         },
         "685>463": {
-            "n": 20,
-            "laborable.mediodia": 130
+            "n": 27,
+            "all": 129,
+            "laborable.mediodia": 130,
+            "laborable.punta_tarde": 118,
+            "laborable.noche": 114
         },
         "686>687": {
             "n": 5,
@@ -5403,7 +6903,8 @@
             "laborable.mediodia": 57
         },
         "68>968": {
-            "n": 3,
+            "n": 5,
+            "all": 33,
             "laborable.mediodia": 32
         },
         "690>691": {
@@ -5447,7 +6948,8 @@
             "laborable.mediodia": 26
         },
         "69>70": {
-            "n": 3,
+            "n": 5,
+            "all": 34,
             "laborable.mediodia": 28
         },
         "6>7": {
@@ -5467,15 +6969,18 @@
             "laborable.mediodia": 57
         },
         "704>705": {
-            "n": 3,
+            "n": 4,
+            "all": 30,
             "laborable.mediodia": 42
         },
         "705>1003": {
-            "n": 3,
+            "n": 4,
+            "all": 146,
             "laborable.mediodia": 165
         },
         "706>723": {
-            "n": 3,
+            "n": 5,
+            "all": 74,
             "laborable.mediodia": 74
         },
         "708>709": {
@@ -5487,7 +6992,8 @@
             "laborable.mediodia": 59
         },
         "70>3365": {
-            "n": 3,
+            "n": 5,
+            "all": 50,
             "laborable.mediodia": 58
         },
         "710>691": {
@@ -5519,8 +7025,11 @@
             "laborable.mediodia": 72
         },
         "71>11": {
-            "n": 22,
-            "laborable.mediodia": 99
+            "n": 29,
+            "all": 100,
+            "laborable.mediodia": 99,
+            "laborable.punta_tarde": 110,
+            "laborable.noche": 99
         },
         "720>715": {
             "n": 4,
@@ -5531,11 +7040,13 @@
             "laborable.mediodia": 217
         },
         "723>928": {
-            "n": 3,
+            "n": 5,
+            "all": 107,
             "laborable.mediodia": 125
         },
         "739>389": {
-            "n": 5,
+            "n": 6,
+            "all": 240,
             "laborable.mediodia": 240
         },
         "739>504": {
@@ -5543,27 +7054,33 @@
             "laborable.mediodia": 235
         },
         "750>1493": {
-            "n": 6,
+            "n": 8,
+            "all": 63,
             "laborable.mediodia": 63
         },
         "750>684": {
-            "n": 5,
+            "n": 7,
+            "all": 205,
             "laborable.mediodia": 213
         },
         "756>2878": {
-            "n": 8,
+            "n": 9,
+            "all": 260,
             "laborable.mediodia": 249
         },
         "757>443": {
-            "n": 10,
+            "n": 11,
+            "all": 108,
             "laborable.mediodia": 108
         },
         "765>766": {
-            "n": 11,
+            "n": 13,
+            "all": 84,
             "laborable.mediodia": 88
         },
         "766>1138": {
-            "n": 5,
+            "n": 6,
+            "all": 170,
             "laborable.mediodia": 172
         },
         "766>632": {
@@ -5571,15 +7088,18 @@
             "laborable.mediodia": 921
         },
         "776>438": {
-            "n": 9,
+            "n": 11,
+            "all": 131,
             "laborable.mediodia": 138
         },
         "778>468": {
-            "n": 5,
+            "n": 7,
+            "all": 169,
             "laborable.mediodia": 170
         },
         "786>411": {
-            "n": 6,
+            "n": 7,
+            "all": 163,
             "laborable.mediodia": 154
         },
         "7>20": {
@@ -5587,15 +7107,19 @@
             "laborable.mediodia": 88
         },
         "801>378": {
-            "n": 27,
-            "laborable.mediodia": 95
+            "n": 34,
+            "all": 95,
+            "laborable.mediodia": 95,
+            "laborable.punta_tarde": 116
         },
         "806>129": {
-            "n": 8,
+            "n": 9,
+            "all": 129,
             "laborable.mediodia": 129
         },
         "808>809": {
-            "n": 8,
+            "n": 10,
+            "all": 130,
             "laborable.mediodia": 130
         },
         "808>810": {
@@ -5603,28 +7127,37 @@
             "laborable.mediodia": 179
         },
         "809>810": {
-            "n": 8,
+            "n": 9,
+            "all": 32,
             "laborable.mediodia": 30
         },
         "810>837": {
-            "n": 11,
+            "n": 12,
+            "all": 70,
             "laborable.mediodia": 70
         },
         "821>823": {
-            "n": 3,
+            "n": 4,
+            "all": 214,
             "laborable.mediodia": 233
         },
         "823>1799": {
-            "n": 3,
+            "n": 5,
+            "all": 141,
             "laborable.mediodia": 141
         },
         "826>827": {
-            "n": 21,
-            "laborable.mediodia": 127
+            "n": 27,
+            "all": 127,
+            "laborable.mediodia": 127,
+            "laborable.punta_tarde": 168,
+            "laborable.noche": 117
         },
         "827>2576": {
-            "n": 21,
-            "laborable.mediodia": 127
+            "n": 27,
+            "all": 123,
+            "laborable.mediodia": 127,
+            "laborable.punta_tarde": 122
         },
         "837>146": {
             "n": 3,
@@ -5635,39 +7168,48 @@
             "laborable.mediodia": 139
         },
         "837>838": {
-            "n": 5,
+            "n": 6,
+            "all": 127,
             "laborable.mediodia": 136
         },
         "838>839": {
-            "n": 13,
+            "n": 15,
+            "all": 85,
             "laborable.mediodia": 99
         },
         "839>840": {
-            "n": 13,
+            "n": 14,
+            "all": 143,
             "laborable.mediodia": 153
         },
         "840>841": {
-            "n": 13,
+            "n": 14,
+            "all": 52,
             "laborable.mediodia": 52
         },
         "841>842": {
-            "n": 13,
+            "n": 14,
+            "all": 37,
             "laborable.mediodia": 37
         },
         "842>843": {
-            "n": 13,
+            "n": 14,
+            "all": 52,
             "laborable.mediodia": 53
         },
         "843>844": {
-            "n": 14,
+            "n": 15,
+            "all": 52,
             "laborable.mediodia": 46
         },
         "844>845": {
-            "n": 14,
+            "n": 15,
+            "all": 44,
             "laborable.mediodia": 40
         },
         "845>846": {
-            "n": 14,
+            "n": 15,
+            "all": 61,
             "laborable.mediodia": 60
         },
         "846>847": {
@@ -5675,55 +7217,74 @@
             "laborable.mediodia": 169
         },
         "846>910": {
-            "n": 10,
+            "n": 12,
+            "all": 95,
             "laborable.mediodia": 99
         },
         "847>849": {
-            "n": 7,
+            "n": 11,
+            "all": 112,
             "laborable.mediodia": 113
         },
         "849>850": {
-            "n": 7,
-            "laborable.mediodia": 53
+            "n": 12,
+            "all": 53,
+            "laborable.mediodia": 53,
+            "laborable.punta_tarde": 57
         },
         "84>85": {
-            "n": 23,
+            "n": 25,
+            "all": 120,
             "laborable.mediodia": 122
         },
         "850>851": {
-            "n": 7,
-            "laborable.mediodia": 89
+            "n": 12,
+            "all": 72,
+            "laborable.mediodia": 89,
+            "laborable.punta_tarde": 72
         },
         "851>852": {
-            "n": 7,
-            "laborable.mediodia": 76
+            "n": 12,
+            "all": 76,
+            "laborable.mediodia": 76,
+            "laborable.punta_tarde": 76
         },
         "852>853": {
-            "n": 3,
+            "n": 5,
+            "all": 124,
             "laborable.mediodia": 93
         },
         "852>899": {
-            "n": 4,
+            "n": 7,
+            "all": 65,
             "laborable.mediodia": 62
         },
         "853>854": {
-            "n": 7,
-            "laborable.mediodia": 20
+            "n": 10,
+            "all": 21,
+            "laborable.mediodia": 20,
+            "laborable.punta_tarde": 23
         },
         "854>855": {
-            "n": 7,
-            "laborable.mediodia": 81
+            "n": 10,
+            "all": 81,
+            "laborable.mediodia": 81,
+            "laborable.punta_tarde": 87
         },
         "855>856": {
-            "n": 7,
-            "laborable.mediodia": 89
+            "n": 10,
+            "all": 85,
+            "laborable.mediodia": 89,
+            "laborable.punta_tarde": 85
         },
         "856>857": {
-            "n": 7,
+            "n": 9,
+            "all": 38,
             "laborable.mediodia": 35
         },
         "857>858": {
-            "n": 7,
+            "n": 9,
+            "all": 62,
             "laborable.mediodia": 62
         },
         "858>859": {
@@ -5731,7 +7292,8 @@
             "laborable.mediodia": 54
         },
         "85>4095": {
-            "n": 8,
+            "n": 9,
+            "all": 524,
             "laborable.mediodia": 524
         },
         "85>600": {
@@ -5739,27 +7301,33 @@
             "laborable.mediodia": 316
         },
         "864>865": {
-            "n": 4,
+            "n": 5,
+            "all": 98,
             "laborable.mediodia": 98
         },
         "865>866": {
-            "n": 4,
+            "n": 5,
+            "all": 75,
             "laborable.mediodia": 75
         },
         "866>867": {
-            "n": 8,
+            "n": 10,
+            "all": 43,
             "laborable.mediodia": 43
         },
         "867>868": {
-            "n": 8,
+            "n": 10,
+            "all": 72,
             "laborable.mediodia": 66
         },
         "868>869": {
-            "n": 9,
+            "n": 11,
+            "all": 84,
             "laborable.mediodia": 84
         },
         "869>870": {
-            "n": 9,
+            "n": 12,
+            "all": 75,
             "laborable.mediodia": 74
         },
         "86>87": {
@@ -5767,43 +7335,56 @@
             "laborable.mediodia": 38
         },
         "870>871": {
-            "n": 9,
+            "n": 12,
+            "all": 74,
             "laborable.mediodia": 73
         },
         "871>872": {
-            "n": 9,
+            "n": 12,
+            "all": 38,
             "laborable.mediodia": 38
         },
         "872>873": {
-            "n": 3,
+            "n": 5,
+            "all": 95,
             "laborable.mediodia": 92
         },
         "872>899": {
-            "n": 6,
+            "n": 7,
+            "all": 127,
             "laborable.mediodia": 119
         },
         "873>874": {
-            "n": 7,
+            "n": 10,
+            "all": 104,
             "laborable.mediodia": 108
         },
         "874>875": {
-            "n": 7,
+            "n": 10,
+            "all": 65,
             "laborable.mediodia": 66
         },
         "875>876": {
-            "n": 7,
+            "n": 10,
+            "all": 46,
             "laborable.mediodia": 47
         },
         "876>878": {
-            "n": 5,
+            "n": 6,
+            "all": 152,
             "laborable.mediodia": 152
         },
         "878>879": {
             "n": 3,
             "laborable.mediodia": 68
         },
+        "878>910": {
+            "n": 3,
+            "all": 147
+        },
         "879>880": {
-            "n": 12,
+            "n": 14,
+            "all": 64,
             "laborable.mediodia": 63
         },
         "879>938": {
@@ -5815,59 +7396,74 @@
             "laborable.mediodia": 68
         },
         "880>881": {
-            "n": 11,
+            "n": 13,
+            "all": 36,
             "laborable.mediodia": 32
         },
         "881>882": {
-            "n": 11,
+            "n": 13,
+            "all": 53,
             "laborable.mediodia": 56
         },
         "882>883": {
-            "n": 11,
+            "n": 13,
+            "all": 64,
             "laborable.mediodia": 67
         },
         "883>884": {
-            "n": 11,
+            "n": 13,
+            "all": 59,
             "laborable.mediodia": 67
         },
         "884>885": {
-            "n": 11,
+            "n": 14,
+            "all": 54,
             "laborable.mediodia": 71
         },
         "885>886": {
-            "n": 11,
+            "n": 14,
+            "all": 138,
             "laborable.mediodia": 147
         },
         "886>146": {
-            "n": 5,
+            "n": 7,
+            "all": 88,
             "laborable.mediodia": 88
         },
         "886>887": {
-            "n": 5,
+            "n": 6,
+            "all": 79,
             "laborable.mediodia": 79
         },
         "887>888": {
-            "n": 10,
+            "n": 14,
+            "all": 97,
             "laborable.mediodia": 96
         },
         "888>889": {
-            "n": 10,
+            "n": 13,
+            "all": 71,
             "laborable.mediodia": 75
         },
         "889>890": {
-            "n": 11,
+            "n": 14,
+            "all": 189,
             "laborable.mediodia": 194
         },
         "88>4127": {
-            "n": 4,
+            "n": 5,
+            "all": 25,
             "laborable.mediodia": 25
         },
         "890>167": {
-            "n": 14,
-            "laborable.mediodia": 217
+            "n": 18,
+            "all": 204,
+            "laborable.mediodia": 217,
+            "laborable.punta_tarde": 172
         },
         "896>4133": {
-            "n": 11,
+            "n": 13,
+            "all": 247,
             "laborable.mediodia": 260
         },
         "898>2124": {
@@ -5875,19 +7471,23 @@
             "laborable.mediodia": 67
         },
         "899>915": {
-            "n": 10,
-            "laborable.mediodia": 80
+            "n": 14,
+            "all": 80,
+            "laborable.mediodia": 80,
+            "laborable.punta_tarde": 80
         },
         "8>9": {
             "n": 8,
             "laborable.mediodia": 85
         },
         "900>853": {
-            "n": 4,
+            "n": 6,
+            "all": 150,
             "laborable.mediodia": 144
         },
         "900>873": {
-            "n": 6,
+            "n": 7,
+            "all": 63,
             "laborable.mediodia": 59
         },
         "901>921": {
@@ -5895,16 +7495,23 @@
             "laborable.mediodia": 232
         },
         "90>91": {
-            "n": 4,
+            "n": 5,
+            "all": 137,
             "laborable.mediodia": 137
         },
         "910>911": {
-            "n": 12,
+            "n": 15,
+            "all": 139,
             "laborable.mediodia": 138
         },
         "911>2031": {
-            "n": 10,
+            "n": 13,
+            "all": 87,
             "laborable.mediodia": 87
+        },
+        "911>724": {
+            "n": 3,
+            "all": 126
         },
         "913>914": {
             "n": 5,
@@ -5915,8 +7522,10 @@
             "laborable.mediodia": 104
         },
         "915>3380": {
-            "n": 10,
-            "laborable.mediodia": 38
+            "n": 13,
+            "all": 38,
+            "laborable.mediodia": 38,
+            "laborable.punta_tarde": 35
         },
         "915>924": {
             "n": 3,
@@ -5927,7 +7536,8 @@
             "laborable.mediodia": 35
         },
         "91>64": {
-            "n": 3,
+            "n": 4,
+            "all": 128,
             "laborable.mediodia": 128
         },
         "91>997": {
@@ -5967,11 +7577,18 @@
             "laborable.mediodia": 108
         },
         "928>929": {
-            "n": 14,
-            "laborable.mediodia": 145
+            "n": 19,
+            "all": 134,
+            "laborable.mediodia": 145,
+            "laborable.punta_tarde": 130
+        },
+        "929>847": {
+            "n": 4,
+            "all": 35
         },
         "929>879": {
-            "n": 12,
+            "n": 15,
+            "all": 55,
             "laborable.mediodia": 55
         },
         "92>93": {
@@ -5979,27 +7596,33 @@
             "laborable.mediodia": 78
         },
         "930>931": {
-            "n": 3,
+            "n": 4,
+            "all": 45,
             "laborable.mediodia": 54
         },
         "931>932": {
-            "n": 3,
+            "n": 4,
+            "all": 50,
             "laborable.mediodia": 59
         },
         "932>933": {
-            "n": 3,
+            "n": 4,
+            "all": 34,
             "laborable.mediodia": 36
         },
         "933>934": {
-            "n": 3,
+            "n": 4,
+            "all": 23,
             "laborable.mediodia": 28
         },
         "934>3561": {
-            "n": 3,
+            "n": 4,
+            "all": 58,
             "laborable.mediodia": 58
         },
         "936>821": {
-            "n": 3,
+            "n": 4,
+            "all": 32,
             "laborable.mediodia": 39
         },
         "937>918": {
@@ -6007,7 +7630,8 @@
             "laborable.mediodia": 145
         },
         "938>930": {
-            "n": 3,
+            "n": 4,
+            "all": 69,
             "laborable.mediodia": 69
         },
         "93>4153": {
@@ -6015,55 +7639,73 @@
             "laborable.mediodia": 113
         },
         "941>177": {
-            "n": 8,
+            "n": 11,
+            "all": 124,
             "laborable.mediodia": 106
         },
         "941>826": {
-            "n": 22,
-            "laborable.mediodia": 113
+            "n": 30,
+            "all": 117,
+            "laborable.mediodia": 113,
+            "laborable.punta_tarde": 107,
+            "laborable.noche": 130
+        },
+        "944>128": {
+            "n": 3,
+            "all": 212
         },
         "949>129": {
             "n": 3,
             "laborable.mediodia": 261
         },
         "94>95": {
-            "n": 5,
+            "n": 6,
+            "all": 72,
             "laborable.mediodia": 72
         },
         "95>4319": {
-            "n": 3,
+            "n": 4,
+            "all": 230,
             "laborable.mediodia": 230
         },
         "964>4152": {
-            "n": 4,
+            "n": 5,
+            "all": 81,
             "laborable.mediodia": 77
         },
         "964>965": {
-            "n": 3,
+            "n": 4,
+            "all": 80,
             "laborable.mediodia": 90
         },
         "965>66": {
-            "n": 3,
+            "n": 5,
+            "all": 81,
             "laborable.mediodia": 88
         },
         "968>69": {
-            "n": 3,
+            "n": 5,
+            "all": 48,
             "laborable.mediodia": 43
         },
         "96>97": {
-            "n": 12,
+            "n": 14,
+            "all": 81,
             "laborable.mediodia": 78
         },
         "97>4201": {
-            "n": 4,
+            "n": 5,
+            "all": 68,
             "laborable.mediodia": 44
         },
         "97>98": {
-            "n": 8,
+            "n": 9,
+            "all": 134,
             "laborable.mediodia": 134
         },
         "98>4180": {
-            "n": 8,
+            "n": 9,
+            "all": 146,
             "laborable.mediodia": 139
         },
         "98>99": {
@@ -6071,7 +7713,8 @@
             "laborable.mediodia": 60
         },
         "992>88": {
-            "n": 3,
+            "n": 4,
+            "all": 52,
             "laborable.mediodia": 60
         },
         "997>236": {
