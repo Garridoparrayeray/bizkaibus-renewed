@@ -7,6 +7,8 @@ use Models\ServiceJourney;
 class TripUpdatesMatcher
 {
     private const ON_TIME_SECONDS = 60;
+    private const LIVE_DEPARTED_AFTER_SECONDS = 45;
+    private const SCHEDULED_DEPARTED_AFTER_SECONDS = 60;
 
     private int $iMidnight;
 
@@ -16,6 +18,27 @@ class TripUpdatesMatcher
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
         }
         $this->iMidnight = $iMidnight;
+    }
+
+    public function hasData(): bool
+    {
+        return !empty($this->aTrips);
+    }
+
+    /*
+     * El feed publica un tren en una parada hasta ~35 s (máximo ~90 s) después de su hora y luego lo quita.
+     * Con el feed activo, un tren que ya no aparece y pasó de su hora hace más de un minuto ya ha salido:
+     * mantenerlo como «0 min» lo hacía parecer un tren repetido junto al que llega.
+     */
+    public function withoutDeparted(array $aRows, int $iNowSeconds): array
+    {
+        return array_values(array_filter($aRows, function ($aRow) use ($iNowSeconds) {
+            $iGrace = self::SCHEDULED_DEPARTED_AFTER_SECONDS;
+            if (($aRow['status'] ?? 'scheduled') === 'live') {
+                $iGrace = self::LIVE_DEPARTED_AFTER_SECONDS;
+            }
+            return (int)$aRow['etaSeconds'] - $iNowSeconds >= -$iGrace;
+        }));
     }
 
     public function enrich(string $sStopId, array $aRows): array

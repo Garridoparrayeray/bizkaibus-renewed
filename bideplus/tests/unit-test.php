@@ -452,6 +452,18 @@ $expect('el de bajada recibe la del tren que va en su sentido: 3 min de retraso'
 $expect('una previsión de una sola parada o a más de 10 min no se asocia', $aByTrip['up2']['status'] === 'scheduled' && $aByTrip['up2']['etaSeconds'] === T0 + 400);
 $expect('las salidas quedan ordenadas por la hora prevista', array_column($aOut, 'trip_number') === ['up1', 'down1', 'up2']);
 $expect('sin feed, el horario no cambia', (new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->enrich('2', $aRows) === $aRows);
+$MDeparted = new TripUpdatesMatcher($aFeedTrips, new ServiceJourney($PdoRt), 600, 0);
+$aGone = [
+    ['status' => 'live', 'etaSeconds' => 1000 - 30],
+    ['status' => 'live', 'etaSeconds' => 1000 - 60],
+    ['status' => 'scheduled', 'etaSeconds' => 1000 - 50],
+    ['status' => 'scheduled', 'etaSeconds' => 1000 - 90],
+    ['status' => 'scheduled', 'etaSeconds' => 1000 + 120],
+];
+$aKept = array_column($MDeparted->withoutDeparted($aGone, 1000), 'etaSeconds');
+$expect('con el feed activo, un tren en vivo que pasó hace 30 s se mantiene y hace 60 s ya ha salido', $aKept === [970, 950, 1120], json_encode($aKept));
+$expect('con el feed activo, un tren sin datos en vivo pasado hace 90 s ya ha salido', !in_array(910, $aKept, true));
+$expect('hasData: con trenes en el feed, sí; con el feed vacío, no', $MDeparted->hasData() && !(new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->hasData());
 
 /* ------------------------------------------------------------------ */
 $section('TripKey y Calendar');

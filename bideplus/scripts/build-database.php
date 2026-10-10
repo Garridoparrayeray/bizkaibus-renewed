@@ -120,7 +120,7 @@ function main(array $aArgv): void
     $aStops = geocodeStops($aStops, $bSkipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $aCalendars = loadCalendars($Zip);
+    $aCalendars = loadCalendars($Zip, $sNetwork === 'metro');
     echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
@@ -597,7 +597,13 @@ function loadStopsEuskotren(ZipArchive $Zip): array
     return $aStops;
 }
 
-function loadCalendars(ZipArchive $Zip): array
+/*
+ * Con $bLiteralDates (Metro Bilbao) las fechas de calendar_dates.txt valen exactamente por esas fechas:
+ * no se deduce un patrón semanal de ellas. El CTB publica las obras de vía como un calendario Lun-Jue
+ * (obranegvia2) y otro solo por fechas (obranegvia1) que sustituye al primero esos días; deducir «todos los
+ * jueves» de las fechas de este último duplicaba todos los trenes los jueves sin sustitución.
+ */
+function loadCalendars(ZipArchive $Zip, bool $bLiteralDates = false): array
 {
     $aRanges = [];
     $aBaseWeekdayMask = [];
@@ -649,7 +655,10 @@ function loadCalendars(ZipArchive $Zip): array
         }
 
         $aIncludedDates = [];
-        if ($iBaseMask !== 0) {
+        if ($bLiteralDates) {
+            $iWeekdayMask = $iBaseMask;
+            $aIncludedDates = array_keys($aAvailableDates);
+        } elseif ($iBaseMask !== 0) {
             $iWeekdayMask = $iBaseMask | computeWeekdayMask($aAvailableDates);
         } else {
             $iWeekdayMask = computeWeekdayMaskFromEvidence($aAvailableDates, $aIncludedDates);
