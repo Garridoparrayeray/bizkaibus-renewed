@@ -1,14 +1,14 @@
 {
-    "generated": "2026-10-10 12:24",
+    "generated": "2026-10-11 12:34",
     "captures": 0,
-    "samples": 49368,
+    "samples": 52590,
     "global": {
         "laborable.manana": 0.93,
         "laborable.mediodia": 0.948,
         "laborable.punta_tarde": 0.942,
         "laborable.noche": 0.911,
-        "fin_semana.punta_tarde": 0.824,
-        "fin_semana.noche": 0.856
+        "fin_semana.punta_tarde": 0.852,
+        "fin_semana.noche": 0.893
     },
     "lines": {
         "3411": {
@@ -73,8 +73,8 @@
             "laborable.mediodia": 875,
             "laborable.punta_tarde": 1202,
             "laborable.noche": 843,
-            "fin_semana.punta_tarde": 166,
-            "fin_semana.noche": 131
+            "fin_semana.punta_tarde": 284,
+            "fin_semana.noche": 248
         },
         "lines": {
             "3411": {
