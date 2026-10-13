@@ -41,11 +41,46 @@ class TripUpdatesMatcher
         }));
     }
 
+    /*
+     * Predicciones del feed para el viaje de la salida `$sServiceJourneyId`, emparejado como en enrich()
+     * (mismo reparto entre las salidas de la parada `$sStopId`). Devuelve las paradas que le quedan al tren
+     * como [[stopId, hora Unix], ...] o null si el feed no lo trae.
+     */
+    public function liveTrip(string $sStopId, array $aRows, string $sServiceJourneyId): array|null
+    {
+        [$aPredictions, $aMatches] = $this->pair($sStopId, $aRows);
+        foreach ($aMatches as $iRow => $iPrediction) {
+            if (($aRows[$iRow]['service_journey_id'] ?? null) === $sServiceJourneyId) {
+                return $aPredictions[$iPrediction]['stops'];
+            }
+        }
+        return null;
+    }
+
     public function enrich(string $sStopId, array $aRows): array
+    {
+        [$aPredictions, $aMatches] = $this->pair($sStopId, $aRows);
+        foreach ($aMatches as $iRow => $iPrediction) {
+            $iSeconds = $aPredictions[$iPrediction]['seconds'];
+            $aRows[$iRow]['status'] = 'live';
+            $aRows[$iRow]['etaSeconds'] = $iSeconds;
+            $iDelay = $iSeconds - (int)$aRows[$iRow]['arrival_seconds'];
+            if (abs($iDelay) < self::ON_TIME_SECONDS) {
+                $iDelay = 0;
+            }
+            $aRows[$iRow]['delaySeconds'] = $iDelay;
+        }
+        if (!empty($aPredictions) && !empty($aRows)) {
+            usort($aRows, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
+        }
+        return $aRows;
+    }
+
+    private function pair(string $sStopId, array $aRows): array
     {
         $aPredictions = $this->predictionsAt($sStopId);
         if (empty($aPredictions) || empty($aRows)) {
-            return $aRows;
+            return [$aPredictions, []];
         }
 
         $aPatternIds = array_values(array_unique(array_column($aRows, 'journey_pattern_id')));
@@ -66,26 +101,16 @@ class TripUpdatesMatcher
         }
         usort($aPairs, fn($aA, $aB) => $aA[0] <=> $aB[0]);
 
-        $aUsedRows = [];
+        $aMatches = [];
         $aUsedPredictions = [];
         foreach ($aPairs as [$iDifference, $iRow, $iPrediction]) {
-            if (isset($aUsedRows[$iRow]) || isset($aUsedPredictions[$iPrediction])) {
+            if (isset($aMatches[$iRow]) || isset($aUsedPredictions[$iPrediction])) {
                 continue;
             }
-            $aUsedRows[$iRow] = true;
+            $aMatches[$iRow] = $iPrediction;
             $aUsedPredictions[$iPrediction] = true;
-            $iSeconds = $aPredictions[$iPrediction]['seconds'];
-            $aRows[$iRow]['status'] = 'live';
-            $aRows[$iRow]['etaSeconds'] = $iSeconds;
-            $iDelay = $iSeconds - (int)$aRows[$iRow]['arrival_seconds'];
-            if (abs($iDelay) < self::ON_TIME_SECONDS) {
-                $iDelay = 0;
-            }
-            $aRows[$iRow]['delaySeconds'] = $iDelay;
         }
-
-        usort($aRows, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
-        return $aRows;
+        return [$aPredictions, $aMatches];
     }
 
     private function predictionsAt(string $sStopId): array
@@ -100,6 +125,7 @@ class TripUpdatesMatcher
                     $aPredictions[] = [
                         'seconds' => $iTime - $this->iMidnight,
                         'stopIds' => array_column($aTrip['stops'], 0),
+                        'stops' => $aTrip['stops'],
                     ];
                     break;
                 }
