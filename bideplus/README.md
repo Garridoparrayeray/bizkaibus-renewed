@@ -202,6 +202,44 @@ Si dejan de llegar capturas, el resumen de precisión no aparece y GitHub avisa 
 
 **Lo que este método no puede dar.** No llega al 99 %. Mide contra el momento en que el feed cambia la próxima parada, con una resolución de ±30 s. El feed trae una posición por minuto. Hay semáforos, tráfico y esperas que nadie puede prever. Y el error crece con la distancia a la parada: 90 % dentro de ±2 min a 0-3 min, 61 % a 10-20 min. Lo que sí mejora con el tiempo es la cobertura de tramos aprendidos: con todos los del camino aprendidos, el 93 % de las llegadas queda dentro de ±2 min.
 
+### Bancos de pruebas y precisión con el máximo de datos
+
+**Los bancos de pruebas.** El algoritmo se prueba en tres niveles, más uno que mide cuánto mejora al darle datos:
+
+| Banco | Qué comprueba | Cuándo corre |
+|---|---|---|
+| `tests/unit-test.php` | 128 comprobaciones sin servidor ni red sobre una base de datos en memoria: proyección del GPS, `T_pos`, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, `trip_aliases`, `enrich()` | Cada commit y cada CI |
+| `static-checks.py`, `data-integrity.php` | Sintaxis, ids, caché del service worker e integridad de las seis bases de datos | Cada commit, CI y antes de cada despliegue |
+| `api-smoke.py`, `api-contract.py` | 245 peticiones a todas las rutas y más de 22 000 comprobaciones de la forma del JSON; que las salidas vengan ordenadas por llegada | Cada commit y cada CI |
+| `ui-*.mjs` | Navegador headless en móvil y ordenador; falla con errores de consola o de red | Cada CI |
+| `scripts/eval-eta.php` | **Precisión de lo que ve el usuario**, contra el momento real en que el feed cambia la próxima parada | En cada captura, en el resumen del trabajo |
+| `scripts/realtime-backtest.php` | `analyze` (error por posición), `calibrate` y `calibrate-segments` (aprender con la mitad de los buses y medir en la otra) | Recalibrado diario |
+| `scripts/learning-curve.php <tramos.jsonl>` | **Curva de aprendizaje**: error y cobertura al aprender con más buses | A mano |
+
+**Curva de aprendizaje, medida** (`php scripts/learning-curve.php`, con las 12 755 medidas iniciales, una sola sesión de laborable a mediodía; 381 buses apartados para probar). El error es por tramo, con lo que usa la app (lo aprendido si existe, y si no `k` × horario):
+
+| Buses para aprender | Tramos aprendidos | Cobertura de tramos medidos | Error con lo aprendido + `k` | Error solo con `k` × horario |
+|---|---|---|---|---|
+| 16 | 278 | 1,2 % | 0,89 min | 0,89 min |
+| 45 | 610 | 13,0 % | 0,84 min | 0,89 min |
+| 92 | 1 001 | 32,2 % | 0,77 min | 0,89 min |
+| 196 | 1 458 | 62,8 % | 0,62 min | 0,89 min |
+| 379 | 1 916 | 77,5 % | 0,52 min | 0,89 min |
+
+Con cada duplicación de buses, los tramos sin aprender se reducen aproximadamente un 40 %, y el error todavía no se ha estabilizado.
+
+**Con el máximo de datos.** Las capturas son 24 al día y 168 a la semana, de unas 45 min: unas 126 horas de feed a la semana. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren. La precisión depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy, en llegadas a menos de 10 min: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender, 70 % y 78 %; con dos o más, 49 % y 66 %. Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos:
+
+| Llegadas con todo el camino aprendido | Dentro de ±2 min | Dentro de ±3 min | Estado |
+|---|---|---|---|
+| 86 % (hoy) | 89 % | 95 % | medido |
+| 90 % | 90 % | 96 % | proyección |
+| 95 % | 92 % | 97 % | proyección |
+| 99 % | 93 % | 98 % | proyección |
+| 100 % | 93 % | 98 % | techo medido |
+
+Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). **El techo es el 93 %, no el 99 %**: en llegadas con todo aprendido, el resto se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta. La rapidez con que sube la cobertura de tramos raros no se conoce: la tendencia está medida solo hasta 379 buses. El sistema la irá midiendo solo, porque cada captura escribe su precisión.
+
 ## Fuente estática: GTFS
 
 Ambas redes se generan desde su export GTFS oficial — Bizkaibus desde el feed de Lantik/CTB (activo, con `feed_info.txt` acotado a la temporada vigente), Metro Bilbao desde el GTFS que publica el Consorcio de Transportes de Bizkaia (`ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip`, el mismo origen que su tiempo real; sin `feed_info.txt`, manejado como opcional en el ETL), con el NAP como respaldo si no responde.
