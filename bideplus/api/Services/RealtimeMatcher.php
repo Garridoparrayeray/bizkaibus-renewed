@@ -11,6 +11,8 @@ class RealtimeMatcher
     private const MATCH_TOLERANCE_SECONDS = 180;
 
     private const POSITION_SANITY_SECONDS = 15 * 60;
+    private const REGISTRATION_SEGMENT_SHARE = 0.5;
+    private const REGISTRATION_MAX_SEGMENT_SECONDS = 6 * 60;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
@@ -77,15 +79,40 @@ class RealtimeMatcher
             $sServiceJourneyId = $aRow['service_journey_id'];
         }
         $aLive = $this->lookup($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds'], $sServiceJourneyId);
-        $bUsable = $this->isLive($sServiceJourneyId, $aLive);
-        if (!$bUsable) {
+        $iStopSeq = null;
+        if (isset($aRow['stop_seq'])) {
+            $iStopSeq = (int)$aRow['stop_seq'];
+        }
+
+        // Capa 3: sin dato en vivo del bus, o sin nada utilizable en él, el horario oficial.
+        if (!$this->isLive($sServiceJourneyId, $aLive)) {
+            return $aRow + self::scheduledFields($aRow);
+        }
+
+        // Capa 2 (sin posición GPS pero con parada registrada): si el feed ya da una parada posterior, el bus la ha pasado.
+        if ($this->positionFor($sServiceJourneyId, $aLive) === null && $iStopSeq !== null) {
+            $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+            if ($aRegistration !== null && $iStopSeq < $aRegistration['order']) {
+                return $aRow + [
+                    'status' => 'departed',
+                    'delaySeconds' => 0,
+                    'etaSeconds' => $iNow - 3 * 60,
+                    'vehicleRef' => $aLive['vehicleRef'],
+                    'currentStopId' => $aLive['currentStopId'],
+                ];
+            }
+        }
+
+        if ($this->bBusNetwork && $this->positionFor($sServiceJourneyId, $aLive) === null
+            && ($iStopSeq === null || $this->registeredEta((string)$sServiceJourneyId, (int)$aRow['arrival_seconds'], $iStopSeq, $aLive) === null)) {
             return $aRow + self::scheduledFields($aRow);
         }
 
         [$iEta, $iEffectiveDelay, $bPositioned] = $this->etaForStop(
             $sServiceJourneyId,
             (int)$aRow['arrival_seconds'],
-            $aLive
+            $aLive,
+            $iStopSeq
         );
         $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
 
@@ -113,8 +140,8 @@ class RealtimeMatcher
             return false;
         }
         if ($this->bBusNetwork) {
-            // Bizkaibus: sin GPS utilizable (no lo manda o está fuera de la ruta) se muestra el horario oficial.
-            return $this->positionFor($sServiceJourneyId, $aLive) !== null;
+            // Bizkaibus: en vivo con posición GPS; sin ella, con la parada registrada y la hora del dato; si no, horario oficial.
+            return $this->positionFor($sServiceJourneyId, $aLive) !== null || $this->registration($sServiceJourneyId, $aLive) !== null;
         }
         if (!self::hasLocation($aLive)) {
             return true;
@@ -122,7 +149,7 @@ class RealtimeMatcher
         return $this->positionFor($sServiceJourneyId, $aLive) !== null;
     }
 
-    public function etaForStop(string|null $sServiceJourneyId, int $iTargetArrivalSeconds, array|null $aLive): array
+    public function etaForStop(string|null $sServiceJourneyId, int $iTargetArrivalSeconds, array|null $aLive, int|null $iTargetSeq = null): array
     {
         if ($aLive === null) {
             return [$iTargetArrivalSeconds, 0, false];
@@ -147,6 +174,12 @@ class RealtimeMatcher
         }
 
         if ($this->bBusNetwork) {
+            if ($iTargetSeq !== null && $sServiceJourneyId !== null) {
+                $iRegisteredEta = $this->registeredEta($sServiceJourneyId, $iTargetArrivalSeconds, $iTargetSeq, $aLive);
+                if ($iRegisteredEta !== null) {
+                    return [$iRegisteredEta, $iRegisteredEta - $iTargetArrivalSeconds, false];
+                }
+            }
             return [$iTargetArrivalSeconds, 0, false];
         }
 
@@ -164,6 +197,78 @@ class RealtimeMatcher
         }
 
         return [$iFlatEta, $aLive['delaySeconds'], false];
+    }
+
+    /*
+     * Sin posición GPS utilizable (el bus no la manda o está fuera de la ruta), la parada que el feed da como próxima es
+     * lo único fiable: el bus ya ha registrado la anterior. Devuelve las horas programadas de esas dos paradas y la hora
+     * del dato, o null si no hay base para fiarse (sin hora del dato, dato viejo, viaje sin empezar, parada desconocida).
+     */
+    private function registration(string|null $sServiceJourneyId, array $aLive): array|null
+    {
+        if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
+            return null;
+        }
+        $iOrder = (int)$aLive['order'];
+        if ($iOrder < 2) {
+            return null;
+        }
+        $iRef = null;
+        if (isset($aLive['locationSeconds'])) {
+            $iRef = (int)$aLive['locationSeconds'];
+        } elseif (isset($aLive['recordedSeconds'])) {
+            $iRef = (int)$aLive['recordedSeconds'];
+        }
+        if ($iRef === null || $this->iNow - $iRef > self::MAX_LOCATION_AGE_SECONDS) {
+            return null;
+        }
+        try {
+            $aStops = $this->stopsFor($sServiceJourneyId);
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ parada registrada: ' . $Ex->getMessage());
+            return null;
+        }
+        if (empty($aStops) || $iRef < (int)$aStops[0]['departure_seconds'] - self::NOT_STARTED_GRACE_SECONDS) {
+            return null;
+        }
+        $aBySeq = array_column($aStops, null, 'seq_order');
+        if (!isset($aBySeq[$iOrder], $aBySeq[$iOrder - 1])) {
+            return null;
+        }
+        /*
+         * Contrastado con el feed real (201 buses con GPS): en tramos de hasta 5 min la parada registrada coincide con el
+         * GPS (mediana 0,7 min, p90 1,7); en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana.
+         * Ahí no se puede afirmar nada y se queda el horario oficial.
+         */
+        if ((int)$aBySeq[$iOrder]['arrival_seconds'] - (int)$aBySeq[$iOrder - 1]['arrival_seconds'] > self::REGISTRATION_MAX_SEGMENT_SECONDS) {
+            return null;
+        }
+        return [
+            'order' => $iOrder,
+            'ref' => $iRef,
+            'previous' => (int)$aBySeq[$iOrder - 1]['arrival_seconds'],
+            'next' => (int)$aBySeq[$iOrder]['arrival_seconds'],
+        ];
+    }
+
+    /*
+     * Hora de llegada a una parada que aún no se ha registrado: se parte de la hora del dato, a mitad del tramo hasta
+     * la próxima parada, y se suman los tiempos esperados de ahí a la parada pedida.
+     */
+    private function registeredEta(string $sServiceJourneyId, int $iTargetArrivalSeconds, int $iTargetSeq, array $aLive): int|null
+    {
+        $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+        if ($aRegistration === null || $iTargetSeq < $aRegistration['order']) {
+            return null;
+        }
+        $sBand = PaceFactors::bandFor($this->sDate, $aRegistration['ref']);
+        $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aRegistration['ref']);
+        $dToNext = self::REGISTRATION_SEGMENT_SHARE * $this->expectedSeconds($sServiceJourneyId, $aRegistration['previous'], $aRegistration['next'], $sBand, $dFactor);
+        $dAfterNext = 0.0;
+        if ($iTargetArrivalSeconds > $aRegistration['next']) {
+            $dAfterNext = $this->expectedSeconds($sServiceJourneyId, $aRegistration['next'], $iTargetArrivalSeconds, $sBand, $dFactor);
+        }
+        return (int)round($aRegistration['ref'] + $dToNext + $dAfterNext);
     }
 
     private function remainingSeconds(string $sServiceJourneyId, int $iTargetArrivalSeconds, array $aPosition, float $dFactor): float
@@ -213,6 +318,13 @@ class RealtimeMatcher
             return $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'];
         }
         if ($this->bBusNetwork) {
+            $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+            if ($aRegistration !== null) {
+                $iEta = $this->registeredEta((string)$sServiceJourneyId, $aRegistration['next'], $aRegistration['order'], $aLive);
+                if ($iEta !== null) {
+                    return $iEta - $aRegistration['next'];
+                }
+            }
             return 0;
         }
         if (self::hasLocation($aLive)) {
