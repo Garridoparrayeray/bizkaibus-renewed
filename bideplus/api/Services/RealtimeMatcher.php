@@ -283,6 +283,13 @@ class RealtimeMatcher
         if ($aPosition !== null) {
             return $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'];
         }
+        $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+        if ($aRegistration !== null) {
+            $iEta = $this->registeredEta((string)$sServiceJourneyId, $aRegistration['next'], $aRegistration['order'], $aLive);
+            if ($iEta !== null) {
+                return $iEta - $aRegistration['next'];
+            }
+        }
         if (self::hasLocation($aLive)) {
             return 0;
         }

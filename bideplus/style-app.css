@@ -10,8 +10,9 @@
     --text: #1c211d;
     --text-secondary: #5c665e;
     --status-ok: #ffff;
-    --status-warn: #0000;
+    --status-warn: #B34A14;
     --status-muted: #5f6670;
+    --delay-on-dark: #FFB547;
     --warn-tint: #FBE9E1;
     --shadow-soft: 0 1px 2px rgba(0, 0, 0, .05), 0 6px 20px -10px rgba(0, 0, 0, .18);
     --backdrop: rgba(10, 14, 12, .5);
@@ -458,6 +459,7 @@ header p {
     .time-display:disabled { cursor: default; }
     .time-display strong { color: #fff; font-family: var(--font-display); font-size: clamp(3.8rem, 16vw, 5.5rem); font-weight: 700; line-height: 1.05; letter-spacing: -2px; }
     .time-display span { color: var(--primary-light); font-size: 1.4rem; font-weight: 600; }
+    .time-display .delay-sub { position: relative; top: .35em; margin-left: 4px; color: var(--delay-on-dark); font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; letter-spacing: 0; line-height: 0; vertical-align: baseline; }
 #live-timetable-link {
     display: block;
     width: 100%;
@@ -568,6 +570,8 @@ header p {
     .platform-column .time-display strong { font-size: 3.2rem; }
     .platform-column .badge { margin-bottom: 6px; }
     .platform-column .status-dot { box-shadow: 0 0 0 2px rgba(255, 255, 255, .35); }
+    .platform-column .status-dot.status-warn, .live-card .status-dot.status-warn { background: var(--delay-on-dark); }
+    .platform-column-next .delay-sub { margin-left: 0; }
 .platform-column-headsign { margin: 0 0 8px; color: rgba(255, 255, 255, .72); font-size: .78rem; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; }
 .platform-column-empty { margin: 0; color: rgba(255, 255, 255, .62); font-size: .88rem; font-weight: 500; }
 .platform-column-next { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }

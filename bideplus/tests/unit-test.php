@@ -178,7 +178,8 @@ $MFar = matcher($aFar, $iGps);
 $expect('a 80 m del trazado (> 50 m) queda fuera de ruta', $MFar->positionFor('J_LINE', $aFar) === null);
 [$iEta, , $bPositioned] = $MFar->etaForStop('J_LINE', T0 + 720, $aFar);
 $expect('fuera de ruta la ETA es el horario + retraso del feed', $iEta === T0 + 720 && !$bPositioned, hms($iEta));
-$expect('fuera de ruta el retraso mostrado es 0', $MFar->currentDelaySeconds('J_LINE', $aFar) === 0);
+[$iEtaNext] = $MFar->etaForStop('J_LINE', T0 + 360, $aFar, 3);
+$expect('fuera de ruta el retraso mostrado sale de la parada registrada, igual que la ETA de la lista', $MFar->currentDelaySeconds('J_LINE', $aFar) === $iEtaNext - (T0 + 360), (string)$MFar->currentDelaySeconds('J_LINE', $aFar));
 
 /* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: cuándo no se fía del GPS');
@@ -223,6 +224,7 @@ $MReg = matcher($aRegistered, T0 + 300);
 [$iEta, $iDelay, $bPositioned] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
 $expect('sin GPS, la ETA parte de la hora del dato, a mitad del tramo hasta la próxima, más lo que queda (08:11:40)', $iEta === T0 + 700 && !$bPositioned, hms($iEta));
 $expect('el retraso mostrado es la ETA menos el horario de la parada', $iDelay === -20);
+$expect('sin GPS, el retraso del recorrido sale de la parada registrada y no del campo Delay del feed', $MReg->currentDelaySeconds('J_LINE', array_merge($aRegistered, ['delaySeconds' => 720])) === -20);
 [$iEta] = $MReg->etaForStop('J_LINE', T0 + 360, $aRegistered, 3);
 $expect('para la propia próxima parada solo cuenta la mitad del tramo (08:05:40)', $iEta === T0 + 340, hms($iEta));
 [$iEta] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);

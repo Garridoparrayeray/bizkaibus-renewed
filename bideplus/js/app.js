@@ -77,6 +77,7 @@
         liveOpenDetail: document.getElementById('live-open-detail'),
         liveTimetableLink: document.getElementById('live-timetable-link'),
         liveMinutes: document.getElementById('live-minutes'),
+        liveDelay: document.getElementById('live-delay'),
         liveStatusDot: document.getElementById('live-status-dot'),
         liveStatusText: document.getElementById('live-status-text'),
         liveIncidentsLink: document.getElementById('live-incidents-link'),
@@ -148,6 +149,18 @@
         if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
         if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
         return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
+    }
+
+    function delayText(status, delayMinutes) {
+        if (status === 'live' && delayMinutes > 0) return `+${delayMinutes}`;
+        return '';
+    }
+
+    function setDelaySub(node, status, delayMinutes) {
+        const text = delayText(status, delayMinutes);
+        node.textContent = text;
+        node.hidden = text === '';
+        node.title = text === '' ? '' : I18n.t('app.status.delay', { min: delayMinutes });
     }
 
     function setPillContent(button, iconSvg, label, area, hint) {
@@ -418,6 +431,7 @@
             el.liveLine.textContent = state.currentStop.name;
             el.liveHeadsign.textContent = I18n.t('app.noUpcomingDepartures');
             el.liveMinutes.textContent = '–';
+            setDelaySub(el.liveDelay, null, 0);
             el.liveBadge.textContent = I18n.t('app.noData');
             el.liveStatusText.textContent = '';
             el.liveStatusDot.className = 'status-dot';
@@ -433,6 +447,7 @@
         el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
         el.liveHeadsign.textContent = state.currentStop.name;
         el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
+        setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
@@ -484,7 +499,8 @@
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'time-display';
-        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span>`;
+        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><sub class="delay-sub" hidden></sub><span>min</span></span>`;
+        setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes);
         nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
         const badge = document.createElement('span');
