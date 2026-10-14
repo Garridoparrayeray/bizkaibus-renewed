@@ -199,15 +199,31 @@ $expect('una próxima parada que no existe en el viaje descarta el GPS', matcher
 $aWindow = live(500, 0, 5, $iGps);
 $expect('fuera de la ventana (3 tramos atrás) no se proyecta aunque esté sobre la ruta', matcher($aWindow, $iGps)->positionFor('J_LINE', $aWindow) === null);
 
+/* Bizkaibus: sin GPS utilizable (no lo manda o está fuera de la ruta) se muestra el horario oficial, sin estimar nada. */
 $aNoGps = live(1500, 0, 3, $iGps);
 $aNoGps['lat'] = null;
 $aNoGps['lon'] = null;
 $aNoGps['locationSeconds'] = null;
 $aNoGps['delaySeconds'] = 60;
 $MNoGps = matcher($aNoGps, T0 + 300);
-$expect('sin GPS el bus sigue contando como en vivo', $MNoGps->isLive('J_LINE', $aNoGps));
-[$iEta, , $bPositioned] = $MNoGps->etaForStop('J_LINE', T0 + 720, $aNoGps);
-$expect('sin GPS usa ahora + horario restante desde la parada del feed', $iEta === T0 + 300 + (720 - 360) && !$bPositioned, hms($iEta));
+$expect('Bizkaibus sin GPS: no cuenta como en vivo', !$MNoGps->isLive('J_LINE', $aNoGps));
+[$iEta, $iDelay, $bPositioned] = $MNoGps->etaForStop('J_LINE', T0 + 720, $aNoGps);
+$expect('Bizkaibus sin GPS: la ETA es la hora oficial y no hay retraso', $iEta === T0 + 720 && $iDelay === 0 && !$bPositioned, hms($iEta));
+$expect('Bizkaibus sin GPS: el retraso mostrado es 0 aunque el feed diga otra cosa', $MNoGps->currentDelaySeconds('J_LINE', $aNoGps) === 0);
+$aRowOfficial = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720];
+$aOfficial = $MNoGps->enrich([$aRowOfficial])[0];
+$expect('enrich: sin GPS la salida sale programada con su hora oficial', $aOfficial['status'] === 'scheduled' && $aOfficial['etaSeconds'] === T0 + 720 && $aOfficial['delaySeconds'] === 0, json_encode([$aOfficial['status'], $aOfficial['etaSeconds']]));
+$aOffRouteBus = live(1500, 200, 3, $iGps);
+$expect('Bizkaibus con GPS fuera de la ruta: horario oficial', !matcher($aOffRouteBus, $iGps + 30)->isLive('J_LINE', $aOffRouteBus) && matcher($aOffRouteBus, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'scheduled');
+$expect('Bizkaibus con GPS en ruta: en directo', matcher($aLive, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'live');
+
+/* Otras redes con SIRI (Euskotren, tranvías) no cambian: sin GPS siguen en directo con el retraso del feed. */
+Config::set('euskotren');
+$MOtherNetwork = matcher($aNoGps, T0 + 300);
+$expect('en otra red, sin GPS, sigue en directo', $MOtherNetwork->isLive('J_LINE', $aNoGps));
+[$iEta] = $MOtherNetwork->etaForStop('J_LINE', T0 + 720, $aNoGps);
+$expect('en otra red, sin GPS, la ETA es la de siempre (ahora + horario desde la próxima parada)', $iEta === T0 + 300 + 360, hms($iEta));
+Config::set('bus');
 
 $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaForStop('J_LINE', T0 + 720, null) === [T0 + 720, 0, false]);
 
@@ -215,76 +231,6 @@ $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaFor
 $section('Bizkaibus: fuente de los buses en directo');
 $aBusConfig = require __DIR__ . '/../api/Config/config.php';
 $expect('los buses en directo salen solo de Open Data Euskadi (con GPS, hora del dato y retraso), sin respaldo del CTB', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://opendata.euskadi.eus/') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
-
-$section('RealtimeMatcher: parada registrada sin GPS utilizable');
-
-/* J_LINE: paradas seq 1..5 con llegadas T0, +180, +360, +540, +720. El feed da la parada 3 como próxima. */
-$aRegistered = live(1500, 0, 3, $iGps);
-$aRegistered['lat'] = null;
-$aRegistered['lon'] = null;
-$aRegistered['locationSeconds'] = null;
-$aRegistered['recordedSeconds'] = T0 + 250;
-$MReg = matcher($aRegistered, T0 + 300);
-[$iEta, $iDelay, $bPositioned] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
-$expect('sin GPS, la ETA parte de la hora del dato, a mitad del tramo hasta la próxima, más lo que queda (08:11:40)', $iEta === T0 + 700 && !$bPositioned, hms($iEta));
-$expect('el retraso mostrado es la ETA menos el horario de la parada', $iDelay === -20);
-$expect('sin GPS, el retraso del recorrido sale de la parada registrada y no del campo Delay del feed', $MReg->currentDelaySeconds('J_LINE', array_merge($aRegistered, ['delaySeconds' => 720])) === -20);
-[$iEta] = $MReg->etaForStop('J_LINE', T0 + 360, $aRegistered, 3);
-$expect('para la propia próxima parada solo cuenta la mitad del tramo (08:05:40)', $iEta === T0 + 340, hms($iEta));
-[$iEta] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
-$expect('sin número de parada se usa el cálculo de antes (ahora + horario desde la próxima)', $iEta === T0 + 300 + 360, hms($iEta));
-
-$expect('una parada anterior a la próxima ya está pasada', $MReg->isPassedPerFeed('J_LINE', $aRegistered, 2) && $MReg->isPassedPerFeed('J_LINE', $aRegistered, 1));
-$expect('la próxima parada y las siguientes no están pasadas', !$MReg->isPassedPerFeed('J_LINE', $aRegistered, 3) && !$MReg->isPassedPerFeed('J_LINE', $aRegistered, 5));
-$aWaiting = $aRegistered;
-$aWaiting['recordedSeconds'] = T0 - 120;
-$expect('un bus que espera en cabecera (viaje sin empezar) no deja pasada la parada 1', !matcher($aWaiting, T0 - 100)->isPassedPerFeed('J_LINE', $aWaiting, 1));
-$expect('un dato de hace más de 10 min no sirve para dar nada por pasado', !matcher($aRegistered, T0 + 250 + 11 * 60)->isPassedPerFeed('J_LINE', $aRegistered, 2));
-$aOnRoute = live(1500, 0, 3, $iGps);
-$expect('con GPS en ruta manda el GPS: no se da por pasada una parada por el feed', !matcher($aOnRoute, $iGps + 30)->isPassedPerFeed('J_LINE', $aOnRoute, 2));
-$aOffRoute = live(1500, 200, 3, $iGps);
-$aOffRoute['recordedSeconds'] = $iGps;
-$MOff = matcher($aOffRoute, $iGps + 30);
-$expect('con GPS fuera de la ruta se usa la parada registrada', $MOff->isPassedPerFeed('J_LINE', $aOffRoute, 2));
-[$iEta] = $MOff->etaForStop('J_LINE', T0 + 720, $aOffRoute, 5);
-$expect('con GPS fuera de la ruta la ETA sale de la parada registrada (08:12:00)', $iEta === $iGps + 90 + 360, hms($iEta));
-
-$aRowPassed = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 180, 'stop_seq' => 2];
-$aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
-$aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
-$expect('enrich: la fila de una parada ya pasada sale como salida y fuera de la ventana de la lista', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 300 - 180, json_encode($aEnriched[0]['etaSeconds']));
-$expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
-
-/* Feed de respaldo del CTB: sin GPS, sin hora válida y con retraso siempre 0. */
-$aNoClock = $aRegistered;
-$aNoClock['recordedSeconds'] = null;
-$aNoClock['delaySeconds'] = 0;
-$MEarly = matcher($aNoClock, T0 + 30);
-$expect('sin hora del dato y con el horario de la parada anterior (08:03) por delante, el bus va adelantado al menos 2,5 min', $MEarly->currentDelaySeconds('J_LINE', $aNoClock) === -150, (string)$MEarly->currentDelaySeconds('J_LINE', $aNoClock));
-[$iEta, $iDelay] = $MEarly->etaForStop('J_LINE', T0 + 720, $aNoClock, 5);
-$expect('la ETA y el retraso de la lista recogen esa ventaja (08:09:30, -150 s)', $iEta === T0 + 720 - 150 && $iDelay === -150, hms($iEta));
-$expect('con menos de 2 min de ventaja no se afirma nada', matcher($aNoClock, T0 + 100)->currentDelaySeconds('J_LINE', $aNoClock) === 0);
-$expect('si el feed trae su propio retraso, manda el del feed', matcher($aNoClock, T0 + 30)->currentDelaySeconds('J_LINE', array_merge($aNoClock, ['delaySeconds' => 300])) === 300);
-$expect('con hora válida del dato no se usa esta cota', matcher($aRegistered, T0 + 30)->currentDelaySeconds('J_LINE', $aRegistered) === -20);
-
-/* El bus del feed de respaldo ya va por la parada 3 (orden 3): las paradas 1 y 2 las ha dejado atrás, aunque no haya hora del dato. */
-$aRowStop1 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 0, 'stop_seq' => 1];
-$aRowStop4 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 540, 'stop_seq' => 4];
-$aEnrichedNoClock = matcher($aNoClock, T0 + 30)->enrich([$aRowPassed, $aRowStop4]);
-$expect('sin hora del dato, la fila de una parada que el bus ya dejó atrás sale como salida y no como «0 min»', $aEnrichedNoClock[0]['status'] === 'departed' && $aEnrichedNoClock[0]['etaSeconds'] < T0 + 30 - 60, json_encode([$aEnrichedNoClock[0]['status'], $aEnrichedNoClock[0]['etaSeconds']]));
-$expect('sin hora del dato, una parada posterior sigue en directo', $aEnrichedNoClock[1]['status'] === 'live', $aEnrichedNoClock[1]['status']);
-$expect('un bus que aún no ha salido (viaje sin empezar) no deja atrás ninguna parada', matcher(array_merge($aNoClock, ['order' => 2]), T0 - 200)->isPassedPerFeed('J_LINE', array_merge($aNoClock, ['order' => 2]), 1) === false);
-$aStaleClock = array_merge($aNoClock, ['recordedSeconds' => T0 - 3600]);
-$expect('con hora del dato de hace más de 10 min no se da nada por pasado', matcher($aStaleClock, T0 + 30)->isPassedPerFeed('J_LINE', $aStaleClock, 2) === false);
-
-/* Solo Bizkaibus: en otras redes con SIRI (Euskotren, tranvías) no se usa la parada registrada ni los tiempos aprendidos. */
-Config::set('euskotren');
-$MOtherNetwork = matcher($aRegistered, T0 + 300);
-$expect('en otra red no se da ninguna parada por pasada con el feed', !$MOtherNetwork->isPassedPerFeed('J_LINE', $aRegistered, 2));
-[$iEta] = $MOtherNetwork->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
-$expect('en otra red, sin GPS, la ETA es la de siempre (ahora + horario desde la próxima parada)', $iEta === T0 + 300 + 360, hms($iEta));
-Config::set('bus');
-$expect('al volver a Bizkaibus se usa otra vez la parada registrada', matcher($aRegistered, T0 + 300)->isPassedPerFeed('J_LINE', $aRegistered, 2));
 
 /* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: sin trazado (tramos entre paradas)');
