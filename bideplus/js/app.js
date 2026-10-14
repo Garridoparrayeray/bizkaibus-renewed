@@ -141,6 +141,7 @@
     }
 
     function liveBadgeText(status, etaMinutes) {
+        if (status === 'departed') return I18n.t('app.badge.leaving');
         if (status !== 'live') return I18n.t('app.badge.scheduled');
         if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
         if (etaMinutes <= 3) return I18n.t('app.badge.arriving');

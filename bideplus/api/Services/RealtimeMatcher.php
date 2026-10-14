@@ -90,15 +90,18 @@ class RealtimeMatcher
             return $aRow + self::scheduledFields($aRow);
         }
 
-        // Parada ya pasada: el feed ya marca una parada posterior como la próxima, o el GPS ya está más allá. La salida se retira al momento.
-        if ($this->bBusNetwork && $this->hasPassedStop($sServiceJourneyId, $aLive, (int)$aRow['arrival_seconds'], $iStopSeq)) {
-            return $aRow + [
-                'status' => 'departed',
-                'delaySeconds' => 0,
-                'etaSeconds' => $iNow - 3 * 60,
-                'vehicleRef' => $aLive['vehicleRef'],
-                'currentStopId' => $aLive['currentStopId'],
-            ];
+        // Parada ya pasada: el feed ya marca una parada posterior como la próxima, o el GPS ya está más allá. Sale como «saliendo» unos segundos y se retira.
+        if ($this->bBusNetwork) {
+            $iPassedAt = $this->passedAtSeconds($sServiceJourneyId, $aLive, (int)$aRow['arrival_seconds'], $iStopSeq);
+            if ($iPassedAt !== null) {
+                return $aRow + [
+                    'status' => 'departed',
+                    'delaySeconds' => 0,
+                    'etaSeconds' => min($iPassedAt, $iNow),
+                    'vehicleRef' => $aLive['vehicleRef'],
+                    'currentStopId' => $aLive['currentStopId'],
+                ];
+            }
         }
 
         if ($this->bBusNetwork && $this->positionFor($sServiceJourneyId, $aLive) === null
@@ -132,19 +135,29 @@ class RealtimeMatcher
         ];
     }
 
-    private function hasPassedStop(string|null $sServiceJourneyId, array $aLive, int $iTargetArrivalSeconds, int|null $iStopSeq): bool
+    /*
+     * Hora estimada a la que el bus pasó por una parada que ya ha dejado atrás, o null si no la ha pasado. Con GPS, el
+     * momento en que el bus estaba en esa parada según su posición actual; sin GPS, desde la hora del dato.
+     */
+    private function passedAtSeconds(string|null $sServiceJourneyId, array $aLive, int $iTargetArrivalSeconds, int|null $iStopSeq): int|null
     {
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
-        if ($aPosition !== null && $iTargetArrivalSeconds < $aPosition['scheduledSeconds']) {
-            return true;
+        if ($aPosition !== null) {
+            if ($iTargetArrivalSeconds < $aPosition['scheduledSeconds']) {
+                return $aPosition['locationSeconds'] - ($aPosition['scheduledSeconds'] - $iTargetArrivalSeconds);
+            }
+            if ($iStopSeq !== null && isset($aLive['order']) && $iStopSeq < (int)$aLive['order']) {
+                return $aPosition['locationSeconds'];
+            }
+            return null;
         }
         if ($iStopSeq !== null && isset($aLive['order']) && $iStopSeq < (int)$aLive['order']) {
-            if ($aPosition !== null) {
-                return true;
+            $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+            if ($aRegistration !== null) {
+                return $aRegistration['ref'] - max(0, $aRegistration['previous'] - $iTargetArrivalSeconds);
             }
-            return $this->registration($sServiceJourneyId, $aLive) !== null;
         }
-        return false;
+        return null;
     }
 
     public function isLive(string|null $sServiceJourneyId, array|null $aLive): bool
