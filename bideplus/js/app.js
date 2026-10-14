@@ -835,15 +835,18 @@
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
-        if (HAS_PLATFORMS) {
+        if (HAS_PLATFORMS && !IS_METRO) {
             await openTripStopsModal(tripKey);
             return;
         }
 
         let data;
         try {
-            data = await Api.vehicle(tripKey);
+            data = await Api.vehicle(tripKey, state.currentStop?.id);
         } catch (e) {
+            if (HAS_PLATFORMS) {
+                await openTripStopsModal(tripKey);
+            }
             return;
         }
 
@@ -855,6 +858,8 @@
             el.modalVehicle.textContent = I18n.t('app.liveTracking', { ref: data.vehicleRef });
         } else if (data.status === 'finished') {
             el.modalVehicle.textContent = I18n.t('app.tripFinished');
+        } else if (data.status === 'live') {
+            el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
         } else {
             el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
         }
@@ -862,15 +867,22 @@
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = I18n.t('app.incidents.view');
         el.modalAlertsToggle.disabled = false;
-        el.modalAlertsToggle.hidden = false;
+        el.modalAlertsToggle.hidden = HAS_PLATFORMS;
         el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
 
         el.modalStops.innerHTML = '';
         for (const stop of data.stops) {
             const li = document.createElement('li');
-            li.className = stop.isCurrent ? 'stop-current' : '';
-            li.textContent = `${stop.scheduledTime} · ${stop.name}`;
+            const classes = [];
+            if (stop.isCurrent) classes.push('stop-current');
+            if (data.feedTimes && stop.isPast) classes.push('stop-past');
+            li.className = classes.join(' ');
+            let label = `${stop.scheduledTime} · ${stop.name}`;
+            if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined) {
+                label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
+            }
+            li.textContent = label;
             li.classList.add('stop-clickable');
             li.addEventListener('click', () => {
                 el.modal.close();

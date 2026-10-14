@@ -71,6 +71,11 @@ class SiriVehicleMonitoringClient
                 $iOrder = (int)$Mvj->MonitoredCall->VisitNumber;
             }
 
+            $iRecordedSeconds = null;
+            if (isset($Activity->RecordedAtTime)) {
+                $iRecordedSeconds = self::secondsSinceMidnightToday((string)$Activity->RecordedAtTime, $sToday);
+            }
+
             $dLat = null;
             $dLon = null;
             $iLocationSeconds = null;
@@ -100,6 +105,7 @@ class SiriVehicleMonitoringClient
                 'lat' => $dLat,
                 'lon' => $dLon,
                 'locationSeconds' => $iLocationSeconds,
+                'recordedSeconds' => $iRecordedSeconds,
             ];
         }
         return $aMap;
