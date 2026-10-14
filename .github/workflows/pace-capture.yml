@@ -87,6 +87,16 @@ jobs:
           MINUTES: ${{ github.event.inputs.minutes || '25' }}
         run: php bideplus/scripts/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
 
+      - name: Medir la precision de las llegadas con esta captura
+        continue-on-error: true
+        run: |
+          {
+            echo "### Precision de las llegadas (esta captura contra los pasos reales por parada)"
+            echo '```'
+            php bideplus/scripts/eval-eta.php "$RUNNER_TEMP/capturas" || echo "Sin datos suficientes"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Descargar las muestras acumuladas
         run: |
           gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay muestras acumuladas"
