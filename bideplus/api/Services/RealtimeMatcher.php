@@ -90,18 +90,15 @@ class RealtimeMatcher
             return $aRow + self::scheduledFields($aRow);
         }
 
-        // Capa 2 (sin posición GPS pero con parada registrada): si el feed ya da una parada posterior, el bus la ha pasado.
-        if ($this->positionFor($sServiceJourneyId, $aLive) === null && $iStopSeq !== null) {
-            $aRegistration = $this->registration($sServiceJourneyId, $aLive);
-            if ($aRegistration !== null && $iStopSeq < $aRegistration['order']) {
-                return $aRow + [
-                    'status' => 'departed',
-                    'delaySeconds' => 0,
-                    'etaSeconds' => $iNow - 3 * 60,
-                    'vehicleRef' => $aLive['vehicleRef'],
-                    'currentStopId' => $aLive['currentStopId'],
-                ];
-            }
+        // Parada ya pasada: el feed ya marca una parada posterior como la próxima, o el GPS ya está más allá. La salida se retira al momento.
+        if ($this->bBusNetwork && $this->hasPassedStop($sServiceJourneyId, $aLive, (int)$aRow['arrival_seconds'], $iStopSeq)) {
+            return $aRow + [
+                'status' => 'departed',
+                'delaySeconds' => 0,
+                'etaSeconds' => $iNow - 3 * 60,
+                'vehicleRef' => $aLive['vehicleRef'],
+                'currentStopId' => $aLive['currentStopId'],
+            ];
         }
 
         if ($this->bBusNetwork && $this->positionFor($sServiceJourneyId, $aLive) === null
@@ -133,6 +130,21 @@ class RealtimeMatcher
             'vehicleRef' => $aLive['vehicleRef'],
             'currentStopId' => $aLive['currentStopId'],
         ];
+    }
+
+    private function hasPassedStop(string|null $sServiceJourneyId, array $aLive, int $iTargetArrivalSeconds, int|null $iStopSeq): bool
+    {
+        $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
+        if ($aPosition !== null && $iTargetArrivalSeconds < $aPosition['scheduledSeconds']) {
+            return true;
+        }
+        if ($iStopSeq !== null && isset($aLive['order']) && $iStopSeq < (int)$aLive['order']) {
+            if ($aPosition !== null) {
+                return true;
+            }
+            return $this->registration($sServiceJourneyId, $aLive) !== null;
+        }
+        return false;
     }
 
     public function isLive(string|null $sServiceJourneyId, array|null $aLive): bool
