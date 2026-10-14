@@ -8,4 +8,9 @@
     if (isStandalone) {
         root.classList.add('is-standalone');
     }
+    // iOS no da el mismo margen inferior en todas las páginas (depende de viewport-fit y del estilo de la barra de estado): se marca para dejar siempre una franja mínima bajo la barra de pestañas.
+    var ua = navigator.userAgent || '';
+    if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        root.classList.add('is-ios');
+    }
 })();
