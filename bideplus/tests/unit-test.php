@@ -270,7 +270,7 @@ $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 72
 $aRowPassed = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 180, 'stop_seq' => 2];
 $aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
 $aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
-$expect('enrich: la fila de una parada ya pasada sale como salida y fuera de la ventana de la lista', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 300 - 180, json_encode($aEnriched[0]['etaSeconds']));
+$expect('enrich: la fila de una parada ya pasada sale como salida, con la hora estimada en que el bus la pasó (la de la parada registrada)', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 250, json_encode($aEnriched[0]['etaSeconds']));
 $expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
 
 $aWaiting = $aRegistered;
@@ -296,7 +296,7 @@ $MGpsPassed = matcher($aGpsPassed, $iGps + 30);
 $aRowStop2 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 180, 'stop_seq' => 2];
 $aRowStop3 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 360, 'stop_seq' => 3];
 $aOutPassed = $MGpsPassed->enrich([$aRowStop2, $aRowStop3]);
-$expect('con GPS, la parada que el bus ya pasó sale como salida y fuera de la lista al momento', $aOutPassed[0]['status'] === 'departed' && $aOutPassed[0]['etaSeconds'] < $iGps + 30 - 120, json_encode([$aOutPassed[0]['status'], $aOutPassed[0]['etaSeconds']]));
+$expect('con GPS, la parada que el bus ya pasó sale como salida, con la hora en que el bus estuvo en ella (08:02:30)', $aOutPassed[0]['status'] === 'departed' && $aOutPassed[0]['etaSeconds'] === T0 + 150, json_encode([$aOutPassed[0]['status'], $aOutPassed[0]['etaSeconds']]));
 $expect('con GPS, la próxima parada sigue en directo', $aOutPassed[1]['status'] === 'live', $aOutPassed[1]['status']);
 
 /* Tramo largo (cabecera, espera): la parada registrada no dice dónde va el bus, así que no se estima. */
