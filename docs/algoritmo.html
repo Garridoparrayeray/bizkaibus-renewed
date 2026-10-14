@@ -119,7 +119,7 @@ a{color:var(--route)}
     <h1 style="margin-top:14px">Cómo sabe Bide+ <em>cuándo llega</em> tu bus</h1>
     <p class="lede">El feed de Bizkaibus no publica retrasos y los horarios por parada del GTFS son interpolados. Aun así, con el GPS la app acierta el 90 % de las llegadas próximas dentro de ±2 min, frente al 19 % del horario solo. Esta es la idea, paso a paso y con un modelo que puedes tocar, cómo aprende con los datos sin acercarse a ningún límite, y al final todas las fórmulas, constantes y cómo se validó.</p>
     <nav class="toc" aria-label="Contenido">
-      <a href="#capas">5 · Tres capas</a><a href="#aprende">7 · Cómo aprende</a><a href="#resultados">8 · Precisión medida</a><a href="#formulas">9 · Fórmulas</a><a href="#calibracion">10 · Medida y calibración</a><a href="#como-se-hizo">11 · Cómo se hizo</a>
+      <a href="#capas">5 · Tres capas</a><a href="#aprende">7 · Cómo aprende</a><a href="#resultados">8 · Precisión medida</a><a href="#formulas">9 · Fórmulas</a><a href="#calibracion">10 · Medida y calibración</a><a href="#bancos">11 · Bancos de pruebas</a><a href="#como-se-hizo">12 · Cómo se hizo</a>
     </nav>
   </header>
 
@@ -483,8 +483,70 @@ a{color:var(--route)}
     </div>
   </section>
 
-  <section id="como-se-hizo">
+  <section id="bancos">
     <div class="rail"><div class="stop">11</div></div>
+    <div class="body">
+      <div class="eyebrow">Bancos de pruebas · con el máximo de datos</div>
+      <h2>Cómo se prueba, y qué precisión da con todos los datos</h2>
+      <p class="col">El algoritmo se prueba en tres niveles: que el código calcula bien, que la API no cambia sin avisar, y que las llegadas que muestra se parecen a las reales. Y como aprende de datos, hay un cuarto banco que mide cuánto mejora al darle más.</p>
+
+      <h3>11.1 · Los bancos de pruebas</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Banco</th><th>Qué comprueba</th><th>Cuándo corre</th></tr></thead>
+        <tbody>
+          <tr><td><code>tests/unit-test.php</code></td><td>128 comprobaciones sin servidor ni red, sobre una base de datos en memoria: proyección del GPS, T<sub>pos</sub>, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, <code>trip_aliases</code>, <code>enrich()</code> y ordenación</td><td>Cada commit y cada CI</td></tr>
+          <tr><td><code>static-checks.py</code> y <code>data-integrity.php</code></td><td>Sintaxis, ids del código, caché del service worker y que las seis bases de datos están enteras (referencias, horas que no van hacia atrás, trazados)</td><td>Cada commit, CI y antes de cada despliegue</td></tr>
+          <tr><td><code>api-smoke.py</code> y <code>api-contract.py</code></td><td>245 peticiones a todas las rutas de la API, y más de 22 000 comprobaciones de la forma del JSON en las seis redes. Añadir campos está permitido; quitar o renombrar uno falla, y que las salidas vengan ordenadas por llegada</td><td>Cada commit y cada CI</td></tr>
+          <tr><td><code>ui-*.mjs</code></td><td>Navegador headless en móvil y ordenador: buscar, fichas, favoritos, horarios, modo sin conexión, avisos, «cerca de mí» y Bide+ como una sola app. Falla si hay errores de consola o de red</td><td>Cada CI</td></tr>
+          <tr><td><code>scripts/eval-eta.php</code></td><td><b>Precisión de lo que ve el usuario</b>: compara la ETA con el momento real en que el feed cambia la próxima parada, por horizonte y por origen del dato</td><td>En cada captura (24 al día), en el resumen del trabajo</td></tr>
+          <tr><td><code>scripts/realtime-backtest.php</code></td><td><code>analyze</code> mide el error por posición; <code>calibrate</code> y <code>calibrate-segments</code> aprenden con la mitad de los buses y miden en la otra</td><td>Recalibrado diario</td></tr>
+          <tr><td><code>scripts/learning-curve.php</code></td><td><b>Curva de aprendizaje</b>: cuánto mejora el error y la cobertura al aprender con más buses</td><td>A mano; la repetirá el recalibrado cuando haya más datos</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>11.2 · Curva de aprendizaje, medida</h3>
+      <p class="col">La mitad de los buses (381) se aparta para probar. Con la otra mitad se aprenden los tiempos por tramo usando cada vez más buses, con las 12 755 medidas iniciales (una sola sesión de laborable a mediodía). El error es el de cada tramo, en minutos, con lo que usa la app: lo aprendido si existe, y si no k × horario.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Buses para aprender</th><th>Tramos aprendidos</th><th>Cobertura de tramos medidos</th><th>Error con lo aprendido + k</th><th>Error solo con k × horario</th></tr></thead>
+        <tbody>
+          <tr><td class="n">16</td><td class="n">278</td><td class="n">1,2 %</td><td class="n">0,89 min</td><td class="n">0,89 min</td></tr>
+          <tr><td class="n">45</td><td class="n">610</td><td class="n">13,0 %</td><td class="n">0,84 min</td><td class="n">0,89 min</td></tr>
+          <tr><td class="n">92</td><td class="n">1 001</td><td class="n">32,2 %</td><td class="n">0,77 min</td><td class="n">0,89 min</td></tr>
+          <tr><td class="n">196</td><td class="n">1 458</td><td class="n">62,8 %</td><td class="n">0,62 min</td><td class="n">0,89 min</td></tr>
+          <tr><td class="n">379</td><td class="n">1 916</td><td class="n"><b>77,5 %</b></td><td class="n"><b>0,52 min</b></td><td class="n">0,89 min</td></tr>
+        </tbody>
+      </table></div>
+      <figure>
+        <div class="res">
+          <div class="bar"><span>16 buses</span><div style="width:6%;background:var(--warn)">1 %</div></div>
+          <div class="bar"><span>45 buses</span><div style="width:17%;background:var(--warn)">13 %</div></div>
+          <div class="bar"><span>92 buses</span><div style="width:34%;background:var(--lime);color:#18201b">32 %</div></div>
+          <div class="bar"><span>196 buses</span><div style="width:64%;background:var(--lime);color:#18201b">63 %</div></div>
+          <div class="bar"><span>379 buses</span><div style="width:78%;background:var(--route)">77,5 %</div></div>
+        </div>
+        <figcaption>Cobertura de tramos medidos según los buses usados para aprender. Sigue subiendo: cada vez que se duplican los buses, los tramos sin aprender se reducen aproximadamente un 40 %. El error baja de 0,89 a 0,52 min y todavía no se ha estabilizado.</figcaption>
+      </figure>
+
+      <h3>11.3 · Con el máximo de datos: proyección</h3>
+      <p class="col">Las capturas son ahora 24 al día y 168 a la semana, de unas 45 min cada una: unas 126 horas de feed a la semana, muchas veces lo que aportó la sesión de arriba. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren.</p>
+      <p class="col">La precisión que se espera depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender baja al 70 % y 78 %; con dos o más, al 49 % y 66 %. Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos medidos:</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Llegadas con todo el camino aprendido</th><th>Dentro de ±2 min</th><th>Dentro de ±3 min</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td class="n">86 % (hoy)</td><td class="n">89 %</td><td class="n">95 %</td><td>medido</td></tr>
+          <tr><td class="n">90 %</td><td class="n">90 %</td><td class="n">96 %</td><td>proyección</td></tr>
+          <tr><td class="n">95 %</td><td class="n">92 %</td><td class="n">97 %</td><td>proyección</td></tr>
+          <tr><td class="n">99 %</td><td class="n">93 %</td><td class="n">98 %</td><td>proyección</td></tr>
+          <tr><td class="n">100 %</td><td class="n"><b>93 %</b></td><td class="n"><b>98 %</b></td><td>techo medido</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note col"><b>Cómo leerlo.</b> Son llegadas a menos de 10 min, que son las que decide el usuario. Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). El techo, 93 %, no es 99 %: en llegadas con todo aprendido, el 7 % restante se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta.</div>
+      <p class="col">Lo que no se puede dar por hecho es la rapidez del salto. La cobertura de tramos raros crece despacio y la extrapolación de la curva (los tramos sin aprender se reducen aproximadamente a la mitad cada vez que se triplican los buses) es una tendencia medida solo hasta 379 buses. Lo medirá el propio sistema: cada captura escribe su precisión, y <code>learning-curve.php</code> repite la curva con todo lo acumulado.</p>
+    </div>
+  </section>
+
+  <section id="como-se-hizo">
+    <div class="rail"><div class="stop">12</div></div>
     <div class="body">
       <div class="eyebrow">Ficha técnica · 3 de 3</div>
       <h2>Cómo se hizo</h2>
