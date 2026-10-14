@@ -19,16 +19,26 @@ name: Ritmo de los buses (k)
 #   05:00 -> 07:00/06:00 punta de manana      08:30 -> 10:30/09:30 manana
 #   12:00 -> 14:00/13:00 mediodia             15:30 -> 17:30/16:30 punta de tarde
 #   19:00 -> 21:00/20:00 noche
-# GitHub puede retrasar unos minutos los trabajos programados.
+#   06:30 -> 08:30/07:30 punta de manana      10:30 -> 12:30/11:30 manana
+#   13:30 -> 15:30/14:30 mediodia             17:30 -> 19:30/18:30 punta de tarde
+# Cuantas mas capturas, mas tramos con tiempo aprendido, que es lo que mas pesa en la precision
+# (con todos los tramos aprendidos, el 93 % de las llegadas queda dentro de +-2 min; con alguno sin aprender, el 70 %).
+# Los trabajos no se solapan (concurrency). GitHub puede retrasar unos minutos los trabajos programados.
 
 on:
   schedule:
     - cron: '0 5 * * 1-5'
+    - cron: '30 6 * * 1-5'
     - cron: '30 8 * * 1-5'
+    - cron: '30 10 * * 1-5'
     - cron: '0 12 * * 1-5'
+    - cron: '30 13 * * 1-5'
     - cron: '30 15 * * 1-5'
+    - cron: '30 17 * * 1-5'
     - cron: '0 19 * * 1-5'
     - cron: '0 9 * * 6,0'
+    - cron: '30 11 * * 6,0'
+    - cron: '0 14 * * 6,0'
     - cron: '0 16 * * 6'
     - cron: '0 4 * * *'
   workflow_dispatch:
