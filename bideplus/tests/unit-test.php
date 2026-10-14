@@ -161,7 +161,7 @@ $Segments = new SegmentTimes(['segments' => [
 $M = matcher($aLive, $iGps + 30, null, 40.0, DATE_WEEKDAY, $Segments);
 [$iEta, $iDelay] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
 $expect('con tiempos por tramo: medio tramo de 60 s + 100 s + 180 s del horario (08:09:10)', $iEta === T0 + 550, hms($iEta));
-$expect('los tiempos por tramo no cambian el retraso mostrado', $iDelay === -30);
+$expect('el retraso mostrado es la llegada estimada menos la hora publicada de esa parada (08:09:10 contra 08:12:00)', $iDelay === -170, (string)$iDelay);
 [$iEta] = $M->etaForStop('J_LINE', T0 + 360, $aLive);
 $expect('con tiempos por tramo solo se suman los tramos hasta la parada pedida (08:04:30)', $iEta === T0 + 270, hms($iEta));
 
@@ -263,7 +263,9 @@ $expect('el retraso del recorrido sale de la parada registrada y no del campo De
 $expect('para la propia próxima parada solo cuenta la mitad del tramo (08:05:40)', $iEta === T0 + 340, hms($iEta));
 $MRegFast = matcher($aRegistered, T0 + 300, new PaceFactors(['global' => ['laborable.punta_manana' => 0.5]]));
 [$iEtaFar, $iDelayFar] = $MRegFast->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
-$expect('con parada registrada, el retraso mostrado es el del bus y no la diferencia en una parada lejana', $iDelayFar === $MRegFast->currentDelaySeconds('J_LINE', $aRegistered) && $iEtaFar - (T0 + 720) !== $iDelayFar, json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
+$expect('con parada registrada, el retraso mostrado de una parada es su llegada estimada menos su hora publicada', $iDelayFar === $iEtaFar - (T0 + 720), json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
+$aRowFarEarly = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720 + 3 * 3600, 'stop_seq' => 5];
+$expect('si la llegada estimada difiere más de 45 min de la hora publicada de esa parada, horario oficial', $MRegFast->enrich([$aRowFarEarly])[0]['status'] === 'scheduled');
 [$iEta, , ] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
 $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 720, hms($iEta));
 
