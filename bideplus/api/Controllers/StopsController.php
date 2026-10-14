@@ -142,6 +142,9 @@ class StopsController
                 $aEnriched = $Matcher->enrich($aRows);
                 if ($TripMatcher !== null) {
                     $aEnriched = $TripMatcher->enrich((string)$aPlatform['id'], $aEnriched);
+                    if ($TripMatcher->hasData()) {
+                        $aEnriched = $TripMatcher->withoutDeparted($aEnriched, Calendar::nowSecondsSinceMidnight());
+                    }
                 }
                 $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign, $aPlatform);
                 foreach (array_slice($aPlatformDepartures, 0, $iLimit) as $aDeparture) {
@@ -179,6 +182,9 @@ class StopsController
         $aEnriched = $Matcher->enrich($aRows);
         if ($TripMatcher !== null) {
             $aEnriched = $TripMatcher->enrich((string)$sStopId, $aEnriched);
+            if ($TripMatcher->hasData()) {
+                $aEnriched = $TripMatcher->withoutDeparted($aEnriched, Calendar::nowSecondsSinceMidnight());
+            }
         }
         $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign), 0, $iLimit);
 

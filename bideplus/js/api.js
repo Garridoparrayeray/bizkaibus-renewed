@@ -43,7 +43,7 @@ const Api = (() => {
             if (stopId !== undefined && stopId !== null) params.set('stopId', stopId);
             return request(`/lines/${lineId}/timetable?${params}`);
         },
-        vehicle: (tripKey) => request(`/vehicles/${tripKey}`),
+        vehicle: (tripKey, stopId) => request(`/vehicles/${tripKey}${stopId ? `?stopId=${encodeURIComponent(stopId)}` : ''}`),
         tripStops: (tripKey, stopId) => request(`/trips/${tripKey}?stopId=${stopId}`),
         lineLive: (lineId) => request(`/lines/${lineId}/live`),
         alerts: (lineId, stopId) => {
