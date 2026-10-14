@@ -1,8 +1,11 @@
 importScripts('/js/alerts-store.js');
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
+// Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
+// página nueva hasta tenerlos, y mientras muestra el último fotograma de la anterior (con el «+» de carga parado).
+const SLOW_NETWORK_MS = 1500;
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
@@ -65,7 +68,7 @@ const SHELL_FILES = [
 
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES))
+        caches.open(CACHE_NAME).then((cache) => Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => (response.ok ? cache.put(file, response) : undefined)))))
     );
     self.skipWaiting();
 });
@@ -102,18 +105,60 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                }
-                return response;
-            })
-            .catch(() => caches.match(event.request))
-    );
+    if (event.request.mode === 'navigate') {
+        event.respondWith(networkFirst(event.request, SLOW_NETWORK_MS));
+        return;
+    }
+    // Hojas de estilo, scripts, tipografías e imágenes: salen de la caché al instante y se actualizan en segundo plano.
+    event.respondWith(staleWhileRevalidate(event));
 });
+
+function saveInCache(request, response) {
+    if (!response.ok) return Promise.resolve();
+    return caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
+}
+
+function staleWhileRevalidate(event) {
+    const update = fetch(event.request).then((response) => {
+        event.waitUntil(saveInCache(event.request, response.clone()));
+        return response;
+    });
+    return caches.match(event.request).then((cached) => {
+        if (cached) {
+            update.catch(() => {});
+            return cached;
+        }
+        return update.catch(() => caches.match(event.request).then((hit) => hit || Response.error()));
+    });
+}
+
+// Páginas: la red manda, pero si tarda más de `timeoutMs` y hay copia, se usa la copia y la red la renueva.
+function networkFirst(request, timeoutMs) {
+    return new Promise((resolve) => {
+        let settled = false;
+        const settle = (response) => {
+            if (!settled) {
+                settled = true;
+                resolve(response);
+            }
+        };
+        const timer = setTimeout(() => {
+            caches.match(request).then((hit) => {
+                if (hit) settle(hit);
+            });
+        }, timeoutMs);
+        fetch(request)
+            .then((response) => {
+                clearTimeout(timer);
+                saveInCache(request, response.clone());
+                settle(response);
+            })
+            .catch(() => {
+                clearTimeout(timer);
+                caches.match(request).then((hit) => settle(hit || Response.error()));
+            });
+    });
+}
 
 async function notifyNewAlerts() {
     if (!(await AlertsStore.get('enabled'))) return;
