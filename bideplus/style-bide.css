@@ -294,8 +294,8 @@ html.bide body.page-menu #legal-close {
         z-index: 55;
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 2px;
-        padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+        gap: 0;
+        padding: 0;
         border-top: 1px solid var(--bide-line);
         background: var(--bide-surface);
         box-shadow: 0 -6px 20px -12px rgba(0, 0, 0, .25);
@@ -306,9 +306,10 @@ html.bide body.page-menu #legal-close {
         align-items: center;
         justify-content: center;
         gap: 3px;
-        min-height: 52px;
+        min-height: calc(58px + env(safe-area-inset-bottom));
+        padding: 0 0 env(safe-area-inset-bottom);
         border: none;
-        border-radius: 12px;
+        border-radius: 0;
         background: none;
         color: var(--bide-muted);
         font-family: inherit;
@@ -318,13 +319,14 @@ html.bide body.page-menu #legal-close {
         transition: color .15s ease, transform .12s ease;
     }
         html.bide .bide-tab svg { width: 22px; height: 22px; }
-        html.bide .bide-tab[aria-current="page"] { color: var(--bide-green); font-weight: 800; }
-            html.bide .bide-tab[aria-current="page"] svg { box-sizing: content-box; padding: 4px 18px; border-radius: 999px; background: var(--bide-tint); }
+        /* La pestaña activa rellena todo su hueco con el color de la app en la que estás (Metro+ rojo, Bizkaibus+ verde...). En el inicio de Bide+ es verde. */
+        html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff; font-weight: 800; }
     html.bide.is-standalone body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
     html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
     html.bide.is-standalone body.page-app #dev-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone #menu-open { display: none; }
     html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
     html.bide body.page-app .bide-views { padding: 0 2px; }
+    html.bide.bide-view-open .bide-view { padding-top: calc(env(safe-area-inset-top) + 20px); }
 }
 
 /* ===== Ordenador ===== */
