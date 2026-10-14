@@ -117,6 +117,10 @@ class RealtimeMatcher
             $aLive,
             $iStopSeq
         );
+        // Más de 45 min entre la llegada estimada y la hora publicada de esta parada: viaje mal asignado u horario que no sirve de referencia.
+        if ($this->bBusNetwork && abs($iEffectiveDelay) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
+            return $aRow + self::scheduledFields($aRow);
+        }
         $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
 
         if ($bAlreadyPassed && !$bPositioned) {
@@ -194,7 +198,8 @@ class RealtimeMatcher
                 $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
                 $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
                 $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);
-                return [$iEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
+                // El retraso de la salida es el de esa parada: llegada estimada menos la hora publicada, lo que el usuario ve en pantalla.
+                return [$iEta, $iEta - $iTargetArrivalSeconds, true];
             } catch (\Throwable $Ex) {
                 error_log('Bide+ ETA: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
                 return [$iTargetArrivalSeconds, 0, false];
@@ -205,7 +210,7 @@ class RealtimeMatcher
             if ($iTargetSeq !== null && $sServiceJourneyId !== null) {
                 $iRegisteredEta = $this->registeredEta($sServiceJourneyId, $iTargetArrivalSeconds, $iTargetSeq, $aLive);
                 if ($iRegisteredEta !== null) {
-                    return [$iRegisteredEta, $this->registration($sServiceJourneyId, $aLive)['delay'], false];
+                    return [$iRegisteredEta, $iRegisteredEta - $iTargetArrivalSeconds, false];
                 }
             }
             return [$iTargetArrivalSeconds, 0, false];
