@@ -111,8 +111,10 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             pick = '#live-timetable-link:not([hidden]), #live-more-list button';
         }
         await until(`!!document.querySelector('${pick}')`);
-        await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
-        await until("!document.getElementById('timetable-section').hidden");
+        for (let attempt = 0; attempt < 3; attempt++) {
+            await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
+            if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
+        }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
         await until("document.querySelectorAll('#timetable-body tr').length > 0");
