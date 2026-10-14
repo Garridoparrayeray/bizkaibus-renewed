@@ -33,7 +33,7 @@ class ServiceJourney
         $Stmt = $this->Pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
                    l.code AS line_code, l.name AS line_name, jp.id AS journey_pattern_id, jp.headsign,
-                   pt.arrival_seconds, pt.departure_seconds,
+                   pt.arrival_seconds, pt.departure_seconds, pt.seq_order AS stop_seq,
                    ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
             FROM passing_times pt
             JOIN service_journeys sj ON sj.id = pt.service_journey_id
