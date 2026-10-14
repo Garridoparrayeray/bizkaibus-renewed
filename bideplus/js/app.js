@@ -37,6 +37,7 @@
         departuresRefreshTimer: null,
         departuresTickTimer: null,
         lastDepartures: null,
+        lastTimetableEntries: null,
         departuresSignature: '',
     };
 
@@ -669,6 +670,7 @@
             return;
         }
         if (requestId !== timetableRequestId) return;
+        state.lastTimetableEntries = data.entries;
         renderTimetableRows(data.entries);
         const timetableNote = document.getElementById('timetable-note');
         timetableNote.hidden = !data.beyondPublished;
@@ -1504,6 +1506,17 @@
         setAlertTexts('app.myFavoritesIncidents', 'app.notifyMeFavorites');
     }
 
+    // Los textos que se pintan por código (estado, retraso, avisos de la tarjeta, recorrido y horario) no llevan data-i18n: al cambiar de idioma se vuelven a pintar.
+    function refreshLanguageDependentViews() {
+        if (state.currentStop && state.lastDepartures) renderDepartures(state.lastDepartures);
+        if (el.modal.open && modalState.data) {
+            modalState.signature = '';
+            renderModalHeader(modalState.data);
+            renderModalStops(modalState.data);
+        }
+        if (state.lastTimetableEntries && !el.timetableSection.hidden) renderTimetableRows(state.lastTimetableEntries);
+    }
+
     I18n.applyTranslations();
     updateLangToggleLabel();
     updateNetworkSubtitle();
@@ -1516,6 +1529,7 @@
         I18n.applyTranslations();
         updateLangToggleLabel();
         updateNetworkSubtitle();
+        refreshLanguageDependentViews();
     });
 
     el.nearbyBtn.addEventListener('click', findNearby);
@@ -1635,10 +1649,15 @@
 
     const pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
     if (pathMatch) {
+        // El id llega codificado (Euskotren usa «ES:Euskotren:StopPlace:2577:»): sin descodificar, la API no encuentra la parada.
+        let pathId = pathMatch[2];
+        try {
+            pathId = decodeURIComponent(pathId);
+        } catch (e) { /* se usa tal cual */ }
         if (pathMatch[1] === 'stops') {
-            selectStop(pathMatch[2]);
+            selectStop(pathId);
         } else if (pathMatch[1] === 'lines') {
-            selectLine(pathMatch[2]);
+            selectLine(pathId);
         }
     }
 })();

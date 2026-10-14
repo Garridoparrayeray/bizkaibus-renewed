@@ -62,6 +62,7 @@ if ($sNetwork === 'bus') {
 $Realtime = new RealtimeController();
 $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
 $Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
+$Router->get('/status', [$Realtime, 'status'], 30);
 
 try {
     $Router->dispatch($Req);

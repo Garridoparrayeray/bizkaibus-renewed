@@ -76,26 +76,51 @@ class TripUpdatesMatcher
         return $aRows;
     }
 
+    /*
+     * Empareja las salidas programadas de la parada con los trenes del feed. Para cada salida se alinea la lista de
+     * paradas de cada tren con el patrón de esa salida: el feed del CTB a veces publica mal el id de una parada
+     * (Urduliz, 29, sale como Gobela, 20), así que un tren con una sola parada fuera de orden no se descarta: esa
+     * parada se corrige con la que le toca en el patrón. Con más paradas fuera de orden (tren de otro sentido) sí se
+     * descarta. Devuelve [previsiones candidatas por tren, emparejamientos fila => tren].
+     */
     private function pair(string $sStopId, array $aRows): array
     {
-        $aPredictions = $this->predictionsAt($sStopId);
-        if (empty($aPredictions) || empty($aRows)) {
-            return [$aPredictions, []];
+        if (empty($this->aTrips) || empty($aRows)) {
+            return [[], []];
         }
 
         $aPatternIds = array_values(array_unique(array_column($aRows, 'journey_pattern_id')));
         $aSequences = $this->JourneyModel->stopSequencesForPatterns($aPatternIds);
 
+        $aPredictions = [];
         $aPairs = [];
         foreach ($aRows as $iRow => $aRow) {
             if (($aRow['status'] ?? 'scheduled') !== 'scheduled') {
                 continue;
             }
             $aSequence = $aSequences[$aRow['journey_pattern_id']] ?? [];
-            foreach ($aPredictions as $iPrediction => $aPrediction) {
-                $iDifference = abs($aPrediction['seconds'] - (int)$aRow['arrival_seconds']);
-                if ($iDifference <= $this->iToleranceSeconds && self::followsSequence($aPrediction['stopIds'], $aSequence)) {
-                    $aPairs[] = [$iDifference, $iRow, $iPrediction];
+            foreach ($this->aTrips as $iTrip => $aTrip) {
+                if (\count($aTrip['stops']) < 2) {
+                    continue;
+                }
+                $aAligned = self::alignToSequence($aTrip['stops'], $aSequence);
+                if ($aAligned === null) {
+                    continue;
+                }
+                $iSeconds = null;
+                foreach ($aAligned as [$sTripStopId, $iTime]) {
+                    if ($sTripStopId === $sStopId) {
+                        $iSeconds = $iTime - $this->iMidnight;
+                        break;
+                    }
+                }
+                if ($iSeconds === null) {
+                    continue;
+                }
+                $aPredictions[$iTrip] = ['seconds' => $iSeconds, 'stopIds' => array_column($aAligned, 0), 'stops' => $aAligned];
+                $iDifference = abs($iSeconds - (int)$aRow['arrival_seconds']);
+                if ($iDifference <= $this->iToleranceSeconds) {
+                    $aPairs[] = [$iDifference, $iRow, $iTrip, $iSeconds, $aAligned];
                 }
             }
         }
@@ -103,35 +128,91 @@ class TripUpdatesMatcher
 
         $aMatches = [];
         $aUsedPredictions = [];
-        foreach ($aPairs as [$iDifference, $iRow, $iPrediction]) {
-            if (isset($aMatches[$iRow]) || isset($aUsedPredictions[$iPrediction])) {
+        foreach ($aPairs as [$iDifference, $iRow, $iTrip, $iSeconds, $aAligned]) {
+            if (isset($aMatches[$iRow]) || isset($aUsedPredictions[$iTrip])) {
                 continue;
             }
-            $aMatches[$iRow] = $iPrediction;
-            $aUsedPredictions[$iPrediction] = true;
+            $aMatches[$iRow] = $iTrip;
+            $aUsedPredictions[$iTrip] = true;
+            $aPredictions[$iTrip] = ['seconds' => $iSeconds, 'stopIds' => array_column($aAligned, 0), 'stops' => $aAligned];
         }
         return [$aPredictions, $aMatches];
     }
 
-    private function predictionsAt(string $sStopId): array
+    /*
+     * Lista de paradas del tren ajustada al patrón: la misma lista si todas siguen el orden del patrón; si basta quitar
+     * una parada para que lo sigan, esa parada se corrige por la que le toca (la siguiente a la anterior en el patrón,
+     * o la anterior a la siguiente si es la primera); null si el tren no sigue ese patrón o la corrección no es única.
+     */
+    private static function alignToSequence(array $aStops, array $aSequence): array|null
     {
-        $aPredictions = [];
-        foreach ($this->aTrips as $aTrip) {
-            if (\count($aTrip['stops']) < 2) {
+        $aPositions = [];
+        foreach ($aStops as [$sStopId]) {
+            $aPositions[] = array_search((string)$sStopId, $aSequence, true);
+        }
+        if (self::increasing($aPositions)) {
+            return $aStops;
+        }
+        if (\count($aStops) < 3) {
+            return null;
+        }
+
+        $aCandidate = null;
+        $iBestScore = -1;
+        $bTie = false;
+        foreach (array_keys($aStops) as $iOutlier) {
+            $aRest = $aPositions;
+            unset($aRest[$iOutlier]);
+            if (!self::increasing(array_values($aRest))) {
                 continue;
             }
-            foreach ($aTrip['stops'] as [$sTripStopId, $iTime]) {
-                if ($sTripStopId === $sStopId) {
-                    $aPredictions[] = [
-                        'seconds' => $iTime - $this->iMidnight,
-                        'stopIds' => array_column($aTrip['stops'], 0),
-                        'stops' => $aTrip['stops'],
-                    ];
-                    break;
-                }
+            $iPrevious = $aPositions[$iOutlier - 1] ?? null;
+            $iNext = $aPositions[$iOutlier + 1] ?? null;
+            $iExpected = null;
+            if ($iOutlier > 0 && $iPrevious !== false && $iPrevious !== null) {
+                $iExpected = $iPrevious + 1;
+            } elseif ($iOutlier === 0 && $iNext !== false && $iNext !== null) {
+                $iExpected = $iNext - 1;
+            }
+            if ($iExpected === null || !isset($aSequence[$iExpected]) || \in_array($iExpected, $aPositions, true)) {
+                continue;
+            }
+            $aFixed = $aStops;
+            $aFixed[$iOutlier][0] = (string)$aSequence[$iExpected];
+            $aFixedPositions = $aPositions;
+            $aFixedPositions[$iOutlier] = $iExpected;
+            if (!self::increasing($aFixedPositions)) {
+                continue;
+            }
+            // Si hay varias correcciones posibles, gana la que deja la parada corregida pegada a sus dos vecinas en el patrón.
+            $iScore = 0;
+            if ($iPrevious !== null && $iPrevious !== false && $iExpected === $iPrevious + 1) {
+                $iScore++;
+            }
+            if ($iNext !== null && $iNext !== false && $iExpected === $iNext - 1) {
+                $iScore++;
+            }
+            if ($aCandidate === null || $iScore > $iBestScore) {
+                $aCandidate = $aFixed;
+                $iBestScore = $iScore;
+                $bTie = false;
+            } elseif ($iScore === $iBestScore) {
+                $bTie = true;
             }
         }
-        return $aPredictions;
+        return $bTie ? null : $aCandidate;
+    }
+
+    private static function increasing(array $aPositions): bool
+    {
+        $iLast = -1;
+        foreach ($aPositions as $Position) {
+            if ($Position === false || $Position <= $iLast) {
+                return false;
+            }
+            $iLast = $Position;
+        }
+        return true;
     }
 
     private static function followsSequence(array $aStopIds, array $aSequence): bool
