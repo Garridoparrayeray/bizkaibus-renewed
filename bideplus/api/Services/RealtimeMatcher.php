@@ -2,6 +2,7 @@
 
 namespace Services;
 
+use Core\Config;
 use Models\ServiceJourney;
 
 class RealtimeMatcher
@@ -34,6 +35,7 @@ class RealtimeMatcher
     private PaceFactors $Pace;
     private SegmentTimes $Segments;
     private string $sDate;
+    private bool $bBusNetwork;
 
     public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null, SegmentTimes|null $Segments = null)
     {
@@ -44,7 +46,12 @@ class RealtimeMatcher
             $this->iNow = $iNowSeconds;
         }
         $this->Pace = $Pace ?? PaceFactors::fromFile();
-        $this->Segments = $Segments ?? SegmentTimes::fromFile();
+        /*
+         * Los tiempos por tramo (por id de parada) y el cálculo desde la parada registrada se han medido solo con
+         * Bizkaibus. Las demás redes con SIRI (Euskotren, Tranvía de Bilbao) siguen con el cálculo de siempre.
+         */
+        $this->bBusNetwork = (Config::current()['network'] ?? 'bus') === 'bus';
+        $this->Segments = $Segments ?? ($this->bBusNetwork ? SegmentTimes::fromFile() : new SegmentTimes());
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
     }
@@ -164,7 +171,7 @@ class RealtimeMatcher
      */
     private function registration(string|null $sServiceJourneyId, array $aLive): array|null
     {
-        if ($this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
+        if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
             return null;
         }
         $iOrder = (int)$aLive['order'];

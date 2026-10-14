@@ -124,7 +124,7 @@ En algunos tramos el horario oficial no se parece a la realidad: por ejemplo, el
 ETA = T_gps + Σ tramos hasta la parada (tiempo aprendido del tramo, o k × horario del tramo si no hay datos)
 ```
 
-El tiempo aprendido sale de `data/segment-times.json` (lo lee `Services\SegmentTimes`): la mediana de lo que tardan de verdad los buses en cada tramo entre dos paradas (`desde>hasta`, con ids de parada, así que lo comparten todas las líneas que pasan por él), por franja si hay datos y si no general. Hace falta un mínimo de 3 buses distintos por tramo. Sin el fichero, la fórmula es exactamente la de arriba.
+El tiempo aprendido sale de `data/segment-times.json` (lo lee `Services\SegmentTimes`): la mediana de lo que tardan de verdad los buses en cada tramo entre dos paradas (`desde>hasta`, con ids de parada, así que lo comparten todas las líneas que pasan por él), por franja si hay datos y si no general. Hace falta un mínimo de 3 buses distintos por tramo. Sin el fichero, la fórmula es exactamente la de arriba. **Solo se aplica a Bizkaibus**: los ids de parada de otras redes pueden coincidir y estos tiempos se han medido solo con sus buses (Euskotren y el tranvía de Bilbao, que también usan SIRI, siguen con el cálculo de siempre).
 
 ```
 php scripts/realtime-backtest.php calibrate-segments capturas            # solo informa
@@ -142,7 +142,7 @@ Hay buses cuyo GPS no sirve (no lo mandan, o están a más de 50 m de la ruta po
 ETA = T_dato + ½ × (tiempo esperado, parada anterior → próxima) + tiempo esperado (próxima → parada pedida)
 ```
 
-Se parte de la hora del dato (`RecordedAtTime`), a mitad del tramo hasta la próxima parada, y se suman los tiempos esperados (los de `segment-times.json`, o el horario con `k`). Solo se usa si el viaje ya ha empezado, el dato tiene menos de 10 min y se conoce la parada. Además, con GPS fuera de la ruta o sin GPS, si el feed ya da una parada posterior como próxima, la fila de las anteriores se retira (`RealtimeMatcher::isPassedPerFeed`); con GPS en ruta manda el GPS. Un bus que espera en cabecera (viaje sin empezar) no se toca.
+Se parte de la hora del dato (`RecordedAtTime`), a mitad del tramo hasta la próxima parada, y se suman los tiempos esperados (los de `segment-times.json`, o el horario con `k`). Solo se usa si el viaje ya ha empezado, el dato tiene menos de 10 min y se conoce la parada. Además, con GPS fuera de la ruta o sin GPS, si el feed ya da una parada posterior como próxima, la fila de las anteriores se retira (`RealtimeMatcher::isPassedPerFeed`); con GPS en ruta manda el GPS. Un bus que espera en cabecera (viaje sin empezar) no se toca. Como los tiempos por tramo, **solo se aplica a Bizkaibus**.
 
 Medido con 57 823 predicciones (14:45–15:45 del 6 de octubre, tiempos aprendidos antes de las 14:45) frente a la hora real de paso: error medio **2,2 min** con esta fórmula, 2,0 con GPS, 3,9 con la de antes para buses sin ninguna ubicación y 8,2 con solo el horario. Mezclarla con el GPS no mejora (1,96 contra 1,98), por eso solo se usa donde no hay GPS utilizable. Las filas «fantasma» (parada ya pasada según el feed, mostrada como futura) de los buses sin GPS bajan de 727 a 75.
 
