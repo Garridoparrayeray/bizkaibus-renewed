@@ -210,6 +210,45 @@ $expect('sin GPS usa ahora + horario restante desde la parada del feed', $iEta =
 $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaForStop('J_LINE', T0 + 720, null) === [T0 + 720, 0, false]);
 
 /* ------------------------------------------------------------------ */
+$section('RealtimeMatcher: parada registrada sin GPS utilizable');
+
+/* J_LINE: paradas seq 1..5 con llegadas T0, +180, +360, +540, +720. El feed da la parada 3 como próxima. */
+$aRegistered = live(1500, 0, 3, $iGps);
+$aRegistered['lat'] = null;
+$aRegistered['lon'] = null;
+$aRegistered['locationSeconds'] = null;
+$aRegistered['recordedSeconds'] = T0 + 250;
+$MReg = matcher($aRegistered, T0 + 300);
+[$iEta, $iDelay, $bPositioned] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
+$expect('sin GPS, la ETA parte de la hora del dato, a mitad del tramo hasta la próxima, más lo que queda (08:11:40)', $iEta === T0 + 700 && !$bPositioned, hms($iEta));
+$expect('el retraso mostrado es la ETA menos el horario de la parada', $iDelay === -20);
+[$iEta] = $MReg->etaForStop('J_LINE', T0 + 360, $aRegistered, 3);
+$expect('para la propia próxima parada solo cuenta la mitad del tramo (08:05:40)', $iEta === T0 + 340, hms($iEta));
+[$iEta] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
+$expect('sin número de parada se usa el cálculo de antes (ahora + horario desde la próxima)', $iEta === T0 + 300 + 360, hms($iEta));
+
+$expect('una parada anterior a la próxima ya está pasada', $MReg->isPassedPerFeed('J_LINE', $aRegistered, 2) && $MReg->isPassedPerFeed('J_LINE', $aRegistered, 1));
+$expect('la próxima parada y las siguientes no están pasadas', !$MReg->isPassedPerFeed('J_LINE', $aRegistered, 3) && !$MReg->isPassedPerFeed('J_LINE', $aRegistered, 5));
+$aWaiting = $aRegistered;
+$aWaiting['recordedSeconds'] = T0 - 120;
+$expect('un bus que espera en cabecera (viaje sin empezar) no deja pasada la parada 1', !matcher($aWaiting, T0 - 100)->isPassedPerFeed('J_LINE', $aWaiting, 1));
+$expect('un dato de hace más de 10 min no sirve para dar nada por pasado', !matcher($aRegistered, T0 + 250 + 11 * 60)->isPassedPerFeed('J_LINE', $aRegistered, 2));
+$aOnRoute = live(1500, 0, 3, $iGps);
+$expect('con GPS en ruta manda el GPS: no se da por pasada una parada por el feed', !matcher($aOnRoute, $iGps + 30)->isPassedPerFeed('J_LINE', $aOnRoute, 2));
+$aOffRoute = live(1500, 200, 3, $iGps);
+$aOffRoute['recordedSeconds'] = $iGps;
+$MOff = matcher($aOffRoute, $iGps + 30);
+$expect('con GPS fuera de la ruta se usa la parada registrada', $MOff->isPassedPerFeed('J_LINE', $aOffRoute, 2));
+[$iEta] = $MOff->etaForStop('J_LINE', T0 + 720, $aOffRoute, 5);
+$expect('con GPS fuera de la ruta la ETA sale de la parada registrada (08:12:00)', $iEta === $iGps + 90 + 360, hms($iEta));
+
+$aRowPassed = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 180, 'stop_seq' => 2];
+$aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
+$aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
+$expect('enrich: la fila de una parada ya pasada sale como salida y fuera de la ventana de la lista', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 300 - 180, json_encode($aEnriched[0]['etaSeconds']));
+$expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
+
+/* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: sin trazado (tramos entre paradas)');
 
 $aSeg = live(1500, 100, 3, $iGps, 'trp_A3414_809_X_28800_x');
@@ -355,6 +394,7 @@ $expect('lee la salida del VehicleJourneyRef (28800 s)', $aFirst !== null && $aF
 $expect('Delay PT1M30S = 90 s y -PT45S = -45 s', $aFirst !== null && $aSecond !== null && $aFirst['delaySeconds'] === 90 && $aSecond['delaySeconds'] === -45);
 $expect('lee GPS, hora del dato (08:04:00), parada y VisitNumber', $aFirst !== null && $aFirst['lat'] === 43.27 && $aFirst['locationSeconds'] === T0 + 240 && $aFirst['currentStopId'] === '0123' && $aFirst['order'] === 3);
 $expect('Order tiene prioridad y un GPS de otro día se descarta', $aSecond !== null && $aSecond['order'] === 7 && $aSecond['lat'] === null && $aSecond['locationSeconds'] === null);
+$expect('guarda la hora del dato (RecordedAtTime) aunque no haya GPS', $aFirst !== null && $aFirst['recordedSeconds'] === T0 + 240 && $aSecond !== null && $aSecond['recordedSeconds'] === null);
 $expect('un XML roto devuelve un mapa vacío', SiriVehicleMonitoringClient::parse('<Siri><roto', DATE_WEEKDAY) === []);
 
 /* ------------------------------------------------------------------ */
