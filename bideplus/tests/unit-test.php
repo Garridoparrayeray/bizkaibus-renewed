@@ -212,6 +212,10 @@ $expect('sin GPS usa ahora + horario restante desde la parada del feed', $iEta =
 $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaForStop('J_LINE', T0 + 720, null) === [T0 + 720, 0, false]);
 
 /* ------------------------------------------------------------------ */
+$section('Bizkaibus: fuente de los buses en directo');
+$aBusConfig = require __DIR__ . '/../api/Config/config.php';
+$expect('los buses en directo salen solo de Open Data Euskadi (con GPS, hora del dato y retraso), sin respaldo del CTB', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://opendata.euskadi.eus/') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
+
 $section('RealtimeMatcher: parada registrada sin GPS utilizable');
 
 /* J_LINE: paradas seq 1..5 con llegadas T0, +180, +360, +540, +720. El feed da la parada 3 como próxima. */

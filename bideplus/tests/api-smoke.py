@@ -109,6 +109,10 @@ for name, (lat, lon, fragment) in NEARBY.items():
         if nxt is not None and (nxt['etaMinutes'] < 0 or not nxt['lineCode'] or not nxt['scheduledTime']):
             fails.append(f'{name}: proxima salida invalida {nxt}')
     print(name, 'nearby ok', distances)
+status = get('/api/status') or {}
+if status.get('source') != 'opendata.euskadi.eus' or 'ok' not in status or 'ms' not in status:
+    fails.append(f'/api/status: la fuente de los buses no es Open Data Euskadi o falta el diagnostico {status}')
+get('/api/status?red=metro', 404)
 bus_alerts = (get('/api/alerts') or {}).get('alerts', [])
 for name in ('metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'):
     other = (get(with_net('/api/alerts', NETS[name]['suffix'])) or {}).get('alerts', [])
