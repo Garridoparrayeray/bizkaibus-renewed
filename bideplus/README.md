@@ -134,11 +134,17 @@ php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
 
 `calibrate-segments` valida igual que `calibrate`: aprende con la mitad de los buses y mide en la otra mitad; solo escribe si el error baja. El tiempo general de un tramo solo se guarda si hay datos de al menos dos franjas, para que lo medido a mediodía no se use en hora punta. `data/segment-samples-seed.jsonl.gz` son las primeras muestras (6 oct 2026, mediodía de laborable, 760 buses): el workflow empieza por ellas si la release aún no tiene `segment-samples.jsonl`.
 
-### Buses sin GPS utilizable: horario oficial
+### Bizkaibus en tres capas: GPS, parada registrada, horario oficial
 
-Bizkaibus lee solo el feed de Open Data Euskadi (GPS, hora del dato y retraso). Un bus **sin GPS utilizable**, porque no lo manda o porque está a más de 50 m de la ruta, no cuenta como «en directo»: su salida sale con el **horario oficial** («Programado»), sin retraso ni minutos estimados. Se probaron estimaciones desde la parada registrada y desde el feed de respaldo del CTB (`bizkaibus-trip-updates.xml`, sin GPS, con hora inválida y retraso siempre 0), pero daban cifras que no se podían defender, como «22 min adelantado», así que se quitaron. Otras redes con SIRI (Euskotren, tranvías) no cambian.
+Cada salida usa la mejor capa que tenga datos fiables:
 
-Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si Open Data Euskadi contesta, cuánto tarda y cuántos buses traen GPS, hora del dato y retraso.
+1. **En vivo con GPS:** el GPS se proyecta sobre el recorrido (hasta 50 m) y se estima la llegada tramo a tramo. Una parada que el bus ya dejó atrás sale como pasada y desaparece de la lista.
+2. **Parada registrada (sin GPS utilizable):** si el bus no manda GPS o está fuera de la ruta pero el feed da su próxima parada y la hora del dato (menos de 10 min), el retraso sale de esa parada: hora del dato a mitad del tramo hasta la próxima, más los tiempos esperados hasta la parada pedida. Solo se usa si el tramo anterior→próxima parada dura 6 min o menos. Contrastado con el feed real (201 buses con GPS), la parada registrada coincide con el GPS con mediana de 0,7 min y p90 de 1,7 min en tramos de hasta 5 min; en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana y por eso no se usa.
+3. **Horario oficial:** sin datos en vivo, con datos viejos o sin hora del dato, la salida sale «Programado» con su hora oficial, sin retraso ni minutos estimados.
+
+No hay más estimaciones (márgenes de adelanto, descarte por orden del feed sin hora): daban cifras que no se podían defender. Otras redes con SIRI (Euskotren, tranvías) no cambian.
+
+Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si el feed GPS de Open Data Bizkaia contesta, cuánto tarda y cuántos buses traen GPS, hora del dato y retraso.
 
 **Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (60 días; las releases no disparan despliegues). Cada día calcula `k` y los tiempos por tramo con todo lo acumulado y, solo si el error baja en la mitad de prueba y el resultado cambia, hace un commit de `data/pace-factors.json` y `data/segment-times.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` y `segment-samples <carpeta> <tramos.jsonl>` hacen lo mismo en local.
 
