@@ -14,6 +14,7 @@ class RealtimeMatcher
     private const REGISTRATION_SEGMENT_SHARE = 0.5;
     private const REGISTRATION_MAX_SEGMENT_SECONDS = 6 * 60;
     private const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
+    private const MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS = 6 * 60;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
@@ -34,6 +35,7 @@ class RealtimeMatcher
     private array $aStopsByJourneyId = [];
     private array $aShapeByJourneyId = [];
     private array $aPositionMemo = [];
+    private array $aDistrusted = [];
     private PaceFactors $Pace;
     private SegmentTimes $Segments;
     private string $sDate;
@@ -235,6 +237,9 @@ class RealtimeMatcher
         if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
             return null;
         }
+        if (isset($this->aDistrusted[$sServiceJourneyId . '|' . ($aLive['vehicleRef'] ?? '')])) {
+            return null;
+        }
         $iOrder = (int)$aLive['order'];
         if ($iOrder < 2) {
             return null;
@@ -388,6 +393,20 @@ class RealtimeMatcher
                 if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null
                     && abs($this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds']) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
                     $this->aPositionMemo[$sMemoKey] = null;
+                }
+                /*
+                 * Dos medidas del mismo bus que no cuadran: el GPS proyectado sobre el recorrido y la parada que marca el
+                 * feed. Con una captura de 14 min del feed real, 11 buses con más de 25 min de retraso se mantuvieron
+                 * estables y coincidían con los pasos por parada, y otros 10 cambiaron hasta 34 min en 14 min, con GPS y
+                 * parada discrepando. Si discrepan más de 6 min no se fía de ninguna: horario oficial.
+                 */
+                if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null) {
+                    $aRegistration = $this->registration($sServiceJourneyId, $aLive);
+                    $iGpsDelay = $this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds'];
+                    if ($aRegistration !== null && abs($iGpsDelay - $aRegistration['delay']) > self::MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS) {
+                        $this->aDistrusted[$sServiceJourneyId . '|' . ($aLive['vehicleRef'] ?? '')] = true;
+                        $this->aPositionMemo[$sMemoKey] = null;
+                    }
                 }
             } catch (\Throwable $Ex) {
                 // Si el cálculo con GPS falla, ese bus se queda sin posición y sale con el horario oficial.

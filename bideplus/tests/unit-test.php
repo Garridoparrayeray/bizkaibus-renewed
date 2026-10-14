@@ -307,6 +307,14 @@ $expect('tramos de 3 min sí se estiman', $MLong->isLive('J_LINE', $aLongSegment
 $aBigGap = array_merge($aRegistered, ['order' => 5, 'recordedSeconds' => T0 + 600]);
 $expect('con tramo hasta la próxima parada de 3 min (orden 5) se estima', matcher($aBigGap, T0 + 620)->isLive('J_LINE', $aBigGap));
 
+/* GPS y parada registrada que no cuadran (más de 6 min): no se fía de ninguna, horario oficial. */
+$aDisagree = live(1500, 0, 5, $iGps);
+$MDisagree = matcher($aDisagree, $iGps + 30, new PaceFactors(['global' => ['laborable.punta_manana' => 0.0]]));
+$aDisagreeOut = $MDisagree->enrich([$aRowTarget]);
+$expect('GPS y parada registrada discrepan más de 6 min: la salida sale con el horario oficial', $aDisagreeOut[0]['status'] === 'scheduled', $aDisagreeOut[0]['status']);
+$aAgreeOut = matcher($aGpsPassed, $iGps + 30)->enrich([$aRowTarget]);
+$expect('GPS y parada registrada que cuadran: sigue en vivo', $aAgreeOut[0]['status'] === 'live', $aAgreeOut[0]['status']);
+
 /* Un retraso de más de 45 min no es creíble (viaje mal asignado en el feed): horario oficial, con GPS y con parada registrada. */
 $iFarGps = T0 + 3300;
 $aFar = live(1500, 0, 3, $iFarGps);
