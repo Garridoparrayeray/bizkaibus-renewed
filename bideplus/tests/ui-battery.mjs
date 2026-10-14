@@ -110,6 +110,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         if (a.panel === 'live-card') {
             pick = '#live-timetable-link:not([hidden]), #live-more-list button';
         }
+        await until(`!!document.querySelector('${pick}')`);
         await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
         await until("!document.getElementById('timetable-section').hidden");
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
