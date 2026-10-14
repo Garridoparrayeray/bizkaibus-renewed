@@ -11,6 +11,7 @@ spl_autoload_register(function (string $sClass): void {
     }
 });
 
+use Core\Config;
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
@@ -247,6 +248,15 @@ $aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_sec
 $aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
 $expect('enrich: la fila de una parada ya pasada sale como salida y fuera de la ventana de la lista', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 300 - 180, json_encode($aEnriched[0]['etaSeconds']));
 $expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
+
+/* Solo Bizkaibus: en otras redes con SIRI (Euskotren, tranvías) no se usa la parada registrada ni los tiempos aprendidos. */
+Config::set('euskotren');
+$MOtherNetwork = matcher($aRegistered, T0 + 300);
+$expect('en otra red no se da ninguna parada por pasada con el feed', !$MOtherNetwork->isPassedPerFeed('J_LINE', $aRegistered, 2));
+[$iEta] = $MOtherNetwork->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
+$expect('en otra red, sin GPS, la ETA es la de siempre (ahora + horario desde la próxima parada)', $iEta === T0 + 300 + 360, hms($iEta));
+Config::set('bus');
+$expect('al volver a Bizkaibus se usa otra vez la parada registrada', matcher($aRegistered, T0 + 300)->isPassedPerFeed('J_LINE', $aRegistered, 2));
 
 /* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: sin trazado (tramos entre paradas)');
