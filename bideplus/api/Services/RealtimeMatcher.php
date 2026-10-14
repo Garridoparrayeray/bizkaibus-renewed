@@ -13,7 +13,7 @@ class RealtimeMatcher
     private const POSITION_SANITY_SECONDS = 15 * 60;
     private const REGISTRATION_SEGMENT_SHARE = 0.5;
     private const REGISTRATION_MAX_SEGMENT_SECONDS = 6 * 60;
-    private const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
+    public const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
     private const MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS = 6 * 60;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
@@ -117,9 +117,14 @@ class RealtimeMatcher
             $aLive,
             $iStopSeq
         );
-        // Más de 45 min entre la llegada estimada y la hora publicada de esta parada: viaje mal asignado u horario que no sirve de referencia.
+        /*
+         * Más de 45 min entre la llegada estimada y la hora publicada de esta parada: el viaje del feed no es el que hace
+         * el bus (o el horario no sirve de referencia). La llegada estimada sigue valiendo (sale de su posición y de los
+         * tiempos por tramo, no de la etiqueta del viaje; medido contra los pasos reales por parada), pero el retraso no
+         * se afirma.
+         */
         if ($this->bBusNetwork && abs($iEffectiveDelay) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
-            return $aRow + self::scheduledFields($aRow);
+            $iEffectiveDelay = null;
         }
         $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
 
@@ -286,10 +291,6 @@ class RealtimeMatcher
         $iToNext = (int)round(self::REGISTRATION_SEGMENT_SHARE * $this->expectedSeconds($sServiceJourneyId, $iPrevious, $iNext, $sBand, $dFactor));
         // Retraso del bus en su próxima parada (el mismo concepto que con GPS: lo que lleva el bus, no la diferencia en una parada lejana).
         $iDelay = $iRef + $iToNext - $iNext;
-        // Mismo límite que con GPS: más de 45 min respecto al horario es un viaje mal asignado, no un retraso.
-        if (abs($iDelay) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
-            return null;
-        }
         return [
             'order' => $iOrder,
             'ref' => $iRef,
@@ -356,6 +357,20 @@ class RealtimeMatcher
         return $dRemaining;
     }
 
+    /*
+     * Minutos de retraso para mostrar, o null si el retraso no es creíble (Bizkaibus: más de 45 min).
+     */
+    public function displayDelayMinutes(int|null $iDelaySeconds): int|null
+    {
+        if ($iDelaySeconds === null) {
+            return null;
+        }
+        if ($this->bBusNetwork && abs($iDelaySeconds) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
+            return null;
+        }
+        return (int)round($iDelaySeconds / 60);
+    }
+
     public function currentDelaySeconds(string|null $sServiceJourneyId, array|null $aLive): int
     {
         if ($aLive === null) {
@@ -390,15 +405,6 @@ class RealtimeMatcher
         if (!array_key_exists($sMemoKey, $this->aPositionMemo)) {
             try {
                 $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
-                /*
-                 * Con el feed real, los retrasos llegan a +37 min y de ahí saltan a +111, +122, +306 y -61: son buses
-                 * en marcha cuyo viaje del feed no es el que hacen (el GPS cuadra con la ruta, el viaje es otro). Más de
-                 * 45 min de diferencia con el horario no es un retraso creíble: ese bus sale con el horario oficial.
-                 */
-                if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null
-                    && abs($this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds']) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
-                    $this->aPositionMemo[$sMemoKey] = null;
-                }
                 /*
                  * Dos medidas del mismo bus que no cuadran: el GPS proyectado sobre el recorrido y la parada que marca el
                  * feed. Con una captura de 14 min del feed real, 11 buses con más de 25 min de retraso se mantuvieron

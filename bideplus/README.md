@@ -134,6 +134,19 @@ php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
 
 `calibrate-segments` valida igual que `calibrate`: aprende con la mitad de los buses y mide en la otra mitad; solo escribe si el error baja. El tiempo general de un tramo solo se guarda si hay datos de al menos dos franjas, para que lo medido a mediodía no se use en hora punta. `data/segment-samples-seed.jsonl.gz` son las primeras muestras (6 oct 2026, mediodía de laborable, 760 buses): el workflow empieza por ellas si la release aún no tiene `segment-samples.jsonl`.
 
+### Precisión medida
+
+`php scripts/eval-eta.php <carpeta con capturas del feed>` compara la ETA que muestra la app con el paso real por parada (el momento en que el feed cambia la próxima parada). Con 15 capturas del feed real (7 627 predicciones, 14 min, con una resolución de ±30 s en el paso real):
+
+| La parada queda a | Error mediano | Dentro de ±1 min | Dentro de ±2 min | Dentro de ±3 min | Solo el horario, ±2 min |
+|---|---|---|---|---|---|
+| 0-3 min | 0,5 min | 77 % | 90 % | 92 % | 19 % |
+| 3-6 min | 0,8 min | 62 % | 87 % | 93 % | 18 % |
+| 6-10 min | 1,1 min | 45 % | 75 % | 87 % | 16 % |
+| 10-20 min | 1,6 min | 34 % | 61 % | 79 % | 13 % |
+
+Sin sesgo (el error medio es 0). Por origen del dato, en llegadas en menos de 10 min: GPS en tramo corto, 92 % dentro de ±2 min; parada registrada, 72 %; GPS en tramo de más de 10 min, 61 %. Las salvaguardas se miden contra este criterio: el tope de 45 min sobre el retraso, aplicado como «salir con horario oficial», bajaba la precisión (de 85,2 % a 84,1 % dentro de ±2 min), así que ahora solo deja de afirmar el retraso y mantiene la llegada estimada.
+
 ### Bizkaibus en tres capas: GPS, parada registrada, horario oficial
 
 Cada salida usa la mejor capa que tenga datos fiables:
