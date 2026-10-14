@@ -7,7 +7,7 @@ use Models\ServiceJourney;
 class TripUpdatesMatcher
 {
     private const ON_TIME_SECONDS = 60;
-    private const LIVE_DEPARTED_AFTER_SECONDS = 45;
+    public const LIVE_DEPARTED_AFTER_SECONDS = 45;
     private const SCHEDULED_DEPARTED_AFTER_SECONDS = 60;
 
     private int $iMidnight;

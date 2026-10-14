@@ -266,7 +266,10 @@ class RealtimeController
             $iEta = null;
             $bAlreadyPassed = false;
             if ($bLive) {
-                if (isset($aPredicted[$sStopId])) {
+                if (isset($aPredicted[$sStopId]) && $aPredicted[$sStopId] < $iNow - TripUpdatesMatcher::LIVE_DEPARTED_AFTER_SECONDS) {
+                    // El feed mantiene una parada hasta ~110 s después de su hora prevista: el tren ya la ha dejado.
+                    $bAlreadyPassed = true;
+                } elseif (isset($aPredicted[$sStopId])) {
                     $iEta = $aPredicted[$sStopId];
                     if (!$bCurrentSet) {
                         $iDelaySeconds = $iEta - $iScheduled;
