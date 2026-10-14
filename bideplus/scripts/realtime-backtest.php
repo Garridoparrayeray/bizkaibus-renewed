@@ -32,7 +32,7 @@ const MIN_VEHICLES_PER_LINE = 5;
 const SHRINKAGE_TRACKS = 10;
 const MAX_SAMPLES_PER_TRACK = 30;
 const SAMPLES_RETENTION_DAYS = 60;
-const MIN_TRACKS_PER_SEGMENT = 3;
+const MIN_TRACKS_PER_SEGMENT = 2;
 
 function main(array $aArgv): void
 {
