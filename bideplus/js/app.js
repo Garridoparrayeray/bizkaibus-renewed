@@ -141,13 +141,17 @@
     }
 
     function liveBadgeText(status, etaMinutes) {
+        if (status === 'departed') return I18n.t('app.badge.leaving');
         if (status !== 'live') return I18n.t('app.badge.scheduled');
+        if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
         if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
         return I18n.t('app.badge.enRoute');
     }
 
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
+            // Retraso no creíble (null): se muestra la llegada estimada sin afirmar ni «en hora» ni retraso.
+            if (delayMinutes === null || delayMinutes === undefined) return { text: '', className: 'status-muted' };
             if (delayMinutes > 0) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
             if (delayMinutes <= -2) return { text: I18n.t('app.status.early', { min: -delayMinutes }), className: 'status-warn' };
             return { text: I18n.t('app.status.onTime'), className: 'status-ok' };
@@ -399,9 +403,10 @@
      */
     function freshDepartures(departures) {
         const now = Date.now();
+        // Un bus que pasó hace más de 45 s deja de salir: antes seguía 2 min como «0 min» con el bus ya lejos.
         return (departures || [])
-            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.round((d.etaAt * 1000 - now) / 60000) } : d))
-            .filter((d) => d.etaMinutes >= -2);
+            .filter((d) => (Number.isFinite(d.etaAt) ? d.etaAt * 1000 >= now - DEPARTED_GRACE_MS : d.etaMinutes >= -2))
+            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.max(0, Math.round((d.etaAt * 1000 - now) / 60000)) } : d));
     }
 
     function departuresSignature(departures) {
@@ -755,7 +760,7 @@
 
         for (const vehicle of data.vehicles) {
             const { lat, lon, name } = vehicle.currentStop;
-            const statusText = vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
+            const statusText = vehicle.delayMinutes === null ? '' : vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
                 .bindPopup(`<strong>${escapeHtml(vehicle.headsign)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
@@ -900,6 +905,7 @@
     const MODAL_REFRESH_MS = 15000;
     const MODAL_TICK_MS = 10000;
     const MODAL_PASSED_AFTER_MS = 45000;
+    const DEPARTED_GRACE_MS = 45 * 1000;
     const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
 
     function freshModalStops(data) {
