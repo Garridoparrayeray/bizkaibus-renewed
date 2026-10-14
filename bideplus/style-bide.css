@@ -297,7 +297,8 @@ html.bide body.page-menu #legal-close {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 0;
-        padding: 0;
+        /* El margen seguro de iOS (indicador de inicio) va en la franja de la barra, no dentro de las pestañas: el color de la activa no se estira. Tope de 34 px por si iOS da un valor raro. */
+        padding: 0 0 min(env(safe-area-inset-bottom), 34px);
         border-top: 1px solid var(--bide-line);
         background: var(--bide-surface);
         box-shadow: 0 -6px 20px -12px rgba(0, 0, 0, .25);
@@ -308,8 +309,8 @@ html.bide body.page-menu #legal-close {
         align-items: center;
         justify-content: center;
         gap: 3px;
-        min-height: calc(58px + env(safe-area-inset-bottom));
-        padding: 0 0 env(safe-area-inset-bottom);
+        height: 58px;
+        padding: 0;
         border: none;
         border-radius: 0;
         background: none;
@@ -323,8 +324,8 @@ html.bide body.page-menu #legal-close {
         html.bide .bide-tab svg { width: 22px; height: 22px; }
         /* La pestaña activa rellena todo su hueco con el color de la app en la que estás (Metro+ rojo, Bizkaibus+ verde...). En el inicio de Bide+ es verde. */
         html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff; font-weight: 800; }
-    html.bide.is-standalone body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
-    html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+    html.bide.is-standalone body { padding-bottom: calc(76px + min(env(safe-area-inset-bottom), 34px)); }
+    html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + min(env(safe-area-inset-bottom), 34px)); }
     html.bide.is-standalone body.page-app #dev-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone #menu-open { display: none; }
     html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
     html.bide body.page-app .bide-views { padding: 0 2px; }
