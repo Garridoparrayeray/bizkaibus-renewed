@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+// Las muestras acumuladas (hasta unos cientos de MB en memoria) caben de sobra en un runner de GitHub (7 GB).
+ini_set('memory_limit', '2G');
+
 date_default_timezone_set('Europe/Madrid');
 
 spl_autoload_register(function (string $sClass): void {
@@ -31,8 +34,9 @@ const MIN_TRACKS_PER_LINE = 25;
 const MIN_VEHICLES_PER_LINE = 5;
 const SHRINKAGE_TRACKS = 10;
 const MAX_SAMPLES_PER_TRACK = 30;
-const SAMPLES_RETENTION_DAYS = 60;
-const MAX_SAMPLES_PER_SEGMENT = 150;
+const SAMPLES_RETENTION_DAYS = 120;
+const MAX_SAMPLES_PER_SEGMENT = 300;
+const MAX_PACE_SAMPLES = 500000;
 const MIN_TRACKS_PER_SEGMENT = 2;
 
 function main(array $aArgv): void
@@ -367,6 +371,11 @@ function exportSamples(string $sDir, string $sOutput): void
     }
     $iBefore = count($aAll);
     $aAll = array_merge($aAll, $aNew);
+    if (count($aAll) > MAX_PACE_SAMPLES) {
+        // Tope absoluto del fichero (unos 75 MB): se quedan las más recientes.
+        usort($aAll, fn($a, $b) => [$a['date'] ?? '', $a['at'] ?? 0] <=> [$b['date'] ?? '', $b['at'] ?? 0]);
+        $aAll = array_slice($aAll, -MAX_PACE_SAMPLES);
+    }
 
     $sBody = '';
     foreach ($aAll as $aSample) {
@@ -554,8 +563,8 @@ function loadSegmentSamplesFile(string $sPath): array
 
 /*
  * El fichero acumulado no crece sin límite: de cada tramo (desde>hasta) se quedan solo las MAX_SAMPLES_PER_SEGMENT
- * medidas más recientes, además del límite de días. Con 2 000 tramos y unos 130 bytes por medida, el máximo teórico
- * es de unos 40 MB, muy por debajo del límite de 2 GiB por fichero de una release de GitHub, y las medidas viejas se
+ * medidas más recientes, además del límite de días. Con 2 300 tramos y unos 130 bytes por medida, el máximo teórico
+ * es de unos 90 MB, muy por debajo del límite de 2 GiB por fichero de una release de GitHub, y las medidas viejas se
  * olvidan, así que el sistema sigue los cambios de ritmo (obras, horarios nuevos).
  */
 function capSamplesPerSegment(array $aSamples): array
