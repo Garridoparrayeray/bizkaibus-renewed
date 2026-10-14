@@ -178,7 +178,7 @@ class RealtimeMatcher
             if ($iTargetSeq !== null && $sServiceJourneyId !== null) {
                 $iRegisteredEta = $this->registeredEta($sServiceJourneyId, $iTargetArrivalSeconds, $iTargetSeq, $aLive);
                 if ($iRegisteredEta !== null) {
-                    return [$iRegisteredEta, $iRegisteredEta - $iTargetArrivalSeconds, false];
+                    return [$iRegisteredEta, $this->registration($sServiceJourneyId, $aLive)['delay'], false];
                 }
             }
             return [$iTargetArrivalSeconds, 0, false];
@@ -236,11 +236,6 @@ class RealtimeMatcher
         if (!isset($aBySeq[$iOrder], $aBySeq[$iOrder - 1])) {
             return null;
         }
-        // Mismo límite que con GPS: más de 45 min respecto al horario es un viaje mal asignado, no un retraso.
-        $iMidSegment = intdiv((int)$aBySeq[$iOrder]['arrival_seconds'] + (int)$aBySeq[$iOrder - 1]['arrival_seconds'], 2);
-        if (abs($iRef - $iMidSegment) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
-            return null;
-        }
         /*
          * Contrastado con el feed real (201 buses con GPS): en tramos de hasta 5 min la parada registrada coincide con el
          * GPS (mediana 0,7 min, p90 1,7); en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana.
@@ -249,11 +244,24 @@ class RealtimeMatcher
         if ((int)$aBySeq[$iOrder]['arrival_seconds'] - (int)$aBySeq[$iOrder - 1]['arrival_seconds'] > self::REGISTRATION_MAX_SEGMENT_SECONDS) {
             return null;
         }
+        $iPrevious = (int)$aBySeq[$iOrder - 1]['arrival_seconds'];
+        $iNext = (int)$aBySeq[$iOrder]['arrival_seconds'];
+        $sBand = PaceFactors::bandFor($this->sDate, $iRef);
+        $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $iRef);
+        $iToNext = (int)round(self::REGISTRATION_SEGMENT_SHARE * $this->expectedSeconds($sServiceJourneyId, $iPrevious, $iNext, $sBand, $dFactor));
+        // Retraso del bus en su próxima parada (el mismo concepto que con GPS: lo que lleva el bus, no la diferencia en una parada lejana).
+        $iDelay = $iRef + $iToNext - $iNext;
+        // Mismo límite que con GPS: más de 45 min respecto al horario es un viaje mal asignado, no un retraso.
+        if (abs($iDelay) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
+            return null;
+        }
         return [
             'order' => $iOrder,
             'ref' => $iRef,
-            'previous' => (int)$aBySeq[$iOrder - 1]['arrival_seconds'],
-            'next' => (int)$aBySeq[$iOrder]['arrival_seconds'],
+            'previous' => $iPrevious,
+            'next' => $iNext,
+            'toNext' => $iToNext,
+            'delay' => $iDelay,
         ];
     }
 
@@ -267,14 +275,13 @@ class RealtimeMatcher
         if ($aRegistration === null || $iTargetSeq < $aRegistration['order']) {
             return null;
         }
-        $sBand = PaceFactors::bandFor($this->sDate, $aRegistration['ref']);
-        $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aRegistration['ref']);
-        $dToNext = self::REGISTRATION_SEGMENT_SHARE * $this->expectedSeconds($sServiceJourneyId, $aRegistration['previous'], $aRegistration['next'], $sBand, $dFactor);
         $dAfterNext = 0.0;
         if ($iTargetArrivalSeconds > $aRegistration['next']) {
+            $sBand = PaceFactors::bandFor($this->sDate, $aRegistration['ref']);
+            $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aRegistration['ref']);
             $dAfterNext = $this->expectedSeconds($sServiceJourneyId, $aRegistration['next'], $iTargetArrivalSeconds, $sBand, $dFactor);
         }
-        return (int)round($aRegistration['ref'] + $dToNext + $dAfterNext);
+        return (int)round($aRegistration['ref'] + $aRegistration['toNext'] + $dAfterNext);
     }
 
     private function remainingSeconds(string $sServiceJourneyId, int $iTargetArrivalSeconds, array $aPosition, float $dFactor): float
@@ -326,10 +333,7 @@ class RealtimeMatcher
         if ($this->bBusNetwork) {
             $aRegistration = $this->registration($sServiceJourneyId, $aLive);
             if ($aRegistration !== null) {
-                $iEta = $this->registeredEta((string)$sServiceJourneyId, $aRegistration['next'], $aRegistration['order'], $aLive);
-                if ($iEta !== null) {
-                    return $iEta - $aRegistration['next'];
-                }
+                return $aRegistration['delay'];
             }
             return 0;
         }
