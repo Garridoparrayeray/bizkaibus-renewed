@@ -217,6 +217,15 @@ $aOffRouteBus = live(1500, 200, 3, $iGps);
 $expect('Bizkaibus con GPS fuera de la ruta: horario oficial', !matcher($aOffRouteBus, $iGps + 30)->isLive('J_LINE', $aOffRouteBus) && matcher($aOffRouteBus, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'scheduled');
 $expect('Bizkaibus con GPS en ruta: en directo', matcher($aLive, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'live');
 
+/* Si el cálculo con GPS falla por lo que sea (base de datos rota, dato imposible), la salida cae al horario oficial en vez de romper la parada. */
+$PdoBroken = new PDO('sqlite::memory:');
+$PdoBroken->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoBroken->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$MBroken = new RealtimeMatcher(['3414|808' => [$aLive]], new ServiceJourney($PdoBroken), $iGps + 30, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$aBrokenOut = $MBroken->enrich([$aRowOfficial])[0];
+$expect('si el cálculo con GPS falla, la salida sale con el horario oficial', $aBrokenOut['status'] === 'scheduled' && $aBrokenOut['etaSeconds'] === T0 + 720 && $aBrokenOut['delaySeconds'] === 0, json_encode([$aBrokenOut['status'], $aBrokenOut['etaSeconds']]));
+$expect('si el cálculo con GPS falla, ni la posición ni el retraso rompen nada', $MBroken->positionFor('J_LINE', $aLive) === null && $MBroken->currentDelaySeconds('J_LINE', $aLive) === 0 && $MBroken->etaForStop('J_LINE', T0 + 720, $aLive) === [T0 + 720, 0, false]);
+
 /* Otras redes con SIRI (Euskotren, tranvías) no cambian: sin GPS siguen en directo con el retraso del feed. */
 Config::set('euskotren');
 $MOtherNetwork = matcher($aNoGps, T0 + 300);

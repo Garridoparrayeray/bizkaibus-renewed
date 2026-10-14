@@ -60,40 +60,51 @@ class RealtimeMatcher
         $iNow = $this->iNow;
 
         return array_map(function ($aRow) use ($iNow) {
-            $sServiceJourneyId = null;
-            if (isset($aRow['service_journey_id'])) {
-                $sServiceJourneyId = $aRow['service_journey_id'];
-            }
-            $aLive = $this->lookup($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds'], $sServiceJourneyId);
-            $bUsable = $this->isLive($sServiceJourneyId, $aLive);
-            if (!$bUsable) {
+            try {
+                return $this->enrichRow($aRow, $iNow);
+            } catch (\Throwable $Ex) {
+                // Una fila que no se puede calcular sale con el horario oficial; nunca rompe la lista.
+                error_log('Bide+ enrich: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
                 return $aRow + self::scheduledFields($aRow);
             }
-
-            [$iEta, $iEffectiveDelay, $bPositioned] = $this->etaForStop(
-                $sServiceJourneyId,
-                (int)$aRow['arrival_seconds'],
-                $aLive
-            );
-            $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
-
-            if ($bAlreadyPassed && !$bPositioned) {
-                return $aRow + self::scheduledFields($aRow);
-            }
-
-            $sStatus = 'live';
-            if ($bAlreadyPassed) {
-                $sStatus = 'departed';
-            }
-
-            return $aRow + [
-                'status' => $sStatus,
-                'delaySeconds' => $iEffectiveDelay,
-                'etaSeconds' => $iEta,
-                'vehicleRef' => $aLive['vehicleRef'],
-                'currentStopId' => $aLive['currentStopId'],
-            ];
         }, $aRows);
+    }
+
+    private function enrichRow(array $aRow, int $iNow): array
+    {
+        $sServiceJourneyId = null;
+        if (isset($aRow['service_journey_id'])) {
+            $sServiceJourneyId = $aRow['service_journey_id'];
+        }
+        $aLive = $this->lookup($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds'], $sServiceJourneyId);
+        $bUsable = $this->isLive($sServiceJourneyId, $aLive);
+        if (!$bUsable) {
+            return $aRow + self::scheduledFields($aRow);
+        }
+
+        [$iEta, $iEffectiveDelay, $bPositioned] = $this->etaForStop(
+            $sServiceJourneyId,
+            (int)$aRow['arrival_seconds'],
+            $aLive
+        );
+        $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
+
+        if ($bAlreadyPassed && !$bPositioned) {
+            return $aRow + self::scheduledFields($aRow);
+        }
+
+        $sStatus = 'live';
+        if ($bAlreadyPassed) {
+            $sStatus = 'departed';
+        }
+
+        return $aRow + [
+            'status' => $sStatus,
+            'delaySeconds' => $iEffectiveDelay,
+            'etaSeconds' => $iEta,
+            'vehicleRef' => $aLive['vehicleRef'],
+            'currentStopId' => $aLive['currentStopId'],
+        ];
     }
 
     public function isLive(string|null $sServiceJourneyId, array|null $aLive): bool
@@ -119,10 +130,15 @@ class RealtimeMatcher
 
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
         if ($aPosition !== null) {
-            $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
-            $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
-            $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);
-            return [$iEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
+            try {
+                $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
+                $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
+                $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);
+                return [$iEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
+            } catch (\Throwable $Ex) {
+                error_log('Bide+ ETA: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+                return [$iTargetArrivalSeconds, 0, false];
+            }
         }
 
         if ($this->bBusNetwork) {
@@ -210,7 +226,13 @@ class RealtimeMatcher
         }
         $sMemoKey = $sServiceJourneyId . '|' . $aLive['vehicleRef'] . '|' . $aLive['locationSeconds'] . '|' . $aLive['lat'] . '|' . $aLive['lon'] . '|' . $aLive['order'];
         if (!array_key_exists($sMemoKey, $this->aPositionMemo)) {
-            $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
+            try {
+                $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
+            } catch (\Throwable $Ex) {
+                // Si el cálculo con GPS falla, ese bus se queda sin posición y sale con el horario oficial.
+                error_log('Bide+ GPS: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+                $this->aPositionMemo[$sMemoKey] = null;
+            }
         }
         return $this->aPositionMemo[$sMemoKey];
     }
