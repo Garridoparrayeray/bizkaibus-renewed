@@ -263,6 +263,16 @@ $expect('con menos de 2 min de ventaja no se afirma nada', matcher($aNoClock, T0
 $expect('si el feed trae su propio retraso, manda el del feed', matcher($aNoClock, T0 + 30)->currentDelaySeconds('J_LINE', array_merge($aNoClock, ['delaySeconds' => 300])) === 300);
 $expect('con hora válida del dato no se usa esta cota', matcher($aRegistered, T0 + 30)->currentDelaySeconds('J_LINE', $aRegistered) === -20);
 
+/* El bus del feed de respaldo ya va por la parada 3 (orden 3): las paradas 1 y 2 las ha dejado atrás, aunque no haya hora del dato. */
+$aRowStop1 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 0, 'stop_seq' => 1];
+$aRowStop4 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 540, 'stop_seq' => 4];
+$aEnrichedNoClock = matcher($aNoClock, T0 + 30)->enrich([$aRowPassed, $aRowStop4]);
+$expect('sin hora del dato, la fila de una parada que el bus ya dejó atrás sale como salida y no como «0 min»', $aEnrichedNoClock[0]['status'] === 'departed' && $aEnrichedNoClock[0]['etaSeconds'] < T0 + 30 - 60, json_encode([$aEnrichedNoClock[0]['status'], $aEnrichedNoClock[0]['etaSeconds']]));
+$expect('sin hora del dato, una parada posterior sigue en directo', $aEnrichedNoClock[1]['status'] === 'live', $aEnrichedNoClock[1]['status']);
+$expect('un bus que aún no ha salido (viaje sin empezar) no deja atrás ninguna parada', matcher(array_merge($aNoClock, ['order' => 2]), T0 - 200)->isPassedPerFeed('J_LINE', array_merge($aNoClock, ['order' => 2]), 1) === false);
+$aStaleClock = array_merge($aNoClock, ['recordedSeconds' => T0 - 3600]);
+$expect('con hora del dato de hace más de 10 min no se da nada por pasado', matcher($aStaleClock, T0 + 30)->isPassedPerFeed('J_LINE', $aStaleClock, 2) === false);
+
 /* Solo Bizkaibus: en otras redes con SIRI (Euskotren, tranvías) no se usa la parada registrada ni los tiempos aprendidos. */
 Config::set('euskotren');
 $MOtherNetwork = matcher($aRegistered, T0 + 300);

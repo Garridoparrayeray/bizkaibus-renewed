@@ -253,7 +253,28 @@ class RealtimeMatcher
             return false;
         }
         $aRegistration = $this->registration($sServiceJourneyId, $aLive);
-        return $aRegistration !== null && $iTargetSeq < $aRegistration['order'];
+        if ($aRegistration !== null) {
+            return $iTargetSeq < $aRegistration['order'];
+        }
+        return $this->passedByOrderOnly($sServiceJourneyId, $aLive, $iTargetSeq);
+    }
+
+    /*
+     * El feed de respaldo del CTB no trae hora del dato, pero sí la próxima parada: si es posterior a la pedida, el bus
+     * ya la dejó atrás aunque no se pueda calcular cuándo. Sin esto, la parada consultada seguía mostrando ese bus como
+     * «0 min» (la ETA caía en «ahora»). Con hora del dato, decide registration() (dato viejo o viaje sin empezar).
+     */
+    private function passedByOrderOnly(string|null $sServiceJourneyId, array $aLive, int $iTargetSeq): bool
+    {
+        if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order']) || isset($aLive['recordedSeconds'])) {
+            return false;
+        }
+        $iOrder = (int)$aLive['order'];
+        if ($iOrder < 2 || $iTargetSeq >= $iOrder) {
+            return false;
+        }
+        $aStops = $this->stopsFor($sServiceJourneyId);
+        return !empty($aStops) && $this->iNow >= (int)$aStops[0]['departure_seconds'] - self::NOT_STARTED_GRACE_SECONDS;
     }
 
     /*
