@@ -12,5 +12,9 @@
     var ua = navigator.userAgent || '';
     if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
         root.classList.add('is-ios');
+        // iPhone con indicador de inicio (X en adelante, 812 pt o más de alto): iOS da el margen inferior en unas páginas y 0 en otras, así que la franja bajo la barra se fija en vez de depender de él.
+        if (Math.max(screen.width, screen.height) >= 812) {
+            root.classList.add('is-ios-notch');
+        }
     }
 })();
