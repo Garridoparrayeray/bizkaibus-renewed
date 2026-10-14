@@ -178,7 +178,7 @@ check('atrás · cierra el aviso legal y sigue en Info', await waitTrue("!docume
 await back();
 check('atrás · después cierra Info', await waitTrue("!document.documentElement.classList.contains('bide-view-open')"));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
-check('instalada · la pestaña activa se marca con fondo', await waitTrue("getComputedStyle(document.querySelector('.bide-tabbar [data-bide-tab=info] svg')).backgroundColor !== 'rgba(0, 0, 0, 0)'"));
+check('instalada · la pestaña activa rellena todo su hueco con el color de la app', await waitTrue("(() => { const t = document.querySelector('.bide-tabbar [data-bide-tab=info]'); const c = getComputedStyle(t); return c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.color === 'rgb(255, 255, 255)' && c.borderRadius === '0px' && t.getBoundingClientRect().height >= 58; })()"));
 await setStandalone(false);
 
 // ===== Ordenador =====
