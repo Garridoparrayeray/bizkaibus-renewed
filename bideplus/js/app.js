@@ -890,6 +890,108 @@
         el.scheduleModal.showModal();
     }
 
+    /*
+     * El recorrido abierto sigue el reloj: se vuelve a pedir cada 15 s (el ritmo del feed) y, entre peticiones, los
+     * minutos y la parada actual se recalculan con el reloj del dispositivo a partir de la hora absoluta de cada
+     * parada (etaAt). Una parada prevista hace más de 45 s ya se da por pasada, como en las salidas.
+     */
+    const MODAL_REFRESH_MS = 15000;
+    const MODAL_TICK_MS = 10000;
+    const MODAL_PASSED_AFTER_MS = 45000;
+    const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
+
+    function freshModalStops(data) {
+        const now = Date.now();
+        const clockDriven = data.status === 'live';
+        let currentSet = false;
+        return data.stops.map((stop) => {
+            const out = { ...stop };
+            if (clockDriven && Number.isFinite(stop.etaAt)) {
+                out.etaMinutes = Math.round((stop.etaAt * 1000 - now) / 60000);
+                if (stop.etaAt * 1000 < now - MODAL_PASSED_AFTER_MS) out.isPast = true;
+            }
+            if (clockDriven) {
+                out.isCurrent = !out.isPast && !currentSet;
+                if (out.isCurrent) currentSet = true;
+            }
+            return out;
+        });
+    }
+
+    function renderModalStops(data) {
+        const stops = freshModalStops(data);
+        const signature = stops.map((s) => `${s.stopId}:${s.isPast ? 'p' : ''}${s.isCurrent ? 'c' : ''}:${s.etaMinutes}`).join('|');
+        if (signature === modalState.signature && el.modalStops.children.length > 0) return;
+        modalState.signature = signature;
+
+        const scrollTop = el.modal.scrollTop;
+        el.modalStops.innerHTML = '';
+        for (const stop of stops) {
+            const li = document.createElement('li');
+            const classes = [];
+            if (stop.isCurrent) classes.push('stop-current');
+            if (data.feedTimes && stop.isPast) classes.push('stop-past');
+            li.className = classes.join(' ');
+            let label = `${stop.scheduledTime} · ${stop.name}`;
+            if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
+                label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
+            }
+            li.textContent = label;
+            li.classList.add('stop-clickable');
+            li.addEventListener('click', () => {
+                el.modal.close();
+                selectStop(stop.stopId);
+            });
+            el.modalStops.appendChild(li);
+        }
+        el.modal.scrollTop = scrollTop;
+    }
+
+    function renderModalHeader(data) {
+        const { text } = statusLabel(data.status, data.delayMinutes);
+        el.modalBadge.textContent = text;
+        el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
+        el.modalHeadsign.textContent = I18n.t('app.direction', { headsign: data.headsign });
+        if (data.vehicleRef) {
+            el.modalVehicle.textContent = I18n.t('app.liveTracking', { ref: data.vehicleRef });
+        } else if (data.status === 'finished') {
+            el.modalVehicle.textContent = I18n.t('app.tripFinished');
+        } else if (data.status === 'live') {
+            el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
+        } else {
+            el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
+        }
+    }
+
+    function stopModalFollow() {
+        if (modalState.refreshTimer) clearInterval(modalState.refreshTimer);
+        if (modalState.tickTimer) clearInterval(modalState.tickTimer);
+        modalState.refreshTimer = null;
+        modalState.tickTimer = null;
+        modalState.tripKey = null;
+        modalState.data = null;
+    }
+
+    async function refreshVehicleModal() {
+        const tripKey = modalState.tripKey;
+        if (!tripKey || !el.modal.open) return;
+        let data;
+        try {
+            data = await Api.vehicle(tripKey, state.currentStop?.id);
+        } catch (e) {
+            return;
+        }
+        if (modalState.tripKey !== tripKey || !el.modal.open) return;
+        modalState.data = data;
+        renderModalHeader(data);
+        renderModalStops(data);
+    }
+
+    function tickVehicleModal() {
+        if (!modalState.data || !el.modal.open) return;
+        renderModalStops(modalState.data);
+    }
+
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
         if (HAS_PLATFORMS && !IS_METRO) {
@@ -907,19 +1009,11 @@
             return;
         }
 
-        const { text } = statusLabel(data.status, data.delayMinutes);
-        el.modalBadge.textContent = text;
-        el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
-        el.modalHeadsign.textContent = I18n.t('app.direction', { headsign: data.headsign });
-        if (data.vehicleRef) {
-            el.modalVehicle.textContent = I18n.t('app.liveTracking', { ref: data.vehicleRef });
-        } else if (data.status === 'finished') {
-            el.modalVehicle.textContent = I18n.t('app.tripFinished');
-        } else if (data.status === 'live') {
-            el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
-        } else {
-            el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
-        }
+        stopModalFollow();
+        modalState.signature = '';
+        modalState.tripKey = tripKey;
+        modalState.data = data;
+        renderModalHeader(data);
 
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = I18n.t('app.incidents.view');
@@ -929,26 +1023,11 @@
         el.modalAlerts.innerHTML = '';
 
         el.modalStops.innerHTML = '';
-        for (const stop of data.stops) {
-            const li = document.createElement('li');
-            const classes = [];
-            if (stop.isCurrent) classes.push('stop-current');
-            if (data.feedTimes && stop.isPast) classes.push('stop-past');
-            li.className = classes.join(' ');
-            let label = `${stop.scheduledTime} · ${stop.name}`;
-            if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined) {
-                label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
-            }
-            li.textContent = label;
-            li.classList.add('stop-clickable');
-            li.addEventListener('click', () => {
-                el.modal.close();
-                selectStop(stop.stopId);
-            });
-            el.modalStops.appendChild(li);
-        }
+        renderModalStops(data);
 
         el.modal.showModal();
+        modalState.refreshTimer = setInterval(refreshVehicleModal, MODAL_REFRESH_MS);
+        modalState.tickTimer = setInterval(tickVehicleModal, MODAL_TICK_MS);
     }
 
     async function openTripStopsModal(tripKey) {
@@ -1471,6 +1550,7 @@
     el.scheduleTextToggle.addEventListener('click', openScheduleModal);
 
     el.modalClose.addEventListener('click', () => el.modal.close());
+    el.modal.addEventListener('close', stopModalFollow);
     el.modalAlertsToggle.addEventListener('click', loadModalAlerts);
     el.modal.addEventListener('click', (e) => {
         if (e.target === el.modal) el.modal.close();
