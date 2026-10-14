@@ -12,8 +12,10 @@ class RealtimeMatcher
 
     private const POSITION_SANITY_SECONDS = 15 * 60;
     private const REGISTRATION_SEGMENT_SHARE = 0.5;
-    private const REGISTRATION_MAX_SEGMENT_SECONDS = 6 * 60;
+    private const REGISTRATION_MAX_SEGMENT_SECONDS = 20 * 60;
+    private const REGISTRATION_CROSSCHECK_MAX_SEGMENT_SECONDS = 6 * 60;
     public const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
+    private const SCHEDULE_ORIGIN_OFFSET_SECONDS = 60;
     private const MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS = 6 * 60;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
@@ -70,7 +72,7 @@ class RealtimeMatcher
             } catch (\Throwable $Ex) {
                 // Una fila que no se puede calcular sale con el horario oficial; nunca rompe la lista.
                 error_log('Bide+ enrich: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
-                return $aRow + self::scheduledFields($aRow);
+                return $aRow + $this->scheduledFieldsFor($aRow);
             }
         }, $aRows);
     }
@@ -89,7 +91,7 @@ class RealtimeMatcher
 
         // Capa 3: sin dato en vivo del bus, o sin nada utilizable en él, el horario oficial.
         if (!$this->isLive($sServiceJourneyId, $aLive)) {
-            return $aRow + self::scheduledFields($aRow);
+            return $aRow + $this->scheduledFieldsFor($aRow);
         }
 
         // Parada ya pasada: el feed ya marca una parada posterior como la próxima, o el GPS ya está más allá. Sale como «saliendo» unos segundos y se retira.
@@ -108,7 +110,7 @@ class RealtimeMatcher
 
         if ($this->bBusNetwork && $this->positionFor($sServiceJourneyId, $aLive) === null
             && ($iStopSeq === null || $this->registeredEta((string)$sServiceJourneyId, (int)$aRow['arrival_seconds'], $iStopSeq, $aLive) === null)) {
-            return $aRow + self::scheduledFields($aRow);
+            return $aRow + $this->scheduledFieldsFor($aRow);
         }
 
         [$iEta, $iEffectiveDelay, $bPositioned] = $this->etaForStop(
@@ -129,7 +131,7 @@ class RealtimeMatcher
         $bAlreadyPassed = $iEta < ($iNow - self::STALE_GRACE_SECONDS);
 
         if ($bAlreadyPassed && !$bPositioned) {
-            return $aRow + self::scheduledFields($aRow);
+            return $aRow + $this->scheduledFieldsFor($aRow);
         }
 
         $sStatus = 'live';
@@ -298,6 +300,7 @@ class RealtimeMatcher
             'next' => $iNext,
             'toNext' => $iToNext,
             'delay' => $iDelay,
+            'gap' => $iNext - $iPrevious,
         ];
     }
 
@@ -414,7 +417,7 @@ class RealtimeMatcher
                 if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null) {
                     $aRegistration = $this->registration($sServiceJourneyId, $aLive);
                     $iGpsDelay = $this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds'];
-                    if ($aRegistration !== null && abs($iGpsDelay - $aRegistration['delay']) > self::MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS) {
+                    if ($aRegistration !== null && $aRegistration['gap'] <= self::REGISTRATION_CROSSCHECK_MAX_SEGMENT_SECONDS && abs($iGpsDelay - $aRegistration['delay']) > self::MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS) {
                         $this->aDistrusted[$sServiceJourneyId . '|' . ($aLive['vehicleRef'] ?? '')] = true;
                         $this->aPositionMemo[$sMemoKey] = null;
                     }
@@ -642,6 +645,44 @@ class RealtimeMatcher
     private static function hasLocation(array $aLive): bool
     {
         return isset($aLive['lat'], $aLive['lon'], $aLive['locationSeconds']);
+    }
+
+    /*
+     * Capa 3, sin datos del bus. El horario publicado está interpolado a velocidad constante y no se parece a lo que
+     * tardan los buses (autopistas, esperas). Con los tiempos aprendidos se estima la llegada como la salida de cabecera
+     * más lo que tardan los buses en llegar a esta parada. Medido contra los pasos reales (7 627 llegadas), con el bus
+     * sin usar: 37 % dentro de ±2 min frente al 18 % del horario publicado, y error mediano de unos 3-4 min frente a 7. Se suma 1 min porque los buses salen de cabecera algo después de la hora publicada (medido en una sola ventana de 14 min; el resumen de cada captura muestra si el sesgo sigue en 0).
+     * Si lo estimado ya queda en el pasado (no se sabe si el bus ha pasado o va tarde), se deja el horario publicado:
+     * nunca se esconde una salida ni se deja una en «0 min».
+     */
+    private function scheduledFieldsFor(array $aRow): array
+    {
+        $aFields = self::scheduledFields($aRow);
+        if (!$this->bBusNetwork || $this->Segments->isEmpty() || $this->JourneyModel === null || empty($aRow['service_journey_id'])) {
+            return $aFields;
+        }
+        try {
+            $sJourneyId = (string)$aRow['service_journey_id'];
+            $aStops = $this->stopsFor($sJourneyId);
+            if (empty($aStops)) {
+                return $aFields;
+            }
+            $iFirst = (int)$aStops[0]['departure_seconds'];
+            $iTarget = (int)$aRow['arrival_seconds'];
+            if ($iTarget <= $iFirst) {
+                return $aFields;
+            }
+            $iMid = intdiv($iFirst + $iTarget, 2);
+            $sBand = PaceFactors::bandFor($this->sDate, $iMid);
+            $dFactor = $this->Pace->factor($aRow['line_id'] ?? null, $this->sDate, $iMid);
+            $iCorrected = $iFirst + self::SCHEDULE_ORIGIN_OFFSET_SECONDS + (int)round($this->expectedSeconds($sJourneyId, $iFirst - 1, $iTarget, $sBand, $dFactor));
+            if ($iCorrected >= $this->iNow) {
+                $aFields['etaSeconds'] = $iCorrected;
+            }
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ horario corregido: ' . $Ex->getMessage());
+        }
+        return $aFields;
     }
 
     private static function scheduledFields(array $aRow): array
