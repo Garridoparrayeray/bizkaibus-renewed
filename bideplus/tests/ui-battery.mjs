@@ -134,6 +134,19 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.querySelector('#timetable-body tr').click()");
         await until("document.getElementById('vehicle-modal').open");
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));
+        if (a.key === 'metro') {
+            const liveModal = (await ev("document.getElementById('modal-vehicle').textContent")).includes('en vivo');
+            if (liveModal) {
+                const pastBefore = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
+                await ev("(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+600000;})()");
+                await sleep(11500);
+                const pastAfter = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
+                check(`${tag} el recorrido abierto sigue el reloj (paradas pasadas ${pastBefore} -> ${pastAfter})`, pastAfter > pastBefore);
+                await ev("Date.now = window.__realNow");
+            } else {
+                skip(`${tag} el recorrido abierto sigue el reloj`, 'el tren no va en directo ahora');
+            }
+        }
         await ev("document.getElementById('modal-close').click()");
         await sleep(300);
         if (a.key === 'bus') {
