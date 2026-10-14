@@ -295,6 +295,20 @@ $expect('tramos de 3 min sí se estiman', $MLong->isLive('J_LINE', $aLongSegment
 $aBigGap = array_merge($aRegistered, ['order' => 5, 'recordedSeconds' => T0 + 600]);
 $expect('con tramo hasta la próxima parada de 3 min (orden 5) se estima', matcher($aBigGap, T0 + 620)->isLive('J_LINE', $aBigGap));
 
+/* Un retraso de más de 45 min no es creíble (viaje mal asignado en el feed): horario oficial, con GPS y con parada registrada. */
+$iFarGps = T0 + 3300;
+$aFar = live(1500, 0, 3, $iFarGps);
+$MFarDelay = matcher($aFar, $iFarGps + 30);
+$expect('con GPS, 50 min de diferencia con el horario no cuenta como en vivo', !$MFarDelay->isLive('J_LINE', $aFar) && $MFarDelay->enrich([$aRowTarget])[0]['status'] === 'scheduled');
+$aFarReg = $aFar;
+$aFarReg['lat'] = null;
+$aFarReg['lon'] = null;
+$aFarReg['locationSeconds'] = null;
+$aFarReg['recordedSeconds'] = $iFarGps;
+$expect('con parada registrada, 50 min de diferencia con el horario tampoco', !matcher($aFarReg, $iFarGps + 30)->isLive('J_LINE', $aFarReg));
+$aNear = live(1500, 0, 3, T0 + 240 + 40 * 60);
+$expect('40 min de retraso sí se muestran', matcher($aNear, T0 + 240 + 40 * 60 + 30)->isLive('J_LINE', $aNear));
+
 /* Otras redes con SIRI no usan la parada registrada: siguen con el cálculo de siempre. */
 Config::set('euskotren');
 $MOtherNetwork = matcher($aRegistered, T0 + 300);
