@@ -251,6 +251,18 @@ $aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
 $expect('enrich: la fila de una parada ya pasada sale como salida y fuera de la ventana de la lista', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 300 - 180, json_encode($aEnriched[0]['etaSeconds']));
 $expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
 
+/* Feed de respaldo del CTB: sin GPS, sin hora válida y con retraso siempre 0. */
+$aNoClock = $aRegistered;
+$aNoClock['recordedSeconds'] = null;
+$aNoClock['delaySeconds'] = 0;
+$MEarly = matcher($aNoClock, T0 + 30);
+$expect('sin hora del dato y con el horario de la parada anterior (08:03) por delante, el bus va adelantado al menos 2,5 min', $MEarly->currentDelaySeconds('J_LINE', $aNoClock) === -150, (string)$MEarly->currentDelaySeconds('J_LINE', $aNoClock));
+[$iEta, $iDelay] = $MEarly->etaForStop('J_LINE', T0 + 720, $aNoClock, 5);
+$expect('la ETA y el retraso de la lista recogen esa ventaja (08:09:30, -150 s)', $iEta === T0 + 720 - 150 && $iDelay === -150, hms($iEta));
+$expect('con menos de 2 min de ventaja no se afirma nada', matcher($aNoClock, T0 + 100)->currentDelaySeconds('J_LINE', $aNoClock) === 0);
+$expect('si el feed trae su propio retraso, manda el del feed', matcher($aNoClock, T0 + 30)->currentDelaySeconds('J_LINE', array_merge($aNoClock, ['delaySeconds' => 300])) === 300);
+$expect('con hora válida del dato no se usa esta cota', matcher($aRegistered, T0 + 30)->currentDelaySeconds('J_LINE', $aRegistered) === -20);
+
 /* Solo Bizkaibus: en otras redes con SIRI (Euskotren, tranvías) no se usa la parada registrada ni los tiempos aprendidos. */
 Config::set('euskotren');
 $MOtherNetwork = matcher($aRegistered, T0 + 300);
