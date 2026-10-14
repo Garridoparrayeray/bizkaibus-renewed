@@ -6,8 +6,8 @@ name: Ritmo de los buses (k)
 # entre dos paradas, para los tramos en los que el horario no se parece a la
 # realidad, como los de autopista).
 #
-# - Capturas: cada hora captura el feed en directo unos 50 minutos (17 capturas
-#   al dia), y guarda solo las muestras que hacen falta (no los XML) en un fichero
+# - Capturas: cada hora captura el feed en directo unos 50 minutos (24 capturas
+#   al dia, 168 a la semana), y guarda solo las muestras que hacen falta (no los XML) en un fichero
 #   acumulado que vive como adjunto de la release "pace-data". Las releases no
 #   disparan despliegues de Vercel. Los trabajos van uno detras de otro
 #   (concurrency), asi que si uno se retrasa el siguiente espera.
@@ -21,8 +21,8 @@ name: Ritmo de los buses (k)
 
 on:
   schedule:
-    # Cada hora de 05:00 a 21:00 UTC (07:00-23:00 en verano, 06:00-22:00 en invierno): 17 capturas al dia, 119 a la semana.
-    - cron: '0 5-21 * * *'
+    # Cada hora, todo el dia (incluidos los nocturnos): 24 capturas al dia, 168 a la semana.
+    - cron: '0 * * * *'
     # Recalibrado diario.
     - cron: '0 4 * * *'
   workflow_dispatch:
