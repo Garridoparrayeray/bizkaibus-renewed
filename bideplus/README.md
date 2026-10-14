@@ -140,20 +140,29 @@ php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
 
 | La parada queda a | Error mediano | Dentro de ±1 min | Dentro de ±2 min | Dentro de ±3 min | Solo el horario, ±2 min |
 |---|---|---|---|---|---|
-| 0-3 min | 0,5 min | 77 % | 90 % | 92 % | 19 % |
-| 3-6 min | 0,8 min | 62 % | 87 % | 93 % | 18 % |
-| 6-10 min | 1,1 min | 45 % | 75 % | 87 % | 16 % |
-| 10-20 min | 1,6 min | 34 % | 61 % | 79 % | 13 % |
+| 0-3 min | 0,5 min | 79 % | 93 % | 96 % | 19 % |
+| 3-6 min | 0,7 min | 63 % | 87 % | 93 % | 18 % |
+| 6-10 min | 1,1 min | 47 % | 77 % | 88 % | 16 % |
+| 10-20 min | 1,4 min | 36 % | 66 % | 83 % | 13 % |
 
-Sin sesgo (el error medio es 0). Por origen del dato, en llegadas en menos de 10 min: GPS en tramo corto, 92 % dentro de ±2 min; parada registrada, 72 %; GPS en tramo de más de 10 min, 61 %. Las salvaguardas se miden contra este criterio: el tope de 45 min sobre el retraso, aplicado como «salir con horario oficial», bajaba la precisión (de 85,2 % a 84,1 % dentro de ±2 min), así que ahora solo deja de afirmar el retraso y mantiene la llegada estimada.
+Cada capa por separado, dentro de ±2 min, sobre las mismas capturas y los mismos pasos reales (`--sin-gps` quita el GPS a todos los buses; `--sin-feed` no da ningún bus a la app):
+
+| La parada queda a | Capa 1, con GPS | Capa 2, solo parada registrada | Capa 3, sin ningún dato del bus | Horario publicado |
+|---|---|---|---|---|
+| 0-3 min | 93 % | 93 % | 36 % | 19 % |
+| 3-6 min | 87 % | 83 % | 39 % | 18 % |
+| 6-10 min | 77 % | 73 % | 37 % | 16 % |
+| 10-20 min | 66 % | 67 % | 36 % | 13 % |
+
+Sin sesgo (el error medio es 0). Por origen del dato, en llegadas en menos de 10 min: GPS en tramo corto, 92 % dentro de ±2 min; GPS en tramo de más de 10 min, 61 %; buses que en la captura real no tenían GPS utilizable y se calcularon por parada registrada, 72 % (un subconjunto distinto, con buses fuera de ruta, por eso queda por debajo del 83-93 % de la capa 2 medida quitando el GPS a todos). Las salvaguardas se miden contra este criterio: el tope de 45 min sobre el retraso, aplicado como «salir con horario oficial», bajaba la precisión (de 85,2 % a 84,1 % dentro de ±2 min), así que ahora solo deja de afirmar el retraso y mantiene la llegada estimada.
 
 ### Bizkaibus en tres capas: GPS, parada registrada, horario oficial
 
 Cada salida usa la mejor capa que tenga datos fiables:
 
 1. **En vivo con GPS:** el GPS se proyecta sobre el recorrido (hasta 50 m) y se estima la llegada tramo a tramo. Una parada que el bus ya dejó atrás sale como pasada y desaparece de la lista.
-2. **Parada registrada (sin GPS utilizable):** si el bus no manda GPS o está fuera de la ruta pero el feed da su próxima parada y la hora del dato (menos de 10 min), el retraso sale de esa parada: hora del dato a mitad del tramo hasta la próxima, más los tiempos esperados hasta la parada pedida. Solo se usa si el tramo anterior→próxima parada dura 6 min o menos. Contrastado con el feed real (201 buses con GPS), la parada registrada coincide con el GPS con mediana de 0,7 min y p90 de 1,7 min en tramos de hasta 5 min; en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana y por eso no se usa.
-3. **Horario oficial:** sin datos en vivo, con datos viejos o sin hora del dato, la salida sale «Programado» con su hora oficial, sin retraso ni minutos estimados.
+2. **Parada registrada (sin GPS utilizable):** si el bus no manda GPS o está fuera de la ruta pero el feed da su próxima parada y la hora del dato (menos de 10 min), el retraso sale de esa parada: hora del dato a mitad del tramo hasta la próxima, más los tiempos esperados hasta la parada pedida. Se usa si el tramo anterior→próxima parada dura 20 min o menos. Medido quitando el GPS a todos los buses (`eval-eta.php --sin-gps`), contra los pasos reales y frente al horario publicado en las mismas llegadas: con el bus en un tramo de hasta 3 min, 89 % dentro de ±2 min (horario: 18 %); de 3 a 6 min, 83 % (20 %); de 6 a 10 min, 86 % (15 %); de 10 a 20 min, 52 % (0 %); de más de 20 min, 7 % (1 %), donde no mejora al horario y por eso no se usa.
+3. **Horario corregido:** sin datos en vivo, con datos viejos o sin hora del dato, la salida sale «Programado» y sin retraso, pero su llegada es la salida de cabecera + 1 min + lo que tardan los buses en llegar a esa parada (tiempos aprendidos), y no la hora publicada, que está interpolada. Si eso ya queda en el pasado (no se sabe si el bus ha pasado o va tarde) se deja el horario publicado: nunca se esconde una salida ni se deja una en «0 min». Medido sin ningún dato del bus (`eval-eta.php --sin-feed`): 36 % dentro de ±2 min frente al 19 % del horario publicado, y error mediano de 3-4 min frente a 7.
 
 El retraso que se muestra en cada salida es la llegada estimada a esa parada menos su hora publicada, es decir, lo que se ve en pantalla (con el GPS y con la parada registrada). No es la diferencia del bus con el horario en el punto donde está: dentro de un tramo largo el horario oficial está interpolado a velocidad constante y esa diferencia cambia hasta 30 min en 14 min sin que el bus cambie de ritmo. Si el GPS y la parada registrada del mismo bus discrepan más de 6 min, no se fía de ninguna y sale el horario oficial: en una captura de 14 min del feed real, 3 buses cambiaron de retraso hasta 34 min con ambas medidas en desacuerdo, imposible para un bus real. Un retraso o adelanto de más de 45 min respecto a la hora publicada de la parada no se afirma (ni con GPS ni con parada registrada): con el feed real los retrasos llegan a +37 min y de ahí saltan a +111, +122, +306 y -61, y son buses en marcha cuyo viaje del feed no es el que hacen. La llegada estimada se mantiene, porque sale de la posición y de los tiempos por tramo y no de la etiqueta del viaje (medido: ocultarla bajaba la precisión), y la salida queda sin texto de retraso.
 
@@ -179,6 +188,9 @@ El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de lo
 
 | Idea | Resultado |
 |---|---|
+| Parada registrada hasta tramos de 20 min (antes 6) | Sin GPS: 79,8 % → 83,0 % dentro de ±2 min; con GPS no cambia | Se adopta |
+| Horario corregido con los tiempos aprendidos (capa 3) | Sin ningún dato del bus: 18 % → 36 % dentro de ±2 min; con GPS, 83,5 % → 85,5 % | Se adopta |
+| Reparto del tramo en la parada registrada distinto de la mitad (0,35-0,65) | La mitad es el óptimo: 83,0 % (0,45 y 0,5) frente a 82,1 % (0,35) y 81,4 % (0,65) | Sin cambio |
 | Mínimo de 2 buses por tramo en vez de 3 | Se adopta: 17 % más de tramos cubiertos, mismo error por tramo (0,39 min) |
 | Mantener la llegada estimada aunque el retraso no sea creíble (>45 min) | Se adopta: ocultarla bajaba de 85,2 % a 84,1 % |
 | Mezclar lo aprendido con el horario cuando hay pocas muestras | Se descarta: 83,5 % → 83,2 % (peso 1) y hasta 80,0 % (peso 8) |
@@ -208,11 +220,11 @@ Si dejan de llegar capturas, el resumen de precisión no aparece y GitHub avisa 
 
 | Banco | Qué comprueba | Cuándo corre |
 |---|---|---|
-| `tests/unit-test.php` | 128 comprobaciones sin servidor ni red sobre una base de datos en memoria: proyección del GPS, `T_pos`, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, `trip_aliases`, `enrich()` | Cada commit y cada CI |
+| `tests/unit-test.php` | 132 comprobaciones sin servidor ni red sobre una base de datos en memoria: proyección del GPS, `T_pos`, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, `trip_aliases`, `enrich()` | Cada commit y cada CI |
 | `static-checks.py`, `data-integrity.php` | Sintaxis, ids, caché del service worker e integridad de las seis bases de datos | Cada commit, CI y antes de cada despliegue |
 | `api-smoke.py`, `api-contract.py` | 245 peticiones a todas las rutas y más de 22 000 comprobaciones de la forma del JSON; que las salidas vengan ordenadas por llegada | Cada commit y cada CI |
 | `ui-*.mjs` | Navegador headless en móvil y ordenador; falla con errores de consola o de red | Cada CI |
-| `scripts/eval-eta.php` | **Precisión de lo que ve el usuario**, contra el momento real en que el feed cambia la próxima parada | En cada captura, en el resumen del trabajo |
+| `scripts/eval-eta.php` | **Precisión de lo que ve el usuario**, contra el momento real en que el feed cambia la próxima parada. Con `--sin-gps` mide la capa 2 y con `--sin-feed` la capa 3 | En cada captura, en el resumen del trabajo |
 | `scripts/realtime-backtest.php` | `analyze` (error por posición), `calibrate` y `calibrate-segments` (aprender con la mitad de los buses y medir en la otra) | Recalibrado diario |
 | `scripts/learning-curve.php <tramos.jsonl>` | **Curva de aprendizaje**: error y cobertura al aprender con más buses | A mano |
 
