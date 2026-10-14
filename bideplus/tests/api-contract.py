@@ -195,6 +195,10 @@ for name, (q, s, (lat, lon)) in NETS.items():
         stop = get(net(f'/api/stops/{sid}', s), 'stop', name) or {}
         dep = get(net(f'/api/stops/{sid}/departures?limit=8', s), 'departures', name) or {}
         departures_seen += len(dep.get('departures') or [])
+        if not dep.get('platforms'):
+            etas = [x['etaAt'] for x in dep.get('departures') or []]
+            if etas != sorted(etas):
+                fails.append(f'{name} {sid}: las salidas no vienen ordenadas por hora de llegada prevista')
         for line in (stop.get('lines') or [])[:3]:
             lid = enc(line['id'])
             get(net(f'/api/lines/{lid}', s), 'line', name)
