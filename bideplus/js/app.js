@@ -157,8 +157,9 @@
     }
 
     function delayText(status, delayMinutes) {
-        if (status === 'live' && delayMinutes > 0) return `+${delayMinutes}`;
-        if (status === 'live' && delayMinutes <= -2) return `−${-delayMinutes}`;
+        if (status !== 'live') return '';
+        if (delayMinutes > 0) return I18n.t('app.delay.late', { min: delayMinutes });
+        if (delayMinutes <= -2) return I18n.t('app.delay.early', { min: -delayMinutes });
         return '';
     }
 
@@ -166,7 +167,6 @@
         const text = delayText(status, delayMinutes);
         node.textContent = text;
         node.hidden = text === '';
-        node.title = text === '' ? '' : statusLabel('live', delayMinutes).text;
     }
 
     function setPillContent(button, iconSvg, label, area, hint) {
@@ -536,7 +536,7 @@
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'time-display';
-        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><sub class="delay-sub" hidden></sub><span>min</span></span>`;
+        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
         setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes);
         nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
