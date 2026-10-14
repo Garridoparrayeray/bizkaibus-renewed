@@ -35,6 +35,9 @@
         timetableStopId: null,
         favoriteKeys: new Set(),
         departuresRefreshTimer: null,
+        departuresTickTimer: null,
+        lastDepartures: null,
+        departuresSignature: '',
     };
 
     const favoriteLabelCache = new Map();
@@ -47,6 +50,7 @@
     };
     const LINE_MAP_REFRESH_MS = 25000;
     const DEPARTURES_REFRESH_MS = 25000;
+    const DEPARTURES_TICK_MS = 10000;
 
     const el = {
         homeLink: document.getElementById('home-link'),
@@ -377,11 +381,40 @@
     function startDeparturesRefresh() {
         stopDeparturesRefresh();
         state.departuresRefreshTimer = setInterval(loadDepartures, DEPARTURES_REFRESH_MS);
+        state.departuresTickTimer = setInterval(tickDepartures, DEPARTURES_TICK_MS);
     }
 
     function stopDeparturesRefresh() {
         if (state.departuresRefreshTimer) clearInterval(state.departuresRefreshTimer);
         state.departuresRefreshTimer = null;
+        if (state.departuresTickTimer) clearInterval(state.departuresTickTimer);
+        state.departuresTickTimer = null;
+    }
+
+    /*
+     * Los minutos se calculan con el reloj del dispositivo a partir de la hora absoluta de llegada (etaAt), no con los
+     * que calculó el servidor al responder: así una respuesta con unos minutos de antigüedad (caché, pestaña dormida,
+     * sin conexión) no muestra un «0 min» que ya pasó.
+     */
+    function freshDepartures(departures) {
+        const now = Date.now();
+        return (departures || [])
+            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.round((d.etaAt * 1000 - now) / 60000) } : d))
+            .filter((d) => d.etaMinutes >= -2);
+    }
+
+    function departuresSignature(departures) {
+        return departures.map((d) => `${d.tripKey}:${d.etaMinutes}`).join('|');
+    }
+
+    function renderDepartures(data) {
+        const fresh = { ...data, departures: freshDepartures(data.departures) };
+        state.departuresSignature = departuresSignature(fresh.departures);
+        if (HAS_PLATFORMS) {
+            renderPlatformPanel(fresh);
+        } else {
+            renderLiveCard(fresh.departures);
+        }
     }
 
     async function loadDepartures() {
@@ -390,17 +423,19 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            if (HAS_PLATFORMS) {
-                renderPlatformPanel({ departures: [], platforms: [] });
-            } else {
-                renderLiveCard([]);
-            }
+            state.lastDepartures = null;
+            renderDepartures({ departures: [], platforms: [] });
             return;
         }
-        if (HAS_PLATFORMS) {
-            renderPlatformPanel(data);
-        } else {
-            renderLiveCard(data.departures);
+        state.lastDepartures = data;
+        renderDepartures(data);
+    }
+
+    function tickDepartures() {
+        if (!state.currentStop || !state.lastDepartures) return;
+        // Solo se repinta si cambia algún minuto, para no mover la lista que el usuario esté desplazando.
+        if (departuresSignature(freshDepartures(state.lastDepartures.departures)) !== state.departuresSignature) {
+            renderDepartures(state.lastDepartures);
         }
     }
 

@@ -225,6 +225,7 @@ class StopsController
                 'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
                 'scheduledTime' => Calendar::secondsToHm((int)$aRow['arrival_seconds']),
                 'etaMinutes' => (int)round(($aRow['etaSeconds'] - $iNow) / 60),
+                'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
                 'status' => $aRow['status'],
                 'delayMinutes' => $iDelayMinutes,
                 'direction' => $sDirection,
