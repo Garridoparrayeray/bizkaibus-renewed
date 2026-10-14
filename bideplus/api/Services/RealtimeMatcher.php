@@ -131,6 +131,11 @@ class RealtimeMatcher
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
         if ($aPosition !== null) {
             try {
+                if ($iTargetArrivalSeconds < $aPosition['scheduledSeconds']) {
+                    // La parada queda por detras del bus: ya ha pasado, su hora cae en el pasado.
+                    $iPassedEta = $aPosition['locationSeconds'] - ($aPosition['scheduledSeconds'] - $iTargetArrivalSeconds);
+                    return [$iPassedEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
+                }
                 $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
                 $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
                 $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);

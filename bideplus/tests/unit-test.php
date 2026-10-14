@@ -140,6 +140,8 @@ $expect('el retraso es T_gps - T_pos (-30 s, adelantado)', $M->currentDelaySecon
 [$iEta, $iDelay, $bPositioned] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
 $expect('ETA = T_gps + (T_destino - T_pos) con k = 1 (08:11:30)', $iEta === T0 + 690 && $bPositioned, hms($iEta));
 $expect('etaForStop devuelve el mismo retraso', $iDelay === -30);
+[$iEta] = $M->etaForStop('J_LINE', T0 + 60, $aLive);
+$expect('una parada ya pasada por el bus cae en el pasado (no sale como llegando ahora)', $iEta < $iGps - 120, hms($iEta));
 
 $Pace = new PaceFactors(['global' => ['laborable.punta_manana' => 0.9]]);
 $M = matcher($aLive, $iGps + 30, $Pace);
