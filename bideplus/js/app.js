@@ -150,6 +150,8 @@
 
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
+            // Retraso no creíble (null): se muestra la llegada estimada sin afirmar ni «en hora» ni retraso.
+            if (delayMinutes === null || delayMinutes === undefined) return { text: '', className: 'status-muted' };
             if (delayMinutes > 0) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
             if (delayMinutes <= -2) return { text: I18n.t('app.status.early', { min: -delayMinutes }), className: 'status-warn' };
             return { text: I18n.t('app.status.onTime'), className: 'status-ok' };
@@ -758,7 +760,7 @@
 
         for (const vehicle of data.vehicles) {
             const { lat, lon, name } = vehicle.currentStop;
-            const statusText = vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
+            const statusText = vehicle.delayMinutes === null ? '' : vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
                 .bindPopup(`<strong>${escapeHtml(vehicle.headsign)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
