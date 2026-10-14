@@ -170,8 +170,8 @@ El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de lo
 2. El tiempo de cada tramo entre dos paradas, por franja (`data/segment-times.json`): la mediana de lo que tardan de verdad. Es lo que más pesa en la precisión.
 
 **El ciclo, sin intervención.**
-1. **Captura** (`.github/workflows/pace-capture.yml`): cada hora, de 05:00 a 21:00 UTC (07:00-23:00 en verano), captura el feed GPS unos 50 minutos. Son 17 capturas al día y 119 a la semana. De cada captura solo se guardan las muestras (cuánto tardó cada bus en cada tramo), no los XML.
-2. **Acumulación:** las muestras van a los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (las releases no disparan despliegues). Se conservan 60 días y, como máximo, las 150 muestras más recientes de cada tramo: el fichero no crece sin límite y el sistema olvida lo viejo, así que sigue los cambios (obras, horarios nuevos).
+1. **Captura** (`.github/workflows/pace-capture.yml`): cada hora, todo el día (también los nocturnos), captura el feed GPS unos 50 minutos. Son 24 capturas al día y 168 a la semana. De cada captura solo se guardan las muestras (cuánto tardó cada bus en cada tramo), no los XML.
+2. **Acumulación:** las muestras van a los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (las releases no disparan despliegues). Se conservan 120 días y, como máximo, las 300 muestras más recientes de cada tramo (y 500 000 muestras de ritmo en total): el fichero no crece sin límite y el sistema olvida lo viejo, así que sigue los cambios (obras, horarios nuevos).
 3. **Recalibrado** (cada día, 04:00 UTC): recalcula `k` y los tiempos por tramo con todo lo acumulado. Valida con una partición (aprende con la mitad de los buses y mide en la otra) y solo escribe el fichero si el error baja y el resultado es distinto. Entonces hace un commit y Vercel despliega. Si no mejora, no cambia nada.
 4. **Medición:** cada captura calcula la precisión de las llegadas contra los pasos reales por parada (`scripts/eval-eta.php`) y la deja en el resumen del trabajo de GitHub Actions. Así se ve día a día cómo mejora el sistema con los datos.
 
@@ -191,9 +191,9 @@ El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de lo
 | Recurso | Límite | Cómo se queda por debajo |
 |---|---|---|
 | Minutos de GitHub Actions | Gratis e ilimitados en repositorios públicos con runners estándar | El repositorio es público |
-| Duración de un trabajo | 6 h | Una captura dura unos 60 min; el trabajo tiene `timeout-minutes: 75` |
+| Duración de un trabajo | 6 h | Una captura dura unos 60 min; el trabajo tiene `timeout-minutes: 75`; el recalibrado, que carga las muestras en memoria, tiene 2 GB de tope en el script frente a los 7 GB del runner |
 | Solape de trabajos | Un trabajo en marcha y uno en espera por grupo de concurrencia; los demás se cancelan | Todos los trabajos comparten `concurrency: pace-data` y van uno detrás de otro; el horario deja una hora entre inicios |
-| Tamaño del fichero de muestras | 2 GiB por adjunto de una release | 60 días y 150 muestras por tramo: máximo teórico de unos 40 MB, y en la práctica mucho menos |
+| Tamaño del fichero de muestras | 2 GiB por adjunto de una release | 120 días, 300 muestras por tramo (máximo teórico de unos 90 MB) y 500 000 muestras de ritmo (unos 75 MB): más de 10 veces por debajo del límite |
 | Despliegues en Vercel | 100 al día en el plan gratuito | Como mucho 1 commit de recalibrado al día (solo si mejora) más el rebuild diario |
 | Trabajos programados en repositorios sin actividad | Se pausan a los 60 días sin actividad | El repositorio tiene actividad continua; si se pausan, se reactivan desde la pestaña Actions |
 | Carga sobre el origen de datos | No documentado | Una petición cada 45 s durante la captura al fichero público del feed, que se actualiza cada minuto |
