@@ -6,7 +6,7 @@ name: Ritmo de los buses (k)
 # entre dos paradas, para los tramos en los que el horario no se parece a la
 # realidad, como los de autopista).
 #
-# - Capturas: cada hora captura el feed en directo unos 50 minutos (24 capturas
+# - Capturas: cada hora captura el feed en directo unos 45 minutos (24 capturas
 #   al dia, 168 a la semana), y guarda solo las muestras que hacen falta (no los XML) en un fichero
 #   acumulado que vive como adjunto de la release "pace-data". Las releases no
 #   disparan despliegues de Vercel. Los trabajos van uno detras de otro
@@ -29,7 +29,7 @@ on:
     inputs:
       minutes:
         description: 'Minutos de captura (para probar, 3)'
-        default: '50'
+        default: '45'
       recalibrate:
         description: 'Recalibrar en vez de capturar'
         type: boolean
@@ -68,7 +68,7 @@ jobs:
 
       - name: Capturar el feed en directo
         env:
-          MINUTES: ${{ github.event.inputs.minutes || '50' }}
+          MINUTES: ${{ github.event.inputs.minutes || '45' }}
         run: php bideplus/scripts/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
 
       - name: Medir la precision de las llegadas con esta captura
