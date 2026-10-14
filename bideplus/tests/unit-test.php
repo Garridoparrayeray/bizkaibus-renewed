@@ -310,6 +310,26 @@ $expect('tramos de 3 min sí se estiman', $MLong->isLive('J_LINE', $aLongSegment
 $aBigGap = array_merge($aRegistered, ['order' => 5, 'recordedSeconds' => T0 + 600]);
 $expect('con tramo hasta la próxima parada de 3 min (orden 5) se estima', matcher($aBigGap, T0 + 620)->isLive('J_LINE', $aBigGap));
 
+/* Capa 3: sin ningún dato del bus, el horario publicado se corrige con los tiempos aprendidos (salida de cabecera + lo que tardan los buses). */
+$SegLearned = new SegmentTimes(['segments' => [
+    'S0>S1' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
+    'S1>S2' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
+    'S2>S3' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
+    'S3>S4' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
+]]);
+$aRowNoBus = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
+$MNoBus = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
+$aNoBus = $MNoBus->enrich([$aRowNoBus])[0];
+$expect('sin datos del bus, la llegada es la salida de cabecera + tiempos aprendidos + 1 min (08:07:40)', $aNoBus['status'] === 'scheduled' && $aNoBus['etaSeconds'] === T0 + 400 + 60 && $aNoBus['delaySeconds'] === 0, json_encode([$aNoBus['status'], hms($aNoBus['etaSeconds'])]));
+$MNoBusLate = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 + 500, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
+$expect('si lo estimado ya queda en el pasado, se deja el horario publicado (no se esconde ni se deja en 0 min)', $MNoBusLate->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
+$MNoLearned = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$expect('sin tiempos aprendidos, se deja el horario publicado', $MNoLearned->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
+Config::set('euskotren');
+$MOtherNoBus = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
+$expect('en otras redes se deja el horario publicado', $MOtherNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
+Config::set('bus');
+
 /* GPS y parada registrada que no cuadran (más de 6 min): no se fía de ninguna, horario oficial. */
 $aDisagree = live(1500, 0, 5, $iGps);
 $MDisagree = matcher($aDisagree, $iGps + 30, new PaceFactors(['global' => ['laborable.punta_manana' => 0.0]]));
