@@ -1354,7 +1354,10 @@
     })().catch(() => {});
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') runForegroundAlertCheck().catch(() => {});
+        if (document.visibilityState !== 'visible') return;
+        runForegroundAlertCheck().catch(() => {});
+        // Una pestaña en segundo plano congela el temporizador: al volver, las salidas se actualizan ya.
+        if (state.currentStop && state.departuresRefreshTimer) loadDepartures();
     });
 
     function updateLangToggleLabel() {
