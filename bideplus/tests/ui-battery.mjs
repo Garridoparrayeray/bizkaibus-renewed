@@ -176,6 +176,7 @@ for (const [url, panel, name] of [
     ['/stops/4255', 'live-card', 'parada bus'],
     ['/stops/19?red=metro', 'platform-panel', 'estacion metro'],
     ['/stops/ES:Euskotren:StopPlace:2581:?red=euskotren', 'platform-panel', 'estacion euskotren'],
+    ['/stops/ES%3AEuskotren%3AStopPlace%3A2581%3A?red=euskotren', 'platform-panel', 'estacion euskotren con el id codificado (enlace de Favoritos)'],
     ['/stops/ES:Euskotren:StopPlace:1468:?red=tranvia-bilbao', 'platform-panel', 'parada tranvia bilbao'],
     ['/stops/ES:Euskotren:StopPlace:1560:?red=tranvia-vitoria', 'platform-panel', 'parada tranvia vitoria'],
     ['/stops/13200?red=renfe', 'live-card', 'parada renfe'],
@@ -185,6 +186,15 @@ for (const [url, panel, name] of [
     await go(url, 4500);
     check(`enlace directo ${name}`, (await ev(`!document.getElementById('${panel}').hidden`)) === true && (await ev("getComputedStyle(document.querySelector('header')).position")) === 'sticky');
 }
+
+where = 'idioma';
+await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (/departures/.test(String(a[0]))) { const j = await r.clone().json(); for (const d of (j.departures || [])) { d.status = 'live'; d.delayMinutes = 3; } return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); } return r; }; })();` });
+await go('/stops/4255', 4500);
+const delayEs = await ev("document.getElementById('live-delay').textContent");
+await ev("document.getElementById('lang-toggle').click()"); await sleep(600);
+const delayEu = await ev("document.getElementById('live-delay').textContent");
+check('el texto del retraso cambia de idioma sin recargar', delayEs !== '' && delayEu !== '' && delayEs !== delayEu, `${delayEs} -> ${delayEu}`);
+await ev('localStorage.clear()');
 
 where = 'menu';
 await go('/', 2500);

@@ -117,7 +117,7 @@
     function favoriteItem(app, favorite, compact) {
         const item = createNode('li');
         const link = createNode('a', 'bide-fav');
-        link.href = (favorite.type === 'stop' ? '/stops/' : '/lines/') + encodeURIComponent(favorite.refId) + appQuery(app);
+        link.href = (favorite.type === 'stop' ? '/stops/' : '/lines/') + encodeURIComponent(favorite.refId).replace(/%3A/gi, ':') + appQuery(app);
         const text = createNode('span', 'bide-fav-text');
         const title = createNode('strong', null, '…');
         const type = favorite.type === 'stop' ? translate('bide.fav.stop', 'Parada') : translate('bide.fav.line', 'Línea');

@@ -64,7 +64,7 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 
 **Bizkaibus** — dos feeds SIRI en vivo, licencia CC-BY 4.0:
 - Alertas de servicio (SIRI-SX): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml`
-- Posición de buses (SIRI-VM): `https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml` (con GPS), y como respaldo `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-trip-updates.xml` (mal nombrado "trip-updates" en origen; sin GPS)
+- Posición de buses (SIRI-VM, «Posición GPS» de Open Data Bizkaia): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml` (GPS y hora del dato, ~1 actualización por minuto, ~250 vehículos). Es la única fuente: el feed de trip-updates no trae GPS, ni hora válida, ni retraso. Si no responde, la app usa el último dato guardado y, sin él, el horario oficial.
 
 **Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Aunque el horario estático sale del mismo CTB, un mismo `trip_id` del tiempo real no es el mismo tren del horario (se comprobó: los números se reutilizan entre calendarios), así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
 
@@ -76,7 +76,7 @@ El `VehicleJourneyRef` del feed en vivo (p. ej. `trp_A3414_808_OP9LSEPT_54000_..
 
 ### Cómo se calcula la llegada
 
-El feed principal (`opendata.euskadi.eus`) **no publica retraso** (no trae `<Delay>`; el alternativo siempre dice `PT0S`), pero sí la posición GPS de cada bus, su próxima parada (`VisitNumber`) y la hora del dato. Además, los tiempos por parada del GTFS son aproximados (`timepoint=0`, interpolados a velocidad constante), así que "horario + retraso" no sirve: un bus puede ir 15-20 min por delante de ese horario en mitad del recorrido.
+El feed GPS (`ctb-siri…/bizkaibus-vehicle-positions.xml`) **no publica retraso** (no trae `<Delay>`; el alternativo siempre dice `PT0S`), pero sí la posición GPS de cada bus, su próxima parada (`VisitNumber`) y la hora del dato. Además, los tiempos por parada del GTFS son aproximados (`timepoint=0`, interpolados a velocidad constante), así que "horario + retraso" no sirve: un bus puede ir 15-20 min por delante de ese horario en mitad del recorrido.
 
 Por eso la llegada se calcula por posición:
 
@@ -134,19 +134,17 @@ php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
 
 `calibrate-segments` valida igual que `calibrate`: aprende con la mitad de los buses y mide en la otra mitad; solo escribe si el error baja. El tiempo general de un tramo solo se guarda si hay datos de al menos dos franjas, para que lo medido a mediodía no se use en hora punta. `data/segment-samples-seed.jsonl.gz` son las primeras muestras (6 oct 2026, mediodía de laborable, 760 buses): el workflow empieza por ellas si la release aún no tiene `segment-samples.jsonl`.
 
-### Parada registrada (buses sin GPS utilizable)
+### Bizkaibus en tres capas: GPS, parada registrada, horario oficial
 
-Hay buses cuyo GPS no sirve (no lo mandan, o están a más de 50 m de la ruta por un desvío): en una muestra del 6 de octubre eran un 8 % de las observaciones. Antes la app les mostraba el horario, y las paradas que el feed ya daba por pasadas seguían saliendo como «llega en X min» (el 48 %, con una mediana de 8 minutos de más). Pero el feed sigue diciendo cuál es su **próxima parada** (`Order`), así que el bus acaba de registrar la anterior, la haya servido o la haya saltado:
+Cada salida usa la mejor capa que tenga datos fiables:
 
-```
-ETA = T_dato + ½ × (tiempo esperado, parada anterior → próxima) + tiempo esperado (próxima → parada pedida)
-```
+1. **En vivo con GPS:** el GPS se proyecta sobre el recorrido (hasta 50 m) y se estima la llegada tramo a tramo. Una parada que el bus ya dejó atrás sale como pasada y desaparece de la lista.
+2. **Parada registrada (sin GPS utilizable):** si el bus no manda GPS o está fuera de la ruta pero el feed da su próxima parada y la hora del dato (menos de 10 min), el retraso sale de esa parada: hora del dato a mitad del tramo hasta la próxima, más los tiempos esperados hasta la parada pedida. Solo se usa si el tramo anterior→próxima parada dura 6 min o menos. Contrastado con el feed real (201 buses con GPS), la parada registrada coincide con el GPS con mediana de 0,7 min y p90 de 1,7 min en tramos de hasta 5 min; en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana y por eso no se usa.
+3. **Horario oficial:** sin datos en vivo, con datos viejos o sin hora del dato, la salida sale «Programado» con su hora oficial, sin retraso ni minutos estimados.
 
-Se parte de la hora del dato (`RecordedAtTime`), a mitad del tramo hasta la próxima parada, y se suman los tiempos esperados (los de `segment-times.json`, o el horario con `k`). Solo se usa si el viaje ya ha empezado, el dato tiene menos de 10 min y se conoce la parada. Además, con GPS fuera de la ruta o sin GPS, si el feed ya da una parada posterior como próxima, la fila de las anteriores se retira (`RealtimeMatcher::isPassedPerFeed`); con GPS en ruta manda el GPS. Un bus que espera en cabecera (viaje sin empezar) no se toca. Como los tiempos por tramo, **solo se aplica a Bizkaibus**.
+No hay más estimaciones (márgenes de adelanto, descarte por orden del feed sin hora): daban cifras que no se podían defender. Otras redes con SIRI (Euskotren, tranvías) no cambian.
 
-Medido con 57 823 predicciones (14:45–15:45 del 6 de octubre, tiempos aprendidos antes de las 14:45) frente a la hora real de paso: error medio **2,2 min** con esta fórmula, 2,0 con GPS, 3,9 con la de antes para buses sin ninguna ubicación y 8,2 con solo el horario. Mezclarla con el GPS no mejora (1,96 contra 1,98), por eso solo se usa donde no hay GPS utilizable. Las filas «fantasma» (parada ya pasada según el feed, mostrada como futura) de los buses sin GPS bajan de 727 a 75.
-
-**Feed de respaldo sin hora ni GPS.** Si el feed de Open Data Euskadi no responde, la app usa el del CTB (`ctb-siri.s3…/bizkaibus-trip-updates.xml`): trae el viaje, el bus y su próxima parada, pero no GPS, su `RecordedAtTime` no es una hora válida y su `Delay` vale siempre 0. Antes eso salía como «En hora» siempre. Ahora, si el horario de la parada anterior a la próxima todavía no ha llegado (entre 2 y 30 min), el bus ya la ha registrado y va **adelantado al menos esa diferencia** (`RealtimeMatcher::earlyLeadSeconds`): se muestra «Adelantado −N m» y la ETA se adelanta lo mismo. Es una cota, no una medida: el adelanto real puede ser mayor. Si el feed trae su propio retraso, manda el del feed.
+Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si el feed GPS de Open Data Bizkaia contesta, cuánto tarda y cuántos buses traen GPS, hora del dato y retraso.
 
 **Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (60 días; las releases no disparan despliegues). Cada día calcula `k` y los tiempos por tramo con todo lo acumulado y, solo si el error baja en la mitad de prueba y el resultado cambia, hace un commit de `data/pace-factors.json` y `data/segment-times.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` y `segment-samples <carpeta> <tramos.jsonl>` hacen lo mismo en local.
 
