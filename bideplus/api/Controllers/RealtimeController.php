@@ -149,12 +149,14 @@ class RealtimeController
             }
 
             $iEtaMinutes = null;
+            $iEtaAt = null;
             if (!$bAlreadyPassed) {
                 $iEta = (int)$aStop['arrival_seconds'];
                 if ($bLive) {
                     [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order']);
                 }
                 $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
+                $iEtaAt = time() + ($iEta - $iNow);
             }
 
             return [
@@ -162,6 +164,7 @@ class RealtimeController
                 'name' => $aStop['name'],
                 'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
                 'etaMinutes' => $iEtaMinutes,
+                'etaAt' => $iEtaAt,
                 'isPast' => $bAlreadyPassed,
                 'isCurrent' => $iNextSeqOrder !== null && (int)$aStop['seq_order'] === $iNextSeqOrder,
             ];
@@ -294,14 +297,17 @@ class RealtimeController
             }
 
             $iEtaMinutes = null;
+            $iEtaAt = null;
             if ($iEta !== null) {
                 $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
+                $iEtaAt = time() + ($iEta - $iNow);
             }
             $aStopsOut[] = [
                 'stopId' => Ids::forOutput($aStop['stop_id']),
                 'name' => $aStop['name'],
                 'scheduledTime' => Calendar::secondsToHm($iScheduled),
                 'etaMinutes' => $iEtaMinutes,
+                'etaAt' => $iEtaAt,
                 'isPast' => $bAlreadyPassed,
                 'isCurrent' => $bIsCurrent,
             ];
