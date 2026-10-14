@@ -238,6 +238,16 @@ Con cada duplicación de buses, los tramos sin aprender se reducen aproximadamen
 | 99 % | 93 % | 98 % | proyección |
 | 100 % | 93 % | 98 % | techo medido |
 
+**Viajes largos (10-20 min).** Medido hoy, por lo que falta para que llegue el bus y si todo su camino está aprendido (llegadas en vivo, 14 min de feed):
+
+| El bus llega en | Todo el camino aprendido | Algún tramo sin aprender |
+|---|---|---|
+| 0-5 min | 96 % dentro de ±2 min, 99 % dentro de ±3 (n = 3 919) | 75 % y 83 % (n = 523) |
+| 5-10 min | 87 % y 96 % (n = 1 811) | 48 % y 63 % (n = 369) |
+| 10-20 min | 76 % y 93 % (n = 439) | 23 % y 48 % (n = 77) |
+
+Con más datos, los viajes largos son los que más ganan, porque un camino largo atraviesa más tramos y es más probable que alguno no esté aprendido. Pero el error crece con la distancia aunque todo esté aprendido, porque cada tramo suma su variación: a 10-20 min el techo medido es el 76 % dentro de ±2 min y el 93 % dentro de ±3 (muestra pequeña). La llegada parte de la posición real del bus y no depende de si va retrasado respecto al horario; lo que no recoge es lo que aún no ha afectado a su posición (un corte, una obra), y los avisos de incidencias no entran en el cálculo.
+
 Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). **El techo es el 93 %, no el 99 %**: en llegadas con todo aprendido, el resto se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta. La rapidez con que sube la cobertura de tramos raros no se conoce: la tendencia está medida solo hasta 379 buses. El sistema la irá midiendo solo, porque cada captura escribe su precisión.
 
 ## Fuente estática: GTFS

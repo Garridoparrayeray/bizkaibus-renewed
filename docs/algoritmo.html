@@ -540,6 +540,18 @@ a{color:var(--route)}
           <tr><td class="n">100 %</td><td class="n"><b>93 %</b></td><td class="n"><b>98 %</b></td><td>techo medido</td></tr>
         </tbody>
       </table></div>
+      <h3>Y los viajes largos: 10-20 min</h3>
+      <p class="col">Medido hoy, separando por cuánto falta para que llegue el bus y por si todo su camino está aprendido (llegadas en vivo, 14 min de feed):</p>
+      <div class="scroll"><table>
+        <thead><tr><th>El bus llega en</th><th>Todo el camino aprendido</th><th>Algún tramo sin aprender</th></tr></thead>
+        <tbody>
+          <tr><td>0 – 5 min</td><td class="n">96 % ±2 min · 99 % ±3 <span class="mono">(n = 3 919)</span></td><td class="n">75 % ±2 min · 83 % ±3 <span class="mono">(n = 523)</span></td></tr>
+          <tr><td>5 – 10 min</td><td class="n">87 % ±2 min · 96 % ±3 <span class="mono">(n = 1 811)</span></td><td class="n">48 % ±2 min · 63 % ±3 <span class="mono">(n = 369)</span></td></tr>
+          <tr><td>10 – 20 min</td><td class="n">76 % ±2 min · 93 % ±3 <span class="mono">(n = 439)</span></td><td class="n">23 % ±2 min · 48 % ±3 <span class="mono">(n = 77)</span></td></tr>
+        </tbody>
+      </table></div>
+      <p class="col">Sí: con más datos los viajes largos son los que más ganan, porque un camino largo atraviesa más tramos y es más probable que alguno aún no esté aprendido (23 % frente a 76 % dentro de ±2 min a 10-20 min). Pero aunque todo esté aprendido, el error crece con la distancia, porque cada tramo suma su propia variación: 96 % a 0-5 min, 87 % a 5-10 y 76 % a 10-20. A 10-20 min el techo medido es 76 % dentro de ±2 min y 93 % dentro de ±3 (muestra pequeña: 439 llegadas). Los minutos que muestra la app, a pocos minutos de que llegue el bus, son los más fiables.</p>
+      <p class="col"><b>Los retrasos.</b> La llegada no depende de si el bus va retrasado respecto al horario: parte de su posición real y suma lo que tardan los buses en cada tramo, así que un bus que ya va tarde se calcula igual de bien. Lo que no recoge es lo que todavía no ha afectado al bus: un corte, una obra o un aviso de incidencia no cambian la estimación hasta que se notan en su posición. Los avisos de incidencias se muestran aparte, no entran en el cálculo.</p>
       <div class="note col"><b>Cómo leerlo.</b> Son llegadas a menos de 10 min, que son las que decide el usuario. Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). El techo, 93 %, no es 99 %: en llegadas con todo aprendido, el 7 % restante se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta.</div>
       <p class="col">Lo que no se puede dar por hecho es la rapidez del salto. La cobertura de tramos raros crece despacio y la extrapolación de la curva (los tramos sin aprender se reducen aproximadamente a la mitad cada vez que se triplican los buses) es una tendencia medida solo hasta 379 buses. Lo medirá el propio sistema: cada captura escribe su precisión, y <code>learning-curve.php</code> repite la curva con todo lo acumulado.</p>
     </div>
