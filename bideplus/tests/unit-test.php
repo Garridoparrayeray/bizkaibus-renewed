@@ -239,7 +239,7 @@ $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaFor
 /* ------------------------------------------------------------------ */
 $section('Bizkaibus: fuente de los buses en directo');
 $aBusConfig = require __DIR__ . '/../api/Config/config.php';
-$expect('los buses en directo salen solo de Open Data Euskadi (con GPS, hora del dato y retraso), sin respaldo del CTB', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://opendata.euskadi.eus/') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
+$expect('los buses en directo salen solo del feed GPS SIRI de Open Data Bizkaia (posicion y hora del dato), sin el feed de trip-updates', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
 
 /* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: sin trazado (tramos entre paradas)');
