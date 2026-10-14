@@ -144,6 +144,7 @@
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
             if (delayMinutes > 0) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
+            if (delayMinutes <= -2) return { text: I18n.t('app.status.early', { min: -delayMinutes }), className: 'status-warn' };
             return { text: I18n.t('app.status.onTime'), className: 'status-ok' };
         }
         if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
@@ -153,6 +154,7 @@
 
     function delayText(status, delayMinutes) {
         if (status === 'live' && delayMinutes > 0) return `+${delayMinutes}`;
+        if (status === 'live' && delayMinutes <= -2) return `−${-delayMinutes}`;
         return '';
     }
 
@@ -160,7 +162,7 @@
         const text = delayText(status, delayMinutes);
         node.textContent = text;
         node.hidden = text === '';
-        node.title = text === '' ? '' : I18n.t('app.status.delay', { min: delayMinutes });
+        node.title = text === '' ? '' : statusLabel('live', delayMinutes).text;
     }
 
     function setPillContent(button, iconSvg, label, area, hint) {
@@ -615,8 +617,11 @@
         }
     }
 
+    let timetableRequestId = 0;
+
     async function loadTimetable() {
         if (!state.currentLine) return;
+        const requestId = ++timetableRequestId;
         let data;
         try {
             data = await Api.timetable(state.currentLine.id, {
@@ -628,6 +633,7 @@
         } catch (e) {
             return;
         }
+        if (requestId !== timetableRequestId) return;
         renderTimetableRows(data.entries);
         const timetableNote = document.getElementById('timetable-note');
         timetableNote.hidden = !data.beyondPublished;

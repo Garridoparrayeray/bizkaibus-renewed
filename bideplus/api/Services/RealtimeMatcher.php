@@ -20,6 +20,8 @@ class RealtimeMatcher
     private const AMBIGUITY_MARGIN_METERS = 20;
     private const NOT_STARTED_GRACE_SECONDS = 60;
     private const MAX_LOCATION_AGE_SECONDS = 10 * 60;
+    private const EARLY_LEAD_MIN_SECONDS = 2 * 60;
+    private const EARLY_LEAD_MAX_SECONDS = 30 * 60;
     private const SEGMENTS_BEHIND_NEXT_STOP = 3;
     private const SEGMENTS_AHEAD_OF_NEXT_STOP = 2;
     private const METERS_PER_DEGREE = 111320;
@@ -150,6 +152,11 @@ class RealtimeMatcher
 
         $iFlatEta = $iTargetArrivalSeconds + $aLive['delaySeconds'];
 
+        $iLead = $this->earlyLeadSeconds($sServiceJourneyId, $aLive);
+        if ($iLead > 0) {
+            return [$iFlatEta - $iLead, -$iLead, false];
+        }
+
         if (!self::hasLocation($aLive) && $this->JourneyModel !== null && $sServiceJourneyId !== null && $aLive['currentStopId'] !== null && $aLive['order'] !== null) {
             $iCurrentArrival = $this->JourneyModel->arrivalSecondsAtOrder($sServiceJourneyId, (int)$aLive['order']);
             if ($iCurrentArrival !== null) {
@@ -162,6 +169,39 @@ class RealtimeMatcher
         }
 
         return [$iFlatEta, $aLive['delaySeconds'], false];
+    }
+
+    /*
+     * Sin hora del dato (el feed de respaldo del CTB no trae GPS, su hora es inválida y su retraso es siempre 0), el
+     * bus ha registrado la parada anterior a la próxima en algún momento anterior a ahora. Si el horario de esa parada
+     * todavía no ha llegado, el bus va adelantado al menos esa diferencia. Devuelve esos segundos, o 0 si no se puede
+     * afirmar (feed con retraso propio, viaje sin empezar, parada desconocida o diferencia irrelevante).
+     */
+    private function earlyLeadSeconds(string|null $sServiceJourneyId, array $aLive): int
+    {
+        if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
+            return 0;
+        }
+        if ((int)$aLive['delaySeconds'] !== 0 || self::hasLocation($aLive) || isset($aLive['recordedSeconds'])) {
+            return 0;
+        }
+        $iOrder = (int)$aLive['order'];
+        if ($iOrder < 2) {
+            return 0;
+        }
+        $aStops = $this->stopsFor($sServiceJourneyId);
+        if (empty($aStops) || $this->iNow < (int)$aStops[0]['departure_seconds'] - self::NOT_STARTED_GRACE_SECONDS) {
+            return 0;
+        }
+        $aBySeq = array_column($aStops, null, 'seq_order');
+        if (!isset($aBySeq[$iOrder - 1])) {
+            return 0;
+        }
+        $iLead = (int)$aBySeq[$iOrder - 1]['arrival_seconds'] - $this->iNow;
+        if ($iLead < self::EARLY_LEAD_MIN_SECONDS || $iLead > self::EARLY_LEAD_MAX_SECONDS) {
+            return 0;
+        }
+        return $iLead;
     }
 
     /*
@@ -289,6 +329,10 @@ class RealtimeMatcher
             if ($iEta !== null) {
                 return $iEta - $aRegistration['next'];
             }
+        }
+        $iLead = $this->earlyLeadSeconds($sServiceJourneyId, $aLive);
+        if ($iLead > 0) {
+            return -$iLead;
         }
         if (self::hasLocation($aLive)) {
             return 0;
