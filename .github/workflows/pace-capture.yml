@@ -6,46 +6,30 @@ name: Ritmo de los buses (k)
 # entre dos paradas, para los tramos en los que el horario no se parece a la
 # realidad, como los de autopista).
 #
-# - Capturas: varias veces al dia captura el feed en directo unos 25 minutos,
-#   y guarda solo las muestras que hacen falta (no los XML) en un fichero
+# - Capturas: cada hora captura el feed en directo unos 50 minutos (17 capturas
+#   al dia), y guarda solo las muestras que hacen falta (no los XML) en un fichero
 #   acumulado que vive como adjunto de la release "pace-data". Las releases no
-#   disparan despliegues de Vercel.
+#   disparan despliegues de Vercel. Los trabajos van uno detras de otro
+#   (concurrency), asi que si uno se retrasa el siguiente espera.
 # - Recalibrado: cada dia calcula k y los tiempos por tramo con todo lo
 #   acumulado. Solo cambia cada fichero si el error baja en la mitad de prueba
 #   y el resultado es distinto; entonces hace un commit y Vercel despliega.
 #
-# Las horas estan en UTC y se han elegido para que caigan en la franja correcta
-# tanto en horario de verano (UTC+2) como de invierno (UTC+1):
-#   05:00 -> 07:00/06:00 punta de manana      08:30 -> 10:30/09:30 manana
-#   12:00 -> 14:00/13:00 mediodia             15:30 -> 17:30/16:30 punta de tarde
-#   19:00 -> 21:00/20:00 noche
-#   06:30 -> 08:30/07:30 punta de manana      10:30 -> 12:30/11:30 manana
-#   13:30 -> 15:30/14:30 mediodia             17:30 -> 19:30/18:30 punta de tarde
-# Cuantas mas capturas, mas tramos con tiempo aprendido, que es lo que mas pesa en la precision
-# (con todos los tramos aprendidos, el 93 % de las llegadas queda dentro de +-2 min; con alguno sin aprender, el 70 %).
-# Los trabajos no se solapan (concurrency). GitHub puede retrasar unos minutos los trabajos programados.
+# Las horas estan en UTC. Cuantas mas horas de captura, mas tramos con tiempo aprendido, que es lo que mas pesa
+# en la precision (con todos los tramos aprendidos, el 93 % de las llegadas queda dentro de +-2 min; con alguno sin
+# aprender, el 70 %). GitHub puede retrasar unos minutos los trabajos programados.
 
 on:
   schedule:
-    - cron: '0 5 * * 1-5'
-    - cron: '30 6 * * 1-5'
-    - cron: '30 8 * * 1-5'
-    - cron: '30 10 * * 1-5'
-    - cron: '0 12 * * 1-5'
-    - cron: '30 13 * * 1-5'
-    - cron: '30 15 * * 1-5'
-    - cron: '30 17 * * 1-5'
-    - cron: '0 19 * * 1-5'
-    - cron: '0 9 * * 6,0'
-    - cron: '30 11 * * 6,0'
-    - cron: '0 14 * * 6,0'
-    - cron: '0 16 * * 6'
+    # Cada hora de 05:00 a 21:00 UTC (07:00-23:00 en verano, 06:00-22:00 en invierno): 17 capturas al dia, 119 a la semana.
+    - cron: '0 5-21 * * *'
+    # Recalibrado diario.
     - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       minutes:
         description: 'Minutos de captura (para probar, 3)'
-        default: '25'
+        default: '50'
       recalibrate:
         description: 'Recalibrar en vez de capturar'
         type: boolean
@@ -66,7 +50,7 @@ jobs:
   capture:
     if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate != 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
@@ -84,11 +68,12 @@ jobs:
 
       - name: Capturar el feed en directo
         env:
-          MINUTES: ${{ github.event.inputs.minutes || '25' }}
+          MINUTES: ${{ github.event.inputs.minutes || '50' }}
         run: php bideplus/scripts/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
 
       - name: Medir la precision de las llegadas con esta captura
         continue-on-error: true
+        timeout-minutes: 10
         run: |
           {
             echo "### Precision de las llegadas (esta captura contra los pasos reales por parada)"
