@@ -200,6 +200,8 @@ class StopsController
     private function buildDepartureItems(array $aEnriched, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
+        // Por hora de llegada prevista, no por la teorica: un bus adelantado llega antes que uno anterior en el horario.
+        usort($aEnriched, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
         $aDepartures = array_map(function ($aRow) use ($iNow, $bUseLastStopHeadsign, $aPlatform) {
             $sHeadsign = $aRow['headsign'];
             if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
