@@ -13,6 +13,7 @@ class RealtimeMatcher
     private const POSITION_SANITY_SECONDS = 15 * 60;
     private const REGISTRATION_SEGMENT_SHARE = 0.5;
     private const REGISTRATION_MAX_SEGMENT_SECONDS = 6 * 60;
+    private const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
@@ -235,6 +236,11 @@ class RealtimeMatcher
         if (!isset($aBySeq[$iOrder], $aBySeq[$iOrder - 1])) {
             return null;
         }
+        // Mismo límite que con GPS: más de 45 min respecto al horario es un viaje mal asignado, no un retraso.
+        $iMidSegment = intdiv((int)$aBySeq[$iOrder]['arrival_seconds'] + (int)$aBySeq[$iOrder - 1]['arrival_seconds'], 2);
+        if (abs($iRef - $iMidSegment) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
+            return null;
+        }
         /*
          * Contrastado con el feed real (201 buses con GPS): en tramos de hasta 5 min la parada registrada coincide con el
          * GPS (mediana 0,7 min, p90 1,7); en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana.
@@ -345,6 +351,15 @@ class RealtimeMatcher
         if (!array_key_exists($sMemoKey, $this->aPositionMemo)) {
             try {
                 $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
+                /*
+                 * Con el feed real, los retrasos llegan a +37 min y de ahí saltan a +111, +122, +306 y -61: son buses
+                 * en marcha cuyo viaje del feed no es el que hacen (el GPS cuadra con la ruta, el viaje es otro). Más de
+                 * 45 min de diferencia con el horario no es un retraso creíble: ese bus sale con el horario oficial.
+                 */
+                if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null
+                    && abs($this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds']) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
+                    $this->aPositionMemo[$sMemoKey] = null;
+                }
             } catch (\Throwable $Ex) {
                 // Si el cálculo con GPS falla, ese bus se queda sin posición y sale con el horario oficial.
                 error_log('Bide+ GPS: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
