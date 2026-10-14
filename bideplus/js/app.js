@@ -399,9 +399,10 @@
      */
     function freshDepartures(departures) {
         const now = Date.now();
+        // Un bus que pasó hace más de 45 s deja de salir: antes seguía 2 min como «0 min» con el bus ya lejos.
         return (departures || [])
-            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.round((d.etaAt * 1000 - now) / 60000) } : d))
-            .filter((d) => d.etaMinutes >= -2);
+            .filter((d) => (Number.isFinite(d.etaAt) ? d.etaAt * 1000 >= now - DEPARTED_GRACE_MS : d.etaMinutes >= -2))
+            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.max(0, Math.round((d.etaAt * 1000 - now) / 60000)) } : d));
     }
 
     function departuresSignature(departures) {
@@ -900,6 +901,7 @@
     const MODAL_REFRESH_MS = 15000;
     const MODAL_TICK_MS = 10000;
     const MODAL_PASSED_AFTER_MS = 45000;
+    const DEPARTED_GRACE_MS = 45 * 1000;
     const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
 
     function freshModalStops(data) {
