@@ -5,7 +5,7 @@ return [
     'db_path' => __DIR__ . '/../../data/bizkaibus.sqlite',
 
     'siri' => [
-        'vehicle_monitoring_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_vehicle_monitoring.xml',
+        'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml',
         // Solo Open Data Euskadi: trae GPS, hora del dato y retraso. El feed del CTB (bizkaibus-trip-updates.xml) no trae ninguno de los tres y daba «En hora» a todos los buses.
         'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_situation_exchange.xml',
         'alerts_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml',
