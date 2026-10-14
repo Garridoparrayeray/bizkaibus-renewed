@@ -427,7 +427,7 @@ if ($breadcrumbName !== null) {
                     <h3 id="live-line"></h3>
                     <p id="live-headsign"></p>
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
-                        <strong id="live-minutes">–</strong><sub id="live-delay" class="delay-sub" hidden></sub><span>min</span>
+                        <strong id="live-minutes">–</strong><span>min</span><sub id="live-delay" class="delay-sub" hidden></sub>
                     </button>
                     <button id="live-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <footer>
