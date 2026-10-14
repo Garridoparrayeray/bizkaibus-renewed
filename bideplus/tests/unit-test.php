@@ -290,6 +290,15 @@ $expect('con GPS fuera de la ruta la ETA sale de la parada registrada (08:12:00)
 $aOnRoute = live(1500, 0, 3, $iGps);
 $expect('con GPS en ruta manda el GPS y no se descarta nada por el orden del feed', matcher($aOnRoute, $iGps + 30)->enrich([$aRowTarget])[0]['status'] === 'live');
 
+/* Con GPS: en cuanto el bus pasa una parada (el feed ya marca la siguiente), esa salida se retira al momento. */
+$aGpsPassed = live(1500, 0, 3, $iGps);
+$MGpsPassed = matcher($aGpsPassed, $iGps + 30);
+$aRowStop2 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 180, 'stop_seq' => 2];
+$aRowStop3 = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 360, 'stop_seq' => 3];
+$aOutPassed = $MGpsPassed->enrich([$aRowStop2, $aRowStop3]);
+$expect('con GPS, la parada que el bus ya pasó sale como salida y fuera de la lista al momento', $aOutPassed[0]['status'] === 'departed' && $aOutPassed[0]['etaSeconds'] < $iGps + 30 - 120, json_encode([$aOutPassed[0]['status'], $aOutPassed[0]['etaSeconds']]));
+$expect('con GPS, la próxima parada sigue en directo', $aOutPassed[1]['status'] === 'live', $aOutPassed[1]['status']);
+
 /* Tramo largo (cabecera, espera): la parada registrada no dice dónde va el bus, así que no se estima. */
 $aLongSegment = $aRegistered;
 $aLongSegment['order'] = 3;
