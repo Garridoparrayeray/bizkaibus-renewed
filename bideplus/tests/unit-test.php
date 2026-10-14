@@ -265,7 +265,8 @@ $MRegFast = matcher($aRegistered, T0 + 300, new PaceFactors(['global' => ['labor
 [$iEtaFar, $iDelayFar] = $MRegFast->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
 $expect('con parada registrada, el retraso mostrado de una parada es su llegada estimada menos su hora publicada', $iDelayFar === $iEtaFar - (T0 + 720), json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
 $aRowFarEarly = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720 + 3 * 3600, 'stop_seq' => 5];
-$expect('si la llegada estimada difiere más de 45 min de la hora publicada de esa parada, horario oficial', $MRegFast->enrich([$aRowFarEarly])[0]['status'] === 'scheduled');
+$aFarOut = $MRegFast->enrich([$aRowFarEarly])[0];
+$expect('si la llegada estimada difiere más de 45 min de la hora publicada, sigue en vivo con su llegada estimada pero sin afirmar el retraso', $aFarOut['status'] === 'live' && $aFarOut['delaySeconds'] === null && $aFarOut['etaSeconds'] < T0 + 720 + 3 * 3600, json_encode([$aFarOut['status'], $aFarOut['delaySeconds']]));
 [$iEta, , ] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
 $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 720, hms($iEta));
 
@@ -317,17 +318,13 @@ $expect('GPS y parada registrada discrepan más de 6 min: la salida sale con el 
 $aAgreeOut = matcher($aGpsPassed, $iGps + 30)->enrich([$aRowTarget]);
 $expect('GPS y parada registrada que cuadran: sigue en vivo', $aAgreeOut[0]['status'] === 'live', $aAgreeOut[0]['status']);
 
-/* Un retraso de más de 45 min no es creíble (viaje mal asignado en el feed): horario oficial, con GPS y con parada registrada. */
+/* Un viaje del feed que no es el que hace el bus (50 min de diferencia con el horario): la llegada estimada sigue valiendo, el retraso no se afirma. */
 $iFarGps = T0 + 3300;
 $aFar = live(1500, 0, 3, $iFarGps);
 $MFarDelay = matcher($aFar, $iFarGps + 30);
-$expect('con GPS, 50 min de diferencia con el horario no cuenta como en vivo', !$MFarDelay->isLive('J_LINE', $aFar) && $MFarDelay->enrich([$aRowTarget])[0]['status'] === 'scheduled');
-$aFarReg = $aFar;
-$aFarReg['lat'] = null;
-$aFarReg['lon'] = null;
-$aFarReg['locationSeconds'] = null;
-$aFarReg['recordedSeconds'] = $iFarGps;
-$expect('con parada registrada, 50 min de diferencia con el horario tampoco', !matcher($aFarReg, $iFarGps + 30)->isLive('J_LINE', $aFarReg));
+$aFarGpsOut = $MFarDelay->enrich([$aRowTarget])[0];
+$expect('con GPS, 50 min de diferencia con el horario: sigue en vivo y el retraso queda sin afirmar', $aFarGpsOut['status'] === 'live' && $aFarGpsOut['delaySeconds'] === null, json_encode([$aFarGpsOut['status'], $aFarGpsOut['delaySeconds']]));
+$expect('el retraso para mostrar es null si pasa de 45 min y un entero si no', $MFarDelay->displayDelayMinutes(50 * 60) === null && $MFarDelay->displayDelayMinutes(40 * 60) === 40 && $MFarDelay->displayDelayMinutes(null) === null);
 $aNear = live(1500, 0, 3, T0 + 240 + 40 * 60);
 $expect('40 min de retraso sí se muestran', matcher($aNear, T0 + 240 + 40 * 60 + 30)->isLive('J_LINE', $aNear));
 
