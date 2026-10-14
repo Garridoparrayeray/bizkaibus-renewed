@@ -261,6 +261,9 @@ $expect('el retraso mostrado es la ETA menos el horario de la parada', $iDelay =
 $expect('el retraso del recorrido sale de la parada registrada y no del campo Delay del feed', $MReg->currentDelaySeconds('J_LINE', array_merge($aRegistered, ['delaySeconds' => 720])) === -20);
 [$iEta] = $MReg->etaForStop('J_LINE', T0 + 360, $aRegistered, 3);
 $expect('para la propia próxima parada solo cuenta la mitad del tramo (08:05:40)', $iEta === T0 + 340, hms($iEta));
+$MRegFast = matcher($aRegistered, T0 + 300, new PaceFactors(['global' => ['laborable.punta_manana' => 0.5]]));
+[$iEtaFar, $iDelayFar] = $MRegFast->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
+$expect('con parada registrada, el retraso mostrado es el del bus y no la diferencia en una parada lejana', $iDelayFar === $MRegFast->currentDelaySeconds('J_LINE', $aRegistered) && $iEtaFar - (T0 + 720) !== $iDelayFar, json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
 [$iEta, , ] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
 $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 720, hms($iEta));
 
