@@ -188,7 +188,7 @@ for (const [url, panel, name] of [
 }
 
 where = 'idioma';
-await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (/departures/.test(String(a[0]))) { const j = await r.clone().json(); for (const d of (j.departures || [])) { d.status = 'live'; d.delayMinutes = 3; } return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); } return r; }; })();` });
+await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (/departures/.test(String(a[0]))) { const j = await r.clone().json(); if (!(j.departures || []).length) { const at = Math.floor(Date.now() / 1000) + 300; j.departures = [{ lineId: '3411', lineCode: 'A3411', lineName: 'A3411', headsign: 'Prueba', tripKey: '3411-0-0', scheduledTime: '00:00', etaMinutes: 5, etaAt: at, status: 'live', delayMinutes: 3, direction: null, platformId: null }]; } for (const d of (j.departures || [])) { d.status = 'live'; d.delayMinutes = 3; } return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); } return r; }; })();` });
 await go('/stops/4255', 4500);
 const delayEs = await ev("document.getElementById('live-delay').textContent");
 await ev("document.getElementById('lang-toggle').click()"); await sleep(600);
