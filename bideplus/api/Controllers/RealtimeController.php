@@ -4,6 +4,7 @@ namespace Controllers;
 
 use Core\Config;
 use Core\Database;
+use Core\Http;
 use Core\Ids;
 use Core\Request;
 use Core\Response;
@@ -18,6 +19,51 @@ use Services\TripUpdatesMatcher;
 
 class RealtimeController
 {
+
+    /*
+     * Diagnóstico de la fuente de los buses en directo: pide a Open Data Euskadi desde el servidor (como lo hace la app)
+     * y cuenta qué trae. Sirve para ver si el feed responde desde el despliegue y si trae GPS, hora del dato y retraso.
+     */
+    public function status(Request $Req, array $aParams): void
+    {
+        $aConfig = Config::current();
+        if (!isset($aConfig['siri']['vehicle_monitoring_url']) || isset($aConfig['gtfs_rt'])) {
+            Response::error('This network has no SIRI feed', 404);
+            return;
+        }
+        $sUrl = $aConfig['siri']['vehicle_monitoring_url'];
+        $fStart = microtime(true);
+        $aOut = ['network' => $aConfig['network'] ?? 'bus', 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
+        try {
+            $sBody = Http::get($sUrl, $aConfig['siri']['http_timeout_seconds']);
+            $aOut['bytes'] = \strlen($sBody);
+            $aMap = SiriVehicleMonitoringClient::parse($sBody);
+            $iVehicles = 0;
+            $iGps = 0;
+            $iTime = 0;
+            $iDelay = 0;
+            foreach ($aMap as $aEntries) {
+                foreach ($aEntries as $aEntry) {
+                    $iVehicles++;
+                    if ($aEntry['lat'] !== null) {
+                        $iGps++;
+                    }
+                    if ($aEntry['recordedSeconds'] !== null) {
+                        $iTime++;
+                    }
+                    if ($aEntry['delaySeconds'] !== 0) {
+                        $iDelay++;
+                    }
+                }
+            }
+            $aOut += ['vehicles' => $iVehicles, 'withGps' => $iGps, 'withTime' => $iTime, 'withDelay' => $iDelay];
+            $aOut['ok'] = $iVehicles > 0;
+        } catch (\Throwable $Ex) {
+            $aOut['error'] = 'La fuente no respondió';
+        }
+        $aOut['ms'] = (int)round((microtime(true) - $fStart) * 1000);
+        Response::json($aOut);
+    }
 
     public function lineLive(Request $Req, array $aParams): void
     {
