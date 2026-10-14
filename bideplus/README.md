@@ -104,7 +104,7 @@ Los tiempos por parada del GTFS son aproximados (interpolados a velocidad consta
 ETA = T_gps + k × (T_destino − T_pos)
 ```
 
-`k` sale de `data/pace-factors.json` (lo lee `ServicesPaceFactors`) por franja horaria y tipo de día (`laborable.punta_tarde`, `fin_semana.manana`…) y, cuando hay datos suficientes, por línea. Si no hay valor, `k = 1`, y siempre se limita a 0,6–1,2. No cambia el retraso que se muestra (`T_gps − T_pos`).
+`k` sale de `data/pace-factors.json` (lo lee `ServicesPaceFactors`) por franja horaria y tipo de día (`laborable.punta_tarde`, `fin_semana.manana`…) y, cuando hay datos suficientes, por línea. Si no hay valor, `k = 1`, y siempre se limita a 0,6–1,2. El retraso que se muestra no sale de `k`: es la ETA menos la hora publicada de esa parada (ver «Bizkaibus en tres capas»).
 
 Para calibrarlo hay que capturar el feed en distintas franjas y días (cada captura solo se guarda si el feed cambió):
 
@@ -161,7 +161,46 @@ No hay más estimaciones (márgenes de adelanto, descarte por orden del feed sin
 
 Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si el feed GPS de Open Data Bizkaia contesta, cuánto tarda y cuántos buses traen GPS, hora del dato y retraso.
 
-**Se hace solo.** El workflow `.github/workflows/pace-capture.yml` captura el feed en directo unos 25 minutos varias veces al día (punta de mañana, mañana, mediodía, punta de tarde y noche entre semana; mañana y tarde del sábado y mañana del domingo) y acumula las muestras en los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (60 días; las releases no disparan despliegues). Cada día calcula `k` y los tiempos por tramo con todo lo acumulado y, solo si el error baja en la mitad de prueba y el resultado cambia, hace un commit de `data/pace-factors.json` y `data/segment-times.json`. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. Los trabajos programados de GitHub se pausan si el repositorio pasa 60 días sin actividad. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` y `segment-samples <carpeta> <tramos.jsonl>` hacen lo mismo en local.
+### Cómo aprende, y cómo se mantiene dentro de los límites
+
+El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de los datos y solo adopta lo que mide mejor.
+
+**Qué aprende.**
+1. `k` por línea y franja horaria (`data/pace-factors.json`): cuánto más rápidos o lentos van los buses que el horario.
+2. El tiempo de cada tramo entre dos paradas, por franja (`data/segment-times.json`): la mediana de lo que tardan de verdad. Es lo que más pesa en la precisión.
+
+**El ciclo, sin intervención.**
+1. **Captura** (`.github/workflows/pace-capture.yml`): cada hora, de 05:00 a 21:00 UTC (07:00-23:00 en verano), captura el feed GPS unos 50 minutos. Son 17 capturas al día y 119 a la semana. De cada captura solo se guardan las muestras (cuánto tardó cada bus en cada tramo), no los XML.
+2. **Acumulación:** las muestras van a los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (las releases no disparan despliegues). Se conservan 60 días y, como máximo, las 150 muestras más recientes de cada tramo: el fichero no crece sin límite y el sistema olvida lo viejo, así que sigue los cambios (obras, horarios nuevos).
+3. **Recalibrado** (cada día, 04:00 UTC): recalcula `k` y los tiempos por tramo con todo lo acumulado. Valida con una partición (aprende con la mitad de los buses y mide en la otra) y solo escribe el fichero si el error baja y el resultado es distinto. Entonces hace un commit y Vercel despliega. Si no mejora, no cambia nada.
+4. **Medición:** cada captura calcula la precisión de las llegadas contra los pasos reales por parada (`scripts/eval-eta.php`) y la deja en el resumen del trabajo de GitHub Actions. Así se ve día a día cómo mejora el sistema con los datos.
+
+**Qué se ha probado y descartado.** Cada idea se acepta solo si la medida mejora, con las capturas del feed real (7 627 predicciones, dentro de ±2 min):
+
+| Idea | Resultado |
+|---|---|
+| Mínimo de 2 buses por tramo en vez de 3 | Se adopta: 17 % más de tramos cubiertos, mismo error por tramo (0,39 min) |
+| Mantener la llegada estimada aunque el retraso no sea creíble (>45 min) | Se adopta: ocultarla bajaba de 85,2 % a 84,1 % |
+| Mezclar lo aprendido con el horario cuando hay pocas muestras | Se descarta: 83,5 % → 83,2 % (peso 1) y hasta 80,0 % (peso 8) |
+| Corregir la llegada con la velocidad del último minuto del bus | Se descarta: 92,5 % → 91,9 % y hasta 78,3 % con más peso |
+| Rellenar los tramos sin aprender con la relación del propio viaje | Se descarta: 70 % → 67 % |
+| Aprender tramos con una sola medida | No se adopta: +0,2 puntos, dentro del ruido |
+
+**Límites, y por qué no se llega a ellos.** Las cifras de GitHub y Vercel son las de su documentación a fecha de hoy, de memoria y sin verificar desde aquí; conviene comprobarlas en «Usage limits» de GitHub Actions y en los límites de despliegue de Vercel.
+
+| Recurso | Límite | Cómo se queda por debajo |
+|---|---|---|
+| Minutos de GitHub Actions | Gratis e ilimitados en repositorios públicos con runners estándar | El repositorio es público |
+| Duración de un trabajo | 6 h | Una captura dura unos 60 min; el trabajo tiene `timeout-minutes: 75` |
+| Solape de trabajos | Un trabajo en marcha y uno en espera por grupo de concurrencia; los demás se cancelan | Todos los trabajos comparten `concurrency: pace-data` y van uno detrás de otro; el horario deja una hora entre inicios |
+| Tamaño del fichero de muestras | 2 GiB por adjunto de una release | 60 días y 150 muestras por tramo: máximo teórico de unos 40 MB, y en la práctica mucho menos |
+| Despliegues en Vercel | 100 al día en el plan gratuito | Como mucho 1 commit de recalibrado al día (solo si mejora) más el rebuild diario |
+| Trabajos programados en repositorios sin actividad | Se pausan a los 60 días sin actividad | El repositorio tiene actividad continua; si se pausan, se reactivan desde la pestaña Actions |
+| Carga sobre el origen de datos | No documentado | Una petición cada 45 s durante la captura al fichero público del feed, que se actualiza cada minuto |
+
+Si dejan de llegar capturas, el resumen de precisión no aparece y GitHub avisa por correo de los trabajos fallidos. Para probarlo a mano: Actions → «Ritmo de los buses (k)» → Run workflow, con 3 minutos de captura. `php scripts/realtime-backtest.php samples <carpeta> <acumulado.jsonl>` y `segment-samples <carpeta> <tramos.jsonl>` hacen lo mismo en local.
+
+**Lo que este método no puede dar.** No llega al 99 %. Mide contra el momento en que el feed cambia la próxima parada, con una resolución de ±30 s. El feed trae una posición por minuto. Hay semáforos, tráfico y esperas que nadie puede prever. Y el error crece con la distancia a la parada: 90 % dentro de ±2 min a 0-3 min, 61 % a 10-20 min. Lo que sí mejora con el tiempo es la cobertura de tramos aprendidos: con todos los del camino aprendidos, el 93 % de las llegadas queda dentro de ±2 min.
 
 ## Fuente estática: GTFS
 
