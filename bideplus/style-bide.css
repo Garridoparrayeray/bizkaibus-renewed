@@ -326,10 +326,10 @@ html.bide body.page-menu #legal-close {
         html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff; font-weight: 800; }
     html.bide.is-standalone body { padding-bottom: calc(76px + min(env(safe-area-inset-bottom), 34px)); }
     html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + min(env(safe-area-inset-bottom), 34px)); }
-    /* iPhone: en unas páginas iOS da el margen inferior (34 px) y en otras 0. Se deja siempre al menos 22 px bajo los botones, para que el indicador de inicio no los tape en ninguna. */
-    html.bide.is-ios.is-standalone .bide-tabbar { padding-bottom: clamp(22px, env(safe-area-inset-bottom), 34px); }
-    html.bide.is-ios.is-standalone body { padding-bottom: calc(76px + clamp(22px, env(safe-area-inset-bottom), 34px)); }
-    html.bide.is-ios.is-standalone body.page-menu { padding-bottom: calc(96px + clamp(22px, env(safe-area-inset-bottom), 34px)); }
+    /* iPhone con indicador de inicio: en unas páginas iOS da el margen inferior (34 px) y en otras 0, y la barra quedaba a distinta altura. Se fija en 34 px en todas. */
+    html.bide.is-ios-notch.is-standalone .bide-tabbar { padding-bottom: 34px; }
+    html.bide.is-ios-notch.is-standalone body { padding-bottom: calc(76px + 34px); }
+    html.bide.is-ios-notch.is-standalone body.page-menu { padding-bottom: calc(96px + 34px); }
     html.bide.is-standalone body.page-app #dev-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone #menu-open { display: none; }
     html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
     html.bide body.page-app .bide-views { padding: 0 2px; }
