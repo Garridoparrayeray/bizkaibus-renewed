@@ -35,6 +35,9 @@
         timetableStopId: null,
         favoriteKeys: new Set(),
         departuresRefreshTimer: null,
+        departuresTickTimer: null,
+        lastDepartures: null,
+        departuresSignature: '',
     };
 
     const favoriteLabelCache = new Map();
@@ -47,6 +50,7 @@
     };
     const LINE_MAP_REFRESH_MS = 25000;
     const DEPARTURES_REFRESH_MS = 25000;
+    const DEPARTURES_TICK_MS = 10000;
 
     const el = {
         homeLink: document.getElementById('home-link'),
@@ -77,6 +81,7 @@
         liveOpenDetail: document.getElementById('live-open-detail'),
         liveTimetableLink: document.getElementById('live-timetable-link'),
         liveMinutes: document.getElementById('live-minutes'),
+        liveDelay: document.getElementById('live-delay'),
         liveStatusDot: document.getElementById('live-status-dot'),
         liveStatusText: document.getElementById('live-status-text'),
         liveIncidentsLink: document.getElementById('live-incidents-link'),
@@ -143,11 +148,25 @@
     function statusLabel(status, delayMinutes) {
         if (status === 'live') {
             if (delayMinutes > 0) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
+            if (delayMinutes <= -2) return { text: I18n.t('app.status.early', { min: -delayMinutes }), className: 'status-warn' };
             return { text: I18n.t('app.status.onTime'), className: 'status-ok' };
         }
         if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
         if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
         return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
+    }
+
+    function delayText(status, delayMinutes) {
+        if (status === 'live' && delayMinutes > 0) return `+${delayMinutes}`;
+        if (status === 'live' && delayMinutes <= -2) return `−${-delayMinutes}`;
+        return '';
+    }
+
+    function setDelaySub(node, status, delayMinutes) {
+        const text = delayText(status, delayMinutes);
+        node.textContent = text;
+        node.hidden = text === '';
+        node.title = text === '' ? '' : statusLabel('live', delayMinutes).text;
     }
 
     function setPillContent(button, iconSvg, label, area, hint) {
@@ -362,11 +381,40 @@
     function startDeparturesRefresh() {
         stopDeparturesRefresh();
         state.departuresRefreshTimer = setInterval(loadDepartures, DEPARTURES_REFRESH_MS);
+        state.departuresTickTimer = setInterval(tickDepartures, DEPARTURES_TICK_MS);
     }
 
     function stopDeparturesRefresh() {
         if (state.departuresRefreshTimer) clearInterval(state.departuresRefreshTimer);
         state.departuresRefreshTimer = null;
+        if (state.departuresTickTimer) clearInterval(state.departuresTickTimer);
+        state.departuresTickTimer = null;
+    }
+
+    /*
+     * Los minutos se calculan con el reloj del dispositivo a partir de la hora absoluta de llegada (etaAt), no con los
+     * que calculó el servidor al responder: así una respuesta con unos minutos de antigüedad (caché, pestaña dormida,
+     * sin conexión) no muestra un «0 min» que ya pasó.
+     */
+    function freshDepartures(departures) {
+        const now = Date.now();
+        return (departures || [])
+            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.round((d.etaAt * 1000 - now) / 60000) } : d))
+            .filter((d) => d.etaMinutes >= -2);
+    }
+
+    function departuresSignature(departures) {
+        return departures.map((d) => `${d.tripKey}:${d.etaMinutes}`).join('|');
+    }
+
+    function renderDepartures(data) {
+        const fresh = { ...data, departures: freshDepartures(data.departures) };
+        state.departuresSignature = departuresSignature(fresh.departures);
+        if (HAS_PLATFORMS) {
+            renderPlatformPanel(fresh);
+        } else {
+            renderLiveCard(fresh.departures);
+        }
     }
 
     async function loadDepartures() {
@@ -375,17 +423,19 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            if (HAS_PLATFORMS) {
-                renderPlatformPanel({ departures: [], platforms: [] });
-            } else {
-                renderLiveCard([]);
-            }
+            state.lastDepartures = null;
+            renderDepartures({ departures: [], platforms: [] });
             return;
         }
-        if (HAS_PLATFORMS) {
-            renderPlatformPanel(data);
-        } else {
-            renderLiveCard(data.departures);
+        state.lastDepartures = data;
+        renderDepartures(data);
+    }
+
+    function tickDepartures() {
+        if (!state.currentStop || !state.lastDepartures) return;
+        // Solo se repinta si cambia algún minuto, para no mover la lista que el usuario esté desplazando.
+        if (departuresSignature(freshDepartures(state.lastDepartures.departures)) !== state.departuresSignature) {
+            renderDepartures(state.lastDepartures);
         }
     }
 
@@ -418,6 +468,7 @@
             el.liveLine.textContent = state.currentStop.name;
             el.liveHeadsign.textContent = I18n.t('app.noUpcomingDepartures');
             el.liveMinutes.textContent = '–';
+            setDelaySub(el.liveDelay, null, 0);
             el.liveBadge.textContent = I18n.t('app.noData');
             el.liveStatusText.textContent = '';
             el.liveStatusDot.className = 'status-dot';
@@ -433,6 +484,7 @@
         el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
         el.liveHeadsign.textContent = state.currentStop.name;
         el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
+        setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
@@ -484,7 +536,8 @@
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
         nextButton.className = 'time-display';
-        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span>`;
+        nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><sub class="delay-sub" hidden></sub><span>min</span></span>`;
+        setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes);
         nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
         const badge = document.createElement('span');
@@ -599,8 +652,11 @@
         }
     }
 
+    let timetableRequestId = 0;
+
     async function loadTimetable() {
         if (!state.currentLine) return;
+        const requestId = ++timetableRequestId;
         let data;
         try {
             data = await Api.timetable(state.currentLine.id, {
@@ -612,6 +668,7 @@
         } catch (e) {
             return;
         }
+        if (requestId !== timetableRequestId) return;
         renderTimetableRows(data.entries);
         const timetableNote = document.getElementById('timetable-note');
         timetableNote.hidden = !data.beyondPublished;
@@ -1332,7 +1389,10 @@
     })().catch(() => {});
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') runForegroundAlertCheck().catch(() => {});
+        if (document.visibilityState !== 'visible') return;
+        runForegroundAlertCheck().catch(() => {});
+        // Una pestaña en segundo plano congela el temporizador: al volver, las salidas se actualizan ya.
+        if (state.currentStop && state.departuresRefreshTimer) loadDepartures();
     });
 
     function updateLangToggleLabel() {
