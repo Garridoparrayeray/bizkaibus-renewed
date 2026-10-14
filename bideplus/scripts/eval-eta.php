@@ -1,13 +1,13 @@
 <?php
 // Mide la precision de la ETA que muestra la app contra el paso real por parada (cambio de VisitNumber en el feed).
-// Uso: php scripts/eval-eta.php <carpeta con capturas s01.xml, s02.xml...>
+// Uso: php scripts/eval-eta.php <carpeta con capturas s01.xml, s02.xml... o vm_*.xml>
 // Captura: descargar bizkaibus-vehicle-positions.xml cada ~60 s (el feed se actualiza cada minuto) durante 15-30 min.
 // El paso real se conoce con una resolucion de +-30 s (la distancia entre capturas), asi que el error medido incluye ese margen.
 date_default_timezone_set('Europe/Madrid');
 spl_autoload_register(function($c){$p='/home/user/bizkaibus-renewed/bideplus/api/'.str_replace('\\','/',$c).'.php'; if(is_file($p)) require $p;});
 $Pdo=Core\Database::connection(); $JM=new Models\ServiceJourney($Pdo);
 $dir=$argv[1]??''; if(!is_dir($dir)){ fwrite(STDERR,"Uso: php scripts/eval-eta.php <carpeta con capturas>\n"); exit(1);}
-$files=glob(rtrim($dir,'/').'/s*.xml'); sort($files);
+$files=array_merge(glob(rtrim($dir,'/').'/s*.xml') ?: [], glob(rtrim($dir,'/').'/vm_*.xml') ?: []); sort($files);
 $snaps=[]; // [ [t, vm] ]
 foreach($files as $f){ $vm=Services\SiriVehicleMonitoringClient::parse(file_get_contents($f)); $t=0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
 // orden por vehiculo y viaje en cada snapshot
