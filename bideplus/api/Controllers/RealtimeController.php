@@ -152,7 +152,7 @@ class RealtimeController
             if (!$bAlreadyPassed) {
                 $iEta = (int)$aStop['arrival_seconds'];
                 if ($bLive) {
-                    [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive);
+                    [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order']);
                 }
                 $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
             }
