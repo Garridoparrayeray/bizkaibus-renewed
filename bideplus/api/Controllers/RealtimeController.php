@@ -116,7 +116,7 @@ class RealtimeController
 
                 $aVehicles[] = [
                     'vehicleRef' => $aEntry['vehicleRef'],
-                    'delayMinutes' => (int)round($iDelaySeconds / 60),
+                    'delayMinutes' => $Matcher->displayDelayMinutes($iDelaySeconds),
                     'headsign' => $sHeadsign,
                     'currentStop' => [
                         'id' => Ids::forOutput($aStop['id']),
@@ -234,10 +234,7 @@ class RealtimeController
             }
         }
 
-        $iDelayMinutes = 0;
-        if ($iDelaySeconds !== 0) {
-            $iDelayMinutes = (int)round($iDelaySeconds / 60);
-        }
+        $iDelayMinutes = $Matcher->displayDelayMinutes($iDelaySeconds);
 
         $sVehicleRef = null;
         if ($bLive && isset($aLive['vehicleRef'])) {

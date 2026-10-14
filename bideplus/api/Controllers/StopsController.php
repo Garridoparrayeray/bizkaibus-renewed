@@ -208,7 +208,9 @@ class StopsController
                 $sHeadsign = $aRow['last_stop_name'];
             }
             $iDelayMinutes = 0;
-            if ($aRow['delaySeconds'] !== 0) {
+            if ($aRow['delaySeconds'] === null) {
+                $iDelayMinutes = null;
+            } elseif ($aRow['delaySeconds'] !== 0) {
                 $iDelayMinutes = (int)round($aRow['delaySeconds'] / 60);
             }
             $sDirection = null;
