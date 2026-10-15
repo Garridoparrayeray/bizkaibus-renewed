@@ -279,7 +279,7 @@ a{color:var(--route)}
       <div class="two">
         <figure>
           <div class="scroll"><svg id="kchart" viewBox="0 0 440 300" style="width:100%;min-width:340px;display:block" role="img" aria-label="Factores k actuales por franja en laborables"></svg></div>
-          <figcaption>Factor de ritmo <span class="mono">k</span> (global, laborables) en <code>data/pace-factors.json</code> (14 oct 2026, 62 938 muestras). Fin de semana: tarde 0,851 y noche 0,893. Se usa para los tramos sin tiempo aprendido. Franjas sin datos suficientes: k = 1.</figcaption>
+          <figcaption>Factor de ritmo <span class="mono">k</span> (global, laborables) en <code>data/pace-factors.json</code> (14 oct 2026, 62 938 muestras). Fin de semana: tarde 0,851 y noche 0,893. Solo se usa en los tramos sin tiempo aprendido cuyo largo no se conoce (el resto usa la proporción por largo de tramo, sección 13). Franjas sin datos suficientes: k = 1.</figcaption>
         </figure>
         <figure>
           <div class="scroll"><svg id="shrink" viewBox="0 0 440 300" style="width:100%;min-width:340px;display:block" role="img" aria-label="Encogimiento de k hacia 1 según el número de buses"></svg></div>
@@ -296,7 +296,7 @@ a{color:var(--route)}
       <h2>Aprende solo, con todos los datos que caben</h2>
       <p class="col">Ninguna regla sobre el ritmo de los buses está escrita a mano: se aprende de capturas del feed real, y solo se adopta lo que mide mejor. El sistema usa casi todo el tiempo posible de captura y deja un margen de más de 10 veces en cada límite, para que la precisión pueda seguir subiendo sin tocar ningún techo.</p>
       <div class="pipe">
-        <div><i>01 · CAPTURA</i><b>Cada hora, todo el día</b><span>Unos 45 min de feed por trabajo, 24 al día y 168 a la semana, también los nocturnos. Solo se guardan las muestras, no los XML.</span></div>
+        <div><i>01 · CAPTURA</i><b>Cada hora, todo el día</b><span>Unos 45 min de feed por trabajo, hasta 24 al día (GitHub se salta algunas; ver la sección 13), también los nocturnos. Solo se guardan las muestras, no los XML.</span></div>
         <div><i>02 · MUESTRAS</i><b>Cuánto tardó cada bus</b><span>En cada tramo y cuánto restaba hasta cada parada, por franja y tipo de día.</span></div>
         <div><i>03 · ACUMULAR</i><b>Con topes</b><span>120 días, 300 muestras recientes por tramo y 500 000 de ritmo. El fichero nunca crece sin límite.</span></div>
         <div><i>04 · RECALIBRAR</i><b>Cada día, 04:00 UTC</b><span>Aprende con la mitad de los buses y mide en la otra. Solo escribe si el error baja.</span></div>
@@ -516,7 +516,7 @@ a{color:var(--route)}
       <div class="scroll"><table>
         <thead><tr><th>Banco</th><th>Qué comprueba</th><th>Cuándo corre</th></tr></thead>
         <tbody>
-          <tr><td><code>tests/unit-test.php</code></td><td>132 comprobaciones sin servidor ni red, sobre una base de datos en memoria: proyección del GPS, T<sub>pos</sub>, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, <code>trip_aliases</code>, <code>enrich()</code> y ordenación</td><td>Cada commit y cada CI</td></tr>
+          <tr><td><code>tests/unit-test.php</code></td><td>139 comprobaciones sin servidor ni red, sobre una base de datos en memoria: proyección del GPS, T<sub>pos</sub>, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, <code>trip_aliases</code>, <code>enrich()</code> y ordenación</td><td>Cada commit y cada CI</td></tr>
           <tr><td><code>static-checks.py</code> y <code>data-integrity.php</code></td><td>Sintaxis, ids del código, caché del service worker y que las seis bases de datos están enteras (referencias, horas que no van hacia atrás, trazados)</td><td>Cada commit, CI y antes de cada despliegue</td></tr>
           <tr><td><code>api-smoke.py</code> y <code>api-contract.py</code></td><td>245 peticiones a todas las rutas de la API, y más de 22 000 comprobaciones de la forma del JSON en las seis redes. Añadir campos está permitido; quitar o renombrar uno falla, y que las salidas vengan ordenadas por llegada</td><td>Cada commit y cada CI</td></tr>
           <tr><td><code>ui-*.mjs</code></td><td>Navegador headless en móvil y ordenador: buscar, fichas, favoritos, horarios, modo sin conexión, avisos, «cerca de mí» y Bide+ como una sola app. Falla si hay errores de consola o de red</td><td>Cada CI</td></tr>
@@ -550,7 +550,7 @@ a{color:var(--route)}
       </figure>
 
       <h3>11.3 · Con el máximo de datos: proyección</h3>
-      <p class="col">Las capturas son ahora 24 al día y 168 a la semana, de unas 45 min cada una: unas 126 horas de feed a la semana, muchas veces lo que aportó la sesión de arriba. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren.</p>
+      <p class="col">Las capturas son ahora hasta 24 al día (hasta 168 a la semana, de unas 45 min cada una: unas 126 horas de feed a la semana si no se salta ninguna), muchas veces lo que aportó la sesión de arriba. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren.</p>
       <p class="col">La precisión que se espera depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender baja al 76 % y 85 %; con dos o más, al 59 % y 75 % (69 %/78 % y 49 %/66 % antes de la proporción por largo). Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos medidos:</p>
       <div class="scroll"><table>
         <thead><tr><th>Llegadas con todo el camino aprendido</th><th>Dentro de ±2 min</th><th>Dentro de ±3 min</th><th>Estado</th></tr></thead>
