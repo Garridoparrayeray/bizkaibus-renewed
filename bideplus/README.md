@@ -181,7 +181,7 @@ El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de lo
 2. El tiempo de cada tramo entre dos paradas, por franja (`data/segment-times.json`): la mediana de lo que tardan de verdad. Es lo que más pesa en la precisión.
 
 **El ciclo, sin intervención.**
-1. **Captura** (`.github/workflows/pace-capture.yml`): cada hora, todo el día (también los nocturnos), captura el feed GPS unos 45 minutos. Son 24 capturas al día y 168 a la semana. De cada captura solo se guardan las muestras (cuánto tardó cada bus en cada tramo), no los XML.
+1. **Captura** (`.github/workflows/pace-capture.yml`): cada hora, todo el día (también los nocturnos), captura el feed GPS unos 45 minutos. Son hasta 24 capturas al día y 168 a la semana (GitHub se salta algunas: en las primeras 12 h con el cron a la hora en punto corrieron 3 de 12, y por eso se pasó al minuto 17). De cada captura solo se guardan las muestras (cuánto tardó cada bus en cada tramo), no los XML.
 2. **Acumulación:** las muestras van a los adjuntos `pace-samples.jsonl` y `segment-samples.jsonl` de la release `pace-data` (las releases no disparan despliegues). Se conservan 120 días y, como máximo, las 300 muestras más recientes de cada tramo (y 500 000 muestras de ritmo en total): el fichero no crece sin límite y el sistema olvida lo viejo, así que sigue los cambios (obras, horarios nuevos).
 3. **Recalibrado** (cada día, 04:00 UTC): recalcula `k` y los tiempos por tramo con todo lo acumulado. Valida con una partición (aprende con la mitad de los buses y mide en la otra) y solo escribe el fichero si el error baja y el resultado es distinto. Entonces hace un commit y Vercel despliega. Si no mejora, no cambia nada.
 4. **Medición:** cada captura calcula la precisión de las llegadas contra los pasos reales por parada (`scripts/eval-eta.php`) y la deja en el resumen del trabajo de GitHub Actions. Así se ve día a día cómo mejora el sistema con los datos.
@@ -229,7 +229,7 @@ Si dejan de llegar capturas, el resumen de precisión no aparece y GitHub avisa 
 
 | Banco | Qué comprueba | Cuándo corre |
 |---|---|---|
-| `tests/unit-test.php` | 132 comprobaciones sin servidor ni red sobre una base de datos en memoria: proyección del GPS, `T_pos`, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, `trip_aliases`, `enrich()` | Cada commit y cada CI |
+| `tests/unit-test.php` | 139 comprobaciones sin servidor ni red sobre una base de datos en memoria: proyección del GPS, `T_pos`, ETA, pasillo de 50 m, tramos, las tres capas, parada pasada, discrepancia GPS / parada, tope de 45 min, tiempos por tramo, `trip_aliases`, `enrich()` | Cada commit y cada CI |
 | `static-checks.py`, `data-integrity.php` | Sintaxis, ids, caché del service worker e integridad de las seis bases de datos | Cada commit, CI y antes de cada despliegue |
 | `api-smoke.py`, `api-contract.py` | 245 peticiones a todas las rutas y más de 22 000 comprobaciones de la forma del JSON; que las salidas vengan ordenadas por llegada | Cada commit y cada CI |
 | `ui-*.mjs` | Navegador headless en móvil y ordenador; falla con errores de consola o de red | Cada CI |
@@ -249,7 +249,7 @@ Si dejan de llegar capturas, el resumen de precisión no aparece y GitHub avisa 
 
 Con cada duplicación de buses, los tramos sin aprender se reducen aproximadamente un 40 %, y el error todavía no se ha estabilizado.
 
-**Con el máximo de datos.** Las capturas son 24 al día y 168 a la semana, de unas 45 min: unas 126 horas de feed a la semana. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren. La precisión depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy, en llegadas a menos de 10 min: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender, 70 % y 78 %; con dos o más, 49 % y 66 %. Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos:
+**Con el máximo de datos.** Las capturas son hasta 24 al día y 168 a la semana, de unas 45 min: hasta unas 126 horas de feed a la semana. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren. La precisión depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy, en llegadas a menos de 10 min: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender, 70 % y 78 %; con dos o más, 49 % y 66 %. Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos:
 
 | Llegadas con todo el camino aprendido | Dentro de ±2 min | Dentro de ±3 min | Estado |
 |---|---|---|---|
