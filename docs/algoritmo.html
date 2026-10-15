@@ -117,7 +117,7 @@ a{color:var(--route)}
   <header class="col">
     <div class="eyebrow">Bide+ · Bizkaibus+ · RealtimeMatcher</div>
     <h1 style="margin-top:14px">Cómo sabe Bide+ <em>cuándo llega</em> tu bus</h1>
-    <p class="lede">El feed de Bizkaibus no publica retrasos y los horarios por parada del GTFS son interpolados. Aun así, con el GPS la app acierta el 93 % de las llegadas próximas dentro de ±2 min, frente al 19 % del horario solo, y sin GPS o incluso sin ningún dato del bus sigue por encima del horario. Esta es la idea, paso a paso y con un modelo que puedes tocar, cómo aprende con los datos sin acercarse a ningún límite, y al final todas las fórmulas, constantes y cómo se validó.</p>
+    <p class="lede">El feed de Bizkaibus no publica retrasos y los horarios por parada del GTFS son interpolados. Aun así, con el GPS la app acierta el 94 % de las llegadas próximas dentro de ±2 min, frente al 19 % del horario solo, y sin GPS o incluso sin ningún dato del bus sigue por encima del horario. Esta es la idea, paso a paso y con un modelo que puedes tocar, cómo aprende con los datos sin acercarse a ningún límite, y al final todas las fórmulas, constantes y cómo se validó.</p>
     <nav class="toc" aria-label="Contenido">
       <a href="#capas">5 · Tres capas</a><a href="#aprende">7 · Cómo aprende</a><a href="#resultados">8 · Precisión medida</a><a href="#formulas">9 · Fórmulas</a><a href="#calibracion">10 · Medida y calibración</a><a href="#bancos">11 · Bancos de pruebas</a><a href="#como-se-hizo">12 · Cómo se hizo</a>
     </nav>
@@ -145,7 +145,7 @@ a{color:var(--route)}
       <div class="eyebrow">La idea</div>
       <h2>Usar diferencias de horario, no horas absolutas</h2>
       <div class="formula">ETA = <span class="g">T<sub>gps</sub></span> + <span class="k">Σ tramos</span> hasta <span class="r">tu parada</span>
-        <small><b>T<sub>gps</sub></b>: hora del dato GPS (no «ahora»: el feed se refresca cada minuto). Cada <b>tramo</b> entre dos paradas aporta el tiempo que de verdad tardan los buses en él (aprendido de los datos); si no hay dato de ese tramo, aporta <span class="mono">k × horario del tramo</span>. El primer tramo cuenta solo la parte que le queda al bus por recorrer. Con <span class="mono">k</span> y un solo tramo, queda la fórmula sencilla <span class="mono">ETA = T<sub>gps</sub> + k·(T<sub>destino</sub> − T<sub>pos</sub>)</span>.</small>
+        <small><b>T<sub>gps</sub></b>: hora del dato GPS (no «ahora»: el feed se refresca cada minuto). Cada <b>tramo</b> entre dos paradas aporta el tiempo que de verdad tardan los buses en él (aprendido de los datos); si no hay dato de ese tramo, aporta <span class="mono">r(largo) × horario del tramo</span>, donde <span class="mono">r</span> es la proporción real/horario típica de los tramos de ese largo (cerca de 1 en ciudad, cerca de 0,5 en autopista), o <span class="mono">k × horario</span> si no se conoce el largo. El primer tramo cuenta solo la parte que le queda al bus por recorrer. Con <span class="mono">k</span> y un solo tramo, queda la fórmula sencilla <span class="mono">ETA = T<sub>gps</sub> + k·(T<sub>destino</sub> − T<sub>pos</sub>)</span>.</small>
       </div>
       <div class="note col"><b>El retraso que ves en pantalla</b> es la llegada estimada a <i>tu</i> parada menos la hora publicada de <i>esa</i> parada: <span class="mono">ETA − T<sub>destino</sub></span>. Es lo que cuadra con lo que la tarjeta muestra (hora publicada, minutos que faltan, diferencia). No es el desfase del bus en el punto donde está: dentro de un tramo largo el horario está interpolado y ese desfase cambia hasta 30 min en 14 min sin que el bus cambie de ritmo.</div>
       <div class="pipe">
@@ -238,19 +238,19 @@ a{color:var(--route)}
           <div class="tag">CAPA 1 · EN VIVO CON GPS</div>
           <h3>Proyección sobre el recorrido</h3>
           <p>El GPS está a ≤ 50 m del trazado, el dato tiene menos de 10 min y el viaje ya ha salido. Se suman los tiempos por tramo hasta tu parada.</p>
-          <div class="acc">93 % dentro de ±2 min a 0-3 min · 66 % a 10-20 min</div>
+          <div class="acc">94 % dentro de ±2 min a 0-3 min · 73 % a 10-20 min</div>
         </div>
         <div class="layer l2">
           <div class="tag">CAPA 2 · PARADA REGISTRADA</div>
           <h3>Sin GPS utilizable, pero avisa por dónde pasa</h3>
           <p>El bus no manda GPS o está fuera de ruta, pero el feed da su próxima parada y la hora del dato. Se parte de la hora del dato a mitad del tramo hasta la próxima parada. Se usa si ese tramo dura 20 min o menos (en tramos de más de 20 min no mejora al horario).</p>
-          <div class="acc">93 % a 0-3 min · 67 % a 10-20 min (quitando el GPS a todos los buses)</div>
+          <div class="acc">94 % a 0-3 min · 67 % a 10-20 min (quitando el GPS a todos los buses)</div>
         </div>
         <div class="layer l3">
           <div class="tag">CAPA 3 · HORARIO OFICIAL</div>
           <h3>Horario corregido</h3>
           <p>Sin bus en el feed, con datos de más de 10 min, sin hora del dato, o si el cálculo falla. Sale «Programado», sin retraso: la llegada es la salida de cabecera + lo que tardan los buses (tiempos aprendidos) + 1 min. Si eso ya queda en el pasado, se deja el horario publicado.</p>
-          <div class="acc">36 % dentro de ±2 min, frente al 19 % del publicado</div>
+          <div class="acc">42 % dentro de ±2 min, frente al 19 % del publicado</div>
         </div>
       </div>
       <h3 style="margin-top:8px">Salvaguardas, medidas contra los pasos reales</h3>
@@ -325,6 +325,9 @@ a{color:var(--route)}
           <tr><td>Mantener la llegada aunque el retraso no sea creíble (&gt; 45 min)</td><td>Ocultarla bajaba del 85,2 % al 84,1 % dentro de ±2 min</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Parada registrada hasta tramos de 20 min (antes 6)</td><td>Sin GPS: 79,8 % → 83,0 % dentro de ±2 min; con GPS no cambia</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Horario corregido con los tiempos aprendidos (capa 3)</td><td>Sin ningún dato del bus: 18 % → 36 % dentro de ±2 min; error mediano de 7 a 3-4 min; con GPS, 83,5 % → 85,5 %</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
+          <tr><td>Tramos sin aprender: proporción por largo de tramo en vez de k × horario</td><td>Error medio por tramo 0,88 → 0,69 min (validación por mitades de buses, 12 755 tramos). Con capturas de otro día y otra franja: un tramo sin aprender 69 % → 76 % y dos o más 49 % → 59 % dentro de ±2 min; capa 3 36-39 % → 39-45 %</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
+          <tr><td>Franja horaria de cada tramo calculada a la hora a la que el bus llegará a él</td><td>Ninguna diferencia en las capturas: las franjas aprendidas solo tienen datos de mediodía</td><td class="n" style="color:var(--muted)">sin medir</td></tr>
+          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>El GTFS solo trae días añadidos y un único festivo (12 oct), sin capturas</td><td class="n" style="color:var(--muted)">sin medir</td></tr>
           <tr><td>Más datos: capturas cada hora, 120 días, 300 muestras por tramo</td><td>Mayor cobertura de tramos, y con ella la precisión (93 % con todos los tramos aprendidos)</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Mezclar lo aprendido con el horario si hay pocas muestras</td><td>83,5 % → 83,2 % (peso 1) y hasta 80,0 % (peso 8)</td><td class="n" style="color:var(--warn)">descartada</td></tr>
           <tr><td>Corregir con la velocidad del último minuto del bus</td><td>92,5 % → 91,9 %, y hasta 78,3 % con más peso</td><td class="n" style="color:var(--warn)">descartada</td></tr>
@@ -346,10 +349,10 @@ a{color:var(--route)}
         <div class="scroll"><table>
           <thead><tr><th>La parada queda a</th><th>Error mediano</th><th>±1 min</th><th>±2 min</th><th>±3 min</th><th>Solo horario, ±2 min</th></tr></thead>
           <tbody>
-            <tr><td>0 – 3 min</td><td class="n">0,5 min</td><td class="n">79 %</td><td class="n"><b>93 %</b></td><td class="n">96 %</td><td class="n">19 %</td></tr>
-            <tr><td>3 – 6 min</td><td class="n">0,7 min</td><td class="n">63 %</td><td class="n"><b>87 %</b></td><td class="n">93 %</td><td class="n">18 %</td></tr>
-            <tr><td>6 – 10 min</td><td class="n">1,1 min</td><td class="n">47 %</td><td class="n"><b>77 %</b></td><td class="n">88 %</td><td class="n">16 %</td></tr>
-            <tr><td>10 – 20 min</td><td class="n">1,4 min</td><td class="n">36 %</td><td class="n"><b>66 %</b></td><td class="n">83 %</td><td class="n">13 %</td></tr>
+            <tr><td>0 – 3 min</td><td class="n">0,5 min</td><td class="n">80 %</td><td class="n"><b>94 %</b></td><td class="n">96 %</td><td class="n">19 %</td></tr>
+            <tr><td>3 – 6 min</td><td class="n">0,7 min</td><td class="n">63 %</td><td class="n"><b>89 %</b></td><td class="n">95 %</td><td class="n">18 %</td></tr>
+            <tr><td>6 – 10 min</td><td class="n">1,0 min</td><td class="n">49 %</td><td class="n"><b>80 %</b></td><td class="n">90 %</td><td class="n">16 %</td></tr>
+            <tr><td>10 – 20 min</td><td class="n">1,2 min</td><td class="n">41 %</td><td class="n"><b>73 %</b></td><td class="n">89 %</td><td class="n">13 %</td></tr>
           </tbody>
         </table></div>
         <figcaption>Cuanto más lejos está el bus, más incertidumbre: semáforos, tráfico y esperas que nadie puede prever, y un solo dato de posición por minuto.</figcaption>
@@ -359,10 +362,10 @@ a{color:var(--route)}
       <div class="scroll"><table>
         <thead><tr><th>La parada queda a</th><th>Capa 1 · con GPS</th><th>Capa 2 · solo parada registrada</th><th>Capa 3 · sin ningún dato del bus</th><th>Horario publicado</th></tr></thead>
         <tbody>
-          <tr><td>0 – 3 min</td><td class="n">93 %</td><td class="n">93 %</td><td class="n">36 %</td><td class="n">19 %</td></tr>
-          <tr><td>3 – 6 min</td><td class="n">87 %</td><td class="n">83 %</td><td class="n">39 %</td><td class="n">18 %</td></tr>
-          <tr><td>6 – 10 min</td><td class="n">77 %</td><td class="n">73 %</td><td class="n">37 %</td><td class="n">16 %</td></tr>
-          <tr><td>10 – 20 min</td><td class="n">66 %</td><td class="n">67 %</td><td class="n">36 %</td><td class="n">13 %</td></tr>
+          <tr><td>0 – 3 min</td><td class="n">94 %</td><td class="n">94 %</td><td class="n">42 %</td><td class="n">19 %</td></tr>
+          <tr><td>3 – 6 min</td><td class="n">89 %</td><td class="n">84 %</td><td class="n">45 %</td><td class="n">18 %</td></tr>
+          <tr><td>6 – 10 min</td><td class="n">80 %</td><td class="n">74 %</td><td class="n">43 %</td><td class="n">16 %</td></tr>
+          <tr><td>10 – 20 min</td><td class="n">73 %</td><td class="n">67 %</td><td class="n">39 %</td><td class="n">13 %</td></tr>
         </tbody>
       </table></div>
       <p class="col">La parada registrada, sin ningún GPS, queda a pocos puntos del GPS: la capa 2 es casi tan buena como la 1. La capa 3, que no sabe nada del bus, duplica o triplica el acierto del horario publicado. Por longitud del tramo en el que está el bus (capa 2, ±2 min, frente al horario publicado en las mismas llegadas): hasta 3 min 89 % (18 %), de 3 a 6 min 83 % (20 %), de 6 a 10 min 86 % (15 %), de 10 a 20 min 52 % (0 %), y de más de 20 min 7 % (1 %), donde no mejora al horario.</p>
@@ -370,10 +373,10 @@ a{color:var(--route)}
       <figure>
         <div class="res">
           <div class="bar"><span>Todos los tramos aprendidos</span><div style="width:93%;background:var(--route)">93 % dentro de ±2 min</div></div>
-          <div class="bar"><span>1 tramo sin aprender</span><div style="width:70%;background:var(--lime);color:#18201b">70 %</div></div>
-          <div class="bar"><span>2 o más sin aprender</span><div style="width:49%;background:var(--warn)">49 %</div></div>
+          <div class="bar"><span>1 tramo sin aprender</span><div style="width:76%;background:var(--lime);color:#18201b">76 %</div></div>
+          <div class="bar"><span>2 o más sin aprender</span><div style="width:59%;background:var(--warn)">59 %</div></div>
         </div>
-        <figcaption>El 86 % de las predicciones tiene todos los tramos de su camino aprendidos. El resto es lo que mejora solo, a medida que se captura más. Por origen del dato (llegadas en menos de 10 min): GPS en tramo corto 92 %, parada registrada 72 %, GPS en tramo de más de 10 min 61 %.</figcaption>
+        <figcaption>El 86 % de las predicciones tiene todos los tramos de su camino aprendidos. El resto es lo que mejora solo, a medida que se captura más. Por origen del dato (llegadas en menos de 10 min): GPS en tramo corto 92 %, parada registrada 78 %, GPS en tramo de más de 10 min 78 %.</figcaption>
       </figure>
       <div class="ok col"><b>El techo.</b> No se llega al 99 %: el feed trae una posición por minuto, el paso real se mide con ±30 s, y el error crece con la distancia a la parada. Lo que sí sube con el tiempo es la cobertura de tramos aprendidos, y con ella el 93 %.</div>
       <h3 style="margin-top:8px">Constantes</h3>
@@ -420,7 +423,8 @@ a{color:var(--route)}
           <tr><td class="n">T<sub>pos</sub></td><td>Hora a la que el horario pone al bus donde está</td><td>Interpolación (9.5)</td></tr>
           <tr><td class="n">T<sub>dest</sub></td><td>Hora publicada en tu parada, a<sub>dest</sub></td><td><code>passing_times</code></td></tr>
           <tr><td class="n">τ<sub>i</sub></td><td>Tiempo aprendido del tramo i→i+1 (por franja)</td><td><code>data/segment-times.json</code></td></tr>
-          <tr><td class="n">k</td><td>Factor de ritmo, para tramos sin tiempo aprendido</td><td><code>data/pace-factors.json</code></td></tr>
+          <tr><td class="n">r</td><td>Proporción tiempo real / horario por cubo de largo de tramo (y franja), para tramos sin tiempo aprendido</td><td><code>lengthRatios</code> en <code>data/segment-times.json</code></td></tr>
+          <tr><td class="n">k</td><td>Factor de ritmo, solo si no se conoce el largo del tramo (y en el cálculo sin tiempos por tramo)</td><td><code>data/pace-factors.json</code></td></tr>
         </tbody>
       </table></div>
 
@@ -457,7 +461,7 @@ a{color:var(--route)}
       <div class="math"><b>Capa 1 (GPS)</b> ⟺ t<sub>now</sub> − t<sub>gps</sub> ≤ 600 s &nbsp;∧&nbsp; t<sub>gps</sub> ≥ d<sub>0</sub> − 60 s &nbsp;∧&nbsp; n ∈ paradas del viaje, N ≥ 2 &nbsp;∧&nbsp; d<sub>⊥</sub> ≤ pasillo<br><b>Capa 2 (parada registrada)</b> ⟺ capa 1 falla &nbsp;∧&nbsp; hay hora del dato (t<sub>ref</sub>, ≤ 600 s) &nbsp;∧&nbsp; viaje empezado &nbsp;∧&nbsp; n ≥ 2 &nbsp;∧&nbsp; a<sub>n</sub> − a<sub>n−1</sub> ≤ 1200 s<br><b>Capa 3 (horario corregido)</b> en otro caso &nbsp;·&nbsp; también si GPS y parada discrepan: |δ<sub>gps</sub> − δ<sub>parada</sub>| &gt; 360 s (solo con a<sub>n</sub> − a<sub>n−1</sub> ≤ 360 s)<br>ETA<sub>capa 3</sub> = d<sub>0</sub> + 60 s + Σ τ<sub>i</sub> (de la cabecera a tu parada), o el horario publicado si ETA<sub>capa 3</sub> &lt; t<sub>now</sub></div>
 
       <h3>9.8 · Llegada, parada pasada y retraso mostrado</h3>
-      <div class="math">ETA = t<sub>gps</sub> + Σ<sub>i</sub> w<sub>i</sub> · τ<sub>i</sub> &nbsp;&nbsp; con τ<sub>i</sub> = aprendido(i, franja) &nbsp;o&nbsp; k·(a<sub>i+1</sub> − a<sub>i</sub>) si no hay<br>w<sub>i</sub> = fracción del tramo i que queda entre T<sub>pos</sub> y T<sub>dest</sub> &nbsp;(1 en los tramos enteros)<br><br><b>retraso mostrado</b> = round( (ETA − a<sub>dest</sub>) / 60 ) &nbsp;&nbsp; <span class="c">null si |ETA − a<sub>dest</sub>| &gt; 45 min</span><br>minutos mostrados = round( (ETA − t<sub>now</sub>) / 60 )</div>
+      <div class="math">ETA = t<sub>gps</sub> + Σ<sub>i</sub> w<sub>i</sub> · τ<sub>i</sub> &nbsp;&nbsp; con τ<sub>i</sub> = aprendido(i, franja) &nbsp;o&nbsp; r(Δs<sub>i</sub>, franja)·(a<sub>i+1</sub> − a<sub>i</sub>) si no hay (r por cubo de largo Δs<sub>i</sub>: &lt;300, 300-600, 600-1 000, 1 000-1 500, 1 500-3 000, ≥3 000 m; k·(a<sub>i+1</sub> − a<sub>i</sub>) si no se conoce Δs<sub>i</sub>)<br>w<sub>i</sub> = fracción del tramo i que queda entre T<sub>pos</sub> y T<sub>dest</sub> &nbsp;(1 en los tramos enteros)<br><br><b>retraso mostrado</b> = round( (ETA − a<sub>dest</sub>) / 60 ) &nbsp;&nbsp; <span class="c">null si |ETA − a<sub>dest</sub>| &gt; 45 min</span><br>minutos mostrados = round( (ETA − t<sub>now</sub>) / 60 )</div>
       <div class="math"><b>parada pasada</b> ⟺ a<sub>dest</sub> &lt; T<sub>pos</sub> &nbsp;∨&nbsp; seq<sub>dest</sub> &lt; n<br>t<sub>paso</sub> = t<sub>gps</sub> − (T<sub>pos</sub> − a<sub>dest</sub>) &nbsp;&nbsp; <span class="c">(con GPS)</span> &nbsp;&nbsp; t<sub>paso</sub> = t<sub>ref</sub> − (a<sub>n−1</sub> − a<sub>dest</sub>) &nbsp;&nbsp; <span class="c">(parada registrada)</span><br>estado = «saliendo» hasta t<sub>paso</sub> + 45 s, después se retira de la lista</div>
 
       <h3>9.9 · Capa 2: llegada desde la parada registrada</h3>
@@ -546,12 +550,12 @@ a{color:var(--route)}
 
       <h3>11.3 · Con el máximo de datos: proyección</h3>
       <p class="col">Las capturas son ahora 24 al día y 168 a la semana, de unas 45 min cada una: unas 126 horas de feed a la semana, muchas veces lo que aportó la sesión de arriba. Con topes de 120 días y 300 muestras por tramo, los tramos frecuentes irán alcanzando el tope y la cobertura quedará limitada por los tramos que los buses casi no recorren.</p>
-      <p class="col">La precisión que se espera depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender baja al 70 % y 78 %; con dos o más, al 49 % y 66 %. Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos medidos:</p>
+      <p class="col">La precisión que se espera depende de qué parte de las llegadas tiene todos los tramos de su camino aprendidos. Medido hoy: con todos aprendidos, el 93 % cae dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender baja al 76 % y 85 %; con dos o más, al 59 % y 75 % (69 %/78 % y 49 %/66 % antes de la proporción por largo). Hoy el 86 % de las llegadas tiene todo el camino aprendido. Combinando esos tres grupos medidos:</p>
       <div class="scroll"><table>
         <thead><tr><th>Llegadas con todo el camino aprendido</th><th>Dentro de ±2 min</th><th>Dentro de ±3 min</th><th>Estado</th></tr></thead>
         <tbody>
-          <tr><td class="n">86 % (hoy)</td><td class="n">89 %</td><td class="n">95 %</td><td>medido</td></tr>
-          <tr><td class="n">90 %</td><td class="n">90 %</td><td class="n">96 %</td><td>proyección</td></tr>
+          <tr><td class="n">86 % (hoy)</td><td class="n">90 %</td><td class="n">96 %</td><td>medido</td></tr>
+          <tr><td class="n">90 %</td><td class="n">91 %</td><td class="n">96 %</td><td>proyección</td></tr>
           <tr><td class="n">95 %</td><td class="n">92 %</td><td class="n">97 %</td><td>proyección</td></tr>
           <tr><td class="n">99 %</td><td class="n">93 %</td><td class="n">98 %</td><td>proyección</td></tr>
           <tr><td class="n">100 %</td><td class="n"><b>93 %</b></td><td class="n"><b>98 %</b></td><td>techo medido</td></tr>
@@ -562,14 +566,14 @@ a{color:var(--route)}
       <div class="scroll"><table>
         <thead><tr><th>El bus llega en</th><th>Todo el camino aprendido</th><th>Algún tramo sin aprender</th></tr></thead>
         <tbody>
-          <tr><td>0 – 5 min</td><td class="n">96 % ±2 min · 99 % ±3 <span class="mono">(n = 3 919)</span></td><td class="n">75 % ±2 min · 83 % ±3 <span class="mono">(n = 523)</span></td></tr>
-          <tr><td>5 – 10 min</td><td class="n">87 % ±2 min · 96 % ±3 <span class="mono">(n = 1 811)</span></td><td class="n">48 % ±2 min · 63 % ±3 <span class="mono">(n = 369)</span></td></tr>
-          <tr><td>10 – 20 min</td><td class="n">76 % ±2 min · 93 % ±3 <span class="mono">(n = 439)</span></td><td class="n">23 % ±2 min · 48 % ±3 <span class="mono">(n = 77)</span></td></tr>
+          <tr><td>0 – 5 min</td><td class="n">96 % ±2 min · 99 % ±3 <span class="mono">(n = 3 923)</span></td><td class="n">80 % ±2 min · 88 % ±3 <span class="mono">(n = 528)</span></td></tr>
+          <tr><td>5 – 10 min</td><td class="n">87 % ±2 min · 96 % ±3 <span class="mono">(n = 1 811)</span></td><td class="n">59 % ±2 min · 75 % ±3 <span class="mono">(n = 369)</span></td></tr>
+          <tr><td>10 – 20 min</td><td class="n">76 % ±2 min · 93 % ±3 <span class="mono">(n = 439)</span></td><td class="n">61 % ±2 min · 79 % ±3 <span class="mono">(n = 77, muestra pequeña)</span></td></tr>
         </tbody>
       </table></div>
-      <p class="col">Sí: con más datos los viajes largos son los que más ganan, porque un camino largo atraviesa más tramos y es más probable que alguno aún no esté aprendido (23 % frente a 76 % dentro de ±2 min a 10-20 min). Pero aunque todo esté aprendido, el error crece con la distancia, porque cada tramo suma su propia variación: 96 % a 0-5 min, 87 % a 5-10 y 76 % a 10-20. A 10-20 min el techo medido es 76 % dentro de ±2 min y 93 % dentro de ±3 (muestra pequeña: 439 llegadas). Los minutos que muestra la app, a pocos minutos de que llegue el bus, son los más fiables.</p>
+      <p class="col">Sí: con más datos los viajes largos son los que más ganan, porque un camino largo atraviesa más tramos y es más probable que alguno aún no esté aprendido (61 % frente a 76 % dentro de ±2 min a 10-20 min; antes de la proporción por largo era 23 %). Pero aunque todo esté aprendido, el error crece con la distancia, porque cada tramo suma su propia variación: 96 % a 0-5 min, 87 % a 5-10 y 76 % a 10-20. A 10-20 min el techo medido es 76 % dentro de ±2 min y 93 % dentro de ±3 (muestra pequeña: 439 llegadas). Los minutos que muestra la app, a pocos minutos de que llegue el bus, son los más fiables.</p>
       <p class="col"><b>Los retrasos.</b> La llegada no depende de si el bus va retrasado respecto al horario: parte de su posición real y suma lo que tardan los buses en cada tramo, así que un bus que ya va tarde se calcula igual de bien. Lo que no recoge es lo que todavía no ha afectado al bus: un corte, una obra o un aviso de incidencia no cambian la estimación hasta que se notan en su posición. Los avisos de incidencias se muestran aparte, no entran en el cálculo.</p>
-      <div class="note col"><b>Cómo leerlo.</b> Son llegadas a menos de 10 min, que son las que decide el usuario. Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). El techo, 93 %, no es 99 %: en llegadas con todo aprendido, el 7 % restante se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta.</div>
+      <div class="note col"><b>Cómo leerlo.</b> Son llegadas a menos de 10 min, que son las que decide el usuario. Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (73 % dentro de ±2 min hoy). El techo, 93 %, no es 99 %: en llegadas con todo aprendido, el 7 % restante se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta.</div>
       <p class="col">Lo que no se puede dar por hecho es la rapidez del salto. La cobertura de tramos raros crece despacio y la extrapolación de la curva (los tramos sin aprender se reducen aproximadamente a la mitad cada vez que se triplican los buses) es una tendencia medida solo hasta 379 buses. Lo medirá el propio sistema: cada captura escribe su precisión, y <code>learning-curve.php</code> repite la curva con todo lo acumulado.</p>
     </div>
   </section>
