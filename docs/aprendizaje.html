@@ -346,7 +346,7 @@ function drawS4() {
 }
 redrawOnResize($('s4chart'), () => drawS4()); drawS4();
 
-$('foot').innerHTML = `<p>Datos: ${fmt(D.muestras)} tramos entre paradas medidos en el feed GPS de Open Data Bizkaia (Bizkaibus), del ${dia(D.dias[0].dia)} al ${dia(D.dias[D.dias.length - 1].dia)} de 2026, de ${fmt(D.buses)} buses. El largo de cada tramo sale del GTFS oficial. Los errores de esta página son por tramo, en segundos; los de llegada a una parada están en la ficha técnica del algoritmo.</p><p>La curva del primer bloque entrena con los días hasta el elegido y prueba con los días 14 y 15, que no entran en el entrenamiento. Los tramos del segundo bloque están entre los que más buses han medido.</p><p>Ficha técnica completa del algoritmo: <a href="algoritmo.html">algoritmo.html</a>.</p>`;
+$('foot').innerHTML = `<p>Datos: ${fmt(D.muestras)} tramos entre paradas medidos en el feed GPS de Open Data Bizkaia (Bizkaibus), del ${dia(D.dias[0].dia)} al ${dia(D.dias[D.dias.length - 1].dia)} de 2026, de ${fmt(D.buses)} buses. El largo de cada tramo sale del GTFS oficial. Los errores de esta página son por tramo, en segundos; los de llegada a una parada están en la ficha técnica del algoritmo.</p><p>La curva del primer bloque entrena con los días hasta el elegido y prueba con los días 14 y 15, que no entran en el entrenamiento. Los tramos del segundo bloque están entre los que más buses han medido.</p><p>Ficha técnica completa del algoritmo: <a href="algoritmo.html">algoritmo.html</a> · Una red neuronal aprendiendo en directo: <a href="red-neuronal.html">red-neuronal.html</a>.</p>`;
 </script>
 </body>
 </html>
