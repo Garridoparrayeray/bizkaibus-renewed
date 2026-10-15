@@ -13377,5 +13377,31 @@
             "laborable.mediodia": 75,
             "laborable.noche": 71
         }
-    }
+    },
+    "lengthRatios": [
+        {
+            "all": 1.096,
+            "laborable.mediodia": 1.096
+        },
+        {
+            "all": 0.964,
+            "laborable.mediodia": 0.964
+        },
+        {
+            "all": 0.791,
+            "laborable.mediodia": 0.791
+        },
+        {
+            "all": 0.665,
+            "laborable.mediodia": 0.665
+        },
+        {
+            "all": 0.652,
+            "laborable.mediodia": 0.652
+        },
+        {
+            "all": 0.524,
+            "laborable.mediodia": 0.524
+        }
+    ]
 }
