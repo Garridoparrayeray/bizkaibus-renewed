@@ -18,6 +18,7 @@ foreach($files as $f){ $vm=Services\SiriVehicleMonitoringClient::parse(file_get_
 // orden por vehiculo y viaje en cada snapshot
 $byVeh=[]; foreach($snaps as $i=>[$t,$vm]) foreach($vm as $k=>$es) foreach($es as $e) $byVeh[$e['vehicleRef']][$i]=[$k,$e];
 $stopsCache=[];
+$SegT=Services\SegmentTimes::fromFile(); $C=[]; $K=[];
 $G=[]; $stat=['app'=>[], 'horario'=>[]]; $cnt=['pred'=>0,'vivo'=>0,'programado'=>0];
 $H=[[0,180],[180,360],[360,600],[600,1200]];
 foreach($snaps as $i=>[$t,$vm]){
@@ -40,6 +41,12 @@ foreach($snaps as $i=>[$t,$vm]){
       $by=array_column($st,null,'seq_order'); $gp=(isset($by[(int)$e['order']],$by[(int)$e['order']-1]))?((int)$by[(int)$e['order']]['arrival_seconds']-(int)$by[(int)$e['order']-1]['arrival_seconds'])/60:0; $seg=$gp>10?'tramo largo':'tramo corto';
       if($h<600) $G[$grp.' / '.$seg][]=$out['etaSeconds']-$actual;
       $stat['horario'][$b][]=$sched-$actual;
+      if($out['status']==='live'){ // cobertura: cuantos tramos del camino hasta la parada aun no tienen tiempo aprendido
+        $miss=0; $band=Services\PaceFactors::bandFor($sDate??date('Y-m-d'),(int)$t);
+        foreach($st as $ix=>$sa){ $sq=(int)$sa['seq_order']; if($sq>=$seq||!isset($st[$ix+1])||$sq<(int)$e['order']-1) continue; if($SegT->seconds((string)$sa['stop_id'],(string)$st[$ix+1]['stop_id'],$band)===null) $miss++; }
+        if($h<600) $K[min($miss,2)][]=$out['etaSeconds']-$actual;
+        $hb=$h<300?'0-5 min':($h<600?'5-10 min':'10-20 min'); $C[$hb][$miss===0?'todo aprendido':'algun tramo sin aprender'][]=$out['etaSeconds']-$actual;
+      }
       if($out['status']==='live'){ $cnt['vivo']++; $stat['app'][$b][]=$out['etaSeconds']-$actual; } else { $cnt['programado']++; $stat['app'][$b][]=$out['etaSeconds']-$actual; }
     }
   }
@@ -51,3 +58,7 @@ echo "predicciones con paso real conocido: {$cnt['pred']} (en vivo {$cnt['vivo']
 foreach($H as $bi=>[$lo,$hi]){ foreach(['app','horario'] as $m){ $a=$stat[$m][$bi]??[]; printf("%-8s llega en %2d-%2d min: n=%4d  sesgo %5s | error mediano %5s min | dentro de ±1 min %4s | ±2 min %4s | ±3 min %4s\n",$m,$lo/60,$hi/60,count($a),sgn($a),med($a),pct($a,60),pct($a,120),pct($a,180)); } }
 
 echo "\n== por origen del dato (llegadas en menos de 10 min)\n"; foreach($G as $g=>$a) printf("%-24s n=%4d  ±1 min %4s  ±2 min %4s  ±3 min %4s  error mediano %s min\n",$g,count($a),pct($a,60),pct($a,120),pct($a,180),med($a));
+echo "\n== por cobertura de tramos (llegadas en vivo): todo el camino con tiempo aprendido o con algun tramo sin aprender\n";
+foreach(['0-5 min','5-10 min','10-20 min'] as $hb) foreach(['todo aprendido','algun tramo sin aprender'] as $g){ $a=$C[$hb][$g]??[]; printf("%-10s %-26s n=%4d  ±2 min %4s  ±3 min %4s\n",$hb,$g,count($a),pct($a,120),pct($a,180)); }
+echo "\n== por tramos sin aprender (llegadas en vivo en menos de 10 min)\n";
+foreach([0=>'0 tramos sin aprender',1=>'1 tramo sin aprender',2=>'2 o mas'] as $k=>$g){ $a=$K[$k]??[]; printf("%-24s n=%4d  ±2 min %4s  ±3 min %4s\n",$g,count($a),pct($a,120),pct($a,180)); }
