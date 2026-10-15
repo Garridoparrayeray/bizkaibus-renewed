@@ -6,8 +6,8 @@ name: Ritmo de los buses (k)
 # entre dos paradas, para los tramos en los que el horario no se parece a la
 # realidad, como los de autopista).
 #
-# - Capturas: cada hora captura el feed en directo unos 45 minutos (24 capturas
-#   al dia, 168 a la semana), y guarda solo las muestras que hacen falta (no los XML) en un fichero
+# - Capturas: cada hora captura el feed en directo unos 45 minutos (hasta 24 capturas
+#   al dia; GitHub puede saltarse algunas), y guarda solo las muestras que hacen falta (no los XML) en un fichero
 #   acumulado que vive como adjunto de la release "pace-data". Las releases no
 #   disparan despliegues de Vercel. Los trabajos van uno detras de otro
 #   (concurrency), asi que si uno se retrasa el siguiente espera.
@@ -21,8 +21,10 @@ name: Ritmo de los buses (k)
 
 on:
   schedule:
-    # Cada hora, todo el dia (incluidos los nocturnos): 24 capturas al dia, 168 a la semana.
-    - cron: '0 * * * *'
+    # Cada hora, todo el dia (incluidos los nocturnos). En el minuto 17 y no en el 0: GitHub avisa de que los trabajos
+    # programados a la hora en punto se retrasan o se pierden cuando hay carga; con el minuto 0 solo corrieron 3 de las 12
+    # capturas esperadas en las 12 horas siguientes a activar el cron horario. El trabajo dura unos 47 min.
+    - cron: '17 * * * *'
     # Recalibrado diario.
     - cron: '0 4 * * *'
   workflow_dispatch:
