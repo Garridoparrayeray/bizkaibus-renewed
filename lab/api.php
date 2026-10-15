@@ -43,6 +43,38 @@ function verify(string $sLog): array {
 if ($sAction === 'verify') { echo json_encode(verify($sLog), JSON_UNESCAPED_UNICODE); exit; }
 if ($sAction === 'reset') { @unlink($sLog); echo '{"ok":true}'; exit; }
 
+if ($sAction === 'coverage') {
+    // Cobertura: de los viajes que el horario dice que están en marcha, cuántos aparecen en el feed (y con GPS).
+    $sCovLog = __DIR__ . '/data/coverage-log.jsonl';
+    if (($_GET['op'] ?? '') === 'reset') { @unlink($sCovLog); echo '{"ok":true}'; exit; }
+    try {
+        $sCache = sys_get_temp_dir() . '/bideplus-lab-feed.xml';
+        if (!is_file($sCache) || time() - filemtime($sCache) > 20) {
+            $sXml = @file_get_contents(FEED, false, stream_context_create(['http' => ['timeout' => 15]]));
+            if ($sXml === false) fail('No se pudo leer el feed de Bizkaibus (¿hay conexión a internet?).', 502);
+            file_put_contents($sCache, $sXml);
+        }
+        $sDate = date('Y-m-d'); $aVm = Services\SiriVehicleMonitoringClient::parse(file_get_contents($sCache), $sDate);
+        $iT = Services\CoverageProbe::latestSeconds($aVm);
+        if (!$iT) fail('El feed no trae posiciones ahora mismo.', 502);
+        $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo);
+        $aLines = Services\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT);
+        $iTot = array_sum(array_column($aLines, 'esperados')); $iCon = array_sum(array_column($aLines, 'conDato')); $iGps = array_sum(array_column($aLines, 'gps')); $iOtra = array_sum(array_column($aLines, 'otraSalida'));
+        $aNow = ['t' => $iT, 'fecha' => $sDate, 'esperados' => $iTot, 'conDato' => $iCon, 'gps' => $iGps, 'otraSalida' => $iOtra];
+        $sLastCov = __DIR__ . '/data/.last-cov-t';
+        if (($_GET['log'] ?? '1') !== '0' && (is_file($sLastCov) ? (int)file_get_contents($sLastCov) : 0) !== $iT) {
+            file_put_contents($sCovLog, json_encode($aNow + ['lineas' => array_map(fn($a) => [$a['codigo'], $a['esperados'], $a['conDato'], $a['otraSalida']], $aLines)]) . "\n", FILE_APPEND | LOCK_EX);
+            file_put_contents($sLastCov, (string)$iT);
+        }
+        $aAcc = []; $iSnaps = 0; $aDays = [];
+        foreach (is_file($sCovLog) ? file($sCovLog, FILE_IGNORE_NEW_LINES) : [] as $s) { $h = json_decode($s, true); if (!$h) continue; $iSnaps++; $aDays[$h['fecha']] = true;
+            foreach ($h['lineas'] as [$cod, $esp, $con, $otr]) { $aAcc[$cod]['esperados'] = ($aAcc[$cod]['esperados'] ?? 0) + $esp; $aAcc[$cod]['conDato'] = ($aAcc[$cod]['conDato'] ?? 0) + $con; $aAcc[$cod]['otraSalida'] = ($aAcc[$cod]['otraSalida'] ?? 0) + $otr; } }
+        foreach ($aLines as &$a) $a['acumulado'] = $aAcc[$a['codigo']] ?? null; unset($a);
+        echo json_encode(['ahora' => $aNow, 'lineas' => $aLines, 'lecturas' => $iSnaps, 'dias' => count($aDays)], JSON_UNESCAPED_UNICODE);
+    } catch (\Throwable $x) { fail($x->getMessage()); }
+    exit;
+}
+
 try {
     $sCache = sys_get_temp_dir() . '/bideplus-lab-feed.xml';
     if (!is_file($sCache) || time() - filemtime($sCache) > 20) {
