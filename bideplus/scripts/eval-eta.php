@@ -11,15 +11,17 @@ $Pdo=Core\Database::connection(); $JM=new Models\ServiceJourney($Pdo);
 $dir=$argv[1]??''; if(!is_dir($dir)){ fwrite(STDERR,"Uso: php scripts/eval-eta.php <carpeta con capturas>\n"); exit(1);}
 $files=array_merge(glob(rtrim($dir,'/').'/s*.xml') ?: [], glob(rtrim($dir,'/').'/vm_*.xml') ?: []); sort($files);
 $snaps=[]; // [ [t, vm] ]
+// Fecha de servicio de las capturas (no la de hoy): asi se pueden medir capturas de otro dia.
+$sDate=preg_match('/<RecordedAtTime>(\d{4}-\d{2}-\d{2})/',(string)file_get_contents($files[0]??'',false,null,0,4096),$mDate)?$mDate[1]:null;
 $sinGps=in_array('--sin-gps',$argv,true); $sinFeed=in_array('--sin-feed',$argv,true);
-foreach($files as $f){ $vm=Services\SiriVehicleMonitoringClient::parse(file_get_contents($f)); $t=0; foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0) if(isset($e0['locationSeconds'])) $t=max($t,$e0['locationSeconds']); if($sinGps){ foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0){ $vm[$kk][$ii]['lat']=null; $vm[$kk][$ii]['lon']=null; $vm[$kk][$ii]['locationSeconds']=null; } } $t0=$t; $t=$t0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
+foreach($files as $f){ $vm=Services\SiriVehicleMonitoringClient::parse(file_get_contents($f),$sDate); $t=0; foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0) if(isset($e0['locationSeconds'])) $t=max($t,$e0['locationSeconds']); if($sinGps){ foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0){ $vm[$kk][$ii]['lat']=null; $vm[$kk][$ii]['lon']=null; $vm[$kk][$ii]['locationSeconds']=null; } } $t0=$t; $t=$t0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
 // orden por vehiculo y viaje en cada snapshot
 $byVeh=[]; foreach($snaps as $i=>[$t,$vm]) foreach($vm as $k=>$es) foreach($es as $e) $byVeh[$e['vehicleRef']][$i]=[$k,$e];
 $stopsCache=[];
 $G=[]; $stat=['app'=>[], 'horario'=>[]]; $cnt=['pred'=>0,'vivo'=>0,'programado'=>0];
 $H=[[0,180],[180,360],[360,600],[600,1200]];
 foreach($snaps as $i=>[$t,$vm]){
-  $M=new Services\RealtimeMatcher($vm,$JM,$t);
+  $M=new Services\RealtimeMatcher($vm,$JM,$t,null,$sDate);
   $M0=$sinFeed?new Services\RealtimeMatcher([],$JM,$t):$M;
   foreach($vm as $k=>$es) foreach($es as $e){
     $j=$M->journeyIdFor($e); if(!$j||!isset($e['order'])) continue;
