@@ -643,6 +643,53 @@ function fitSegments(array $aSamples): array
     return $aSegments;
 }
 
+const MIN_SAMPLES_PER_LENGTH_RATIO = 20;
+
+/*
+ * Largo (m) de cada par de paradas consecutivas, mediana entre todos los viajes que lo hacen.
+ */
+function stopPairLengths(): array
+{
+    $Stmt = Database::connection()->query('SELECT service_journey_id, stop_id, dist_m FROM passing_times ORDER BY service_journey_id, seq_order');
+    $aLengths = [];
+    $aPrevious = null;
+    foreach ($Stmt as $aRow) {
+        if ($aPrevious !== null && $aPrevious['service_journey_id'] === $aRow['service_journey_id'] && $aPrevious['dist_m'] !== null && $aRow['dist_m'] !== null) {
+            $aLengths[SegmentTimes::key((string)$aPrevious['stop_id'], (string)$aRow['stop_id'])][] = (float)$aRow['dist_m'] - (float)$aPrevious['dist_m'];
+        }
+        $aPrevious = $aRow;
+    }
+    return array_map(fn(array $aValues) => percentile($aValues, 0.5), $aLengths);
+}
+
+/*
+ * Proporcion mediana tiempo real / horario por cubo de largo de tramo (y franja), para los tramos sin tiempo aprendido.
+ */
+function fitLengthRatios(array $aSamples, array $aLengths): array
+{
+    $aGroups = [];
+    foreach ($aSamples as $aSample) {
+        $dMeters = $aLengths[SegmentTimes::key((string)$aSample['from'], (string)$aSample['to'])] ?? null;
+        if ($dMeters === null || $dMeters <= 0 || $aSample['scheduled'] <= 0) {
+            continue;
+        }
+        $sBucket = (string)SegmentTimes::lengthBucket($dMeters);
+        $dRatio = $aSample['actual'] / $aSample['scheduled'];
+        $aGroups[$sBucket]['all'][] = $dRatio;
+        $aGroups[$sBucket][$aSample['band']][] = $dRatio;
+    }
+    $aRatios = [];
+    foreach ($aGroups as $sBucket => $aByBand) {
+        foreach ($aByBand as $sBand => $aValues) {
+            if (count($aValues) >= MIN_SAMPLES_PER_LENGTH_RATIO) {
+                $aRatios[$sBucket][$sBand] = round(percentile($aValues, 0.5), 3);
+            }
+        }
+    }
+    ksort($aRatios);
+    return $aRatios;
+}
+
 function calibrateSegments(string $sSource, bool $bWrite): void
 {
     if (is_file($sSource)) {
@@ -672,6 +719,36 @@ function calibrateSegments(string $sSource, bool $bWrite): void
         }
     }
 
+    $aLengths = stopPairLengths();
+    $aLengthBefore = 0.0;
+    $aLengthAfter = 0.0;
+    $iLengthN = 0;
+    foreach ([0, 1] as $iHeldOutFold) {
+        $aTrainRatios = fitLengthRatios(array_filter($aSamples, fn($aSample) => crc32($aSample['track']) % 2 !== $iHeldOutFold), $aLengths);
+        $ByLength = new SegmentTimes(['lengthRatios' => $aTrainRatios]);
+        foreach ($aSamples as $aSample) {
+            if (crc32($aSample['track']) % 2 !== $iHeldOutFold || $aSample['scheduled'] <= 0) {
+                continue;
+            }
+            $dMeters = $aLengths[SegmentTimes::key((string)$aSample['from'], (string)$aSample['to'])] ?? null;
+            $dByLength = $ByLength->fallbackSeconds((float)$aSample['scheduled'], $dMeters, $aSample['band']);
+            if ($dByLength === null) {
+                continue;
+            }
+            $dFactor = $Pace->factor($aSample['line'], $aSample['date'], (int)$aSample['at']);
+            $aLengthBefore += abs($dFactor * $aSample['scheduled'] - $aSample['actual']) / 60;
+            $aLengthAfter += abs($dByLength - $aSample['actual']) / 60;
+            $iLengthN++;
+        }
+    }
+    $aLengthRatios = [];
+    if ($iLengthN > 0) {
+        printf("Proporcion por largo de tramo (n=%d tramos): error medio %.2f min con k de ritmo -> %.2f min por largo\n", $iLengthN, $aLengthBefore / $iLengthN, $aLengthAfter / $iLengthN);
+        if ($aLengthAfter < $aLengthBefore) {
+            $aLengthRatios = fitLengthRatios($aSamples, $aLengths);
+        }
+    }
+
     $aSegments = fitSegments($aSamples);
     echo 'Tramos con tiempo aprendido (minimo ' . MIN_TRACKS_PER_SEGMENT . ' buses distintos): ' . count($aSegments) . "\n";
     if (empty($aBefore)) {
@@ -697,7 +774,7 @@ function calibrateSegments(string $sSource, bool $bWrite): void
     }
     if (is_file(SegmentTimes::defaultPath())) {
         $aCurrent = json_decode((string)file_get_contents(SegmentTimes::defaultPath()), true);
-        if (is_array($aCurrent) && ($aCurrent['segments'] ?? null) == $aSegments) {
+        if (is_array($aCurrent) && ($aCurrent['segments'] ?? null) == $aSegments && ($aCurrent['lengthRatios'] ?? []) == $aLengthRatios) {
             echo "Sin cambios: los tiempos son los mismos que los del fichero actual.\n";
             return;
         }
@@ -706,6 +783,7 @@ function calibrateSegments(string $sSource, bool $bWrite): void
         'generated' => date('Y-m-d H:i'),
         'samples' => count($aSamples),
         'segments' => $aSegments,
+        'lengthRatios' => $aLengthRatios,
     ];
     file_put_contents(SegmentTimes::defaultPath(), json_encode($aOutput, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n");
     echo 'Escrito ' . realpath(SegmentTimes::defaultPath()) . "\n";

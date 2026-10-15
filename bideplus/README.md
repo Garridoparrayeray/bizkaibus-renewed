@@ -121,10 +121,12 @@ php scripts/realtime-backtest.php calibrate capturas --write    # guarda data/pa
 En algunos tramos el horario oficial no se parece a la realidad: por ejemplo, el A3514 hacia Gernika tiene entre 34 y 49 minutos de horario entre Zabalburu y el peaje de Boroa (18 km de autopista), y el bus lo hace en unos 15. Un `k` por línea no lo arregla, porque en la misma línea los buses van más lentos que el horario en la ciudad y mucho más rápidos en la autopista. Por eso `RealtimeMatcher` suma el tiempo restante tramo a tramo (de parada a parada):
 
 ```
-ETA = T_gps + Σ tramos hasta la parada (tiempo aprendido del tramo, o k × horario del tramo si no hay datos)
+ETA = T_gps + Σ tramos hasta la parada (tiempo aprendido del tramo; si no hay datos, proporción por largo × horario del tramo, o k × horario si no se conoce el largo)
 ```
 
-El tiempo aprendido sale de `data/segment-times.json` (lo lee `Services\SegmentTimes`): la mediana de lo que tardan de verdad los buses en cada tramo entre dos paradas (`desde>hasta`, con ids de parada, así que lo comparten todas las líneas que pasan por él), por franja si hay datos y si no general. Hace falta un mínimo de 2 buses distintos por tramo: con las 12 755 medidas del seed, validación cruzada en dos mitades, bajar de 3 a 2 da un 17 % más de tramos cubiertos con el mismo error por tramo (0,39 min). Los tramos con tiempo aprendido son lo que más pesa en la precisión: con todos los tramos del camino aprendidos, el 93 % de las llegadas queda dentro de ±2 min y el 98 % dentro de ±3; con uno o más sin aprender baja al 70 % y al 49 %. Sin el fichero, la fórmula es exactamente la de arriba. **Solo se aplica a Bizkaibus**: los ids de parada de otras redes pueden coincidir y estos tiempos se han medido solo con sus buses (Euskotren y el tranvía de Bilbao, que también usan SIRI, siguen con el cálculo de siempre).
+El tiempo aprendido sale de `data/segment-times.json` (lo lee `Services\SegmentTimes`): la mediana de lo que tardan de verdad los buses en cada tramo entre dos paradas (`desde>hasta`, con ids de parada, así que lo comparten todas las líneas que pasan por él), por franja si hay datos y si no general. Hace falta un mínimo de 2 buses distintos por tramo: con las 12 755 medidas del seed, validación cruzada en dos mitades, bajar de 3 a 2 da un 17 % más de tramos cubiertos con el mismo error por tramo (0,39 min). Los tramos con tiempo aprendido son lo que más pesa en la precisión: con todos los tramos del camino aprendidos, el 93 % de las llegadas queda dentro de ±2 min y el 98 % dentro de ±3; con un tramo sin aprender baja al 76 % y con dos o más al 59 % (69 % y 49 % antes de la proporción por largo, descrita abajo). Sin el fichero, la fórmula es exactamente la de arriba.
+
+**Tramos sin tiempo aprendido.** Para ellos no sirve un `k` único por línea y franja, porque el horario va interpolado a velocidad constante entre paradas: en ciudad (tramos de menos de 600 m) el bus tarda lo que dice el horario o más (proporción real/horario 1,0-1,1), y en autopista (más de 3 km) tarda la mitad (0,5). Por eso `calibrate-segments` calcula la mediana de tiempo real / horario por cubo de largo de tramo (menos de 300 m, 300-600, 600-1 000, 1 000-1 500, 1 500-3 000 y más de 3 000 m; el largo sale de `dist_m` de los pasos del GTFS) y franja, con las muestras de tramo individuales, y las guarda en `lengthRatios` de `data/segment-times.json`. Se usa la de la franja si tiene 20 muestras o más, y si no la general del cubo; sin largo del tramo (viajes sin `dist_m`) se vuelve a `k × horario`. `calibrate-segments` la valida por mitades de buses, igual que lo demás, y solo la guarda si baja el error. Medido: error medio por tramo 0,88 → 0,69 min (12 755 tramos); y contra las capturas del feed real del 14 oct por la tarde (las proporciones salen de muestras del 6 oct a mediodía, otro día y otra franja), un tramo sin aprender pasa del 69 % al 76 % dentro de ±2 min, dos o más del 49 % al 59 %, y a 10-20 min con algún tramo sin aprender del 23 % al 61 % (solo 77 llegadas). **Solo se aplica a Bizkaibus**: los ids de parada de otras redes pueden coincidir y estos tiempos se han medido solo con sus buses (Euskotren y el tranvía de Bilbao, que también usan SIRI, siguen con el cálculo de siempre).
 
 ```
 php scripts/realtime-backtest.php calibrate-segments capturas            # solo informa
@@ -140,21 +142,21 @@ php scripts/realtime-backtest.php analyze capturas [tiempos.json] [--sin-tramos]
 
 | La parada queda a | Error mediano | Dentro de ±1 min | Dentro de ±2 min | Dentro de ±3 min | Solo el horario, ±2 min |
 |---|---|---|---|---|---|
-| 0-3 min | 0,5 min | 79 % | 93 % | 96 % | 19 % |
-| 3-6 min | 0,7 min | 63 % | 87 % | 93 % | 18 % |
-| 6-10 min | 1,1 min | 47 % | 77 % | 88 % | 16 % |
-| 10-20 min | 1,4 min | 36 % | 66 % | 83 % | 13 % |
+| 0-3 min | 0,5 min | 80 % | 94 % | 96 % | 19 % |
+| 3-6 min | 0,7 min | 63 % | 89 % | 95 % | 18 % |
+| 6-10 min | 1,0 min | 49 % | 80 % | 90 % | 16 % |
+| 10-20 min | 1,2 min | 41 % | 73 % | 89 % | 13 % |
 
 Cada capa por separado, dentro de ±2 min, sobre las mismas capturas y los mismos pasos reales (`--sin-gps` quita el GPS a todos los buses; `--sin-feed` no da ningún bus a la app):
 
 | La parada queda a | Capa 1, con GPS | Capa 2, solo parada registrada | Capa 3, sin ningún dato del bus | Horario publicado |
 |---|---|---|---|---|
-| 0-3 min | 93 % | 93 % | 36 % | 19 % |
-| 3-6 min | 87 % | 83 % | 39 % | 18 % |
-| 6-10 min | 77 % | 73 % | 37 % | 16 % |
-| 10-20 min | 66 % | 67 % | 36 % | 13 % |
+| 0-3 min | 94 % | 94 % | 42 % | 19 % |
+| 3-6 min | 89 % | 84 % | 45 % | 18 % |
+| 6-10 min | 80 % | 74 % | 43 % | 16 % |
+| 10-20 min | 73 % | 67 % | 39 % | 13 % |
 
-Sin sesgo (el error medio es 0). Por origen del dato, en llegadas en menos de 10 min: GPS en tramo corto, 92 % dentro de ±2 min; GPS en tramo de más de 10 min, 61 %; buses que en la captura real no tenían GPS utilizable y se calcularon por parada registrada, 72 % (un subconjunto distinto, con buses fuera de ruta, por eso queda por debajo del 83-93 % de la capa 2 medida quitando el GPS a todos). Las salvaguardas se miden contra este criterio: el tope de 45 min sobre el retraso, aplicado como «salir con horario oficial», bajaba la precisión (de 85,2 % a 84,1 % dentro de ±2 min), así que ahora solo deja de afirmar el retraso y mantiene la llegada estimada.
+Sin sesgo (el error medio es 0). Por origen del dato, en llegadas en menos de 10 min: GPS en tramo corto, 92 % dentro de ±2 min; GPS en tramo de más de 10 min, 78 %; buses que en la captura real no tenían GPS utilizable y se calcularon por parada registrada, 78 % (un subconjunto distinto, con buses fuera de ruta, por eso queda por debajo del 83-93 % de la capa 2 medida quitando el GPS a todos). Las salvaguardas se miden contra este criterio: el tope de 45 min sobre el retraso, aplicado como «salir con horario oficial», bajaba la precisión (de 85,2 % a 84,1 % dentro de ±2 min), así que ahora solo deja de afirmar el retraso y mantiene la llegada estimada.
 
 ### Bizkaibus en tres capas: GPS, parada registrada, horario oficial
 
@@ -190,6 +192,9 @@ El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de lo
 |---|---|
 | Parada registrada hasta tramos de 20 min (antes 6) | Sin GPS: 79,8 % → 83,0 % dentro de ±2 min; con GPS no cambia | Se adopta |
 | Horario corregido con los tiempos aprendidos (capa 3) | Sin ningún dato del bus: 18 % → 36 % dentro de ±2 min; con GPS, 83,5 % → 85,5 % | Se adopta |
+| Tramos sin aprender: proporción por largo de tramo en vez de k × horario | Error medio por tramo 0,88 → 0,69 min (validación por mitades, 12 755 tramos); con capturas de otro día y otra franja, un tramo sin aprender 69 % → 76 % y dos o más 49 % → 59 % dentro de ±2 min; capa 3 36-39 % → 39-45 % | Se adopta |
+| Franja horaria de cada tramo calculada a la hora a la que el bus llegará a él | Sin ninguna diferencia en las capturas (las franjas aprendidas solo tienen datos de mediodía) | Sin medir: se espera a datos de varias franjas |
+| Tipo de día por calendario GTFS (festivos entre semana) | El GTFS solo trae días añadidos y un único festivo (12 oct), sin capturas | Sin medir |
 | Reparto del tramo en la parada registrada distinto de la mitad (0,35-0,65) | La mitad es el óptimo: 83,0 % (0,45 y 0,5) frente a 82,1 % (0,35) y 81,4 % (0,65) | Sin cambio |
 | Mínimo de 2 buses por tramo en vez de 3 | Se adopta: 17 % más de tramos cubiertos, mismo error por tramo (0,39 min) |
 | Mantener la llegada estimada aunque el retraso no sea creíble (>45 min) | Se adopta: ocultarla bajaba de 85,2 % a 84,1 % |
@@ -244,8 +249,8 @@ Con cada duplicación de buses, los tramos sin aprender se reducen aproximadamen
 
 | Llegadas con todo el camino aprendido | Dentro de ±2 min | Dentro de ±3 min | Estado |
 |---|---|---|---|
-| 86 % (hoy) | 89 % | 95 % | medido |
-| 90 % | 90 % | 96 % | proyección |
+| 86 % (hoy) | 90 % | 96 % | medido |
+| 90 % | 91 % | 96 % | proyección |
 | 95 % | 92 % | 97 % | proyección |
 | 99 % | 93 % | 98 % | proyección |
 | 100 % | 93 % | 98 % | techo medido |
@@ -254,13 +259,13 @@ Con cada duplicación de buses, los tramos sin aprender se reducen aproximadamen
 
 | El bus llega en | Todo el camino aprendido | Algún tramo sin aprender |
 |---|---|---|
-| 0-5 min | 96 % dentro de ±2 min, 99 % dentro de ±3 (n = 3 919) | 75 % y 83 % (n = 523) |
-| 5-10 min | 87 % y 96 % (n = 1 811) | 48 % y 63 % (n = 369) |
-| 10-20 min | 76 % y 93 % (n = 439) | 23 % y 48 % (n = 77) |
+| 0-5 min | 96 % dentro de ±2 min, 99 % dentro de ±3 (n = 3 923) | 80 % y 88 % (n = 528) |
+| 5-10 min | 87 % y 96 % (n = 1 811) | 59 % y 75 % (n = 369) |
+| 10-20 min | 76 % y 93 % (n = 439) | 61 % y 79 % (n = 77, muestra pequeña) |
 
 Con más datos, los viajes largos son los que más ganan, porque un camino largo atraviesa más tramos y es más probable que alguno no esté aprendido. Pero el error crece con la distancia aunque todo esté aprendido, porque cada tramo suma su variación: a 10-20 min el techo medido es el 76 % dentro de ±2 min y el 93 % dentro de ±3 (muestra pequeña). La llegada parte de la posición real del bus y no depende de si va retrasado respecto al horario; lo que no recoge es lo que aún no ha afectado a su posición (un corte, una obra), y los avisos de incidencias no entran en el cálculo.
 
-Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (61 % dentro de ±2 min hoy). **El techo es el 93 %, no el 99 %**: en llegadas con todo aprendido, el resto se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta. La rapidez con que sube la cobertura de tramos raros no se conoce: la tendencia está medida solo hasta 379 buses. El sistema la irá midiendo solo, porque cada captura escribe su precisión.
+Las proyecciones son aritmética sobre las tres precisiones medidas, suponiendo que lo que falta se reparte como hoy entre «un tramo» y «dos o más»; no son una medida. Para llegadas a 10-20 min la precisión es menor (73 % dentro de ±2 min hoy). **El techo es el 93 %, no el 99 %**: en llegadas con todo aprendido, el resto se debe al paso real medido con ±30 s, a una sola posición por minuto y a lo que nadie prevé (semáforos, tráfico, esperas). Para llegar más alto hace falta otra fuente de datos, no más capturas de esta. La rapidez con que sube la cobertura de tramos raros no se conoce: la tendencia está medida solo hasta 379 buses. El sistema la irá midiendo solo, porque cada captura escribe su precisión.
 
 ## Fuente estática: GTFS
 
