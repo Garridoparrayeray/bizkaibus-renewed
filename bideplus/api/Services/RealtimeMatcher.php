@@ -349,7 +349,11 @@ class RealtimeMatcher
             $iScheduled = $iReachSeconds - $iLeaveSeconds;
             $dSegment = $this->Segments->seconds((string)$aStops[$i]['stop_id'], (string)$aStops[$i + 1]['stop_id'], $sBand);
             if ($dSegment === null) {
-                $dSegment = $dFactor * $iScheduled;
+                $dMeters = null;
+                if (isset($aStops[$i]['dist_m'], $aStops[$i + 1]['dist_m'])) {
+                    $dMeters = (float)$aStops[$i + 1]['dist_m'] - (float)$aStops[$i]['dist_m'];
+                }
+                $dSegment = $this->Segments->fallbackSeconds((float)$iScheduled, $dMeters, $sBand) ?? $dFactor * $iScheduled;
             }
             $dShare = 1.0;
             if ($iScheduled > 0) {

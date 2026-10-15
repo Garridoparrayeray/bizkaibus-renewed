@@ -325,6 +325,21 @@ $MNoBusLate = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 +
 $expect('si lo estimado ya queda en el pasado, se deja el horario publicado (no se esconde ni se deja en 0 min)', $MNoBusLate->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
 $MNoLearned = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $expect('sin tiempos aprendidos, se deja el horario publicado', $MNoLearned->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
+/* Tramos sin tiempo aprendido: la proporción tiempo real / horario depende del largo del tramo (en la fixture, 1000 m por tramo y 180 s de horario). */
+$SegOne = ['S0>S1' => ['n' => 5, 'all' => 100]];
+$MNoRatio = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => $SegOne]));
+$expect('sin proporciones por largo, un tramo sin aprender usa k x horario (08:11:40)', $MNoRatio->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 60 + 100 + 3 * 180, (string)$MNoRatio->enrich([$aRowNoBus])[0]['etaSeconds']);
+$MRatio = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => $SegOne, 'lengthRatios' => ['3' => ['all' => 0.5]]]));
+$expect('con proporciones por largo, el tramo sin aprender de 1000 m usa la de su cubo (0,5 x 180 s = 90 s)', $MRatio->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 60 + 100 + 3 * 90, (string)$MRatio->enrich([$aRowNoBus])[0]['etaSeconds']);
+$MRatioOther = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => $SegOne, 'lengthRatios' => ['0' => ['all' => 0.5]]]));
+$expect('si el cubo de su largo no tiene proporción, se vuelve a k x horario', $MRatioOther->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 60 + 100 + 3 * 180);
+$MRatioNoShape = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => $SegOne, 'lengthRatios' => ['3' => ['all' => 0.5]]]));
+$aRowNoShape = array_merge($aRowNoBus, ['service_journey_id' => 'J_NOSHAPE', 'trip_number' => '809']);
+$expect('sin largo del tramo (viaje sin dist_m) se usa k x horario', $MRatioNoShape->enrich([$aRowNoShape])[0]['etaSeconds'] === T0 + 60 + 100 + 3 * 180);
+$Ratios = new SegmentTimes(['lengthRatios' => ['0' => ['all' => 1.1], '5' => ['all' => 0.5, 'laborable.noche' => 0.4]]]);
+$expect('cubos de largo: 299 m -> 0, 300 m -> 1, 2999 m -> 4, 3000 m -> 5', SegmentTimes::lengthBucket(299) === 0 && SegmentTimes::lengthBucket(300) === 1 && SegmentTimes::lengthBucket(2999) === 4 && SegmentTimes::lengthBucket(3000) === 5);
+$expect('la proporción de la franja manda sobre la del cubo', abs($Ratios->fallbackSeconds(100.0, 4000.0, 'laborable.noche') - 40.0) < 1e-9 && abs($Ratios->fallbackSeconds(100.0, 4000.0, 'laborable.manana') - 50.0) < 1e-9);
+$expect('sin largo, sin proporciones o con largo no positivo no hay estimación', $Ratios->fallbackSeconds(100.0, null, 'x') === null && (new SegmentTimes())->fallbackSeconds(100.0, 1000.0, 'x') === null && $Ratios->fallbackSeconds(100.0, 0.0, 'x') === null);
 Config::set('euskotren');
 $MOtherNoBus = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
 $expect('en otras redes se deja el horario publicado', $MOtherNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
