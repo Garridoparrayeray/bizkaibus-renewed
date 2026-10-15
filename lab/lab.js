@@ -214,6 +214,7 @@ function route() {
   document.querySelectorAll('#tabs a').forEach(a => a.toggleAttribute('aria-current', a.dataset.tab === tab) || (a.dataset.tab !== tab && a.removeAttribute('aria-current'))); document.querySelectorAll('#tabs a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); });
   view.className = FRAMES[tab] ? 'full' : '';
   if (FRAMES[tab]) { view.innerHTML = `<iframe src="${FRAMES[tab]}" title="${tab === 'dias' ? 'Aprendizaje por días' : 'Red neuronal'}"></iframe>`; return; }
+  if (tab === 'cobertura') { window.vistaCobertura(view, f => cleanups.push(f)); return; }
   if (tab === 'vivo') { window.vistaVivo(view, f => cleanups.push(f)); return; }
   ({ lineas: vistaLineas, buses: vistaBuses, resumen: vistaResumen }[tab] || vistaResumen)(arg); window.scrollTo(0, 0);
 }
