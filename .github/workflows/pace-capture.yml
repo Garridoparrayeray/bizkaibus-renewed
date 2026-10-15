@@ -11,6 +11,8 @@ name: Ritmo de los buses (k)
 #   acumulado que vive como adjunto de la release "pace-data". Las releases no
 #   disparan despliegues de Vercel. Los trabajos van uno detras de otro
 #   (concurrency), asi que si uno se retrasa el siguiente espera.
+# - Cobertura: ademas mide, por linea, cuantos viajes del horario en ruta aparecen en el feed (coverage-samples.jsonl,
+#   mismo adjunto de la release) para saber que lineas casi nunca tienen datos en vivo.
 # - Recalibrado: cada dia calcula k y los tiempos por tramo con todo lo
 #   acumulado. Solo cambia cada fichero si el error baja en la mitad de prueba
 #   y el resultado es distinto; entonces hace un commit y Vercel despliega.
@@ -94,10 +96,21 @@ jobs:
           php bideplus/scripts/realtime-backtest.php samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/pace-samples.jsonl"
           php bideplus/scripts/realtime-backtest.php segment-samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/segment-samples.jsonl"
 
+      - name: Medir la cobertura del feed por linea
+        # Cuantos viajes del horario en ruta aparecen en el feed. Si falla, no impide guardar el resto.
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          gh release download pace-data -p coverage-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay cobertura acumulada"
+          php bideplus/scripts/coverage-samples.php "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/coverage-samples.jsonl" 15
+
       - name: Guardar las muestras acumuladas
         run: |
           gh release view pace-data >/dev/null 2>&1 || gh release create pace-data --prerelease --title "Datos de ritmo (no es una version)" --notes "Muestras acumuladas para calibrar el factor k. Las genera el workflow Ritmo de los buses; no es una version de la app."
           gh release upload pace-data "$RUNNER_TEMP/pace-samples.jsonl" "$RUNNER_TEMP/segment-samples.jsonl" --clobber
+          if [ -f "$RUNNER_TEMP/coverage-samples.jsonl" ]; then
+            gh release upload pace-data "$RUNNER_TEMP/coverage-samples.jsonl" --clobber
+          fi
 
   recalibrate:
     if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate == 'true') }}

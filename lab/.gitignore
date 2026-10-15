@@ -1,2 +1,4 @@
 data/live-log.jsonl
 data/.last-t
+data/coverage-log.jsonl
+data/.last-cov-t

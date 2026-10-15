@@ -15,6 +15,7 @@ Necesita PHP 8.3 con SQLite. La pestaña **En vivo** además necesita salida a i
 | Líneas | Cómo se forma el k de una línea viaje a viaje, con reproductor, por franja y con sus buses |
 | Buses | Qué se aprende (y qué no) de un bus concreto |
 | En vivo | El algoritmo real de la app (`RealtimeMatcher`) frente al horario oficial y al retraso que da el feed; graba lecturas y mide quién acierta cuando el bus pasa por la parada |
+| Cobertura | De los viajes que el horario dice que están en ruta, cuántos aparecen en el feed (y con GPS), por línea; graba lecturas en `lab/data/coverage-log.jsonl` para ver con los días qué líneas casi nunca tienen datos |
 | Aprendizaje por días | `docs/aprendizaje.html`: cómo se rellena la tabla de tramos día a día |
 | Red neuronal | `docs/red-neuronal.html`: la red aprendiendo segundo a segundo, con el horario oficial como referencia |
 
