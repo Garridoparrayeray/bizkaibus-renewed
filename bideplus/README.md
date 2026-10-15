@@ -174,6 +174,10 @@ Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si el
 
 ### Cómo aprende, y cómo se mantiene dentro de los límites
 
+Hay una página interactiva con las medidas reales (curva de aprendizaje por días, un tramo bus a bus, proporción según el largo del tramo y franjas): `docs/aprendizaje.html`. Sus datos se regeneran con `python3 scripts/learning-viz-data.py <segment-samples.jsonl> --page ../docs/aprendizaje.html` a partir de las muestras de la release `pace-data`. Otra, `docs/red-neuronal.html`, entrena una red neuronal pequeña en el navegador con esas mismas muestras (54 370 tramos y 75 529 trayectos), con los buses llegando día a día y comparada con la tabla y el `k` de hoy; sus datos salen de `scripts/nn-viz-data.py`.
+
+También hay un laboratorio local, con PHP, que reúne esas páginas y compara el algoritmo real de la app con el horario oficial y el retraso del feed en directo (`lab/`, ver `lab/README.md`): `php -S localhost:8090` desde la raíz del repositorio y abrir `/lab/`.
+
 El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de los datos y solo adopta lo que mide mejor.
 
 **Qué aprende.**
