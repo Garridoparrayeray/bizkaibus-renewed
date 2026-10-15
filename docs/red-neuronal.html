@@ -49,8 +49,8 @@ input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--s1); }
 canvas { display: block; width: 100%; margin-top: 10px; border-radius: 8px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--ink-2); margin-top: 10px; }
 .legend i { display: inline-block; width: 18px; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
-.legend i.dash { border-top-style: dashed; }
-.focus { margin-top: 8px; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-height: 2.9em; }
+.legend i.dash { border-top-style: dashed; } .legend i.dot { border-top-style: dotted; }
+.focus { margin-top: 10px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; min-height: 4.6em; }
 .focus b { color: var(--ink); }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .cards div { background: var(--paper); border-radius: 8px; padding: 10px 12px; min-width: 0; }
@@ -64,6 +64,7 @@ th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--li
 th:first-child, td:first-child { text-align: left; }
 th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; }
 .scroll { overflow-x: auto; }
+details.help { margin-top: 10px; font-size: 14px; color: var(--ink-2); } details.help summary { cursor: pointer; font-weight: 600; } details.help ul { margin: 8px 0 0; padding-left: 18px; } details.help li { margin-bottom: 6px; }
 .note { margin-top: 12px; color: var(--ink-2); max-width: 78ch; font-size: 15px; }
 .note b { color: var(--ink); }
 .foot { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-3); max-width: 84ch; }
@@ -97,6 +98,7 @@ th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; }
       <p id="netdesc"></p>
       <canvas id="net" aria-label="Diagrama de la red neuronal"></canvas>
       <div class="focus" id="focus"></div>
+      <details class="help"><summary>Qué significa cada dato de entrada</summary><div id="inputshelp"></div></details>
     </div>
     <div class="card c5">
       <h2 id="losstitle"></h2>
@@ -145,17 +147,18 @@ function makeTramos() {
   const real = i => C.y[i] / 10, raw = i => [Math.log(C.h[i]), Math.log(C.m[i]), Math.sin(2 * Math.PI * C.at[i] / 1440), Math.cos(2 * Math.PI * C.at[i] / 1440), C.we[i], C.lat[i] / 1e4 + 42.5, C.lon[i] / 1e4 - 3.5];
   const CUTS = [300, 600, 1000, 1500, 3000], bk = m => { for (let i = 0; i < CUTS.length; i++) if (m < CUTS[i]) return i; return 5; };
   return { key: 'tramos', N, C, D, real, raw, KIN: 7, KBASE: 5, busWord: 'buses', unit: 'tramos', yRange: [15, 70], yStep: 10, scat: [8, 1500, [10, 30, 100, 300, 1000]],
-    labels: ['ln horario', 'ln largo', 'hora (sen)', 'hora (cos)', 'fin de semana', 'latitud', 'longitud'], useLab: 'Usar la ubicación del tramo',
+    labels: ['ln horario', 'ln largo', 'hora (sen)', 'hora (cos)', 'fin de semana', 'latitud', 'longitud'], useLab: 'Usar la ubicación del tramo', helpHtml: '<ul><li><b>ln horario</b>: el tiempo que dice el horario para el tramo, en logaritmo. Así pasar de 60 a 120 s pesa lo mismo que de 600 a 1.200 s: importa la proporción, no la diferencia.</li><li><b>ln largo</b>: los metros del tramo, también en logaritmo.</li><li><b>hora (sen)</b> y <b>hora (cos)</b>: la hora del día como un punto en un círculo. Un reloj es circular: las 23:59 están pegadas a las 00:00, pero como un solo número (0 a 1.440 minutos) parecerían lejísimos. Con seno y coseno juntos cada hora es un punto distinto del círculo, y las horas vecinas quedan cerca: 06:00 es (1, 0), 12:00 es (0, −1), 18:00 es (−1, 0) y 00:00 es (0, 1).</li><li><b>fin de semana</b>: 1 si es sábado o domingo, 0 si no.</li><li><b>latitud</b> y <b>longitud</b>: dónde está el tramo (el punto medio entre sus dos paradas). Sin estas dos, la red no distingue el centro de la autopista más que por el largo.</li></ul>',
     lede: 'Una red pequeña aprende en tu navegador cuánto tarda un bus en recorrer un tramo entre dos paradas. Los buses almacenados van llegando día a día y la red mejora con cada paso. Todo lo que ves son medidas reales.',
     netdesc: 'Siete datos del tramo entran por la izquierda y salen en el tiempo que tardará. Las líneas azules suman, las naranjas restan; más gruesas, más peso. Cambian mientras aprende.',
     lossTitle: 'Error en tramos que no ha visto', lossDesc: 'Segundos de error por tramo, en los dos últimos días, que no entran en el entrenamiento. Menos es mejor.',
-    legend: [['--s1', '', 'Red neuronal'], ['--s3', '', 'Regresión de 3 números'], ['--s2', 'dash', 'Tabla por largo (la de hoy)'], ['--ink-3', 'dash', 'Tramo ya aprendido']],
+    legend: [['--s1', '', 'Red neuronal'], ['--s3', '', 'Regresión de 3 números'], ['--s2', 'dash', 'Tabla por largo (la de hoy)'], ['--ink-3', 'dash', 'Tramo ya aprendido'], ['--ink', 'dot', 'Horario oficial: lo que se supone']],
     scatDesc: 'Cada punto es un tramo de un bus que la red no ha visto. Sobre la diagonal, acierta.', storeDesc: 'Cada punto es un bus guardado. Se enciende cuando sus medidas llegan a la red.',
-    cardsLabels: ['tramos medidos almacenados', 'buses almacenados de ', 'día que está llegando', 'error de la red ahora', 'error de la tabla actual'],
+    cardsLabels: ['tramos medidos almacenados', 'buses almacenados de ', 'día que está llegando', 'de error medio de la red, ahora', 'de error medio de la tabla actual', 'de error medio del horario oficial (lo que se supone)'],
     meta: i => `Bus ${C.bus[i]} · ${dia(D.dias[C.day[i]])} ${hhmm(C.at[i])} · ${fmt(C.m[i])} m · horario ${fmt(C.h[i])} s → real ${fmt(real(i))} s`,
-    focus: (i, p) => `Bus ${C.bus[i]} · ${dia(D.dias[C.day[i]])} · ${hhmm(C.at[i])} · tramo de <b>${fmt(C.m[i])} m</b>, horario ${fmt(C.h[i])} s. Tardó <b>${fmt(real(i))} s</b>; la red dice <b>${fmt(p)} s</b>.`,
+    focus: (i, p) => `<b>Un ejemplo real que la red no ha visto.</b> El bus ${C.bus[i]}, el ${dia(D.dias[C.day[i]])} a las ${hhmm(C.at[i])}, recorrió un tramo de ${fmt(C.m[i])} m. El horario le daba <b>${fmt(C.h[i])} s</b>. Tardó de verdad <b>${fmt(real(i))} s</b>. La red calcula <b>${fmt(p)} s</b>: se equivoca en ${fmt(Math.abs(p - real(i)))} s.`,
     baselines(n, test) {
-      if (n < 50) return { b1: NaN, b2: NaN, b3: NaN };
+      if (n < 50) return { b1: NaN, b2: NaN, b3: NaN, b4: NaN };
+      let b4 = 0; for (const i of test) b4 += Math.abs(C.h[i] - real(i)); b4 /= test.length;
       const rat = [[], [], [], [], [], []]; for (let i = 0; i < n; i++) rat[bk(C.m[i])].push(real(i) / C.h[i]);
       const rm = rat.map(a => a.length ? medianOf(a) : 1); let b1 = 0; for (const i of test) b1 += Math.abs(rm[bk(C.m[i])] * C.h[i] - real(i)); b1 /= test.length;
       const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bb = [0, 0, 0];
@@ -165,26 +168,26 @@ function makeTramos() {
       let b2 = 0; for (const i of test) b2 += Math.abs(Math.exp(w[0] + w[1] * Math.log(C.h[i]) + w[2] * Math.log(C.m[i])) - real(i)); b2 /= test.length;
       const by = new Map(); for (let i = 0; i < n; i++) { let o = by.get(C.seg[i]); if (!o) by.set(C.seg[i], o = new Map()); o.set(C.bus[i], real(i)); }
       let b3 = 0, cnt = 0; for (const i of test) { const o = by.get(C.seg[i]); if (o && o.size >= 2) { b3 += Math.abs(medianOf([...o.values()]) - real(i)); cnt++; } }
-      return { b1, b2, b3: cnt ? b3 / cnt : NaN };
+      return { b1, b2, b3: cnt ? b3 / cnt : NaN, b4 };
     },
-    cmpDesc: 'Medido fuera de esta página con tramos que ningún modelo había visto (reparto por tramo, entrenamiento completo). Es el caso del plan B: un tramo sin tiempo aprendido.',
-    cmpTable: '<table><thead><tr><th>Cómo estima un tramo sin tiempo aprendido</th><th>Error medio por tramo</th></tr></thead><tbody><tr><td>Tabla por largo de tramo (la que usa la app hoy)</td><td>37,5 s</td></tr><tr><td>Regresión de 3 números: horario y largo</td><td>34,4 s</td></tr><tr><td>Regresión con ubicación (8 números)</td><td>33,7 s</td></tr><tr><td>Red neuronal con las mismas variables (sin ubicación)</td><td>34,0 s</td></tr><tr><td><b>Red neuronal con ubicación del tramo</b></td><td><b>31,9 s</b></td></tr><tr><td>Referencia: el tramo ya está aprendido (2 buses o más)</td><td>≈ 20 s</td></tr></tbody></table>',
-    cmpNote: 'La red mejora un 15 % la tabla actual en los tramos que no conoce, y un 7 % la regresión. Más capacidad no sirve: con las mismas variables, 5, 7 números o una red empatan. Lo que mueve la aguja es darle información nueva, como la ubicación. Aun así, el tramo aprendido (≈ 20 s) sigue siendo mucho mejor que cualquier modelo, y los tramos sin aprender son una parte pequeña de las llegadas: <b>en la app, todavía no se usa</b>. Antes habría que medirlo de punta a punta con las llegadas reales.' };
+    cmpDesc: 'Cada número es cuántos segundos se equivoca de media al decir cuánto tarda un bus en un tramo entre dos paradas (un tramo suele durar de 1 a 3 minutos). Menos es mejor. Medido fuera de esta página con tramos que ningún modelo había visto. Es el caso del plan B: un tramo sin tiempo aprendido.',
+    cmpTable: '<table><thead><tr><th>Cómo estima un tramo sin tiempo aprendido</th><th>Se equivoca de media en cada tramo</th></tr></thead><tbody><tr><td>Horario oficial: lo que se supone, sin corregir</td><td>51,6 s</td></tr><tr><td>Tabla por largo de tramo (la que usa la app hoy)</td><td>37,5 s</td></tr><tr><td>Regresión de 3 números: horario y largo</td><td>34,4 s</td></tr><tr><td>Regresión con ubicación (8 números)</td><td>33,7 s</td></tr><tr><td>Red neuronal con las mismas variables (sin ubicación)</td><td>34,0 s</td></tr><tr><td><b>Nuestro entrenamiento: red neuronal con ubicación del tramo</b></td><td><b>31,9 s</b></td></tr><tr><td>Nuestro entrenamiento en la app: el tramo ya está aprendido (2 buses o más)</td><td>≈ 20 s</td></tr></tbody></table>',
+    cmpNote: 'Frente a lo que dice el horario oficial (51,6 s de error frente a la realidad medida), la tabla actual ya quita un 27 % del error y la red un 38 %. La red mejora un 15 % la tabla actual en los tramos que no conoce, y un 7 % la regresión. Más capacidad no sirve: con las mismas variables, 5, 7 números o una red empatan. Lo que mueve la aguja es darle información nueva, como la ubicación. Aun así, el tramo aprendido (≈ 20 s) sigue siendo mucho mejor que cualquier modelo, y los tramos sin aprender son una parte pequeña de las llegadas: <b>en la app, todavía no se usa</b>. Antes habría que medirlo de punta a punta con las llegadas reales.' };
 }
 function makeTrayectos() {
   const D = DATA2, N = D.n, C = { day: dec(D.day, Uint8Array), bus: dec(D.bus, Uint16Array), line: dec(D.line, Uint8Array), h: dec(D.h, Uint16Array), y: dec(D.y, Uint16Array), at: dec(D.at, Uint16Array), band: dec(D.band, Uint8Array), we: dec(D.we, Uint8Array) };
   const topIdx = new Map(D.top.map((id, k) => [id, k])), real = i => C.y[i];
   const raw = i => { const f = [Math.log(C.h[i]), Math.sin(2 * Math.PI * C.at[i] / 1440), Math.cos(2 * Math.PI * C.at[i] / 1440), C.we[i]]; for (let k = 0; k < 12; k++) f.push(topIdx.get(C.line[i]) === k ? 1 : 0); return f; };
   return { key: 'trayectos', N, C, D, real, raw, KIN: 16, KBASE: 4, busWord: 'viajes', unit: 'trayectos', yRange: [50, 230], yStep: 30, scat: [20, 4000, [30, 100, 300, 1000, 3000]],
-    labels: ['ln horario', 'hora (sen)', 'hora (cos)', 'fin de semana', ...D.top.map(id => 'línea ' + D.lineas[id])], useLab: 'Usar la línea del bus',
+    labels: ['ln horario', 'hora (sen)', 'hora (cos)', 'fin de semana', ...D.top.map(id => 'línea ' + D.lineas[id])], useLab: 'Usar la línea del bus', helpHtml: '<ul><li><b>ln horario</b>: el tiempo que dice el horario hasta la parada, en logaritmo. Así pasar de 60 a 120 s pesa lo mismo que de 600 a 1.200 s: importa la proporción, no la diferencia.</li><li><b>hora (sen)</b> y <b>hora (cos)</b>: la hora del día como un punto en un círculo. Un reloj es circular: las 23:59 están pegadas a las 00:00, pero como un solo número (0 a 1.440 minutos) parecerían lejísimos. Con seno y coseno juntos cada hora es un punto distinto del círculo, y las horas vecinas quedan cerca: 06:00 es (1, 0), 12:00 es (0, −1), 18:00 es (−1, 0) y 00:00 es (0, 1).</li><li><b>fin de semana</b>: 1 si es sábado o domingo, 0 si no.</li><li><b>línea 3115, línea 3411…</b>: una entrada por cada una de las 12 líneas con más viajes. Vale 1 si el viaje es de esa línea y 0 si no.</li></ul>',
     lede: 'Una red pequeña aprende cuánto tarda de verdad un bus en llegar a una parada, a partir de lo que dice el horario. Hace el papel del factor k que hoy corrige el horario. Los viajes almacenados llegan día a día y la red mejora con cada paso.',
     netdesc: 'Dieciséis datos del trayecto entran por la izquierda: el tiempo que dice el horario, la hora, el día y la línea. Sale el tiempo que tardará de verdad. Azul suma, naranja resta; más grueso, más peso.',
     lossTitle: 'Error en trayectos que no ha visto', lossDesc: 'Segundos de error al estimar cuánto falta para la parada, en los dos últimos días, que no entran en el entrenamiento. Menos es mejor.',
     legend: [['--s1', '', 'Red neuronal'], ['--s3', '', 'Horario publicado, sin corregir'], ['--s2', 'dash', 'k por línea y franja (el de hoy)']],
     scatDesc: 'Cada punto es un trayecto de un viaje que la red no ha visto. Sobre la diagonal, acierta.', storeDesc: 'Cada punto es un viaje guardado. Se enciende cuando sus medidas llegan a la red.',
-    cardsLabels: ['trayectos medidos almacenados', 'viajes almacenados de ', 'día que está llegando', 'error de la red ahora', 'error del k de hoy'],
+    cardsLabels: ['trayectos medidos almacenados', 'viajes almacenados de ', 'día que está llegando', 'de error medio de la red, ahora', 'de error medio del k de hoy'],
     meta: i => `Viaje ${C.bus[i]} · línea ${D.lineas[C.line[i]]} · ${dia(D.dias[C.day[i]])} ${hhmm(C.at[i])} · horario ${fmt(C.h[i])} s → real ${fmt(real(i))} s`,
-    focus: (i, p) => `Viaje ${C.bus[i]} · línea ${D.lineas[C.line[i]]} · ${dia(D.dias[C.day[i]])} · ${hhmm(C.at[i])}. Según el horario faltaban <b>${fmt(C.h[i])} s</b>. Tardó <b>${fmt(real(i))} s</b>; la red dice <b>${fmt(p)} s</b>.`,
+    focus: (i, p) => `<b>Un ejemplo real que la red no ha visto.</b> El viaje ${C.bus[i]} de la línea ${D.lineas[C.line[i]]}, el ${dia(D.dias[C.day[i]])} a las ${hhmm(C.at[i])}. Según el horario faltaban <b>${fmt(C.h[i])} s</b> para la parada. Tardó de verdad <b>${fmt(real(i))} s</b>. La red calcula <b>${fmt(p)} s</b>: se equivoca en ${fmt(Math.abs(p - real(i)))} s.`,
     baselines(n, test) {
       if (n < 50) return { b1: NaN, b2: NaN, b3: NaN };
       const per = new Map(); for (let i = 0; i < n; i++) { let t = per.get(C.bus[i]); if (!t) per.set(C.bus[i], t = { a: 0, s: 0, line: C.line[i], band: C.band[i] }); t.a += C.y[i]; t.s += C.h[i]; }
@@ -194,8 +197,8 @@ function makeTrayectos() {
       let b1 = 0, b2 = 0; for (const i of test) { const k = kl.get(C.line[i] * 8 + C.band[i]) ?? kb.get(C.band[i]) ?? 1; b1 += Math.abs(k * C.h[i] - C.y[i]); b2 += Math.abs(C.h[i] - C.y[i]); }
       return { b1: b1 / test.length, b2: b2 / test.length, b3: NaN };
     },
-    cmpDesc: 'Medido fuera de esta página: entrenamiento con los días 2 a 9 de octubre y prueba con los días 10 a 15, que no vio. Es lo que haría el factor k, ahora con una red.',
-    cmpTable: '<table><thead><tr><th>Cómo estima el tiempo hasta la parada</th><th>Error medio</th><th>Faltan menos de 5 min</th><th>5 a 10 min</th><th>10 a 20 min</th></tr></thead><tbody><tr><td>Horario publicado, sin corregir</td><td>139,5 s</td><td>82,1 s</td><td>138,5 s</td><td>222,1 s</td></tr><tr><td>k por línea y franja (el de la app hoy)</td><td>130,8 s</td><td>73,5 s</td><td>129,0 s</td><td>214,9 s</td></tr><tr><td><b>Red neuronal (horario, hora, día y línea)</b></td><td><b>128,7 s</b></td><td><b>69,0 s</b></td><td><b>110,9 s</b></td><td><b>218,0 s</b></td></tr></tbody></table>',
+    cmpDesc: 'Cada número es cuántos segundos se equivoca de media al decir cuánto falta para que el bus llegue a la parada (130 s son unos 2 minutos y 10 segundos). Menos es mejor. Medido fuera de esta página: se entrena con los días 2 a 9 de octubre y se prueba con los días 10 a 15, que no vio. Es lo que haría el factor k, ahora con una red. Son cifras del método que solo mira el horario: el algoritmo de la app, con GPS y tiempos aprendidos, se equivoca mucho menos.',
+    cmpTable: '<table><thead><tr><th>Cómo estima el tiempo hasta la parada</th><th>Se equivoca de media</th><th>Si faltan menos de 5 min</th><th>Si faltan de 5 a 10 min</th><th>Si faltan de 10 a 20 min</th></tr></thead><tbody><tr><td>Horario publicado, sin corregir</td><td>139,5 s</td><td>82,1 s</td><td>138,5 s</td><td>222,1 s</td></tr><tr><td>k por línea y franja (el de la app hoy)</td><td>130,8 s</td><td>73,5 s</td><td>129,0 s</td><td>214,9 s</td></tr><tr><td><b>Red neuronal (horario, hora, día y línea)</b></td><td><b>128,7 s</b></td><td><b>69,0 s</b></td><td><b>110,9 s</b></td><td><b>218,0 s</b></td></tr></tbody></table>',
     cmpNote: 'Aquí la red casi no gana al k de hoy: un 1,6 % en total, con algo de ventaja a menos de 10 minutos y ninguna a más de 10. Corregir el horario con una cifra por línea y hora ya es casi todo lo que se puede sacar de esas variables. Por eso la app no calcula la llegada así: suma el tiempo aprendido de cada tramo (error mediano de menos de un minuto) y deja el k solo como plan B. <b>En la app, la red tampoco se usa.</b>' };
 }
 const DS1 = makeTramos(), DS2 = makeTrayectos();
@@ -239,12 +242,12 @@ const predict = (net, i) => Math.exp(fwd(net, DS.F.subarray(i * DS.KIN, i * DS.K
 
 /* ---------- estado ---------- */
 const DAY_MS = 4000;
-let net, arrived, playing = false, steps = 0, tTrain = 0, hist = [], marks = [], base = { b1: NaN, b2: NaN, b3: NaN }, lastEval = -1e9, lastBase = -1e9, lastBaseN = -1, lastDay = -1, focusIdx = 0, lastFocus = 0, tick = [], tickAt = 0, curErr = NaN;
+let net, arrived, playing = false, steps = 0, tTrain = 0, hist = [], marks = [], base = { b1: NaN, b2: NaN, b3: NaN, b4: NaN }, lastEval = -1e9, lastBase = -1e9, lastBaseN = -1, lastDay = -1, focusIdx = 0, lastFocus = 0, tick = [], tickAt = 0, curErr = NaN;
 function applyMode() {
   DS = $('mode').value === 'trayectos' ? DS2 : DS1;
   $('lede').textContent = DS.lede; $('netdesc').textContent = DS.netdesc; $('losstitle').textContent = DS.lossTitle; $('lossdesc').textContent = DS.lossDesc; $('scatdesc').textContent = DS.scatDesc; $('storedesc').textContent = DS.storeDesc;
-  $('uselab').textContent = DS.useLab; $('cmpdesc').textContent = DS.cmpDesc; $('cmptable').innerHTML = DS.cmpTable; $('cmpnote').innerHTML = DS.cmpNote;
-  $('legend').innerHTML = DS.legend.map(([c, d, t]) => `<span><i style="border-color:var(${c})" ${d ? 'class="dash"' : ''}></i>${t}</span>`).join('');
+  $('uselab').textContent = DS.useLab; $('inputshelp').innerHTML = DS.helpHtml; $('cmpdesc').textContent = DS.cmpDesc; $('cmptable').innerHTML = DS.cmpTable; $('cmpnote').innerHTML = DS.cmpNote;
+  $('legend').innerHTML = DS.legend.map(([c, d, t]) => `<span><i style="border-color:var(${c})" ${d ? `class="${d}"` : ''}></i>${t}</span>`).join('');
   $('foot').innerHTML = `<p>Datos: ${fmt(DS1.N)} tramos entre paradas y ${fmt(DS2.N)} trayectos hasta una parada, medidos en el feed GPS de Open Data Bizkaia (Bizkaibus) entre el ${dia(DS.D.dias[0])} y el ${dia(DS.D.dias[DS.NDAYS - 1])} de 2026, de ${fmt(DS.D.buses)} ${DS.busWord} distintos. La red aprende con los días hasta el ${dia(DS.D.dias[DS.TEST_FROM - 1])} y se prueba con los dos últimos, que no ve nunca. Es una red de dos capas ocultas con tangente hiperbólica, entrenada con Adam en tu navegador; nada sale de esta página.</p><p>Ficha técnica del algoritmo: <a href="algoritmo.html">algoritmo.html</a> · Cómo aprende la tabla de tramos: <a href="aprendizaje.html">aprendizaje.html</a>.</p>`;
 }
 function reset() {
@@ -283,7 +286,7 @@ function drawLoss() {
   g.textAlign = 'center'; g.textBaseline = 'alphabetic'; for (let t = 0; t <= T; t += T > 60 ? 20 : 10) g.fillText(t + ' s', X(t), h - 6);
   let lastLab = -99; marks.forEach(mk => { g.strokeStyle = col('--track'); g.setLineDash([2, 3]); g.beginPath(); g.moveTo(X(mk.t), m.t); g.lineTo(X(mk.t), m.t + ph); g.stroke(); g.setLineDash([]); if (X(mk.t) - lastLab > 44) { lastLab = X(mk.t); g.fillStyle = col('--ink-3'); g.textAlign = 'left'; g.fillText(mk.l, X(mk.t) + 3, m.t + 10); } });
   const line = (key, color, dash, wd) => { g.strokeStyle = color; g.lineWidth = wd; g.setLineDash(dash); g.beginPath(); let st = false; hist.forEach(p => { const v = p[key]; if (!isFinite(v)) { st = false; return; } const px = X(p.t), py = Y(v); if (!st) { g.moveTo(px, py); st = true; } else g.lineTo(px, py); }); g.stroke(); g.setLineDash([]); };
-  line('b3', col('--ink-3'), [6, 4], 2); line('b1', col('--s2'), [6, 4], 2); line('b2', col('--s3'), [], 2); line('nn', col('--s1'), [], 3);
+  line('b4', col('--ink'), [2, 3], 2); line('b3', col('--ink-3'), [6, 4], 2); line('b1', col('--s2'), [6, 4], 2); line('b2', col('--s3'), [], 2); line('nn', col('--s1'), [], 3);
   const last = hist[hist.length - 1]; if (last && isFinite(last.nn)) { g.beginPath(); g.arc(X(last.t), Y(last.nn), 5, 0, 7); g.fillStyle = col('--s1'); g.fill(); g.strokeStyle = col('--card'); g.lineWidth = 2; g.stroke(); g.fillStyle = col('--ink'); g.textAlign = 'right'; g.font = BOLD; g.fillText(fmt(last.nn, 1) + ' s', Math.min(X(last.t) - 8, w - m.r - 2), Y(last.nn) - 8); }
 }
 function drawScatter() {
@@ -304,7 +307,7 @@ function drawAll() { drawNet(); drawLoss(); drawScatter(); drawStore(); }
 function updateText() {
   const lit = drawStore.lit || 0, day = arrived >= 1 ? DS.C.day[Math.floor(Math.min(arrived, DS.poolN)) - 1] : 0, L = DS.cardsLabels;
   $('clock').innerHTML = `<b>${fmt(steps)}</b> pasos · <b>${fmt(tTrain, 0)}</b> s`;
-  $('cards').innerHTML = [[fmt(Math.floor(Math.min(arrived, DS.poolN))), L[0]], [fmt(lit), L[1] + fmt(DS.busFirst.length)], [arrived >= 1 ? dia(DS.D.dias[day]) : '—', L[2]], [isFinite(curErr) ? fmt(curErr, 1) + ' s' : '—', L[3]], [isFinite(base.b1) ? fmt(base.b1, 1) + ' s' : '—', L[4]]].map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join('');
+  $('cards').innerHTML = [[fmt(Math.floor(Math.min(arrived, DS.poolN))), L[0]], [fmt(lit), L[1] + fmt(DS.busFirst.length)], [arrived >= 1 ? dia(DS.D.dias[day]) : '—', L[2]], [isFinite(curErr) ? fmt(curErr, 1) + ' s' : '—', L[3]], [isFinite(base.b1) ? fmt(base.b1, 1) + ' s' : '—', L[4]], ...(L[5] ? [[isFinite(base.b4) ? fmt(base.b4, 1) + ' s' : '—', L[5]]] : [])].map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join('');
   $('ticker').innerHTML = tick.map(t => `<div>${t}</div>`).join('');
 }
 
@@ -321,7 +324,7 @@ function frame(now) {
     if (stepAcc > 5) stepAcc = 5;
     if (tTrain - lastEval >= .25) { lastEval = tTrain; let e = 0; for (const i of DS.test) e += Math.abs(predict(net, i) - DS.real(i)); curErr = e / DS.test.length;
       if (!isFinite(base.b1) || (now - lastBase > 900 && Math.abs(n - lastBaseN) > poolN * 0.01)) { lastBase = now; lastBaseN = n; base = DS.baselines(n, DS.test); }
-      hist.push({ t: tTrain, nn: curErr, b1: base.b1, b2: base.b2, b3: base.b3 }); }
+      hist.push({ t: tTrain, nn: curErr, b1: base.b1, b2: base.b2, b3: base.b3, b4: base.b4 }); }
   }
   if (now - lastFocus > 1500) { lastFocus = now; focusIdx = DS.test[Math.floor(Math.random() * DS.test.length)]; }
   if (now - (frame.drawn || 0) > 110) { frame.drawn = now; drawAll(); updateText(); }
