@@ -119,7 +119,7 @@ a{color:var(--route)}
     <h1 style="margin-top:14px">Cómo sabe Bide+ <em>cuándo llega</em> tu bus</h1>
     <p class="lede">El feed de Bizkaibus no publica retrasos y los horarios por parada del GTFS son interpolados. Aun así, con el GPS la app acierta el 94 % de las llegadas próximas dentro de ±2 min, frente al 19 % del horario solo, y sin GPS o incluso sin ningún dato del bus sigue por encima del horario. Esta es la idea, paso a paso y con un modelo que puedes tocar, cómo aprende con los datos sin acercarse a ningún límite, y al final todas las fórmulas, constantes y cómo se validó.</p>
     <nav class="toc" aria-label="Contenido">
-      <a href="#capas">5 · Tres capas</a><a href="#aprende">7 · Cómo aprende</a><a href="#resultados">8 · Precisión medida</a><a href="#formulas">9 · Fórmulas</a><a href="#calibracion">10 · Medida y calibración</a><a href="#bancos">11 · Bancos de pruebas</a><a href="#como-se-hizo">12 · Cómo se hizo</a>
+      <a href="#capas">5 · Tres capas</a><a href="#aprende">7 · Cómo aprende</a><a href="#resultados">8 · Precisión medida</a><a href="#formulas">9 · Fórmulas</a><a href="#calibracion">10 · Medida y calibración</a><a href="#bancos">11 · Bancos de pruebas</a><a href="#como-se-hizo">12 · Cómo se hizo</a><a href="#novedades">13 · Novedades</a>
     </nav>
   </header>
 
@@ -596,6 +596,45 @@ a{color:var(--route)}
       </div>
       <h3>Sobre esta página</h3>
       <p class="col">Está hecha a partir del código fuente, no de una descripción: <code>RealtimeMatcher.php</code>, <code>PaceFactors.php</code>, <code>SegmentTimes.php</code>, <code>SiriVehicleMonitoringClient.php</code>, <code>scripts/realtime-backtest.php</code> y <code>scripts/eval-eta.php</code>. El simulador del punto 3 implementa en JavaScript las fórmulas 9.4 y 9.5 con datos de ejemplo. Los valores de <span class="mono">k</span> son los de <code>data/pace-factors.json</code> a 14 oct 2026. Las cifras de precisión salen de 15 capturas de 14 minutos del feed real; es una muestra pequeña y se actualizará con cada captura (el resumen del trabajo de GitHub Actions las deja escritas). Las cifras de límites de GitHub y Vercel son de memoria.</p>
+    </div>
+  </section>
+
+  <section id="novedades">
+    <div class="rail"><div class="stop">13</div></div>
+    <div class="body">
+      <div class="eyebrow">Novedades · mejoras que se van incorporando</div>
+      <h2>Qué se ha añadido, y qué viene</h2>
+      <p class="col">Esta sección se amplía con cada mejora. La regla no cambia: una idea solo entra si la medida mejora contra los pasos reales por parada; si no se puede medir, se queda anotada como pendiente y no se activa.</p>
+
+      <h3>Ya incorporadas</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Mejora</th><th>Qué hace</th><th>Medido</th></tr></thead>
+        <tbody>
+          <tr><td><b>Proporción por largo de tramo</b></td><td>Un tramo sin tiempo aprendido ya no se estima con un <span class="mono">k</span> único. El horario del GTFS va interpolado a velocidad constante: en ciudad el bus tarda lo que dice o más (proporción real/horario 1,0-1,1) y en autopista la mitad (0,5). Se guarda la mediana real/horario por cubo de largo (&lt;300, 300-600, 600-1 000, 1 000-1 500, 1 500-3 000, ≥3 000 m) y franja, calculada con las muestras de tramo individuales y validada por mitades de buses.</td><td>Error medio por tramo 0,88 → 0,69 min. Con un tramo sin aprender, 69 % → 76 % dentro de ±2 min; con dos o más, 49 % → 59 %; a 10-20 min con algún tramo sin aprender, 23 % → 61 % (77 llegadas, muestra pequeña). Capa 3 (sin datos del bus): 36-39 % → 39-45 %.</td></tr>
+          <tr><td><b>Medir capturas de cualquier día</b></td><td><code>eval-eta.php</code> asumía que las capturas eran de hoy y daba cifras absurdas con las de ayer. Ahora usa la fecha de la propia captura, y además separa la precisión según cuántos tramos del camino faltan por aprender.</td><td>Herramienta de medida: reproduce las cifras anteriores antes del cambio y las nuevas después.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Probadas, pero todavía no medibles</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Idea</th><th>Por qué no se activa</th><th>Qué hace falta</th></tr></thead>
+        <tbody>
+          <tr><td>Franja horaria de cada tramo calculada a la hora en que el bus llegará a él (no a la de ahora)</td><td>Se implementó y no cambió ni una predicción en las capturas: las franjas aprendidas solo tienen datos de mediodía, así que todas valen lo mismo.</td><td>Tiempos por tramo aprendidos en varias franjas (lo irán dando las capturas horarias).</td></tr>
+          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>Hoy un festivo entre semana cuenta como laborable. El GTFS solo trae días añadidos y un único festivo (12 oct), sin capturas, y no basta para deducir la regla con fiabilidad.</td><td>Capturas en días festivos entre semana, y una lista de festivos o una regla verificada.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Siguientes, por orden</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Idea</th><th>Qué esperamos</th><th>Antes de hacerlo</th></tr></thead>
+        <tbody>
+          <tr><td>Captura cada 15-20 s con <span class="mono">If-None-Match</span> (<span class="mono">ETag</span>)</td><td>Hoy se muestrea cada 45 s y el paso real se conoce con ±30 s. Descargar el feed justo cuando cambia reduce ese ruido, y el ruido de la medida es el que limita el techo.</td><td>Comprobar que el almacenamiento del feed devuelve <span class="mono">ETag</span> y <span class="mono">304</span> (sin verificar).</td></tr>
+          <tr><td>Captura más larga por hora (de 45 a unos 50 min)</td><td>Cerrar parte del hueco de 15 min por hora en que no se mide.</td><td>Ver en GitHub Actions cuánto dura de verdad el trabajo entero (la captura horaria aún no se ha ejecutado): con <span class="mono">concurrency</span>, uno que se solape con el siguiente se pierde.</td></tr>
+          <tr><td>Tope de muestras por (tramo, tipo de día, franja) en vez de 300 por tramo</td><td>En un tramo muy transitado las 300 más recientes son casi todas de hora punta entre semana y borran noches y fines de semana.</td><td>Semanas de captura acumuladas para poder medir si ayuda.</td></tr>
+          <tr><td>Instante exacto del cambio de próxima parada, en la capa 2</td><td>Sustituiría la hipótesis «el bus está a mitad de tramo» por el tiempo real transcurrido.</td><td>Necesita recordar el estado entre peticiones y Vercel no lo guarda; el feed va a saltos de 1 min. Primero medirlo sin tocar la arquitectura, con las capturas consecutivas.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="note col"><b>Qué no se repite.</b> El reparto 0,5 del tramo en la parada registrada ya se midió con valores de 0,35 a 0,65 y el mejor es 0,5; no se vuelve a probar.</div>
     </div>
   </section>
 
