@@ -416,7 +416,7 @@ if ($breadcrumbName !== null) {
             <div class="main">
                 <article id="live-card" class="live-card glass" hidden>
                     <header>
-                        <span id="live-badge" class="badge">Programado</span>
+                        <span id="live-badge" class="badge">Solo horario</span>
                         <span class="header-actions">
                             <button id="live-favorite" class="btn-icon" type="button" aria-label="Guardar parada en favoritos"></button>
                             <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar">
