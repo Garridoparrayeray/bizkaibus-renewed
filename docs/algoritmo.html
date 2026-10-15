@@ -326,8 +326,9 @@ a{color:var(--route)}
           <tr><td>Parada registrada hasta tramos de 20 min (antes 6)</td><td>Sin GPS: 79,8 % → 83,0 % dentro de ±2 min; con GPS no cambia</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Horario corregido con los tiempos aprendidos (capa 3)</td><td>Sin ningún dato del bus: 18 % → 36 % dentro de ±2 min; error mediano de 7 a 3-4 min; con GPS, 83,5 % → 85,5 %</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Tramos sin aprender: proporción por largo de tramo en vez de k × horario</td><td>Error medio por tramo 0,88 → 0,69 min (validación por mitades de buses, 12 755 tramos). Con capturas de otro día y otra franja: un tramo sin aprender 69 % → 76 % y dos o más 49 % → 59 % dentro de ±2 min; capa 3 36-39 % → 39-45 %</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
-          <tr><td>Franja horaria de cada tramo calculada a la hora a la que el bus llegará a él</td><td>Ninguna diferencia en las capturas: las franjas aprendidas solo tienen datos de mediodía</td><td class="n" style="color:var(--muted)">sin medir</td></tr>
-          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>El GTFS solo trae días añadidos y un único festivo (12 oct), sin capturas</td><td class="n" style="color:var(--muted)">sin medir</td></tr>
+          <tr><td>Franja horaria de cada tramo calculada a la hora a la que el bus llegará a él</td><td>Con 10 días de muestras, encadenando tramos reales y entrenando con otros días: 71,5 % → 71,6 % dentro de ±2 min a 12-20 min; en los que cruzan de franja, 74,8 % → 76,4 % a 12-20 min pero algo peor a 4-12 min</td><td class="n" style="color:var(--warn)">descartada</td></tr>
+          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>El lunes festivo 12 oct se parece más a un laborable: error medio 20,6 s con tiempos de laborable frente a 24,2 s con los de fin de semana (387 tramos)</td><td class="n" style="color:var(--warn)">descartada</td></tr>
+          <tr><td>Mínimo de 1 bus por tramo</td><td>Por tramo una sola medida supera al estimador por largo (24,1 s frente a 40,1 s de error), pero de punta a punta solo 72 → 74 % a 10-20 min y nada en el resto</td><td class="n" style="color:var(--warn)">no adoptada</td></tr>
           <tr><td>Más datos: capturas cada hora, 120 días, 300 muestras por tramo</td><td>Mayor cobertura de tramos, y con ella la precisión (93 % con todos los tramos aprendidos)</td><td class="n" style="color:var(--ok)">adoptada</td></tr>
           <tr><td>Mezclar lo aprendido con el horario si hay pocas muestras</td><td>83,5 % → 83,2 % (peso 1) y hasta 80,0 % (peso 8)</td><td class="n" style="color:var(--warn)">descartada</td></tr>
           <tr><td>Corregir con la velocidad del último minuto del bus</td><td>92,5 % → 91,9 %, y hasta 78,3 % con más peso</td><td class="n" style="color:var(--warn)">descartada</td></tr>
@@ -603,7 +604,7 @@ a{color:var(--route)}
     <div class="rail"><div class="stop">13</div></div>
     <div class="body">
       <div class="eyebrow">Novedades · mejoras que se van incorporando</div>
-      <h2>Qué se ha añadido, y qué viene</h2>
+      <h2>Qué se ha añadido, qué se ha descartado y qué queda</h2>
       <p class="col">Esta sección se amplía con cada mejora. La regla no cambia: una idea solo entra si la medida mejora contra los pasos reales por parada; si no se puede medir, se queda anotada como pendiente y no se activa.</p>
 
       <h3>Ya incorporadas</h3>
@@ -615,26 +616,28 @@ a{color:var(--route)}
         </tbody>
       </table></div>
 
-      <h3>Probadas, pero todavía no medibles</h3>
+      <h3>Probadas con datos de varios días, y descartadas</h3>
       <div class="scroll"><table>
-        <thead><tr><th>Idea</th><th>Por qué no se activa</th><th>Qué hace falta</th></tr></thead>
+        <thead><tr><th>Idea</th><th>Resultado medido</th><th>Decisión</th></tr></thead>
         <tbody>
-          <tr><td>Franja horaria de cada tramo calculada a la hora en que el bus llegará a él (no a la de ahora)</td><td>Se implementó y no cambió ni una predicción en las capturas: las franjas aprendidas solo tienen datos de mediodía, así que todas valen lo mismo.</td><td>Tiempos por tramo aprendidos en varias franjas (lo irán dando las capturas horarias).</td></tr>
-          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>Hoy un festivo entre semana cuenta como laborable. El GTFS solo trae días añadidos y un único festivo (12 oct), sin capturas, y no basta para deducir la regla con fiabilidad.</td><td>Capturas en días festivos entre semana, y una lista de festivos o una regla verificada.</td></tr>
+          <tr><td>Franja horaria de cada tramo a la hora en que el bus llegará a él (no a la de ahora)</td><td>Con las muestras acumuladas (10 días, 54 383 tramos), encadenando tramos reales de cada bus y entrenando con otros días: sin diferencia en conjunto (71,5 % → 71,6 % dentro de ±2 min a 12-20 min). En los que cruzan de franja, 74,8 % → 76,4 % a 12-20 min, pero algo peor a 4-12 min. Los tiempos sí cambian entre franjas (8-13 % de media; la noche es un 12 % más rápida que la punta de la tarde), pero solo el 3-9 % de los recorridos de 4 a 20 min cruza de franja (1 629 de 48 238 a 4-8 min; 3 076 de 33 509 a 12-20 min).</td><td class="n" style="color:var(--warn)">descartada</td></tr>
+          <tr><td>Tipo de día por calendario GTFS (festivos entre semana)</td><td>El lunes festivo 12 oct (387 tramos comparables) se parece más a un laborable: error medio 20,6 s con tiempos de laborable frente a 24,2 s con los de fin de semana. Tratarlo como fin de semana empeoraría.</td><td class="n" style="color:var(--warn)">descartada</td></tr>
+          <tr><td>Mínimo de 1 bus por tramo, con el estimador por largo detrás</td><td>Por tramo y entre días, una sola medida (24,1 s de error) supera al estimador por largo (40,1 s; 1 536 tramos). De punta a punta, entrenando sin el 14 y 15 oct y probando con capturas del 14: 72 → 74 % a 10-20 min con GPS y nada en el resto. Encoger la medida hacia el estimador con peso 0,5 iguala a la medida sola; con peso 1 o 2 empeora.</td><td class="n" style="color:var(--warn)">no adoptada</td></tr>
+          <tr><td>Curva no lineal dentro del tramo (exponente sobre la fracción que queda)</td><td>En 527 predicciones de la próxima parada en tramos de 1 km o más, pasada la mitad el modelo se adelanta 6-27 s de mediana. Con exponente 0,9 el error baja un 1,3 %. El error grande está al principio del tramo (223 s con menos del 25 % recorrido), que es variabilidad y no sesgo.</td><td class="n" style="color:var(--warn)">descartada</td></tr>
+          <tr><td>Instante exacto del cambio de próxima parada, en la capa 2</td><td>Con las 5 086 llegadas en que se vio el cambio: 91 % → 91 % dentro de ±2 min (80 % frente a 76 % en tramos de más de 6 min, 197 llegadas). Exigiría guardar estado entre peticiones.</td><td class="n" style="color:var(--warn)">descartada</td></tr>
         </tbody>
       </table></div>
 
-      <h3>Siguientes, por orden</h3>
+      <h3>Sobre la captura de datos</h3>
       <div class="scroll"><table>
-        <thead><tr><th>Idea</th><th>Qué esperamos</th><th>Antes de hacerlo</th></tr></thead>
+        <thead><tr><th>Asunto</th><th>Lo medido</th><th>Decisión</th></tr></thead>
         <tbody>
-          <tr><td>Captura cada 15-20 s con <span class="mono">If-None-Match</span> (<span class="mono">ETag</span>)</td><td>Hoy se muestrea cada 45 s y el paso real se conoce con ±30 s. Descargar el feed justo cuando cambia reduce ese ruido, y el ruido de la medida es el que limita el techo.</td><td>Comprobar que el almacenamiento del feed devuelve <span class="mono">ETag</span> y <span class="mono">304</span> (sin verificar).</td></tr>
-          <tr><td>Captura más larga por hora (de 45 a unos 50 min)</td><td>Cerrar parte del hueco de 15 min por hora en que no se mide.</td><td>Ver en GitHub Actions cuánto dura de verdad el trabajo entero (la captura horaria aún no se ha ejecutado): con <span class="mono">concurrency</span>, uno que se solape con el siguiente se pierde.</td></tr>
-          <tr><td>Tope de muestras por (tramo, tipo de día, franja) en vez de 300 por tramo</td><td>En un tramo muy transitado las 300 más recientes son casi todas de hora punta entre semana y borran noches y fines de semana.</td><td>Semanas de captura acumuladas para poder medir si ayuda.</td></tr>
-          <tr><td>Instante exacto del cambio de próxima parada, en la capa 2</td><td>Sustituiría la hipótesis «el bus está a mitad de tramo» por el tiempo real transcurrido.</td><td>Necesita recordar el estado entre peticiones y Vercel no lo guarda; el feed va a saltos de 1 min. Primero medirlo sin tocar la arquitectura, con las capturas consecutivas.</td></tr>
+          <tr><td>Captura cada 15-20 s con <span class="mono">If-None-Match</span> (<span class="mono">ETag</span>)</td><td>El servidor del feed admite <span class="mono">ETag</span>, <span class="mono">Last-Modified</span> y <span class="mono">304</span>, pero publica una única versión por minuto (cada minuto en el segundo :17; la marca <span class="mono">RecordedAtTime</span> va unos 40 s por detrás) y la hora real de paso se saca de esas marcas del feed, no del momento de la descarga. Los ±30 s son la resolución del propio feed: muestrear más rápido no los reduce.</td><td class="n" style="color:var(--warn)">descartada para la precisión</td></tr>
+          <tr><td>La captura horaria</td><td>Sí funciona: 47 min por ejecución, con todos los pasos correctos, y ya hay 75 529 muestras de ritmo y 54 383 de tramos (5 723 buses, 6 de octubre al 15). Pero tras activar el cron horario corrieron 3 ejecuciones en las 12 horas siguientes, no 12: GitHub retrasa o pierde trabajos programados a la hora en punto cuando hay carga (de su documentación, sin verificar).</td><td class="n" style="color:var(--ok)">cron pasado al minuto 17; se comprobará contando ejecuciones</td></tr>
+          <tr><td>Tope de muestras por (tramo, tipo de día, franja) en vez de 300 por tramo</td><td>En un tramo muy transitado las 300 más recientes son casi todas de hora punta entre semana y borran noches y fines de semana.</td><td class="n" style="color:var(--muted)">pendiente de medir con más semanas</td></tr>
         </tbody>
       </table></div>
-      <div class="note col"><b>Qué no se repite.</b> El reparto 0,5 del tramo en la parada registrada ya se midió con valores de 0,35 a 0,65 y el mejor es 0,5; no se vuelve a probar.</div>
+      <div class="note col"><b>Qué no se repite.</b> El reparto 0,5 del tramo en la parada registrada ya se midió con valores de 0,35 a 0,65 y el mejor es 0,5. El GPS del feed no se queda congelado en la parada: cuando el bus avanza de parada, la coordenada se mueve en el 99,8 % de los casos (2 de 1 082).</div>
     </div>
   </section>
 
