@@ -55,23 +55,11 @@ if ($sAction === 'coverage') {
             file_put_contents($sCache, $sXml);
         }
         $sDate = date('Y-m-d'); $aVm = Services\SiriVehicleMonitoringClient::parse(file_get_contents($sCache), $sDate);
-        $iT = 0; foreach ($aVm as $aEs) foreach ($aEs as $e) if (isset($e['locationSeconds'])) $iT = max($iT, $e['locationSeconds']);
+        $iT = Services\CoverageProbe::latestSeconds($aVm);
         if (!$iT) fail('El feed no trae posiciones ahora mismo.', 502);
-        $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo); $M = new Services\RealtimeMatcher($aVm, $JM, $iT, null, $sDate);
-        $aLive = []; foreach ($aVm as $aEs) foreach ($aEs as $e) { $j = $M->journeyIdFor($e); if ($j) $aLive[$j] = $e['lat'] !== null ? 'gps' : 'otro'; }
-        $aLines = []; $D = new DateTime($sDate); $iTot = 0; $iCon = 0; $iGps = 0; $iOtra = 0;
-        foreach ($Pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll() as $l) {
-            $aRows = array_values(array_filter($JM->timetableForLine($l['id'], $D, $iT - 10800, $iT - 180), function ($r) use ($JM, $iT) {
-                $aSt = $JM->stopsWithCoordinates($r['service_journey_id']); return $aSt && (int)end($aSt)['arrival_seconds'] > $iT + 120; }));
-            if (!$aRows) continue;
-            $n = count($aRows); $c = 0; $g = 0; $x = 0;
-            foreach ($aRows as $r) {
-                if (isset($aLive[$r['service_journey_id']])) { $c++; if ($aLive[$r['service_journey_id']] === 'gps') $g++; }
-                elseif (isset($aVm[$r['line_id'] . '|' . $r['trip_number']])) $x++; // el feed trae ese número de viaje pero con otra hora de salida
-            }
-            $aLines[] = ['codigo' => $l['code'], 'nombre' => $l['name'], 'esperados' => $n, 'conDato' => $c, 'gps' => $g, 'otraSalida' => $x];
-            $iTot += $n; $iCon += $c; $iGps += $g; $iOtra += $x;
-        }
+        $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo);
+        $aLines = Services\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT);
+        $iTot = array_sum(array_column($aLines, 'esperados')); $iCon = array_sum(array_column($aLines, 'conDato')); $iGps = array_sum(array_column($aLines, 'gps')); $iOtra = array_sum(array_column($aLines, 'otraSalida'));
         $aNow = ['t' => $iT, 'fecha' => $sDate, 'esperados' => $iTot, 'conDato' => $iCon, 'gps' => $iGps, 'otraSalida' => $iOtra];
         $sLastCov = __DIR__ . '/data/.last-cov-t';
         if (($_GET['log'] ?? '1') !== '0' && (is_file($sLastCov) ? (int)file_get_contents($sLastCov) : 0) !== $iT) {
