@@ -174,6 +174,8 @@ Para ver desde el despliegue si la fuente responde: `/api/status` devuelve si el
 
 ### Cómo aprende, y cómo se mantiene dentro de los límites
 
+Hay una página interactiva con las medidas reales (curva de aprendizaje por días, un tramo bus a bus, proporción según el largo del tramo y franjas): `docs/aprendizaje.html`. Sus datos se regeneran con `python3 scripts/learning-viz-data.py <segment-samples.jsonl> --page ../docs/aprendizaje.html` a partir de las muestras de la release `pace-data`.
+
 El algoritmo no tiene reglas fijas para el ritmo de los buses: las aprende de los datos y solo adopta lo que mide mejor.
 
 **Qué aprende.**
