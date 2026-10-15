@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<script>if (!/\/$|\.html$/.test(location.pathname)) location.replace(location.pathname + "/" + location.search + location.hash);</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bide+ Laboratorio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="lab.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">Bide+</span><b>Laboratorio</b></div>
+  <nav id="tabs" aria-label="Secciones">
+    <a href="#resumen" data-tab="resumen">Resumen</a>
+    <a href="#lineas" data-tab="lineas">Líneas</a>
+    <a href="#buses" data-tab="buses">Buses</a>
+    <a href="#vivo" data-tab="vivo">En vivo</a>
+    <a href="#dias" data-tab="dias">Aprendizaje por días</a>
+    <a href="#red" data-tab="red">Red neuronal</a>
+  </nav>
+  <button id="theme" type="button" aria-label="Cambiar entre claro y oscuro">◐</button>
+</header>
+<main id="view" tabindex="-1"></main>
+<div class="tip" id="tip" role="status"></div>
+<noscript>Este laboratorio necesita JavaScript.</noscript>
+<script src="data/lab-data.js"></script>
+<script src="live.js"></script>
+<script src="lab.js"></script>
+</body>
+</html>
