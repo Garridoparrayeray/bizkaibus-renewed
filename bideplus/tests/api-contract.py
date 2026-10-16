@@ -209,8 +209,11 @@ for name, (q, s, (lat, lon)) in NETS.items():
                 beyond_published = True
             for entry in (tt.get('entries') or [])[:1]:
                 trip = enc(entry['tripKey'])
-                get(net(f'/api/trips/{trip}?stopId={sid}', s), 'trip', name)
-                get(net(f'/api/vehicles/{trip}', s), 'vehicle', name)
+                for path_, schema_ in ((f'/api/trips/{trip}?stopId={sid}', 'trip'), (f'/api/vehicles/{trip}', 'vehicle')):
+                    d_ = get(net(path_, s), schema_, name)
+                    # Sin datos en vivo no se afirma que el bus ya salió (solo «scheduled», o «finished» si el viaje terminó).
+                    if d_ and d_.get('status') == 'departed':
+                        fails.append(f"{name} {path_}: el viaje dice 'departed' pero la ficha del viaje no puede afirmar que el bus salió")
     if entries_seen == 0 and not beyond_published:
         fails.append(f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)')
     if departures_seen == 0 and not quiet_hours:
