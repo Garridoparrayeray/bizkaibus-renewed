@@ -67,6 +67,7 @@ define('GEOCODE_PAUSE_MICROSECONDS', (int)(getenv('GEOCODE_PAUSE_US') !== false 
 
 function main(array $aArgv): void
 {
+    $GLOBALS['BUILD_ARGV'] = $aArgv;
     $aOptions = parseArgs($aArgv);
     $sNetwork = 'bus';
     if (isset($aOptions['network'])) {
@@ -1081,7 +1082,12 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
                 }
                 $aRunsOn += $aExactByService[$sServiceId];
             }
-            [$iExactMask, $aExactIncluded, $aExactExcluded] = exactCalendarForWindow($aRunsOn, $aWindow);
+            if (getenv('BIDEPLUS_CALENDAR_MODE') === 'literal') {
+                // Modo de emergencia: sin patrón semanal, solo las fechas exactas en las que circula. No puede quedar mal.
+                [$iExactMask, $aExactIncluded, $aExactExcluded] = [0, array_keys($aRunsOn), []];
+            } else {
+                [$iExactMask, $aExactIncluded, $aExactExcluded] = exactCalendarForWindow($aRunsOn, $aWindow);
+            }
             $aGroups[$sClusterKey]['weekdayMask'] = $iExactMask;
             $aGroups[$sClusterKey]['includedDates'] = array_fill_keys($aExactIncluded, true);
             $aGroups[$sClusterKey]['excludedDates'] = array_fill_keys($aExactExcluded, true);
@@ -1265,6 +1271,14 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             fwrite(STDERR, "  AVISO calendario: $sExample\n");
         }
         if ($aAudit['differences'] > 0) {
+            if (getenv('BIDEPLUS_CALENDAR_MODE') !== 'literal' && isset($GLOBALS['BUILD_ARGV'])) {
+                // El calendario compacto no cuadra con el GTFS: se vuelve a construir con las fechas exactas, que no pueden fallar.
+                fwrite(STDERR, "AVISO: {$aAudit['differences']} viajes con calendario distinto al del GTFS. Se reconstruye con fechas exactas (modo literal).\n");
+                putenv('BIDEPLUS_CALENDAR_MODE=literal');
+                $sCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' ' . implode(' ', array_map('escapeshellarg', $GLOBALS['BUILD_ARGV']));
+                passthru($sCommand, $iExitCode);
+                exit($iExitCode);
+            }
             // Un viaje que se muestra un día que no circula es el fallo que esta comprobación existe para evitar: se aborta
             // para que el despliegue automático no publique esa base y producción siga con la última buena.
             fwrite(STDERR, "ERROR: {$aAudit['differences']} viajes con calendario distinto al del GTFS. Build abortado.\n");
