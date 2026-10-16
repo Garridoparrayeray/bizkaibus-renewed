@@ -24,6 +24,22 @@ class RealtimeController
      * Diagnóstico de la fuente de los buses en directo: pide a Open Data Euskadi desde el servidor (como lo hace la app)
      * y cuenta qué trae. Sirve para ver si el feed responde desde el despliegue y si trae GPS, hora del dato y retraso.
      */
+    /*
+     * Estado de un viaje en su ficha. Con datos en vivo es «live». Sin ellos solo se sabe lo que dice el horario: no se
+     * afirma que el bus ya salió (la hora pasada no prueba que haya salido), solo que el viaje terminó si ya pasó su
+     * última parada. Si no, se queda en «scheduled» y la app lo muestra como «Solo horario».
+     */
+    public static function tripStatus(bool $bLive, array $aStops, int $iNowSeconds): string
+    {
+        if ($bLive) {
+            return 'live';
+        }
+        if (!empty($aStops) && $iNowSeconds > (int)$aStops[count($aStops) - 1]['arrival_seconds']) {
+            return 'finished';
+        }
+        return 'scheduled';
+    }
+
     public function status(Request $Req, array $aParams): void
     {
         $aConfig = Config::current();
@@ -221,18 +237,7 @@ class RealtimeController
             $iDelaySeconds = $Matcher->currentDelaySeconds($aJourney['id'], $aLive);
         }
 
-        $sStatus = 'scheduled';
-        if ($bLive) {
-            $sStatus = 'live';
-        } elseif (!empty($aStops)) {
-            $iFirstArrival = (int)$aStops[0]['arrival_seconds'];
-            $iLastArrival = (int)$aStops[count($aStops) - 1]['arrival_seconds'];
-            if ($iNow > $iLastArrival) {
-                $sStatus = 'finished';
-            } elseif ($iNow >= $iFirstArrival) {
-                $sStatus = 'departed';
-            }
-        }
+        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
 
         $iDelayMinutes = $Matcher->displayDelayMinutes($iDelaySeconds);
 
@@ -356,16 +361,7 @@ class RealtimeController
             ];
         }
 
-        $sStatus = 'scheduled';
-        if ($bLive) {
-            $sStatus = 'live';
-        } elseif (!empty($aStops)) {
-            if ($iNow > (int)$aStops[count($aStops) - 1]['arrival_seconds']) {
-                $sStatus = 'finished';
-            } elseif ($iNow >= (int)$aStops[0]['arrival_seconds']) {
-                $sStatus = 'departed';
-            }
-        }
+        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
 
         $iDelayMinutes = 0;
         if (abs($iDelaySeconds) >= 60) {
