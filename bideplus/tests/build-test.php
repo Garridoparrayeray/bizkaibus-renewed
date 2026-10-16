@@ -62,7 +62,49 @@ unlink($sZipPath);
 $expect('Metro: un calendario solo por fechas no recibe días de la semana', $aLiteral['sustituto']['weekdayMask'] === 0);
 $expect('Metro: sus fechas quedan tal cual (8, 13 y 15 de octubre)', $aLiteral['sustituto']['includedDates'] === ['2026-10-08', '2026-10-13', '2026-10-15']);
 $expect('Metro: el calendario Lun-Jue conserva su máscara y sus días anulados', $aLiteral['base']['weekdayMask'] === 15 && $aLiteral['base']['excludedDates'] === ['2026-10-08', '2026-10-13', '2026-10-15']);
-$expect('otras redes: se mantiene la deducción semanal (dos jueves = todos los jueves)', $aInferred['sustituto']['weekdayMask'] === 8);
+$expect('loadCalendars sin modo literal sigue deduciendo el patrón semanal (lo usan otras redes; en Bizkaibus los viajes usan el calendario exacto)', $aInferred['sustituto']['weekdayMask'] === 8);
+
+/*
+ * Bizkaibus: el calendario de cada viaje es exacto dentro del periodo publicado. Antes, dos fechas de un mismo día de la
+ * semana bastaban para deducir «todos esos días» de todo el periodo, y el viaje se mostraba también en festivos y en
+ * semanas en las que no circula.
+ */
+$aWindow = datesBetween('2026-10-14', '2026-12-14');
+$expect('datesBetween: 62 fechas del 14 oct al 14 dic, ambas incluidas', count($aWindow) === 62 && $aWindow[0] === '2026-10-14' && $aWindow[61] === '2026-12-14');
+$fRuns = fn(array $aDates) => exactServiceDates(['mask' => 0, 'from' => '', 'to' => '', 'available' => $aDates, 'excluded' => []], $aWindow);
+
+// Lunes a jueves todo el periodo salvo el festivo del martes 8 de diciembre (no figura en calendar_dates).
+$aMonThu = [];
+foreach ($aWindow as $sDate) {
+    if ((int)(new DateTime($sDate))->format('N') <= 4 && $sDate !== '2026-12-08') {
+        $aMonThu[] = $sDate;
+    }
+}
+[$iMask, $aInc, $aExc] = exactCalendarForWindow($fRuns($aMonThu), $aWindow);
+$expect('lunes a jueves con el 8 de diciembre sin servicio: máscara L-J y ese festivo excluido', $iMask === 15 && $aInc === [] && $aExc === ['2026-12-08']);
+
+// Solo dos viernes de nueve: no se deduce «todos los viernes».
+[$iMask, $aInc, $aExc] = exactCalendarForWindow($fRuns(['2026-10-16', '2026-10-23']), $aWindow);
+$expect('solo dos viernes de nueve: sin máscara semanal, solo esas dos fechas', $iMask === 0 && $aInc === ['2026-10-16', '2026-10-23'] && $aExc === []);
+
+// Todos los viernes del periodo: patrón semanal puro, sin fechas sueltas.
+$aFridays = array_values(array_filter($aWindow, fn($d) => (int)(new DateTime($d))->format('N') === 5));
+[$iMask, $aInc, $aExc] = exactCalendarForWindow($fRuns($aFridays), $aWindow);
+$expect('todos los viernes del periodo: máscara de viernes y ninguna fecha suelta', $iMask === 16 && $aInc === [] && $aExc === []);
+
+// Un servicio que empieza a mitad de periodo no se rellena hacia atrás.
+$aFromLater = array_values(array_filter($aMonThu, fn($d) => $d >= '2026-10-19'));
+[$iMask, $aInc, $aExc] = exactCalendarForWindow($fRuns($aFromLater), $aWindow);
+$expect('servicio que empieza el lunes 19: el 14 y el 15 de octubre quedan excluidos', $iMask === 15 && in_array('2026-10-14', $aExc, true) && in_array('2026-10-15', $aExc, true));
+
+// El calendario de calendar.txt cuenta dentro de su rango y las anulaciones lo recortan.
+$aBase = exactServiceDates(['mask' => 1, 'from' => '2026-10-19', 'to' => '2026-11-02', 'available' => [], 'excluded' => ['2026-10-26']], $aWindow);
+$expect('calendar.txt: los lunes de su rango menos el anulado (19 oct y 2 nov)', array_keys($aBase) === ['2026-10-19', '2026-11-02']);
+
+// Variantes fusionadas (lunes a jueves + viernes): se unen sin perder el festivo.
+$aUnion = $fRuns($aMonThu) + $fRuns($aFridays);
+[$iMask, $aInc, $aExc] = exactCalendarForWindow($aUnion, $aWindow);
+$expect('variantes L-J y V fusionadas: lunes a viernes menos el 8 de diciembre', $iMask === 31 && $aExc === ['2026-12-08'] && $aInc === []);
 
 echo "\nRESULTADO construcción: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
 exit(empty($failures) ? 0 : 1);

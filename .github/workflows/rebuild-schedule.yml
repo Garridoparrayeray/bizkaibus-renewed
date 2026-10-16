@@ -30,7 +30,36 @@ jobs:
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
       - name: Rebuild BizkaiBus+ database
-        run: php bideplus/scripts/build-database.php --network=bus
+        run: |
+          set -o pipefail
+          php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
+
+      # Resumen visible en la ejecucion: que horario se ha publicado, hasta cuando vale y si los calendarios cuadran con
+      # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
+      # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
+      - name: Summarize the published schedule
+        run: |
+          python3 - <<'PY'
+          import os, re, sqlite3, datetime
+          c = sqlite3.connect('bideplus/data/bizkaibus.sqlite')
+          meta = dict(c.execute('select key, value from meta'))
+          start, end, published = meta.get('feed_start_date', '?'), meta.get('feed_end_date', '?'), meta.get('schedule_source_published', '?')
+          journeys = c.execute('select count(*) from service_journeys').fetchone()[0]
+          audit = ''
+          log = open(os.path.join(os.environ['RUNNER_TEMP'], 'bus-build.log'), encoding='utf-8', errors='replace').read()
+          m = re.search(r'Auditoría de calendarios[^\n]*', log)
+          if m: audit = m.group(0).strip()
+          left = None
+          try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
+          except ValueError: pass
+          lines = ['### Horario de Bizkaibus publicado',
+                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + (f' (quedan {left} días)' if left is not None else ''),
+                   f'- {journeys:,} viajes en la base'.replace(',', '.'),
+                   f'- {audit}' if audit else '- Sin línea de auditoría de calendarios (revisar el log del build)']
+          open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
+          if left is not None and left <= 10:
+              print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
+          PY
 
       - name: Rebuild Metro+ database
         run: php bideplus/scripts/build-database.php --network=metro
