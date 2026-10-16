@@ -378,6 +378,30 @@ class RealtimeMatcher
         return (int)round($iDelaySeconds / 60);
     }
 
+    /*
+     * Retraso que se enseña para el bus (cabecera de la ficha del viaje, listado de la línea): el de su próxima parada, es
+     * decir, llegada estimada menos hora publicada, que es el mismo cálculo de la lista de paradas y de la tarjeta.
+     * currentDelaySeconds() mide otra cosa con GPS: la hora real menos la hora que el horario da para el punto exacto
+     * donde está el bus, repartiendo el tiempo de un tramo a ritmo constante. Con los tiempos aprendidos, un tramo que el
+     * horario da muy holgado (autopista) se hace mucho más rápido y ambas cifras se contradicen: el bus «va 2 min tarde»
+     * en su posición pero llega 10 min antes a la parada. Sin GPS ya son lo mismo (la parada registrada).
+     */
+    public function displayDelaySeconds(string|null $sServiceJourneyId, array|null $aLive): int
+    {
+        $iPositionDelay = $this->currentDelaySeconds($sServiceJourneyId, $aLive);
+        if ($aLive === null || $sServiceJourneyId === null || $this->JourneyModel === null || !isset($aLive['order'])) {
+            return $iPositionDelay;
+        }
+        if ($this->positionFor($sServiceJourneyId, $aLive) === null) {
+            return $iPositionDelay;
+        }
+        $iNextArrival = $this->JourneyModel->arrivalSecondsAtOrder($sServiceJourneyId, (int)$aLive['order']);
+        if ($iNextArrival === null) {
+            return $iPositionDelay;
+        }
+        return $this->etaForStop($sServiceJourneyId, $iNextArrival, $aLive, (int)$aLive['order'])[1];
+    }
+
     public function currentDelaySeconds(string|null $sServiceJourneyId, array|null $aLive): int
     {
         if ($aLive === null) {
