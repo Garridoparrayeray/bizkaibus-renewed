@@ -128,7 +128,7 @@ class RealtimeController
                     $sHeadsign = $aJourney['headsign'];
                 }
 
-                $iDelaySeconds = $Matcher->currentDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
+                $iDelaySeconds = $Matcher->displayDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
 
                 $aVehicles[] = [
                     'vehicleRef' => $aEntry['vehicleRef'],
@@ -234,7 +234,7 @@ class RealtimeController
 
         $iDelaySeconds = 0;
         if ($bLive) {
-            $iDelaySeconds = $Matcher->currentDelaySeconds($aJourney['id'], $aLive);
+            $iDelaySeconds = $Matcher->displayDelaySeconds($aJourney['id'], $aLive);
         }
 
         $sStatus = self::tripStatus($bLive, $aStops, $iNow);
