@@ -672,5 +672,13 @@ $expect('TripKey rechaza claves mal formadas', TripKey::parse('sin-numero') === 
 $expect('lunes = bit 1 y domingo = bit 64', Calendar::weekdayBitFor(new DateTime('2026-09-28')) === 1 && Calendar::weekdayBitFor(new DateTime(DATE_WEEKEND)) === 64);
 $expect('secondsToHm pasa la medianoche (25:05 -> 01:05)', Calendar::secondsToHm(25 * 3600 + 5 * 60) === '01:05');
 
+// Ficha del viaje: sin datos en vivo no se afirma que el bus ya salió.
+$aTripStops = [['arrival_seconds' => 8 * 3600 + 10 * 60], ['arrival_seconds' => 8 * 3600 + 40 * 60]];
+$expect('ficha del viaje: con datos en vivo sale live', Controllers\RealtimeController::tripStatus(true, $aTripStops, 8 * 3600 + 20 * 60) === 'live');
+$expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya salió (scheduled)', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 10 * 60 + 30) === 'scheduled');
+$expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
+$expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
+$expect('ficha del viaje: sin paradas sale scheduled', Controllers\RealtimeController::tripStatus(false, [], 8 * 3600) === 'scheduled');
+
 echo "\nRESULTADO unitarias: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
 exit(empty($failures) ? 0 : 1);
