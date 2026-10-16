@@ -162,6 +162,11 @@ $M = matcher($aLive, $iGps + 30, null, 40.0, DATE_WEEKDAY, $Segments);
 [$iEta, $iDelay] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
 $expect('con tiempos por tramo: medio tramo de 60 s + 100 s + 180 s del horario (08:09:10)', $iEta === T0 + 550, hms($iEta));
 $expect('el retraso mostrado es la llegada estimada menos la hora publicada de esa parada (08:09:10 contra 08:12:00)', $iDelay === -170, (string)$iDelay);
+// Cabecera y lista dicen lo mismo: el retraso que se enseña es el de la próxima parada, no el de la posición.
+$expect('sin tiempos aprendidos el retraso enseñado coincide con el de la posición (−30 s)', matcher($aLive, $iGps + 30)->displayDelaySeconds('J_LINE', $aLive) === -30);
+[, $iDelayNext] = $M->etaForStop('J_LINE', T0 + 360, $aLive, 3);
+$expect('con tiempos aprendidos el retraso de la posición (−30 s) y el de la próxima parada (−90 s) son distintos', $M->currentDelaySeconds('J_LINE', $aLive) === -30 && $iDelayNext === -90, (string)$iDelayNext);
+$expect('el retraso enseñado es el de la próxima parada (−90 s), el mismo de la lista, no el de la posición', $M->displayDelaySeconds('J_LINE', $aLive) === -90, (string)$M->displayDelaySeconds('J_LINE', $aLive));
 [$iEta] = $M->etaForStop('J_LINE', T0 + 360, $aLive);
 $expect('con tiempos por tramo solo se suman los tramos hasta la parada pedida (08:04:30)', $iEta === T0 + 270, hms($iEta));
 
