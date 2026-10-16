@@ -164,7 +164,11 @@ function main(array $aArgv): void
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
     $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
-    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork);
+    $aWindow = [];
+    if ($sNetwork === 'bus' && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
+        $aWindow = datesBetween(gtfsDateToIso($aFeedInfo['feed_start_date']), gtfsDateToIso($aFeedInfo['feed_end_date']));
+    }
+    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork, $aWindow);
 
     $Pdo->commit();
 
@@ -678,9 +682,95 @@ function loadCalendars(ZipArchive $Zip, bool $bLiteralDates = false): array
             'activeDateCount' => count(array_filter($aDates)),
             'excludedDates' => $aExcludedDates,
             'includedDates' => $aIncludedDates,
+            // Lo que dice el GTFS tal cual, sin deducir patrones: para saber exactamente en qué fechas circula el servicio.
+            'exact' => [
+                'mask' => $iBaseMask,
+                'from' => $sFrom,
+                'to' => $sTo,
+                'available' => array_keys($aAvailableDates),
+                'excluded' => $aExcludedDates,
+            ],
         ];
     }
     return $aCalendars;
+}
+
+/*
+ * Fechas en las que un servicio circula de verdad según el GTFS, dentro del periodo publicado: las fechas añadidas
+ * (calendar_dates, tipo 1) más los días de calendar.txt dentro de su rango, menos las anuladas (tipo 2).
+ * $aWindow es la lista de fechas «Y-m-d» del periodo. Devuelve [fecha => true].
+ */
+function exactServiceDates(array $aExact, array $aWindow): array
+{
+    $aAvailable = array_flip($aExact['available']);
+    $aExcluded = array_flip($aExact['excluded']);
+    $aRuns = [];
+    foreach ($aWindow as $sDate) {
+        $bRuns = isset($aAvailable[$sDate]);
+        if (!$bRuns && $aExact['mask'] !== 0
+            && ($aExact['from'] === '' || $sDate >= $aExact['from'])
+            && ($aExact['to'] === '' || $sDate <= $aExact['to'])) {
+            $bRuns = ($aExact['mask'] & (1 << ((int)(new DateTime($sDate))->format('N') - 1))) !== 0;
+        }
+        if ($bRuns && !isset($aExcluded[$sDate])) {
+            $aRuns[$sDate] = true;
+        }
+    }
+    return $aRuns;
+}
+
+/*
+ * Calendario exacto dentro del periodo publicado para un conjunto de fechas en las que circula un viaje: un patrón
+ * semanal compacto (los días de la semana en los que circula al menos la mitad de las veces) más las fechas
+ * sueltas que lo corrigen (incluidas y excluidas). Así el viaje circula exactamente en esas fechas, ni una más:
+ * un festivo entre semana o un servicio que empieza a mitad de semana no se rellena con el patrón.
+ * Fuera del periodo publicado el patrón semanal sigue siendo la mejor suposición.
+ * @return array{0: int, 1: string[], 2: string[]} máscara, fechas incluidas, fechas excluidas
+ */
+function exactCalendarForWindow(array $aRunsOn, array $aWindow): array
+{
+    $aOccurrences = array_fill(1, 7, 0);
+    $aCovered = array_fill(1, 7, 0);
+    $aWeekdayOf = [];
+    foreach ($aWindow as $sDate) {
+        $iWeekday = (int)(new DateTime($sDate))->format('N');
+        $aWeekdayOf[$sDate] = $iWeekday;
+        $aOccurrences[$iWeekday]++;
+        if (isset($aRunsOn[$sDate])) {
+            $aCovered[$iWeekday]++;
+        }
+    }
+    $iMask = 0;
+    foreach ($aOccurrences as $iWeekday => $iCount) {
+        if ($aCovered[$iWeekday] > 0 && $aCovered[$iWeekday] * 2 >= $iCount) {
+            $iMask |= 1 << ($iWeekday - 1);
+        }
+    }
+    $aIncluded = [];
+    $aExcluded = [];
+    foreach ($aWindow as $sDate) {
+        $bInMask = ($iMask & (1 << ($aWeekdayOf[$sDate] - 1))) !== 0;
+        $bRuns = isset($aRunsOn[$sDate]);
+        if ($bRuns && !$bInMask) {
+            $aIncluded[] = $sDate;
+        } elseif (!$bRuns && $bInMask) {
+            $aExcluded[] = $sDate;
+        }
+    }
+    return [$iMask, $aIncluded, $aExcluded];
+}
+
+/** Lista de fechas «Y-m-d» entre dos fechas ISO, ambas incluidas. */
+function datesBetween(string $sFromIso, string $sToIso): array
+{
+    $aDates = [];
+    $Day = new DateTime($sFromIso);
+    $End = new DateTime($sToIso);
+    while ($Day <= $End) {
+        $aDates[] = $Day->format('Y-m-d');
+        $Day->modify('+1 day');
+    }
+    return $aDates;
 }
 
 function computeWeekdayMask(array $aDateAvailability): int
@@ -867,7 +957,7 @@ function timingKeyFor(array $aBuffer, int|null $iFirstDeparture): string
     return substr(md5(implode(',', $aOffsets)), 0, 12);
 }
 
-function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork): void
+function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork, array $aWindow = []): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
@@ -917,6 +1007,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         $sTimingKey = timingKeyFor($aBuffer, $iFirstDeparture);
 
         $aSignatures[$sTripId] = [
+            'serviceId' => $aTrip['serviceId'],
             'routeId' => $aTrip['routeId'],
             'tripNumber' => $aTrip['tripNumber'],
             'headsign' => $aTrip['headsign'],
@@ -977,6 +1068,27 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         $aGroups[$sClusterKey]['excludedDates'] = excludedDatesForGroup($aGroup, $aSignatures);
     }
 
+    // Bizkaibus: el calendario de cada viaje fusionado es exacto dentro del periodo publicado (ver exactCalendarForWindow).
+    $bExactWindow = $sNetwork === 'bus' && !empty($aWindow);
+    if ($bExactWindow) {
+        $aExactByService = [];
+        foreach ($aGroups as $sClusterKey => $aGroup) {
+            $aRunsOn = [];
+            foreach ($aGroup['memberTripIds'] as $sMemberTripId) {
+                $sServiceId = $aSignatures[$sMemberTripId]['serviceId'];
+                if (!isset($aExactByService[$sServiceId])) {
+                    $aExactByService[$sServiceId] = exactServiceDates($aCalendars[$sServiceId]['exact'] ?? ['mask' => 0, 'from' => '', 'to' => '', 'available' => [], 'excluded' => []], $aWindow);
+                }
+                $aRunsOn += $aExactByService[$sServiceId];
+            }
+            [$iExactMask, $aExactIncluded, $aExactExcluded] = exactCalendarForWindow($aRunsOn, $aWindow);
+            $aGroups[$sClusterKey]['weekdayMask'] = $iExactMask;
+            $aGroups[$sClusterKey]['includedDates'] = array_fill_keys($aExactIncluded, true);
+            $aGroups[$sClusterKey]['excludedDates'] = array_fill_keys($aExactExcluded, true);
+            $aGroups[$sClusterKey]['exactRunsOn'] = $aRunsOn;
+        }
+    }
+
     $aMaskToCalendarId = [];
     foreach ($aCalendars as $sCalId => $aCal) {
         if ($sCalId === 'PRUEBA') {
@@ -1013,7 +1125,11 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         $aExcludedDates = array_keys($aGroup['excludedDates']);
         sort($aExcludedDates);
 
-        if (empty($aExcludedDates) && isset($aMaskToCalendarId[$iMask])) {
+        $aIncludedDates = array_keys($aGroup['includedDates']);
+        sort($aIncludedDates);
+        // Con calendario exacto, un grupo con fechas sueltas (incluidas o excluidas) no puede compartir el calendario de
+        // otros viajes: esas fechas se les pegarían también.
+        if (empty($aExcludedDates) && (!$bExactWindow || empty($aIncludedDates)) && isset($aMaskToCalendarId[$iMask])) {
             $sCalendarId = $aMaskToCalendarId[$iMask];
         } else {
             // Un mismo dia de la semana puede tener grupos con distintas
@@ -1021,10 +1137,10 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             // solo uno de ellos anulado en un festivo concreto): la firma
             // incluye las fechas excluidas para no fusionarlos y perder
             // esa excepcion.
-            $sSignature = $iMask . '|' . implode(',', $aExcludedDates);
+            $sSignature = $iMask . '|' . implode(',', $aExcludedDates) . ($bExactWindow ? '|' . implode(',', $aIncludedDates) : '');
             if (!isset($aSignatureToCalendarId[$sSignature])) {
                 $sNewId = 'merged_' . $iMask;
-                if (!empty($aExcludedDates)) {
+                if (!empty($aExcludedDates) || ($bExactWindow && !empty($aIncludedDates))) {
                     $sNewId .= '_' . substr(md5($sSignature), 0, 8);
                 }
                 $aSignatureToCalendarId[$sSignature] = $sNewId;
@@ -1141,6 +1257,15 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
     $aTotals['shapes'] = insertShapes($Pdo, $Zip, $aUsedShapeIds);
 
+    if ($bExactWindow) {
+        $aAudit = auditExactCalendars($Pdo, $aRepresentatives, $aWindow);
+        printf("  Auditoría de calendarios (Bizkaibus, periodo publicado %s a %s): %d viajes comprobados, %d con diferencias contra el GTFS (%d fechas de más, %d que faltan)\n",
+            $aWindow[0], $aWindow[count($aWindow) - 1], $aAudit['checked'], $aAudit['differences'], $aAudit['extra'], $aAudit['missing']);
+        foreach ($aAudit['examples'] as $sExample) {
+            fwrite(STDERR, "  AVISO calendario: $sExample\n");
+        }
+    }
+
     if ($iSkippedUnknownTrip > 0) {
         fwrite(STDERR, "  WARNING: $iSkippedUnknownTrip stop_times groups skipped (trip_id not found in trips.txt)\n");
     }
@@ -1150,6 +1275,62 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     if ($iSkippedDuplicateTrip > 0) {
         fwrite(STDERR, "  WARNING: $iSkippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
     }
+}
+
+/*
+ * Comprobación de punta a punta: para cada viaje insertado, las fechas del periodo en las que la app lo mostraría
+ * (máscara semanal o fecha incluida, menos las excluidas, tal como lo consultan las pantallas) contra las fechas
+ * exactas del GTFS. Debe dar cero diferencias; si no, hay un viaje que se muestra un día que no circula (o al revés).
+ * @return array{checked: int, differences: int, extra: int, missing: int, examples: string[]}
+ */
+function auditExactCalendars(PDO $Pdo, array $aRepresentatives, array $aWindow): array
+{
+    $aMask = [];
+    foreach ($Pdo->query('SELECT id, weekday_mask FROM service_calendars') as $aRow) {
+        $aMask[$aRow['id']] = (int)$aRow['weekday_mask'];
+    }
+    $aIncluded = [];
+    $aExcluded = [];
+    foreach ($Pdo->query('SELECT calendar_id, date, available FROM service_calendar_exceptions') as $aRow) {
+        if ((int)$aRow['available'] === 1) {
+            $aIncluded[$aRow['calendar_id']][$aRow['date']] = true;
+        } else {
+            $aExcluded[$aRow['calendar_id']][$aRow['date']] = true;
+        }
+    }
+    $aWeekdayOf = [];
+    foreach ($aWindow as $sDate) {
+        $aWeekdayOf[$sDate] = (int)(new DateTime($sDate))->format('N');
+    }
+    $aResult = ['checked' => 0, 'differences' => 0, 'extra' => 0, 'missing' => 0, 'examples' => []];
+    foreach ($aRepresentatives as $sTripId => $aGroup) {
+        if (!isset($aGroup['exactRunsOn'])) {
+            continue;
+        }
+        $aResult['checked']++;
+        $sCalendarId = $aGroup['calendarId'];
+        $iMask = $aMask[$sCalendarId] ?? 0;
+        $aExtra = [];
+        $aMissing = [];
+        foreach ($aWindow as $sDate) {
+            $bApp = ((($iMask >> ($aWeekdayOf[$sDate] - 1)) & 1) === 1 || isset($aIncluded[$sCalendarId][$sDate])) && !isset($aExcluded[$sCalendarId][$sDate]);
+            $bTruth = isset($aGroup['exactRunsOn'][$sDate]);
+            if ($bApp && !$bTruth) {
+                $aExtra[] = $sDate;
+            } elseif (!$bApp && $bTruth) {
+                $aMissing[] = $sDate;
+            }
+        }
+        if ($aExtra || $aMissing) {
+            $aResult['differences']++;
+            $aResult['extra'] += count($aExtra);
+            $aResult['missing'] += count($aMissing);
+            if (count($aResult['examples']) < 10) {
+                $aResult['examples'][] = $sTripId . ' (calendario ' . $sCalendarId . '): de más ' . implode(',', array_slice($aExtra, 0, 3)) . ' | faltan ' . implode(',', array_slice($aMissing, 0, 3));
+            }
+        }
+    }
+    return $aResult;
 }
 
 function insertShapes(PDO $Pdo, ZipArchive $Zip, array $aUsedShapeIds): int
