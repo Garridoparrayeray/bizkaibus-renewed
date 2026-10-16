@@ -1264,6 +1264,12 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         foreach ($aAudit['examples'] as $sExample) {
             fwrite(STDERR, "  AVISO calendario: $sExample\n");
         }
+        if ($aAudit['differences'] > 0) {
+            // Un viaje que se muestra un día que no circula es el fallo que esta comprobación existe para evitar: se aborta
+            // para que el despliegue automático no publique esa base y producción siga con la última buena.
+            fwrite(STDERR, "ERROR: {$aAudit['differences']} viajes con calendario distinto al del GTFS. Build abortado.\n");
+            exit(1);
+        }
     }
 
     if ($iSkippedUnknownTrip > 0) {
