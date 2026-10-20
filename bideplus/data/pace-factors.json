@@ -1,15 +1,15 @@
 {
-    "generated": "2026-10-19 11:33",
+    "generated": "2026-10-20 11:05",
     "captures": 0,
-    "samples": 148125,
+    "samples": 164571,
     "global": {
         "laborable.manana": 0.912,
-        "laborable.mediodia": 0.935,
+        "laborable.mediodia": 0.933,
         "laborable.punta_tarde": 0.948,
-        "laborable.noche": 0.895,
+        "laborable.noche": 0.892,
         "fin_semana.punta_tarde": 0.835,
         "fin_semana.noche": 0.878,
-        "laborable.punta_manana": 0.899,
+        "laborable.punta_manana": 0.907,
         "fin_semana.punta_manana": 0.777,
         "fin_semana.manana": 0.815,
         "fin_semana.mediodia": 0.825
@@ -18,315 +18,337 @@
         "3411": {
             "laborable.mediodia": 0.985,
             "laborable.punta_tarde": 0.992,
-            "laborable.noche": 0.973,
+            "laborable.noche": 0.962,
             "fin_semana.punta_tarde": 0.863
         },
         "3414": {
             "laborable.punta_tarde": 1.006,
-            "laborable.noche": 1.019,
-            "laborable.mediodia": 1.002
+            "laborable.noche": 1.015,
+            "laborable.mediodia": 0.988
         },
         "3499": {
-            "laborable.mediodia": 0.727
+            "laborable.mediodia": 0.725
         },
         "3451": {
-            "laborable.mediodia": 1.07
+            "laborable.noche": 1,
+            "laborable.mediodia": 1.073
         },
         "3247": {
-            "laborable.punta_tarde": 1.2
+            "laborable.punta_tarde": 1.2,
+            "laborable.noche": 1.2
         },
         "3527": {
-            "laborable.mediodia": 0.973,
-            "laborable.punta_tarde": 1.19
+            "laborable.mediodia": 0.993,
+            "laborable.punta_tarde": 1.19,
+            "laborable.noche": 0.942,
+            "laborable.punta_manana": 1.013
         },
         "2153": {
+            "laborable.mediodia": 1.105,
             "laborable.punta_tarde": 1.065,
-            "laborable.noche": 0.934
+            "laborable.noche": 0.89
         },
         "3517": {
             "laborable.punta_tarde": 0.804,
-            "laborable.noche": 0.848,
-            "laborable.mediodia": 0.774
+            "laborable.noche": 0.844,
+            "laborable.mediodia": 0.772
         },
         "2151": {
             "laborable.punta_tarde": 0.911
         },
         "3613": {
-            "laborable.mediodia": 0.869,
+            "laborable.mediodia": 0.903,
             "laborable.punta_tarde": 0.936,
-            "laborable.noche": 0.846
+            "laborable.noche": 0.843
         },
         "3917": {
-            "laborable.noche": 0.795
+            "laborable.noche": 0.814,
+            "laborable.mediodia": 0.886
         },
         "3912": {
-            "laborable.mediodia": 1.053,
+            "laborable.mediodia": 1.054,
             "laborable.punta_tarde": 0.999,
-            "laborable.noche": 0.92
+            "laborable.noche": 0.919
         },
         "3631": {
             "laborable.punta_tarde": 0.907,
-            "laborable.noche": 0.877,
-            "laborable.mediodia": 0.838
+            "laborable.noche": 0.87,
+            "laborable.mediodia": 0.836
         },
         "3641": {
-            "laborable.mediodia": 0.953,
+            "laborable.mediodia": 0.952,
             "laborable.punta_tarde": 0.898,
-            "laborable.noche": 0.781
+            "laborable.noche": 0.777
         },
         "3911": {
-            "laborable.mediodia": 0.853,
+            "laborable.mediodia": 0.848,
             "laborable.punta_tarde": 1.003,
-            "laborable.noche": 0.985
+            "laborable.noche": 0.984
         },
         "0651": {
             "laborable.punta_tarde": 0.934,
-            "laborable.noche": 0.905,
-            "laborable.mediodia": 0.898
+            "laborable.noche": 0.901,
+            "laborable.mediodia": 0.896
         },
         "3342": {
             "laborable.punta_tarde": 0.876
         },
         "3333": {
             "laborable.punta_tarde": 0.805,
-            "laborable.noche": 0.789,
-            "laborable.mediodia": 0.839
+            "laborable.noche": 0.814,
+            "laborable.mediodia": 0.835
         },
         "3129": {
             "laborable.manana": 0.979,
             "laborable.punta_tarde": 1.006,
-            "laborable.noche": 0.984,
+            "laborable.noche": 0.971,
             "fin_semana.punta_tarde": 0.97,
             "fin_semana.noche": 0.972,
-            "laborable.mediodia": 0.958
+            "laborable.mediodia": 0.967,
+            "laborable.punta_manana": 0.959
         },
         "3338": {
             "laborable.punta_tarde": 0.979,
-            "laborable.noche": 0.931,
-            "laborable.mediodia": 0.912
+            "laborable.noche": 0.913,
+            "laborable.mediodia": 0.91
         },
         "3136": {
-            "laborable.mediodia": 0.959,
+            "laborable.mediodia": 0.957,
             "laborable.punta_tarde": 0.868,
-            "laborable.noche": 0.771,
+            "laborable.noche": 0.775,
             "fin_semana.punta_tarde": 0.832,
             "fin_semana.noche": 0.871
         },
         "3115": {
             "laborable.punta_tarde": 0.919,
-            "laborable.noche": 0.9,
+            "laborable.noche": 0.899,
             "fin_semana.punta_tarde": 0.853,
-            "laborable.mediodia": 0.855
+            "laborable.mediodia": 0.852
         },
         "2314": {
-            "laborable.mediodia": 1.137
+            "laborable.mediodia": 1.134
         },
         "3137": {
             "laborable.punta_tarde": 0.863,
-            "laborable.noche": 0.876,
-            "laborable.mediodia": 0.934
+            "laborable.noche": 0.869,
+            "laborable.mediodia": 0.933
         },
         "3336": {
-            "laborable.mediodia": 0.934,
+            "laborable.mediodia": 0.93,
             "laborable.punta_tarde": 0.919,
-            "laborable.noche": 0.935,
+            "laborable.noche": 0.93,
             "fin_semana.punta_tarde": 0.863
         },
         "3335": {
             "laborable.mediodia": 1.2,
             "laborable.punta_tarde": 0.926,
-            "laborable.noche": 0.829
+            "laborable.noche": 0.828
         },
         "3141": {
             "laborable.punta_tarde": 0.974,
-            "laborable.noche": 0.912,
-            "laborable.mediodia": 0.878
+            "laborable.noche": 0.907,
+            "laborable.mediodia": 0.837
         },
         "3122": {
-            "laborable.noche": 0.814
+            "laborable.noche": 0.859
         },
         "3144": {
             "laborable.punta_tarde": 1.038,
-            "laborable.noche": 0.929,
-            "laborable.mediodia": 0.894
+            "laborable.noche": 0.924,
+            "laborable.mediodia": 0.887
+        },
+        "3332": {
+            "laborable.mediodia": 0.739
         },
         "3135": {
             "laborable.punta_tarde": 0.912,
-            "laborable.noche": 0.829,
+            "laborable.noche": 0.819,
             "fin_semana.punta_tarde": 0.792,
-            "laborable.mediodia": 0.846
+            "laborable.mediodia": 0.834
         },
         "3514": {
-            "laborable.noche": 1.121
+            "laborable.noche": 1.026,
+            "laborable.mediodia": 1.15
         },
         "3515": {
-            "laborable.mediodia": 1.127,
+            "laborable.mediodia": 1.117,
             "laborable.punta_tarde": 1.064,
-            "laborable.noche": 1.061
+            "laborable.noche": 1.033
         }
     },
     "meta": {
         "global": {
             "laborable.manana": 557,
-            "laborable.mediodia": 1770,
+            "laborable.mediodia": 2039,
             "laborable.punta_tarde": 1863,
-            "laborable.noche": 1603,
+            "laborable.noche": 1806,
             "fin_semana.punta_tarde": 839,
             "fin_semana.noche": 503,
-            "laborable.punta_manana": 554,
+            "laborable.punta_manana": 762,
             "fin_semana.punta_manana": 146,
             "fin_semana.manana": 288,
             "fin_semana.mediodia": 307
         },
         "lines": {
             "3411": {
-                "laborable.mediodia": 40,
+                "laborable.mediodia": 46,
                 "laborable.punta_tarde": 45,
-                "laborable.noche": 34,
+                "laborable.noche": 39,
                 "fin_semana.punta_tarde": 26
             },
             "3414": {
                 "laborable.punta_tarde": 48,
-                "laborable.noche": 39,
-                "laborable.mediodia": 36
+                "laborable.noche": 46,
+                "laborable.mediodia": 43
             },
             "3499": {
-                "laborable.mediodia": 32
+                "laborable.mediodia": 37
             },
             "3451": {
-                "laborable.mediodia": 28
+                "laborable.noche": 25,
+                "laborable.mediodia": 32
             },
             "3247": {
-                "laborable.punta_tarde": 26
+                "laborable.punta_tarde": 26,
+                "laborable.noche": 25
             },
             "3527": {
-                "laborable.mediodia": 30,
-                "laborable.punta_tarde": 32
+                "laborable.mediodia": 35,
+                "laborable.punta_tarde": 32,
+                "laborable.noche": 27,
+                "laborable.punta_manana": 25
             },
             "2153": {
+                "laborable.mediodia": 27,
                 "laborable.punta_tarde": 29,
-                "laborable.noche": 25
+                "laborable.noche": 28
             },
             "3517": {
                 "laborable.punta_tarde": 33,
-                "laborable.noche": 40,
-                "laborable.mediodia": 33
+                "laborable.noche": 45,
+                "laborable.mediodia": 39
             },
             "2151": {
                 "laborable.punta_tarde": 29
             },
             "3613": {
-                "laborable.mediodia": 32,
+                "laborable.mediodia": 37,
                 "laborable.punta_tarde": 34,
-                "laborable.noche": 31
-            },
-            "3917": {
                 "laborable.noche": 34
             },
+            "3917": {
+                "laborable.noche": 37,
+                "laborable.mediodia": 26
+            },
             "3912": {
-                "laborable.mediodia": 35,
+                "laborable.mediodia": 39,
                 "laborable.punta_tarde": 41,
-                "laborable.noche": 38
+                "laborable.noche": 42
             },
             "3631": {
                 "laborable.punta_tarde": 52,
-                "laborable.noche": 41,
-                "laborable.mediodia": 42
+                "laborable.noche": 47,
+                "laborable.mediodia": 48
             },
             "3641": {
-                "laborable.mediodia": 49,
+                "laborable.mediodia": 55,
                 "laborable.punta_tarde": 46,
-                "laborable.noche": 49
+                "laborable.noche": 54
             },
             "3911": {
-                "laborable.mediodia": 32,
+                "laborable.mediodia": 37,
                 "laborable.punta_tarde": 37,
-                "laborable.noche": 35
+                "laborable.noche": 39
             },
             "0651": {
                 "laborable.punta_tarde": 35,
-                "laborable.noche": 32,
-                "laborable.mediodia": 28
+                "laborable.noche": 37,
+                "laborable.mediodia": 34
             },
             "3342": {
                 "laborable.punta_tarde": 25
             },
             "3333": {
                 "laborable.punta_tarde": 57,
-                "laborable.noche": 33,
-                "laborable.mediodia": 44
+                "laborable.noche": 37,
+                "laborable.mediodia": 51
             },
             "3129": {
                 "laborable.manana": 27,
                 "laborable.punta_tarde": 96,
-                "laborable.noche": 91,
+                "laborable.noche": 102,
                 "fin_semana.punta_tarde": 44,
                 "fin_semana.noche": 34,
-                "laborable.mediodia": 80
+                "laborable.mediodia": 91,
+                "laborable.punta_manana": 30
             },
             "3338": {
                 "laborable.punta_tarde": 65,
-                "laborable.noche": 46,
-                "laborable.mediodia": 51
+                "laborable.noche": 50,
+                "laborable.mediodia": 59
             },
             "3136": {
-                "laborable.mediodia": 77,
+                "laborable.mediodia": 84,
                 "laborable.punta_tarde": 84,
-                "laborable.noche": 92,
+                "laborable.noche": 100,
                 "fin_semana.punta_tarde": 49,
                 "fin_semana.noche": 33
             },
             "3115": {
                 "laborable.punta_tarde": 63,
-                "laborable.noche": 74,
+                "laborable.noche": 81,
                 "fin_semana.punta_tarde": 33,
-                "laborable.mediodia": 56
+                "laborable.mediodia": 64
             },
             "2314": {
-                "laborable.mediodia": 35
+                "laborable.mediodia": 40
             },
             "3137": {
                 "laborable.punta_tarde": 32,
-                "laborable.noche": 25,
-                "laborable.mediodia": 30
+                "laborable.noche": 29,
+                "laborable.mediodia": 34
             },
             "3336": {
-                "laborable.mediodia": 55,
+                "laborable.mediodia": 61,
                 "laborable.punta_tarde": 55,
-                "laborable.noche": 47,
+                "laborable.noche": 53,
                 "fin_semana.punta_tarde": 34
             },
             "3335": {
-                "laborable.mediodia": 29,
+                "laborable.mediodia": 33,
                 "laborable.punta_tarde": 26,
-                "laborable.noche": 30
+                "laborable.noche": 34
             },
             "3141": {
                 "laborable.punta_tarde": 31,
-                "laborable.noche": 33,
-                "laborable.mediodia": 36
+                "laborable.noche": 36,
+                "laborable.mediodia": 40
             },
             "3122": {
-                "laborable.noche": 25
+                "laborable.noche": 29
             },
             "3144": {
                 "laborable.punta_tarde": 48,
-                "laborable.noche": 45,
-                "laborable.mediodia": 42
+                "laborable.noche": 51,
+                "laborable.mediodia": 48
+            },
+            "3332": {
+                "laborable.mediodia": 27
             },
             "3135": {
                 "laborable.punta_tarde": 60,
-                "laborable.noche": 51,
+                "laborable.noche": 58,
                 "fin_semana.punta_tarde": 32,
-                "laborable.mediodia": 55
+                "laborable.mediodia": 62
             },
             "3514": {
-                "laborable.noche": 25
+                "laborable.noche": 30,
+                "laborable.mediodia": 25
             },
             "3515": {
-                "laborable.mediodia": 30,
+                "laborable.mediodia": 36,
                 "laborable.punta_tarde": 34,
-                "laborable.noche": 35
+                "laborable.noche": 40
             }
         }
     }
