@@ -29,14 +29,14 @@ if ($isMiamorDomain) {
     $sOgImage       = 'https://bideplusmiamor.vercel.app/icons/icon-512.png';
     $sFaviconFolder = 'icons';
 } elseif ($bIsMetroShare) {
-    $sOgTitle       = 'Metro+ · Horarios de Metro Bilbao';
-    $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los avisos de servicio.';
+    $sOgTitle       = 'Metro+ · Horarios de Metro Bilbao: líneas L1, L2 y L3, estaciones y avisos | Bide+';
+    $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.';
     $sOgImage       = $site['url'] . '/icons-metro/icon-512.png';
     $sFaviconFolder = 'icons-metro';
     $networkSlug    = 'metro';
 } elseif ($bIsEuskoTrenShare) {
-    $sOgTitle       = 'Euskotren+ · Horarios de Euskotren';
-    $sOgDescription = 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación.';
+    $sOgTitle       = 'Euskotren+ · Horarios de trenes y tranvía de Euskotren por línea y estación | Bide+';
+    $sOgDescription = 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación en Bizkaia y Gipuzkoa.';
     $sOgImage       = $site['url'] . '/icons-euskotren/icon-512.png';
     $sFaviconFolder = 'icons-euskotren';
     $networkSlug    = 'euskotren';
@@ -88,6 +88,32 @@ function linesForStop(string $network, string $id): array
     return $stmt->fetchAll(\PDO::FETCH_COLUMN);
 }
 
+function relatedLinks(string $network, string $type, string $id): array
+{
+    $pdo = \Core\Database::connection();
+    if ($type === 'stops') {
+        $stmt = $pdo->prepare('
+            SELECT DISTINCT l.id, l.code, l.name FROM journey_pattern_stops jps
+            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+            JOIN lines l ON l.id = jp.line_id
+            WHERE jps.stop_id = ?
+            ORDER BY l.code
+            LIMIT 40
+        ');
+    } else {
+        $stmt = $pdo->prepare('
+            SELECT DISTINCT s.id, s.name FROM journey_pattern_stops jps
+            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+            JOIN stops s ON s.id = jps.stop_id
+            WHERE jp.line_id = ?
+            ORDER BY s.name
+            LIMIT 60
+        ');
+    }
+    $stmt->execute([$id]);
+    return $stmt->fetchAll();
+}
+
 function findRecord(string $network, string $type, string $id): ?array
 {
     require_once __DIR__ . '/Core/Config.php';
@@ -108,9 +134,13 @@ function findRecord(string $network, string $type, string $id): ?array
 }
 
 $appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
+$h1Names = ['bus' => ['BizkaiBus', ''], 'metro' => ['METRO', ''], 'euskotren' => ['EUSKOTREN', ''], 'tranvia-bilbao' => ['TRANVÍA', 'BILBAO'], 'tranvia-vitoria' => ['TRANVÍA', 'VITORIA'], 'renfe' => ['RENFE', '']];
 $isNotFound = false;
 $placeJsonLd = null;
 $breadcrumbName = null;
+$relatedHeading = null;
+$related = [];
+$relatedType = null;
 try {
     if (preg_match('#^/(stops|lines)/([^/]+)/?$#', $path, $matches)) {
         $recordType = $matches[1];
@@ -159,6 +189,9 @@ try {
                 $placeJsonLd['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $record['area'], 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
             }
             $breadcrumbName = $record['name'];
+            $relatedHeading = 'Líneas que paran en ' . $record['name'];
+            $relatedType = 'lines';
+            $related = relatedLinks($networkSlug, 'stops', $recordId);
         } else {
             $appName = $appNames[$networkSlug];
             $sOgTitle = 'Línea ' . $record['code'] . ' ' . $record['name'] . ' · Horarios | ' . $appName;
@@ -167,6 +200,9 @@ try {
                 $sOgDescription .= ' Mapa con los autobuses en tiempo real.';
             }
             $breadcrumbName = 'Línea ' . $record['code'];
+            $relatedHeading = 'Paradas de la línea ' . $record['code'];
+            $relatedType = 'stops';
+            $related = relatedLinks($networkSlug, 'lines', $recordId);
         }
 
         if ($networkSlug !== 'bus') {
@@ -269,7 +305,17 @@ if ($breadcrumbName !== null) {
         </div>
 
         <noscript>
-            <p><?= htmlspecialchars($sOgDescription) ?> Esta app necesita JavaScript para mostrar los horarios. <a href="/">Volver a Bide+</a>.</p>
+            <h2><?= htmlspecialchars($sOgTitle) ?></h2>
+            <p><?= htmlspecialchars($sOgDescription) ?></p>
+<?php if ($relatedHeading !== null && !empty($related)): ?>
+            <h3><?= htmlspecialchars($relatedHeading) ?></h3>
+            <ul>
+<?php foreach ($related as $row): ?>
+                <li><a href="/<?= $relatedType ?>/<?= rawurlencode((string)$row['id']) ?><?= $networkSlug !== 'bus' ? '?red=' . $networkSlug : '' ?>"><?= htmlspecialchars(($relatedType === 'lines' ? $row['code'] . ' ' : '') . $row['name']) ?></a></li>
+<?php endforeach; ?>
+            </ul>
+<?php endif; ?>
+            <p><a href="/">Todas las apps de Bide+</a> · Para consultar los horarios en directo, activa JavaScript.</p>
         </noscript>
 
 <?= bideRail($networkSlug) ?>
@@ -294,8 +340,8 @@ if ($breadcrumbName !== null) {
                         <img class="logo-renfe" src="/icons-renfe/glyph.png" alt="">
                     </span>
                     <hgroup>
-                        <h1 id="app-title">BizkaiBus<span id="app-title-mark">+</span></h1>
-                        <span id="app-title-city"></span>
+                        <h1 id="app-title"><?= $h1Names[$networkSlug][0] ?><span id="app-title-mark">+</span></h1>
+                        <span id="app-title-city"><?= $h1Names[$networkSlug][1] ?></span>
                         <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
                     </hgroup>
                 </button>

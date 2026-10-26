@@ -1,0 +1,62 @@
+name: Check production
+
+# Comprobación manual del sitio desplegado (Actions > Check production > Run workflow).
+# Verifica lo que importa para el SEO: robots, sitemaps, título/descripción/canonical
+# por página y que el HTML servido no empiece con avisos de «necesita JavaScript».
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: URL base a comprobar
+        default: https://bideplus.vercel.app
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE: ${{ inputs.base_url }}
+    steps:
+      - name: robots.txt y llms.txt
+        run: |
+          set -e
+          curl -fsS "$BASE/robots.txt" | grep -q "Sitemap: $BASE/sitemap.xml"
+          curl -fsS "$BASE/llms.txt" | grep -q "Bide+"
+
+      - name: Sitemaps
+        run: |
+          set -e
+          curl -fsS "$BASE/sitemap.xml" | grep -c "<sitemap>" | xargs echo "sitemaps en el índice:"
+          for r in apps bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
+            n=$(curl -fsS "$BASE/sitemap-$r.xml" | grep -c "<url>")
+            echo "sitemap-$r.xml: $n URLs"
+            [ "$n" -gt 0 ] || { echo "::error::sitemap-$r.xml vacío"; exit 1; }
+          done
+
+      - name: Títulos, descripción, canonical y snippet
+        run: |
+          fail=0
+          check() {
+            url="$BASE$1"
+            html=$(curl -fsS "$url") || { echo "::error::$url no responde"; fail=1; return; }
+            title=$(echo "$html" | grep -o '<title>[^<]*</title>' | head -1)
+            echo "$url -> $title"
+            echo "$html" | grep -q '<meta name="description" content="[^"]\{40,\}' || { echo "::error::$url sin descripción útil"; fail=1; }
+            echo "$html" | grep -q '<link rel="canonical"' || { echo "::error::$url sin canonical"; fail=1; }
+            echo "$html" | grep -q 'application/ld+json' || { echo "::error::$url sin JSON-LD"; fail=1; }
+            # el primer texto del <noscript> no debe ser el aviso de JavaScript
+            echo "$html" | tr '\n' ' ' | grep -o '<noscript>.\{0,200\}' | grep -qi '^<noscript> *<p>[^<]*necesita JavaScript' && { echo "::error::$url empieza con el aviso de JavaScript"; fail=1; }
+          }
+          for p in "/" "/?red=bus" "/?red=metro" "/?red=euskotren" "/?red=tranvia-bilbao" "/?red=tranvia-vitoria" "/?red=renfe" "/stops/4255" "/lines/2151"; do
+            check "$p"
+          done
+          # los títulos de cada app deben ser distintos
+          dup=$(for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
+          [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
+          exit $fail
+
+      - name: 404 en páginas inexistentes
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/stops/no-existe-999999")
+          [ "$code" = "404" ] || { echo "::error::esperaba 404, obtuve $code"; exit 1; }
