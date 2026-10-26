@@ -41,14 +41,16 @@ jobs:
           fail=0
           check() {
             url="$BASE$1"
-            html=$(curl -fsS "$url") || { echo "::error::$url no responde"; fail=1; return; }
-            title=$(echo "$html" | grep -o '<title>[^<]*</title>' | head -1)
-            echo "$url -> $title"
-            echo "$html" | grep -q '<meta name="description" content="[^"]\{40,\}' || { echo "::error::$url sin descripción útil"; fail=1; }
-            echo "$html" | grep -q '<link rel="canonical"' || { echo "::error::$url sin canonical"; fail=1; }
-            echo "$html" | grep -q 'application/ld+json' || { echo "::error::$url sin JSON-LD"; fail=1; }
+            curl -fsS "$url" -o page.html || { echo "::error::$url no responde"; fail=1; return 0; }
+            echo "$url -> $(grep -o '<title>[^<]*</title>' page.html | head -1)"
+            grep -q '<meta name="description" content="[^"]\{40,\}' page.html || { echo "::error::$url sin descripción útil"; fail=1; }
+            grep -q '<link rel="canonical"' page.html || { echo "::error::$url sin canonical"; fail=1; }
+            grep -q 'application/ld+json' page.html || { echo "::error::$url sin JSON-LD"; fail=1; }
             # el primer texto del <noscript> no debe ser el aviso de JavaScript
-            echo "$html" | tr '\n' ' ' | grep -o '<noscript>.\{0,200\}' | grep -qi '^<noscript> *<p>[^<]*necesita JavaScript' && { echo "::error::$url empieza con el aviso de JavaScript"; fail=1; }
+            if tr '\n' ' ' < page.html | grep -o '<noscript>.\{0,200\}' | grep -qi '^<noscript> *<p>[^<]*necesita JavaScript'; then
+              echo "::error::$url empieza con el aviso de JavaScript"; fail=1
+            fi
+            return 0
           }
           for p in "/" "/?red=bus" "/?red=metro" "/?red=euskotren" "/?red=tranvia-bilbao" "/?red=tranvia-vitoria" "/?red=renfe" "/stops/4255" "/lines/2151"; do
             check "$p"
