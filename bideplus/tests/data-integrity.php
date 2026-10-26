@@ -24,7 +24,7 @@ foreach ($aDatabases as $sName) {
         $expect($sName . ': existe data/' . $sName . '.sqlite', false);
         continue;
     }
-    $Pdo = new PDO('sqlite:' . $sPath, null, null, [PDO::SQLITE_ATTR_OPEN_FLAGS => PDO::SQLITE_OPEN_READONLY]);
+    $Pdo = new PDO('sqlite:' . $sPath, null, null, [constant(defined('Pdo\\Sqlite::ATTR_OPEN_FLAGS') ? 'Pdo\\Sqlite::ATTR_OPEN_FLAGS' : 'PDO::SQLITE_ATTR_OPEN_FLAGS') => constant(defined('Pdo\\Sqlite::OPEN_READONLY') ? 'Pdo\\Sqlite::OPEN_READONLY' : 'PDO::SQLITE_OPEN_READONLY')]);
     $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $count = fn(string $sSql): int => (int)$Pdo->query($sSql)->fetchColumn();
     $aTables = $Pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")->fetchAll(PDO::FETCH_COLUMN);

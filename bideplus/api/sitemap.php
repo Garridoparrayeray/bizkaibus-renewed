@@ -6,6 +6,19 @@
 declare(strict_types=1);
 
 date_default_timezone_set('Europe/Madrid');
+// Un aviso o error impreso dentro del XML lo invalida para los buscadores.
+ini_set('display_errors', '0');
+
+function openReadonly(string $sDbPath): PDO
+{
+    // PHP 8.5 deprecó las constantes PDO::SQLITE_*; se usan las nuevas si existen.
+    if (defined('Pdo\\Sqlite::ATTR_OPEN_FLAGS')) {
+        $aOptions = [constant('Pdo\\Sqlite::ATTR_OPEN_FLAGS') => constant('Pdo\\Sqlite::OPEN_READONLY')];
+    } else {
+        $aOptions = [constant('PDO::SQLITE_ATTR_OPEN_FLAGS') => constant('PDO::SQLITE_OPEN_READONLY')];
+    }
+    return new PDO('sqlite:' . $sDbPath, null, null, $aOptions);
+}
 
 $site = require __DIR__ . '/Config/site.php';
 
@@ -21,7 +34,7 @@ $aNetworks = [
 function lastModified(string $sDbPath): string
 {
     try {
-        $Pdo = new PDO('sqlite:' . $sDbPath, null, null, [PDO::SQLITE_ATTR_OPEN_FLAGS => PDO::SQLITE_OPEN_READONLY]);
+        $Pdo = openReadonly($sDbPath);
         $sValue = $Pdo->query("SELECT value FROM meta WHERE key = 'schedule_source_published'")->fetchColumn();
         if (is_string($sValue) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $sValue)) {
             return $sValue;
@@ -80,7 +93,7 @@ if ($sNetwork !== 'bus') {
     $sSuffix = '?red=' . $sNetwork;
 }
 
-$Pdo = new PDO('sqlite:' . $sPath, null, null, [PDO::SQLITE_ATTR_OPEN_FLAGS => PDO::SQLITE_OPEN_READONLY]);
+$Pdo = openReadonly($sPath);
 foreach ($Pdo->query('SELECT id FROM lines ORDER BY id') as $aRow) {
     $sLoc = $site['url'] . '/lines/' . rawurlencode((string)$aRow['id']) . $sSuffix;
     echo '  <url><loc>' . xmlEscape($sLoc) . '</loc><lastmod>' . $sLastModified . '</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>' . "\n";
