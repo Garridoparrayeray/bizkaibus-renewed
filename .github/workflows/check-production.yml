@@ -27,8 +27,10 @@ jobs:
       - name: Sitemaps
         run: |
           set -e
+          curl -fsS "$BASE/sitemap.xml" | python3 -c "import sys,xml.dom.minidom as m; m.parseString(sys.stdin.buffer.read())" || { echo "::error::sitemap.xml no es XML válido (¿avisos de PHP?)"; exit 1; }
           curl -fsS "$BASE/sitemap.xml" | grep -c "<sitemap>" | xargs echo "sitemaps en el índice:"
           for r in apps bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
+            curl -fsS "$BASE/sitemap-$r.xml" | python3 -c "import sys,xml.dom.minidom as m; m.parseString(sys.stdin.buffer.read())" || { echo "::error::sitemap-$r.xml no es XML válido (¿avisos de PHP?)"; exit 1; }
             n=$(curl -fsS "$BASE/sitemap-$r.xml" | grep -c "<url>")
             echo "sitemap-$r.xml: $n URLs"
             [ "$n" -gt 0 ] || { echo "::error::sitemap-$r.xml vacío"; exit 1; }
