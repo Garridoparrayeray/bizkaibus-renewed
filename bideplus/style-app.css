@@ -78,15 +78,15 @@ html.is-renfe {
     --backdrop: rgba(18, 10, 22, .5);
 }
 html.is-lurraldebus {
-    --bg: #f5f8f2;
-    --border: #dfe8d8;
-    --primary: #3D7F1E;
+    --bg: #f4f7fb;
+    --border: #d9e3ef;
+    --primary: #0062A8;
     --primary-light: #8DC63F;
-    --primary-dark: #285614;
-    --primary-tint: #EDF6E4;
-    --text: #1d2a17;
-    --text-secondary: #5d6b56;
-    --backdrop: rgba(12, 20, 8, .5);
+    --primary-dark: #003F70;
+    --primary-tint: #E6F0F8;
+    --text: #152230;
+    --text-secondary: #556372;
+    --backdrop: rgba(8, 16, 26, .5);
 }
 
 /* ===== Base ===== */

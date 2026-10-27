@@ -8,7 +8,7 @@ return [
 
     'brand' => [
         'icons' => 'icons-lurraldebus',
-        'theme_color' => '#3D7F1E',
+        'theme_color' => '#0062A8',
         'title' => ['LURRALDEBUS', ''],
         'logomark' => '<img src="/icons-lurraldebus/glyph.png" alt="">',
         'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="">',
