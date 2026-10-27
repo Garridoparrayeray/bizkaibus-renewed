@@ -77,6 +77,17 @@ html.is-renfe {
     --text-secondary: #65596c;
     --backdrop: rgba(18, 10, 22, .5);
 }
+html.is-lurraldebus {
+    --bg: #f5f8f2;
+    --border: #dfe8d8;
+    --primary: #3D7F1E;
+    --primary-light: #8DC63F;
+    --primary-dark: #285614;
+    --primary-tint: #EDF6E4;
+    --text: #1d2a17;
+    --text-secondary: #5d6b56;
+    --backdrop: rgba(12, 20, 8, .5);
+}
 
 /* ===== Base ===== */
 *, *::before, *::after { box-sizing: border-box; }

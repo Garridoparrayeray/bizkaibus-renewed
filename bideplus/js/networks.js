@@ -157,6 +157,45 @@
             }
         }
     },
+    "lurraldebus": {
+        "kind": "bus",
+        "icons": "icons-lurraldebus",
+        "themeColor": "#3D7F1E",
+        "title": [
+            "LURRALDEBUS",
+            ""
+        ],
+        "favoritesKey": "lurraldebus_favorites",
+        "live": false,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": true,
+            "line_map": false,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)",
+        "texts": {
+            "es": {
+                "name": "Lurraldebus+",
+                "tile": "Autobuses de Gipuzkoa",
+                "switcher": "Horarios de Lurraldebus en Gipuzkoa",
+                "subtitle": "Horarios de Lurraldebus",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+            },
+            "eu": {
+                "name": "Lurraldebus+",
+                "tile": "Gipuzkoako autobusak",
+                "switcher": "Lurraldebusen ordutegiak Gipuzkoan",
+                "subtitle": "Lurraldebusen ordutegiak",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko."
+            }
+        }
+    },
     "tranvia-bilbao": {
         "kind": "tram",
         "icons": "icons-tranvia-bilbao",

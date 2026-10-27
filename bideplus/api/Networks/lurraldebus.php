@@ -1,0 +1,83 @@
+<?php
+
+return [
+    'slug' => 'lurraldebus',
+    'order' => 5,
+    'db' => 'lurraldebus',
+    'kind' => 'bus',
+
+    'brand' => [
+        'icons' => 'icons-lurraldebus',
+        'theme_color' => '#3D7F1E',
+        'title' => ['LURRALDEBUS', ''],
+        'logomark' => '<img src="/icons-lurraldebus/glyph.png" alt="">',
+        'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="">',
+    ],
+
+    'texts' => [
+        'es' => [
+            'name' => 'Lurraldebus+',
+            'tile' => 'Autobuses de Gipuzkoa',
+            'switcher' => 'Horarios de Lurraldebus en Gipuzkoa',
+            'subtitle' => 'Horarios de Lurraldebus',
+            'liveEmpty' => 'Busca una parada para ver el próximo autobús.',
+            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.',
+        ],
+        'eu' => [
+            'name' => 'Lurraldebus+',
+            'tile' => 'Gipuzkoako autobusak',
+            'switcher' => 'Lurraldebusen ordutegiak Gipuzkoan',
+            'subtitle' => 'Lurraldebusen ordutegiak',
+            'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+        ],
+    ],
+
+    'seo' => [
+        'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa por línea y parada | Bide+',
+        'description' => 'Consulta los horarios de Lurraldebus en Gipuzkoa por línea y parada: Ekialdebus, Gipuzkoana, Goierrialdea, Pesa, TBH, Tolosaldea y Euskotren bus.',
+    ],
+    'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)',
+
+    'features' => [
+        'platforms' => false,
+        'headsign_from_last_stop' => false,
+        'stop_hints' => true,
+        'line_map' => false,
+        'schedule_text' => false,
+        'trip_detail' => 'vehicle',
+        'alerts' => 'network',
+        'alerts_detail' => true,
+    ],
+
+    // Los feeds en directo de cada operador (GTFS-RT y SIRI) existen pero hoy llegan vacíos: horario oficial.
+    'live' => [],
+
+    'siri' => [
+        'alerts_urls' => [
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/siri_goierrialdea_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_situation_exchange.xml',
+        ],
+        'cache_ttl_seconds' => 120,
+        'http_timeout_seconds' => 4,
+    ],
+
+    // Un GTFS por operador; build-database.php los junta (ver mergeGtfsZips).
+    'gtfs' => [
+        'sources' => [
+            'ekialdebus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/gtfs_ekialdebus.zip',
+            'euskotrenbus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/gtfs_euskotren_bus.zip',
+            'goierrialdea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/gtfs_goierrialdea.zip',
+            'gipuzkoana' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/gtfs_guipuzkoana.zip',
+            'pesa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/gtfs_pesa.zip',
+            'tbh' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/gtfs_tbh.zip',
+            'tolosaldea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/gtfs_tolosaldea.zip',
+        ],
+        'agency_id' => null,
+        'stops' => 'generic',
+        'skip_geocode' => true,
+        'required' => false,
+    ],
+];

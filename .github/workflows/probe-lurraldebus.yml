@@ -5,55 +5,38 @@ on:
     branches: [claude/vibrant-ritchie-yfwaei]
     paths: ['.github/workflows/probe-lurraldebus.yml']
 
+permissions:
+  contents: write
+
 jobs:
-  probe:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: GTFS por operador
-        run: |
-          set +e
-          B=https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus
-          mkdir z
-          for op in ekialdebus euskotren_bus goierrialdea guipuzkoana pesa tbh tolosa tolosaldea; do
-            curl -sS -L --max-time 120 -o z/$op.zip -w "== $op: HTTP %{http_code} %{size_download}B\n" "$B/$op/gtfs_$op.zip"
-            unzip -l z/$op.zip 2>/dev/null | awk '{print $1, $4}' | tail -n +4 | head -20 | tr '\n' ' '; echo
-            for f in agency feed_info; do echo "  $f: $(unzip -p z/$op.zip $f.txt 2>/dev/null | head -3 | tr '\r\n' ' |')"; done
-            echo "  routes: $(unzip -p z/$op.zip routes.txt | head -4 | tr '\r\n' ' |') total=$(unzip -p z/$op.zip routes.txt | wc -l)"
-            echo "  stops: $(unzip -p z/$op.zip stops.txt | head -3 | tr '\r\n' ' |') total=$(unzip -p z/$op.zip stops.txt | wc -l)"
-            echo "  trips: $(unzip -p z/$op.zip trips.txt | head -2 | tr '\r\n' ' |') total=$(unzip -p z/$op.zip trips.txt | wc -l)"
-            echo "  stop_times: $(unzip -p z/$op.zip stop_times.txt | head -2 | tr '\r\n' ' |') total=$(unzip -p z/$op.zip stop_times.txt | wc -l)"
-            echo "  calendar: $(unzip -p z/$op.zip calendar.txt 2>/dev/null | head -2 | tr '\r\n' ' |') dates=$(unzip -p z/$op.zip calendar_dates.txt 2>/dev/null | wc -l)"
-          done
-      - name: Solapes de ids entre operadores
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+      - name: Build Lurraldebus
+        run: php bideplus/scripts/build-database.php --network=lurraldebus
+      - name: Resumen
         run: |
           python3 - <<'PY'
-          import zipfile, csv, io, itertools, os
-          data = {}
-          for f in sorted(os.listdir('z')):
-              try:
-                  z = zipfile.ZipFile('z/' + f)
-              except Exception as e:
-                  print(f, 'no zip', e); continue
-              def ids(name, col):
-                  try:
-                      r = csv.DictReader(io.TextIOWrapper(z.open(name), 'utf-8-sig'))
-                      return {row[col] for row in r}
-                  except KeyError:
-                      return set()
-              data[f] = {k: ids(n, c) for k, (n, c) in {'stop': ('stops.txt', 'stop_id'), 'route': ('routes.txt', 'route_id'), 'trip': ('trips.txt', 'trip_id'), 'service': ('trips.txt', 'service_id'), 'agency': ('agency.txt', 'agency_id')}.items()}
-              # misma parada física con mismo nombre/coords en otro operador
-          for a, b in itertools.combinations(data, 2):
-              print(a, b, {k: len(data[a][k] & data[b][k]) for k in data[a]})
-          for f, d in data.items():
-              print(f, {k: len(v) for k, v in d.items()}, 'ejemplo stop', sorted(d['stop'])[:3], 'route', sorted(d['route'])[:3])
+          import sqlite3
+          c = sqlite3.connect('bideplus/data/lurraldebus.sqlite')
+          for t in ('stops', 'lines', 'journey_patterns', 'service_journeys', 'passing_times', 'calendars'):
+              try: print(t, c.execute(f'select count(*) from {t}').fetchone()[0])
+              except Exception as e: print(t, e)
+          print(dict(c.execute('select key, value from meta')))
+          print(c.execute('select id, code, name from lines limit 12').fetchall())
+          print(c.execute('select id, name from stops limit 8').fetchall())
           PY
-      - name: Tiempo real
+      - name: Commit
         run: |
-          set +e
-          B=https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus
-          for u in guipuzkoana/gtfsrt_guipuzkoana_trip_updates.pb guipuzkoana/gtfsrt_guipuzkoana_vehicle_positions.pb guipuzkoana/siri_guipuzkoana_vehicle_monitoring.xml guipuzkoana/siri_guipuzkoana_situation_exchange.xml pesa/gtfsrt_pesa_trip_updates.pb tbh/gtfsrt_tbh_trip_updates.pb; do
-            curl -sS -L --max-time 60 -D h -o b -w "== $u HTTP %{http_code} %{size_download}B\n" "$B/$u"
-            grep -i last-modified h
-            head -c 1200 b | tr -c '[:print:]\n' '.'; echo
-          done
+          php bideplus/scripts/build-sitemap.php
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bideplus/data/lurraldebus.sqlite bideplus/sitemap.xml
+          git commit -m "chore(bideplus): base de datos inicial de Lurraldebus"
+          git push
