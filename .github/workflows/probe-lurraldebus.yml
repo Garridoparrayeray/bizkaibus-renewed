@@ -1,0 +1,56 @@
+name: Probe Lurraldebus (temporal)
+
+on:
+  push:
+    branches: [claude/vibrant-ritchie-yfwaei]
+    paths: ['.github/workflows/probe-lurraldebus.yml']
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+    steps:
+      - name: FTP Moveuskadi
+        run: |
+          set +e
+          for d in "" ATTG/ Lurraldebus/ ATTG/lurraldebus_gipuzkoana/; do
+            echo "=== ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/$d"
+            curl -sS --max-time 60 "ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/$d" | head -80
+          done
+      - name: opendata.euskadi.eus
+        run: |
+          set +e
+          for u in \
+            https://opendata.euskadi.eus/transport/moveuskadi/ \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/siri_lurraldebus_vehicle_monitoring.xml \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/siri_lurraldebus_situation_exchange.xml \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/gtfs_lurraldebus.zip \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/gtfsrt_lurraldebus_vehicle_positions.pb \
+            https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/gtfsrt_lurraldebus_trip_updates.pb \
+            https://www.moveuskadi.euskadi.eus/aa27aModuloWar/descarga ; do
+            echo "=== $u"
+            curl -sS -L --max-time 60 -o body -w "HTTP %{http_code} %{content_type} %{size_download}B\n" "$u"
+            file body; head -c 1500 body | tr -c '[:print:]\n' '.'; echo
+          done
+      - name: Catálogo Moveuskadi (enlaces)
+        run: |
+          set +e
+          curl -sS -L --max-time 60 "https://opendata.euskadi.eus/catalogo/-/moveuskadi-datos-de-la-red-de-transporte-publico-de-euskadi-operadores-horarios-paradas-calendario-tarifas-etc/" -o cat.html
+          grep -oE 'href="[^"]+"' cat.html | grep -iE 'gtfs|siri|json|zip|xml|netex|transport' | sort -u | head -80
+      - name: Índices enlazados
+        run: |
+          set +e
+          for u in $(grep -oE 'https?://[^"]+\.(json|txt|csv|xml)' cat.html | sort -u | head -10); do
+            echo "=== $u"
+            curl -sS -L --max-time 60 "$u" | head -c 6000 | grep -ioE '[^",]*lurralde[^",]*|[^",]*ATTG[^",]*|[^",]*gipuzk[^",]*' | sort -u | head -60
+          done
+      - name: NAP ficheros Lurraldebus
+        run: |
+          set +e
+          for id in 1232 1233 1234 1235 1236 1237 1238 1239 1240 1241 1242; do
+            curl -sS -L --max-time 60 -H "ApiKey: $NAP_API_KEY" -o f.zip -w "NAP $id: HTTP %{http_code} %{size_download}B " "https://nap.transportes.gob.es/api/Fichero/download/$id"
+            unzip -p f.zip agency.txt 2>/dev/null | head -3 | tr '\n' '|'; unzip -p f.zip feed_info.txt 2>/dev/null | tail -1; echo " routes=$(unzip -p f.zip routes.txt 2>/dev/null | wc -l)"
+          done
