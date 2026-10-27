@@ -8,20 +8,7 @@ class Config
 
     public static function set(string $sNetwork): void
     {
-        if ($sNetwork === 'metro') {
-            $sPath = __DIR__ . '/../Config/metro.php';
-        } elseif ($sNetwork === 'euskotren') {
-            $sPath = __DIR__ . '/../Config/euskotren.php';
-        } elseif ($sNetwork === 'tranvia-bilbao') {
-            $sPath = __DIR__ . '/../Config/tranvia-bilbao.php';
-        } elseif ($sNetwork === 'tranvia-vitoria') {
-            $sPath = __DIR__ . '/../Config/tranvia-vitoria.php';
-        } elseif ($sNetwork === 'renfe') {
-            $sPath = __DIR__ . '/../Config/renfe.php';
-        } else {
-            $sPath = __DIR__ . '/../Config/config.php';
-        }
-        self::$aCurrent = require $sPath;
+        self::$aCurrent = Networks::get($sNetwork);
     }
 
     public static function withoutHiddenLines(array $aLines): array
@@ -36,8 +23,23 @@ class Config
     public static function current(): array
     {
         if (self::$aCurrent === null) {
-            self::set('bus');
+            self::set(Networks::DEFAULT);
         }
         return self::$aCurrent;
+    }
+
+    public static function network(): string
+    {
+        return self::current()['slug'];
+    }
+
+    public static function feature(string $sFeature): mixed
+    {
+        return Networks::feature(self::current(), $sFeature);
+    }
+
+    public static function hasLive(string $sSource): bool
+    {
+        return Networks::hasLive(self::current(), $sSource);
     }
 }

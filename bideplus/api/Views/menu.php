@@ -8,14 +8,10 @@ $ogImage = $site['url'] . '/icons-bide-rojo/og-image.png';
 $ogAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
 $wordmark = require __DIR__ . '/wordmark.php';
 
-$apps = [
-    ['name' => 'Bizkaibus+', 'description' => 'Horarios y tiempo real de Bizkaibus', 'url' => $site['url'] . '/?red=bus'],
-    ['name' => 'Metro+', 'description' => 'Horarios de Metro Bilbao', 'url' => $site['url'] . '/?red=metro'],
-    ['name' => 'Euskotren+', 'description' => 'Horarios de Euskotren', 'url' => $site['url'] . '/?red=euskotren'],
-    ['name' => 'Tranvía Bilbao+', 'description' => 'Horarios del tranvía de Bilbao', 'url' => $site['url'] . '/?red=tranvia-bilbao'],
-    ['name' => 'Tranvía Vitoria+', 'description' => 'Horarios del tranvía de Vitoria-Gasteiz', 'url' => $site['url'] . '/?red=tranvia-vitoria'],
-    ['name' => 'Renfe Cercanías+', 'description' => 'Horarios de Cercanías en Bilbao y Donostia/Irun', 'url' => $site['url'] . '/?red=renfe'],
-];
+$apps = [];
+foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
+    $apps[] = ['name' => \Core\Networks::text($aNetwork, 'name'), 'description' => \Core\Networks::text($aNetwork, 'switcher'), 'url' => $site['url'] . '/?red=' . $sSlug];
+}
 
 $author = ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']];
 $items = [];
@@ -103,6 +99,7 @@ $jsonLd = [
     <script src="/js/menu-view.js"></script>
     <script src="/js/bide-mode.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/style-menu.css">
     <link rel="stylesheet" href="/style-bide.css">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
@@ -133,66 +130,23 @@ $jsonLd = [
 
         <section id="tr" data-i18n-attr="aria-label:menu.section">
             <ul class="tiles">
+<?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
+    $sName = \Core\Networks::text($aNetwork, 'name');
+    $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
                 <li>
-                    <a class="tile tile--bus" data-app="bus" data-name="Bizkaibus+" href="/?red=bus">
+                    <a class="tile tile--<?= $sSlug ?>" data-app="<?= $sSlug ?>" data-name="<?= htmlspecialchars($sName) ?>" href="/?red=<?= $sSlug ?>">
                         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-pro/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-pro/icon-192.png" alt="" width="56" height="56">
+                        <img class="mark" src="<?= $sIcon ?>" alt="">
+                        <img class="appicon" src="<?= $sIcon ?>" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong data-i18n="app.bus.name">Bizkaibus+</strong><span data-i18n="app.bus.desc">Horarios y tiempo real</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+<?php if (!empty($aNetwork['texts']['es']['tile_city'])): ?>
+                        <span class="txt"><strong><?= htmlspecialchars($aNetwork['texts']['es']['tile_title']) ?><span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="net.<?= $sSlug ?>.tile_city"><?= htmlspecialchars($aNetwork['texts']['es']['tile_city']) ?></span><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+<?php else: ?>
+                        <span class="txt"><strong data-i18n="net.<?= $sSlug ?>.name"><?= htmlspecialchars($sName) ?></strong><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+<?php endif; ?>
                     </a>
                 </li>
-                <li>
-                    <a class="tile tile--metro" data-app="metro" data-name="Metro+" href="/?red=metro">
-                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-metro/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-metro/icon-192.png" alt="" width="56" height="56">
-                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong data-i18n="app.metro.name">Metro+</strong><span data-i18n="app.metro.desc">Metro Bilbao</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
-                    </a>
-                </li>
-                <li>
-                    <a class="tile tile--euskotren" data-app="euskotren" data-name="Euskotren+" href="/?red=euskotren">
-                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-euskotren/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-euskotren/icon-192.png" alt="" width="56" height="56">
-                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong data-i18n="app.euskotren.name">Euskotren+</strong><span data-i18n="app.euskotren.desc">Tren con horarios oficiales</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
-                    </a>
-                </li>
-                <li>
-                    <a class="tile tile--renfe" data-app="renfe" data-name="Renfe Cercanías+" href="/?red=renfe">
-                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-renfe/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-renfe/icon-192.png" alt="" width="56" height="56">
-                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong data-i18n="app.renfe.name">Renfe Cercanías+</strong><span data-i18n="app.renfe.desc">Cercanías en Bilbao y Donostia</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
-                    </a>
-                </li>
-                <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <span class="glyph" aria-hidden="true">L</span>
-                        <span class="txt"><strong data-i18n="app.lurraldebus.name">Lurraldebus+</strong><span data-i18n="app.soon">Próximamente</span></span>
-                    </div>
-                </li>
-                <li>
-                    <a class="tile tile--tranvia-bilbao" data-app="tranvia-bilbao" data-name="Tranvía Bilbao+" href="/?red=tranvia-bilbao">
-                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-tranvia-bilbao/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-tranvia-bilbao/icon-192.png" alt="" width="56" height="56">
-                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="app.tranviaBilbao.city">Bilbao</span><span data-i18n="app.tram.desc">Horarios del tranvía</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
-                    </a>
-                </li>
-                <li>
-                    <a class="tile tile--tranvia-vitoria" data-app="tranvia-vitoria" data-name="Tranvía Vitoria+" href="/?red=tranvia-vitoria">
-                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="/icons-tranvia-vitoria/icon-192.png" alt="">
-                        <img class="appicon" src="/icons-tranvia-vitoria/icon-192.png" alt="" width="56" height="56">
-                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
-                        <span class="txt"><strong>Tranvía<span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="app.tranviaVitoria.city">Vitoria</span><span data-i18n="app.tram.desc">Horarios del tranvía</span><span class="last" data-i18n="app.last">Última que abriste</span></span>
-                    </a>
-                </li>
+<?php endforeach; ?>
             </ul>
         </section>
 

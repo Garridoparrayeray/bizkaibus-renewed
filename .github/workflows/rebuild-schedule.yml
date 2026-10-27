@@ -1,9 +1,9 @@
 name: Rebuild schedule data
 
-# Reconstruye y redespliega data/bizkaibus.sqlite, data/metrobilbao.sqlite y
-# data/euskotren.sqlite a diario desde sus respectivos GTFS oficiales. Los
-# .sqlite no se comitean (solo geocache.json si cambia) — se regeneran en el
-# runner y se suben tal cual con el deploy de Vercel.
+# Reconstruye y redespliega a diario la base de datos de cada red de
+# bideplus/api/Networks desde su GTFS oficial. Los .sqlite no se comitean (solo
+# geocache.json si cambia): se regeneran en el runner y se suben tal cual con el
+# deploy de Vercel.
 #
 # Fuentes primarias: NAP (nap.transportes.gob.es) con ApiKey.
 # Fuentes fallback:  S3 (Bizkaibus), CMS (Metro), local zip (Euskotren).
@@ -61,24 +61,20 @@ jobs:
               print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
           PY
 
-      - name: Rebuild Metro+ database
-        run: php bideplus/scripts/build-database.php --network=metro
-
-      - name: Rebuild Euskotren+ database
-        run: php bideplus/scripts/build-database.php --network=euskotren
-
-      # Los tranvias y Renfe tambien cambian de temporada y horario. Cada base se
-      # genera en un fichero temporal y solo sustituye a la del repositorio si
-      # el build termina bien y no esta vacia: si una fuente falla se conserva
-      # la anterior y el resto del flujo (incluido el despliegue) sigue.
-      - name: Rebuild Tranvia Bilbao+, Tranvia Vitoria+ and Renfe Cercanias+ databases
+      # El resto de redes salen de bideplus/api/Networks. Cada base se genera en un fichero
+      # temporal y solo sustituye a la del repositorio si el build termina bien y no está
+      # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
+      # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
+      - name: Rebuild the other networks
         run: |
-          for item in tranvia-bilbao:tranviabilbao tranvia-vitoria:tranviavitoria renfe:renfe; do
-            network="${item%%:*}"
-            file="${item##*:}"
-            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$file.sqlite" && [ -s "$RUNNER_TEMP/$file.sqlite" ]; then
-              mv "$RUNNER_TEMP/$file.sqlite" "bideplus/data/$file.sqlite"
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            [ "$network" = "bus" ] && continue
+            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
+              mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
               echo "OK: $network reconstruida"
+            elif [ "$required" = "1" ]; then
+              echo "::error::No se pudo reconstruir $network (obligatoria)"
+              exit 1
             else
               echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
             fi
@@ -86,17 +82,13 @@ jobs:
 
       - name: Verify databases exist and are non-empty
         run: |
-          for db in bideplus/data/bizkaibus.sqlite \
-                     bideplus/data/metrobilbao.sqlite \
-                     bideplus/data/euskotren.sqlite \
-                     bideplus/data/tranviabilbao.sqlite \
-                     bideplus/data/tranviavitoria.sqlite \
-                     bideplus/data/renfe.sqlite; do
-            if [ ! -s "$db" ]; then
-              echo "ERROR: $db is missing or empty"
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            f="bideplus/data/$db.sqlite"
+            if [ ! -s "$f" ]; then
+              echo "ERROR: $f is missing or empty"
               exit 1
             fi
-            echo "OK: $db ($(du -h "$db" | cut -f1))"
+            echo "OK: $f ($(du -h "$f" | cut -f1))"
           done
 
       # sitemap.xml es estático: se regenera con las bases nuevas para que cada línea y

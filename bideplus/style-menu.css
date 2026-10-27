@@ -10,6 +10,7 @@
     --tram-bilbao: #4EB848;
     --tram-vitoria: #60AE27;
     --renfe: #74349A;
+    --lurraldebus: #0062A8;
 }
 
 /* ===== Base ===== */
@@ -74,6 +75,7 @@ main {
 .tile--tranvia-bilbao { --c: var(--tram-bilbao); }
 .tile--tranvia-vitoria { --c: var(--tram-vitoria); }
 .tile--renfe { --c: var(--renfe); }
+.tile--lurraldebus { --c: var(--lurraldebus); }
 
 /* ===== Fichas de las apps ===== */
 .tiles {

@@ -1,13 +1,16 @@
 <?php
 
-const BIDE_APPS = [
-    ['bus', 'Bizkaibus+', 'icons-pro'],
-    ['metro', 'Metro+', 'icons-metro'],
-    ['euskotren', 'Euskotren+', 'icons-euskotren'],
-    ['renfe', 'Renfe Cercanías+', 'icons-renfe'],
-    ['tranvia-bilbao', 'Tranvía Bilbao+', 'icons-tranvia-bilbao'],
-    ['tranvia-vitoria', 'Tranvía Vitoria+', 'icons-tranvia-vitoria'],
-];
+require_once __DIR__ . '/../Core/Networks.php';
+
+// [red, nombre, carpeta de iconos] de cada red, en el orden del registro.
+function bideApps(): array
+{
+    $aApps = [];
+    foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
+        $aApps[] = [$sSlug, \Core\Networks::text($aNetwork, 'name'), $aNetwork['brand']['icons']];
+    }
+    return $aApps;
+}
 
 const BIDE_ICONS = [
     'apps' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>',
@@ -64,7 +67,7 @@ function bideRail(string|null $sCurrentApp): string
     $sHtml .= '<nav class="bide-rail-nav" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
     $sHtml .= '<button type="button" class="bide-rail-item bide-rail-apps" aria-expanded="false">' . BIDE_ICONS['apps'] . '<span data-i18n="bide.allApps">Todas las apps</span><span class="bide-rail-chevron">' . BIDE_ICONS['down'] . '</span></button>';
     $sHtml .= '<div class="bide-rail-applist" hidden>';
-    foreach (BIDE_APPS as [$sApp, $sName, $sIcons]) {
+    foreach (bideApps() as [$sApp, $sName, $sIcons]) {
         $sCurrent = '';
         if ($sApp === $sCurrentApp) {
             $sCurrent = ' aria-current="page"';
@@ -142,7 +145,7 @@ function bideInstallBanner(): string
 function bideAppsLinks(): string
 {
     $sHtml = '<nav class="bide-apps-links" data-i18n-attr="aria-label:bide.appsOfBide" aria-label="Apps de Bide+"><p class="bide-footer-title" data-i18n="bide.appsOfBide">Apps de Bide+</p>';
-    foreach (BIDE_APPS as [$sApp, $sName]) {
+    foreach (bideApps() as [$sApp, $sName]) {
         $sHtml .= '<a href="/?red=' . $sApp . '">' . $sName . '</a>';
     }
     return $sHtml . '</nav>';

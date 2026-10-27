@@ -75,6 +75,7 @@ const apps = [
     { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
     { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
     { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
+    { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'tolosa', panel: 'live-card' },
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
@@ -124,13 +125,16 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         const todayValue = await ev("document.getElementById('filter-date').value");
         const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
         check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
-        check(`${tag} aviso de fecha sin publicar oculto hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
+        // Hoy el aviso solo sale si el horario publicado ya terminó (bases del repositorio sin reconstruir): entonces debe citar una fecha pasada.
+        const noteToday = await ev("document.getElementById('timetable-note').hidden ? '' : document.getElementById('timetable-note').textContent");
+        const publishedUntil = (noteToday.match(/(\d{2})\/(\d{2})\/(\d{4})/) || []).slice(1).reverse().join('-');
+        check(`${tag} aviso de fecha sin publicar oculto hoy`, noteToday === '' || (publishedUntil !== '' && publishedUntil < localToday), noteToday ? `publicado hasta ${publishedUntil}` : '');
         await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-        await until("document.getElementById('timetable-note').hidden");
-        check(`${tag} aviso vuelve a ocultarse al volver a hoy`, (await ev("document.getElementById('timetable-note').hidden")) === true);
+        await until(noteToday === '' ? "document.getElementById('timetable-note').hidden" : "!document.getElementById('timetable-note').hidden");
+        check(`${tag} aviso vuelve a ocultarse al volver a hoy`, (await ev("document.getElementById('timetable-note').hidden")) === (noteToday === ''));
         await ev("document.querySelector('#timetable-body tr').click()");
         await until("document.getElementById('vehicle-modal').open");
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));
@@ -164,8 +168,10 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.getElementById('legal-close').click()");
         await ev("document.getElementById('home-link').click()");
         await sleep(400);
+        // Las demás apps más «Todas las apps»: tantas como redes.
         const cards = await ev("[...document.querySelectorAll('#network-switcher .net-card:not([hidden])')].length");
-        check(`${tag} selector de app muestra 6 destinos`, cards === 6, `${cards}`);
+        const networks = await ev('BideNetworks.slugs.length');
+        check(`${tag} selector de app muestra las demás apps y el menú`, cards === networks, `${cards} de ${networks}`);
         await ev('localStorage.clear()');
     }
 }
@@ -198,7 +204,7 @@ await ev('localStorage.clear()');
 
 where = 'menu';
 await go('/', 2500);
-check('menu Bide+ carga y tiene 6 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 6);
+check('menu Bide+ carga y tiene una ficha por red', (await ev("document.querySelectorAll('a.tile[data-app]').length === BideNetworks.slugs.length")) === true);
 await ev("document.querySelector('[data-view-btn=list]').click()"); await sleep(600);
 check('menu vista lista', (await ev("document.documentElement.getAttribute('data-view')")) === 'list');
 await ev("document.querySelector('[data-view-btn=tiles]').click()"); await sleep(600);

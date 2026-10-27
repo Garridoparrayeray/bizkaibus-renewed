@@ -1,18 +1,11 @@
 const AlertsStore = (() => {
     const DB_NAME = 'bide-alerts';
     const STORE = 'kv';
-    const NETWORKS = ['bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'];
+    const NETWORKS = BideNetworks.slugs;
     const MAX_SEEN = 300;
     const MAX_NOTIFICATIONS = 3;
-    const APP_LABELS = { bus: 'Bizkaibus+', metro: 'Metro+', euskotren: 'Euskotren+', 'tranvia-bilbao': 'Tranvía Bilbao+', 'tranvia-vitoria': 'Tranvía Vitoria+', renfe: 'Renfe Cercanías+' };
-    const ICONS = {
-        bus: '/icons-pro/icon-192.png',
-        metro: '/icons-metro/icon-192.png',
-        euskotren: '/icons-euskotren/icon-192.png',
-        'tranvia-bilbao': '/icons-tranvia-bilbao/icon-192.png',
-        'tranvia-vitoria': '/icons-tranvia-vitoria/icon-192.png',
-        renfe: '/icons-renfe/icon-192.png',
-    };
+    const appLabel = (network) => BideNetworks.name(network);
+    const appIcon = (network) => `/${BideNetworks.get(network).icons}/icon-192.png`;
 
     function openDb() {
         return new Promise((resolve, reject) => {
@@ -62,16 +55,18 @@ const AlertsStore = (() => {
     }
 
     function sourcesFor(network, favorite) {
-        if (network === 'bus') {
-            return favorite.lines.map((id) => ({ id, url: `/api/alerts?line=${encodeURIComponent(id)}` }));
+        const mode = BideNetworks.get(network).features.alerts;
+        const base = `/api/alerts?red=${encodeURIComponent(network)}`;
+        if (mode === 'lines') {
+            return favorite.lines.map((id) => ({ id, url: `${base}&line=${encodeURIComponent(id)}` }));
         }
-        if (network === 'renfe') {
+        if (mode === 'stops') {
             return [
-                ...favorite.stops.map((id) => ({ id: `stop:${id}`, url: `/api/alerts?red=renfe&stop=${encodeURIComponent(id)}` })),
-                ...favorite.lines.map((id) => ({ id: `line:${id}`, url: `/api/alerts?red=renfe&line=${encodeURIComponent(id)}` })),
+                ...favorite.stops.map((id) => ({ id: `stop:${id}`, url: `${base}&stop=${encodeURIComponent(id)}` })),
+                ...favorite.lines.map((id) => ({ id: `line:${id}`, url: `${base}&line=${encodeURIComponent(id)}` })),
             ];
         }
-        return [{ id: '*', url: `/api/alerts?red=${network}` }];
+        return [{ id: '*', url: base }];
     }
 
     async function fetchAlerts(network, source) {
@@ -127,9 +122,9 @@ const AlertsStore = (() => {
 
     async function notify(registration, alerts) {
         for (const alert of alerts.slice(0, MAX_NOTIFICATIONS)) {
-            await registration.showNotification(`${APP_LABELS[alert.network]} · ${alert.title}`, {
+            await registration.showNotification(`${appLabel(alert.network)} · ${alert.title}`, {
                 body: alert.body.slice(0, 180),
-                icon: ICONS[alert.network],
+                icon: appIcon(alert.network),
                 tag: alert.key,
                 data: { url: `/?red=${alert.network}` },
             });
@@ -137,7 +132,7 @@ const AlertsStore = (() => {
         if (alerts.length > MAX_NOTIFICATIONS) {
             await registration.showNotification('Más incidencias en tus líneas', {
                 body: `${alerts.length - MAX_NOTIFICATIONS} avisos más. Ábrelos en la app.`,
-                icon: ICONS[alerts[0].network],
+                icon: appIcon(alerts[0].network),
                 tag: 'bide-more-alerts',
                 data: { url: `/?red=${alerts[0].network}` },
             });
