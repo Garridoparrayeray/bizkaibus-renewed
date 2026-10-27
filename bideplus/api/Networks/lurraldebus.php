@@ -10,7 +10,7 @@ return [
         'icons' => 'icons-lurraldebus',
         'theme_color' => '#0062A8',
         'title' => ['LURRALDEBUS', ''],
-        'logomark' => '<img src="/icons-lurraldebus/glyph.png" alt="">',
+        'logomark' => '<img class="is-icon" src="/icons-lurraldebus/icon-192.png" alt="">',
         'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="">',
     ],
 
