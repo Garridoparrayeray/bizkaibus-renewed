@@ -11,7 +11,7 @@ Apps de horarios de transporte de Euskadi (Bizkaibus, Metro Bilbao, Euskotren, R
   - `shell.php` — el HTML de cada app, con título, descripción y enlaces resueltos en servidor
   - `Core/` — Router, Request, Response, `Networks` (el registro de redes), `Config` (la red activa), Database (SQLite de solo lectura), Cache, Http
   - `Controllers/`, `Models/`, `Services/` — API, consultas y clientes de los feeds (GTFS-RT, SIRI, avisos)
-- **`engine/`** — cálculo de llegadas en directo.
+- **`engine/<motor>/`** — cálculo de llegadas en directo, un motor por red (`engine` en la ficha de la red).
 - **`js/`** — frontend estático, sin build step. `js/networks.js` se genera desde `api/Networks` (`php scripts/build-networks-js.php`).
 
 ## Todas las redes, un solo código

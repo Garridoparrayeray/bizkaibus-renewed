@@ -1,9 +1,9 @@
 <?php
 
 date_default_timezone_set('Europe/Madrid');
-require __DIR__ . '/../../api/autoload.php';
+require __DIR__ . '/../../../api/autoload.php';
 $sDir = $argv[1] ?? ''; $sOut = $argv[2] ?? ''; $iEvery = max(1, (int)($argv[3] ?? 15));
-if (!is_dir($sDir) || $sOut === '') { fwrite(STDERR, "Uso: php engine/tools/coverage-samples.php <carpeta con capturas> <coverage-samples.jsonl> [cada-N]\n"); exit(1); }
+if (!is_dir($sDir) || $sOut === '') { fwrite(STDERR, "Uso: php engine/bizkaibus/tools/coverage-samples.php <carpeta con capturas> <coverage-samples.jsonl> [cada-N]\n"); exit(1); }
 $aFiles = array_merge(glob(rtrim($sDir, '/') . '/s*.xml') ?: [], glob(rtrim($sDir, '/') . '/vm_*.xml') ?: []); sort($aFiles);
 if (!$aFiles) { echo "Sin capturas en $sDir\n"; exit(0); }
 
@@ -12,9 +12,9 @@ $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo);
 $Fh = fopen($sOut, 'ab'); $iRows = 0; $iSnaps = 0;
 foreach ($aFiles as $i => $sFile) {
     if ($i % $iEvery !== 0) continue;
-    $aVm = Services\SiriVehicleMonitoringClient::parse((string)file_get_contents($sFile), $sDate);
-    $iT = Engine\CoverageProbe::latestSeconds($aVm); if ($iT === 0) continue;
-    foreach (Engine\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT) as $a) {
+    $aVm = Engine\Bizkaibus\SiriVehicleMonitoringClient::parse((string)file_get_contents($sFile), $sDate);
+    $iT = Engine\Bizkaibus\CoverageProbe::latestSeconds($aVm); if ($iT === 0) continue;
+    foreach (Engine\Bizkaibus\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT) as $a) {
         fwrite($Fh, json_encode(['date' => $sDate, 't' => $iT, 'line' => $a['codigo'], 'esperados' => $a['esperados'], 'conDato' => $a['conDato'], 'gps' => $a['gps'], 'otraSalida' => $a['otraSalida']]) . "\n"); $iRows++;
     }
     $iSnaps++;

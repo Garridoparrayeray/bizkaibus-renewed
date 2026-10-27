@@ -48,7 +48,7 @@ return [
         'alerts_detail' => false,
     ],
 
-    'live' => ['vehicle-monitoring', 'trip-updates'],
+    'live' => ['trip-updates'],
 
     'metro_alerts' => [
         'url' => 'https://cms.metrobilbao.eus/es/get/open_data/json/avisos/es',

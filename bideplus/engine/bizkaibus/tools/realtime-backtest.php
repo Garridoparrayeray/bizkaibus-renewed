@@ -6,16 +6,16 @@ ini_set('memory_limit', '2G');
 
 date_default_timezone_set('Europe/Madrid');
 
-require __DIR__ . '/../../api/autoload.php';
+require __DIR__ . '/../../../api/autoload.php';
 
 use Core\Config;
 use Core\Database;
 use Core\Http;
 use Models\ServiceJourney;
-use Engine\PaceFactors;
-use Engine\RealtimeMatcher;
-use Engine\SegmentTimes;
-use Services\SiriVehicleMonitoringClient;
+use Engine\Bizkaibus\PaceFactors;
+use Engine\Bizkaibus\RealtimeMatcher;
+use Engine\Bizkaibus\SegmentTimes;
+use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 
 const MAX_GAP_BETWEEN_SNAPSHOTS_SECONDS = 300;
 const OBSERVED_AFTER_PREDICTION_SECONDS = 600;
@@ -79,12 +79,12 @@ function main(array $aArgv): void
         return;
     }
     fwrite(STDERR, "Uso:\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php capture <carpeta> [minutos=30] [intervalo_s=45]\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php analyze <carpeta> [tiempos-tramos.json] [--sin-k] [--sin-tramos]\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php samples <carpeta> <acumulado.jsonl>\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php calibrate <carpeta|acumulado.jsonl> [--write]\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php segment-samples <carpeta> <tramos.jsonl>\n");
-    fwrite(STDERR, "  php engine/tools/realtime-backtest.php calibrate-segments <carpeta|tramos.jsonl> [--write]\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php capture <carpeta> [minutos=30] [intervalo_s=45]\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php analyze <carpeta> [tiempos-tramos.json] [--sin-k] [--sin-tramos]\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php samples <carpeta> <acumulado.jsonl>\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php calibrate <carpeta|acumulado.jsonl> [--write]\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php segment-samples <carpeta> <tramos.jsonl>\n");
+    fwrite(STDERR, "  php engine/bizkaibus/tools/realtime-backtest.php calibrate-segments <carpeta|tramos.jsonl> [--write]\n");
     exit(1);
 }
 
@@ -427,7 +427,7 @@ function calibrate(string $sSource, bool $bWrite): void
     }
 
     if (!$bWrite) {
-        echo "\nNo se ha escrito nada (usa --write para guardar engine/data/pace-factors.json).\n";
+        echo "\nNo se ha escrito nada (usa --write para guardar engine/bizkaibus/data/pace-factors.json).\n";
         return;
     }
     if ($aHeldOut['n'] === 0 || $aHeldOut['meanAfter'] >= $aHeldOut['meanBefore']) {
@@ -746,7 +746,7 @@ function calibrateSegments(string $sSource, bool $bWrite): void
     }
 
     if (!$bWrite) {
-        echo "No se ha escrito nada (usa --write para guardar engine/data/segment-times.json).\n";
+        echo "No se ha escrito nada (usa --write para guardar engine/bizkaibus/data/segment-times.json).\n";
         return;
     }
     if (empty($aBefore) || array_sum($aAfter) >= array_sum($aBefore)) {

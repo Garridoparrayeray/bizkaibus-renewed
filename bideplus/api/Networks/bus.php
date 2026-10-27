@@ -51,8 +51,9 @@ return [
         'alerts_detail' => true,
     ],
 
-    // Fuentes en directo, en el orden en que se aplican: 'vehicle-monitoring' (SIRI) y 'trip-updates' (GTFS-RT).
+    // Fuentes en directo: 'vehicle-monitoring' (SIRI, con el motor de engine/<engine>) y 'trip-updates' (GTFS-RT).
     'live' => ['vehicle-monitoring'],
+    'engine' => 'bizkaibus',
 
     'siri' => [
         'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml',

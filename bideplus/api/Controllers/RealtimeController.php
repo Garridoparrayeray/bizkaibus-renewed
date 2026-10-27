@@ -13,9 +13,9 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Engine\RealtimeMatcher;
-use Services\SiriVehicleMonitoringClient;
-use Engine\TripUpdatesMatcher;
+use Core\Live;
+use Engine\Bizkaibus\SiriVehicleMonitoringClient;
+use Engine\Metro\TripUpdatesMatcher;
 
 class RealtimeController
 {
@@ -43,7 +43,7 @@ class RealtimeController
     public function status(Request $Req, array $aParams): void
     {
         $aConfig = Config::current();
-        if (!Config::hasLive('vehicle-monitoring') || Config::hasLive('trip-updates')) {
+        if (($aConfig['engine'] ?? null) !== 'bizkaibus' || !Config::hasLive('vehicle-monitoring')) {
             Response::error('This network has no SIRI feed', 404);
             return;
         }
@@ -93,11 +93,8 @@ class RealtimeController
             return;
         }
 
-        $aVmMap = [];
-        if (Config::hasLive('vehicle-monitoring')) {
-            $aVmMap = (new SiriVehicleMonitoringClient(Config::current()))->fetchActiveTrips();
-        }
-        $Matcher = new RealtimeMatcher($aVmMap, new ServiceJourney($Pdo));
+        $aVmMap = Live::vehicles();
+        $Matcher = Live::matcher(new ServiceJourney($Pdo), $aVmMap);
 
         $JourneyStmt = $Pdo->prepare('
             SELECT sj.trip_number, jp.headsign
@@ -176,12 +173,8 @@ class RealtimeController
             return;
         }
 
-        // Sin fuente en directo, el mapa queda vacío y el viaje sale con su horario oficial.
-        $aVmMap = [];
-        if (Config::hasLive('vehicle-monitoring')) {
-            $aVmMap = (new SiriVehicleMonitoringClient($aCurrentConfig))->fetchActiveTrips();
-        }
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        // Sin fuente en directo, el viaje sale con su horario oficial.
+        $Matcher = Live::matcher($JourneyModel);
         $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aJourney['id']);
         $bLive = $Matcher->isLive($aJourney['id'], $aLive);
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);

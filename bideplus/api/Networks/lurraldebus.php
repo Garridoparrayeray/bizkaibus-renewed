@@ -49,10 +49,19 @@ return [
         'alerts_detail' => true,
     ],
 
-    // Los feeds en directo de cada operador (GTFS-RT y SIRI) existen pero hoy llegan vacíos: horario oficial.
+    // Motor propio en engine/lurraldebus. Los feeds en directo de los operadores llegan vacíos (27/10/2026):
+    // se activa con 'live' => ['vehicle-monitoring'] cuando traigan buses.
     'live' => [],
+    'engine' => 'lurraldebus',
 
     'siri' => [
+        'vehicle_monitoring_urls' => [
+            'ekialdebus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_vehicle_monitoring.xml',
+            'goierrialdea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/siri_goierrialdea_vehicle_monitoring.xml',
+            'gipuzkoana' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_vehicle_monitoring.xml',
+            'pesa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_vehicle_monitoring.xml',
+            'tbh' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_vehicle_monitoring.xml',
+        ],
         'alerts_urls' => [
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_situation_exchange.xml',
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/siri_goierrialdea_situation_exchange.xml',
@@ -60,7 +69,7 @@ return [
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_situation_exchange.xml',
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_situation_exchange.xml',
         ],
-        'cache_ttl_seconds' => 120,
+        'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 4,
     ],
 

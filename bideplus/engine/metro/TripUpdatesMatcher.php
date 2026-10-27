@@ -1,6 +1,6 @@
 <?php
 
-namespace Engine;
+namespace Engine\Metro;
 
 use Models\ServiceJourney;
 

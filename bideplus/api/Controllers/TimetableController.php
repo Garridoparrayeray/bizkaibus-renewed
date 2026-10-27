@@ -9,8 +9,7 @@ use Core\Response;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Engine\RealtimeMatcher;
-use Services\SiriVehicleMonitoringClient;
+use Core\Live;
 
 class TimetableController
 {
@@ -68,8 +67,7 @@ class TimetableController
 
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($bIsToday && Config::hasLive('vehicle-monitoring')) {
-            $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
-            $aRows = (new RealtimeMatcher($aVmMap, $JourneyModel))->enrich(array_map(
+            $aRows = Live::matcher($JourneyModel)->enrich(array_map(
                 fn($aR) => $aR + ['arrival_seconds' => $aR['departure_seconds']],
                 $aRows
             ));
