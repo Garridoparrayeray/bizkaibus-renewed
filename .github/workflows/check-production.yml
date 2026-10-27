@@ -24,17 +24,20 @@ jobs:
           curl -fsS "$BASE/robots.txt" | grep -q "Sitemap: $BASE/sitemap.xml"
           curl -fsS "$BASE/llms.txt" | grep -q "Bide+"
 
-      - name: Sitemaps
+      - name: Sitemap
         run: |
           set -e
-          curl -fsS "$BASE/sitemap.xml" | python3 -c "import sys,xml.dom.minidom as m; m.parseString(sys.stdin.buffer.read())" || { echo "::error::sitemap.xml no es XML válido (¿avisos de PHP?)"; exit 1; }
-          curl -fsS "$BASE/sitemap.xml" | grep -c "<sitemap>" | xargs echo "sitemaps en el índice:"
-          for r in apps bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
-            curl -fsS "$BASE/sitemap-$r.xml" | python3 -c "import sys,xml.dom.minidom as m; m.parseString(sys.stdin.buffer.read())" || { echo "::error::sitemap-$r.xml no es XML válido (¿avisos de PHP?)"; exit 1; }
-            n=$(curl -fsS "$BASE/sitemap-$r.xml" | grep -c "<url>")
-            echo "sitemap-$r.xml: $n URLs"
-            [ "$n" -gt 0 ] || { echo "::error::sitemap-$r.xml vacío"; exit 1; }
+          # Como lo pide Google: con su user-agent, mostrando estado y tipo de contenido.
+          curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" -D headers.txt -o sitemap.xml "$BASE/sitemap.xml"
+          grep -iE '^(HTTP|content-type|content-length|x-vercel-cache)' headers.txt
+          head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap.xml no responde 200 a Googlebot"; exit 1; }
+          grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap.xml sin Content-Type XML"; exit 1; }
+          python3 -c "import xml.dom.minidom as m; m.parse('sitemap.xml')" || { echo "::error::sitemap.xml no es XML válido"; exit 1; }
+          for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
+            grep -q "/?red=$r</loc>" sitemap.xml || { echo "::error::falta la app $r"; exit 1; }
           done
+          echo "URLs: $(grep -c '<url>' sitemap.xml) | líneas: $(grep -c '/lines/' sitemap.xml) | paradas: $(grep -c '/stops/' sitemap.xml)"
+          [ "$(grep -c '<url>' sitemap.xml)" -gt 1000 ] || { echo "::error::sitemap.xml con muy pocas URLs"; exit 1; }
 
       - name: Títulos, descripción, canonical y snippet
         run: |
