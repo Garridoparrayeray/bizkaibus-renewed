@@ -62,6 +62,8 @@ const SHELL_FILES = [
     '/icons-tranvia-vitoria/icon-512.png',
     '/icons-renfe/icon-192.png',
     '/icons-renfe/icon-512.png',
+    '/icons-lurraldebus/icon-192.png',
+    '/icons-lurraldebus/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',

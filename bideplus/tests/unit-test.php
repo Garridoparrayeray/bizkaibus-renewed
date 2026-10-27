@@ -272,7 +272,7 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     if (!in_array($aNet['kind'], ['bus', 'metro', 'train', 'tram'], true)) {
         $aProblems[] = 'kind desconocido';
     }
-    if (!in_array($aNet['gtfs']['stops'] ?? null, ['bus', 'metro', 'euskotren', 'renfe'], true)) {
+    if (!in_array($aNet['gtfs']['stops'] ?? null, ['bus', 'metro', 'euskotren', 'renfe', 'generic'], true)) {
         $aProblems[] = 'gtfs.stops desconocido';
     }
     $expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));

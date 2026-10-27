@@ -147,12 +147,6 @@ $jsonLd = [
                     </a>
                 </li>
 <?php endforeach; ?>
-                <li>
-                    <div class="tile soon" aria-disabled="true">
-                        <span class="glyph" aria-hidden="true">L</span>
-                        <span class="txt"><strong data-i18n="app.lurraldebus.name">Lurraldebus+</strong><span data-i18n="app.soon">Próximamente</span></span>
-                    </div>
-                </li>
             </ul>
         </section>
 

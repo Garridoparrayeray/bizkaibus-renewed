@@ -198,7 +198,7 @@ await ev('localStorage.clear()');
 
 where = 'menu';
 await go('/', 2500);
-check('menu Bide+ carga y tiene 6 fichas', (await ev("document.querySelectorAll('a.tile[data-app]').length")) === 6);
+check('menu Bide+ carga y tiene una ficha por red', (await ev("document.querySelectorAll('a.tile[data-app]').length === BideNetworks.slugs.length")) === true);
 await ev("document.querySelector('[data-view-btn=list]').click()"); await sleep(600);
 check('menu vista lista', (await ev("document.documentElement.getAttribute('data-view')")) === 'list');
 await ev("document.querySelector('[data-view-btn=tiles]').click()"); await sleep(600);

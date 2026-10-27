@@ -27,7 +27,7 @@ function main(array $aArgv): void
     $aNetwork = \Core\Networks::get($sNetwork);
     $aGtfs = $aNetwork['gtfs'];
 
-    $sSource = $aOptions['source'] ?? $aGtfs['source'];
+    $sSource = $aOptions['source'] ?? ($aGtfs['source'] ?? null);
     $sFallbackSource = $aGtfs['fallback_source'] ?? null;
     $sOutput = $aOptions['output'] ?? $aNetwork['db_path'];
     $bSkipGeocode = isset($aOptions['skip-geocode']) || !empty($aGtfs['skip_geocode']);
@@ -37,8 +37,18 @@ function main(array $aArgv): void
     $sLabel = \Core\Networks::text($aNetwork, 'name');
     echo "== $sLabel database build (GTFS, network=$sNetwork) ==\n\n";
 
-    echo "Reading GTFS export from: $sSource\n";
-    $sZipPath = resolveZipPath($sSource, $sFallbackSource); $Zip = new ZipArchive();
+    if ($sSource === null && !empty($aGtfs['sources'])) {
+        echo "Merging " . count($aGtfs['sources']) . " GTFS exports (" . implode(', ', array_keys($aGtfs['sources'])) . ")\n";
+        $aPaths = [];
+        foreach ($aGtfs['sources'] as $sKey => $sUrl) {
+            $aPaths[$sKey] = resolveZipPath($sUrl);
+        }
+        $sZipPath = mergeGtfsZips($aPaths);
+    } else {
+        echo "Reading GTFS export from: $sSource\n";
+        $sZipPath = resolveZipPath($sSource, $sFallbackSource);
+    }
+    $Zip = new ZipArchive();
     if ($Zip->open($sZipPath) !== true) {
         fwrite(STDERR, "Could not open zip: $sZipPath\n");
         exit(1);
@@ -49,7 +59,7 @@ function main(array $aArgv): void
     echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    $aStopLoaders = ['bus' => 'loadStopsBus', 'metro' => 'loadStopsMetro', 'euskotren' => 'loadStopsEuskotren', 'renfe' => 'loadStopsRenfe'];
+    $aStopLoaders = ['bus' => 'loadStopsBus', 'metro' => 'loadStopsMetro', 'euskotren' => 'loadStopsEuskotren', 'renfe' => 'loadStopsRenfe', 'generic' => 'loadStopsMetro'];
     if (!isset($aStopLoaders[$aGtfs['stops']])) {
         fwrite(STDERR, "Unknown gtfs.stops=\"{$aGtfs['stops']}\" (expected " . implode('|', array_keys($aStopLoaders)) . ")\n");
         exit(1);
@@ -355,6 +365,108 @@ function normalize(string $sText): string
     return trim(preg_replace('/\s+/', ' ', $sLower));
 }
 
+/*
+ * Junta varios GTFS (un operador cada uno) en un único zip temporal. Líneas, viajes, calendarios, trazados y
+ * operadores llevan delante «<clave>:» porque sus ids se repiten entre operadores; las paradas no, porque
+ * comparten numeración (la misma parada física tiene el mismo id en todos) y así una parada muestra todas sus líneas.
+ * Si un viaje no trae trip_headsign se usa trip_short_name. feed_info queda con la fecha de inicio más temprana
+ * y la de fin más tardía.
+ */
+function mergeGtfsZips(array $aPathsByKey): string
+{
+    $aPrefixed = [
+        'agency.txt' => ['agency_id'],
+        'routes.txt' => ['route_id', 'agency_id'],
+        'trips.txt' => ['route_id', 'service_id', 'trip_id', 'shape_id', 'block_id'],
+        'stop_times.txt' => ['trip_id'],
+        'calendar.txt' => ['service_id'],
+        'calendar_dates.txt' => ['service_id'],
+        'shapes.txt' => ['shape_id'],
+        'stops.txt' => [],
+    ];
+    $aHeaders = [];
+    $aRows = [];
+    $aSeenStops = [];
+    $aFeedStart = [];
+    $aFeedEnd = [];
+    foreach ($aPathsByKey as $sKey => $sPath) {
+        $Zip = new ZipArchive();
+        if ($Zip->open($sPath) !== true) {
+            fwrite(STDERR, "Could not open zip for $sKey: $sPath\n");
+            exit(1);
+        }
+        foreach ($aPrefixed as $sFile => $aColumns) {
+            foreach (readCsv($Zip, $sFile, $sFile !== 'calendar_dates.txt' && $sFile !== 'shapes.txt' && $sFile !== 'calendar.txt') as $aRow) {
+                foreach ($aColumns as $sColumn) {
+                    if (isset($aRow[$sColumn]) && $aRow[$sColumn] !== '') {
+                        $aRow[$sColumn] = $sKey . ':' . $aRow[$sColumn];
+                    }
+                }
+                if ($sFile === 'stops.txt') {
+                    if (isset($aSeenStops[$aRow['stop_id']])) {
+                        continue;
+                    }
+                    $aSeenStops[$aRow['stop_id']] = true;
+                }
+                if ($sFile === 'trips.txt' && ($aRow['trip_headsign'] ?? '') === '' && ($aRow['trip_short_name'] ?? '') !== '') {
+                    $aRow['trip_headsign'] = $aRow['trip_short_name'];
+                }
+                if ($sFile === 'routes.txt') {
+                    $aRow['route_long_name'] = tidyRouteName($aRow['route_long_name'] ?? '', $aRow['route_short_name'] ?? '');
+                }
+                foreach (array_keys($aRow) as $sColumn) {
+                    $aHeaders[$sFile][$sColumn] = true;
+                }
+                $aRows[$sFile][] = $aRow;
+            }
+        }
+        foreach (readCsv($Zip, 'feed_info.txt', false) as $aRow) {
+            if (!empty($aRow['feed_start_date'])) {
+                $aFeedStart[] = $aRow['feed_start_date'];
+            }
+            if (!empty($aRow['feed_end_date'])) {
+                $aFeedEnd[] = $aRow['feed_end_date'];
+            }
+        }
+        $Zip->close();
+    }
+
+    $sOut = tempnam(sys_get_temp_dir(), 'bbmerged') . '.zip';
+    $Out = new ZipArchive();
+    $Out->open($sOut, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    foreach ($aRows as $sFile => $aFileRows) {
+        $aColumns = array_keys($aHeaders[$sFile]);
+        $Fp = fopen('php://temp', 'w+');
+        fputcsv($Fp, $aColumns, ',', '"', '\\');
+        foreach ($aFileRows as $aRow) {
+            fputcsv($Fp, array_map(fn($sColumn) => $aRow[$sColumn] ?? '', $aColumns), ',', '"', '\\');
+        }
+        rewind($Fp);
+        $Out->addFromString($sFile, stream_get_contents($Fp));
+        fclose($Fp);
+    }
+    if ($aFeedStart && $aFeedEnd) {
+        $Out->addFromString('feed_info.txt', "feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version\n"
+            . 'Bide+,https://bideplus.vercel.app,es,' . min($aFeedStart) . ',' . max($aFeedEnd) . ',' . date('YmdHis') . "\n");
+    }
+    $Out->close();
+    foreach ($aRows as $sFile => $aFileRows) {
+        echo "  merged $sFile: " . count($aFileRows) . " rows\n";
+    }
+    return $sOut;
+}
+
+// «Uk01-azkoitia>azpeitia>zestoa» -> «Azkoitia - Azpeitia - Zestoa»: sin el código delante y con mayúscula inicial.
+function tidyRouteName(string $sName, string $sCode): string
+{
+    if ($sCode !== '' && stripos($sName, $sCode . '-') === 0) {
+        $sName = substr($sName, strlen($sCode) + 1);
+    }
+    $aParts = array_map('trim', explode('>', $sName));
+    $aParts = array_map(fn($sPart) => $sPart === mb_strtolower($sPart) ? mb_convert_case($sPart, MB_CASE_TITLE) : $sPart, $aParts);
+    return implode(' - ', array_filter($aParts, fn($sPart) => $sPart !== ''));
+}
+
 function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Generator
 {
     $Stream = $Zip->getStream($sName);
@@ -366,6 +478,7 @@ function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Genera
     }
     $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
     $aHeader = array_map('trim', $aHeader);
+    $aHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', $aHeader[0]);
     while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
         if ($aRow === null || $aRow === [null]) {
             continue;
