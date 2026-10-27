@@ -18,6 +18,17 @@ jobs:
     env:
       BASE: ${{ inputs.base_url }}
     steps:
+      # Solo para leer la lista de redes (bideplus/api/Networks).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            bideplus/api/Core
+            bideplus/api/Networks
+            bideplus/scripts
+
+      - name: Redes a comprobar
+        run: echo "NETWORKS=$(php bideplus/scripts/networks.php --slugs)" >> "$GITHUB_ENV"
+
       - name: robots.txt y llms.txt
         run: |
           set -e
@@ -33,7 +44,7 @@ jobs:
           head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap.xml no responde 200 a Googlebot"; exit 1; }
           grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap.xml sin Content-Type XML"; exit 1; }
           python3 -c "import xml.dom.minidom as m; m.parse('sitemap.xml')" || { echo "::error::sitemap.xml no es XML válido"; exit 1; }
-          for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
+          for r in $NETWORKS; do
             grep -q "/?red=$r</loc>" sitemap.xml || { echo "::error::falta la app $r"; exit 1; }
           done
           echo "URLs: $(grep -c '<url>' sitemap.xml) | líneas: $(grep -c '/lines/' sitemap.xml) | paradas: $(grep -c '/stops/' sitemap.xml)"
@@ -55,15 +66,19 @@ jobs:
             fi
             return 0
           }
-          for p in "/" "/?red=bus" "/?red=metro" "/?red=euskotren" "/?red=tranvia-bilbao" "/?red=tranvia-vitoria" "/?red=renfe" "/stops/4255" "/lines/2151"; do
+          for p in "/" $(for r in $NETWORKS; do echo "/?red=$r"; done) "/stops/4255" "/lines/2151"; do
             check "$p"
           done
           # los títulos de cada app deben ser distintos
-          dup=$(for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
+          dup=$(for r in $NETWORKS; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
           [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
           exit $fail
 
-      - name: 404 en páginas inexistentes
+      - name: 404 en páginas inexistentes y en lo que no se publica
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/stops/no-existe-999999")
-          [ "$code" = "404" ] || { echo "::error::esperaba 404, obtuve $code"; exit 1; }
+          fail=0
+          for p in /stops/no-existe-999999 /data/bizkaibus.sqlite /scripts/build-database.php /engine/bizkaibus/data/pace-factors.json /engine/bizkaibus/RealtimeMatcher.php /api/Networks/bus.php; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")
+            [ "$code" = "404" ] || { echo "::error::$p: esperaba 404, obtuve $code"; fail=1; }
+          done
+          exit $fail

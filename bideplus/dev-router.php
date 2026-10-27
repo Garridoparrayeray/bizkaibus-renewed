@@ -3,7 +3,7 @@
 // Servidor local: php -S localhost:8011 dev-router.php
 // Reproduce vercel.json: las mismas cabeceras de seguridad y las mismas rutas bloqueadas.
 
-$sUri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$sUri = urldecode((string)strtok($_SERVER['REQUEST_URI'], '?#'));
 
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
@@ -22,7 +22,7 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     }
 }
 
-if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|test_gtfs)(/|$)#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
+if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|test_gtfs|engine)(/|$)#', $sUri) || preg_match('#^/api/[A-Z][^/]*/#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
     http_response_code(404);
     readfile(__DIR__ . '/404.html');
     return true;

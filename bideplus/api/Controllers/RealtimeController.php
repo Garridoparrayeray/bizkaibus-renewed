@@ -13,9 +13,9 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Services\RealtimeMatcher;
-use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Core\Live;
+use Engine\Bizkaibus\SiriVehicleMonitoringClient;
+use Engine\Metro\TripUpdatesMatcher;
 
 class RealtimeController
 {
@@ -43,13 +43,13 @@ class RealtimeController
     public function status(Request $Req, array $aParams): void
     {
         $aConfig = Config::current();
-        if (!isset($aConfig['siri']['vehicle_monitoring_url']) || isset($aConfig['gtfs_rt'])) {
+        if (($aConfig['engine'] ?? null) !== 'bizkaibus' || !Config::hasLive('vehicle-monitoring')) {
             Response::error('This network has no SIRI feed', 404);
             return;
         }
         $sUrl = $aConfig['siri']['vehicle_monitoring_url'];
         $fStart = microtime(true);
-        $aOut = ['network' => $aConfig['network'] ?? 'bus', 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
+        $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
         try {
             $sBody = Http::get($sUrl, $aConfig['siri']['http_timeout_seconds']);
             $aOut['bytes'] = \strlen($sBody);
@@ -93,9 +93,8 @@ class RealtimeController
             return;
         }
 
-        $aConfig = require __DIR__ . '/../Config/config.php';
-        $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
-        $Matcher = new RealtimeMatcher($aVmMap, new ServiceJourney($Pdo));
+        $aVmMap = Live::vehicles();
+        $Matcher = Live::matcher(new ServiceJourney($Pdo), $aVmMap);
 
         $JourneyStmt = $Pdo->prepare('
             SELECT sj.trip_number, jp.headsign
@@ -169,14 +168,13 @@ class RealtimeController
         }
 
         $aCurrentConfig = Config::current();
-        if (isset($aCurrentConfig['gtfs_rt'])) {
+        if (Config::hasLive('trip-updates')) {
             $this->vehicleFromTripUpdates($aCurrentConfig, $JourneyModel, $aJourney, $Req->query('stopId'));
             return;
         }
 
-        $aConfig = require __DIR__ . '/../Config/config.php';
-        $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        // Sin fuente en directo, el viaje sale con su horario oficial.
+        $Matcher = Live::matcher($JourneyModel);
         $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aJourney['id']);
         $bLive = $Matcher->isLive($aJourney['id'], $aLive);
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);

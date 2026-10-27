@@ -2,6 +2,7 @@
 
 namespace Controllers;
 
+use Core\Config;
 use Core\Database;
 use Core\Request;
 use Core\Response;
@@ -33,7 +34,7 @@ class LinesController
 
     public function scheduleText(Request $Req, array $aParams): void
     {
-        $aConfig = require __DIR__ . '/../Config/config.php';
+        $aConfig = Config::current();
         $aBlocks = (new ScheduleTextClient($aConfig))->fetchForLine((int)$aParams['id']);
         Response::json([
             'lineId' => (int)$aParams['id'],

@@ -2,14 +2,10 @@
     const root = document.documentElement;
     if (!root.classList.contains('bide')) return;
 
-    const APPS = {
-        bus: { name: 'Bizkaibus+', storageKey: 'bizkaibus_favorites' },
-        metro: { name: 'Metro+', storageKey: 'metrobilbao_favorites' },
-        euskotren: { name: 'Euskotren+', storageKey: 'euskotren_favorites' },
-        renfe: { name: 'Renfe Cercanías+', storageKey: 'renfe_favorites' },
-        'tranvia-bilbao': { name: 'Tranvía Bilbao+', storageKey: 'tranviabilbao_favorites' },
-        'tranvia-vitoria': { name: 'Tranvía Vitoria+', storageKey: 'tranviavitoria_favorites' },
-    };
+    const APPS = {};
+    BideNetworks.slugs.forEach((slug) => {
+        APPS[slug] = { name: BideNetworks.name(slug), storageKey: BideNetworks.get(slug).favoritesKey };
+    });
     const VIEWS = ['favoritos', 'avisos', 'info'];
     const INSTALL_DISMISS_KEY = 'bide_install_dismissed';
     const INSTALL_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -40,7 +36,7 @@
     }
 
     function appQuery(app) {
-        return app === 'bus' ? '' : '?red=' + app;
+        return app === BideNetworks.DEFAULT ? '' : '?red=' + app;
     }
 
     function groupTitle(app, tag) {
@@ -153,9 +149,11 @@
     function alertUrls(app, favorites) {
         const lines = favorites.filter((f) => f.type === 'line').map((f) => encodeURIComponent(f.refId));
         const stops = favorites.filter((f) => f.type === 'stop').map((f) => encodeURIComponent(f.refId));
-        if (app === 'bus') return lines.map((id) => `/api/alerts?line=${id}`);
-        if (app === 'renfe') return [...stops.map((id) => `/api/alerts?red=renfe&stop=${id}`), ...lines.map((id) => `/api/alerts?red=renfe&line=${id}`)];
-        return favorites.length ? [`/api/alerts?red=${app}`] : [];
+        const mode = BideNetworks.get(app).features.alerts;
+        const base = `/api/alerts?red=${encodeURIComponent(app)}`;
+        if (mode === 'lines') return lines.map((id) => `${base}&line=${id}`);
+        if (mode === 'stops') return [...stops.map((id) => `${base}&stop=${id}`), ...lines.map((id) => `${base}&line=${id}`)];
+        return favorites.length ? [base] : [];
     }
 
     async function fetchAlerts(app) {

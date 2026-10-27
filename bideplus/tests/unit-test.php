@@ -4,23 +4,18 @@ declare(strict_types=1);
 
 date_default_timezone_set('Europe/Madrid');
 
-spl_autoload_register(function (string $sClass): void {
-    $sPath = __DIR__ . '/../api/' . str_replace('\\', '/', $sClass) . '.php';
-    if (is_file($sPath)) {
-        require $sPath;
-    }
-});
+require __DIR__ . '/../api/autoload.php';
 
 use Core\Config;
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Services\PaceFactors;
-use Services\RealtimeMatcher;
-use Services\SegmentTimes;
-use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Engine\Bizkaibus\PaceFactors;
+use Engine\Bizkaibus\RealtimeMatcher;
+use Engine\Bizkaibus\SegmentTimes;
+use Engine\Bizkaibus\SiriVehicleMonitoringClient;
+use Engine\Metro\TripUpdatesMatcher;
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {
@@ -247,8 +242,61 @@ $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaFor
 
 /* ------------------------------------------------------------------ */
 $section('Bizkaibus: fuente de los buses en directo');
-$aBusConfig = require __DIR__ . '/../api/Config/config.php';
+$aBusConfig = \Core\Networks::get('bus');
 $expect('los buses en directo salen solo del feed GPS SIRI de Open Data Bizkaia (posicion y hora del dato), sin el feed de trip-updates', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
+
+$section('Lurraldebus: lectura del feed en directo');
+$sLurSiri = '<?xml version="1.0"?><Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery>'
+    . '<VehicleActivity><RecordedAtTime>' . DATE_WEEKDAY . 'T08:30:10+02:00</RecordedAtTime><MonitoredVehicleJourney><LineRef>7</LineRef>'
+    . '<FramedVehicleJourneyRef><DataFrameRef>' . DATE_WEEKDAY . '</DataFrameRef><DatedVehicleJourneyRef>7_702_LJ_29700</DatedVehicleJourneyRef></FramedVehicleJourneyRef>'
+    . '<OriginAimedDepartureTime>' . DATE_WEEKDAY . 'T08:15:00+02:00</OriginAimedDepartureTime>'
+    . '<VehicleLocation><Longitude>-1.98</Longitude><Latitude>43.31</Latitude></VehicleLocation><VehicleRef>412</VehicleRef>'
+    . '<MonitoredCall><StopPointRef>130</StopPointRef><Order>5</Order></MonitoredCall></MonitoredVehicleJourney></VehicleActivity>'
+    . '</VehicleMonitoringDelivery></ServiceDelivery></Siri>';
+$aLur = \Engine\Lurraldebus\Live::parse($sLurSiri, 'pesa', DATE_WEEKDAY);
+$aLurEntry = $aLur['pesa:7|pesa:7_702_LJ_29700'][0] ?? null;
+$expect('el viaje lleva el prefijo del operador, como en la base de datos', $aLurEntry !== null && $aLurEntry['tripRef'] === 'pesa:7_702_LJ_29700' && $aLurEntry['lineId'] === 'pesa:7');
+$expect('posición, parada, orden y hora del dato', $aLurEntry !== null && $aLurEntry['lat'] === 43.31 && $aLurEntry['currentStopId'] === '130' && $aLurEntry['order'] === 5 && $aLurEntry['locationSeconds'] === 8 * 3600 + 30 * 60 + 10);
+$expect('salida de cabecera desde OriginAimedDepartureTime', $aLurEntry !== null && $aLurEntry['departureSeconds'] === 8 * 3600 + 15 * 60);
+$expect('un feed vacío no trae buses', \Engine\Lurraldebus\Live::parse('<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery/></ServiceDelivery></Siri>', 'pesa', DATE_WEEKDAY) === []);
+$expect('motores separados: Lurraldebus no lee los datos aprendidos de Bizkaibus', (new \ReflectionClassConstant(\Engine\Lurraldebus\SegmentTimes::class, 'FILE_PATH'))->getValue() !== (new \ReflectionClassConstant(\Engine\Bizkaibus\SegmentTimes::class, 'FILE_PATH'))->getValue());
+
+$section('Registro de redes (api/Networks)');
+$aFeatureKeys = ['platforms', 'headsign_from_last_stop', 'stop_hints', 'line_map', 'schedule_text', 'trip_detail', 'alerts', 'alerts_detail'];
+foreach (\Core\Networks::all() as $sSlug => $aNet) {
+    $aProblems = [];
+    foreach ($aFeatureKeys as $sKey) {
+        if (!array_key_exists($sKey, $aNet['features'])) {
+            $aProblems[] = 'falta features.' . $sKey;
+        }
+    }
+    foreach ($aNet['live'] as $sSource) {
+        if ($sSource === 'vehicle-monitoring' && empty($aNet['siri']['vehicle_monitoring_url']) && empty($aNet['siri']['vehicle_monitoring_urls'])) {
+            $aProblems[] = 'vehicle-monitoring sin siri.vehicle_monitoring_url(s)';
+        } elseif ($sSource === 'vehicle-monitoring' && !is_file(__DIR__ . '/../engine/' . ($aNet['engine'] ?? '-') . '/Live.php')) {
+            $aProblems[] = 'vehicle-monitoring sin motor (engine/<engine>/Live.php)';
+        } elseif ($sSource === 'trip-updates' && empty($aNet['gtfs_rt']['trip_updates_url'])) {
+            $aProblems[] = 'trip-updates sin gtfs_rt.trip_updates_url';
+        } elseif (!in_array($sSource, ['vehicle-monitoring', 'trip-updates'], true)) {
+            $aProblems[] = 'fuente en directo desconocida ' . $sSource;
+        }
+    }
+    if (!in_array($aNet['features']['alerts'], ['lines', 'stops', 'network'], true)) {
+        $aProblems[] = 'features.alerts desconocido';
+    }
+    if (!in_array($aNet['features']['trip_detail'], ['vehicle', 'stops'], true)) {
+        $aProblems[] = 'features.trip_detail desconocido';
+    }
+    if (!in_array($aNet['kind'], ['bus', 'metro', 'train', 'tram'], true)) {
+        $aProblems[] = 'kind desconocido';
+    }
+    if (!in_array($aNet['gtfs']['stops'] ?? null, ['bus', 'metro', 'euskotren', 'renfe', 'generic'], true)) {
+        $aProblems[] = 'gtfs.stops desconocido';
+    }
+    $expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));
+}
+$expect('solo Bizkaibus y Metro tienen datos en directo; el resto, horario oficial', array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live']))) === ['bus', 'metro']);
+$expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
 $section('RealtimeMatcher: capa 2, parada registrada sin GPS utilizable');
 
@@ -474,7 +522,7 @@ if ($bValid) {
         }
     }
 }
-$expect('data/pace-factors.json es válido (franjas conocidas, k entre 0,6 y 1,2)', $bValid && empty($aBad), implode(', ', $aBad));
+$expect('engine/bizkaibus/data/pace-factors.json es válido (franjas conocidas, k entre 0,6 y 1,2)', $bValid && empty($aBad), implode(', ', $aBad));
 
 $aSegmentsBad = [];
 $sSegmentsPath = SegmentTimes::defaultPath();
@@ -493,7 +541,7 @@ if (is_file($sSegmentsPath)) {
         }
     }
 }
-$expect('data/segment-times.json es válido si existe (tramos desde>hasta, segundos entre 1 y 3 h)', empty($aSegmentsBad), implode(', ', array_slice($aSegmentsBad, 0, 5)));
+$expect('engine/bizkaibus/data/segment-times.json es válido si existe (tramos desde>hasta, segundos entre 1 y 3 h)', empty($aSegmentsBad), implode(', ', array_slice($aSegmentsBad, 0, 5)));
 
 /* ------------------------------------------------------------------ */
 $section('SIRI-VM (parseo del feed)');

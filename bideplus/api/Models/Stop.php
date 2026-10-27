@@ -113,6 +113,7 @@ class Stop
             FROM journey_pattern_stops jps
             JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
             WHERE jps.stop_id IN (' . $sPlaceholders . ') AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
+              AND jps.seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = jps.journey_pattern_id)
         ');
         $Stmt->execute(array_values($aStopIds));
         $aByStop = [];

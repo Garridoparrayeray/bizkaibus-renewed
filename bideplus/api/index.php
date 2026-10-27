@@ -7,15 +7,10 @@ date_default_timezone_set('Europe/Madrid');
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-spl_autoload_register(function (string $sClass): void {
-
-    $sPath = __DIR__ . '/' . str_replace('\\', '/', $sClass) . '.php';
-    if (is_file($sPath)) {
-        require $sPath;
-    }
-});
+require __DIR__ . '/autoload.php';
 
 use Core\Config;
+use Core\Networks;
 use Core\Request;
 use Core\Response;
 use Core\Router;
@@ -28,11 +23,7 @@ use Controllers\AlertsController;
 
 $Req = new Request();
 
-$sNetwork = 'bus';
-if (in_array($Req->query('red'), ['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'], true)) {
-    $sNetwork = $Req->query('red');
-}
-Config::set($sNetwork);
+Config::set(Networks::fromQuery($Req->query('red')));
 
 $Router = new Router();
 
@@ -55,7 +46,7 @@ $Router->get('/lines/{id}/timetable', [$Timetable, 'show'], 60);
 $Alerts = new AlertsController();
 $Router->get('/alerts', [$Alerts, 'index'], 60);
 
-if ($sNetwork === 'bus') {
+if (Config::feature('schedule_text')) {
     $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], 3600);
 }
 
