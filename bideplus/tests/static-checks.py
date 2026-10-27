@@ -56,6 +56,14 @@ print('geocache (caché de geocodificación):', 'OK' if geo.returncode == 0 else
 if geo.returncode != 0:
     failures.append('prueba de geocache')
 
+# sitemap.xml: lo genera scripts/build-sitemap.php; el del repositorio debe coincidir con las bases de datos.
+fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check.xml')
+r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output=' + fresh], capture_output=True, text=True)
+stale = r.returncode != 0 or open(fresh, encoding='utf-8').read() != open(ROOT + 'sitemap.xml', encoding='utf-8').read()
+print('sitemap.xml:', 'desactualizado, ejecuta php scripts/build-sitemap.php' if stale else 'al día (' + r.stdout.strip() + ')')
+if stale:
+    failures.append('sitemap.xml desactualizado')
+
 
 # Seguridad: cabeceras de vercel.json, sin scripts en línea (la CSP los bloquearía) y HTML escapado.
 vercel = json.load(open(ROOT + 'vercel.json', encoding='utf-8'))
