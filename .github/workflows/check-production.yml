@@ -18,6 +18,17 @@ jobs:
     env:
       BASE: ${{ inputs.base_url }}
     steps:
+      # Solo para leer la lista de redes (bideplus/api/Networks).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            bideplus/api/Core
+            bideplus/api/Networks
+            bideplus/scripts
+
+      - name: Redes a comprobar
+        run: echo "NETWORKS=$(php bideplus/scripts/networks.php --slugs)" >> "$GITHUB_ENV"
+
       - name: robots.txt y llms.txt
         run: |
           set -e
@@ -33,7 +44,7 @@ jobs:
           head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap.xml no responde 200 a Googlebot"; exit 1; }
           grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap.xml sin Content-Type XML"; exit 1; }
           python3 -c "import xml.dom.minidom as m; m.parse('sitemap.xml')" || { echo "::error::sitemap.xml no es XML válido"; exit 1; }
-          for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do
+          for r in $NETWORKS; do
             grep -q "/?red=$r</loc>" sitemap.xml || { echo "::error::falta la app $r"; exit 1; }
           done
           echo "URLs: $(grep -c '<url>' sitemap.xml) | líneas: $(grep -c '/lines/' sitemap.xml) | paradas: $(grep -c '/stops/' sitemap.xml)"
@@ -55,11 +66,11 @@ jobs:
             fi
             return 0
           }
-          for p in "/" "/?red=bus" "/?red=metro" "/?red=euskotren" "/?red=tranvia-bilbao" "/?red=tranvia-vitoria" "/?red=renfe" "/stops/4255" "/lines/2151"; do
+          for p in "/" $(for r in $NETWORKS; do echo "/?red=$r"; done) "/stops/4255" "/lines/2151"; do
             check "$p"
           done
           # los títulos de cada app deben ser distintos
-          dup=$(for r in bus metro euskotren tranvia-bilbao tranvia-vitoria renfe; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
+          dup=$(for r in $NETWORKS; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
           [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
           exit $fail
 

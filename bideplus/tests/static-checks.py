@@ -64,6 +64,25 @@ print('sitemap.xml:', 'desactualizado, ejecuta php scripts/build-sitemap.php' if
 if stale:
     failures.append('sitemap.xml desactualizado')
 
+# js/networks.js: lo genera scripts/build-networks-js.php desde api/Networks.
+fresh_js = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.js')
+r = subprocess.run([PHP, ROOT + 'scripts/build-networks-js.php', '--output=' + fresh_js], capture_output=True, text=True)
+stale_js = r.returncode != 0 or open(fresh_js, encoding='utf-8').read() != open(ROOT + 'js/networks.js', encoding='utf-8').read()
+print('js/networks.js:', 'desactualizado, ejecuta php scripts/build-networks-js.php' if stale_js else 'al día (' + r.stdout.strip() + ')')
+if stale_js:
+    failures.append('js/networks.js desactualizado')
+
+# Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
+registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
+for slug, net in registry.items():
+    files = ['data/' + net['db'] + '.sqlite'] + [net['brand']['icons'] + '/' + f for f in ('icon-192.png', 'icon-512.png', 'apple-touch-icon.png')]
+    missing = [f for f in files if not os.path.exists(ROOT + f)]
+    missing += ['texto ' + k for k in ('name', 'tile', 'switcher', 'subtitle', 'liveEmpty', 'disclaimer') if not net['texts']['es'].get(k)]
+    missing += ['seo.' + k for k in ('title', 'description') if not net['seo'].get(k)]
+    print('red', slug + ':', 'OK' if not missing else 'falta ' + ', '.join(missing))
+    if missing:
+        failures.append('piezas de la red ' + slug)
+
 
 # Seguridad: cabeceras de vercel.json, sin scripts en línea (la CSP los bloquearía) y HTML escapado.
 vercel = json.load(open(ROOT + 'vercel.json', encoding='utf-8'))

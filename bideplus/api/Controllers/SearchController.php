@@ -25,12 +25,7 @@ class SearchController
         $aStops = $StopModel->search($sQ, 60);
         $aLines = (new LineModel($Pdo))->search($sQ, 30);
 
-        $aConfig = Config::current();
-        $sNetwork = 'bus';
-        if (isset($aConfig['network'])) {
-            $sNetwork = $aConfig['network'];
-        }
-        if ($sNetwork === 'bus') {
+        if (Config::feature('stop_hints')) {
             $aStops = $this->addDirectionHints($StopModel, $aStops);
         } else {
             foreach ($aStops as &$aStop) {

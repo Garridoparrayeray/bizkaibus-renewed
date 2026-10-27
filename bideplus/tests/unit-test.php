@@ -247,8 +247,43 @@ $expect('sin datos en vivo la ETA es el horario', matcher($aLive, $iGps)->etaFor
 
 /* ------------------------------------------------------------------ */
 $section('Bizkaibus: fuente de los buses en directo');
-$aBusConfig = require __DIR__ . '/../api/Config/config.php';
+$aBusConfig = \Core\Networks::get('bus');
 $expect('los buses en directo salen solo del feed GPS SIRI de Open Data Bizkaia (posicion y hora del dato), sin el feed de trip-updates', str_starts_with($aBusConfig['siri']['vehicle_monitoring_url'], 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions') && !isset($aBusConfig['siri']['vehicle_monitoring_fallback_url']));
+
+$section('Registro de redes (api/Networks)');
+$aFeatureKeys = ['platforms', 'headsign_from_last_stop', 'stop_hints', 'line_map', 'schedule_text', 'trip_detail', 'alerts', 'alerts_detail'];
+foreach (\Core\Networks::all() as $sSlug => $aNet) {
+    $aProblems = [];
+    foreach ($aFeatureKeys as $sKey) {
+        if (!array_key_exists($sKey, $aNet['features'])) {
+            $aProblems[] = 'falta features.' . $sKey;
+        }
+    }
+    foreach ($aNet['live'] as $sSource) {
+        if ($sSource === 'vehicle-monitoring' && empty($aNet['siri']['vehicle_monitoring_url'])) {
+            $aProblems[] = 'vehicle-monitoring sin siri.vehicle_monitoring_url';
+        } elseif ($sSource === 'trip-updates' && empty($aNet['gtfs_rt']['trip_updates_url'])) {
+            $aProblems[] = 'trip-updates sin gtfs_rt.trip_updates_url';
+        } elseif (!in_array($sSource, ['vehicle-monitoring', 'trip-updates'], true)) {
+            $aProblems[] = 'fuente en directo desconocida ' . $sSource;
+        }
+    }
+    if (!in_array($aNet['features']['alerts'], ['lines', 'stops', 'network'], true)) {
+        $aProblems[] = 'features.alerts desconocido';
+    }
+    if (!in_array($aNet['features']['trip_detail'], ['vehicle', 'stops'], true)) {
+        $aProblems[] = 'features.trip_detail desconocido';
+    }
+    if (!in_array($aNet['kind'], ['bus', 'metro', 'train', 'tram'], true)) {
+        $aProblems[] = 'kind desconocido';
+    }
+    if (!in_array($aNet['gtfs']['stops'] ?? null, ['bus', 'metro', 'euskotren', 'renfe'], true)) {
+        $aProblems[] = 'gtfs.stops desconocido';
+    }
+    $expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));
+}
+$expect('solo Bizkaibus y Metro tienen datos en directo; el resto, horario oficial', array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live']))) === ['bus', 'metro']);
+$expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
 $section('RealtimeMatcher: capa 2, parada registrada sin GPS utilizable');
 
