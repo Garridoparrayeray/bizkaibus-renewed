@@ -99,6 +99,11 @@ jobs:
             echo "OK: $db ($(du -h "$db" | cut -f1))"
           done
 
+      # sitemap.xml es estático: se regenera con las bases nuevas para que cada línea y
+      # parada que aparezca o desaparezca entre o salga del sitemap en el mismo despliegue.
+      - name: Rebuild sitemap.xml
+        run: php bideplus/scripts/build-sitemap.php
+
       # Puerta antes de desplegar: si las bases nuevas rompen el cálculo de llegadas, la
       # integridad de los datos o el contrato de la API, no se despliega y producción
       # sigue con el último despliegue bueno.

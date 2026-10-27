@@ -139,7 +139,8 @@ if found:
     get(f"/api/lines/{found[0]['id']}/schedule-text")
 
 
-# Sitemap: índice válido, un sitemap por red y que sus URLs abran la página con la misma canónica.
+# Sitemap: XML válido con el menú, las seis apps y líneas y paradas de cada red, y que una muestra
+# de sus URLs abra la página con la misma canónica.
 import re as _re
 import xml.dom.minidom as _minidom
 
@@ -156,26 +157,26 @@ def fetch_text(path):
         return 0, str(e)
 
 
-code, index = fetch_text('/sitemap.xml')
+code, sitemap = fetch_text('/sitemap.xml')
 try:
-    _minidom.parseString(index)
+    _minidom.parseString(sitemap)
 except Exception:
     fails.append(f'/sitemap.xml: XML no válido ({code})')
-    index = ''
-for sub in _re.findall(r'<loc>([^<]+)</loc>', index):
-    path = urllib.parse.urlparse(sub).path
-    code, body = fetch_text(path)
-    locs = _re.findall(r'<loc>([^<]+)</loc>', body)
-    if code != 200 or not locs:
-        fails.append(f'{path}: sin URLs ({code})')
-        continue
-    for loc in locs[::max(1, len(locs) // 4)][:4]:
-        loc = loc.replace('&amp;', '&')
-        parts = urllib.parse.urlparse(loc)
-        code, page = fetch_text(parts.path + ('?' + parts.query if parts.query else ''))
-        canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
-        if code != 200 or canonical != loc:
-            fails.append(f'{path}: {loc} da {code} con canónica {canonical!r}')
+    sitemap = ''
+locs = [loc.replace('&amp;', '&') for loc in _re.findall(r'<loc>([^<]+)</loc>', sitemap)]
+for red in ('bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'):
+    suffix = '' if red == 'bus' else '?red=' + red
+    for kind in ('lines', 'stops'):
+        sample = [loc for loc in locs if f'/{kind}/' in loc and (loc.endswith(suffix) if suffix else '?' not in loc)]
+        if not sample:
+            fails.append(f'/sitemap.xml: sin {kind} de {red}')
+            continue
+        for loc in sample[::max(1, len(sample) // 2)][:2]:
+            parts = urllib.parse.urlparse(loc)
+            code, page = fetch_text(parts.path + ('?' + parts.query if parts.query else ''))
+            canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
+            if code != 200 or canonical != loc:
+                fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
 print('sitemap ok')
 
 print(f'{count} peticiones, {len(fails)} fallos')
