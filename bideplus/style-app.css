@@ -848,6 +848,18 @@ dialog#side-menu {
     .live-card, .timetable { padding: 18px; }
     .table-scroll { margin: 0 -18px; padding: 0 18px; }
 }
+/* Móviles muy estrechos: logotipo y botones algo más pequeños para que quepan nombres como LURRALDEBUS. */
+@media (max-width: 350px) {
+    #app-logomark { width: 34px; height: 34px; }
+    .header-actions { gap: 4px; }
+    .header-actions .btn-icon { width: 34px; height: 34px; }
+    #home-link::after { margin-right: 6px; }
+}
+@media (max-width: 330px) {
+    .app-container > header { padding-left: 8px; padding-right: 8px; }
+    #home-link { gap: 5px; }
+    #home-link::after { margin-right: 5px; }
+}
 
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
