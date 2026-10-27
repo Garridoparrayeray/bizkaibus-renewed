@@ -165,8 +165,10 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev("document.getElementById('legal-close').click()");
         await ev("document.getElementById('home-link').click()");
         await sleep(400);
+        // Las demás apps más «Todas las apps»: tantas como redes.
         const cards = await ev("[...document.querySelectorAll('#network-switcher .net-card:not([hidden])')].length");
-        check(`${tag} selector de app muestra 6 destinos`, cards === 6, `${cards}`);
+        const networks = await ev('BideNetworks.slugs.length');
+        check(`${tag} selector de app muestra las demás apps y el menú`, cards === networks, `${cards} de ${networks}`);
         await ev('localStorage.clear()');
     }
 }
