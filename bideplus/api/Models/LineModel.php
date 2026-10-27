@@ -34,14 +34,16 @@ class LineModel
 
     public function search(string $sQuery, int $iLimit = 10): array
     {
-        $sNormalized = Search::normalize($sQuery);
-        $Stmt = $this->Pdo->prepare(
-            'SELECT id, code, name FROM lines WHERE name_normalized LIKE ? OR LOWER(code) LIKE ? ORDER BY code LIMIT ?'
-        );
-        $sLike = '%' . $sNormalized . '%';
-        $Stmt->bindValue(1, $sLike, \PDO::PARAM_STR);
-        $Stmt->bindValue(2, $sLike, \PDO::PARAM_STR);
-        $Stmt->bindValue(3, $iLimit, \PDO::PARAM_INT);
+        $aWords = Search::words($sQuery);
+        if (empty($aWords)) {
+            return [];
+        }
+        [$sWhere, $aArgs] = Search::wordsCondition($aWords, "(LOWER(code) || ' ' || name_normalized)");
+        $Stmt = $this->Pdo->prepare('SELECT id, code, name FROM lines WHERE ' . $sWhere . ' ORDER BY code LIMIT ?');
+        foreach ($aArgs as $i => $sArg) {
+            $Stmt->bindValue($i + 1, $sArg, \PDO::PARAM_STR);
+        }
+        $Stmt->bindValue(count($aArgs) + 1, $iLimit, \PDO::PARAM_INT);
         $Stmt->execute();
         $aRows = $Stmt->fetchAll();
         foreach ($aRows as &$aRow) {

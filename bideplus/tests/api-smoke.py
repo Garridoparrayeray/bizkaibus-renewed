@@ -116,6 +116,15 @@ if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
 
+# Búsqueda por palabras: pueblo y parada en cualquier orden, sin importar mayúsculas.
+for q in ('amorebieta san juan', 'SAN JUAN Amorebieta'):
+    found = (get('/api/search?q=' + urllib.parse.quote(q)) or {}).get('stops', [])
+    if not any(x['name'] == 'SAN JUAN' and 'amorebieta' in (x.get('area') or '').lower() for x in found):
+        fails.append(f'búsqueda «{q}»: no encuentra SAN JUAN de Amorebieta')
+lines_found = (get('/api/search?q=' + urllib.parse.quote('gernika bilbao')) or {}).get('lines', [])
+if not lines_found:
+    fails.append('búsqueda «gernika bilbao»: no encuentra líneas entre los dos pueblos')
+
 # Lo que no se publica: bases de datos, scripts, pruebas y el motor (código y datos).
 for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/bizkaibus/data/pace-factors.json', '/engine/bizkaibus/RealtimeMatcher.php', '/api/Networks/bus.php'):
     count += 1
