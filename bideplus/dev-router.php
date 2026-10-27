@@ -3,7 +3,7 @@
 // Servidor local: php -S localhost:8011 dev-router.php
 // Reproduce vercel.json: las mismas cabeceras de seguridad y las mismas rutas bloqueadas.
 
-$sUri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+$sUri = urldecode((string)strtok($_SERVER['REQUEST_URI'], '?#'));
 
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {

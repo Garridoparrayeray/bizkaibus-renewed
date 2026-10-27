@@ -17,7 +17,8 @@ class Request
             $sPath = $_GET['path'];
             unset($_GET['path']);
         } else {
-            $sPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+            // Sin parse_url: confunde «/lines/tolosaldea:4/…» con un host y un puerto.
+            $sPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#') ?: '/';
             $sPath = preg_replace('#^/api#', '', $sPath);
         }
         $this->sPath = '/' . ltrim($sPath, '/');
