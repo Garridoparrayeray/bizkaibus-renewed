@@ -20,7 +20,11 @@
       "continue": true
     },
     {
-      "src": "^/(data|scripts|tests|test_gtfs)(/.*)?$",
+      "src": "^/(data|scripts|tests|test_gtfs|engine)(/.*)?$",
+      "dest": "/api/index.php"
+    },
+        {
+      "src": "^/api/[A-Z][^/]*/.*$",
       "dest": "/api/index.php"
     },
     {

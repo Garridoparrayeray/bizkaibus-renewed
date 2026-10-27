@@ -74,7 +74,11 @@ jobs:
           [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
           exit $fail
 
-      - name: 404 en páginas inexistentes
+      - name: 404 en páginas inexistentes y en lo que no se publica
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/stops/no-existe-999999")
-          [ "$code" = "404" ] || { echo "::error::esperaba 404, obtuve $code"; exit 1; }
+          fail=0
+          for p in /stops/no-existe-999999 /data/bizkaibus.sqlite /scripts/build-database.php /engine/data/pace-factors.json /engine/RealtimeMatcher.php /api/Networks/bus.php; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")
+            [ "$code" = "404" ] || { echo "::error::$p: esperaba 404, obtuve $code"; fail=1; }
+          done
+          exit $fail

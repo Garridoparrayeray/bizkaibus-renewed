@@ -7,13 +7,7 @@ date_default_timezone_set('Europe/Madrid');
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-spl_autoload_register(function (string $sClass): void {
-
-    $sPath = __DIR__ . '/' . str_replace('\\', '/', $sClass) . '.php';
-    if (is_file($sPath)) {
-        require $sPath;
-    }
-});
+require __DIR__ . '/autoload.php';
 
 use Core\Config;
 use Core\Networks;

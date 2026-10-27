@@ -11,10 +11,10 @@ use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Services\RealtimeMatcher;
+use Engine\RealtimeMatcher;
 use Services\GtfsRealtimeClient;
 use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Engine\TripUpdatesMatcher;
 
 class StopsController
 {

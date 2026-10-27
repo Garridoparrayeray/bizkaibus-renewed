@@ -22,7 +22,7 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     }
 }
 
-if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|test_gtfs)(/|$)#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
+if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|test_gtfs|engine)(/|$)#', $sUri) || preg_match('#^/api/[A-Z][^/]*/#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
     http_response_code(404);
     readfile(__DIR__ . '/404.html');
     return true;

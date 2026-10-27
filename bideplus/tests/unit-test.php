@@ -4,23 +4,18 @@ declare(strict_types=1);
 
 date_default_timezone_set('Europe/Madrid');
 
-spl_autoload_register(function (string $sClass): void {
-    $sPath = __DIR__ . '/../api/' . str_replace('\\', '/', $sClass) . '.php';
-    if (is_file($sPath)) {
-        require $sPath;
-    }
-});
+require __DIR__ . '/../api/autoload.php';
 
 use Core\Config;
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Services\PaceFactors;
-use Services\RealtimeMatcher;
-use Services\SegmentTimes;
+use Engine\PaceFactors;
+use Engine\RealtimeMatcher;
+use Engine\SegmentTimes;
 use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Engine\TripUpdatesMatcher;
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {
@@ -509,7 +504,7 @@ if ($bValid) {
         }
     }
 }
-$expect('data/pace-factors.json es válido (franjas conocidas, k entre 0,6 y 1,2)', $bValid && empty($aBad), implode(', ', $aBad));
+$expect('engine/data/pace-factors.json es válido (franjas conocidas, k entre 0,6 y 1,2)', $bValid && empty($aBad), implode(', ', $aBad));
 
 $aSegmentsBad = [];
 $sSegmentsPath = SegmentTimes::defaultPath();
@@ -528,7 +523,7 @@ if (is_file($sSegmentsPath)) {
         }
     }
 }
-$expect('data/segment-times.json es válido si existe (tramos desde>hasta, segundos entre 1 y 3 h)', empty($aSegmentsBad), implode(', ', array_slice($aSegmentsBad, 0, 5)));
+$expect('engine/data/segment-times.json es válido si existe (tramos desde>hasta, segundos entre 1 y 3 h)', empty($aSegmentsBad), implode(', ', array_slice($aSegmentsBad, 0, 5)));
 
 /* ------------------------------------------------------------------ */
 $section('SIRI-VM (parseo del feed)');

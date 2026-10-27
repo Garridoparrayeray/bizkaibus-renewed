@@ -2,30 +2,12 @@
 
 declare(strict_types=1);
 
-/*
- * Curva de aprendizaje de los tiempos por tramo: cuánto mejora el sistema al darle más datos.
- *
- * Uso: php scripts/learning-curve.php <tramos.jsonl>   (el acumulado de segment-samples, o el seed descomprimido)
- *
- * La mitad de los buses (por crc32, como en la validación del recalibrado) se aparta para probar. Con la otra mitad se
- * aprenden los tiempos por tramo usando una fracción cada vez mayor de sus buses, y en cada paso se mide, sobre los
- * buses apartados:
- *   - cobertura: qué parte de los tramos medidos tienen tiempo aprendido;
- *   - error de lo que usa la app (lo aprendido si existe, y si no k x horario);
- *   - error de usar solo k x horario.
- */
-
 date_default_timezone_set('Europe/Madrid');
 
-spl_autoload_register(function (string $sClass): void {
-    $sPath = __DIR__ . '/../api/' . str_replace('\\', '/', $sClass) . '.php';
-    if (is_file($sPath)) {
-        require $sPath;
-    }
-});
+require __DIR__ . '/../../api/autoload.php';
 
-use Services\PaceFactors;
-use Services\SegmentTimes;
+use Engine\PaceFactors;
+use Engine\SegmentTimes;
 
 const MIN_TRACKS_PER_SEGMENT = 2;
 
@@ -67,7 +49,7 @@ function fit(array $aSamples): SegmentTimes
 
 $sPath = $argv[1] ?? '';
 if (!is_file($sPath)) {
-    fwrite(STDERR, "Uso: php scripts/learning-curve.php <tramos.jsonl>\n");
+    fwrite(STDERR, "Uso: php engine/tools/learning-curve.php <tramos.jsonl>\n");
     exit(1);
 }
 
