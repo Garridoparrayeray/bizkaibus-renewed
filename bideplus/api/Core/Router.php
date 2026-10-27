@@ -52,7 +52,7 @@ class Router
                 continue;
             }
             array_shift($aMatches);
-            $aParams = array_combine($aRoute['params'], $aMatches);
+            $aParams = array_combine($aRoute['params'], array_map('rawurldecode', $aMatches));
             Response::$iCacheSeconds = $aRoute['cache'];
             try {
                 ($aRoute['handler'])($Req, $aParams);

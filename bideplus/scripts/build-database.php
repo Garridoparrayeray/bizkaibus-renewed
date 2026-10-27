@@ -463,7 +463,7 @@ function tidyRouteName(string $sName, string $sCode): string
         $sName = substr($sName, strlen($sCode) + 1);
     }
     $aParts = array_map('trim', explode('>', $sName));
-    $aParts = array_map(fn($sPart) => $sPart === mb_strtolower($sPart) ? mb_convert_case($sPart, MB_CASE_TITLE) : $sPart, $aParts);
+    $aParts = array_map(fn($sPart) => $sPart === mb_strtolower($sPart) ? mb_convert_case($sPart, MB_CASE_TITLE) : mb_strtoupper(mb_substr($sPart, 0, 1)) . mb_substr($sPart, 1), $aParts);
     return implode(' - ', array_filter($aParts, fn($sPart) => $sPart !== ''));
 }
 

@@ -1,6 +1,7 @@
 <?php
 
-$menuPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+// Sin parse_url: confunde «/lines/tolosaldea:4/…» con un host y un puerto.
+$menuPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#');
 // bideplusmiamor.vercel.app va directa al tema, sin pasar por el menú
 // selector de apps — es un dominio dedicado, no un punto de entrada más.
 $isMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
@@ -38,7 +39,7 @@ if ($isMiamorDomain) {
 }
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$path = parse_url($requestUri, PHP_URL_PATH);
+$path = strtok($requestUri, '?#');
 $ogSiteUrl = $isMiamorDomain ? 'https://bideplusmiamor.vercel.app' : $site['url'];
 $ogUrl = $ogSiteUrl . $path;
 if ($path === '/' || $path === '') {
