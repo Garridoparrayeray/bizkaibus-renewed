@@ -15,12 +15,7 @@ class AlertsController
     {
         $aConfig = Config::current();
 
-        $sNetwork = 'bus';
-        if (isset($aConfig['network'])) {
-            $sNetwork = $aConfig['network'];
-        }
-
-        if ($sNetwork === 'metro') {
+        if (isset($aConfig['metro_alerts'])) {
             $Client = new MetroAlertsClient($aConfig);
             $aAlerts = $Client->fetchAlerts();
 

@@ -16,6 +16,7 @@ spl_autoload_register(function (string $sClass): void {
 });
 
 use Core\Config;
+use Core\Networks;
 use Core\Request;
 use Core\Response;
 use Core\Router;
@@ -28,11 +29,7 @@ use Controllers\AlertsController;
 
 $Req = new Request();
 
-$sNetwork = 'bus';
-if (in_array($Req->query('red'), ['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'], true)) {
-    $sNetwork = $Req->query('red');
-}
-Config::set($sNetwork);
+Config::set(Networks::fromQuery($Req->query('red')));
 
 $Router = new Router();
 
@@ -55,7 +52,7 @@ $Router->get('/lines/{id}/timetable', [$Timetable, 'show'], 60);
 $Alerts = new AlertsController();
 $Router->get('/alerts', [$Alerts, 'index'], 60);
 
-if ($sNetwork === 'bus') {
+if (Config::feature('schedule_text')) {
     $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], 3600);
 }
 

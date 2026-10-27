@@ -8,57 +8,7 @@ date_default_timezone_set('Europe/Madrid');
 
 const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 
-const NETWORK_DEFAULTS = [
-    'bus' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1061',
-        'backdoor_source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
-        'output' => __DIR__ . '/../data/bizkaibus.sqlite',
-        'label' => 'BizkaiBus+',
-        'agencyId' => '200',
-        'skipGeocode' => false,
-    ],
-    'metro' => [
-        'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip',
-        'backdoor_source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
-        'output' => __DIR__ . '/../data/metrobilbao.sqlite',
-        'label' => 'Metro+',
-        'agencyId' => null,
-        'skipGeocode' => true,
-    ],
-    'euskotren' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/euskotren.sqlite',
-        'label' => 'Euskotren+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_Tren:',
-        'skipGeocode' => false,
-    ],
-    'tranvia-bilbao' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/tranviabilbao.sqlite',
-        'label' => 'Tranvía Bilbao+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_TrBi:',
-        'skipGeocode' => false,
-    ],
-    'tranvia-vitoria' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/tranviavitoria.sqlite',
-        'label' => 'Tranvía Vitoria+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_TrGa:',
-        'skipGeocode' => false,
-    ],
-    'renfe' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1130',
-        'backdoor_source' => null,
-        'output' => __DIR__ . '/../data/renfe.sqlite',
-        'label' => 'Renfe Cercanías+',
-        'agencyId' => null,
-        'routeIdPrefixes' => ['60T', '61T'],
-        'skipGeocode' => false,
-    ],
-];
+require_once __DIR__ . '/../api/Core/Networks.php';
 define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)(getenv('GEOCODE_MAX_NEW') !== false ? getenv('GEOCODE_MAX_NEW') : 300));
@@ -69,29 +19,22 @@ function main(array $aArgv): void
 {
     $GLOBALS['BUILD_ARGV'] = $aArgv;
     $aOptions = parseArgs($aArgv);
-    $sNetwork = 'bus';
-    if (isset($aOptions['network'])) {
-        $sNetwork = $aOptions['network'];
-    }
-    if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
-        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)\n");
+    $sNetwork = $aOptions['network'] ?? \Core\Networks::DEFAULT;
+    if (!\Core\Networks::exists($sNetwork)) {
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected " . implode('|', \Core\Networks::slugs()) . ")\n");
         exit(1);
     }
-    $aDefaults = NETWORK_DEFAULTS[$sNetwork];
+    $aNetwork = \Core\Networks::get($sNetwork);
+    $aGtfs = $aNetwork['gtfs'];
 
-    $sSource = $aDefaults['source'];
-    $sFallbackSource = $aDefaults['backdoor_source'] ?? null;
-    if (isset($aOptions['source'])) {
-        $sSource = $aOptions['source'];
-    }
-    $sOutput = $aDefaults['output'];
-    if (isset($aOptions['output'])) {
-        $sOutput = $aOptions['output'];
-    }
-    $bSkipGeocode = isset($aOptions['skip-geocode']) || $aDefaults['skipGeocode'];
-    $sAgencyId = $aDefaults['agencyId'];
+    $sSource = $aOptions['source'] ?? $aGtfs['source'];
+    $sFallbackSource = $aGtfs['fallback_source'] ?? null;
+    $sOutput = $aOptions['output'] ?? $aNetwork['db_path'];
+    $bSkipGeocode = isset($aOptions['skip-geocode']) || !empty($aGtfs['skip_geocode']);
+    $sAgencyId = $aGtfs['agency_id'] ?? null;
+    $bMergeCalendars = !empty($aGtfs['merge_calendars']);
 
-    $sLabel = $aDefaults['label'];
+    $sLabel = \Core\Networks::text($aNetwork, 'name');
     echo "== $sLabel database build (GTFS, network=$sNetwork) ==\n\n";
 
     echo "Reading GTFS export from: $sSource\n";
@@ -102,26 +45,23 @@ function main(array $aArgv): void
     }
 
     echo "Parsing routes.txt...\n";
-    $aRoutes = loadRoutes($Zip, $sAgencyId, $aDefaults['routeIdPrefixes'] ?? null);
+    $aRoutes = loadRoutes($Zip, $sAgencyId, $aGtfs['route_id_prefixes'] ?? null);
     echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    if ($sNetwork === 'metro') {
-        $aStops = loadStopsMetro($Zip);
-    } elseif ($sNetwork === 'euskotren' || $sNetwork === 'tranvia-bilbao' || $sNetwork === 'tranvia-vitoria') {
-        $aStops = loadStopsEuskotren($Zip);
-    } elseif ($sNetwork === 'renfe') {
-        $aStops = loadStopsRenfe($Zip);
-    } else {
-        $aStops = loadStopsBus($Zip);
+    $aStopLoaders = ['bus' => 'loadStopsBus', 'metro' => 'loadStopsMetro', 'euskotren' => 'loadStopsEuskotren', 'renfe' => 'loadStopsRenfe'];
+    if (!isset($aStopLoaders[$aGtfs['stops']])) {
+        fwrite(STDERR, "Unknown gtfs.stops=\"{$aGtfs['stops']}\" (expected " . implode('|', array_keys($aStopLoaders)) . ")\n");
+        exit(1);
     }
+    $aStops = $aStopLoaders[$aGtfs['stops']]($Zip);
     echo '  ' . count($aStops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
     $aStops = geocodeStops($aStops, $bSkipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $aCalendars = loadCalendars($Zip, $sNetwork === 'metro');
+    $aCalendars = loadCalendars($Zip, $bMergeCalendars);
     echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
@@ -166,10 +106,10 @@ function main(array $aArgv): void
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
     $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
     $aWindow = [];
-    if ($sNetwork === 'bus' && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
+    if (!empty($aGtfs['feed_window']) && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
         $aWindow = datesBetween(gtfsDateToIso($aFeedInfo['feed_start_date']), gtfsDateToIso($aFeedInfo['feed_end_date']));
     }
-    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork, $aWindow);
+    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
 
     $Pdo->commit();
 
@@ -925,9 +865,9 @@ function signatureRunsOn(array $aSig, string $sDate): bool
     return ($aSig['weekdayMask'] & $iWeekdayBit) !== 0;
 }
 
-function calendarGroupKeyFor(string $sNetwork, string $sServiceId, array $aCalendars): string
+function calendarGroupKeyFor(bool $bMergeCalendars, string $sServiceId, array $aCalendars): string
 {
-    if ($sNetwork !== 'metro') {
+    if (!$bMergeCalendars) {
         return '';
     }
     if (!isset($aCalendars[$sServiceId])) {
@@ -958,7 +898,7 @@ function timingKeyFor(array $aBuffer, int|null $iFirstDeparture): string
     return substr(md5(implode(',', $aOffsets)), 0, 12);
 }
 
-function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork, array $aWindow = []): void
+function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, bool $bMergeCalendars, array $aWindow = []): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
@@ -1004,7 +944,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             $aIncludedDates = $aCalendars[$aTrip['serviceId']]['includedDates'];
             $aExcludedDates = $aCalendars[$aTrip['serviceId']]['excludedDates'];
         }
-        $sCalendarGroupKey = calendarGroupKeyFor($sNetwork, $aTrip['serviceId'], $aCalendars);
+        $sCalendarGroupKey = calendarGroupKeyFor($bMergeCalendars, $aTrip['serviceId'], $aCalendars);
         $sTimingKey = timingKeyFor($aBuffer, $iFirstDeparture);
 
         $aSignatures[$sTripId] = [
@@ -1070,7 +1010,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     }
 
     // Bizkaibus: el calendario de cada viaje fusionado es exacto dentro del periodo publicado (ver exactCalendarForWindow).
-    $bExactWindow = $sNetwork === 'bus' && !empty($aWindow);
+    $bExactWindow = !empty($aWindow);
     if ($bExactWindow) {
         $aExactByService = [];
         foreach ($aGroups as $sClusterKey => $aGroup) {

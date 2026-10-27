@@ -67,7 +67,7 @@ class TimetableController
         }
 
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
-        if ($bIsToday && isset($aConfig['siri'])) {
+        if ($bIsToday && Config::hasLive('vehicle-monitoring')) {
             $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
             $aRows = (new RealtimeMatcher($aVmMap, $JourneyModel))->enrich(array_map(
                 fn($aR) => $aR + ['arrival_seconds' => $aR['departure_seconds']],
@@ -77,11 +77,7 @@ class TimetableController
             $aRows = array_map(fn($aR) => $aR + ['status' => 'scheduled', 'delaySeconds' => 0], $aRows);
         }
 
-        $sNetwork = 'bus';
-        if (isset($aConfig['network'])) {
-            $sNetwork = $aConfig['network'];
-        }
-        $bUseLastStopHeadsign = in_array($sNetwork, ['metro', 'renfe'], true);
+        $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
 
         $sToday = Calendar::todayMadrid()->format('Y-m-d');
         $sDate = $Date->format('Y-m-d');

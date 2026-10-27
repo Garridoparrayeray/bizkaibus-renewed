@@ -16,14 +16,8 @@ $sRoot = dirname(__DIR__);
 $sOutput = $aOptions['output'] ?? $sRoot . '/sitemap.xml';
 $site = require $sRoot . '/api/Config/site.php';
 
-$aNetworks = [
-    'bus' => 'bizkaibus',
-    'metro' => 'metrobilbao',
-    'euskotren' => 'euskotren',
-    'tranvia-bilbao' => 'tranviabilbao',
-    'tranvia-vitoria' => 'tranviavitoria',
-    'renfe' => 'renfe',
-];
+require_once $sRoot . '/api/Core/Networks.php';
+$aNetworks = array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all());
 
 function openReadonly(string $sDbPath): PDO
 {
@@ -67,7 +61,7 @@ foreach ($aNetworks as $sSlug => $sDb) {
     $Pdo = openReadonly($sPath);
     $sLastModified = lastModified($Pdo, $sPath);
     $aLastModified[$sSlug] = $sLastModified;
-    $sSuffix = $sSlug === 'bus' ? '' : '?red=' . $sSlug;
+    $sSuffix = \Core\Networks::urlSuffix($sSlug);
     foreach ($Pdo->query('SELECT id FROM lines ORDER BY id') as $aRow) {
         $aPages[] = urlEntry($site['url'] . '/lines/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.7');
     }
