@@ -29,16 +29,24 @@ class Stop
     public function search(string $sQuery, int $iLimit = 10): array
     {
         $sNormalized = Search::normalize($sQuery);
-        $sLike = '%' . $sNormalized . '%';
+        $aWords = Search::words($sQuery);
+        if (empty($aWords)) {
+            return [];
+        }
+        // Cada palabra puede estar en el nombre o en el pueblo; primero lo que más se parece a lo escrito.
+        [$sWhere, $aWhereArgs] = Search::wordsCondition($aWords, "(name_normalized || ' ' || COALESCE(area_normalized, ''))");
+        [$sFallbackWhere, $aFallbackArgs] = Search::wordsCondition($aWords, 'name_normalized');
+        $sRank = 'CASE WHEN name_normalized = ? THEN 0 WHEN name_normalized LIKE ? THEN 1 WHEN name_normalized LIKE ? THEN 2 ELSE 3 END';
+        $aRankArgs = [$sNormalized, $sNormalized . '%', '%' . $sNormalized . '%'];
         $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops
-             WHERE (name_normalized LIKE ? OR area_normalized LIKE ?) AND station_id IS NULL
-             ORDER BY LENGTH(name) ASC LIMIT ?',
+             WHERE ' . $sWhere . ' AND station_id IS NULL
+             ORDER BY ' . $sRank . ', LENGTH(name) ASC, area ASC LIMIT ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops
-             WHERE name_normalized LIKE ?
-             ORDER BY LENGTH(name) ASC LIMIT ?',
-            [$sLike, $sLike, $iLimit],
-            [$sLike, $iLimit]
+             WHERE ' . $sFallbackWhere . '
+             ORDER BY ' . $sRank . ', LENGTH(name) ASC LIMIT ?',
+            [...$aWhereArgs, ...$aRankArgs, $iLimit],
+            [...$aFallbackArgs, ...$aRankArgs, $iLimit]
         );
         $aRows = $Stmt->fetchAll();
         foreach ($aRows as &$aRow) {
