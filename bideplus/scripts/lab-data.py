@@ -31,7 +31,7 @@ out = {
     'bus': col([vi[t['veh']] for t in rows], 'H'), 'franja': col([bandas.index(t['band']) for t in rows], 'B'),
     'hora': col([min(65535, int(t['at'] // 60)) for t in rows], 'H'), 'razon': col([min(65535, round(t['a'] / t['s'] * 1000)) for t in rows], 'H'),
     'muestras': col([min(255, t['n']) for t in rows], 'B'),
-    'k': json.loads((ROOT / 'data' / 'pace-factors.json').read_text()),
+    'k': json.loads((ROOT / 'engine' / 'data' / 'pace-factors.json').read_text()),
 }
 dest = ROOT.parent / 'lab' / 'data' / 'lab-data.js'
 dest.parent.mkdir(parents=True, exist_ok=True)

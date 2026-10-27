@@ -9,7 +9,7 @@ use Core\Response;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Services\RealtimeMatcher;
+use Engine\RealtimeMatcher;
 use Services\SiriVehicleMonitoringClient;
 
 class TimetableController

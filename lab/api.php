@@ -3,7 +3,7 @@
 // fuentes oficiales (el horario publicado y el retraso que da el propio feed). Guarda cada lectura en data/live-log.jsonl
 // y, cuando el bus pasa por la parada, mide quien acertó. Uso: php -S localhost:8090 desde la raiz del repo y abrir /lab/.
 date_default_timezone_set('Europe/Madrid');
-spl_autoload_register(function ($c) { $p = __DIR__ . '/../bideplus/api/' . str_replace('\\', '/', $c) . '.php'; if (is_file($p)) require $p; });
+require __DIR__ . '/../bideplus/api/autoload.php';
 header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
 const FEED = 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml';
 const AHEAD = [0, 2, 5]; // paradas por delante de la próxima que se registran en cada lectura
@@ -55,10 +55,10 @@ if ($sAction === 'coverage') {
             file_put_contents($sCache, $sXml);
         }
         $sDate = date('Y-m-d'); $aVm = Services\SiriVehicleMonitoringClient::parse(file_get_contents($sCache), $sDate);
-        $iT = Services\CoverageProbe::latestSeconds($aVm);
+        $iT = Engine\CoverageProbe::latestSeconds($aVm);
         if (!$iT) fail('El feed no trae posiciones ahora mismo.', 502);
         $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo);
-        $aLines = Services\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT);
+        $aLines = Engine\CoverageProbe::measure($aVm, $JM, $Pdo, $sDate, $iT);
         $iTot = array_sum(array_column($aLines, 'esperados')); $iCon = array_sum(array_column($aLines, 'conDato')); $iGps = array_sum(array_column($aLines, 'gps')); $iOtra = array_sum(array_column($aLines, 'otraSalida'));
         $aNow = ['t' => $iT, 'fecha' => $sDate, 'esperados' => $iTot, 'conDato' => $iCon, 'gps' => $iGps, 'otraSalida' => $iOtra];
         $sLastCov = __DIR__ . '/data/.last-cov-t';
@@ -86,7 +86,7 @@ try {
     $aVm = Services\SiriVehicleMonitoringClient::parse(file_get_contents($sCache), $sDate);
     $iT = 0; foreach ($aVm as $aEs) foreach ($aEs as $e) if (isset($e['locationSeconds'])) $iT = max($iT, $e['locationSeconds']);
     if (!$iT) fail('El feed no trae posiciones ahora mismo.', 502);
-    $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo); $M = new Services\RealtimeMatcher($aVm, $JM, $iT, null, $sDate);
+    $Pdo = Core\Database::connection(); $JM = new Models\ServiceJourney($Pdo); $M = new Engine\RealtimeMatcher($aVm, $JM, $iT, null, $sDate);
     $aBuses = []; $aLines = []; $aLogLines = []; $aStopName = [];
     $fName = function ($id) use ($Pdo, &$aStopName) { if (!isset($aStopName[$id])) { try { $q = $Pdo->prepare('SELECT name FROM stops WHERE id = ?'); $q->execute([$id]); $aStopName[$id] = (string)$q->fetchColumn(); } catch (\Throwable $x) { $aStopName[$id] = (string)$id; } } return $aStopName[$id]; };
     foreach ($aVm as $sKey => $aEs) foreach ($aEs as $e) {

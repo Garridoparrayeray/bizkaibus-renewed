@@ -13,9 +13,9 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Services\RealtimeMatcher;
+use Engine\RealtimeMatcher;
 use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Engine\TripUpdatesMatcher;
 
 class RealtimeController
 {
