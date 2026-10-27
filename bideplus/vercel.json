@@ -28,14 +28,6 @@
       "dest": "/api/index.php"
     },
     {
-      "src": "^/sitemap[.]xml$",
-      "dest": "/api/sitemap.php"
-    },
-    {
-      "src": "^/sitemap-(apps|bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)[.]xml$",
-      "dest": "/api/sitemap.php?red=$1"
-    },
-    {
       "handle": "filesystem"
     },
     {
