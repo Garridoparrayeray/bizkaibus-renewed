@@ -40,7 +40,7 @@ def bk(m):
     for i,x in enumerate(cuts):
         if m<x: return i
     return 5
-pf=json.load(open(ROOT/'data'/'pace-factors.json'))
+pf=json.load(open(ROOT/'engine'/'data'/'pace-factors.json'))
 def kprod(line,band):
     v=pf['lines'].get(line,{}).get(band)
     if v is None: v=pf['global'].get(band,1.0)

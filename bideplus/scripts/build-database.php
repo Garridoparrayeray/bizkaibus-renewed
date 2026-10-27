@@ -8,57 +8,7 @@ date_default_timezone_set('Europe/Madrid');
 
 const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 
-const NETWORK_DEFAULTS = [
-    'bus' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1061',
-        'backdoor_source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
-        'output' => __DIR__ . '/../data/bizkaibus.sqlite',
-        'label' => 'BizkaiBus+',
-        'agencyId' => '200',
-        'skipGeocode' => false,
-    ],
-    'metro' => [
-        'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip',
-        'backdoor_source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
-        'output' => __DIR__ . '/../data/metrobilbao.sqlite',
-        'label' => 'Metro+',
-        'agencyId' => null,
-        'skipGeocode' => true,
-    ],
-    'euskotren' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/euskotren.sqlite',
-        'label' => 'Euskotren+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_Tren:',
-        'skipGeocode' => false,
-    ],
-    'tranvia-bilbao' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/tranviabilbao.sqlite',
-        'label' => 'Tranvía Bilbao+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_TrBi:',
-        'skipGeocode' => false,
-    ],
-    'tranvia-vitoria' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'backdoor_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
-        'output' => __DIR__ . '/../data/tranviavitoria.sqlite',
-        'label' => 'Tranvía Vitoria+',
-        'agencyId' => 'ES:Euskotren:Operator:EUS_TrGa:',
-        'skipGeocode' => false,
-    ],
-    'renfe' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1130',
-        'backdoor_source' => null,
-        'output' => __DIR__ . '/../data/renfe.sqlite',
-        'label' => 'Renfe Cercanías+',
-        'agencyId' => null,
-        'routeIdPrefixes' => ['60T', '61T'],
-        'skipGeocode' => false,
-    ],
-];
+require_once __DIR__ . '/../api/Core/Networks.php';
 define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
 define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)(getenv('GEOCODE_MAX_NEW') !== false ? getenv('GEOCODE_MAX_NEW') : 300));
@@ -69,59 +19,59 @@ function main(array $aArgv): void
 {
     $GLOBALS['BUILD_ARGV'] = $aArgv;
     $aOptions = parseArgs($aArgv);
-    $sNetwork = 'bus';
-    if (isset($aOptions['network'])) {
-        $sNetwork = $aOptions['network'];
-    }
-    if (!isset(NETWORK_DEFAULTS[$sNetwork])) {
-        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)\n");
+    $sNetwork = $aOptions['network'] ?? \Core\Networks::DEFAULT;
+    if (!\Core\Networks::exists($sNetwork)) {
+        fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected " . implode('|', \Core\Networks::slugs()) . ")\n");
         exit(1);
     }
-    $aDefaults = NETWORK_DEFAULTS[$sNetwork];
+    $aNetwork = \Core\Networks::get($sNetwork);
+    $aGtfs = $aNetwork['gtfs'];
 
-    $sSource = $aDefaults['source'];
-    $sFallbackSource = $aDefaults['backdoor_source'] ?? null;
-    if (isset($aOptions['source'])) {
-        $sSource = $aOptions['source'];
-    }
-    $sOutput = $aDefaults['output'];
-    if (isset($aOptions['output'])) {
-        $sOutput = $aOptions['output'];
-    }
-    $bSkipGeocode = isset($aOptions['skip-geocode']) || $aDefaults['skipGeocode'];
-    $sAgencyId = $aDefaults['agencyId'];
+    $sSource = $aOptions['source'] ?? ($aGtfs['source'] ?? null);
+    $sFallbackSource = $aGtfs['fallback_source'] ?? null;
+    $sOutput = $aOptions['output'] ?? $aNetwork['db_path'];
+    $bSkipGeocode = isset($aOptions['skip-geocode']) || !empty($aGtfs['skip_geocode']);
+    $sAgencyId = $aGtfs['agency_id'] ?? null;
+    $bMergeCalendars = !empty($aGtfs['merge_calendars']);
 
-    $sLabel = $aDefaults['label'];
+    $sLabel = \Core\Networks::text($aNetwork, 'name');
     echo "== $sLabel database build (GTFS, network=$sNetwork) ==\n\n";
 
-    echo "Reading GTFS export from: $sSource\n";
-    $sZipPath = resolveZipPath($sSource, $sFallbackSource); $Zip = new ZipArchive();
+    if ($sSource === null && !empty($aGtfs['sources'])) {
+        echo "Merging " . count($aGtfs['sources']) . " GTFS exports (" . implode(', ', array_keys($aGtfs['sources'])) . ")\n";
+        $aPaths = [];
+        foreach ($aGtfs['sources'] as $sKey => $sUrl) {
+            $aPaths[$sKey] = resolveZipPath($sUrl);
+        }
+        $sZipPath = mergeGtfsZips($aPaths);
+    } else {
+        echo "Reading GTFS export from: $sSource\n";
+        $sZipPath = resolveZipPath($sSource, $sFallbackSource);
+    }
+    $Zip = new ZipArchive();
     if ($Zip->open($sZipPath) !== true) {
         fwrite(STDERR, "Could not open zip: $sZipPath\n");
         exit(1);
     }
 
     echo "Parsing routes.txt...\n";
-    $aRoutes = loadRoutes($Zip, $sAgencyId, $aDefaults['routeIdPrefixes'] ?? null);
+    $aRoutes = loadRoutes($Zip, $sAgencyId, $aGtfs['route_id_prefixes'] ?? null);
     echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    if ($sNetwork === 'metro') {
-        $aStops = loadStopsMetro($Zip);
-    } elseif ($sNetwork === 'euskotren' || $sNetwork === 'tranvia-bilbao' || $sNetwork === 'tranvia-vitoria') {
-        $aStops = loadStopsEuskotren($Zip);
-    } elseif ($sNetwork === 'renfe') {
-        $aStops = loadStopsRenfe($Zip);
-    } else {
-        $aStops = loadStopsBus($Zip);
+    $aStopLoaders = ['bus' => 'loadStopsBus', 'metro' => 'loadStopsMetro', 'euskotren' => 'loadStopsEuskotren', 'renfe' => 'loadStopsRenfe', 'generic' => 'loadStopsMetro'];
+    if (!isset($aStopLoaders[$aGtfs['stops']])) {
+        fwrite(STDERR, "Unknown gtfs.stops=\"{$aGtfs['stops']}\" (expected " . implode('|', array_keys($aStopLoaders)) . ")\n");
+        exit(1);
     }
+    $aStops = $aStopLoaders[$aGtfs['stops']]($Zip);
     echo '  ' . count($aStops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
     $aStops = geocodeStops($aStops, $bSkipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $aCalendars = loadCalendars($Zip, $sNetwork === 'metro');
+    $aCalendars = loadCalendars($Zip, $bMergeCalendars);
     echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
@@ -166,10 +116,10 @@ function main(array $aArgv): void
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
     $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
     $aWindow = [];
-    if ($sNetwork === 'bus' && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
+    if (!empty($aGtfs['feed_window']) && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
         $aWindow = datesBetween(gtfsDateToIso($aFeedInfo['feed_start_date']), gtfsDateToIso($aFeedInfo['feed_end_date']));
     }
-    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $sNetwork, $aWindow);
+    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
 
     $Pdo->commit();
 
@@ -415,6 +365,122 @@ function normalize(string $sText): string
     return trim(preg_replace('/\s+/', ' ', $sLower));
 }
 
+/*
+ * Junta varios GTFS (un operador cada uno) en un único zip temporal. Líneas, viajes, calendarios, trazados y
+ * operadores llevan delante «<clave>:» porque sus ids se repiten entre operadores; las paradas no, porque
+ * comparten numeración (la misma parada física tiene el mismo id en todos) y así una parada muestra todas sus líneas.
+ * Si un viaje no trae trip_headsign se usa trip_short_name. feed_info queda con la fecha de inicio más temprana
+ * y la de fin más tardía.
+ */
+function mergeGtfsZips(array $aPathsByKey): string
+{
+    $aPrefixed = [
+        'agency.txt' => ['agency_id'],
+        'routes.txt' => ['route_id', 'agency_id'],
+        'trips.txt' => ['route_id', 'service_id', 'trip_id', 'shape_id', 'block_id'],
+        'stop_times.txt' => ['trip_id'],
+        'calendar.txt' => ['service_id'],
+        'calendar_dates.txt' => ['service_id'],
+        'shapes.txt' => ['shape_id'],
+        'stops.txt' => [],
+    ];
+    $aHeaders = [];
+    $aRows = [];
+    $aSeenStops = [];
+    $aFeedStart = [];
+    $aFeedEnd = [];
+    foreach ($aPathsByKey as $sKey => $sPath) {
+        $Zip = new ZipArchive();
+        if ($Zip->open($sPath) !== true) {
+            fwrite(STDERR, "Could not open zip for $sKey: $sPath\n");
+            exit(1);
+        }
+        foreach ($aPrefixed as $sFile => $aColumns) {
+            foreach (readCsv($Zip, $sFile, $sFile !== 'calendar_dates.txt' && $sFile !== 'shapes.txt' && $sFile !== 'calendar.txt') as $aRow) {
+                foreach ($aColumns as $sColumn) {
+                    if (isset($aRow[$sColumn]) && $aRow[$sColumn] !== '') {
+                        $aRow[$sColumn] = $sKey . ':' . $aRow[$sColumn];
+                    }
+                }
+                if ($sFile === 'stops.txt') {
+                    if (isset($aSeenStops[$aRow['stop_id']])) {
+                        continue;
+                    }
+                    $aSeenStops[$aRow['stop_id']] = true;
+                }
+                if ($sFile === 'trips.txt' && ($aRow['trip_headsign'] ?? '') === '' && ($aRow['trip_short_name'] ?? '') !== '') {
+                    $aRow['trip_headsign'] = $aRow['trip_short_name'];
+                }
+                if ($sFile === 'trips.txt' && ($aRow['trip_headsign'] ?? '') !== '') {
+                    $aRow['trip_headsign'] = tidyHeadsign($aRow['trip_headsign']);
+                }
+                if ($sFile === 'routes.txt') {
+                    $aRow['route_long_name'] = tidyRouteName($aRow['route_long_name'] ?? '', $aRow['route_short_name'] ?? '');
+                }
+                foreach (array_keys($aRow) as $sColumn) {
+                    $aHeaders[$sFile][$sColumn] = true;
+                }
+                $aRows[$sFile][] = $aRow;
+            }
+        }
+        foreach (readCsv($Zip, 'feed_info.txt', false) as $aRow) {
+            if (!empty($aRow['feed_start_date'])) {
+                $aFeedStart[] = $aRow['feed_start_date'];
+            }
+            if (!empty($aRow['feed_end_date'])) {
+                $aFeedEnd[] = $aRow['feed_end_date'];
+            }
+        }
+        $Zip->close();
+    }
+
+    $sOut = tempnam(sys_get_temp_dir(), 'bbmerged') . '.zip';
+    $Out = new ZipArchive();
+    $Out->open($sOut, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    foreach ($aRows as $sFile => $aFileRows) {
+        $aColumns = array_keys($aHeaders[$sFile]);
+        $Fp = fopen('php://temp', 'w+');
+        fputcsv($Fp, $aColumns, ',', '"', '\\');
+        foreach ($aFileRows as $aRow) {
+            fputcsv($Fp, array_map(fn($sColumn) => $aRow[$sColumn] ?? '', $aColumns), ',', '"', '\\');
+        }
+        rewind($Fp);
+        $Out->addFromString($sFile, stream_get_contents($Fp));
+        fclose($Fp);
+    }
+    if ($aFeedStart && $aFeedEnd) {
+        $Out->addFromString('feed_info.txt', "feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version\n"
+            . 'Bide+,https://bideplus.vercel.app,es,' . min($aFeedStart) . ',' . max($aFeedEnd) . ',' . date('YmdHis') . "\n");
+    }
+    $Out->close();
+    foreach ($aRows as $sFile => $aFileRows) {
+        echo "  merged $sFile: " . count($aFileRows) . " rows\n";
+    }
+    return $sOut;
+}
+
+// «Azkoitia(altzibar» -> «Azkoitia (Altzibar)»: espacio antes del paréntesis, paréntesis cerrado y mayúscula
+// inicial en cada palabra que empieza en minúscula (también tras «-» y «(»).
+function tidyHeadsign(string $sHeadsign): string
+{
+    $sHeadsign = preg_replace('/\s*\(\s*/u', ' (', trim($sHeadsign));
+    if (substr_count($sHeadsign, '(') > substr_count($sHeadsign, ')')) {
+        $sHeadsign = rtrim($sHeadsign) . ')';
+    }
+    return preg_replace_callback('/(^|[\s(\-\/])(\p{Ll})/u', fn($aM) => $aM[1] . mb_strtoupper($aM[2]), $sHeadsign);
+}
+
+// «Uk01-azkoitia>azpeitia>zestoa» -> «Azkoitia - Azpeitia - Zestoa»: sin el código delante y con mayúscula inicial.
+function tidyRouteName(string $sName, string $sCode): string
+{
+    if ($sCode !== '' && stripos($sName, $sCode . '-') === 0) {
+        $sName = substr($sName, strlen($sCode) + 1);
+    }
+    $aParts = array_map('trim', explode('>', $sName));
+    $aParts = array_map(fn($sPart) => $sPart === mb_strtolower($sPart) ? mb_convert_case($sPart, MB_CASE_TITLE) : mb_strtoupper(mb_substr($sPart, 0, 1)) . mb_substr($sPart, 1), $aParts);
+    return implode(' - ', array_filter($aParts, fn($sPart) => $sPart !== ''));
+}
+
 function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Generator
 {
     $Stream = $Zip->getStream($sName);
@@ -426,6 +492,7 @@ function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Genera
     }
     $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
     $aHeader = array_map('trim', $aHeader);
+    $aHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', $aHeader[0]);
     while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
         if ($aRow === null || $aRow === [null]) {
             continue;
@@ -925,9 +992,9 @@ function signatureRunsOn(array $aSig, string $sDate): bool
     return ($aSig['weekdayMask'] & $iWeekdayBit) !== 0;
 }
 
-function calendarGroupKeyFor(string $sNetwork, string $sServiceId, array $aCalendars): string
+function calendarGroupKeyFor(bool $bMergeCalendars, string $sServiceId, array $aCalendars): string
 {
-    if ($sNetwork !== 'metro') {
+    if (!$bMergeCalendars) {
         return '';
     }
     if (!isset($aCalendars[$sServiceId])) {
@@ -958,7 +1025,7 @@ function timingKeyFor(array $aBuffer, int|null $iFirstDeparture): string
     return substr(md5(implode(',', $aOffsets)), 0, 12);
 }
 
-function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, string $sNetwork, array $aWindow = []): void
+function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, bool $bMergeCalendars, array $aWindow = []): void
 {
     echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
@@ -1004,7 +1071,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             $aIncludedDates = $aCalendars[$aTrip['serviceId']]['includedDates'];
             $aExcludedDates = $aCalendars[$aTrip['serviceId']]['excludedDates'];
         }
-        $sCalendarGroupKey = calendarGroupKeyFor($sNetwork, $aTrip['serviceId'], $aCalendars);
+        $sCalendarGroupKey = calendarGroupKeyFor($bMergeCalendars, $aTrip['serviceId'], $aCalendars);
         $sTimingKey = timingKeyFor($aBuffer, $iFirstDeparture);
 
         $aSignatures[$sTripId] = [
@@ -1070,7 +1137,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     }
 
     // Bizkaibus: el calendario de cada viaje fusionado es exacto dentro del periodo publicado (ver exactCalendarForWindow).
-    $bExactWindow = $sNetwork === 'bus' && !empty($aWindow);
+    $bExactWindow = !empty($aWindow);
     if ($bExactWindow) {
         $aExactByService = [];
         foreach ($aGroups as $sClusterKey => $aGroup) {

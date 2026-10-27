@@ -1,8 +1,9 @@
 <?php
 
-namespace Services;
+namespace Engine\Bizkaibus;
 
 use Core\Config;
+use Services\Calendar;
 use Models\ServiceJourney;
 
 class RealtimeMatcher
@@ -52,10 +53,7 @@ class RealtimeMatcher
             $this->iNow = $iNowSeconds;
         }
         $this->Pace = $Pace ?? PaceFactors::fromFile();
-        /*
-         * Los tiempos por tramo (por id de parada) y el cálculo desde la parada registrada se han medido solo con
-         * Bizkaibus. Las demás redes con SIRI (Euskotren, Tranvía de Bilbao) siguen con el cálculo de siempre.
-         */
+
         $this->bBusNetwork = (Config::current()['network'] ?? 'bus') === 'bus';
         $this->Segments = $Segments ?? ($this->bBusNetwork ? SegmentTimes::fromFile() : new SegmentTimes());
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
@@ -70,7 +68,6 @@ class RealtimeMatcher
             try {
                 return $this->enrichRow($aRow, $iNow);
             } catch (\Throwable $Ex) {
-                // Una fila que no se puede calcular sale con el horario oficial; nunca rompe la lista.
                 error_log('Bide+ enrich: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
                 return $aRow + $this->scheduledFieldsFor($aRow);
             }
@@ -89,12 +86,10 @@ class RealtimeMatcher
             $iStopSeq = (int)$aRow['stop_seq'];
         }
 
-        // Capa 3: sin dato en vivo del bus, o sin nada utilizable en él, el horario oficial.
         if (!$this->isLive($sServiceJourneyId, $aLive)) {
             return $aRow + $this->scheduledFieldsFor($aRow);
         }
 
-        // Parada ya pasada: el feed ya marca una parada posterior como la próxima, o el GPS ya está más allá. Sale como «saliendo» unos segundos y se retira.
         if ($this->bBusNetwork) {
             $iPassedAt = $this->passedAtSeconds($sServiceJourneyId, $aLive, (int)$aRow['arrival_seconds'], $iStopSeq);
             if ($iPassedAt !== null) {
@@ -119,12 +114,7 @@ class RealtimeMatcher
             $aLive,
             $iStopSeq
         );
-        /*
-         * Más de 45 min entre la llegada estimada y la hora publicada de esta parada: el viaje del feed no es el que hace
-         * el bus (o el horario no sirve de referencia). La llegada estimada sigue valiendo (sale de su posición y de los
-         * tiempos por tramo, no de la etiqueta del viaje; medido contra los pasos reales por parada), pero el retraso no
-         * se afirma.
-         */
+
         if ($this->bBusNetwork && abs($iEffectiveDelay) > self::MAX_PLAUSIBLE_DELAY_SECONDS) {
             $iEffectiveDelay = null;
         }
@@ -148,10 +138,6 @@ class RealtimeMatcher
         ];
     }
 
-    /*
-     * Hora estimada a la que el bus pasó por una parada que ya ha dejado atrás, o null si no la ha pasado. Con GPS, el
-     * momento en que el bus estaba en esa parada según su posición actual; sin GPS, desde la hora del dato.
-     */
     private function passedAtSeconds(string|null $sServiceJourneyId, array $aLive, int $iTargetArrivalSeconds, int|null $iStopSeq): int|null
     {
         $aPosition = $this->positionFor($sServiceJourneyId, $aLive);
@@ -179,7 +165,6 @@ class RealtimeMatcher
             return false;
         }
         if ($this->bBusNetwork) {
-            // Bizkaibus: en vivo con posición GPS; sin ella, con la parada registrada y la hora del dato; si no, horario oficial.
             return $this->positionFor($sServiceJourneyId, $aLive) !== null || $this->registration($sServiceJourneyId, $aLive) !== null;
         }
         if (!self::hasLocation($aLive)) {
@@ -198,14 +183,13 @@ class RealtimeMatcher
         if ($aPosition !== null) {
             try {
                 if ($iTargetArrivalSeconds < $aPosition['scheduledSeconds']) {
-                    // La parada queda por detras del bus: ya ha pasado, su hora cae en el pasado.
                     $iPassedEta = $aPosition['locationSeconds'] - ($aPosition['scheduledSeconds'] - $iTargetArrivalSeconds);
                     return [$iPassedEta, $aPosition['locationSeconds'] - $aPosition['scheduledSeconds'], true];
                 }
                 $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $aPosition['locationSeconds']);
                 $dRemaining = $this->remainingSeconds((string)$sServiceJourneyId, $iTargetArrivalSeconds, $aPosition, $dFactor);
                 $iEta = (int)round($aPosition['locationSeconds'] + $dRemaining);
-                // El retraso de la salida es el de esa parada: llegada estimada menos la hora publicada, lo que el usuario ve en pantalla.
+
                 return [$iEta, $iEta - $iTargetArrivalSeconds, true];
             } catch (\Throwable $Ex) {
                 error_log('Bide+ ETA: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
@@ -239,11 +223,6 @@ class RealtimeMatcher
         return [$iFlatEta, $aLive['delaySeconds'], false];
     }
 
-    /*
-     * Sin posición GPS utilizable (el bus no la manda o está fuera de la ruta), la parada que el feed da como próxima es
-     * lo único fiable: el bus ya ha registrado la anterior. Devuelve las horas programadas de esas dos paradas y la hora
-     * del dato, o null si no hay base para fiarse (sin hora del dato, dato viejo, viaje sin empezar, parada desconocida).
-     */
     private function registration(string|null $sServiceJourneyId, array $aLive): array|null
     {
         if (!$this->bBusNetwork || $this->JourneyModel === null || $sServiceJourneyId === null || !isset($aLive['order'])) {
@@ -278,11 +257,7 @@ class RealtimeMatcher
         if (!isset($aBySeq[$iOrder], $aBySeq[$iOrder - 1])) {
             return null;
         }
-        /*
-         * Contrastado con el feed real (201 buses con GPS): en tramos de hasta 5 min la parada registrada coincide con el
-         * GPS (mediana 0,7 min, p90 1,7); en tramos de más de 10 min (cabeceras, esperas) se desvía 10 min de mediana.
-         * Ahí no se puede afirmar nada y se queda el horario oficial.
-         */
+
         if ((int)$aBySeq[$iOrder]['arrival_seconds'] - (int)$aBySeq[$iOrder - 1]['arrival_seconds'] > self::REGISTRATION_MAX_SEGMENT_SECONDS) {
             return null;
         }
@@ -291,7 +266,7 @@ class RealtimeMatcher
         $sBand = PaceFactors::bandFor($this->sDate, $iRef);
         $dFactor = $this->Pace->factor($aLive['lineId'] ?? null, $this->sDate, $iRef);
         $iToNext = (int)round(self::REGISTRATION_SEGMENT_SHARE * $this->expectedSeconds($sServiceJourneyId, $iPrevious, $iNext, $sBand, $dFactor));
-        // Retraso del bus en su próxima parada (el mismo concepto que con GPS: lo que lleva el bus, no la diferencia en una parada lejana).
+
         $iDelay = $iRef + $iToNext - $iNext;
         return [
             'order' => $iOrder,
@@ -304,10 +279,6 @@ class RealtimeMatcher
         ];
     }
 
-    /*
-     * Hora de llegada a una parada que aún no se ha registrado: se parte de la hora del dato, a mitad del tramo hasta
-     * la próxima parada, y se suman los tiempos esperados de ahí a la parada pedida.
-     */
     private function registeredEta(string $sServiceJourneyId, int $iTargetArrivalSeconds, int $iTargetSeq, array $aLive): int|null
     {
         $aRegistration = $this->registration($sServiceJourneyId, $aLive);
@@ -364,9 +335,6 @@ class RealtimeMatcher
         return $dRemaining;
     }
 
-    /*
-     * Minutos de retraso para mostrar, o null si el retraso no es creíble (Bizkaibus: más de 45 min).
-     */
     public function displayDelayMinutes(int|null $iDelaySeconds): int|null
     {
         if ($iDelaySeconds === null) {
@@ -378,14 +346,6 @@ class RealtimeMatcher
         return (int)round($iDelaySeconds / 60);
     }
 
-    /*
-     * Retraso que se enseña para el bus (cabecera de la ficha del viaje, listado de la línea): el de su próxima parada, es
-     * decir, llegada estimada menos hora publicada, que es el mismo cálculo de la lista de paradas y de la tarjeta.
-     * currentDelaySeconds() mide otra cosa con GPS: la hora real menos la hora que el horario da para el punto exacto
-     * donde está el bus, repartiendo el tiempo de un tramo a ritmo constante. Con los tiempos aprendidos, un tramo que el
-     * horario da muy holgado (autopista) se hace mucho más rápido y ambas cifras se contradicen: el bus «va 2 min tarde»
-     * en su posición pero llega 10 min antes a la parada. Sin GPS ya son lo mismo (la parada registrada).
-     */
     public function displayDelaySeconds(string|null $sServiceJourneyId, array|null $aLive): int
     {
         $iPositionDelay = $this->currentDelaySeconds($sServiceJourneyId, $aLive);
@@ -436,12 +396,7 @@ class RealtimeMatcher
         if (!array_key_exists($sMemoKey, $this->aPositionMemo)) {
             try {
                 $this->aPositionMemo[$sMemoKey] = $this->computePosition($sServiceJourneyId, $aLive);
-                /*
-                 * Dos medidas del mismo bus que no cuadran: el GPS proyectado sobre el recorrido y la parada que marca el
-                 * feed. Con una captura de 14 min del feed real, 11 buses con más de 25 min de retraso se mantuvieron
-                 * estables y coincidían con los pasos por parada, y otros 10 cambiaron hasta 34 min en 14 min, con GPS y
-                 * parada discrepando. Si discrepan más de 6 min no se fía de ninguna: horario oficial.
-                 */
+
                 if ($this->bBusNetwork && $this->aPositionMemo[$sMemoKey] !== null) {
                     $aRegistration = $this->registration($sServiceJourneyId, $aLive);
                     $iGpsDelay = $this->aPositionMemo[$sMemoKey]['locationSeconds'] - $this->aPositionMemo[$sMemoKey]['scheduledSeconds'];
@@ -451,7 +406,6 @@ class RealtimeMatcher
                     }
                 }
             } catch (\Throwable $Ex) {
-                // Si el cálculo con GPS falla, ese bus se queda sin posición y sale con el horario oficial.
                 error_log('Bide+ GPS: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
                 $this->aPositionMemo[$sMemoKey] = null;
             }
@@ -675,14 +629,6 @@ class RealtimeMatcher
         return isset($aLive['lat'], $aLive['lon'], $aLive['locationSeconds']);
     }
 
-    /*
-     * Capa 3, sin datos del bus. El horario publicado está interpolado a velocidad constante y no se parece a lo que
-     * tardan los buses (autopistas, esperas). Con los tiempos aprendidos se estima la llegada como la salida de cabecera
-     * más lo que tardan los buses en llegar a esta parada. Medido contra los pasos reales (7 627 llegadas), con el bus
-     * sin usar: 37 % dentro de ±2 min frente al 18 % del horario publicado, y error mediano de unos 3-4 min frente a 7. Se suma 1 min porque los buses salen de cabecera algo después de la hora publicada (medido en una sola ventana de 14 min; el resumen de cada captura muestra si el sesgo sigue en 0).
-     * Si lo estimado ya queda en el pasado (no se sabe si el bus ha pasado o va tarde), se deja el horario publicado:
-     * nunca se esconde una salida ni se deja una en «0 min».
-     */
     private function scheduledFieldsFor(array $aRow): array
     {
         $aFields = self::scheduledFields($aRow);

@@ -39,6 +39,7 @@ NETS = {
     'tranvia-bilbao': {'q': 'atxuri', 'suffix': 'red=tranvia-bilbao'},
     'tranvia-vitoria': {'q': 'abetxuko', 'suffix': 'red=tranvia-vitoria'},
     'renfe': {'q': 'abando', 'suffix': 'red=renfe'},
+    'lurraldebus': {'q': 'tolosa', 'suffix': 'red=lurraldebus'},
 }
 
 
@@ -91,6 +92,7 @@ NEARBY = {
     'tranvia-bilbao': (43.254113, -2.921513, 'Atxuri'),
     'tranvia-vitoria': (42.876277, -2.679599, 'Abetxuko'),
     'renfe': (43.2601304, -2.9285592, 'Abando'),
+    'lurraldebus': (43.31619, -1.97738, 'Donostia'),
 }
 for name, (lat, lon, fragment) in NEARBY.items():
     s = NETS[name]['suffix']
@@ -113,8 +115,18 @@ status = get('/api/status') or {}
 if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
+
+# Lo que no se publica: bases de datos, scripts, pruebas y el motor (código y datos).
+for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/bizkaibus/data/pace-factors.json', '/engine/bizkaibus/RealtimeMatcher.php', '/api/Networks/bus.php'):
+    count += 1
+    try:
+        code = urllib.request.urlopen(BASE + private, timeout=60).status
+    except urllib.error.HTTPError as e:
+        code = e.code
+    if code != 404:
+        fails.append(f'{private}: se sirve (HTTP {code}) y no debería')
 bus_alerts = (get('/api/alerts') or {}).get('alerts', [])
-for name in ('metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'):
+for name in [n for n in NETS if n != 'bus']:
     other = (get(with_net('/api/alerts', NETS[name]['suffix'])) or {}).get('alerts', [])
     if bus_alerts and other == bus_alerts:
         fails.append(f'{name}: los avisos son identicos a los de Bizkaibus (cache compartida entre redes)')
@@ -164,7 +176,7 @@ except Exception:
     fails.append(f'/sitemap.xml: XML no válido ({code})')
     sitemap = ''
 locs = [loc.replace('&amp;', '&') for loc in _re.findall(r'<loc>([^<]+)</loc>', sitemap)]
-for red in ('bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'):
+for red in NETS:
     suffix = '' if red == 'bus' else '?red=' + red
     for kind in ('lines', 'stops'):
         sample = [loc for loc in locs if f'/{kind}/' in loc and (loc.endswith(suffix) if suffix else '?' not in loc)]

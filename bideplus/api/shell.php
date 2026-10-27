@@ -1,6 +1,7 @@
 <?php
 
-$menuPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+// Sin parse_url: confunde «/lines/tolosaldea:4/…» con un host y un puerto.
+$menuPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#');
 // bideplusmiamor.vercel.app va directa al tema, sin pasar por el menú
 // selector de apps — es un dominio dedicado, no un punto de entrada más.
 $isMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
@@ -13,60 +14,32 @@ $site = require __DIR__ . '/Config/site.php';
 require_once __DIR__ . '/Views/bide-components.php';
 $wordmark = require __DIR__ . '/Views/wordmark.php';
 
-$bIsMetroShare          = isset($_GET['red']) && $_GET['red'] === 'metro';
-$bIsEuskoTrenShare      = isset($_GET['red']) && $_GET['red'] === 'euskotren';
-$bIsTranviaBilbaoShare  = isset($_GET['red']) && $_GET['red'] === 'tranvia-bilbao';
-$bIsTranviaVitoriaShare = isset($_GET['red']) && $_GET['red'] === 'tranvia-vitoria';
-$bIsRenfeShare          = isset($_GET['red']) && $_GET['red'] === 'renfe';
+require_once __DIR__ . '/Core/Networks.php';
+require_once __DIR__ . '/Core/Config.php';
+require_once __DIR__ . '/Core/Database.php';
+use Core\Networks;
 
-$networkSlug = 'bus';
+$networkSlug = Networks::fromQuery($_GET['red'] ?? null);
+$network = Networks::get($networkSlug);
 if ($isMiamorDomain) {
     // Vista previa al compartir el enlace (WhatsApp, etc.): crawlers no
     // ejecutan JS, así que la detección de tema por hostname del script
     // de más abajo no les llega — esto se resuelve aquí, en servidor.
+    $networkSlug    = Networks::DEFAULT;
+    $network        = Networks::get($networkSlug);
     $sOgTitle       = 'Para el amor de mi vida 💕';
     $sOgDescription = 'Horarios y tiempo real de tu transporte, hecho con cariño para ti.';
     $sOgImage       = 'https://bideplusmiamor.vercel.app/icons/icon-512.png';
     $sFaviconFolder = 'icons';
-} elseif ($bIsMetroShare) {
-    $sOgTitle       = 'Metro+ · Horarios de Metro Bilbao: líneas L1, L2 y L3, estaciones y avisos | Bide+';
-    $sOgDescription = 'Consulta los horarios de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.';
-    $sOgImage       = $site['url'] . '/icons-metro/icon-512.png';
-    $sFaviconFolder = 'icons-metro';
-    $networkSlug    = 'metro';
-} elseif ($bIsEuskoTrenShare) {
-    $sOgTitle       = 'Euskotren+ · Horarios de trenes y tranvía de Euskotren por línea y estación | Bide+';
-    $sOgDescription = 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación en Bizkaia y Gipuzkoa.';
-    $sOgImage       = $site['url'] . '/icons-euskotren/icon-512.png';
-    $sFaviconFolder = 'icons-euskotren';
-    $networkSlug    = 'euskotren';
-} elseif ($bIsTranviaBilbaoShare) {
-    $sOgTitle       = 'Tranvía Bilbao+ · Horarios del tranvía de Bilbao';
-    $sOgDescription = 'Consulta los horarios del tranvía de Bilbao por parada.';
-    $sOgImage       = $site['url'] . '/icons-tranvia-bilbao/icon-512.png';
-    $sFaviconFolder = 'icons-tranvia-bilbao';
-    $networkSlug    = 'tranvia-bilbao';
-} elseif ($bIsTranviaVitoriaShare) {
-    $sOgTitle       = 'Tranvía Vitoria+ · Horarios del tranvía de Vitoria-Gasteiz';
-    $sOgDescription = 'Consulta los horarios del tranvía de Vitoria-Gasteiz por parada.';
-    $sOgImage       = $site['url'] . '/icons-tranvia-vitoria/icon-512.png';
-    $sFaviconFolder = 'icons-tranvia-vitoria';
-    $networkSlug    = 'tranvia-vitoria';
-} elseif ($bIsRenfeShare) {
-    $sOgTitle       = 'Renfe Cercanías+ · Horarios de Cercanías en Bilbao y Donostia';
-    $sOgDescription = 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada.';
-    $sOgImage       = $site['url'] . '/icons-renfe/icon-512.png';
-    $sFaviconFolder = 'icons-renfe';
-    $networkSlug    = 'renfe';
 } else {
-    $sOgTitle       = 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus';
-    $sOgDescription = 'Consulta horarios, líneas, paradas y llegadas en tiempo real de Bizkaibus.';
-    $sOgImage       = $site['url'] . '/icons-pro/icon-512.png';
-    $sFaviconFolder = 'icons-pro';
+    $sOgTitle       = $network['seo']['title'];
+    $sOgDescription = $network['seo']['description'];
+    $sOgImage       = $site['url'] . '/' . $network['brand']['icons'] . '/icon-512.png';
+    $sFaviconFolder = $network['brand']['icons'];
 }
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
-$path = parse_url($requestUri, PHP_URL_PATH);
+$path = strtok($requestUri, '?#');
 $ogSiteUrl = $isMiamorDomain ? 'https://bideplusmiamor.vercel.app' : $site['url'];
 $ogUrl = $ogSiteUrl . $path;
 if ($path === '/' || $path === '') {
@@ -116,8 +89,6 @@ function relatedLinks(string $network, string $type, string $id): array
 
 function findRecord(string $network, string $type, string $id): ?array
 {
-    require_once __DIR__ . '/Core/Config.php';
-    require_once __DIR__ . '/Core/Database.php';
     \Core\Config::set($network);
     $pdo = \Core\Database::connection();
     if ($type === 'stops') {
@@ -133,8 +104,7 @@ function findRecord(string $network, string $type, string $id): ?array
     return $row;
 }
 
-$appNames = ['bus' => 'BizkaiBus+', 'metro' => 'Metro+', 'euskotren' => 'Euskotren+', 'tranvia-bilbao' => 'Tranvía Bilbao+', 'tranvia-vitoria' => 'Tranvía Vitoria+', 'renfe' => 'Renfe Cercanías+'];
-$h1Names = ['bus' => ['BizkaiBus', ''], 'metro' => ['METRO', ''], 'euskotren' => ['EUSKOTREN', ''], 'tranvia-bilbao' => ['TRANVÍA', 'BILBAO'], 'tranvia-vitoria' => ['TRANVÍA', 'VITORIA'], 'renfe' => ['RENFE', '']];
+$appNames = array_map(fn($n) => Networks::text($n, 'name'), Networks::all());
 $isNotFound = false;
 $placeJsonLd = null;
 $breadcrumbName = null;
@@ -148,7 +118,7 @@ try {
         $record = findRecord($networkSlug, $recordType, $recordId);
 
         if ($record === null && !isset($_GET['red'])) {
-            foreach (['metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'renfe'] as $otherNetwork) {
+            foreach (array_diff(Networks::slugs(), [$networkSlug]) as $otherNetwork) {
                 if (findRecord($otherNetwork, $recordType, $recordId) !== null) {
                     header('Location: /' . $recordType . '/' . $matches[2] . '?red=' . $otherNetwork, true, 301);
                     exit;
@@ -175,13 +145,13 @@ try {
                 }
                 $desc .= '.';
             }
-            if ($networkSlug === 'bus') {
+            if (!empty($network['live'])) {
                 $desc .= ' Llegadas en tiempo real.';
             }
             $sOgDescription = $desc;
-            $stopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'euskotren' => 'TrainStation', 'tranvia-bilbao' => 'TrainStation', 'tranvia-vitoria' => 'TrainStation', 'renfe' => 'TrainStation'];
+            $stopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'train' => 'TrainStation', 'tram' => 'TrainStation'];
             $placeJsonLd = [
-                '@type' => $stopTypes[$networkSlug],
+                '@type' => $stopTypes[$network['kind']] ?? 'Place',
                 'name' => $record['name'],
                 'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float)$record['lat'], 'longitude' => (float)$record['lon']],
             ];
@@ -196,7 +166,7 @@ try {
             $appName = $appNames[$networkSlug];
             $sOgTitle = 'Línea ' . $record['code'] . ' ' . $record['name'] . ' · Horarios | ' . $appName;
             $sOgDescription = 'Horarios, recorrido y paradas de la línea ' . $record['code'] . ' (' . $record['name'] . ') de ' . $appName . '.';
-            if ($networkSlug === 'bus') {
+            if (Networks::feature($network, 'line_map') && Networks::hasLive($network, 'vehicle-monitoring')) {
                 $sOgDescription .= ' Mapa con los autobuses en tiempo real.';
             }
             $breadcrumbName = 'Línea ' . $record['code'];
@@ -205,9 +175,7 @@ try {
             $related = relatedLinks($networkSlug, 'lines', $recordId);
         }
 
-        if ($networkSlug !== 'bus') {
-            $ogUrl .= '?red=' . $networkSlug;
-        }
+        $ogUrl .= Networks::urlSuffix($networkSlug);
     }
 } catch (\Throwable $t) {
 }
@@ -259,7 +227,7 @@ if ($breadcrumbName !== null) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BizkaiBus+">
+    <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars($appNames[$networkSlug]) ?>">
     <title><?= htmlspecialchars($sOgTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sOgDescription) ?>">
     <meta name="author" content="<?= htmlspecialchars($site['author']) ?>">
@@ -289,6 +257,7 @@ if ($breadcrumbName !== null) {
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
@@ -311,7 +280,7 @@ if ($breadcrumbName !== null) {
             <h3><?= htmlspecialchars($relatedHeading) ?></h3>
             <ul>
 <?php foreach ($related as $row): ?>
-                <li><a href="/<?= $relatedType ?>/<?= rawurlencode((string)$row['id']) ?><?= $networkSlug !== 'bus' ? '?red=' . $networkSlug : '' ?>"><?= htmlspecialchars(($relatedType === 'lines' ? $row['code'] . ' ' : '') . $row['name']) ?></a></li>
+                <li><a href="/<?= $relatedType ?>/<?= rawurlencode((string)$row['id']) ?><?= Networks::urlSuffix($networkSlug) ?>"><?= htmlspecialchars(($relatedType === 'lines' ? $row['code'] . ' ' : '') . $row['name']) ?></a></li>
 <?php endforeach; ?>
             </ul>
 <?php endif; ?>
@@ -323,92 +292,24 @@ if ($breadcrumbName !== null) {
         <header>
             <div class="home-link-wrap">
                 <button id="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
-                    <span id="app-logomark" aria-hidden="true">
-                        <svg class="logo-bus" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
-                            <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
-                        </svg>
-                        <svg class="logo-metro" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
-                            <circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                            <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                            <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                        </svg>
-                        <img class="logo-euskotren" src="/icons-euskotren/icon-192.png" alt="">
-                        <img class="logo-tranvia-bilbao" src="/icons-tranvia-bilbao/glyph.png" alt="">
-                        <img class="logo-tranvia-vitoria" src="/icons-tranvia-vitoria/glyph.png" alt="">
-                        <img class="logo-renfe" src="/icons-renfe/glyph.png" alt="">
-                    </span>
+                    <span id="app-logomark" aria-hidden="true"><?= $network['brand']['logomark'] ?></span>
                     <hgroup>
-                        <h1 id="app-title"><?= $h1Names[$networkSlug][0] ?><span id="app-title-mark">+</span></h1>
-                        <span id="app-title-city"><?= $h1Names[$networkSlug][1] ?></span>
-                        <p id="app-subtitle">Horarios y tiempo real de Bizkaibus</p>
+                        <h1 id="app-title"><?= htmlspecialchars($network['brand']['title'][0]) ?><span id="app-title-mark">+</span></h1>
+                        <span id="app-title-city"><?= htmlspecialchars($network['brand']['title'][1]) ?></span>
+                        <p id="app-subtitle" data-i18n="net.<?= $networkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($network, 'subtitle')) ?></p>
                     </hgroup>
                 </button>
 
                 <nav id="network-switcher" aria-label="Cambiar red de transporte">
-                    <a class="net-card" id="net-card-bus" href="/?red=bus">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/>
-                                <path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/>
-                            </svg>
-                        </span>
+                    <?php foreach (Networks::all() as $otherSlug => $other): if ($otherSlug === $networkSlug) continue; ?>
+                    <a class="net-card" id="net-card-<?= $otherSlug ?>" href="/?red=<?= $otherSlug ?>">
+                        <span class="net-card-logomark" aria-hidden="true"><?= $other['brand']['card_logomark'] ?></span>
                         <span class="net-card-text">
-                            <strong data-i18n="app.bus.name">BizkaiBus+</strong>
-                            <span data-i18n="switcher.bus.desc">Horarios y tiempo real de Bizkaibus</span>
+                            <strong data-i18n="net.<?= $otherSlug ?>.name"><?= htmlspecialchars(Networks::text($other, 'name')) ?></strong>
+                            <span data-i18n="net.<?= $otherSlug ?>.switcher"><?= htmlspecialchars(Networks::text($other, 'switcher')) ?></span>
                         </span>
                     </a>
-                    <a class="net-card" id="net-card-metro" href="/?red=metro">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="12" r="9.3" fill="#C8102E"/>
-                                <circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                                <circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                                <circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/>
-                            </svg>
-                        </span>
-                        <span class="net-card-text">
-                            <strong data-i18n="app.metro.name">Metro+</strong>
-                            <span data-i18n="switcher.metro.desc">Horarios de Metro Bilbao</span>
-                        </span>
-                    </a>
-                    <a class="net-card" id="net-card-euskotren" href="/?red=euskotren">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <img src="/icons-euskotren/icon-192.png" alt="">
-                        </span>
-                        <span class="net-card-text">
-                            <strong data-i18n="app.euskotren.name">Euskotren+</strong>
-                            <span data-i18n="switcher.euskotren.desc">Horarios de Euskotren</span>
-                        </span>
-                    </a>
-                    <a class="net-card" id="net-card-tranvia-bilbao" href="/?red=tranvia-bilbao">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <img src="/icons-tranvia-bilbao/icon-192.png" alt="">
-                        </span>
-                        <span class="net-card-text">
-                            <strong data-i18n="switcher.tranviaBilbao.name">Tranvía Bilbao+</strong>
-                            <span data-i18n="switcher.tranviaBilbao.desc">Horarios del tranvía de Bilbao</span>
-                        </span>
-                    </a>
-                    <a class="net-card" id="net-card-tranvia-vitoria" href="/?red=tranvia-vitoria">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <img src="/icons-tranvia-vitoria/icon-192.png" alt="">
-                        </span>
-                        <span class="net-card-text">
-                            <strong data-i18n="switcher.tranviaVitoria.name">Tranvía Vitoria+</strong>
-                            <span data-i18n="switcher.tranviaVitoria.desc">Horarios del tranvía de Vitoria-Gasteiz</span>
-                        </span>
-                    </a>
-                    <a class="net-card" id="net-card-renfe" href="/?red=renfe">
-                        <span class="net-card-logomark" aria-hidden="true">
-                            <img src="/icons-renfe/icon-192.png" alt="">
-                        </span>
-                        <span class="net-card-text">
-                            <strong data-i18n="app.renfe.name">Renfe Cercanías+</strong>
-                            <span data-i18n="switcher.renfe.desc">Horarios de Cercanías en Bilbao y Donostia</span>
-                        </span>
-                    </a>
+<?php endforeach; ?>
                     <a class="net-card" id="net-card-menu" href="/">
                         <span class="net-card-logomark" aria-hidden="true">
                             <img class="is-full" src="/icons-bide-rojo/icon-192.png" alt="">
@@ -500,7 +401,7 @@ if ($breadcrumbName !== null) {
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" aria-live="polite"></div>
                 </div>
-                <p id="live-empty" role="status" data-i18n="switcher.bus.liveEmpty">Busca una parada para ver el próximo autobús.</p>
+                <p id="live-empty" role="status" data-i18n="net.<?= $networkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($network, 'liveEmpty')) ?></p>
 
             </div>
 
@@ -550,8 +451,8 @@ if ($breadcrumbName !== null) {
 
 <?= bideViews() ?>
 
-        <p id="attribution">Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)</p>
-        <p id="disclaimer">Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.</p>
+        <p id="attribution"><?= htmlspecialchars($network['attribution']) ?></p>
+        <p id="disclaimer"><?= htmlspecialchars(Networks::text($network, 'disclaimer')) ?></p>
     </main>
 
 <?= bideInstallBanner() ?>

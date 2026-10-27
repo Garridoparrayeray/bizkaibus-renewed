@@ -1,15 +1,9 @@
 <?php
 
-namespace Services;
+namespace Engine\Bizkaibus;
 
 use Models\ServiceJourney;
 
-/*
- * Cobertura del feed en vivo: de los viajes que el horario dice que están en ruta (han salido hace 3 min o más y su
- * última parada es dentro de más de 2 min), cuántos aparecen en el feed y cuántos con GPS. «otraSalida» cuenta los que
- * faltan pero para los que el feed trae el mismo número de viaje con otra hora de salida (no se mezclan: el emparejamiento
- * es por viaje exacto). No distingue un bus sin aparato de uno apagado o que aún no ha empezado.
- */
 class CoverageProbe
 {
     private const STARTED_AT_LEAST_SECONDS = 180;
@@ -29,7 +23,6 @@ class CoverageProbe
         return $iT;
     }
 
-    /** @return array<int, array{codigo: string, nombre: string, esperados: int, conDato: int, gps: int, otraSalida: int}> */
     public static function measure(array $aVm, ServiceJourney $JourneyModel, \PDO $Pdo, string $sDate, int $iNowSeconds): array
     {
         $Matcher = new RealtimeMatcher($aVm, $JourneyModel, $iNowSeconds, null, $sDate);

@@ -1,26 +1,10 @@
 (() => {
-    const IS_METRO = window.__bbNetwork === 'metro';
-    const IS_EUSKOTREN = window.__bbNetwork === 'euskotren';
-    const IS_TRANVIA_BILBAO = window.__bbNetwork === 'tranvia-bilbao';
-    const IS_TRANVIA_VITORIA = window.__bbNetwork === 'tranvia-vitoria';
-    const IS_RENFE = window.__bbNetwork === 'renfe';
-    const HAS_PLATFORMS = IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA;
-    let networkQuery = '';
-    if (HAS_PLATFORMS || IS_RENFE) {
-        networkQuery = '?red=' + window.__bbNetwork;
-    }
-    let FAVORITES_STORAGE_KEY = 'bizkaibus_favorites';
-    if (IS_METRO) {
-        FAVORITES_STORAGE_KEY = 'metrobilbao_favorites';
-    } else if (IS_EUSKOTREN) {
-        FAVORITES_STORAGE_KEY = 'euskotren_favorites';
-    } else if (IS_TRANVIA_BILBAO) {
-        FAVORITES_STORAGE_KEY = 'tranviabilbao_favorites';
-    } else if (IS_TRANVIA_VITORIA) {
-        FAVORITES_STORAGE_KEY = 'tranviavitoria_favorites';
-    } else if (IS_RENFE) {
-        FAVORITES_STORAGE_KEY = 'renfe_favorites';
-    }
+    const NETWORK = BideNetworks.get(window.__bbNetwork);
+    const FEATURES = NETWORK.features;
+    const HAS_PLATFORMS = FEATURES.platforms;
+    const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
+    const networkQuery = window.__bbNetwork === BideNetworks.DEFAULT ? '' : '?red=' + window.__bbNetwork;
+    const VEHICLE_PLURAL = { bus: 'autobuses', metro: 'metros', tram: 'tranvías', train: 'trenes' };
 
     const ICONS = {
         pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
@@ -494,7 +478,7 @@
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
         el.liveStatusDot.className = `status-dot ${className}`;
-        el.liveIncidentsLink.hidden = HAS_PLATFORMS;
+        el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
         el.liveOpenDetail.disabled = false;
         el.liveOpenDetail.dataset.tripKey = departure.tripKey;
         el.liveTimetableLink.disabled = false;
@@ -582,7 +566,7 @@
         const departures = data.departures || [];
         const platformNotice = document.getElementById('platform-notice');
         platformNotice.hidden = departures.length > 0;
-        platformNotice.textContent = `No hay ${IS_METRO ? 'metros' : 'trenes'} en las próximas 4 horas: puede ser fuera de horario o sin servicio en esta estación. Consulta el horario completo.`;
+        platformNotice.textContent = `No hay ${VEHICLE_PLURAL[NETWORK.kind] || 'trenes'} en las próximas 4 horas: puede ser fuera de horario o sin servicio en esta estación. Consulta el horario completo.`;
 
         if (data.platforms && data.platforms.length) {
             for (const platform of data.platforms) {
@@ -652,7 +636,7 @@
         }
 
         await loadTimetable();
-        if (!HAS_PLATFORMS) {
+        if (FEATURES.line_map) {
             await loadLineMap(line.id);
             startLineMapRefresh(line.id);
         }
@@ -683,18 +667,7 @@
             const [year, month, day] = data.publishedUntil.split('-');
             timetableNote.textContent = `El operador solo ha publicado horarios hasta el ${day}/${month}/${year}; para este día se muestra el de un día normal y puede no coincidir.`;
         }
-        let sourceLabel = 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)';
-        if (IS_METRO) {
-            sourceLabel = 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (CC-BY 4.0)';
-        } else if (IS_EUSKOTREN) {
-            sourceLabel = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
-        } else if (IS_TRANVIA_BILBAO) {
-            sourceLabel = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
-        } else if (IS_TRANVIA_VITORIA) {
-            sourceLabel = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
-        } else if (IS_RENFE) {
-            sourceLabel = 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)';
-        }
+        const sourceLabel = NETWORK.attribution;
         el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
     }
 
@@ -1002,7 +975,7 @@
 
     async function openVehicleModal(tripKey) {
         if (!tripKey) return;
-        if (HAS_PLATFORMS && !IS_METRO) {
+        if (FEATURES.trip_detail === 'stops') {
             await openTripStopsModal(tripKey);
             return;
         }
@@ -1026,7 +999,7 @@
         el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
         el.modalAlertsToggle.textContent = I18n.t('app.incidents.view');
         el.modalAlertsToggle.disabled = false;
-        el.modalAlertsToggle.hidden = HAS_PLATFORMS;
+        el.modalAlertsToggle.hidden = FEATURES.alerts === 'network';
         el.modalAlerts.hidden = true;
         el.modalAlerts.innerHTML = '';
 
@@ -1176,12 +1149,12 @@
         el.menuAlertsList.innerHTML = '';
         el.menuAlertsEmpty.hidden = false;
 
-        if (IS_RENFE) {
+        if (FEATURES.alerts === 'stops') {
             await renderRenfeAlerts();
             return;
         }
 
-        if (IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
+        if (FEATURES.alerts === 'network') {
             el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
             let metroAlerts;
             try {
@@ -1201,7 +1174,7 @@
                 summarySpan.className = 'alert-summary';
                 summarySpan.textContent = alert.summary || alert.title || '';
                 li.append(summarySpan);
-                if (!IS_METRO && alert.description) {
+                if (FEATURES.alerts_detail && alert.description) {
                     const descSpan = document.createElement('span');
                     descSpan.className = 'alert-description';
                     descSpan.textContent = alert.description;
@@ -1490,25 +1463,16 @@
         }
     }
     function updateNetworkSubtitle() {
-        if (IS_METRO) {
-            el.appSubtitle.textContent = I18n.t('switcher.metro.desc');
-        } else if (IS_EUSKOTREN) {
-            el.appSubtitle.textContent = I18n.t('switcher.euskotren.desc');
-        } else if (IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
-            el.appSubtitle.textContent = I18n.t('app.tram.desc');
-        } else if (IS_RENFE) {
-            el.appSubtitle.textContent = I18n.t('switcher.renfeSubtitle');
-        } else {
-            el.appSubtitle.textContent = I18n.t('switcher.bus.desc');
-        }
+        if (window.__bbTheme === 'miamor' && window.__bbNetwork === BideNetworks.DEFAULT) return;
+        el.appSubtitle.textContent = I18n.t(`net.${window.__bbNetwork}.subtitle`);
     }
     function setAlertTexts(heading, toggle) {
         document.querySelector('[data-i18n="app.myLinesIncidents"]').setAttribute('data-i18n', heading);
         document.querySelector('[data-i18n="app.notifyMe"]').setAttribute('data-i18n', toggle);
     }
-    if (IS_RENFE) {
+    if (FEATURES.alerts === 'stops') {
         setAlertTexts('app.myStopsIncidents', 'app.notifyMeStops');
-    } else if (IS_METRO || IS_EUSKOTREN || IS_TRANVIA_BILBAO || IS_TRANVIA_VITORIA) {
+    } else if (FEATURES.alerts === 'network') {
         setAlertTexts('app.myFavoritesIncidents', 'app.notifyMeFavorites');
     }
 
@@ -1586,51 +1550,13 @@
     el.filterHourFrom.value = `${pad2(now.getHours())}:00`;
     el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
 
-    if (IS_METRO) {
+    if (!FEATURES.line_map) {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
-        el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.';
-        el.attribution.textContent = 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (CC-BY 4.0): horario y tiempo real';
-        el.liveEmpty.textContent = I18n.t('switcher.metro.liveEmpty');
     }
-
-    if (IS_EUSKOTREN) {
-        el.lineMap.hidden = true;
-        el.lineMapEmpty.hidden = true;
+    if (!FEATURES.schedule_text) {
         el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
-        el.attribution.textContent = 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = I18n.t('switcher.euskotren.liveEmpty');
     }
-
-    if (IS_TRANVIA_BILBAO) {
-        el.lineMap.hidden = true;
-        el.lineMapEmpty.hidden = true;
-        el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
-        el.attribution.textContent = 'Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
-    }
-
-    if (IS_TRANVIA_VITORIA) {
-        el.lineMap.hidden = true;
-        el.lineMapEmpty.hidden = true;
-        el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
-        el.attribution.textContent = 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)';
-        el.liveEmpty.textContent = I18n.t('switcher.tram.liveEmpty');
-    }
-
-    if (IS_RENFE) {
-        el.lineMap.hidden = true;
-        el.lineMapEmpty.hidden = true;
-        el.scheduleTextToggle.hidden = true;
-        el.disclaimer.textContent = 'Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.';
-        el.attribution.textContent = 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)';
-        el.liveEmpty.textContent = I18n.t('switcher.renfe.liveEmpty');
-    }
-
     loadFavorites();
 
     window.addEventListener('popstate', (e) => {

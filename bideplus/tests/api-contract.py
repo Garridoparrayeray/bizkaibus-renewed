@@ -157,6 +157,7 @@ NETS = {
     'tranvia-bilbao': ('atxuri', 'red=tranvia-bilbao', (43.254113, -2.921513)),
     'tranvia-vitoria': ('abetxuko', 'red=tranvia-vitoria', (42.876277, -2.679599)),
     'renfe': ('abando', 'red=renfe', (43.2601304, -2.9285592)),
+    'lurraldebus': ('tolosa', 'red=lurraldebus', (43.31619, -1.97738)),
 }
 
 

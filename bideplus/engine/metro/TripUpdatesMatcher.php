@@ -1,6 +1,6 @@
 <?php
 
-namespace Services;
+namespace Engine\Metro;
 
 use Models\ServiceJourney;
 
@@ -25,11 +25,6 @@ class TripUpdatesMatcher
         return !empty($this->aTrips);
     }
 
-    /*
-     * El feed publica un tren en una parada hasta ~35 s (máximo ~90 s) después de su hora y luego lo quita.
-     * Con el feed activo, un tren que ya no aparece y pasó de su hora hace más de un minuto ya ha salido:
-     * mantenerlo como «0 min» lo hacía parecer un tren repetido junto al que llega.
-     */
     public function withoutDeparted(array $aRows, int $iNowSeconds): array
     {
         return array_values(array_filter($aRows, function ($aRow) use ($iNowSeconds) {
@@ -41,11 +36,6 @@ class TripUpdatesMatcher
         }));
     }
 
-    /*
-     * Predicciones del feed para el viaje de la salida `$sServiceJourneyId`, emparejado como en enrich()
-     * (mismo reparto entre las salidas de la parada `$sStopId`). Devuelve las paradas que le quedan al tren
-     * como [[stopId, hora Unix], ...] o null si el feed no lo trae.
-     */
     public function liveTrip(string $sStopId, array $aRows, string $sServiceJourneyId): array|null
     {
         [$aPredictions, $aMatches] = $this->pair($sStopId, $aRows);
@@ -76,13 +66,6 @@ class TripUpdatesMatcher
         return $aRows;
     }
 
-    /*
-     * Empareja las salidas programadas de la parada con los trenes del feed. Para cada salida se alinea la lista de
-     * paradas de cada tren con el patrón de esa salida: el feed del CTB a veces publica mal el id de una parada
-     * (Urduliz, 29, sale como Gobela, 20), así que un tren con una sola parada fuera de orden no se descarta: esa
-     * parada se corrige con la que le toca en el patrón. Con más paradas fuera de orden (tren de otro sentido) sí se
-     * descarta. Devuelve [previsiones candidatas por tren, emparejamientos fila => tren].
-     */
     private function pair(string $sStopId, array $aRows): array
     {
         if (empty($this->aTrips) || empty($aRows)) {
@@ -139,11 +122,6 @@ class TripUpdatesMatcher
         return [$aPredictions, $aMatches];
     }
 
-    /*
-     * Lista de paradas del tren ajustada al patrón: la misma lista si todas siguen el orden del patrón; si basta quitar
-     * una parada para que lo sigan, esa parada se corrige por la que le toca (la siguiente a la anterior en el patrón,
-     * o la anterior a la siguiente si es la primera); null si el tren no sigue ese patrón o la corrección no es única.
-     */
     private static function alignToSequence(array $aStops, array $aSequence): array|null
     {
         $aPositions = [];
@@ -184,7 +162,7 @@ class TripUpdatesMatcher
             if (!self::increasing($aFixedPositions)) {
                 continue;
             }
-            // Si hay varias correcciones posibles, gana la que deja la parada corregida pegada a sus dos vecinas en el patrón.
+
             $iScore = 0;
             if ($iPrevious !== null && $iPrevious !== false && $iExpected === $iPrevious + 1) {
                 $iScore++;

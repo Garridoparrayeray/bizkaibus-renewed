@@ -1,8 +1,8 @@
 name: Ritmo de los buses (k)
 
 # Mide cuanto mas rapido o mas lento que el horario van los buses de Bizkaibus
-# y mantiene al dia bideplus/data/pace-factors.json (factor k) y
-# bideplus/data/segment-times.json (lo que se tarda de verdad en cada tramo
+# y mantiene al dia bideplus/engine/bizkaibus/data/pace-factors.json (factor k) y
+# bideplus/engine/bizkaibus/data/segment-times.json (lo que se tarda de verdad en cada tramo
 # entre dos paradas, para los tramos en los que el horario no se parece a la
 # realidad, como los de autopista).
 #
@@ -73,7 +73,7 @@ jobs:
       - name: Capturar el feed en directo
         env:
           MINUTES: ${{ github.event.inputs.minutes || '45' }}
-        run: php bideplus/scripts/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
+        run: php bideplus/engine/bizkaibus/tools/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
 
       - name: Medir la precision de las llegadas con esta captura
         continue-on-error: true
@@ -82,19 +82,19 @@ jobs:
           {
             echo "### Precision de las llegadas (esta captura contra los pasos reales por parada)"
             echo '```'
-            php bideplus/scripts/eval-eta.php "$RUNNER_TEMP/capturas" || echo "Sin datos suficientes"
+            php bideplus/engine/bizkaibus/tools/eval-eta.php "$RUNNER_TEMP/capturas" || echo "Sin datos suficientes"
             echo '```'
           } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Descargar las muestras acumuladas
         run: |
           gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay muestras acumuladas"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
+          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
 
       - name: Anadir las muestras de esta captura
         run: |
-          php bideplus/scripts/realtime-backtest.php samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/pace-samples.jsonl"
-          php bideplus/scripts/realtime-backtest.php segment-samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/segment-samples.jsonl"
+          php bideplus/engine/bizkaibus/tools/realtime-backtest.php samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/pace-samples.jsonl"
+          php bideplus/engine/bizkaibus/tools/realtime-backtest.php segment-samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/segment-samples.jsonl"
 
       - name: Medir la cobertura del feed por linea
         # Cuantos viajes del horario en ruta aparecen en el feed. Si falla, no impide guardar el resto.
@@ -102,7 +102,7 @@ jobs:
         timeout-minutes: 5
         run: |
           gh release download pace-data -p coverage-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay cobertura acumulada"
-          php bideplus/scripts/coverage-samples.php "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/coverage-samples.jsonl" 15
+          php bideplus/engine/bizkaibus/tools/coverage-samples.php "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/coverage-samples.jsonl" 15
 
       - name: Guardar las muestras acumuladas
         run: |
@@ -128,18 +128,18 @@ jobs:
       - name: Descargar las muestras acumuladas
         run: |
           gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
+          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
 
       - name: Calibrar
         run: |
-          php bideplus/scripts/realtime-backtest.php calibrate "$RUNNER_TEMP/pace-samples.jsonl" --write
+          php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate "$RUNNER_TEMP/pace-samples.jsonl" --write
           if [ -f "$RUNNER_TEMP/segment-samples.jsonl" ]; then
-            php bideplus/scripts/realtime-backtest.php calibrate-segments "$RUNNER_TEMP/segment-samples.jsonl" --write
+            php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate-segments "$RUNNER_TEMP/segment-samples.jsonl" --write
           fi
 
       - name: Guardar el resultado si ha cambiado
         run: |
-          FILES="bideplus/data/pace-factors.json bideplus/data/segment-times.json"
+          FILES="bideplus/engine/bizkaibus/data/pace-factors.json bideplus/engine/bizkaibus/data/segment-times.json"
           if git diff --quiet -- $FILES && [ -z "$(git ls-files --others --exclude-standard $FILES)" ]; then
             echo "Sin cambios en pace-factors.json ni segment-times.json"
             exit 0

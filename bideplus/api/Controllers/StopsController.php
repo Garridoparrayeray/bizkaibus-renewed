@@ -11,10 +11,9 @@ use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Services\RealtimeMatcher;
 use Services\GtfsRealtimeClient;
-use Services\SiriVehicleMonitoringClient;
-use Services\TripUpdatesMatcher;
+use Core\Live;
+use Engine\Metro\TripUpdatesMatcher;
 
 class StopsController
 {
@@ -51,8 +50,7 @@ class StopsController
         $Pdo = Database::connection();
         $StopModel = new Stop($Pdo);
         $JourneyModel = new ServiceJourney($Pdo);
-        $sNetworkForNearby = Config::current()['network'] ?? 'bus';
-        $bUseLastStopHeadsign = in_array($sNetworkForNearby, ['metro', 'renfe'], true);
+        $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
 
         $aStops = $StopModel->nearest($dLat, $dLon, $iLimit);
         foreach ($aStops as &$aStop) {
@@ -116,22 +114,14 @@ class StopsController
             $iReferenceStopId = $aConfig['direction_reference_stop_id'];
         }
 
-        $aVmMap = [];
-        if (isset($aConfig['siri'])) {
-            $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
-        }
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        $Matcher = Live::matcher($JourneyModel);
         $TripMatcher = null;
-        if (isset($aConfig['gtfs_rt'])) {
+        if (Config::hasLive('trip-updates')) {
             $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
             $TripMatcher = new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds']);
         }
 
-        $sNetwork = 'bus';
-        if (isset($aConfig['network'])) {
-            $sNetwork = $aConfig['network'];
-        }
-        $bUseLastStopHeadsign = in_array($sNetwork, ['metro', 'renfe'], true);
+        $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
 
         $aPlatforms = $StopModel->platformsFor($sStopId);
 
@@ -269,12 +259,7 @@ class StopsController
         }, $aStops);
 
         $sHeadsign = $aJourney['headsign'];
-        $aConfig = Config::current();
-        $sNetwork = 'bus';
-        if (isset($aConfig['network'])) {
-            $sNetwork = $aConfig['network'];
-        }
-        if ($sNetwork === 'metro' && !empty($aStops)) {
+        if (Config::feature('headsign_from_last_stop') && !empty($aStops)) {
             $sHeadsign = end($aStops)['name'];
         }
 

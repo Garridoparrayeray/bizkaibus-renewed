@@ -7,7 +7,8 @@ declare(strict_types=1);
  * Protege de un ETL roto o de un GTFS raro del operador antes de que llegue a producción.
  */
 
-$aDatabases = ['bizkaibus', 'metrobilbao', 'euskotren', 'tranviabilbao', 'tranviavitoria', 'renfe'];
+require __DIR__ . '/../api/Core/Networks.php';
+$aDatabases = array_values(array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all()));
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {

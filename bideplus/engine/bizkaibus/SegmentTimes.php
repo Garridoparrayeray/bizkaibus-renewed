@@ -1,16 +1,11 @@
 <?php
 
-namespace Services;
+namespace Engine\Bizkaibus;
 
 class SegmentTimes
 {
-    private const FILE_PATH = __DIR__ . '/../../data/segment-times.json';
+    private const FILE_PATH = __DIR__ . '/data/segment-times.json';
 
-    /*
-     * Largo de un tramo (m) para repartir la proporcion tiempo real / horario de los tramos sin tiempo aprendido: en ciudad
-     * un bus tarda lo que dice el horario o mas, y en autopista la mitad, porque el horario va interpolado a velocidad
-     * constante entre paradas.
-     */
     public const LENGTH_CUTS_METERS = [300, 600, 1000, 1500, 3000];
 
     private array $aSegments;
@@ -32,10 +27,6 @@ class SegmentTimes
         return \count(self::LENGTH_CUTS_METERS);
     }
 
-    /*
-     * Tiempo estimado de un tramo sin tiempo aprendido a partir de su horario y su largo, o null si no hay proporciones
-     * calibradas o no se conoce el largo (entonces se usa el factor k de ritmo).
-     */
     public function fallbackSeconds(float $dScheduledSeconds, float|null $dMeters, string $sBand): float|null
     {
         if (empty($this->aLengthRatios) || $dMeters === null || $dMeters <= 0) {

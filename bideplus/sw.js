@@ -1,6 +1,6 @@
-importScripts('/js/alerts-store.js');
+importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v19';
+const CACHE_VERSION = 'v20';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
@@ -24,6 +24,7 @@ const SHELL_FILES = [
     '/lib/leaflet/images/marker-shadow.png',
     '/js/api.js',
     '/js/app.js',
+    '/js/networks.js',
     '/js/alerts-store.js',
     '/js/menu.js',
     '/js/menu-view.js',
@@ -61,6 +62,8 @@ const SHELL_FILES = [
     '/icons-tranvia-vitoria/icon-512.png',
     '/icons-renfe/icon-192.png',
     '/icons-renfe/icon-512.png',
+    '/icons-lurraldebus/icon-192.png',
+    '/icons-lurraldebus/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',

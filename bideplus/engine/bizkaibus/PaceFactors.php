@@ -1,13 +1,13 @@
 <?php
 
-namespace Services;
+namespace Engine\Bizkaibus;
 
 class PaceFactors
 {
     public const MIN_FACTOR = 0.6;
     public const MAX_FACTOR = 1.2;
 
-    private const FILE_PATH = __DIR__ . '/../../data/pace-factors.json';
+    private const FILE_PATH = __DIR__ . '/data/pace-factors.json';
 
     private const BANDS = [
         [0, 6, 'madrugada'],
