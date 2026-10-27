@@ -28,14 +28,6 @@ if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|test_gtfs)(
     return true;
 }
 
-if ($sUri === '/sitemap.xml' || preg_match('#^/sitemap-(apps|bus|metro|euskotren|tranvia-bilbao|tranvia-vitoria|renfe)[.]xml$#', $sUri, $aSitemap)) {
-    if (isset($aSitemap[1])) {
-        $_GET['red'] = $aSitemap[1];
-    }
-    require __DIR__ . '/api/sitemap.php';
-    return true;
-}
-
 $sFile = realpath(__DIR__ . $sUri);
 if ($sUri !== '/' && $sFile !== false && is_file($sFile) && str_starts_with($sFile, __DIR__ . DIRECTORY_SEPARATOR)) {
     $aTypes = [
