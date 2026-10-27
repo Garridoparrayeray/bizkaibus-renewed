@@ -40,7 +40,8 @@ class SearchController
     {
         $aHeadsigns = $StopModel->headsignsForMany(array_column($aStops, 'id'));
         foreach ($aStops as &$aStop) {
-            $aStop['hint'] = isset($aHeadsigns[$aStop['id']]) ? 'hacia ' . implode(', ', $aHeadsigns[$aStop['id']]) : null;
+            // Sin recorridos que salgan de ella, la parada solo es final de línea.
+            $aStop['hint'] = isset($aHeadsigns[$aStop['id']]) ? 'hacia ' . implode(', ', $aHeadsigns[$aStop['id']]) : 'final de línea';
         }
         return $aStops;
     }

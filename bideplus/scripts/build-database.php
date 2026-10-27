@@ -411,6 +411,9 @@ function mergeGtfsZips(array $aPathsByKey): string
                 if ($sFile === 'trips.txt' && ($aRow['trip_headsign'] ?? '') === '' && ($aRow['trip_short_name'] ?? '') !== '') {
                     $aRow['trip_headsign'] = $aRow['trip_short_name'];
                 }
+                if ($sFile === 'trips.txt' && ($aRow['trip_headsign'] ?? '') !== '') {
+                    $aRow['trip_headsign'] = tidyHeadsign($aRow['trip_headsign']);
+                }
                 if ($sFile === 'routes.txt') {
                     $aRow['route_long_name'] = tidyRouteName($aRow['route_long_name'] ?? '', $aRow['route_short_name'] ?? '');
                 }
@@ -454,6 +457,17 @@ function mergeGtfsZips(array $aPathsByKey): string
         echo "  merged $sFile: " . count($aFileRows) . " rows\n";
     }
     return $sOut;
+}
+
+// «Azkoitia(altzibar» -> «Azkoitia (Altzibar)»: espacio antes del paréntesis, paréntesis cerrado y mayúscula
+// inicial en cada palabra que empieza en minúscula (también tras «-» y «(»).
+function tidyHeadsign(string $sHeadsign): string
+{
+    $sHeadsign = preg_replace('/\s*\(\s*/u', ' (', trim($sHeadsign));
+    if (substr_count($sHeadsign, '(') > substr_count($sHeadsign, ')')) {
+        $sHeadsign = rtrim($sHeadsign) . ')';
+    }
+    return preg_replace_callback('/(^|[\s(\-\/])(\p{Ll})/u', fn($aM) => $aM[1] . mb_strtoupper($aM[2]), $sHeadsign);
 }
 
 // «Uk01-azkoitia>azpeitia>zestoa» -> «Azkoitia - Azpeitia - Zestoa»: sin el código delante y con mayúscula inicial.
