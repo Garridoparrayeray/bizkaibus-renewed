@@ -75,6 +75,7 @@ const apps = [
     { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
     { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
     { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
+    { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'tolosa', panel: 'live-card' },
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
