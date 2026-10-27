@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 date_default_timezone_set('Europe/Madrid');
 
-require __DIR__ . '/../../api/autoload.php';
+require __DIR__ . '/../../../api/autoload.php';
 
-use Engine\PaceFactors;
-use Engine\SegmentTimes;
+use Engine\Bizkaibus\PaceFactors;
+use Engine\Bizkaibus\SegmentTimes;
 
 const MIN_TRACKS_PER_SEGMENT = 2;
 
@@ -49,7 +49,7 @@ function fit(array $aSamples): SegmentTimes
 
 $sPath = $argv[1] ?? '';
 if (!is_file($sPath)) {
-    fwrite(STDERR, "Uso: php engine/tools/learning-curve.php <tramos.jsonl>\n");
+    fwrite(STDERR, "Uso: php engine/bizkaibus/tools/learning-curve.php <tramos.jsonl>\n");
     exit(1);
 }
 

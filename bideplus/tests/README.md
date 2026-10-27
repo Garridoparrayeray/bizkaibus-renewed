@@ -39,5 +39,5 @@ El navegador de pruebas usa un perfil temporal propio y se cierra por PID: no to
 - **Lógica nueva en `api/Services` o `api/Core`:** añade sus casos a `unit-test.php`, con el resultado exacto esperado (horas, segundos, metros), no solo «no da error».
 - **Una ruta o un campo nuevo en la API:** añádelo al esquema de `api-contract.py` y una llamada en `api-smoke.py`.
 - **Un operador nuevo (por ejemplo Lurraldebus):** añade su base a `data-integrity.php`, su búsqueda y su ubicación a `api-smoke.py` y `api-contract.py`, y su app a `ui-battery.mjs`.
-- **Cambios en `engine/`:** además de `unit-test.php`, mide con `php engine/tools/realtime-backtest.php analyze` antes y después.
+- **Cambios en `engine/`:** además de `unit-test.php`, mide con `php engine/bizkaibus/tools/realtime-backtest.php analyze` antes y después.
 - Si una prueba falla con tu cambio, arregla el código, no la prueba, salvo que el comportamiento haya cambiado a propósito (y entonces dilo en la *pull request*).

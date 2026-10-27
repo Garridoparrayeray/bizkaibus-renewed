@@ -1,24 +1,24 @@
 <?php
 
 date_default_timezone_set('Europe/Madrid');
-require __DIR__ . '/../../api/autoload.php';
+require __DIR__ . '/../../../api/autoload.php';
 $Pdo=Core\Database::connection(); $JM=new Models\ServiceJourney($Pdo);
-$dir=$argv[1]??''; if(!is_dir($dir)){ fwrite(STDERR,"Uso: php engine/tools/eval-eta.php <carpeta con capturas>\n"); exit(1);}
+$dir=$argv[1]??''; if(!is_dir($dir)){ fwrite(STDERR,"Uso: php engine/bizkaibus/tools/eval-eta.php <carpeta con capturas>\n"); exit(1);}
 $files=array_merge(glob(rtrim($dir,'/').'/s*.xml') ?: [], glob(rtrim($dir,'/').'/vm_*.xml') ?: []); sort($files);
 $snaps=[];
 
 $sDate=preg_match('/<RecordedAtTime>(\d{4}-\d{2}-\d{2})/',(string)file_get_contents($files[0]??'',false,null,0,4096),$mDate)?$mDate[1]:null;
 $sinGps=in_array('--sin-gps',$argv,true); $sinFeed=in_array('--sin-feed',$argv,true);
-foreach($files as $f){ $vm=Services\SiriVehicleMonitoringClient::parse(file_get_contents($f),$sDate); $t=0; foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0) if(isset($e0['locationSeconds'])) $t=max($t,$e0['locationSeconds']); if($sinGps){ foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0){ $vm[$kk][$ii]['lat']=null; $vm[$kk][$ii]['lon']=null; $vm[$kk][$ii]['locationSeconds']=null; } } $t0=$t; $t=$t0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
+foreach($files as $f){ $vm=Engine\Bizkaibus\SiriVehicleMonitoringClient::parse(file_get_contents($f),$sDate); $t=0; foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0) if(isset($e0['locationSeconds'])) $t=max($t,$e0['locationSeconds']); if($sinGps){ foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0){ $vm[$kk][$ii]['lat']=null; $vm[$kk][$ii]['lon']=null; $vm[$kk][$ii]['locationSeconds']=null; } } $t0=$t; $t=$t0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
 
 $byVeh=[]; foreach($snaps as $i=>[$t,$vm]) foreach($vm as $k=>$es) foreach($es as $e) $byVeh[$e['vehicleRef']][$i]=[$k,$e];
 $stopsCache=[];
-$SegT=Engine\SegmentTimes::fromFile(); $C=[]; $K=[];
+$SegT=Engine\Bizkaibus\SegmentTimes::fromFile(); $C=[]; $K=[];
 $G=[]; $stat=['app'=>[], 'horario'=>[]]; $cnt=['pred'=>0,'vivo'=>0,'programado'=>0];
 $H=[[0,180],[180,360],[360,600],[600,1200]];
 foreach($snaps as $i=>[$t,$vm]){
-  $M=new Engine\RealtimeMatcher($vm,$JM,$t,null,$sDate);
-  $M0=$sinFeed?new Engine\RealtimeMatcher([],$JM,$t):$M;
+  $M=new Engine\Bizkaibus\RealtimeMatcher($vm,$JM,$t,null,$sDate);
+  $M0=$sinFeed?new Engine\Bizkaibus\RealtimeMatcher([],$JM,$t):$M;
   foreach($vm as $k=>$es) foreach($es as $e){
     $j=$M->journeyIdFor($e); if(!$j||!isset($e['order'])) continue;
     [$sLine,$sTrip]=explode('|',$k);
@@ -37,7 +37,7 @@ foreach($snaps as $i=>[$t,$vm]){
       if($h<600) $G[$grp.' / '.$seg][]=$out['etaSeconds']-$actual;
       $stat['horario'][$b][]=$sched-$actual;
       if($out['status']==='live'){
-        $miss=0; $band=Engine\PaceFactors::bandFor($sDate??date('Y-m-d'),(int)$t);
+        $miss=0; $band=Engine\Bizkaibus\PaceFactors::bandFor($sDate??date('Y-m-d'),(int)$t);
         foreach($st as $ix=>$sa){ $sq=(int)$sa['seq_order']; if($sq>=$seq||!isset($st[$ix+1])||$sq<(int)$e['order']-1) continue; if($SegT->seconds((string)$sa['stop_id'],(string)$st[$ix+1]['stop_id'],$band)===null) $miss++; }
         if($h<600) $K[min($miss,2)][]=$out['etaSeconds']-$actual;
         $hb=$h<300?'0-5 min':($h<600?'5-10 min':'10-20 min'); $C[$hb][$miss===0?'todo aprendido':'algun tramo sin aprender'][]=$out['etaSeconds']-$actual;

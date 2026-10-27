@@ -117,7 +117,7 @@ if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in
 get('/api/status?red=metro', 404)
 
 # Lo que no se publica: bases de datos, scripts, pruebas y el motor (código y datos).
-for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/data/pace-factors.json', '/engine/RealtimeMatcher.php', '/api/Networks/bus.php'):
+for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/bizkaibus/data/pace-factors.json', '/engine/bizkaibus/RealtimeMatcher.php', '/api/Networks/bus.php'):
     count += 1
     try:
         code = urllib.request.urlopen(BASE + private, timeout=60).status

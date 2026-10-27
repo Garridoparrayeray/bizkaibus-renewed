@@ -11,10 +11,9 @@ use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Engine\RealtimeMatcher;
 use Services\GtfsRealtimeClient;
-use Services\SiriVehicleMonitoringClient;
-use Engine\TripUpdatesMatcher;
+use Core\Live;
+use Engine\Metro\TripUpdatesMatcher;
 
 class StopsController
 {
@@ -115,11 +114,7 @@ class StopsController
             $iReferenceStopId = $aConfig['direction_reference_stop_id'];
         }
 
-        $aVmMap = [];
-        if (Config::hasLive('vehicle-monitoring')) {
-            $aVmMap = (new SiriVehicleMonitoringClient($aConfig))->fetchActiveTrips();
-        }
-        $Matcher = new RealtimeMatcher($aVmMap, $JourneyModel);
+        $Matcher = Live::matcher($JourneyModel);
         $TripMatcher = null;
         if (Config::hasLive('trip-updates')) {
             $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();

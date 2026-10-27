@@ -1,6 +1,6 @@
 <?php
 
-namespace Engine;
+namespace Engine\Bizkaibus;
 
 use Core\Config;
 use Services\Calendar;
