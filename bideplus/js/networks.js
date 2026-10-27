@@ -160,7 +160,7 @@
     "lurraldebus": {
         "kind": "bus",
         "icons": "icons-lurraldebus",
-        "themeColor": "#3D7F1E",
+        "themeColor": "#0062A8",
         "title": [
             "LURRALDEBUS",
             ""
