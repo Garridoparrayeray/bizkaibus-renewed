@@ -294,7 +294,7 @@ if ($breadcrumbName !== null) {
                 <button id="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
                     <span id="app-logomark" aria-hidden="true"><?= $network['brand']['logomark'] ?></span>
                     <hgroup>
-                        <h1 id="app-title"><?= htmlspecialchars($network['brand']['title'][0]) ?><span id="app-title-mark">+</span></h1>
+                        <h1 id="app-title"<?= mb_strlen($network['brand']['title'][0]) > 9 ? ' class="is-long"' : '' ?>><?= htmlspecialchars($network['brand']['title'][0]) ?><span id="app-title-mark">+</span></h1>
                         <span id="app-title-city"><?= htmlspecialchars($network['brand']['title'][1]) ?></span>
                         <p id="app-subtitle" data-i18n="net.<?= $networkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($network, 'subtitle')) ?></p>
                     </hgroup>
