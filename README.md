@@ -46,6 +46,6 @@ Un error en un horario o en una llegada, una idea o una barrera de accesibilidad
 
 El código, el diseño y los iconos se publican bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE): puedes copiarlos y adaptarlos citando al autor, sin fines comerciales y compartiendo las obras derivadas con la misma licencia. © 2026 Yeray Garrido.
 
-El uso comercial, la reventa y los despliegues institucionales (administraciones, entidades públicas o privadas) por parte de terceros requieren autorización del titular. Para una licencia comercial, mira la cabecera del archivo [LICENSE](LICENSE).
+Cualquier uso comercial necesita una licencia del autor: venderlo o revenderlo, cobrar por instalarlo, adaptarlo, mantenerlo o desplegarlo para terceros (también para administraciones públicas) o incluirlo en un producto o servicio de pago. El uso sin ánimo de lucro, también por administraciones y entidades, está permitido con la misma licencia. Para una licencia comercial, mira la cabecera del archivo [LICENSE](LICENSE).
 
 Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares, menos los generados para usar la aplicación que están publicados bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE). Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
