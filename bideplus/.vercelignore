@@ -3,5 +3,9 @@ test_gtfs.zip
 test_db.php
 javadoc-BizkaiBus-Metro.pdf
 manual-BizkaiBus-Metro.pdf
-engine/tools/
-engine/data/segment-samples-seed.jsonl.gz
+tests/
+scripts/
+engine/*/tools/
+engine/*/data/*.jsonl*
+dev-router.php
+bizkaibus-renewed.code-workspace
