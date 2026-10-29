@@ -33,6 +33,16 @@ class Live
         return $sClass::record(Config::current());
     }
 
+    // Hora de paso por cada parada de los viajes de una línea en un día (los últimos 3 días). Null si no hay registro.
+    public static function history(string $sDate, string $sLineId): array|null
+    {
+        $sClass = self::engineClass('Live');
+        if ($sClass === null || !method_exists($sClass, 'history')) {
+            return null;
+        }
+        return $sClass::history(Config::current(), $sDate, $sLineId);
+    }
+
     public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null): object
     {
         $sClass = self::engineClass('Live');

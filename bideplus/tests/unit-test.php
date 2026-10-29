@@ -761,6 +761,9 @@ $expect('se apunta «parada a la que va:hora» de cada viaje con parada y hora',
 $expect('valores mal formados no cuentan', PassageLog::decode('x') === null && PassageLog::decode(null) === null && PassageLog::decode('4:100') === ['order' => 4, 'seconds' => 100]);
 $expect('de los alias de un viaje vale el que llegó más lejos', PassageLog::merge(['J1', 'J1', 'J2'], ['2:100', '5:200', null]) === ['J1' => ['order' => 5, 'seconds' => 200]]);
 $expect('la clave es por red y por día', PassageLog::key('bus', '2026-10-29') === 'bide:bus:pass:2026-10-29');
+$expect('historial: una entrada por viaje y parada, con la hora', PassageLog::stopFields($aVmPass) === ['trp_A#4' => (string)(T0 + 500), 'trp_C#2' => (string)(T0 + 300)], json_encode(PassageLog::stopFields($aVmPass)));
+$aHistory = PassageLog::stopsFromHash(['trp_X#5' => '200', 'trp_X#3' => '100', 'trp_Y#1' => '50', 'mal' => '1', 'trp_Z#2' => 'x']);
+$expect('historial: se agrupa por viaje y se ordena por parada', $aHistory === ['trp_X' => [3 => 100, 5 => 200], 'trp_Y' => [1 => 50]], json_encode($aHistory));
 $expect('sin almacén configurado no se consulta nada', PassageLog::forJourneys(new ServiceJourney(buildFixture(40)), ['J_LINE'], 'bus', DATE_WEEKDAY) === []);
 $expect('nombres de un viaje en el directo: su id y sus alias', (new ServiceJourney(buildFixture(40)))->tripRefsForJourneys(['J_LINE'])['J_LINE'] === ['J_LINE', 'trp_A3414_808_OP9LJIN_28800_x', 'trp_A3414_808_OP9LSEPT_28800_x'] || (new ServiceJourney(buildFixture(40)))->tripRefsForJourneys(['J_LINE'])['J_LINE'] === ['J_LINE', 'trp_A3414_808_OP9LSEPT_28800_x', 'trp_A3414_808_OP9LJIN_28800_x']);
 

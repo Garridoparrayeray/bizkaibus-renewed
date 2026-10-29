@@ -62,6 +62,18 @@ try {
     PassageLog::record($aVm, 'bus', '2026-10-29');
     $expect('la siguiente lectura del directo actualiza por dónde va', PassageLog::forJourneys($Journeys, ['J1'], 'bus', '2026-10-29')['J1']['order'] === 8);
 
+    $aVm['3514|909'][] = ['tripRef' => 'trp_A3514_909_LIN_53100_y', 'order' => 2, 'recordedSeconds' => 52900];
+    $aVm['3515|914'] = [['tripRef' => 'trp_A3515_914_LIN_55800_z', 'order' => 4, 'recordedSeconds' => 52900]];
+    PassageLog::record($aVm, 'bus', '2026-10-29');
+    $aVm['3514|909'][0] = ['tripRef' => 'trp_A3514_909_LIN_51300_x', 'order' => 9, 'recordedSeconds' => 52960];
+    PassageLog::record($aVm, 'bus', '2026-10-29');
+    $aHistory = PassageLog::history('bus', '2026-10-29', '3514');
+    $expect('historial de una línea: cada parada con su hora, sin otras líneas', $aHistory === [
+        'trp_A3514_909_LIN_51300_x' => [5 => 52860, 8 => 52860, 9 => 52960],
+        'trp_A3514_909_LIN_53100_y' => [2 => 52900],
+    ], json_encode($aHistory));
+    $expect('historial: línea con caracteres raros no se consulta', PassageLog::history('bus', '2026-10-29', '35*') === null);
+
     putenv('UPSTASH_REDIS_REST_TOKEN=token-malo');
     $expect('con la clave mala no se escribe', PassageLog::record($aVm, 'bus', '2026-10-29') === null);
     $expect('tras un fallo se deja de llamar un minuto', is_file($sMarker) && Store::pipeline([['HMGET', 'k', 'f']]) === null);
