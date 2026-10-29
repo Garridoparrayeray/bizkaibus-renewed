@@ -98,6 +98,16 @@ try {
     $expect('con la clave en la cabecera Authorization se acepta', LiveRecordController::authorized(new Request()));
     $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer';
     $expect('con una cabecera vacía no', !LiveRecordController::authorized(new Request()));
+    $_GET = ['key' => 'secreto'];
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer secreto-mal-copiado';
+    $expect('una cabecera equivocada no anula la clave buena de la URL', LiveRecordController::authorized(new Request()));
+    $_GET = ['key' => 'otra'];
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer secreto ';
+    $expect('con la cabecera buena (aunque lleve un espacio al final) y otra clave en la URL, se acepta', LiveRecordController::authorized(new Request()));
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer otra';
+    $expect('con las dos equivocadas, no', !LiveRecordController::authorized(new Request()));
+    unset($_SERVER['HTTP_AUTHORIZATION']);
+    $_GET = [];
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);
