@@ -3,7 +3,8 @@
     const FEATURES = NETWORK.features;
     const HAS_PLATFORMS = FEATURES.platforms;
     const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
-    const networkQuery = window.__bbNetwork === BideNetworks.DEFAULT ? '' : '?red=' + window.__bbNetwork;
+    let networkQuery = '';
+    if (window.__bbNetwork !== BideNetworks.DEFAULT) networkQuery = '?red=' + window.__bbNetwork;
     const VEHICLE_PLURAL = { bus: 'autobuses', metro: 'metros', tram: 'tranvías', train: 'trenes' };
 
     const ICONS = {
@@ -126,6 +127,8 @@
 
     function liveBadgeText(status, etaMinutes) {
         if (status === 'departed') return I18n.t('app.badge.leaving');
+        if (status === 'estimated') return I18n.t('app.badge.estimated');
+        if (status === 'likely_departed') return I18n.t('app.badge.likelyDeparted');
         if (status !== 'live') return I18n.t('app.badge.scheduled');
         if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
         if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
@@ -142,6 +145,8 @@
         }
         if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
         if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
+        if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
+        if (status === 'likely_departed') return { text: I18n.t('app.status.likelyDeparted'), className: 'status-muted' };
         return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
     }
 
@@ -247,7 +252,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'pill';
-            setPillContent(button, item.type === 'stop' ? ICONS.pin : ICONS.bus, item.label, item.area, item.hint);
+            setPillContent(button, iconFor(item.type), item.label, item.area, item.hint);
             button.addEventListener('click', () => {
                 el.searchInput.value = '';
                 el.searchResults.hidden = true;
@@ -272,8 +277,14 @@
         el.searchResults.hidden = false;
     }
 
+    function iconFor(type) {
+        if (type === 'stop') return ICONS.pin;
+        return ICONS.bus;
+    }
+
     function formatDistance(meters) {
-        return meters < 1000 ? `${Math.max(10, Math.round(meters / 10) * 10)} m` : `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
+        if (meters < 1000) return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
+        return `${(meters / 1000).toFixed(1).replace('.', ',')} km`;
     }
 
     function renderNearbyResults(stops) {
@@ -283,9 +294,8 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'pill';
-            const next = stop.next
-                ? `${stop.next.lineCode} → ${stop.next.headsign} · ${Math.max(stop.next.etaMinutes, 0)} min`
-                : 'Sin salidas próximas';
+            let next = 'Sin salidas próximas';
+            if (stop.next) next = `${stop.next.lineCode} → ${stop.next.headsign} · ${Math.max(stop.next.etaMinutes, 0)} min`;
             setPillContent(button, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
             button.addEventListener('click', () => {
                 el.searchResults.hidden = true;
@@ -389,8 +399,14 @@
         const now = Date.now();
         // Un bus que pasó hace más de 45 s deja de salir: antes seguía 2 min como «0 min» con el bus ya lejos.
         return (departures || [])
-            .filter((d) => (Number.isFinite(d.etaAt) ? d.etaAt * 1000 >= now - DEPARTED_GRACE_MS : d.etaMinutes >= -2))
-            .map((d) => (Number.isFinite(d.etaAt) ? { ...d, etaMinutes: Math.max(0, Math.round((d.etaAt * 1000 - now) / 60000)) } : d));
+            .filter((d) => {
+                if (Number.isFinite(d.etaAt)) return d.etaAt * 1000 >= now - DEPARTED_GRACE_MS;
+                return d.etaMinutes >= -2;
+            })
+            .map((d) => {
+                if (!Number.isFinite(d.etaAt)) return d;
+                return { ...d, etaMinutes: Math.max(0, Math.round((d.etaAt * 1000 - now) / 60000)) };
+            });
     }
 
     function departuresSignature(departures) {
@@ -433,7 +449,8 @@
         const single = lines.length === 1;
         el.liveTimetableLink.hidden = lines.length > 1;
         el.liveTimetableLink.disabled = !single;
-        el.liveTimetableLink.dataset.lineId = single ? lines[0].id : '';
+        el.liveTimetableLink.dataset.lineId = '';
+        if (single) el.liveTimetableLink.dataset.lineId = lines[0].id;
         if (lines.length < 2) return;
 
         for (const line of lines) {
@@ -448,8 +465,11 @@
     }
 
     function renderLiveCard(departures) {
-        const favoriteIndex = departures.findIndex((d) => state.favoriteKeys.has(favoriteKey('line', d.lineId)));
-        const heroIndex = favoriteIndex !== -1 ? favoriteIndex : 0;
+        // La tarjeta grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus), salvo que no haya otro.
+        const coming = (d) => d.status !== 'likely_departed';
+        const favoriteIndex = departures.findIndex((d) => coming(d) && state.favoriteKeys.has(favoriteKey('line', d.lineId)));
+        let heroIndex = Math.max(0, departures.findIndex(coming));
+        if (favoriteIndex !== -1) heroIndex = favoriteIndex;
         const departure = departures[heroIndex] || null;
         const others = departures.filter((_, i) => i !== heroIndex);
         el.liveMoreList.innerHTML = '';
@@ -477,6 +497,9 @@
         setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
+        if (departure.status === 'estimated') {
+            el.liveStatusText.textContent = `${departure.lineCode} · ${I18n.t('app.officialTime', { time: departure.scheduledTime })}`;
+        }
         el.liveStatusDot.className = `status-dot ${className}`;
         el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
         el.liveOpenDetail.disabled = false;
@@ -488,7 +511,13 @@
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
+            let when = `${Math.max(other.etaMinutes, 0)} min`;
+            if (other.status === 'estimated') when = '≈ ' + when;
+            if (other.status === 'likely_departed') {
+                when = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
+                li.className = 'is-likely-past';
+            }
+            button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${escapeHtml(when)}</span>`;
 
             button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
@@ -577,7 +606,8 @@
             for (const direction of PLATFORM_DIRECTIONS) {
                 const columnDepartures = departures.filter((d) => d.direction === direction.key);
                 const termini = data.directionLabels && data.directionLabels[direction.key];
-                const label = termini ? 'Hacia ' + termini : direction.label;
+                let label = direction.label;
+                if (termini) label = 'Hacia ' + termini;
                 el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
             }
         }
@@ -623,7 +653,8 @@
             return;
         }
         state.currentLine = { id: line.id, code: line.code, name: line.name };
-        state.timetableStopId = scopeToCurrentStop ? (state.currentStop?.id ?? null) : null;
+        state.timetableStopId = null;
+        if (scopeToCurrentStop) state.timetableStopId = state.currentStop?.id ?? null;
         updateFavoriteButton(el.timetableFavorite, 'line', line.id);
         el.timetableSection.hidden = false;
         el.timetableLine.textContent = `${line.code} · ${line.name}`;
@@ -678,7 +709,7 @@
         for (const entry of entries) {
             const { text, className } = statusLabel(entry.status, entry.delayMinutes);
             const tr = document.createElement('tr');
-            if (entry.status === 'departed') tr.className = 'is-past';
+            if (entry.status === 'departed' || entry.status === 'likely_departed') tr.className = 'is-past';
 
             const departureCell = document.createElement('td');
             departureCell.textContent = entry.departure;
@@ -733,7 +764,11 @@
 
         for (const vehicle of data.vehicles) {
             const { lat, lon, name } = vehicle.currentStop;
-            const statusText = vehicle.delayMinutes === null ? '' : vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
+            let statusText = '';
+            if (vehicle.delayMinutes !== null) {
+                statusText = 'En hora';
+                if (vehicle.delayMinutes > 0) statusText = `Retraso +${vehicle.delayMinutes}m`;
+            }
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
                 .bindPopup(`<strong>${escapeHtml(vehicle.headsign)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
@@ -812,7 +847,8 @@
         } else {
             const parseDate = (text) => {
                 const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text || '');
-                return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null;
+                if (!m) return null;
+                return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
             };
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -828,7 +864,9 @@
 
             for (const { fields, isCurrent, isPast } of entries) {
                 const block = document.createElement('div');
-                block.className = 'schedule-block' + (isCurrent ? ' is-current' : '') + (isPast ? ' is-past' : '');
+                block.className = 'schedule-block';
+                if (isCurrent) block.classList.add('is-current');
+                if (isPast) block.classList.add('is-past');
 
                 const h4 = document.createElement('h4');
                 h4.textContent = fields.season || I18n.t('app.schedule');
@@ -901,7 +939,12 @@
 
     function renderModalStops(data) {
         const stops = freshModalStops(data);
-        const signature = stops.map((s) => `${s.stopId}:${s.isPast ? 'p' : ''}${s.isCurrent ? 'c' : ''}:${s.etaMinutes}`).join('|');
+        const signature = stops.map((s) => {
+            let flags = '';
+            if (s.isPast) flags += 'p';
+            if (s.isCurrent) flags += 'c';
+            return `${s.stopId}:${flags}:${s.etaMinutes}`;
+        }).join('|');
         if (signature === modalState.signature && el.modalStops.children.length > 0) return;
         modalState.signature = signature;
 
@@ -1086,7 +1129,8 @@
     function readFavorites() {
         try {
             const raw = localStorage.getItem(FAVORITES_STORAGE_KEY);
-            return raw ? JSON.parse(raw) : [];
+            if (!raw) return [];
+            return JSON.parse(raw);
         } catch (e) {
             return [];
         }
@@ -1260,7 +1304,7 @@
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'pill';
-            const icon = favorite.type === 'stop' ? ICONS.pin : ICONS.bus;
+            const icon = iconFor(favorite.type);
             const cacheKey = favoriteKey(favorite.type, favorite.refId);
             const cached = favoriteLabelCache.get(cacheKey);
 
@@ -1282,13 +1326,18 @@
     }
 
     async function hydrateFavoriteLabel(favorite, button, cacheKey) {
-        const icon = favorite.type === 'stop' ? ICONS.pin : ICONS.bus;
+        const icon = iconFor(favorite.type);
         try {
-            const details = favorite.type === 'stop'
-                ? await Api.stop(favorite.refId)
-                : await Api.line(favorite.refId);
-            const label = favorite.type === 'stop' ? details.name : `${details.code} ${details.name}`;
-            const area = favorite.type === 'stop' ? details.area : '';
+            let label;
+            let area = '';
+            if (favorite.type === 'stop') {
+                const details = await Api.stop(favorite.refId);
+                label = details.name;
+                area = details.area;
+            } else {
+                const details = await Api.line(favorite.refId);
+                label = `${details.code} ${details.name}`;
+            }
             favoriteLabelCache.set(cacheKey, { label, area });
             setPillContent(button, icon, label, area);
         } catch (e) {
@@ -1298,7 +1347,8 @@
 
     function updateFavoriteButton(button, type, refId) {
         const isFavorite = !!refId && state.favoriteKeys.has(favoriteKey(type, refId));
-        button.innerHTML = isFavorite ? ICONS.heartFilled : ICONS.heartOutline;
+        button.innerHTML = ICONS.heartOutline;
+        if (isFavorite) button.innerHTML = ICONS.heartFilled;
         button.classList.toggle('is-favorite', isFavorite);
     }
 
@@ -1401,9 +1451,11 @@
                 background = false;
             }
         }
-        setAlertsNote(background
-            ? 'Te avisaremos de las incidencias nuevas de tus líneas favoritas, incluso con la app cerrada.'
-            : 'Te avisaremos al abrir la app: tu navegador no permite avisos en segundo plano.');
+        if (background) {
+            setAlertsNote('Te avisaremos de las incidencias nuevas de tus líneas favoritas, incluso con la app cerrada.');
+        } else {
+            setAlertsNote('Te avisaremos al abrir la app: tu navegador no permite avisos en segundo plano.');
+        }
         return true;
     }
 
