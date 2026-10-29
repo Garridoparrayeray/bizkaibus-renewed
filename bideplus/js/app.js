@@ -127,6 +127,8 @@
 
     function liveBadgeText(status, etaMinutes) {
         if (status === 'departed') return I18n.t('app.badge.leaving');
+        if (status === 'estimated') return I18n.t('app.badge.estimated');
+        if (status === 'likely_departed') return I18n.t('app.badge.likelyDeparted');
         if (status !== 'live') return I18n.t('app.badge.scheduled');
         if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
         if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
@@ -143,6 +145,8 @@
         }
         if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
         if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
+        if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
+        if (status === 'likely_departed') return { text: I18n.t('app.status.likelyDeparted'), className: 'status-muted' };
         return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
     }
 
@@ -461,8 +465,10 @@
     }
 
     function renderLiveCard(departures) {
-        const favoriteIndex = departures.findIndex((d) => state.favoriteKeys.has(favoriteKey('line', d.lineId)));
-        let heroIndex = 0;
+        // La tarjeta grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus), salvo que no haya otro.
+        const coming = (d) => d.status !== 'likely_departed';
+        const favoriteIndex = departures.findIndex((d) => coming(d) && state.favoriteKeys.has(favoriteKey('line', d.lineId)));
+        let heroIndex = Math.max(0, departures.findIndex(coming));
         if (favoriteIndex !== -1) heroIndex = favoriteIndex;
         const departure = departures[heroIndex] || null;
         const others = departures.filter((_, i) => i !== heroIndex);
@@ -491,6 +497,9 @@
         setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
         el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
         el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
+        if (departure.status === 'estimated') {
+            el.liveStatusText.textContent = `${departure.lineCode} · ${I18n.t('app.officialTime', { time: departure.scheduledTime })}`;
+        }
         el.liveStatusDot.className = `status-dot ${className}`;
         el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
         el.liveOpenDetail.disabled = false;
@@ -502,7 +511,13 @@
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${Math.max(other.etaMinutes, 0)} min</span>`;
+            let when = `${Math.max(other.etaMinutes, 0)} min`;
+            if (other.status === 'estimated') when = '≈ ' + when;
+            if (other.status === 'likely_departed') {
+                when = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
+                li.className = 'is-likely-past';
+            }
+            button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${escapeHtml(when)}</span>`;
 
             button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
@@ -694,7 +709,7 @@
         for (const entry of entries) {
             const { text, className } = statusLabel(entry.status, entry.delayMinutes);
             const tr = document.createElement('tr');
-            if (entry.status === 'departed') tr.className = 'is-past';
+            if (entry.status === 'departed' || entry.status === 'likely_departed') tr.className = 'is-past';
 
             const departureCell = document.createElement('td');
             departureCell.textContent = entry.departure;

@@ -736,12 +736,12 @@ class RealtimeMatcher
             $dFactor = $this->Pace->factor($aRow['line_id'] ?? null, $this->sDate, $iMid);
             $iCorrected = $iFirst + self::SCHEDULE_ORIGIN_OFFSET_SECONDS + (int)round($this->expectedSeconds($sJourneyId, $iFirst - 1, $iTarget, $sBand, $dFactor));
             if ($iCorrected >= $this->iNow) {
+                $aFields['status'] = 'estimated';
                 $aFields['etaSeconds'] = $iCorrected;
             } elseif ($iCorrected < $this->iNow - self::WRONG_SCHEDULE_PASSED_SECONDS
                 && $iTarget - $iCorrected >= self::WRONG_SCHEDULE_GAP_SECONDS
                 && $this->learnedShare($sJourneyId, $iFirst - 1, $iTarget, $sBand) >= self::WRONG_SCHEDULE_LEARNED_SHARE) {
-                $aFields['status'] = 'departed';
-                $aFields['etaSeconds'] = $iCorrected;
+                $aFields['status'] = 'likely_departed';
             }
         } catch (\Throwable $Ex) {
             error_log('Bide+ horario corregido: ' . $Ex->getMessage());

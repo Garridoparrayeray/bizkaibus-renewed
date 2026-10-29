@@ -194,7 +194,18 @@ class StopsController
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
         // Por hora de llegada prevista, no por la teorica: un bus adelantado llega antes que uno anterior en el horario.
-        usort($aEnriched, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
+        // Los que probablemente ya pasaron (estimación, sin datos del bus) van al final, nunca delante de uno que viene.
+        usort($aEnriched, function ($aA, $aB) {
+            $iRankA = 0;
+            if ($aA['status'] === 'likely_departed') {
+                $iRankA = 1;
+            }
+            $iRankB = 0;
+            if ($aB['status'] === 'likely_departed') {
+                $iRankB = 1;
+            }
+            return [$iRankA, $aA['etaSeconds']] <=> [$iRankB, $aB['etaSeconds']];
+        });
         $aDepartures = array_map(function ($aRow) use ($iNow, $bUseLastStopHeadsign, $aPlatform) {
             $sHeadsign = $aRow['headsign'];
             if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {

@@ -550,6 +550,7 @@ header p {
         white-space: nowrap;
     }
     #live-more-list span:last-child, .platform-column-list span:last-child { color: #fff; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+    #live-more-list li.is-likely-past { opacity: .55; }
 #live-empty {
     margin: 0 0 16px;
     padding: 28px 20px;
