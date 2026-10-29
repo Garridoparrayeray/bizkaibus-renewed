@@ -58,11 +58,17 @@ class LiveRecordController
         if ($sSecret === null) {
             return false;
         }
-        $sGiven = $Req->query('key') ?? '';
-        $sHeader = $Req->header('Authorization') ?? '';
+        // Vale la clave en la URL (?key=) o en la cabecera «Authorization: Bearer …»: una cabecera mal puesta no anula una URL buena.
+        $aGiven = [trim((string)($Req->query('key') ?? ''))];
+        $sHeader = trim($Req->header('Authorization') ?? '');
         if (str_starts_with($sHeader, 'Bearer ')) {
-            $sGiven = substr($sHeader, 7);
+            $aGiven[] = trim(substr($sHeader, 7));
         }
-        return $sGiven !== '' && hash_equals($sSecret, $sGiven);
+        foreach ($aGiven as $sGiven) {
+            if ($sGiven !== '' && hash_equals($sSecret, $sGiven)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
