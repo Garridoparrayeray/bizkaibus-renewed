@@ -12,6 +12,7 @@ use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
 use Engine\Bizkaibus\PaceFactors;
+use Engine\Bizkaibus\PassageLog;
 use Engine\Bizkaibus\RealtimeMatcher;
 use Engine\Bizkaibus\SegmentTimes;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
@@ -748,6 +749,51 @@ $expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya
 $expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
 $expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $expect('ficha del viaje: sin paradas sale scheduled', Controllers\RealtimeController::tripStatus(false, [], 8 * 3600) === 'scheduled');
+
+$section('Registro de pasos (buses que ya pasaron aunque hayan salido del directo)');
+$aVmPass = ['3414|808' => [
+    ['tripRef' => 'trp_A', 'order' => 4, 'recordedSeconds' => T0 + 500, 'locationSeconds' => T0 + 490],
+    ['tripRef' => 'trp_B', 'order' => null, 'recordedSeconds' => T0 + 500],
+    ['tripRef' => 'trp_C', 'order' => 2, 'recordedSeconds' => null, 'locationSeconds' => T0 + 300],
+    ['tripRef' => 'trp_D', 'order' => 3],
+]];
+$expect('se apunta «parada a la que va:hora» de cada viaje con parada y hora', PassageLog::fields($aVmPass) === ['trp_A' => '4:' . (T0 + 500), 'trp_C' => '2:' . (T0 + 300)], json_encode(PassageLog::fields($aVmPass)));
+$expect('valores mal formados no cuentan', PassageLog::decode('x') === null && PassageLog::decode(null) === null && PassageLog::decode('4:100') === ['order' => 4, 'seconds' => 100]);
+$expect('de los alias de un viaje vale el que llegó más lejos', PassageLog::merge(['J1', 'J1', 'J2'], ['2:100', '5:200', null]) === ['J1' => ['order' => 5, 'seconds' => 200]]);
+$expect('la clave es por red y por día', PassageLog::key('bus', '2026-10-29') === 'bide:bus:pass:2026-10-29');
+$expect('sin almacén configurado no se consulta nada', PassageLog::forJourneys(new ServiceJourney(buildFixture(40)), ['J_LINE'], 'bus', DATE_WEEKDAY) === []);
+$expect('nombres de un viaje en el directo: su id y sus alias', (new ServiceJourney(buildFixture(40)))->tripRefsForJourneys(['J_LINE'])['J_LINE'] === ['J_LINE', 'trp_A3414_808_OP9LJIN_28800_x', 'trp_A3414_808_OP9LSEPT_28800_x'] || (new ServiceJourney(buildFixture(40)))->tripRefsForJourneys(['J_LINE'])['J_LINE'] === ['J_LINE', 'trp_A3414_808_OP9LSEPT_28800_x', 'trp_A3414_808_OP9LJIN_28800_x']);
+
+$aAsked = [];
+$MPass = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 + 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$MPass->setPassageLoader(function (array $aIds) use (&$aAsked) {
+    $aAsked = array_merge($aAsked, $aIds);
+    return ['J_LINE' => ['order' => 4, 'seconds' => T0 + 500]];
+});
+$aPassRows = [
+    ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 360, 'stop_seq' => 3],
+    ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 540, 'stop_seq' => 4],
+];
+$aPassOut = $MPass->enrich($aPassRows);
+$expect('el registro dice que el bus ya va hacia la parada 4: la 3 sale como pasada, con la hora del registro', $aPassOut[0]['status'] === 'departed' && $aPassOut[0]['etaSeconds'] === T0 + 500, json_encode([$aPassOut[0]['status'], $aPassOut[0]['etaSeconds']]));
+$expect('la parada a la que va todavía no ha pasado', $aPassOut[1]['status'] === 'scheduled', $aPassOut[1]['status']);
+$expect('el registro se pide una vez por consulta, sin repetir viajes', $aAsked === ['J_LINE'], json_encode($aAsked));
+$MPass->enrich($aPassRows);
+$expect('lo ya leído no se vuelve a pedir', $aAsked === ['J_LINE'], json_encode($aAsked));
+
+$aAskedLive = [];
+$MPassLive = matcher(live(1500, 0, 3, T0 + 270), T0 + 300);
+$MPassLive->setPassageLoader(function (array $aIds) use (&$aAskedLive) {
+    $aAskedLive = array_merge($aAskedLive, $aIds);
+    return [];
+});
+$MPassLive->enrich([$aPassRows[1]]);
+$expect('los viajes que están en el directo no se buscan en el registro', $aAskedLive === [], json_encode($aAskedLive));
+$MPassBroken = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 + 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$MPassBroken->setPassageLoader(function (array $aIds) {
+    throw new RuntimeException('almacén caído');
+});
+$expect('si el registro falla, se sigue con el horario', @$MPassBroken->enrich([$aPassRows[0]])[0]['status'] === 'scheduled');
 
 // Filas repetidas: mismo número de viaje en dos calendarios se junta; dos viajes distintos a la vez por la parada, no.
 $Dedupe = new ReflectionMethod(ServiceJourney::class, 'dedupeByTrip');

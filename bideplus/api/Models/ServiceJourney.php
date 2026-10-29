@@ -227,6 +227,31 @@ class ServiceJourney
         return $aResult;
     }
 
+    // Nombres con los que el directo puede llamar a cada viaje (sus alias y su propio id).
+    public function tripRefsForJourneys(array $aJourneyIds): array
+    {
+        $aResult = [];
+        foreach ($aJourneyIds as $sJourneyId) {
+            $aResult[(string)$sJourneyId] = [(string)$sJourneyId];
+        }
+        if (empty($aResult) || !$this->hasTable('trip_aliases')) {
+            return $aResult;
+        }
+        foreach (array_chunk(array_keys($aResult), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE service_journey_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute(array_map('strval', $aChunk));
+            foreach ($Stmt->fetchAll() as $aRow) {
+                if (!in_array($aRow['trip_id'], $aResult[$aRow['service_journey_id']], true)) {
+                    $aResult[$aRow['service_journey_id']][] = $aRow['trip_id'];
+                }
+            }
+        }
+        return $aResult;
+    }
+
     public function shapePointsForJourney(string $sServiceJourneyId): array
     {
         if (!$this->hasTable('shapes')) {
