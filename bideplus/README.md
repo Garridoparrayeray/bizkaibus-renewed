@@ -151,3 +151,7 @@ El código, el diseño y los iconos de este proyecto se publican bajo [Creative 
 - Metro+: horario y tiempo real de Metro Bilbao publicados por el Consorcio de Transportes de Bizkaia / [data.ctb.eus](https://data.ctb.eus/dataset/horario-metro-bilbao) (CC-BY 4.0).
 
 Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Metro Bilbao S.A., el Consorcio de Transportes de Bizkaia ni la Diputación Foral de Bizkaia.
+
+## El algoritmo
+
+La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, Lurraldebus y Metro) no está en este repositorio: vive en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.
