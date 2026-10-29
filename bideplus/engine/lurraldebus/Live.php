@@ -96,31 +96,49 @@ class Live
             $sStop = null;
             $iOrder = null;
             if (isset($Mvj->MonitoredCall)) {
-                $sStop = isset($Mvj->MonitoredCall->StopPointRef) ? (string)$Mvj->MonitoredCall->StopPointRef : null;
+                if (isset($Mvj->MonitoredCall->StopPointRef)) {
+                    $sStop = (string)$Mvj->MonitoredCall->StopPointRef;
+                }
                 if (isset($Mvj->MonitoredCall->Order)) {
                     $iOrder = (int)$Mvj->MonitoredCall->Order;
                 } elseif (isset($Mvj->MonitoredCall->VisitNumber)) {
                     $iOrder = (int)$Mvj->MonitoredCall->VisitNumber;
                 }
             }
-            $iRecorded = isset($Activity->RecordedAtTime) ? self::secondsToday((string)$Activity->RecordedAtTime, $sToday) : null;
+            $iRecorded = null;
+            if (isset($Activity->RecordedAtTime)) {
+                $iRecorded = self::secondsToday((string)$Activity->RecordedAtTime, $sToday);
+            }
             $dLat = null;
             $dLon = null;
             $iLocation = null;
             if (isset($Mvj->VehicleLocation->Latitude, $Mvj->VehicleLocation->Longitude)) {
-                $sAt = isset($Mvj->LocationRecordedAtTime) ? (string)$Mvj->LocationRecordedAtTime : (isset($Activity->RecordedAtTime) ? (string)$Activity->RecordedAtTime : '');
+                $sAt = '';
+                if (isset($Mvj->LocationRecordedAtTime)) {
+                    $sAt = (string)$Mvj->LocationRecordedAtTime;
+                } elseif (isset($Activity->RecordedAtTime)) {
+                    $sAt = (string)$Activity->RecordedAtTime;
+                }
                 $iLocation = self::secondsToday($sAt, $sToday);
                 if ($iLocation !== null) {
                     $dLat = (float)$Mvj->VehicleLocation->Latitude;
                     $dLon = (float)$Mvj->VehicleLocation->Longitude;
                 }
             }
+            $iDelay = 0;
+            if (isset($Mvj->Delay)) {
+                $iDelay = self::isoSeconds((string)$Mvj->Delay);
+            }
+            $sVehicle = '';
+            if (isset($Mvj->VehicleRef)) {
+                $sVehicle = $sOperator . ':' . (string)$Mvj->VehicleRef;
+            }
             $aMap[$sLineId . '|' . $sTripRef][] = [
                 'tripRef' => $sTripRef,
                 'lineId' => $sLineId,
                 'departureSeconds' => $iDeparture,
-                'delaySeconds' => isset($Mvj->Delay) ? self::isoSeconds((string)$Mvj->Delay) : 0,
-                'vehicleRef' => isset($Mvj->VehicleRef) ? $sOperator . ':' . (string)$Mvj->VehicleRef : '',
+                'delaySeconds' => $iDelay,
+                'vehicleRef' => $sVehicle,
                 'currentStopId' => $sStop,
                 'order' => $iOrder,
                 'lat' => $dLat,
@@ -154,6 +172,10 @@ class Live
         if (!preg_match('/^(-?)PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/', $sIso, $aM)) {
             return 0;
         }
-        return ($aM[1] === '-' ? -1 : 1) * ((int)($aM[2] ?? 0) * 3600 + (int)($aM[3] ?? 0) * 60 + (int)($aM[4] ?? 0));
+        $iSeconds = (int)($aM[2] ?? 0) * 3600 + (int)($aM[3] ?? 0) * 60 + (int)($aM[4] ?? 0);
+        if ($aM[1] === '-') {
+            return -$iSeconds;
+        }
+        return $iSeconds;
     }
 }

@@ -16,7 +16,8 @@
 
     function translate(key, fallback) {
         const text = I18n.t(key);
-        return text === key ? fallback : text;
+        if (text === key) return fallback;
+        return text;
     }
 
     function createNode(tag, className, text) {
@@ -29,14 +30,16 @@
     function readFavorites(app) {
         try {
             const favorites = JSON.parse(localStorage.getItem(APPS[app].storageKey) || '[]');
-            return Array.isArray(favorites) ? favorites : [];
+            if (Array.isArray(favorites)) return favorites;
+            return [];
         } catch (e) {
             return [];
         }
     }
 
     function appQuery(app) {
-        return app === BideNetworks.DEFAULT ? '' : '?red=' + app;
+        if (app === BideNetworks.DEFAULT) return '';
+        return '?red=' + app;
     }
 
     function groupTitle(app, tag) {
@@ -48,7 +51,9 @@
     function setActiveTab(view) {
         document.querySelectorAll('[data-bide-tab]').forEach((tab) => {
             const name = tab.getAttribute('data-bide-tab');
-            if (view ? name === view : name === 'apps') tab.setAttribute('aria-current', 'page');
+            let active = name === 'apps';
+            if (view) active = name === view;
+            if (active) tab.setAttribute('aria-current', 'page');
             else tab.removeAttribute('aria-current');
         });
     }
@@ -93,7 +98,8 @@
     async function favoriteLabel(app, favorite) {
         const cacheKey = `${app}:${favorite.type}:${favorite.refId}`;
         if (labelCache.has(cacheKey)) return labelCache.get(cacheKey);
-        const path = favorite.type === 'stop' ? '/api/stops/' : '/api/lines/';
+        let path = '/api/lines/';
+        if (favorite.type === 'stop') path = '/api/stops/';
         let label = { title: '#' + favorite.refId, area: '' };
         try {
             // Como en js/api.js: los identificadores de Euskotren llevan «:» y la API los espera sin codificar.
@@ -113,11 +119,18 @@
     function favoriteItem(app, favorite, compact) {
         const item = createNode('li');
         const link = createNode('a', 'bide-fav');
-        link.href = (favorite.type === 'stop' ? '/stops/' : '/lines/') + encodeURIComponent(favorite.refId).replace(/%3A/gi, ':') + appQuery(app);
+        let section = '/lines/';
+        let type = translate('bide.fav.line', 'Línea');
+        if (favorite.type === 'stop') {
+            section = '/stops/';
+            type = translate('bide.fav.stop', 'Parada');
+        }
+        link.href = section + encodeURIComponent(favorite.refId).replace(/%3A/gi, ':') + appQuery(app);
         const text = createNode('span', 'bide-fav-text');
         const title = createNode('strong', null, '…');
-        const type = favorite.type === 'stop' ? translate('bide.fav.stop', 'Parada') : translate('bide.fav.line', 'Línea');
-        const detail = createNode('span', null, compact ? `${APPS[app].name} · ${type}` : type);
+        let detailText = type;
+        if (compact) detailText = `${APPS[app].name} · ${type}`;
+        const detail = createNode('span', null, detailText);
         text.append(title, detail);
         link.append(createNode('span', 'bide-swatch bide-swatch--' + app), text);
         item.append(link);
@@ -153,7 +166,8 @@
         const base = `/api/alerts?red=${encodeURIComponent(app)}`;
         if (mode === 'lines') return lines.map((id) => `${base}&line=${id}`);
         if (mode === 'stops') return [...stops.map((id) => `${base}&stop=${id}`), ...lines.map((id) => `${base}&line=${id}`)];
-        return favorites.length ? [base] : [];
+        if (favorites.length) return [base];
+        return [];
     }
 
     async function fetchAlerts(app) {
@@ -238,7 +252,8 @@
 
         function show(isIos) {
             if (root.classList.contains('is-standalone') || desktop.matches || dismissedRecently()) return;
-            const key = isIos ? 'bide.install.ios' : 'bide.install.text';
+            let key = 'bide.install.text';
+            if (isIos) key = 'bide.install.ios';
             hint.setAttribute('data-i18n', key);
             hint.textContent = translate(key, hint.textContent);
             accept.hidden = isIos;
@@ -301,7 +316,8 @@
             openDialog.close();
         }
         const view = e.state && e.state.bideView;
-        const nextView = VIEWS.includes(view) ? view : null;
+        let nextView = null;
+        if (VIEWS.includes(view)) nextView = view;
         if (nextView !== currentView) showView(nextView, false);
     });
 

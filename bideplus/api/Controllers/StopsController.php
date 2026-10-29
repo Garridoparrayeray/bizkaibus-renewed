@@ -64,7 +64,10 @@ class StopsController
     private function nextScheduledDeparture(Stop $StopModel, ServiceJourney $JourneyModel, string|int $StopId, bool $bUseLastStopHeadsign): array|null
     {
         $aPlatforms = $StopModel->platformsFor((string)$StopId);
-        $aStopIds = empty($aPlatforms) ? [$StopId] : array_column($aPlatforms, 'id');
+        $aStopIds = [$StopId];
+        if (!empty($aPlatforms)) {
+            $aStopIds = array_column($aPlatforms, 'id');
+        }
         $iNow = Calendar::nowSecondsSinceMidnight();
 
         $aBest = null;

@@ -12,5 +12,9 @@ if (in_array('--slugs', $argv, true)) {
     exit;
 }
 foreach (Networks::all() as $sSlug => $aNetwork) {
-    echo $sSlug . ' ' . $aNetwork['db'] . ' ' . (!empty($aNetwork['gtfs']['required']) ? 1 : 0) . "\n";
+    $iRequired = 0;
+    if (!empty($aNetwork['gtfs']['required'])) {
+        $iRequired = 1;
+    }
+    echo $sSlug . ' ' . $aNetwork['db'] . ' ' . $iRequired . "\n";
 }

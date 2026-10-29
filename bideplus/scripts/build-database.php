@@ -9,11 +9,21 @@ date_default_timezone_set('Europe/Madrid');
 const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 
 require_once __DIR__ . '/../api/Core/Networks.php';
-define('GEOCACHE_PATH', getenv('GEOCACHE_PATH') ?: __DIR__ . '/geocache.json');
+// Valor de una variable de entorno, o el de por defecto si no está definida (o está vacía, con $bEmptyIsUnset).
+function envOrDefault(string $sName, string|int $Default, bool $bEmptyIsUnset = false): string|int
+{
+    $sValue = getenv($sName);
+    if ($sValue === false || ($bEmptyIsUnset && $sValue === '')) {
+        return $Default;
+    }
+    return $sValue;
+}
+
+define('GEOCACHE_PATH', envOrDefault('GEOCACHE_PATH', __DIR__ . '/geocache.json', true));
 const NOMINATIM_CONTACT = 'garridoparrayeraytx@gmail.com';
-define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)(getenv('GEOCODE_MAX_NEW') !== false ? getenv('GEOCODE_MAX_NEW') : 300));
-define('GEOCODE_MAX_EMPTY_RETRIES_PER_RUN', (int)(getenv('GEOCODE_MAX_RETRIES') !== false ? getenv('GEOCODE_MAX_RETRIES') : 40));
-define('GEOCODE_PAUSE_MICROSECONDS', (int)(getenv('GEOCODE_PAUSE_US') !== false ? getenv('GEOCODE_PAUSE_US') : 1_100_000));
+define('GEOCODE_MAX_NEW_LOOKUPS_PER_RUN', (int)envOrDefault('GEOCODE_MAX_NEW', 300));
+define('GEOCODE_MAX_EMPTY_RETRIES_PER_RUN', (int)envOrDefault('GEOCODE_MAX_RETRIES', 40));
+define('GEOCODE_PAUSE_MICROSECONDS', (int)envOrDefault('GEOCODE_PAUSE_US', 1_100_000));
 
 function main(array $aArgv): void
 {
@@ -477,7 +487,12 @@ function tidyRouteName(string $sName, string $sCode): string
         $sName = substr($sName, strlen($sCode) + 1);
     }
     $aParts = array_map('trim', explode('>', $sName));
-    $aParts = array_map(fn($sPart) => $sPart === mb_strtolower($sPart) ? mb_convert_case($sPart, MB_CASE_TITLE) : mb_strtoupper(mb_substr($sPart, 0, 1)) . mb_substr($sPart, 1), $aParts);
+    $aParts = array_map(function ($sPart) {
+        if ($sPart === mb_strtolower($sPart)) {
+            return mb_convert_case($sPart, MB_CASE_TITLE);
+        }
+        return mb_strtoupper(mb_substr($sPart, 0, 1)) . mb_substr($sPart, 1);
+    }, $aParts);
     return implode(' - ', array_filter($aParts, fn($sPart) => $sPart !== ''));
 }
 
@@ -1210,7 +1225,10 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             // solo uno de ellos anulado en un festivo concreto): la firma
             // incluye las fechas excluidas para no fusionarlos y perder
             // esa excepcion.
-            $sSignature = $iMask . '|' . implode(',', $aExcludedDates) . ($bExactWindow ? '|' . implode(',', $aIncludedDates) : '');
+            $sSignature = $iMask . '|' . implode(',', $aExcludedDates);
+            if ($bExactWindow) {
+                $sSignature .= '|' . implode(',', $aIncludedDates);
+            }
             if (!isset($aSignatureToCalendarId[$sSignature])) {
                 $sNewId = 'merged_' . $iMask;
                 if (!empty($aExcludedDates) || ($bExactWindow && !empty($aIncludedDates))) {

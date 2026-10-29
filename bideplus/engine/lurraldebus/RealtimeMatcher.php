@@ -60,7 +60,10 @@ class RealtimeMatcher
         $this->Pace = $Pace ?? PaceFactors::fromFile();
 
         $this->bBusNetwork = (Config::current()['network'] ?? '') === 'lurraldebus';
-        $this->Segments = $Segments ?? ($this->bBusNetwork ? SegmentTimes::fromFile() : new SegmentTimes());
+        $this->Segments = $Segments ?? new SegmentTimes();
+        if ($Segments === null && $this->bBusNetwork) {
+            $this->Segments = SegmentTimes::fromFile();
+        }
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
     }

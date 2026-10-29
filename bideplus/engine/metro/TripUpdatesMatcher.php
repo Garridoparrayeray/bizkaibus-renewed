@@ -178,7 +178,10 @@ class TripUpdatesMatcher
                 $bTie = true;
             }
         }
-        return $bTie ? null : $aCandidate;
+        if ($bTie) {
+            return null;
+        }
+        return $aCandidate;
     }
 
     private static function increasing(array $aPositions): bool

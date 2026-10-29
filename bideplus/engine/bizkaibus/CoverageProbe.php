@@ -31,7 +31,10 @@ class CoverageProbe
             foreach ($aEntries as $aEntry) {
                 $sJourney = $Matcher->journeyIdFor($aEntry);
                 if ($sJourney) {
-                    $aLive[$sJourney] = $aEntry['lat'] !== null ? 'gps' : 'otro';
+                    $aLive[$sJourney] = 'otro';
+                    if ($aEntry['lat'] !== null) {
+                        $aLive[$sJourney] = 'gps';
+                    }
                 }
             }
         }

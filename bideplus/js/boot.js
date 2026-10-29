@@ -9,23 +9,29 @@
     if (qTema === 'miamor' || qTema === 'pro') {
         params.delete('tema');
         var qs = params.toString();
-        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+        var search = '';
+        if (qs) search = '?' + qs;
+        history.replaceState(null, '', location.pathname + search + location.hash);
     }
-    window.__bbTheme = isMiamor ? 'miamor' : 'pro';
+    window.__bbTheme = 'pro';
+    if (isMiamor) window.__bbTheme = 'miamor';
 
     var redParam = params.get('red');
-    window.__bbNetwork = BideNetworks.exists(redParam) ? redParam : BideNetworks.DEFAULT;
+    window.__bbNetwork = BideNetworks.DEFAULT;
+    if (BideNetworks.exists(redParam)) window.__bbNetwork = redParam;
     var network = BideNetworks.get(window.__bbNetwork);
     var isDefault = window.__bbNetwork === BideNetworks.DEFAULT;
 
     var title      = network.texts.es.name;
-    var manifest   = isMiamor ? 'manifest-miamor.json' : 'manifest-bide.json';
+    var manifest   = 'manifest-bide.json';
     var themeColor = network.themeColor;
     var touchIcon  = network.icons + '/apple-touch-icon.png';
     var icon       = network.icons + '/icon-192.png';
-    var stylesheet = isMiamor ? 'style.css' : 'style-app.css';
+    var stylesheet = 'style-app.css';
 
     if (isMiamor) {
+        manifest = 'manifest-miamor.json';
+        stylesheet = 'style.css';
         themeColor = '#db2777';
         if (isDefault) {
             touchIcon = 'icons/apple-touch-icon.png';

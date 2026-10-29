@@ -4,18 +4,17 @@ const Api = (() => {
         if (net === BideNetworks.DEFAULT || !BideNetworks.exists(net)) {
             return path;
         }
-        const separator = path.includes('?') ? '&' : '?';
+        let separator = '?';
+        if (path.includes('?')) separator = '&';
         return `${path}${separator}red=${net}`;
     }
 
     async function request(path, options = {}) {
         let response;
         try {
-            response = await fetch(`/api${withNetwork(path)}`, {
-                credentials: 'same-origin',
-                headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-                ...options,
-            });
+            const init = { credentials: 'same-origin' };
+            if (options.body) init.headers = { 'Content-Type': 'application/json' };
+            response = await fetch(`/api${withNetwork(path)}`, Object.assign(init, options));
         } catch (networkError) {
             window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: false } }));
             throw networkError;
@@ -43,7 +42,11 @@ const Api = (() => {
             if (stopId !== undefined && stopId !== null) params.set('stopId', stopId);
             return request(`/lines/${lineId}/timetable?${params}`);
         },
-        vehicle: (tripKey, stopId) => request(`/vehicles/${tripKey}${stopId ? `?stopId=${encodeURIComponent(stopId)}` : ''}`),
+        vehicle: (tripKey, stopId) => {
+            let path = `/vehicles/${tripKey}`;
+            if (stopId) path += `?stopId=${encodeURIComponent(stopId)}`;
+            return request(path);
+        },
         tripStops: (tripKey, stopId) => request(`/trips/${tripKey}?stopId=${stopId}`),
         lineLive: (lineId) => request(`/lines/${lineId}/live`),
         alerts: (lineId, stopId) => {
@@ -51,7 +54,8 @@ const Api = (() => {
             if (lineId) params.set('line', lineId);
             if (stopId) params.set('stop', stopId);
             const query = params.toString();
-            return request(query ? `/alerts?${query}` : '/alerts');
+            if (query) return request(`/alerts?${query}`);
+            return request('/alerts');
         },
     };
 })();
