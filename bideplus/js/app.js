@@ -991,6 +991,8 @@
             el.modalVehicle.textContent = I18n.t('app.tripFinished');
         } else if (data.status === 'live') {
             el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
+        } else if (data.status === 'estimated') {
+            el.modalVehicle.textContent = I18n.t('app.estimatedNoGps');
         } else {
             el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
         }
@@ -1449,7 +1451,9 @@
         await syncAlertFavorites();
         await AlertsStore.resetBaseline();
         await AlertsStore.set('enabled', true);
-        await AlertsStore.checkAlerts();
+        // La primera consulta solo fija la línea base (lo que ya existe no avisa). Va en segundo plano: depende de las
+        // fuentes de los operadores y, si tardan, el interruptor se quedaba bloqueado y sin nota hasta que respondían.
+        AlertsStore.checkAlerts().catch(() => {});
 
         let background = false;
         if ('periodicSync' in registration) {

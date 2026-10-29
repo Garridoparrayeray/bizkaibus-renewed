@@ -82,3 +82,27 @@ jobs:
             [ "$code" = "404" ] || { echo "::error::$p: esperaba 404, obtuve $code"; fail=1; }
           done
           exit $fail
+
+      # La API en producción: cada red responde, y en Bizkaibus se cuentan los estados de las salidas (directo, estimado,
+      # horario…) de unas paradas concurridas. Si el algoritmo no se hubiera desplegado, las respuestas fallarían o no
+      # habría ninguna salida «estimada» ni «en directo».
+      - name: API en directo
+        run: |
+          fail=0
+          for r in $NETWORKS; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/lines?red=$r")
+            echo "$r /api/lines -> $code"
+            [ "$code" = "200" ] || fail=1
+          done
+          for s in 4255 1137 2017 5402; do
+            curl -sS "$BASE/api/stops/$s/departures?red=bus" -o dep.json -w "parada $s -> %{http_code}\n"
+            python3 - <<'PY' || fail=1
+          import json, collections
+          d = json.load(open('dep.json'))
+          deps = d.get('departures', [])
+          print('  estados:', dict(collections.Counter(x.get('status') for x in deps)), '| salidas:', len(deps))
+          for x in deps[:6]:
+              print('   ', x.get('lineCode'), x.get('scheduledTime'), x.get('status'), x.get('etaMinutes'), x.get('delayMinutes'))
+          PY
+          done
+          exit $fail

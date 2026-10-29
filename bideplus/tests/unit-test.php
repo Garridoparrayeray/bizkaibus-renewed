@@ -321,7 +321,7 @@ $MRegFast = matcher($aRegistered, T0 + 300, new PaceFactors(['global' => ['labor
 $expect('con parada registrada, el retraso mostrado de una parada es su llegada estimada menos su hora publicada', $iDelayFar === $iEtaFar - (T0 + 720), json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
 $aRowFarEarly = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720 + 3 * 3600, 'stop_seq' => 5];
 $aFarOut = $MRegFast->enrich([$aRowFarEarly])[0];
-$expect('si la llegada estimada difiere más de 45 min de la hora publicada, sigue en vivo con su llegada estimada pero sin afirmar el retraso', $aFarOut['status'] === 'live' && $aFarOut['delaySeconds'] === null && $aFarOut['etaSeconds'] < T0 + 720 + 3 * 3600, json_encode([$aFarOut['status'], $aFarOut['delaySeconds']]));
+$expect('si la llegada estimada difiere más de 45 min de la hora publicada, sale estimada con su llegada estimada y sin afirmar retraso', $aFarOut['status'] === 'estimated' && $aFarOut['delaySeconds'] === 0 && $aFarOut['etaSeconds'] < T0 + 720 + 3 * 3600, json_encode([$aFarOut['status'], $aFarOut['delaySeconds']]));
 [$iEta, , ] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
 $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 720, hms($iEta));
 
@@ -329,7 +329,7 @@ $aRowPassed = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_sec
 $aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
 $aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
 $expect('enrich: la fila de una parada ya pasada sale como salida, con la hora estimada en que el bus la pasó (la de la parada registrada)', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 250, json_encode($aEnriched[0]['etaSeconds']));
-$expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
+$expect('enrich: sin GPS, la fila de una parada posterior sale estimada (no en directo) con la ETA de la parada registrada y sin adelanto ni retraso', $aEnriched[1]['status'] === 'estimated' && $aEnriched[1]['etaSeconds'] === T0 + 700 && $aEnriched[1]['delaySeconds'] === 0, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
 
 $aWaiting = $aRegistered;
 $aWaiting['recordedSeconds'] = T0 - 120;
@@ -738,6 +738,32 @@ $expect('liveTrip: un viaje que el feed no trae (previsión a más de 10 min) de
 $expect('liveTrip: sin feed devuelve null', (new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->liveTrip('2', $aRowsJourney, 'J_UP1') === null);
 
 /* ------------------------------------------------------------------ */
+$section('Variantes de un viaje en varios calendarios');
+$PdoVar = new PDO('sqlite::memory:');
+$PdoVar->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoVar->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoVar->exec('
+    CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT);
+    CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT, name TEXT);
+    CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, headsign TEXT);
+    CREATE TABLE service_calendars (id TEXT PRIMARY KEY, weekday_mask INTEGER, from_date TEXT, to_date TEXT);
+    CREATE TABLE service_calendar_exceptions (calendar_id TEXT, date TEXT, available INTEGER);
+    CREATE TABLE service_journeys (id TEXT PRIMARY KEY, line_id TEXT, journey_pattern_id TEXT, trip_number TEXT, calendar_id TEXT, first_departure_seconds INTEGER, shape_id TEXT);
+    CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER, dist_m REAL);
+    INSERT INTO stops VALUES (\'S0\', \'Parada 0\');
+    INSERT INTO lines VALUES (\'L1\', \'A1\', \'Línea 1\');
+    INSERT INTO journey_patterns VALUES (\'P1\', \'Destino\');
+    INSERT INTO service_calendars VALUES (\'C_NEVER\', 0, NULL, NULL), (\'C_ALWAYS\', 127, NULL, NULL);
+    INSERT INTO service_journeys VALUES (\'A_OTHER_DAY\', \'L1\', \'P1\', \'721\', \'C_NEVER\', 79200, NULL), (\'B_TODAY\', \'L1\', \'P1\', \'721\', \'C_ALWAYS\', 79200, NULL);
+    INSERT INTO passing_times VALUES (\'A_OTHER_DAY\', 1, \'S0\', 79200, 79200, 0), (\'B_TODAY\', 1, \'S0\', 79200, 79200, 0);
+');
+$JourneyVar = new ServiceJourney($PdoVar);
+$aVariants = $JourneyVar->variantsByLineAndTrip('L1', '721', 79200);
+$expect('un viaje en dos calendarios devuelve las dos variantes', count($aVariants) === 2);
+$expect('la variante que circula hoy va la primera, aunque su id sea posterior', $aVariants[0]['id'] === 'B_TODAY' && (int)$aVariants[0]['runs_today'] === 1 && (int)$aVariants[1]['runs_today'] === 0);
+$expect('findByLineAndTrip da la variante de hoy', $JourneyVar->findByLineAndTrip('L1', '721', 79200)['id'] === 'B_TODAY');
+$expect('un viaje que no existe da null', $JourneyVar->findByLineAndTrip('L1', '999', 79200) === null && $JourneyVar->variantsByLineAndTrip('L1', '999', 79200) === []);
+
 $section('Rango de fechas publicado');
 $mkRange = function (array $aMeta, array $aCalendars, array $aExceptions): PDO {
     $P = new PDO('sqlite::memory:');
