@@ -9,6 +9,7 @@ use Core\Response;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\ScheduleRange;
 use Core\Live;
 
 class TimetableController
@@ -114,27 +115,21 @@ class TimetableController
             $sPublished = $aConfig['schedule_source_published'];
         }
 
-        $FeedEndStmt = $Pdo->prepare('SELECT value FROM meta WHERE key = ?');
-        $FeedEndStmt->execute(['feed_end_date']);
-        $sPublishedUntil = $FeedEndStmt->fetchColumn();
-        if (!$sPublishedUntil) {
-            $sPublishedUntil = $Pdo->query('SELECT MAX(to_date) FROM service_calendars')->fetchColumn();
-        }
-
-        $sPublishedUntilOut = null;
-        $bBeyondPublished = false;
-        if ($sPublishedUntil) {
-            $sPublishedUntilOut = $sPublishedUntil;
-            $bBeyondPublished = $sDate > $sPublishedUntil;
-        }
+        $aRange = ScheduleRange::forDatabase($Pdo);
+        $sPublishedFrom = $aRange['from'];
+        $sPublishedUntilOut = $aRange['to'];
+        $bBeyondPublished = $sPublishedUntilOut !== null && $sDate > $sPublishedUntilOut;
+        $bBeforePublished = $sPublishedFrom !== null && $sDate < $sPublishedFrom;
 
         Response::json([
             'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
             'date' => $Date->format('Y-m-d'),
             'entries' => $aEntries,
             'scheduleSourcePublished' => $sPublished,
+            'publishedFrom' => $sPublishedFrom,
             'publishedUntil' => $sPublishedUntilOut,
             'beyondPublished' => $bBeyondPublished,
+            'beforePublished' => $bBeforePublished,
         ]);
     }
 
