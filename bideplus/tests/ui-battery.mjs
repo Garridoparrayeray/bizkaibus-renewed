@@ -112,13 +112,18 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             pick = '#live-timetable-link:not([hidden]), #live-more-list button';
         }
         await until(`!!document.querySelector('${pick}')`);
-        for (let attempt = 0; attempt < 3; attempt++) {
-            await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
-            if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
+        // De noche, sin próximas salidas, la tarjeta lista las líneas de la parada; las que terminan en ella no tienen salidas
+        // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada.
+        const candidates = await ev(`document.querySelectorAll('${pick}').length`);
+        for (let index = 0; index < Math.max(candidates, 1); index++) {
+            for (let attempt = 0; attempt < 3; attempt++) {
+                await ev(`(()=>{const c=document.querySelectorAll('${pick}')[${index}];if(c)c.click();})()`);
+                if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
+            }
+            await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
+            if (await until("document.querySelectorAll('#timetable-body tr').length > 0", 5000)) break;
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
-        await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
-        await until("document.querySelectorAll('#timetable-body tr').length > 0");
         await sleep(500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
@@ -139,10 +144,14 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await until("document.getElementById('vehicle-modal').open");
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));
         if (a.key === 'metro') {
-            const liveModal = (await ev("document.getElementById('modal-vehicle').textContent")).includes('en vivo');
+            // «Sin seguimiento en vivo» también contiene «en vivo»: solo cuenta un tren que de verdad va en directo.
+            const liveModal = await ev("(() => { const t = document.getElementById('modal-vehicle').textContent; return t.includes('en vivo') && t !== I18n.t('app.noLiveTracking'); })()");
             if (liveModal) {
                 const pastBefore = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
-                await ev("(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+600000;})()");
+                // Se adelanta el reloj hasta pasada la próxima parada (de noche el tren puede tardar más de 10 min en llegar a ella).
+                const nextMin = await ev("(() => { const li = [...document.querySelectorAll('#modal-stops li')].find((x) => !x.classList.contains('stop-past') && / · \\d+ min$/.test(x.textContent)); return li ? Number(li.textContent.match(/ · (\\d+) min$/)[1]) : 10; })()");
+                const jumpMs = (Math.max(nextMin, 0) + 2) * 60000;
+                await ev(`(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+${jumpMs};})()`);
                 await sleep(11500);
                 const pastAfter = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
                 check(`${tag} el recorrido abierto sigue el reloj (paradas pasadas ${pastBefore} -> ${pastAfter})`, pastAfter > pastBefore);
