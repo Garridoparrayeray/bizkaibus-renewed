@@ -1,6 +1,7 @@
 <?php
 $site = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
+$wordmark = require __DIR__ . '/wordmark.php';
 $title = 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+';
 $description = 'Mapa con todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.';
 $canonical = $site['url'] . '/mapa';
@@ -37,8 +38,10 @@ $jsonLd = [
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/icons-bide-rojo/apple-touch-icon.png">
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <link rel="stylesheet" href="/style-bide.css">
     <link rel="stylesheet" href="/style-map.css">
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>
@@ -47,7 +50,7 @@ $jsonLd = [
 </head>
 <body class="page-map">
     <header class="map-top">
-        <a class="map-home" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><?= BIDE_ICONS['back'] ?><span class="bide-wordmark">BIDE<span>+</span></span></a>
+        <a class="map-home" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><?= BIDE_ICONS['back'] ?><?= $wordmark ?></a>
         <h1 data-i18n="map.title">Mapa de la red</h1>
     </header>
     <nav class="map-filters" id="map-filters" data-i18n-attr="aria-label:map.filters" aria-label="Redes que se ven en el mapa"></nav>
