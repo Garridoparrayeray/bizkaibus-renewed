@@ -37,6 +37,14 @@ jobs:
         with:
           submodules: false
 
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:

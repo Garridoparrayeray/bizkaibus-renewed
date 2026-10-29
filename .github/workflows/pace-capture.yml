@@ -58,6 +58,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -119,6 +127,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -138,8 +154,9 @@ jobs:
           fi
 
       - name: Guardar el resultado si ha cambiado
+        working-directory: bideplus/engine
         run: |
-          FILES="bideplus/engine/bizkaibus/data/pace-factors.json bideplus/engine/bizkaibus/data/segment-times.json"
+          FILES="bizkaibus/data/pace-factors.json bizkaibus/data/segment-times.json"
           if git diff --quiet -- $FILES && [ -z "$(git ls-files --others --exclude-standard $FILES)" ]; then
             echo "Sin cambios en pace-factors.json ni segment-times.json"
             exit 0
@@ -148,5 +165,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $(ls $FILES 2>/dev/null)
           git commit -m "chore(bideplus): recalibra el ritmo de los buses (factor k y tiempos por tramo)"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          git pull --rebase origin main
+          git push origin HEAD:main
