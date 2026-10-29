@@ -148,6 +148,7 @@ $jsonLd = [
                 </li>
 <?php endforeach; ?>
             </ul>
+            <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
         </section>
 
 <?= bideViews() ?>

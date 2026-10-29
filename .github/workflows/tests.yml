@@ -46,6 +46,10 @@ jobs:
         with:
           python-version: '3.12'
 
+      # El mapa de la red (/mapa) lee map-data/*.json, que se generan con las bases como en la reconstrucción diaria.
+      - name: Datos del mapa de la red
+        run: php scripts/build-network-map.php
+
       - name: Start local server
         run: |
           PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
