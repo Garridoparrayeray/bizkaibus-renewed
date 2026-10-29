@@ -46,6 +46,8 @@ class RealtimeMatcher
     private SegmentTimes $Segments;
     private string $sDate;
     private bool $bBusNetwork;
+    private \Closure|null $PassageLoader = null;
+    private array $aPassages = [];
 
     public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null, SegmentTimes|null $Segments = null)
     {
@@ -63,9 +65,15 @@ class RealtimeMatcher
         $this->indexExactTrips();
     }
 
+    public function setPassageLoader(callable $Loader): void
+    {
+        $this->PassageLoader = \Closure::fromCallable($Loader);
+    }
+
     public function enrich(array $aRows): array
     {
         $iNow = $this->iNow;
+        $this->loadPassages($aRows);
 
         return array_map(function ($aRow) use ($iNow) {
             try {
@@ -658,8 +666,53 @@ class RealtimeMatcher
         return isset($aLive['lat'], $aLive['lon'], $aLive['locationSeconds']);
     }
 
+    private function loadPassages(array $aRows): void
+    {
+        if ($this->PassageLoader === null) {
+            return;
+        }
+        $aJourneyIds = [];
+        foreach ($aRows as $aRow) {
+            $sJourneyId = (string)($aRow['service_journey_id'] ?? '');
+            if ($sJourneyId !== '' && !isset($this->aEntryByJourneyId[$sJourneyId]) && !isset($this->aPassages[$sJourneyId])) {
+                $aJourneyIds[$sJourneyId] = true;
+            }
+        }
+        if (empty($aJourneyIds)) {
+            return;
+        }
+        try {
+            $this->aPassages += ($this->PassageLoader)(array_map('strval', array_keys($aJourneyIds)));
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ pasos: ' . $Ex->getMessage());
+        }
+    }
+
+    private function passedFields(array $aRow): array|null
+    {
+        $sJourneyId = (string)($aRow['service_journey_id'] ?? '');
+        if ($sJourneyId === '' || !isset($this->aPassages[$sJourneyId], $aRow['stop_seq'])) {
+            return null;
+        }
+        $aPassage = $this->aPassages[$sJourneyId];
+        if ((int)$aRow['stop_seq'] >= $aPassage['order']) {
+            return null;
+        }
+        return [
+            'status' => 'departed',
+            'delaySeconds' => 0,
+            'etaSeconds' => min($aPassage['seconds'], $this->iNow),
+            'vehicleRef' => null,
+            'currentStopId' => null,
+        ];
+    }
+
     private function scheduledFieldsFor(array $aRow): array
     {
+        $aPassed = $this->passedFields($aRow);
+        if ($aPassed !== null) {
+            return $aPassed;
+        }
         $aFields = self::scheduledFields($aRow);
         if (!$this->bBusNetwork || $this->Segments->isEmpty() || $this->JourneyModel === null || empty($aRow['service_journey_id'])) {
             return $aFields;
