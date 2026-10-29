@@ -48,6 +48,7 @@ SCHEMAS = {
         'line': LINE, 'date': str,
         'entries': [{'tripKey': str, 'departure': 'hm', 'headsign': opt(str), 'status': 'status', 'delayMinutes': opt(int)}],
         'beyondPublished': bool,
+        'beforePublished': bool,
     },
     'trip': {'lineCode': str, 'lineName': str, 'headsign': opt(str),
              'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'isTarget': bool}]},
