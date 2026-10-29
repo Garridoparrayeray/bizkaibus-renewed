@@ -439,6 +439,7 @@ if ($breadcrumbName !== null) {
             </div>
 
             <p id="timetable-note" class="timetable-note" role="status" hidden></p>
+            <p id="timetable-range" class="timetable-range" hidden></p>
 
             <div class="table-scroll">
                 <table>
