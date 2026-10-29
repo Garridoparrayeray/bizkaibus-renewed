@@ -23,6 +23,11 @@ class Live
         return $Matcher;
     }
 
+    public static function history(array $aNetwork, string $sDate, string $sLineId): array|null
+    {
+        return PassageLog::history($aNetwork['network'] ?? 'bus', $sDate, $sLineId);
+    }
+
     public static function record(array $aNetwork): int|null
     {
         return PassageLog::record(self::vehicles($aNetwork), $aNetwork['network'] ?? 'bus', Calendar::todayMadrid()->format('Y-m-d'));
