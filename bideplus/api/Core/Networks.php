@@ -46,13 +46,19 @@ class Networks
     // ?red=... válido, o la red por defecto.
     public static function fromQuery(string|null $sSlug): string
     {
-        return self::exists($sSlug) ? $sSlug : self::DEFAULT;
+        if (self::exists($sSlug)) {
+            return $sSlug;
+        }
+        return self::DEFAULT;
     }
 
     // Sufijo de las URL públicas: la red por defecto no lo lleva.
     public static function urlSuffix(string $sSlug): string
     {
-        return $sSlug === self::DEFAULT ? '' : '?red=' . $sSlug;
+        if ($sSlug === self::DEFAULT) {
+            return '';
+        }
+        return '?red=' . $sSlug;
     }
 
     public static function hasLive(array $aNetwork, string $sSource): bool

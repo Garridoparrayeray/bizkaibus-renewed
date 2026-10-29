@@ -4,10 +4,10 @@ date_default_timezone_set('Europe/Madrid');
 require __DIR__ . '/../../../api/autoload.php';
 $Pdo=Core\Database::connection(); $JM=new Models\ServiceJourney($Pdo);
 $dir=$argv[1]??''; if(!is_dir($dir)){ fwrite(STDERR,"Uso: php engine/bizkaibus/tools/eval-eta.php <carpeta con capturas>\n"); exit(1);}
-$files=array_merge(glob(rtrim($dir,'/').'/s*.xml') ?: [], glob(rtrim($dir,'/').'/vm_*.xml') ?: []); sort($files);
+$files=[]; foreach(['/s*.xml','/vm_*.xml'] as $pat){ $found=glob(rtrim($dir,'/').$pat); if($found!==false) $files=array_merge($files,$found); } sort($files);
 $snaps=[];
 
-$sDate=preg_match('/<RecordedAtTime>(\d{4}-\d{2}-\d{2})/',(string)file_get_contents($files[0]??'',false,null,0,4096),$mDate)?$mDate[1]:null;
+$sDate=null; if(preg_match('/<RecordedAtTime>(\d{4}-\d{2}-\d{2})/',(string)file_get_contents($files[0]??'',false,null,0,4096),$mDate)) $sDate=$mDate[1];
 $sinGps=in_array('--sin-gps',$argv,true); $sinFeed=in_array('--sin-feed',$argv,true);
 foreach($files as $f){ $vm=Engine\Bizkaibus\SiriVehicleMonitoringClient::parse(file_get_contents($f),$sDate); $t=0; foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0) if(isset($e0['locationSeconds'])) $t=max($t,$e0['locationSeconds']); if($sinGps){ foreach($vm as $kk=>$es0) foreach($es0 as $ii=>$e0){ $vm[$kk][$ii]['lat']=null; $vm[$kk][$ii]['lon']=null; $vm[$kk][$ii]['locationSeconds']=null; } } $t0=$t; $t=$t0; foreach($vm as $es) foreach($es as $e) if(isset($e['locationSeconds'])) $t=max($t,$e['locationSeconds']); $snaps[]=[$t,$vm]; }
 
@@ -18,7 +18,7 @@ $G=[]; $stat=['app'=>[], 'horario'=>[]]; $cnt=['pred'=>0,'vivo'=>0,'programado'=
 $H=[[0,180],[180,360],[360,600],[600,1200]];
 foreach($snaps as $i=>[$t,$vm]){
   $M=new Engine\Bizkaibus\RealtimeMatcher($vm,$JM,$t,null,$sDate);
-  $M0=$sinFeed?new Engine\Bizkaibus\RealtimeMatcher([],$JM,$t):$M;
+  $M0=$M; if($sinFeed) $M0=new Engine\Bizkaibus\RealtimeMatcher([],$JM,$t);
   foreach($vm as $k=>$es) foreach($es as $e){
     $j=$M->journeyIdFor($e); if(!$j||!isset($e['order'])) continue;
     [$sLine,$sTrip]=explode('|',$k);
@@ -32,15 +32,17 @@ foreach($snaps as $i=>[$t,$vm]){
       $out=$M0->enrich([$row])[0]; $cnt['pred']++;
       $h=$actual-$t; $b=null; foreach($H as $bi=>[$lo,$hi]) if($h>=$lo&&$h<$hi) $b=$bi; if($b===null) continue;
       $sched=(int)$s['arrival_seconds'];
-      $pos=$M->positionFor($j,$e); $grp=$pos?'GPS':'parada'; if($out['status']!=='live') $grp='horario';
-      $by=array_column($st,null,'seq_order'); $gp=(isset($by[(int)$e['order']],$by[(int)$e['order']-1]))?((int)$by[(int)$e['order']]['arrival_seconds']-(int)$by[(int)$e['order']-1]['arrival_seconds'])/60:0; $seg=$gp>10?'tramo largo':'tramo corto';
+      $pos=$M->positionFor($j,$e); $grp='parada'; if($pos) $grp='GPS'; if($out['status']!=='live') $grp='horario';
+      $by=array_column($st,null,'seq_order'); $gp=0; if(isset($by[(int)$e['order']],$by[(int)$e['order']-1])) $gp=((int)$by[(int)$e['order']]['arrival_seconds']-(int)$by[(int)$e['order']-1]['arrival_seconds'])/60; $seg='tramo corto'; if($gp>10) $seg='tramo largo';
       if($h<600) $G[$grp.' / '.$seg][]=$out['etaSeconds']-$actual;
       $stat['horario'][$b][]=$sched-$actual;
       if($out['status']==='live'){
         $miss=0; $band=Engine\Bizkaibus\PaceFactors::bandFor($sDate??date('Y-m-d'),(int)$t);
         foreach($st as $ix=>$sa){ $sq=(int)$sa['seq_order']; if($sq>=$seq||!isset($st[$ix+1])||$sq<(int)$e['order']-1) continue; if($SegT->seconds((string)$sa['stop_id'],(string)$st[$ix+1]['stop_id'],$band)===null) $miss++; }
         if($h<600) $K[min($miss,2)][]=$out['etaSeconds']-$actual;
-        $hb=$h<300?'0-5 min':($h<600?'5-10 min':'10-20 min'); $C[$hb][$miss===0?'todo aprendido':'algun tramo sin aprender'][]=$out['etaSeconds']-$actual;
+        $hb='10-20 min'; if($h<600) $hb='5-10 min'; if($h<300) $hb='0-5 min';
+        $learned='algun tramo sin aprender'; if($miss===0) $learned='todo aprendido';
+        $C[$hb][$learned][]=$out['etaSeconds']-$actual;
       }
       if($out['status']==='live'){ $cnt['vivo']++; $stat['app'][$b][]=$out['etaSeconds']-$actual; } else { $cnt['programado']++; $stat['app'][$b][]=$out['etaSeconds']-$actual; }
     }

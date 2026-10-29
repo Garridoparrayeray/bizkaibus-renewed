@@ -60,7 +60,10 @@ class RealtimeMatcher
         $this->Pace = $Pace ?? PaceFactors::fromFile();
 
         $this->bBusNetwork = (Config::current()['network'] ?? 'bus') === 'bus';
-        $this->Segments = $Segments ?? ($this->bBusNetwork ? SegmentTimes::fromFile() : new SegmentTimes());
+        $this->Segments = $Segments ?? new SegmentTimes();
+        if ($Segments === null && $this->bBusNetwork) {
+            $this->Segments = SegmentTimes::fromFile();
+        }
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
     }
@@ -733,12 +736,12 @@ class RealtimeMatcher
             $dFactor = $this->Pace->factor($aRow['line_id'] ?? null, $this->sDate, $iMid);
             $iCorrected = $iFirst + self::SCHEDULE_ORIGIN_OFFSET_SECONDS + (int)round($this->expectedSeconds($sJourneyId, $iFirst - 1, $iTarget, $sBand, $dFactor));
             if ($iCorrected >= $this->iNow) {
+                $aFields['status'] = 'estimated';
                 $aFields['etaSeconds'] = $iCorrected;
             } elseif ($iCorrected < $this->iNow - self::WRONG_SCHEDULE_PASSED_SECONDS
                 && $iTarget - $iCorrected >= self::WRONG_SCHEDULE_GAP_SECONDS
                 && $this->learnedShare($sJourneyId, $iFirst - 1, $iTarget, $sBand) >= self::WRONG_SCHEDULE_LEARNED_SHARE) {
-                $aFields['status'] = 'departed';
-                $aFields['etaSeconds'] = $iCorrected;
+                $aFields['status'] = 'likely_departed';
             }
         } catch (\Throwable $Ex) {
             error_log('Bide+ horario corregido: ' . $Ex->getMessage());

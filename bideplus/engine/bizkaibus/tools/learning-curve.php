@@ -83,7 +83,10 @@ foreach ([1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1] as $dFraction) {
         $dFactor = $Pace->factor($aSample['line'], $aSample['date'], (int)$aSample['at']);
         $dBase = abs($dFactor * $aSample['scheduled'] - $aSample['actual']);
         $dLearned = $Segments->seconds($aSample['from'], $aSample['to'], $aSample['band']);
-        $dApp = $dLearned === null ? $dBase : abs($dLearned - $aSample['actual']);
+        $dApp = $dBase;
+        if ($dLearned !== null) {
+            $dApp = abs($dLearned - $aSample['actual']);
+        }
         if ($dLearned !== null) {
             $iCovered++;
         }

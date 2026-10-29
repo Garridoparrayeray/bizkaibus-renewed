@@ -71,7 +71,8 @@
     document.addEventListener('click', function (event) {
         if (event.defaultPrevented || event.button !== 0) return;
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        var link = event.target.closest ? event.target.closest('a[href]') : null;
+        var link = null;
+        if (event.target.closest) link = event.target.closest('a[href]');
         if (!link || link.hasAttribute('download')) return;
         if (link.target && link.target !== '_self') return;
         var url = new URL(link.href, window.location.href);

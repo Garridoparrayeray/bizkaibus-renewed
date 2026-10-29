@@ -20,7 +20,10 @@ class Live
     public static function vehicles(): array
     {
         $sClass = self::engineClass('Live');
-        return $sClass === null ? [] : $sClass::vehicles(Config::current());
+        if ($sClass === null) {
+            return [];
+        }
+        return $sClass::vehicles(Config::current());
     }
 
     // Apunta por dónde va cada vehículo del directo (lo llama un cron cada minuto). Null si la red no tiene registro o falló.

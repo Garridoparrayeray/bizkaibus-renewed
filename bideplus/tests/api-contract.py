@@ -19,7 +19,7 @@ checked = 0
 ID = (int, str)
 NUM = (int, float)
 HM = re.compile(r'^\d{2}:\d{2}$')
-STATUS = {'scheduled', 'live', 'departed', 'finished'}
+STATUS = {'scheduled', 'estimated', 'likely_departed', 'live', 'departed', 'finished'}
 
 
 def opt(*schema):
