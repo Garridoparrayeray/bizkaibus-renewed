@@ -154,4 +154,4 @@ Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Me
 
 ## El algoritmo
 
-La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, Lurraldebus y Metro) no está en este repositorio: vive en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.
+La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, Lurraldebus y Metro) y su documentación no están en este repositorio: viven en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.
