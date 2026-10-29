@@ -991,6 +991,8 @@
             el.modalVehicle.textContent = I18n.t('app.tripFinished');
         } else if (data.status === 'live') {
             el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
+        } else if (data.status === 'estimated') {
+            el.modalVehicle.textContent = I18n.t('app.estimatedNoGps');
         } else {
             el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
         }

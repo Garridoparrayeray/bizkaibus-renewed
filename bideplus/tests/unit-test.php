@@ -321,7 +321,7 @@ $MRegFast = matcher($aRegistered, T0 + 300, new PaceFactors(['global' => ['labor
 $expect('con parada registrada, el retraso mostrado de una parada es su llegada estimada menos su hora publicada', $iDelayFar === $iEtaFar - (T0 + 720), json_encode([$iEtaFar - (T0 + 720), $iDelayFar]));
 $aRowFarEarly = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720 + 3 * 3600, 'stop_seq' => 5];
 $aFarOut = $MRegFast->enrich([$aRowFarEarly])[0];
-$expect('si la llegada estimada difiere más de 45 min de la hora publicada, sigue en vivo con su llegada estimada pero sin afirmar el retraso', $aFarOut['status'] === 'live' && $aFarOut['delaySeconds'] === null && $aFarOut['etaSeconds'] < T0 + 720 + 3 * 3600, json_encode([$aFarOut['status'], $aFarOut['delaySeconds']]));
+$expect('si la llegada estimada difiere más de 45 min de la hora publicada, sale estimada con su llegada estimada y sin afirmar retraso', $aFarOut['status'] === 'estimated' && $aFarOut['delaySeconds'] === 0 && $aFarOut['etaSeconds'] < T0 + 720 + 3 * 3600, json_encode([$aFarOut['status'], $aFarOut['delaySeconds']]));
 [$iEta, , ] = $MReg->etaForStop('J_LINE', T0 + 720, $aRegistered);
 $expect('sin número de parada no se estima: horario oficial', $iEta === T0 + 720, hms($iEta));
 
@@ -329,7 +329,7 @@ $aRowPassed = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_sec
 $aRowTarget = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5];
 $aEnriched = $MReg->enrich([$aRowPassed, $aRowTarget]);
 $expect('enrich: la fila de una parada ya pasada sale como salida, con la hora estimada en que el bus la pasó (la de la parada registrada)', $aEnriched[0]['status'] === 'departed' && $aEnriched[0]['etaSeconds'] === T0 + 250, json_encode($aEnriched[0]['etaSeconds']));
-$expect('enrich: la fila de una parada posterior sale en directo con la ETA de la parada registrada', $aEnriched[1]['status'] === 'live' && $aEnriched[1]['etaSeconds'] === T0 + 700, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
+$expect('enrich: sin GPS, la fila de una parada posterior sale estimada (no en directo) con la ETA de la parada registrada y sin adelanto ni retraso', $aEnriched[1]['status'] === 'estimated' && $aEnriched[1]['etaSeconds'] === T0 + 700 && $aEnriched[1]['delaySeconds'] === 0, json_encode([$aEnriched[1]['status'], $aEnriched[1]['etaSeconds']]));
 
 $aWaiting = $aRegistered;
 $aWaiting['recordedSeconds'] = T0 - 120;

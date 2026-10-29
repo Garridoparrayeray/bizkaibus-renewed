@@ -254,6 +254,14 @@ class RealtimeController
             $sVehicleRef = $aLive['vehicleRef'];
         }
 
+        // Sin GPS (solo la última parada registrada) es una estimación, como en la tarjeta de la parada: ni «en
+        // directo» ni adelanto o retraso.
+        if ($sStatus === 'live' && $aPosition === null && \in_array($aCurrentConfig['engine'] ?? null, ['bizkaibus', 'lurraldebus'], true)) {
+            $sStatus = 'estimated';
+            $iDelayMinutes = 0;
+            $sVehicleRef = null;
+        }
+
         Response::json([
             'lineCode' => $aJourney['line_code'],
             'lineName' => $aJourney['line_name'],
