@@ -306,16 +306,21 @@ class ServiceJourney
 
     private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds = PHP_INT_MIN): array
     {
-        $aLastKeptDeparture = [];
+        $aKept = [];
         $aResult = [];
         $iCounted = 0;
         foreach ($aRows as $aRow) {
             $sKey = $aRow['line_id'] . '|' . $aRow['trip_number'];
             $iDeparture = (int)$aRow['departure_seconds'];
-            if (isset($aLastKeptDeparture[$sKey]) && abs($iDeparture - $aLastKeptDeparture[$sKey]) <= self::DEDUPE_TOLERANCE_SECONDS) {
-                continue;
+            // Mismo viaje en dos calendarios: misma hora en la parada y misma salida de cabecera. Dos viajes distintos del mismo
+            // número pueden pasar a la vez por la parada si uno lleva un horario más lento (A3514 por San Juan, Amorebieta).
+            $iFirst = (int)($aRow['first_departure_seconds'] ?? 0);
+            foreach ($aKept[$sKey] ?? [] as [$iKeptDeparture, $iKeptFirst]) {
+                if (abs($iDeparture - $iKeptDeparture) <= self::DEDUPE_TOLERANCE_SECONDS && abs($iFirst - $iKeptFirst) <= self::DEDUPE_TOLERANCE_SECONDS) {
+                    continue 2;
+                }
             }
-            $aLastKeptDeparture[$sKey] = $iDeparture;
+            $aKept[$sKey][] = [$iDeparture, $iFirst];
             $aResult[] = $aRow;
             if ($iDeparture >= $iCountFromSeconds) {
                 $iCounted++;
