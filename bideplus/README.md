@@ -138,7 +138,7 @@ La pista "hacia X" en los resultados de búsqueda (`SearchController::addDirecti
 
 - Runtime: `vercel-php@0.9.0`, configurado en `vercel.json`. Solo reconoce como función servible el PHP que está físicamente dentro de `api/` — por eso el shell del frontend vive en `api/shell.php` y no en la raíz.
 - `data/bizkaibus.sqlite` y `data/metrobilbao.sqlite` deben estar commiteados (son el artefacto de build, no el CSV crudo del GTFS — ese nunca se sube).
-- **Un `git push` a la rama principal no despliega nada por sí solo.** El único disparador es `workflow_dispatch` manual desde GitHub Actions, o el cron diario.
+- **Un `git push` a la rama principal no despliega por Git** (`vercel.json` lo desactiva: los `.sqlite` del repositorio son viejos y pisarían los reconstruidos). El despliegue a producción lo hace siempre `rebuild-schedule.yml`, que reconstruye las bases con el GTFS de hoy: a diario, a mano y en cada cambio que llega a la rama principal.
 - `.github/workflows/rebuild-schedule.yml` corre a diario a las 03:00 UTC: reconstruye las dos bases de datos desde el GTFS más reciente de cada operador y redespliega a producción. Cualquier cambio que los operadores publiquen — nuevo evento, corrección de horario, fin de una campaña especial — se refleja solo, sin tocar código, con un margen máximo de 24h.
 
 ## Licencia
