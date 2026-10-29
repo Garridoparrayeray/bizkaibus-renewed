@@ -118,6 +118,10 @@ jobs:
       - name: Rebuild sitemap.xml
         run: php bideplus/scripts/build-sitemap.php
 
+      # El mapa de la red (/mapa): líneas, recorridos y paradas de cada red, sacados de las bases recién construidas.
+      - name: Rebuild network map data
+        run: php bideplus/scripts/build-network-map.php
+
       # Puerta antes de desplegar: si las bases nuevas rompen el cálculo de llegadas, la
       # integridad de los datos o el contrato de la API, no se despliega y producción
       # sigue con el último despliegue bueno.

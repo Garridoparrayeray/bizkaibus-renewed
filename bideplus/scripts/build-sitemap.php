@@ -78,6 +78,7 @@ if (!$aLastModified) {
 $sXml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 $sXml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 $sXml .= urlEntry($site['url'] . '/', max($aLastModified), 'weekly', '1.0');
+$sXml .= urlEntry($site['url'] . '/mapa', max($aLastModified), 'weekly', '0.8');
 foreach ($aLastModified as $sSlug => $sLastModified) {
     $sXml .= urlEntry($site['url'] . '/?red=' . $sSlug, $sLastModified, 'daily', '0.9');
 }
@@ -85,4 +86,4 @@ $sXml .= implode('', $aPages);
 $sXml .= '</urlset>' . "\n";
 
 file_put_contents($sOutput, $sXml);
-echo 'sitemap.xml: ' . (count($aPages) + 1 + count($aLastModified)) . " URLs\n";
+echo 'sitemap.xml: ' . (count($aPages) + 2 + count($aLastModified)) . " URLs\n";

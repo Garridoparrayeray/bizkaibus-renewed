@@ -202,6 +202,22 @@ await go('/');
 check('ordenador · menú: columna de Bide+ sin título en la barra', (await ev(shown('.bide-rail'))) && (await ev(shown('.menu-brand'))) === false);
 check('ordenador · menú: idioma a la izquierda y vista a la derecha, en una fila', await ev("(() => { const l = document.querySelector('.bide-lang').getBoundingClientRect(); const v = document.querySelector('.view-toggle').getBoundingClientRect(); return Math.abs(l.top - v.top) < 4 && l.right < v.left && v.right > window.innerWidth * 0.8; })()"));
 
+// ===== Mapa de la red =====
+await go('/');
+check('menú: enlace al mapa de la red', await ev("!!document.querySelector('a.menu-map-link[href=\"/mapa\"]')"));
+await go('/mapa');
+check('mapa: se cargan las redes de tren', await waitTrue("!!window.BideMap && window.BideMap.loaded().length >= 4"));
+check('mapa: un filtro por red', (await ev("document.querySelectorAll('[data-map-network]').length")) === (await ev("fetch('/map-data/index.json').then(r => r.json()).then(d => d.networks.length)")));
+check('mapa: Metro separado en L1 y L2', await ev("fetch('/map-data/metro.json').then(r => r.json()).then(d => d.lines.map(l => l.code).join(',') === 'L1,L2')"));
+await ev("window.BideMap.selectLine('metro', 'L1')");
+check('mapa: el esquema de la L1 lista sus paradas', await waitTrue("!document.getElementById('map-panel').hidden && document.querySelectorAll('.map-schematic li').length > 20"));
+check('mapa: la L1 muestra transbordos (Abando)', await ev("[...document.querySelectorAll('.map-schematic li')].some(li => /Abando/.test(li.textContent) && li.querySelectorAll('.map-chip').length > 0)"));
+await ev("document.getElementById('map-panel-close').click()");
+check('mapa: el panel se cierra', await ev("document.getElementById('map-panel').hidden"));
+await ev("document.querySelector('[data-map-network=bus]').click()");
+check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.loaded().includes('bus')"));
+check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
+
 // ===== Tema «mi amor»: sin cambios =====
 await phone();
 await go('/?red=bus&tema=miamor');

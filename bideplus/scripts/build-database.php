@@ -118,9 +118,9 @@ function main(array $aArgv): void
     insertCalendars($Pdo, $aCalendars);
     insertMeta($Pdo, $aFeedInfo);
 
-    $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+    $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized, color, text_color) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($aRoutes as $iRouteId => $aRoute) {
-        $InsertLine->execute([$iRouteId, $aRoute['code'], $aRoute['name'], normalize($aRoute['name'])]);
+        $InsertLine->execute([$iRouteId, $aRoute['code'], $aRoute['name'], normalize($aRoute['name']), $aRoute['color'] ?? null, $aRoute['textColor'] ?? null]);
     }
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
@@ -520,6 +520,15 @@ function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Genera
     fclose($Stream);
 }
 
+function gtfsColor(string|null $sValue): string|null
+{
+    $sValue = strtoupper(ltrim(trim((string)$sValue), '#'));
+    if (!preg_match('/^[0-9A-F]{6}$/', $sValue)) {
+        return null;
+    }
+    return '#' . $sValue;
+}
+
 function gtfsDateToIso(string $sYmd): string
 {
     return substr($sYmd, 0, 4) . '-' . substr($sYmd, 4, 2) . '-' . substr($sYmd, 6, 2);
@@ -557,6 +566,9 @@ function loadRoutes(ZipArchive $Zip, string|null $sExpectedAgencyId, array|null 
         $aRoutes[$sRouteId] = [
             'code' => $sCode,
             'name' => trim(preg_replace('/ {2,}/', ' ', $aRow['route_long_name'])),
+            // Colores del operador (route_color / route_text_color) para el mapa de la red; null si no los publica.
+            'color' => gtfsColor($aRow['route_color'] ?? null),
+            'textColor' => gtfsColor($aRow['route_text_color'] ?? null),
         ];
     }
     return $aRoutes;
@@ -1494,7 +1506,9 @@ function createSchema(PDO $Pdo): void
             id TEXT PRIMARY KEY,
             code TEXT NOT NULL,
             name TEXT NOT NULL,
-            name_normalized TEXT NOT NULL
+            name_normalized TEXT NOT NULL,
+            color TEXT,
+            text_color TEXT
         )
     ');
     $Pdo->exec('

@@ -105,4 +105,9 @@ jobs:
               print('   ', x.get('lineCode'), x.get('scheduledTime'), x.get('status'), x.get('etaMinutes'), x.get('delayMinutes'))
           PY
           done
+          # Mapa de una línea en la consulta de horarios: recorridos aunque no haya buses en ruta.
+          for l in 651 2151; do
+            curl -sS "$BASE/api/lines/$l/live?red=bus" -o live.json -w "línea $l /live -> %{http_code}\n"
+            python3 -c "import json; d = json.load(open('live.json')); print('  recorridos:', len(d.get('patterns', [])), '| buses:', len(d.get('vehicles', [])), '| error:', d.get('error'))" || fail=1
+          done
           exit $fail

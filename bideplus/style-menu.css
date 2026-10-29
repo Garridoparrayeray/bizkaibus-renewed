@@ -390,3 +390,22 @@ main { transition: opacity .12s ease; }
     ::view-transition-old(*),
     ::view-transition-new(*) { animation: none; }
 }
+
+/* ===== Mapa de la red ===== */
+.menu-map-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: var(--paper);
+    color: var(--ink);
+    text-decoration: none;
+}
+    .menu-map-link > svg:first-child { flex: none; width: 28px; height: 28px; color: var(--green); }
+    .menu-map-link > svg:last-child { flex: none; width: 20px; height: 20px; margin-left: auto; color: var(--muted); }
+    .menu-map-link span { display: flex; flex-direction: column; gap: 2px; }
+    .menu-map-link strong { font-size: 1.02rem; }
+    .menu-map-link span span { color: var(--muted); font-size: .88rem; }
