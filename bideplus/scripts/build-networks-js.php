@@ -39,7 +39,10 @@ $sJs = <<<JS
         slugs: order,
         get: function (slug) { return networks[slug] || networks.bus; },
         exists: function (slug) { return Object.prototype.hasOwnProperty.call(networks, slug); },
-        name: function (slug) { return networks[slug] ? networks[slug].texts.es.name : slug; },
+        name: function (slug) {
+            if (networks[slug]) return networks[slug].texts.es.name;
+            return slug;
+        },
     };
     // Los textos de cada red entran en el diccionario como net.<red>.<clave>.
     if (global.I18n && global.I18n.extend) {

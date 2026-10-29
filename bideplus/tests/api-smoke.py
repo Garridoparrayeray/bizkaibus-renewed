@@ -115,6 +115,10 @@ status = get('/api/status') or {}
 if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
+# El endpoint del cron del registro de pasos no existe sin su clave secreta.
+get('/api/live/record', 404)
+get('/api/live/record?key=adivina', 404)
+get('/api/live/history?line=3514', 404)
 
 # Búsqueda por palabras: pueblo y parada en cualquier orden, sin importar mayúsculas.
 for q in ('amorebieta san juan', 'SAN JUAN Amorebieta'):

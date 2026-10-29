@@ -255,6 +255,7 @@ header p {
 
 #live-more-list { list-style: none; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid rgba(219, 39, 119, 0.15); max-height: 260px; overflow-y: auto; }
     #live-more-list li { margin-bottom: 6px; }
+    #live-more-list li.is-likely-past { opacity: .55; }
         #live-more-list li:last-child { margin-bottom: 0; }
     #live-more-list button {
         width: 100%; display: flex; align-items: center; gap: 8px;

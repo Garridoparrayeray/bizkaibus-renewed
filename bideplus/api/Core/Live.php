@@ -20,7 +20,30 @@ class Live
     public static function vehicles(): array
     {
         $sClass = self::engineClass('Live');
-        return $sClass === null ? [] : $sClass::vehicles(Config::current());
+        if ($sClass === null) {
+            return [];
+        }
+        return $sClass::vehicles(Config::current());
+    }
+
+    // Apunta por dónde va cada vehículo del directo (lo llama un cron cada minuto). Null si la red no tiene registro o falló.
+    public static function record(): int|null
+    {
+        $sClass = self::engineClass('Live');
+        if ($sClass === null || !method_exists($sClass, 'record')) {
+            return null;
+        }
+        return $sClass::record(Config::current());
+    }
+
+    // Hora de paso por cada parada de los viajes de una línea en un día (los últimos 3 días). Null si no hay registro.
+    public static function history(string $sDate, string $sLineId): array|null
+    {
+        $sClass = self::engineClass('Live');
+        if ($sClass === null || !method_exists($sClass, 'history')) {
+            return null;
+        }
+        return $sClass::history(Config::current(), $sDate, $sLineId);
     }
 
     public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null): object
