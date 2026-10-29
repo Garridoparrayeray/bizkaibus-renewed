@@ -8,10 +8,24 @@ name: Rebuild schedule data
 # Fuentes primarias: NAP (nap.transportes.gob.es) con ApiKey.
 # Fuentes fallback:  S3 (Bizkaibus), CMS (Metro), local zip (Euskotren).
 
+# Es la UNICA via de despliegue a produccion (vercel.json desactiva los despliegues de master por Git): los .sqlite
+# del repositorio son viejos y, si Vercel los desplegara por su cuenta, pisarian las bases recien reconstruidas.
+# Por eso corre a diario, a mano y en cada cambio que llega a master: cada despliegue lleva siempre los horarios
+# de hoy junto al codigo nuevo.
 on:
   schedule:
     - cron: '0 3 * * *' # diario, 03:00 UTC
+  push:
+    branches: [master]
+    paths:
+      - 'bideplus/**'
+      - '.github/workflows/rebuild-schedule.yml'
   workflow_dispatch: {} # allows manually clicking "Run workflow" too
+
+# Un despliegue cada vez; si llegan varios, el ultimo espera su turno y los intermedios se saltan.
+concurrency:
+  group: rebuild-and-deploy
+  cancel-in-progress: false
 
 jobs:
   rebuild-and-deploy:
