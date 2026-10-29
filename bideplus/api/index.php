@@ -20,6 +20,7 @@ use Controllers\LinesController;
 use Controllers\TimetableController;
 use Controllers\RealtimeController;
 use Controllers\AlertsController;
+use Controllers\LiveRecordController;
 
 $Req = new Request();
 
@@ -54,6 +55,7 @@ $Realtime = new RealtimeController();
 $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
 $Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
 $Router->get('/status', [$Realtime, 'status'], 30);
+$Router->get('/live/record', [new LiveRecordController(), 'record']);
 
 try {
     $Router->dispatch($Req);

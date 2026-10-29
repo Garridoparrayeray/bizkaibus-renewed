@@ -47,6 +47,12 @@ class Request
         return $this->aJsonBody;
     }
 
+    public function header(string $sName): string|null
+    {
+        $sValue = $_SERVER['HTTP_' . strtoupper(str_replace('-', '_', $sName))] ?? null;
+        return $sValue === null ? null : (string)$sValue;
+    }
+
     public function cookie(string $sName): string|null
     {
         return $_COOKIE[$sName] ?? null;
