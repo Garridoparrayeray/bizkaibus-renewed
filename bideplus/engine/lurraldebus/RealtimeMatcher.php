@@ -18,6 +18,9 @@ class RealtimeMatcher
     public const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
     private const SCHEDULE_ORIGIN_OFFSET_SECONDS = 60;
     private const MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS = 6 * 60;
+    private const WRONG_SCHEDULE_GAP_SECONDS = 10 * 60;
+    private const WRONG_SCHEDULE_PASSED_SECONDS = 10 * 60;
+    private const WRONG_SCHEDULE_LEARNED_SHARE = 0.8;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
@@ -333,6 +336,32 @@ class RealtimeMatcher
             $dRemaining += max(0.0, $dShare) * $dSegment;
         }
         return $dRemaining;
+    }
+
+    private function learnedShare(string $sServiceJourneyId, int $iFromSeconds, int $iTargetArrivalSeconds, string $sBand): float
+    {
+        $aStops = $this->stopsFor($sServiceJourneyId);
+        $iTotal = 0;
+        $iLearned = 0;
+        for ($i = 0; $i < \count($aStops) - 1; $i++) {
+            $iLeaveSeconds = (int)$aStops[$i]['arrival_seconds'];
+            $iReachSeconds = (int)$aStops[$i + 1]['arrival_seconds'];
+            if ($iReachSeconds <= $iFromSeconds) {
+                continue;
+            }
+            if ($iLeaveSeconds >= $iTargetArrivalSeconds) {
+                break;
+            }
+            $iScheduled = $iReachSeconds - $iLeaveSeconds;
+            $iTotal += $iScheduled;
+            if ($this->Segments->seconds((string)$aStops[$i]['stop_id'], (string)$aStops[$i + 1]['stop_id'], $sBand) !== null) {
+                $iLearned += $iScheduled;
+            }
+        }
+        if ($iTotal <= 0) {
+            return 0.0;
+        }
+        return $iLearned / $iTotal;
     }
 
     public function displayDelayMinutes(int|null $iDelaySeconds): int|null
@@ -651,6 +680,11 @@ class RealtimeMatcher
             $dFactor = $this->Pace->factor($aRow['line_id'] ?? null, $this->sDate, $iMid);
             $iCorrected = $iFirst + self::SCHEDULE_ORIGIN_OFFSET_SECONDS + (int)round($this->expectedSeconds($sJourneyId, $iFirst - 1, $iTarget, $sBand, $dFactor));
             if ($iCorrected >= $this->iNow) {
+                $aFields['etaSeconds'] = $iCorrected;
+            } elseif ($iCorrected < $this->iNow - self::WRONG_SCHEDULE_PASSED_SECONDS
+                && $iTarget - $iCorrected >= self::WRONG_SCHEDULE_GAP_SECONDS
+                && $this->learnedShare($sJourneyId, $iFirst - 1, $iTarget, $sBand) >= self::WRONG_SCHEDULE_LEARNED_SHARE) {
+                $aFields['status'] = 'departed';
                 $aFields['etaSeconds'] = $iCorrected;
             }
         } catch (\Throwable $Ex) {

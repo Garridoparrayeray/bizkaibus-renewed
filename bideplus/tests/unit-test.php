@@ -376,6 +376,22 @@ $aNoBus = $MNoBus->enrich([$aRowNoBus])[0];
 $expect('sin datos del bus, la llegada es la salida de cabecera + tiempos aprendidos + 1 min (08:07:40)', $aNoBus['status'] === 'scheduled' && $aNoBus['etaSeconds'] === T0 + 400 + 60 && $aNoBus['delaySeconds'] === 0, json_encode([$aNoBus['status'], hms($aNoBus['etaSeconds'])]));
 $MNoBusLate = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 + 500, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
 $expect('si lo estimado ya queda en el pasado, se deja el horario publicado (no se esconde ni se deja en 0 min)', $MNoBusLate->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
+/* Horario publicado mucho más lento que lo que tardan los buses (A3514 por San Juan, Amorebieta: 59 min en horario, 28 de verdad).
+ * J_SLOW hace el mismo recorrido con 15 min por tramo: con los tiempos aprendidos el bus ya pasó y no se enseña como «solo horario». */
+$PdoSlow = buildFixture(40);
+$PdoSlow->exec("INSERT INTO service_journeys VALUES ('J_SLOW', '3414', 'P1', '808', 'C1', " . T0 . ", 'SH_LINE')");
+for ($i = 0; $i < 5; $i++) {
+    $PdoSlow->exec("INSERT INTO passing_times VALUES ('J_SLOW', " . ($i + 1) . ", 'S$i', " . (T0 + $i * 900) . ', ' . (T0 + $i * 900) . ', ' . ($i * 1000.0) . ')');
+}
+$aRowSlow = array_merge($aRowNoBus, ['service_journey_id' => 'J_SLOW', 'arrival_seconds' => T0 + 3600]);
+$aSlowPassed = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 3000, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
+$expect('horario mucho más lento que lo aprendido y el bus ya debió pasar: sale como pasado, con la hora estimada', $aSlowPassed['status'] === 'departed' && $aSlowPassed['etaSeconds'] === T0 + 460, json_encode([$aSlowPassed['status'], hms($aSlowPassed['etaSeconds'])]));
+$aSlowSoon = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 300, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
+$expect('mismo viaje antes de la hora estimada: sale con la hora estimada, no la del horario', $aSlowSoon['status'] === 'scheduled' && $aSlowSoon['etaSeconds'] === T0 + 460);
+$aSlowJustPassed = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 1000, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
+$expect('si la hora estimada pasó hace menos de 10 min (el bus puede ir con retraso), se deja el horario publicado', $aSlowJustPassed['status'] === 'scheduled' && $aSlowJustPassed['etaSeconds'] === T0 + 3600);
+$aSlowUnlearned = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 3000, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => ['S0>S1' => ['n' => 5, 'all' => 100]], 'lengthRatios' => ['3' => ['all' => 0.1]]])))->enrich([$aRowSlow])[0];
+$expect('si casi ningún tramo tiene tiempo aprendido, no se esconde el viaje', $aSlowUnlearned['status'] === 'scheduled' && $aSlowUnlearned['etaSeconds'] === T0 + 3600, json_encode([$aSlowUnlearned['status'], hms($aSlowUnlearned['etaSeconds'])]));
 $MNoLearned = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $expect('sin tiempos aprendidos, se deja el horario publicado', $MNoLearned->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
 /* Tramos sin tiempo aprendido: la proporción tiempo real / horario depende del largo del tramo (en la fixture, 1000 m por tramo y 180 s de horario). */
@@ -732,6 +748,16 @@ $expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya
 $expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
 $expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $expect('ficha del viaje: sin paradas sale scheduled', Controllers\RealtimeController::tripStatus(false, [], 8 * 3600) === 'scheduled');
+
+// Filas repetidas: mismo número de viaje en dos calendarios se junta; dos viajes distintos a la vez por la parada, no.
+$Dedupe = new ReflectionMethod(ServiceJourney::class, 'dedupeByTrip');
+$aDedupeRows = [
+    ['line_id' => '3514', 'trip_number' => '909', 'departure_seconds' => 60180, 'first_departure_seconds' => 58500],
+    ['line_id' => '3514', 'trip_number' => '909', 'departure_seconds' => 60180, 'first_departure_seconds' => 58500],
+    ['line_id' => '3514', 'trip_number' => '909', 'departure_seconds' => 60249, 'first_departure_seconds' => 56700],
+];
+$aDeduped = $Dedupe->invoke(new ServiceJourney(buildFixture(40)), $aDedupeRows, 10);
+$expect('el mismo viaje en dos calendarios sale una vez; otro viaje del mismo número un minuto después también sale', \count($aDeduped) === 2 && $aDeduped[1]['first_departure_seconds'] === 56700, (string)\count($aDeduped));
 
 echo "\nRESULTADO unitarias: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
 exit(empty($failures) ? 0 : 1);
