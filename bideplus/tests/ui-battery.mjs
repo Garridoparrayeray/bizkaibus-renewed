@@ -112,13 +112,18 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             pick = '#live-timetable-link:not([hidden]), #live-more-list button';
         }
         await until(`!!document.querySelector('${pick}')`);
-        for (let attempt = 0; attempt < 3; attempt++) {
-            await ev(`(()=>{const c=document.querySelector('${pick}');if(c)c.click();})()`);
-            if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
+        // De noche, sin próximas salidas, la tarjeta lista las líneas de la parada; las que terminan en ella no tienen salidas
+        // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada.
+        const candidates = await ev(`document.querySelectorAll('${pick}').length`);
+        for (let index = 0; index < Math.max(candidates, 1); index++) {
+            for (let attempt = 0; attempt < 3; attempt++) {
+                await ev(`(()=>{const c=document.querySelectorAll('${pick}')[${index}];if(c)c.click();})()`);
+                if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
+            }
+            await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
+            if (await until("document.querySelectorAll('#timetable-body tr').length > 0", 5000)) break;
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
-        await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
-        await until("document.querySelectorAll('#timetable-body tr').length > 0");
         await sleep(500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
