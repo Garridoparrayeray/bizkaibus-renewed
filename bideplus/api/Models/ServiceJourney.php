@@ -180,22 +180,51 @@ class ServiceJourney
 
     public function findByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
     {
+        $aVariants = $this->variantsByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        if (empty($aVariants)) {
+            return null;
+        }
+        return $aVariants[0];
+    }
+
+    /*
+     * Un mismo número de viaje y primera salida puede existir en varios calendarios (L-J y V, por ejemplo) con horas
+     * distintas. Salen primero los que circulan hoy, que son los que el directo puede estar siguiendo; sin esto, la ficha
+     * del viaje podía quedarse con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
+     */
+    public function variantsByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array
+    {
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
         $Stmt = $this->Pdo->prepare('
             SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,
                    l.code AS line_code, l.name AS line_name, jp.headsign,
-                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name,
+                   CASE WHEN sc.id IS NOT NULL AND (
+                       (sc.weekday_mask & :weekdayBit) != 0
+                       OR EXISTS (
+                           SELECT 1 FROM service_calendar_exceptions sce_inc
+                           WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                       )
+                   ) AND NOT EXISTS (
+                       SELECT 1 FROM service_calendar_exceptions sce
+                       WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
+                   ) THEN 1 ELSE 0 END AS runs_today
             FROM service_journeys sj
             JOIN lines l ON l.id = sj.line_id
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
-            WHERE sj.line_id = ? AND sj.trip_number = ? AND sj.first_departure_seconds = ?
-            LIMIT 1
+            LEFT JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE sj.line_id = :lineId AND sj.trip_number = :tripNumber AND sj.first_departure_seconds = :firstDeparture
+            ORDER BY runs_today DESC, sj.id ASC
         ');
-        $Stmt->execute([$iLineId, $sTripNumber, $iFirstDepartureSeconds]);
-        $aRow = $Stmt->fetch();
-        if (!$aRow) {
-            return null;
-        }
-        return $aRow;
+        $Stmt->execute([
+            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'today' => $sToday,
+            'today2' => $sToday,
+            'lineId' => $iLineId,
+            'tripNumber' => $sTripNumber,
+            'firstDeparture' => $iFirstDepartureSeconds,
+        ]);
+        return $Stmt->fetchAll();
     }
 
     public function arrivalSecondsAtOrder(string $sServiceJourneyId, int $iSeqOrder): int|null

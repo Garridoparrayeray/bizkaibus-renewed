@@ -738,6 +738,32 @@ $expect('liveTrip: un viaje que el feed no trae (previsión a más de 10 min) de
 $expect('liveTrip: sin feed devuelve null', (new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->liveTrip('2', $aRowsJourney, 'J_UP1') === null);
 
 /* ------------------------------------------------------------------ */
+$section('Variantes de un viaje en varios calendarios');
+$PdoVar = new PDO('sqlite::memory:');
+$PdoVar->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoVar->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoVar->exec('
+    CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT);
+    CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT, name TEXT);
+    CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, headsign TEXT);
+    CREATE TABLE service_calendars (id TEXT PRIMARY KEY, weekday_mask INTEGER, from_date TEXT, to_date TEXT);
+    CREATE TABLE service_calendar_exceptions (calendar_id TEXT, date TEXT, available INTEGER);
+    CREATE TABLE service_journeys (id TEXT PRIMARY KEY, line_id TEXT, journey_pattern_id TEXT, trip_number TEXT, calendar_id TEXT, first_departure_seconds INTEGER, shape_id TEXT);
+    CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER, dist_m REAL);
+    INSERT INTO stops VALUES (\'S0\', \'Parada 0\');
+    INSERT INTO lines VALUES (\'L1\', \'A1\', \'Línea 1\');
+    INSERT INTO journey_patterns VALUES (\'P1\', \'Destino\');
+    INSERT INTO service_calendars VALUES (\'C_NEVER\', 0, NULL, NULL), (\'C_ALWAYS\', 127, NULL, NULL);
+    INSERT INTO service_journeys VALUES (\'A_OTHER_DAY\', \'L1\', \'P1\', \'721\', \'C_NEVER\', 79200, NULL), (\'B_TODAY\', \'L1\', \'P1\', \'721\', \'C_ALWAYS\', 79200, NULL);
+    INSERT INTO passing_times VALUES (\'A_OTHER_DAY\', 1, \'S0\', 79200, 79200, 0), (\'B_TODAY\', 1, \'S0\', 79200, 79200, 0);
+');
+$JourneyVar = new ServiceJourney($PdoVar);
+$aVariants = $JourneyVar->variantsByLineAndTrip('L1', '721', 79200);
+$expect('un viaje en dos calendarios devuelve las dos variantes', count($aVariants) === 2);
+$expect('la variante que circula hoy va la primera, aunque su id sea posterior', $aVariants[0]['id'] === 'B_TODAY' && (int)$aVariants[0]['runs_today'] === 1 && (int)$aVariants[1]['runs_today'] === 0);
+$expect('findByLineAndTrip da la variante de hoy', $JourneyVar->findByLineAndTrip('L1', '721', 79200)['id'] === 'B_TODAY');
+$expect('un viaje que no existe da null', $JourneyVar->findByLineAndTrip('L1', '999', 79200) === null && $JourneyVar->variantsByLineAndTrip('L1', '999', 79200) === []);
+
 $section('Rango de fechas publicado');
 $mkRange = function (array $aMeta, array $aCalendars, array $aExceptions): PDO {
     $P = new PDO('sqlite::memory:');

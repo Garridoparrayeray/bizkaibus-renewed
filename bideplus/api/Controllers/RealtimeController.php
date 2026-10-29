@@ -161,11 +161,12 @@ class RealtimeController
 
         $Pdo = Database::connection();
         $JourneyModel = new ServiceJourney($Pdo);
-        $aJourney = $JourneyModel->findByLineAndTrip($sLineId, $sTripNumber, $iFirstDepartureSeconds);
-        if ($aJourney === null) {
+        $aVariants = $JourneyModel->variantsByLineAndTrip($sLineId, $sTripNumber, $iFirstDepartureSeconds);
+        if (empty($aVariants)) {
             Response::error('Trip not found', 404);
             return;
         }
+        $aJourney = $aVariants[0];
 
         $aCurrentConfig = Config::current();
         if (Config::hasLive('trip-updates')) {
@@ -175,7 +176,16 @@ class RealtimeController
 
         // Sin fuente en directo, el viaje sale con su horario oficial.
         $Matcher = Live::matcher($JourneyModel);
-        $aLive = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aJourney['id']);
+        // Entre las variantes del viaje (calendarios distintos), la que el directo sigue; si ninguna, la que circula hoy.
+        $aLive = null;
+        foreach ($aVariants as $aVariant) {
+            $aFound = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aVariant['id']);
+            if ($aFound !== null && $Matcher->isLive($aVariant['id'], $aFound)) {
+                $aJourney = $aVariant;
+                $aLive = $aFound;
+                break;
+            }
+        }
         $bLive = $Matcher->isLive($aJourney['id'], $aLive);
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
 
