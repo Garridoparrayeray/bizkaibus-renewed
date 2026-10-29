@@ -36,13 +36,28 @@ class Store
         $sError = curl_error($Ch);
         curl_close($Ch);
 
-        $aDecoded = is_string($sBody) ? json_decode($sBody, true) : null;
+        $aDecoded = null;
+        if (is_string($sBody)) {
+            $aDecoded = json_decode($sBody, true);
+        }
         if ($sError !== '' || $iStatus >= 400 || !is_array($aDecoded)) {
-            error_log('Bide+ almacén: ' . ($sError !== '' ? $sError : 'HTTP ' . $iStatus));
+            $sReason = 'HTTP ' . $iStatus;
+            if ($sError !== '') {
+                $sReason = $sError;
+            }
+            error_log('Bide+ almacén: ' . $sReason);
             @touch(self::pauseMarker());
             return null;
         }
-        return array_map(fn($aItem) => is_array($aItem) && !isset($aItem['error']) ? ($aItem['result'] ?? null) : null, $aDecoded);
+        $aResults = [];
+        foreach ($aDecoded as $aItem) {
+            $Result = null;
+            if (is_array($aItem) && !isset($aItem['error'])) {
+                $Result = $aItem['result'] ?? null;
+            }
+            $aResults[] = $Result;
+        }
+        return $aResults;
     }
 
     private static function credentials(): array|null
@@ -62,7 +77,10 @@ class Store
         if ($sValue === false || $sValue === '') {
             $sValue = $_SERVER[$sName] ?? $_ENV[$sName] ?? '';
         }
-        return $sValue === '' ? null : (string)$sValue;
+        if ($sValue === '') {
+            return null;
+        }
+        return (string)$sValue;
     }
 
     private static function paused(): bool

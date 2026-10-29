@@ -110,8 +110,12 @@ class ServiceJourney
             } else {
                 $bToward = $bSameSideAsReference;
             }
+            $sDirection = 'away_from_reference';
+            if ($bToward) {
+                $sDirection = 'toward_reference';
+            }
             $aDirections[$aRow['pattern_id']] = [
-                'direction' => $bToward ? 'toward_reference' : 'away_from_reference',
+                'direction' => $sDirection,
                 'terminus' => $aRow['last_name'],
             ];
         }
