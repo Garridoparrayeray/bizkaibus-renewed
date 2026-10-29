@@ -1,0 +1,21 @@
+name: probe-feed
+on:
+  push:
+    branches: [claude/vibrant-ritchie-yfwaei]
+    paths: ['.github/workflows/probe-feed.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Feed y producción
+        run: |
+          date -u
+          curl -sS -D - -o vm.xml --max-time 20 https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml | head -12
+          ls -la vm.xml
+          echo "actividades: $(grep -o '<VehicleActivity>' vm.xml | wc -l)"
+          grep -o '<ResponseTimestamp>[^<]*' vm.xml | head -2
+          grep -o '<RecordedAtTime>[^<]*' vm.xml | sort | tail -2
+          echo "--- status"
+          curl -sS --max-time 30 https://bideplus.vercel.app/api/status; echo
+          echo "--- departures 3388"
+          curl -sS --max-time 30 https://bideplus.vercel.app/api/stops/3388/departures | jq -c '[.departures[] | {l:.lineCode,t:.scheduledTime,e:.etaMinutes,st:.status}]'
