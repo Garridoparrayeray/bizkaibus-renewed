@@ -24,6 +24,22 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
         $aOut[] = ['result' => $iNew];
     } elseif ($sName === 'HMGET') {
         $aOut[] = ['result' => array_map(fn($f) => $aData[$sKey][$f] ?? null, $aCmd)];
+    } elseif ($sName === 'HSCAN') {
+        // Sin paginar de verdad: devuelve todo lo que encaja con MATCH en una sola página (cursor 0).
+        $sPattern = '*';
+        for ($i = 1; $i + 1 < count($aCmd); $i += 2) {
+            if (strtoupper($aCmd[$i]) === 'MATCH') {
+                $sPattern = $aCmd[$i + 1];
+            }
+        }
+        $aPairs = [];
+        foreach ($aData[$sKey] ?? [] as $sField => $sValue) {
+            if (fnmatch($sPattern, (string)$sField)) {
+                $aPairs[] = (string)$sField;
+                $aPairs[] = $sValue;
+            }
+        }
+        $aOut[] = ['result' => ['0', $aPairs]];
     } elseif ($sName === 'EXPIRE') {
         $aOut[] = ['result' => isset($aData[$sKey]) ? 1 : 0];
     } else {
