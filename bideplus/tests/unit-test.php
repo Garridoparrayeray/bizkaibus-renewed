@@ -10,6 +10,7 @@ use Core\Config;
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\ScheduleRange;
 use Services\GtfsRealtimeClient;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
@@ -737,6 +738,22 @@ $expect('liveTrip: un viaje que el feed no trae (previsión a más de 10 min) de
 $expect('liveTrip: sin feed devuelve null', (new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->liveTrip('2', $aRowsJourney, 'J_UP1') === null);
 
 /* ------------------------------------------------------------------ */
+$section('Rango de fechas publicado');
+$mkRange = function (array $aMeta, array $aCalendars, array $aExceptions): PDO {
+    $P = new PDO('sqlite::memory:');
+    $P->exec('CREATE TABLE meta (key TEXT, value TEXT)');
+    $P->exec('CREATE TABLE service_calendars (from_date TEXT, to_date TEXT)');
+    $P->exec('CREATE TABLE service_calendar_exceptions (date TEXT, available INTEGER)');
+    foreach ($aMeta as $k => $v) { $P->prepare('INSERT INTO meta VALUES (?, ?)')->execute([$k, $v]); }
+    foreach ($aCalendars as $aC) { $P->prepare('INSERT INTO service_calendars VALUES (?, ?)')->execute($aC); }
+    foreach ($aExceptions as $aE) { $P->prepare('INSERT INTO service_calendar_exceptions VALUES (?, ?)')->execute($aE); }
+    return $P;
+};
+$expect('rango: usa feed_start_date y feed_end_date si el operador los da', ScheduleRange::forDatabase($mkRange(['feed_start_date' => '2026-10-28', 'feed_end_date' => '2026-11-28'], [['2026-01-01', '2026-12-31']], [])) === ['from' => '2026-10-28', 'to' => '2026-11-28']);
+$expect('rango: sin feed_info, sale de los calendarios', ScheduleRange::forDatabase($mkRange([], [['2026-09-01', '2026-10-16'], ['2026-09-10', '2026-10-01']], [])) === ['from' => '2026-09-01', 'to' => '2026-10-16']);
+$expect('rango: sin calendarios, sale de las fechas con servicio', ScheduleRange::forDatabase($mkRange([], [['', '']], [['2026-10-05', 1], ['2026-10-20', 1], ['2026-12-25', 0]])) === ['from' => '2026-10-05', 'to' => '2026-10-20']);
+$expect('rango: sin datos devuelve nulos', ScheduleRange::forDatabase($mkRange([], [], [])) === ['from' => null, 'to' => null]);
+
 $section('TripKey y Calendar');
 
 $expect('TripKey ida y vuelta', TripKey::parse(TripKey::build('3414', '808', 28800)) === ['3414', '808', 28800]);

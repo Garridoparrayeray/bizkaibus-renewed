@@ -693,10 +693,19 @@
         state.lastTimetableEntries = data.entries;
         renderTimetableRows(data.entries);
         const timetableNote = document.getElementById('timetable-note');
-        timetableNote.hidden = !data.beyondPublished;
+        const fmtDate = (iso) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+        const rangeNote = document.getElementById('timetable-range');
+        if (data.publishedFrom && data.publishedUntil) {
+            rangeNote.textContent = I18n.t('app.timetable.range', { from: fmtDate(data.publishedFrom), to: fmtDate(data.publishedUntil) });
+            rangeNote.hidden = false;
+        } else {
+            rangeNote.hidden = true;
+        }
+        timetableNote.hidden = !(data.beyondPublished || data.beforePublished);
         if (data.beyondPublished) {
-            const [year, month, day] = data.publishedUntil.split('-');
-            timetableNote.textContent = `El operador solo ha publicado horarios hasta el ${day}/${month}/${year}; para este día se muestra el de un día normal y puede no coincidir.`;
+            timetableNote.textContent = I18n.t('app.timetable.beyond', { date: fmtDate(data.publishedUntil) });
+        } else if (data.beforePublished) {
+            timetableNote.textContent = I18n.t('app.timetable.before', { date: fmtDate(data.publishedFrom) });
         }
         const sourceLabel = NETWORK.attribution;
         el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
