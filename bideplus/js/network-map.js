@@ -353,10 +353,8 @@
             button.type = 'button';
             button.dataset.mapNetwork = info.slug;
             button.setAttribute('aria-pressed', 'false');
-            const dot = el('span', 'map-filter-dot');
-            dot.style.background = info.color;
-            button.appendChild(dot);
-            button.appendChild(el('span', null, networkName(info.slug)));
+            button.style.setProperty('--net-color', info.color);
+            button.textContent = networkName(info.slug);
             button.addEventListener('click', () => toggleNetwork(info.slug, !state.visible.has(info.slug)));
             nav.appendChild(button);
         }
