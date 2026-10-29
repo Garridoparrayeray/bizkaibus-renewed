@@ -6,7 +6,7 @@
     const DEFAULT_ON = ['metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria'];
     const TRANSFER_METERS = 180;
     const BUS_STOPS_MIN_ZOOM = 14;
-    const RAIL_STOPS_MIN_ZOOM = 11;
+    const RAIL_STOPS_MIN_ZOOM = 0;
 
     const state = {
         map: null,
