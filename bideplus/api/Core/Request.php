@@ -18,7 +18,10 @@ class Request
             unset($_GET['path']);
         } else {
             // Sin parse_url: confunde «/lines/tolosaldea:4/…» con un host y un puerto.
-            $sPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#') ?: '/';
+            $sPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#');
+            if (!$sPath) {
+                $sPath = '/';
+            }
             $sPath = preg_replace('#^/api#', '', $sPath);
         }
         $this->sPath = '/' . ltrim($sPath, '/');
@@ -42,7 +45,10 @@ class Request
     {
         if ($this->aJsonBody === null) {
             $aDecoded = json_decode((string)file_get_contents('php://input'), true);
-            $this->aJsonBody = is_array($aDecoded) ? $aDecoded : [];
+            $this->aJsonBody = [];
+            if (is_array($aDecoded)) {
+                $this->aJsonBody = $aDecoded;
+            }
         }
         return $this->aJsonBody;
     }
@@ -50,7 +56,10 @@ class Request
     public function header(string $sName): string|null
     {
         $sValue = $_SERVER['HTTP_' . strtoupper(str_replace('-', '_', $sName))] ?? null;
-        return $sValue === null ? null : (string)$sValue;
+        if ($sValue === null) {
+            return null;
+        }
+        return (string)$sValue;
     }
 
     public function cookie(string $sName): string|null

@@ -40,10 +40,16 @@ if ($isMiamorDomain) {
 
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = strtok($requestUri, '?#');
-$ogSiteUrl = $isMiamorDomain ? 'https://bideplusmiamor.vercel.app' : $site['url'];
+$ogSiteUrl = $site['url'];
+if ($isMiamorDomain) {
+    $ogSiteUrl = 'https://bideplusmiamor.vercel.app';
+}
 $ogUrl = $ogSiteUrl . $path;
 if ($path === '/' || $path === '') {
-    $ogUrl = $isMiamorDomain ? $ogSiteUrl . '/' : $ogSiteUrl . '/?red=' . $networkSlug;
+    $ogUrl = $ogSiteUrl . '/?red=' . $networkSlug;
+    if ($isMiamorDomain) {
+        $ogUrl = $ogSiteUrl . '/';
+    }
 }
 $ogAlt = 'Icono de ' . $sOgTitle;
 
@@ -279,8 +285,13 @@ if ($breadcrumbName !== null) {
 <?php if ($relatedHeading !== null && !empty($related)): ?>
             <h3><?= htmlspecialchars($relatedHeading) ?></h3>
             <ul>
-<?php foreach ($related as $row): ?>
-                <li><a href="/<?= $relatedType ?>/<?= rawurlencode((string)$row['id']) ?><?= Networks::urlSuffix($networkSlug) ?>"><?= htmlspecialchars(($relatedType === 'lines' ? $row['code'] . ' ' : '') . $row['name']) ?></a></li>
+<?php foreach ($related as $row):
+    $relatedLabel = $row['name'];
+    if ($relatedType === 'lines') {
+        $relatedLabel = $row['code'] . ' ' . $row['name'];
+    }
+?>
+                <li><a href="/<?= $relatedType ?>/<?= rawurlencode((string)$row['id']) ?><?= Networks::urlSuffix($networkSlug) ?>"><?= htmlspecialchars($relatedLabel) ?></a></li>
 <?php endforeach; ?>
             </ul>
 <?php endif; ?>

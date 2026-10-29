@@ -40,6 +40,10 @@ class Search
             $aParts[] = $sHaystack . ' LIKE ?';
             $aArgs[] = '%' . $sWord . '%';
         }
-        return [implode(' AND ', $aParts) ?: '1', $aArgs];
+        $sCondition = implode(' AND ', $aParts);
+        if ($sCondition === '') {
+            $sCondition = '1';
+        }
+        return [$sCondition, $aArgs];
     }
 }

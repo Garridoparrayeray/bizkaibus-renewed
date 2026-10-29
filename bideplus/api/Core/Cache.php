@@ -10,7 +10,10 @@ class Cache
     {
         $sFile = sys_get_temp_dir() . '/bizkaibusplus_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $sKey) . '.json';
         $sFailureMarker = $sFile . '.fail';
-        $iAge = is_file($sFile) ? time() - filemtime($sFile) : PHP_INT_MAX;
+        $iAge = PHP_INT_MAX;
+        if (is_file($sFile)) {
+            $iAge = time() - filemtime($sFile);
+        }
 
         if ($iAge < $iTtlSeconds) {
             $aCached = json_decode((string)file_get_contents($sFile), true);
