@@ -110,8 +110,12 @@ class ServiceJourney
             } else {
                 $bToward = $bSameSideAsReference;
             }
+            $sDirection = 'away_from_reference';
+            if ($bToward) {
+                $sDirection = 'toward_reference';
+            }
             $aDirections[$aRow['pattern_id']] = [
-                'direction' => $bToward ? 'toward_reference' : 'away_from_reference',
+                'direction' => $sDirection,
                 'terminus' => $aRow['last_name'],
             ];
         }
@@ -227,6 +231,31 @@ class ServiceJourney
         return $aResult;
     }
 
+    // Nombres con los que el directo puede llamar a cada viaje (sus alias y su propio id).
+    public function tripRefsForJourneys(array $aJourneyIds): array
+    {
+        $aResult = [];
+        foreach ($aJourneyIds as $sJourneyId) {
+            $aResult[(string)$sJourneyId] = [(string)$sJourneyId];
+        }
+        if (empty($aResult) || !$this->hasTable('trip_aliases')) {
+            return $aResult;
+        }
+        foreach (array_chunk(array_keys($aResult), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE service_journey_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute(array_map('strval', $aChunk));
+            foreach ($Stmt->fetchAll() as $aRow) {
+                if (!in_array($aRow['trip_id'], $aResult[$aRow['service_journey_id']], true)) {
+                    $aResult[$aRow['service_journey_id']][] = $aRow['trip_id'];
+                }
+            }
+        }
+        return $aResult;
+    }
+
     public function shapePointsForJourney(string $sServiceJourneyId): array
     {
         if (!$this->hasTable('shapes')) {
@@ -306,16 +335,21 @@ class ServiceJourney
 
     private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds = PHP_INT_MIN): array
     {
-        $aLastKeptDeparture = [];
+        $aKept = [];
         $aResult = [];
         $iCounted = 0;
         foreach ($aRows as $aRow) {
             $sKey = $aRow['line_id'] . '|' . $aRow['trip_number'];
             $iDeparture = (int)$aRow['departure_seconds'];
-            if (isset($aLastKeptDeparture[$sKey]) && abs($iDeparture - $aLastKeptDeparture[$sKey]) <= self::DEDUPE_TOLERANCE_SECONDS) {
-                continue;
+            // Mismo viaje en dos calendarios: misma hora en la parada y misma salida de cabecera. Dos viajes distintos del mismo
+            // número pueden pasar a la vez por la parada si uno lleva un horario más lento (A3514 por San Juan, Amorebieta).
+            $iFirst = (int)($aRow['first_departure_seconds'] ?? 0);
+            foreach ($aKept[$sKey] ?? [] as [$iKeptDeparture, $iKeptFirst]) {
+                if (abs($iDeparture - $iKeptDeparture) <= self::DEDUPE_TOLERANCE_SECONDS && abs($iFirst - $iKeptFirst) <= self::DEDUPE_TOLERANCE_SECONDS) {
+                    continue 2;
+                }
             }
-            $aLastKeptDeparture[$sKey] = $iDeparture;
+            $aKept[$sKey][] = [$iDeparture, $iFirst];
             $aResult[] = $aRow;
             if ($iDeparture >= $iCountFromSeconds) {
                 $iCounted++;

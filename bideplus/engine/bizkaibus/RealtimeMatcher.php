@@ -18,6 +18,9 @@ class RealtimeMatcher
     public const MAX_PLAUSIBLE_DELAY_SECONDS = 45 * 60;
     private const SCHEDULE_ORIGIN_OFFSET_SECONDS = 60;
     private const MAX_GPS_VS_STOP_DISAGREEMENT_SECONDS = 6 * 60;
+    private const WRONG_SCHEDULE_GAP_SECONDS = 10 * 60;
+    private const WRONG_SCHEDULE_PASSED_SECONDS = 10 * 60;
+    private const WRONG_SCHEDULE_LEARNED_SHARE = 0.8;
 
     private const MAX_DISTANCE_FROM_ROUTE_METERS = 150;
     private const MAX_DISTANCE_FROM_ROUTE_SEGMENT_RATIO = 0.15;
@@ -43,6 +46,8 @@ class RealtimeMatcher
     private SegmentTimes $Segments;
     private string $sDate;
     private bool $bBusNetwork;
+    private \Closure|null $PassageLoader = null;
+    private array $aPassages = [];
 
     public function __construct(array $aVmMap, ServiceJourney|null $JourneyModel = null, int|null $iNowSeconds = null, PaceFactors|null $Pace = null, string|null $sDate = null, SegmentTimes|null $Segments = null)
     {
@@ -55,14 +60,23 @@ class RealtimeMatcher
         $this->Pace = $Pace ?? PaceFactors::fromFile();
 
         $this->bBusNetwork = (Config::current()['network'] ?? 'bus') === 'bus';
-        $this->Segments = $Segments ?? ($this->bBusNetwork ? SegmentTimes::fromFile() : new SegmentTimes());
+        $this->Segments = $Segments ?? new SegmentTimes();
+        if ($Segments === null && $this->bBusNetwork) {
+            $this->Segments = SegmentTimes::fromFile();
+        }
         $this->sDate = $sDate ?? Calendar::todayMadrid()->format('Y-m-d');
         $this->indexExactTrips();
+    }
+
+    public function setPassageLoader(callable $Loader): void
+    {
+        $this->PassageLoader = \Closure::fromCallable($Loader);
     }
 
     public function enrich(array $aRows): array
     {
         $iNow = $this->iNow;
+        $this->loadPassages($aRows);
 
         return array_map(function ($aRow) use ($iNow) {
             try {
@@ -333,6 +347,32 @@ class RealtimeMatcher
             $dRemaining += max(0.0, $dShare) * $dSegment;
         }
         return $dRemaining;
+    }
+
+    private function learnedShare(string $sServiceJourneyId, int $iFromSeconds, int $iTargetArrivalSeconds, string $sBand): float
+    {
+        $aStops = $this->stopsFor($sServiceJourneyId);
+        $iTotal = 0;
+        $iLearned = 0;
+        for ($i = 0; $i < \count($aStops) - 1; $i++) {
+            $iLeaveSeconds = (int)$aStops[$i]['arrival_seconds'];
+            $iReachSeconds = (int)$aStops[$i + 1]['arrival_seconds'];
+            if ($iReachSeconds <= $iFromSeconds) {
+                continue;
+            }
+            if ($iLeaveSeconds >= $iTargetArrivalSeconds) {
+                break;
+            }
+            $iScheduled = $iReachSeconds - $iLeaveSeconds;
+            $iTotal += $iScheduled;
+            if ($this->Segments->seconds((string)$aStops[$i]['stop_id'], (string)$aStops[$i + 1]['stop_id'], $sBand) !== null) {
+                $iLearned += $iScheduled;
+            }
+        }
+        if ($iTotal <= 0) {
+            return 0.0;
+        }
+        return $iLearned / $iTotal;
     }
 
     public function displayDelayMinutes(int|null $iDelaySeconds): int|null
@@ -629,8 +669,53 @@ class RealtimeMatcher
         return isset($aLive['lat'], $aLive['lon'], $aLive['locationSeconds']);
     }
 
+    private function loadPassages(array $aRows): void
+    {
+        if ($this->PassageLoader === null) {
+            return;
+        }
+        $aJourneyIds = [];
+        foreach ($aRows as $aRow) {
+            $sJourneyId = (string)($aRow['service_journey_id'] ?? '');
+            if ($sJourneyId !== '' && !isset($this->aEntryByJourneyId[$sJourneyId]) && !isset($this->aPassages[$sJourneyId])) {
+                $aJourneyIds[$sJourneyId] = true;
+            }
+        }
+        if (empty($aJourneyIds)) {
+            return;
+        }
+        try {
+            $this->aPassages += ($this->PassageLoader)(array_map('strval', array_keys($aJourneyIds)));
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ pasos: ' . $Ex->getMessage());
+        }
+    }
+
+    private function passedFields(array $aRow): array|null
+    {
+        $sJourneyId = (string)($aRow['service_journey_id'] ?? '');
+        if ($sJourneyId === '' || !isset($this->aPassages[$sJourneyId], $aRow['stop_seq'])) {
+            return null;
+        }
+        $aPassage = $this->aPassages[$sJourneyId];
+        if ((int)$aRow['stop_seq'] >= $aPassage['order']) {
+            return null;
+        }
+        return [
+            'status' => 'departed',
+            'delaySeconds' => 0,
+            'etaSeconds' => min($aPassage['seconds'], $this->iNow),
+            'vehicleRef' => null,
+            'currentStopId' => null,
+        ];
+    }
+
     private function scheduledFieldsFor(array $aRow): array
     {
+        $aPassed = $this->passedFields($aRow);
+        if ($aPassed !== null) {
+            return $aPassed;
+        }
         $aFields = self::scheduledFields($aRow);
         if (!$this->bBusNetwork || $this->Segments->isEmpty() || $this->JourneyModel === null || empty($aRow['service_journey_id'])) {
             return $aFields;
@@ -651,7 +736,12 @@ class RealtimeMatcher
             $dFactor = $this->Pace->factor($aRow['line_id'] ?? null, $this->sDate, $iMid);
             $iCorrected = $iFirst + self::SCHEDULE_ORIGIN_OFFSET_SECONDS + (int)round($this->expectedSeconds($sJourneyId, $iFirst - 1, $iTarget, $sBand, $dFactor));
             if ($iCorrected >= $this->iNow) {
+                $aFields['status'] = 'estimated';
                 $aFields['etaSeconds'] = $iCorrected;
+            } elseif ($iCorrected < $this->iNow - self::WRONG_SCHEDULE_PASSED_SECONDS
+                && $iTarget - $iCorrected >= self::WRONG_SCHEDULE_GAP_SECONDS
+                && $this->learnedShare($sJourneyId, $iFirst - 1, $iTarget, $sBand) >= self::WRONG_SCHEDULE_LEARNED_SHARE) {
+                $aFields['status'] = 'likely_departed';
             }
         } catch (\Throwable $Ex) {
             error_log('Bide+ horario corregido: ' . $Ex->getMessage());

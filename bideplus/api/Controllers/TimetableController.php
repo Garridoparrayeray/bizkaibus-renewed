@@ -121,13 +121,20 @@ class TimetableController
             $sPublishedUntil = $Pdo->query('SELECT MAX(to_date) FROM service_calendars')->fetchColumn();
         }
 
+        $sPublishedUntilOut = null;
+        $bBeyondPublished = false;
+        if ($sPublishedUntil) {
+            $sPublishedUntilOut = $sPublishedUntil;
+            $bBeyondPublished = $sDate > $sPublishedUntil;
+        }
+
         Response::json([
             'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
             'date' => $Date->format('Y-m-d'),
             'entries' => $aEntries,
             'scheduleSourcePublished' => $sPublished,
-            'publishedUntil' => $sPublishedUntil ?: null,
-            'beyondPublished' => $sPublishedUntil ? $sDate > $sPublishedUntil : false,
+            'publishedUntil' => $sPublishedUntilOut,
+            'beyondPublished' => $bBeyondPublished,
         ]);
     }
 
