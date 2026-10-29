@@ -144,10 +144,14 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await until("document.getElementById('vehicle-modal').open");
         check(`${tag} modal del tren abre`, (await ev("document.getElementById('vehicle-modal').open")) === true, await ev("document.getElementById('modal-line').textContent"));
         if (a.key === 'metro') {
-            const liveModal = (await ev("document.getElementById('modal-vehicle').textContent")).includes('en vivo');
+            // «Sin seguimiento en vivo» también contiene «en vivo»: solo cuenta un tren que de verdad va en directo.
+            const liveModal = await ev("(() => { const t = document.getElementById('modal-vehicle').textContent; return t.includes('en vivo') && t !== I18n.t('app.noLiveTracking'); })()");
             if (liveModal) {
                 const pastBefore = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
-                await ev("(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+600000;})()");
+                // Se adelanta el reloj hasta pasada la próxima parada (de noche el tren puede tardar más de 10 min en llegar a ella).
+                const nextMin = await ev("(() => { const li = [...document.querySelectorAll('#modal-stops li')].find((x) => !x.classList.contains('stop-past') && / · \\d+ min$/.test(x.textContent)); return li ? Number(li.textContent.match(/ · (\\d+) min$/)[1]) : 10; })()");
+                const jumpMs = (Math.max(nextMin, 0) + 2) * 60000;
+                await ev(`(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+${jumpMs};})()`);
                 await sleep(11500);
                 const pastAfter = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
                 check(`${tag} el recorrido abierto sigue el reloj (paradas pasadas ${pastBefore} -> ${pastAfter})`, pastAfter > pastBefore);
