@@ -11,12 +11,9 @@ import { modalState, renderModalHeader, renderModalStops, setUpVehicleModal } fr
 import { setUpSideMenu } from './side-menu.js';
 import { setUpAlerts } from './alerts.js';
 
+// El botón enseña el idioma al que cambia.
 function updateLangToggleLabel() {
-    if (I18n.getLang() === 'eu') {
-        el.langToggle.textContent = 'ES';
-    } else {
-        el.langToggle.textContent = 'EU';
-    }
+    el.langToggle.textContent = I18n.nextLang().toUpperCase();
 }
 function updateNetworkSubtitle() {
     if (window.__bbTheme === 'miamor' && window.__bbNetwork === BideNetworks.DEFAULT) return;
@@ -38,12 +35,8 @@ function setUpLanguage() {
     I18n.applyTranslations();
     updateLangToggleLabel();
     updateNetworkSubtitle();
-    el.langToggle.addEventListener('click', () => {
-        if (I18n.getLang() === 'eu') {
-            I18n.setLang('es');
-        } else {
-            I18n.setLang('eu');
-        }
+    el.langToggle.addEventListener('click', () => I18n.setLang(I18n.nextLang()));
+    window.addEventListener('bide:lang', () => {
         I18n.applyTranslations();
         updateLangToggleLabel();
         updateNetworkSubtitle();

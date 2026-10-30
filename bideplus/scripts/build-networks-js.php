@@ -39,9 +39,11 @@ $sJs = <<<JS
         slugs: order,
         get: function (slug) { return networks[slug] || networks.bus; },
         exists: function (slug) { return Object.prototype.hasOwnProperty.call(networks, slug); },
+        // En el idioma elegido si hay diccionario (páginas); en castellano si no (service worker).
         name: function (slug) {
-            if (networks[slug]) return networks[slug].texts.es.name;
-            return slug;
+            if (!networks[slug]) return slug;
+            if (global.I18n) return global.I18n.t('net.' + slug + '.name');
+            return networks[slug].texts.es.name;
         },
     };
     // Los textos de cada red entran en el diccionario como net.<red>.<clave>.

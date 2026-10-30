@@ -30,6 +30,14 @@ return [
             'subtitle' => 'Aldirien ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
         ],
+        'en' => [
+            'name' => 'Renfe Cercanías+',
+            'tile' => 'Commuter trains in Bilbao and Donostia',
+            'switcher' => 'Commuter train timetables in Bilbao and Donostia',
+            'subtitle' => 'Commuter train timetables',
+            'liveEmpty' => 'Search for a stop to see the next train.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+        ],
     ],
 
     'seo' => [

@@ -230,7 +230,10 @@
 
     function selectLang(lang) {
         if (lang === I18n.getLang()) return;
-        document.getElementById('lang-toggle').click();
+        I18n.setLang(lang);
+    }
+
+    function onLangChange() {
         syncLangSwitch();
         if (currentView === 'favoritos') renderFavorites();
     }
@@ -343,6 +346,7 @@
     new MutationObserver(syncLangSwitch).observe(root, { attributes: true, attributeFilter: ['lang'] });
     window.addEventListener('storage', renderFavorites);
     window.addEventListener('bide:favorites', renderFavorites);
+    window.addEventListener('bide:lang', onLangChange);
     syncLangSwitch();
     setUpInstallBanner();
     renderFavorites();

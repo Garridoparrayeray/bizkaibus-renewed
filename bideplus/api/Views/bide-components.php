@@ -81,6 +81,7 @@ function bideLangSwitch(): string
     return '<div class="bide-seg bide-lang" role="group" data-i18n-attr="aria-label:bide.lang" aria-label="Idioma">'
         . '<button type="button" data-bide-lang="es" aria-pressed="true">ES</button>'
         . '<button type="button" data-bide-lang="eu" aria-pressed="false">EU</button>'
+        . '<button type="button" data-bide-lang="en" aria-pressed="false">EN</button>'
         . '</div>';
 }
 

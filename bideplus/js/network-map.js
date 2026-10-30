@@ -728,6 +728,7 @@
         if (window.I18n) {
             document.documentElement.lang = I18n.getLang();
             I18n.applyTranslations(document);
+            window.addEventListener('bide:lang', () => I18n.applyTranslations(document));
         }
         state.renderer = L.canvas({ padding: 0.5, tolerance: 6 });
         // Bizkaia y Gipuzkoa enteras; Renfe llega hasta León, pero eso no es lo que se busca al abrir el mapa.

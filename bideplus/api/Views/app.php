@@ -117,7 +117,7 @@ use Core\Networks;
 
             <span class="header-actions">
                 <?= bideLangSwitch() ?>
-                <button id="lang-toggle" class="btn-icon btn-lang lang-toggle" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
+                <button id="lang-toggle" class="btn-icon btn-lang lang-toggle" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma / Change language">EU</button>
                 <button id="menu-open" class="btn-icon menu-open" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
                 </button>
@@ -259,7 +259,7 @@ use Core\Networks;
 <?= bideViews() ?>
 
         <p id="attribution" class="attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></p>
-        <p id="disclaimer" class="disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
+        <p id="disclaimer" class="disclaimer" data-i18n="net.<?= htmlspecialchars($sNetworkSlug) ?>.disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
     </main>
 
 <?= bideInstallBanner() ?>

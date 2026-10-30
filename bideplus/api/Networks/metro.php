@@ -29,6 +29,14 @@ return [
             'subtitle' => 'Bilboko Metroaren ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
         ],
+        'en' => [
+            'name' => 'Metro+',
+            'tile' => 'Metro Bilbao',
+            'switcher' => 'Metro Bilbao timetables',
+            'subtitle' => 'Metro Bilbao timetables',
+            'liveEmpty' => 'Search for a station to see the next metro.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator\'s forecast.',
+        ],
     ],
 
     'seo' => [
