@@ -767,7 +767,7 @@
         }
     }
 
-    const MAP_BUS_ICON = '<svg viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="8" fill="#01573C"/><g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="8" width="14" height="14" rx="3"/><line x1="9" y1="14" x2="23" y2="14"/></g><circle cx="12.5" cy="24" r="1.6" fill="#ffffff"/><circle cx="19.5" cy="24" r="1.6" fill="#ffffff"/></svg>';
+    const MAP_BUS_ICON = '<svg viewBox="0 0 32 32"><rect x="3" y="3" width="26" height="26" rx="8" fill="currentColor"/><g fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="8" width="14" height="14" rx="3"/><line x1="9" y1="14" x2="23" y2="14"/></g><circle cx="12.5" cy="24" r="1.6" fill="#ffffff"/><circle cx="19.5" cy="24" r="1.6" fill="#ffffff"/></svg>';
 
     function busDivIcon() {
         return L.divIcon({ className: 'bus-marker', html: MAP_BUS_ICON, iconSize: [28, 28] });
@@ -782,7 +782,7 @@
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
         }).addTo(mapState.map);
-        L.control.attribution({ prefix: false }).addTo(mapState.map);
+        mapState.map.attributionControl.setPrefix(false);
         mapState.map.setView([43.263, -2.935], 11);
         return mapState.map;
     }
@@ -1024,7 +1024,8 @@
             name: String(data.line.name),
             network: NETWORK.slug,
             networkName: BideNetworks.name(NETWORK.slug),
-            color: net?.brand?.color || '#01573c',
+            // El color de la app (el de la red, o el rosa de «mi amor»).
+            color: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || net?.brand?.color || '#01573c',
         };
 
         const map = ensureLineMap();
