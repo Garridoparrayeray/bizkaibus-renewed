@@ -15,12 +15,12 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 
 | Script | Qué comprueba |
 |---|---|
-| `static-checks.py` | Sintaxis de PHP y JS, ids que usa `app.js` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
+| `static-checks.py` | Sintaxis de PHP y JS, ids que usan los módulos de `js/app/` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
 | `build-test.php` | Funciones de `scripts/build-database.php`: al fusionar viajes iguales con calendarios distintos, una fecha solo queda anulada si ninguno de esos calendarios circula ese día. La lanza `static-checks.py` |
 | `unit-test.php` | Lógica sin servidor ni red, sobre una base de datos en memoria: `engine/`, parseo SIRI-VM, GTFS-Realtime de Metro Bilbao (con un feed real en `fixtures/`), registro de redes (`api/Networks`), `TripKey` y `Calendar`. La lanza `static-checks.py` |
 | `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
 | `api-smoke.py` | Todas las rutas de la API en las tres redes (búsqueda, paradas, salidas, líneas, horarios, trenes, alertas, línea en vivo, 404) |
-| `api-contract.py` | Forma del JSON de cada ruta en las seis redes: campos que usa `app.js`, tipos, horas `HH:MM` y estados conocidos (`scheduled`, `live`, `departed`, `finished`). Añadir campos está permitido; quitar o renombrar uno rompe la prueba |
+| `api-contract.py` | Forma del JSON de cada ruta en las seis redes: campos que usan los módulos de `js/app/`, tipos, horas `HH:MM` y estados conocidos (`scheduled`, `live`, `departed`, `finished`). Añadir campos está permitido; quitar o renombrar uno rompe la prueba |
 | `offline-schedule.mjs` | Horarios sin conexión: las salidas que calcula `js/offline.js` con `offline-data/<red>.json` (de `scripts/build-offline-data.php`) son las del horario que da la API, en varias paradas de cada red |
 | `ui-battery.mjs` | Navegador headless en móvil y ordenador: cargar, buscar, ficha, favoritos, menú, horario completo, modal del tren, aviso legal, selector de app, enlaces directos, menú Bide+, tema «mi amor» y 404 reales. Falla si hay errores de consola o de red |
 | `ui-offline.mjs` | Que las cuatro páginas solo piden recursos propios (tipografías y Leaflet ya no vienen de Google ni unpkg), que las tipografías y el mapa cargan, y que con el servidor caído la app arranca desde el service worker y avisa de la falta de conexión |
