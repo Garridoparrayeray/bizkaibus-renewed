@@ -83,6 +83,23 @@ jobs:
           done
           exit $fail
 
+      # Mapa de la red y horarios sin conexión: se generan en cada despliegue (no están en git), así que se comprueba
+      # que se sirven y que cada red tiene su fichero con datos.
+      - name: Mapa de la red y horarios sin conexión
+        run: |
+          fail=0
+          for dir in map-data offline-data; do
+            curl -fsS "$BASE/$dir/index.json" -o index.json || { echo "::error::/$dir/index.json no responde"; fail=1; continue; }
+            for r in $NETWORKS; do
+              code=$(curl -s -o net.json -w '%{http_code}' "$BASE/$dir/$r.json")
+              size=$(wc -c < net.json)
+              echo "/$dir/$r.json -> $code ($size bytes)"
+              [ "$code" = "200" ] && [ "$size" -gt 1000 ] || { echo "::error::/$dir/$r.json vacío o sin servir"; fail=1; }
+            done
+          done
+          python3 -c "import json; d = json.load(open('net.json')); print('  último horario:', d.get('generated'), '| viajes:', len(d.get('trips', [])))" || fail=1
+          exit $fail
+
       # La API en producción: cada red responde, y en Bizkaibus se cuentan los estados de las salidas (directo, estimado,
       # horario…) de unas paradas concurridas. Si el algoritmo no se hubiera desplegado, las respuestas fallarían o no
       # habría ninguna salida «estimada» ni «en directo».
