@@ -1,4 +1,4 @@
-"""Contrato de la API: los campos y tipos que usa el frontend (js/app.js) en cada respuesta.
+"""Contrato de la API: los campos y tipos que usa el frontend (js/app/) en cada respuesta.
 
 api-smoke.py comprueba que las rutas responden; esta prueba comprueba que la forma del JSON
 no cambia sin querer. Se pueden añadir campos nuevos; quitar o cambiar de tipo uno de estos rompe la app.

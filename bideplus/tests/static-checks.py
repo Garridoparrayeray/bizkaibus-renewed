@@ -11,14 +11,16 @@ PHP = os.environ.get('PHP_PATH') or shutil.which('php') or 'C:/xampp/php/php.exe
 NODE = os.environ.get('NODE_BIN') or shutil.which('node') or 'C:/Program Files/AMD/AI_Bundle/LMStudio/resources/app/.webpack/bin/node.exe'
 failures = []
 
-ids_js = set(re.findall(r"getElementById\('([^']+)'\)", open(ROOT + 'js/app.js', encoding='utf-8').read()))
+# La app de cada red está en módulos (js/app/*.js); main.js es la entrada.
+APP_JS = sorted(glob.glob(ROOT + 'js/app/*.js'))
+ids_js = set(re.findall(r"getElementById\('([^']+)'\)", ''.join(open(f, encoding='utf-8').read() for f in APP_JS)))
 # La plantilla de las apps (Views/app.php) más las piezas que incluye (aviso legal y piezas comunes de Bide+).
 shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
 ids_html = set(re.findall(r'id="([^"]+)"', shell))
 missing_ids = sorted(ids_js - ids_html)
-print('ids que app.js busca y no existen en la plantilla:', missing_ids or 'ninguno')
+print('ids que js/app/ busca y no existen en la plantilla:', missing_ids or 'ninguno')
 if missing_ids:
-    failures.append('ids de app.js sin elemento')
+    failures.append('ids de js/app/ sin elemento')
 
 # Los estilos van por clase: los id quedan para lo que busca el JavaScript.
 css_with_ids = []
@@ -41,8 +43,12 @@ print(f'php lint: {len(php_files)} archivos, {php_bad} con error')
 if php_bad:
     failures.append('errores de sintaxis PHP')
 
-for f in glob.glob(ROOT + 'js/*.js') + [ROOT + 'sw.js']:
-    r = subprocess.run([NODE, '--check', f], capture_output=True, text=True)
+# Los módulos se comprueban como módulos: con `node --check archivo.js` un error de sintaxis en un módulo pasaría.
+for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
+    if f in APP_JS:
+        r = subprocess.run([NODE, '--input-type=module', '--check'], stdin=open(f, encoding='utf-8'), capture_output=True, text=True)
+    else:
+        r = subprocess.run([NODE, '--check', f], capture_output=True, text=True)
     ok = r.returncode == 0
     print('js', os.path.basename(f), 'OK' if ok else r.stderr[:200])
     if not ok:
@@ -113,7 +119,7 @@ if inline:
     failures.append('scripts o estilos en línea')
 
 unescaped = []
-for f in glob.glob(ROOT + 'js/*.js'):
+for f in glob.glob(ROOT + 'js/*.js') + APP_JS:
     for n, line in enumerate(open(f, encoding='utf-8'), 1):
         if re.search(r'(innerHTML|insertAdjacentHTML|bindPopup)', line) and '${' in line:
             exprs = re.findall(r'\$\{([^}]*)\}', line)
