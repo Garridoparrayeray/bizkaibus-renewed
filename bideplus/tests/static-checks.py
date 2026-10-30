@@ -43,9 +43,10 @@ print(f'php lint: {len(php_files)} archivos, {php_bad} con error')
 if php_bad:
     failures.append('errores de sintaxis PHP')
 
-# Los módulos se comprueban como módulos: con `node --check archivo.js` un error de sintaxis en un módulo pasaría.
+# Los módulos (los que usan import o export) se comprueban como módulos: con `node --check archivo.js` un error de
+# sintaxis en un módulo pasaría.
 for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
-    if f in APP_JS:
+    if re.search(r'^\s*(import|export)\s', open(f, encoding='utf-8').read(), re.M):
         r = subprocess.run([NODE, '--input-type=module', '--check'], stdin=open(f, encoding='utf-8'), capture_output=True, text=True)
     else:
         r = subprocess.run([NODE, '--check', f], capture_output=True, text=True)
