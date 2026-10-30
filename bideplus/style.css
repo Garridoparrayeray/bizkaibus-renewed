@@ -144,7 +144,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
     display: block; text-align: left; cursor: pointer; font-family: inherit;
 }
 .app-logomark { display: none; }
-.dev-footer { display: none; }
+.app-footer { display: none; }
 
 .header-actions { display: flex; flex-shrink: 0; gap: 8px; align-items: center; }
     .header-actions .btn-icon { width: 34px; height: 34px; }
@@ -516,7 +516,7 @@ dialog.legal-panel {
     right: 20px;
     top: 20px;
 }
-.dev-footer button.legal-open {
+.app-footer button.legal-open {
     background: none;
     border: none;
     color: white;
@@ -528,6 +528,6 @@ dialog.legal-panel {
     margin: 0 10px;
     padding: 0;
 }
-    .dev-footer button.legal-open:hover {
+    .app-footer button.legal-open:hover {
         text-decoration: underline;
     }

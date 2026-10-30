@@ -260,7 +260,7 @@ use Core\Networks;
 
 <?= bideInstallBanner() ?>
 
-    <footer id="dev-footer" class="dev-footer">
+    <footer id="app-footer" class="app-footer">
         <div class="bide-footer-brand">
             <span class="bide-wordmark">BIDE<span>+</span></span>
             <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>

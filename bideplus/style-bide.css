@@ -58,7 +58,7 @@ html.bide .bide-seg {
 html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: scale(.95); }
 html.bide :focus-visible { outline: 3px solid var(--bide-green); outline-offset: 2px; }
     html.bide body.page-app :focus-visible { outline-color: var(--primary); }
-    html.bide :is(.app-container > header, .dev-footer, .menu-footer) :focus-visible { outline-color: #fff; }
+    html.bide :is(.app-container > header, .app-footer, .menu-footer) :focus-visible { outline-color: #fff; }
 
 /* ===== Páginas: Favoritos, Avisos, Info ===== */
 html.bide .bide-view { padding: 4px 0 24px; animation: bide-slide .32s var(--bide-ease) both; }
@@ -214,15 +214,15 @@ html.bide .bide-footer-title { flex-basis: 100%; margin: 0; font-size: .72rem; f
 html.bide .bide-footer-legal { padding: 0; border: none; background: none; font: inherit; cursor: pointer; }
 
 /* ===== Página de cada app ===== */
-html.bide body.page-app .dev-footer { display: grid; gap: 12px; text-align: center; }
-    html.bide body.page-app .dev-footer p { margin: 0; }
+html.bide body.page-app .app-footer { display: grid; gap: 12px; text-align: center; }
+    html.bide body.page-app .app-footer p { margin: 0; }
     html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
     html.bide body.page-app .bide-footer-brand p { display: none; }
-    html.bide body.page-app .dev-footer .bide-footer-title { color: #fff; }
-    html.bide.is-metro body.page-app .dev-footer .bide-wordmark span { color: var(--primary-light); }
-    html.bide body.page-app .dev-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
-        html.bide body.page-app .dev-footer :is(.bide-apps-links, .bide-footer-links) :is(a, .legal-open) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
-        html.bide body.page-app .dev-footer :is(a, .legal-open):hover { text-decoration: underline; }
+    html.bide body.page-app .app-footer .bide-footer-title { color: #fff; }
+    html.bide.is-metro body.page-app .app-footer .bide-wordmark span { color: var(--primary-light); }
+    html.bide body.page-app .app-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
+        html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, .legal-open) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
+        html.bide body.page-app .app-footer :is(a, .legal-open):hover { text-decoration: underline; }
 html.bide body.page-app .bide-lang { display: none; }
 html.bide body.page-app .bide-menu-apps { display: flex; width: 100%; justify-content: flex-start; margin: 44px 0 10px; font-size: .9rem; text-decoration: none; }
     html.bide body.page-app .bide-menu-apps + .menu-favorites-open { margin-top: 0; font-size: .9rem; }
@@ -330,7 +330,7 @@ html.bide body.page-menu .legal-close {
     html.bide.is-ios-notch.is-standalone .bide-tabbar { padding-bottom: 34px; }
     html.bide.is-ios-notch.is-standalone body { padding-bottom: calc(76px + 34px); }
     html.bide.is-ios-notch.is-standalone body.page-menu { padding-bottom: calc(96px + 34px); }
-    html.bide.is-standalone body.page-app .dev-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone .menu-open { display: none; }
+    html.bide.is-standalone body.page-app .app-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone .menu-open { display: none; }
     html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
     html.bide body.page-app .bide-views { padding: 0 2px; }
     html.bide.bide-view-open .bide-view { padding-top: calc(env(safe-area-inset-top) + 20px); }
@@ -376,7 +376,7 @@ html.bide body.page-menu .legal-close {
     html.bide body.page-app .disclaimer { grid-row: 6; }
     html.bide body.page-app .detail-empty { display: none; margin: 0; padding: 64px 28px; border: 1px dashed var(--bide-line); border-radius: 18px; color: var(--bide-muted); font-weight: 500; text-align: center; }
         html.bide body.page-app .timetable-section[hidden] + .detail-empty { display: block; }
-    html.bide body.page-app .dev-footer { width: auto; margin: 24px 0 0; border-radius: 0; }
+    html.bide body.page-app .app-footer { width: auto; margin: 24px 0 0; border-radius: 0; }
 
     html.bide body.page-menu main { display: grid; flex: 1 0 auto; grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: repeat(4, auto) 1fr auto; column-gap: 24px; width: 100%; max-width: 1400px; align-items: start; }
     html.bide body.page-menu .bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
@@ -387,7 +387,7 @@ html.bide body.page-menu .legal-close {
     html.bide:not([data-view="list"]) body.page-menu .menu-apps .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     html.bide body.page-menu { display: flex; flex-direction: column; padding-bottom: 0; overflow-x: clip; }
     html.bide body.page-menu .menu-footer { grid-column: 1 / -1; grid-row: 6; width: 100vw; margin: 24px 0 0 calc(50% - 50vw); }
-    html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) {
+    html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         gap: 40px;
@@ -399,16 +399,16 @@ html.bide body.page-menu .legal-close {
         line-height: 1.4;
         text-align: left;
     }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) .bide-footer-author { justify-self: end; }
-            html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) .bide-footer-brand p { display: block; color: #e3efe0; font-size: .84rem; line-height: 1.5; }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) .bide-footer-title { flex-basis: auto; color: #9CCD64; }
-    html.bide body.page-app .dev-footer { padding-inline: max(24px, calc((100vw - 1392px) / 2)); background: var(--primary); }
-        html.bide body.page-app .dev-footer .bide-footer-title { color: #fff; }
-            html.bide body.page-app .dev-footer .bide-footer-brand p { color: #fff; }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 7px; padding: 0; border: none; }
-        html.bide :is(body.page-app .dev-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-author { justify-self: end; }
+            html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand p { display: block; color: #e3efe0; font-size: .84rem; line-height: 1.5; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-title { flex-basis: auto; color: #9CCD64; }
+    html.bide body.page-app .app-footer { padding-inline: max(24px, calc((100vw - 1392px) / 2)); background: var(--primary); }
+        html.bide body.page-app .app-footer .bide-footer-title { color: #fff; }
+            html.bide body.page-app .app-footer .bide-footer-brand p { color: #fff; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 7px; padding: 0; border: none; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
 
     html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
         html.bide .bide-changelog { grid-column: 1 / -1; }
