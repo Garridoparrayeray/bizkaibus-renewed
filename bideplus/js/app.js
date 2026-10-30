@@ -30,8 +30,6 @@
 
     const mapState = {
         map: null,
-        routeLayers: [],
-        vehicleMarkers: [],
         activeLines: new Map(),
         allLinesCache: null,
         refreshTimer: null,
@@ -895,6 +893,12 @@
             return;
         }
 
+        mapState.activeLines.set(key, { ...lineItem, ...drawLine(map, lineItem, data) });
+        renderActiveChips();
+    }
+
+    // Recorridos y autobuses de una línea en el mapa. Devuelve las capas, para quitarlas, y los puntos, para encuadrar.
+    function drawLine(map, lineItem, data) {
         const routeLayers = [];
         const vehicleMarkers = [];
         const points = [];
@@ -903,35 +907,27 @@
         for (const pattern of data.patterns || []) {
             const latlngs = (pattern.stops || []).map((s) => [s.lat, s.lon]);
             if (latlngs.length < 2) continue;
-            const polyline = L.polyline(latlngs, { color: lineColor, weight: 3.5, opacity: 0.65 }).addTo(map);
-            routeLayers.push(polyline);
+            routeLayers.push(L.polyline(latlngs, { color: lineColor, weight: 3.5, opacity: 0.65 }).addTo(map));
             points.push(...latlngs);
         }
 
         for (const vehicle of data.vehicles || []) {
             if (!vehicle.currentStop || vehicle.currentStop.lat === null || vehicle.currentStop.lon === null) continue;
             const { lat, lon, name } = vehicle.currentStop;
-            let statusText = '';
-            if (vehicle.delayMinutes !== null) {
-                statusText = 'En hora';
-                if (vehicle.delayMinutes > 0) statusText = `Retraso +${vehicle.delayMinutes}m`;
-            }
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
-                .bindPopup(`<strong>${escapeHtml(vehicle.headsign || lineItem.name)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
+                .bindPopup(`<strong>${escapeHtml(vehicle.headsign || lineItem.name)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(vehicleStatusText(vehicle))}`);
             vehicleMarkers.push(marker);
             points.push([lat, lon]);
         }
 
-        mapState.activeLines.set(key, {
-            ...lineItem,
-            routeLayers,
-            vehicleMarkers,
-            points,
-            vehicles: data.vehicles || [],
-        });
+        return { routeLayers, vehicleMarkers, points, vehicles: data.vehicles || [] };
+    }
 
-        renderActiveChips();
+    function vehicleStatusText(vehicle) {
+        if (vehicle.delayMinutes === null) return '';
+        if (vehicle.delayMinutes > 0) return `Retraso +${vehicle.delayMinutes}m`;
+        return 'En hora';
     }
 
     function removeMapLine(key) {
@@ -1033,48 +1029,7 @@
 
         const map = ensureLineMap();
         clearAllMapLines();
-        const routeLayers = [];
-        const vehicleMarkers = [];
-        const points = [];
-        const lineColor = lineItem.color;
-
-        for (const pattern of data.patterns || []) {
-            const latlngs = (pattern.stops || []).map((s) => [s.lat, s.lon]);
-            if (latlngs.length < 2) continue;
-            const polyline = L.polyline(latlngs, { color: lineColor, weight: 3.5, opacity: 0.65 }).addTo(map);
-            routeLayers.push(polyline);
-            points.push(...latlngs);
-        }
-
-        for (const vehicle of data.vehicles || []) {
-            if (!vehicle.currentStop || vehicle.currentStop.lat === null || vehicle.currentStop.lon === null) continue;
-            const { lat, lon, name } = vehicle.currentStop;
-            const statusText = vehicle.delayMinutes === null ? '' : vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
-            const marker = L.marker([lat, lon], { icon: busDivIcon() })
-                .addTo(map)
-                .bindPopup(`<strong>${escapeHtml(vehicle.headsign || lineItem.name)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
-            vehicleMarkers.push(marker);
-            points.push([lat, lon]);
-        }
-
-        const key = `${lineItem.network}:${lineItem.id}`;
-        if (mapState.activeLines.has(key)) {
-            const prev = mapState.activeLines.get(key);
-            (prev.routeLayers || []).forEach((l) => map.removeLayer(l));
-            (prev.vehicleMarkers || []).forEach((m) => map.removeLayer(m));
-        }
-
-        mapState.activeLines.set(key, {
-            ...lineItem,
-            routeLayers,
-            vehicleMarkers,
-            points,
-            vehicles: data.vehicles || [],
-        });
-
-        mapState.routeLayers = routeLayers;
-        mapState.vehicleMarkers = vehicleMarkers;
-
+        mapState.activeLines.set(`${lineItem.network}:${lineItem.id}`, { ...lineItem, ...drawLine(map, lineItem, data) });
         renderActiveChips();
     }
 
