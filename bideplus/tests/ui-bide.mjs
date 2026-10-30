@@ -214,6 +214,10 @@ check('mapa: el esquema de la L1 lista sus paradas', await waitTrue("!document.g
 check('mapa: la L1 muestra transbordos (Abando)', await ev("[...document.querySelectorAll('.map-schematic li')].some(li => /Abando/.test(li.textContent) && li.querySelectorAll('.map-chip').length > 0)"));
 await ev("document.getElementById('map-panel-close').click()");
 check('mapa: el panel se cierra', await ev("document.getElementById('map-panel').hidden"));
+check('mapa: el selector tiene las líneas de todas las redes', await ev("document.querySelectorAll('#map-line optgroup').length === document.querySelectorAll('[data-map-network]').length && document.querySelectorAll('#map-line option').length > 100"));
+await ev("(() => { const s = document.getElementById('map-line'); s.value = 'metro|L2'; s.dispatchEvent(new Event('change')); })()");
+check('mapa: elegir una línea en el selector abre su esquema con minutos entre paradas', await waitTrue("!document.getElementById('map-panel').hidden && /Kabiezes/.test(document.getElementById('map-panel-body').textContent) && document.querySelectorAll('.map-schematic .map-min').length > 10"));
+await ev("document.getElementById('map-panel-close').click()");
 await ev("document.querySelector('[data-map-network=bus]').click()");
 check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.loaded().includes('bus')"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));

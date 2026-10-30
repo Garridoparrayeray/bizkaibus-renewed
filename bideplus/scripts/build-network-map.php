@@ -54,7 +54,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'nameEu' => networkLabel($aNetwork, 'eu'),
         'kind' => $aNetwork['kind'] ?? null,
         'color' => $aNetwork['brand']['theme_color'] ?? '#555555',
-        'lines' => \count($aData['lines']),
+        'lines' => array_map(fn($aLine) => [$aLine['id'], $aLine['code'], $aLine['name'], $aLine['color']], $aData['lines']),
         'bytes' => \strlen($sJson),
     ];
     printf("  %s: %d líneas, %d paradas, %.0f KB\n", $sSlug, \count($aData['lines']), \count($aData['stops']), \strlen($sJson) / 1024);
@@ -160,6 +160,7 @@ function buildNetwork(string $sSlug, array $aNetwork): array
                     'headsign' => $aBest['headsign'],
                     'stops' => $aStops,
                     'path' => patternPath($aBest['id'], $aStops, $aStopsAll, $aPatternShape, $ShapeStmt),
+                    'mins' => patternMinutes($Pdo, $aBest['id'], \count($aStops)),
                 ]],
             ];
         }
@@ -189,6 +190,7 @@ function buildNetwork(string $sSlug, array $aNetwork): array
                 'headsign' => $aPattern['headsign'],
                 'stops' => $aStops,
                 'path' => patternPath($aPattern['id'], $aStops, $aStopsAll, $aPatternShape, $ShapeStmt),
+                'mins' => patternMinutes($Pdo, $aPattern['id'], \count($aStops)),
             ];
             if (\count($aChosen) >= MAX_PATTERNS_PER_LINE) {
                 break;
@@ -304,6 +306,41 @@ function sideScore(string $sSide, string $sStop): float
         $dScore = 1.0;
     }
     return $dScore;
+}
+
+// Minutos entre cada parada y la siguiente (mediana de hasta 40 viajes del recorrido). Null si los pasos no cuadran con
+// las paradas del recorrido.
+function patternMinutes(PDO $Pdo, string $sPatternId, int $iStops): array|null
+{
+    $Stmt = $Pdo->prepare('
+        SELECT pt.service_journey_id, pt.arrival_seconds, pt.departure_seconds
+        FROM passing_times pt
+        WHERE pt.service_journey_id IN (SELECT id FROM service_journeys WHERE journey_pattern_id = ? LIMIT 40)
+        ORDER BY pt.service_journey_id, pt.seq_order
+    ');
+    $Stmt->execute([$sPatternId]);
+    $aByJourney = [];
+    foreach ($Stmt->fetchAll() as $aRow) {
+        $aByJourney[$aRow['service_journey_id']][] = $aRow;
+    }
+    $aGaps = array_fill(0, max(0, $iStops - 1), []);
+    foreach ($aByJourney as $aTimes) {
+        if (\count($aTimes) !== $iStops) {
+            continue;
+        }
+        for ($i = 1; $i < $iStops; $i++) {
+            $aGaps[$i - 1][] = (int)$aTimes[$i]['arrival_seconds'] - (int)$aTimes[$i - 1]['departure_seconds'];
+        }
+    }
+    if (empty($aGaps) || empty($aGaps[0])) {
+        return null;
+    }
+    $aOut = [];
+    foreach ($aGaps as $aValues) {
+        sort($aValues);
+        $aOut[] = (int)round($aValues[intdiv(\count($aValues), 2)] / 60);
+    }
+    return $aOut;
 }
 
 // El trazado real si la red lo publica (simplificado); si no, la línea entre paradas.
