@@ -1,6 +1,6 @@
-    <dialog id="legal-panel">
-        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+    <dialog id="legal-panel" class="legal-panel">
+        <button id="legal-close" class="btn-icon legal-close" type="button" aria-label="Cerrar">
+            <?= BIDE_ICONS['close'] ?>
         </button>
         <h3>Aviso Legal, Privacidad y Cookies</h3>
         <p>En estricto cumplimiento del <strong>Artículo 18 de la Constitución Española</strong> (derecho a la intimidad), el <strong>Reglamento General de Protección de Datos (RGPD)</strong>, la <strong>LSSI-CE</strong> y la <strong>Ley 37/2007 de reutilización de la información del sector público</strong>, informamos de lo siguiente:</p>

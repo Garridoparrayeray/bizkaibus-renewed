@@ -1,5 +1,0 @@
-level_id,level_index,level_name
-ES:Euskotren:Level:Level:0:,0,Beheko solairua
-ES:Euskotren:Level:Level:1:,1,1 solairua
-ES:Euskotren:Level:Level:Minus1:,-1,-1 solairua
-ES:Euskotren:Level:Level:Minus2:,-2,-2 solairua

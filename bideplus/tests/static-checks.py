@@ -12,22 +12,25 @@ NODE = os.environ.get('NODE_BIN') or shutil.which('node') or 'C:/Program Files/A
 failures = []
 
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", open(ROOT + 'js/app.js', encoding='utf-8').read()))
-# shell.php más las piezas que incluye (aviso legal y piezas comunes de Bide+).
-shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/shell.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
+# La plantilla de las apps (Views/app.php) más las piezas que incluye (aviso legal y piezas comunes de Bide+).
+shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
 ids_html = set(re.findall(r'id="([^"]+)"', shell))
 missing_ids = sorted(ids_js - ids_html)
-print('ids que app.js busca y no existen en shell.php:', missing_ids or 'ninguno')
+print('ids que app.js busca y no existen en la plantilla:', missing_ids or 'ninguno')
 if missing_ids:
     failures.append('ids de app.js sin elemento')
 
-css = open(ROOT + 'style-app.css', encoding='utf-8').read()
-css_ids = set(re.findall(r'#([a-zA-Z][\w-]*)', re.sub(r'#[0-9a-fA-F]{3,8}\b(?![\w-])', '', css)))
-orphan_css = sorted(i for i in css_ids if i not in ids_html and i not in ids_js and i != 'app-logomark')
-print('ids en CSS sin elemento en shell.php:', orphan_css or 'ninguno')
-if orphan_css:
-    failures.append('ids de style-app.css sin elemento')
+# Los estilos van por clase: los id quedan para lo que busca el JavaScript.
+css_with_ids = []
+for f in sorted(glob.glob(ROOT + 'style*.css')):
+    css = re.sub(r'#[0-9a-fA-F]{3,8}\b(?![\w-])', '', open(f, encoding='utf-8').read())
+    if re.search(r'#[a-zA-Z][\w-]*', css):
+        css_with_ids.append(os.path.basename(f))
+print('hojas de estilo con selectores de id:', css_with_ids or 'ninguna')
+if css_with_ids:
+    failures.append('selectores de id en ' + ', '.join(css_with_ids))
 
-php_files = [f for f in glob.glob(ROOT + '**/*.php', recursive=True) if 'vendor' not in f and 'test_gtfs' not in f]
+php_files = [f for f in glob.glob(ROOT + '**/*.php', recursive=True) if 'vendor' not in f]
 php_bad = 0
 for f in php_files:
     r = subprocess.run([PHP, '-l', f], capture_output=True, text=True)
@@ -99,7 +102,7 @@ if missing_headers or weak_csp:
     failures.append('cabeceras de seguridad')
 
 inline = []
-for f in [ROOT + 'api/shell.php', ROOT + 'api/Views/menu.php'] + glob.glob(ROOT + '*.html'):
+for f in [ROOT + 'api/Views/app.php', ROOT + 'api/Views/menu.php'] + glob.glob(ROOT + '*.html'):
     text = open(f, encoding='utf-8').read()
     for m in re.finditer(r'<script(?![^>]*\bsrc=)(?![^>]*application/ld\+json)[^>]*>', text):
         inline.append(os.path.basename(f) + ':' + str(text[:m.start()].count('\n') + 1))

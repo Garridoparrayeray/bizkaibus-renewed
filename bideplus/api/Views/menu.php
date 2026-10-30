@@ -128,7 +128,7 @@ $jsonLd = [
             </div>
         </header>
 
-        <section id="tr" data-i18n-attr="aria-label:menu.section">
+        <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
             <ul class="tiles">
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');

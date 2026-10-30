@@ -8,7 +8,8 @@ Apps de horarios de transporte de Euskadi (Bizkaibus, Metro Bilbao, Euskotren, R
 - **`data/<red>.sqlite`** — paradas, líneas, patrones de ruta y horarios, precompilados por red desde su GTFS oficial (`scripts/build-database.php --network=<red>`). Se reconstruyen a diario (`.github/workflows/rebuild-schedule.yml`).
 - **`api/`** — API REST en PHP nativo, sin framework:
   - `index.php` — punto de entrada de la API (Vercel enruta `/api/*` aquí vía `vercel.json`)
-  - `shell.php` — el HTML de cada app, con título, descripción y enlaces resueltos en servidor
+  - `shell.php` — elige la página: el menú, el mapa o la app de una red
+  - `Views/app-page.php` y `Views/app.php` — los datos (título, descripción, JSON-LD) y la plantilla de la app de cada red
   - `Core/` — Router, Request, Response, `Networks` (el registro de redes), `Config` (la red activa), Database (SQLite de solo lectura), Cache, Http
   - `Controllers/`, `Models/`, `Services/` — API, consultas y clientes de los feeds (GTFS-RT, SIRI, avisos)
 - **`engine/<motor>/`** — cálculo de llegadas en directo, un motor por red (`engine` en la ficha de la red).
@@ -40,10 +41,10 @@ De ahí salen la API, la página de cada app, el menú, la barra lateral, el sit
 
 ## Tres temas visuales
 
-`api/shell.php` resuelve el título y las meta de Open Graph en servidor a partir de `?red=`, antes de que el HTML llegue al cliente — necesario porque los bots que generan la vista previa al compartir un enlace (WhatsApp, Telegram...) no ejecutan JavaScript. El resto de la personalización (tema, textos, iconos, manifest) se resuelve en el navegador: un script inline al principio de `<head>` (antes de cualquier `<link>` de estilos, para evitar parpadeo del tema equivocado) escribe (`document.write`) el `<title>`, `<link rel="manifest">`, `theme-color`, iconos y hoja de estilos correctos según `?red=` y `?tema=miamor`, antes de que el navegador empiece a pintar. No se usa `localStorage` para decidir el tema — cada carga de `/` sin el parámetro es siempre el tema normal, sin excepción.
+`api/Views/app-page.php` resuelve el título y las meta de Open Graph en servidor a partir de `?red=`, antes de que el HTML llegue al cliente — necesario porque los bots que generan la vista previa al compartir un enlace (WhatsApp, Telegram...) no ejecutan JavaScript. El resto de la personalización (tema, textos, iconos, manifest) se resuelve en el navegador: un script inline al principio de `<head>` (antes de cualquier `<link>` de estilos, para evitar parpadeo del tema equivocado) escribe (`document.write`) el `<title>`, `<link rel="manifest">`, `theme-color`, iconos y hoja de estilos correctos según `?red=` y `?tema=miamor`, antes de que el navegador empiece a pintar. No se usa `localStorage` para decidir el tema — cada carga de `/` sin el parámetro es siempre el tema normal, sin excepción.
 
 - **`style-app.css`** — hoja única de Bizkaibus+, Metro+ y Euskotren+. Los colores de cada app son variables (`html.is-metro`, `html.is-euskotren`); cualquier cambio de diseño se hace una sola vez.
-- **`style.css`** — el tema "mi amor": rosa, glassmorphism. Es el proyecto original, hecho para mi mujer por sus quejas sobre lo poco user-friendly que le parecía la app oficial de Bizkaibus. Es un tema compartido por **las dos redes** — activarlo no depende de si estás en bus o en metro, solo de `?tema=miamor` en la URL. Un corazón discreto, fijo en la esquina inferior de la pantalla, cambia entre el tema normal y este.
+- **`style-miamor.css`** — el tema "mi amor": la misma app que la normal (`style-app.css` y el formato de Bide+) con sus rosas, el degradado de fondo y las tarjetas de cristal. Es el proyecto original, hecho para mi mujer por sus quejas sobre lo poco user-friendly que le parecía la app oficial de Bizkaibus. Sale igual en todas las redes y se activa con `?tema=miamor` o desde bideplusmiamor.vercel.app.
 - **`manifest.json`**, **`manifest-metro.json`**, **`manifest-miamor.json`** — mismo contenido salvo tema, iconos y `theme_color`. El icono de instalación con el tema mi amor activo es siempre el corazón, en cualquiera de las dos redes.
 
 ## El modelo de calendario, y por qué cada operador lo rompe distinto

@@ -27,11 +27,12 @@
     var themeColor = network.themeColor;
     var touchIcon  = network.icons + '/apple-touch-icon.png';
     var icon       = network.icons + '/icon-192.png';
-    var stylesheet = 'style-app.css';
+    // «mi amor» es la misma app con otros colores: su hoja va encima de la normal.
+    var stylesheets = '<link rel="stylesheet" href="style-app.css">';
 
     if (isMiamor) {
         manifest = 'manifest-miamor.json';
-        stylesheet = 'style.css';
+        stylesheets += '<link rel="stylesheet" href="style-miamor.css">';
         themeColor = '#db2777';
         if (isDefault) {
             touchIcon = 'icons/apple-touch-icon.png';
@@ -45,12 +46,13 @@
     }
 
     if (!isDefault) document.documentElement.classList.add('is-' + window.__bbNetwork);
+    if (isMiamor) document.documentElement.classList.add('is-miamor');
 
     document.write(
         '<link rel="manifest" href="' + manifest + '">' +
         '<meta name="theme-color" content="' + themeColor + '">' +
         '<link rel="apple-touch-icon" href="' + touchIcon + '">' +
         '<link rel="icon" href="' + icon + '">' +
-        '<link rel="stylesheet" href="' + stylesheet + '">'
+        stylesheets
     );
 })();

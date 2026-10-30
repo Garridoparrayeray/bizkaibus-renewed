@@ -88,8 +88,8 @@ await ev("localStorage.removeItem('bide_install_dismissed'); true");
 
 await go('/?red=bus');
 check('navegador · app: el menú ☰ lleva a todas las apps', (await ev("document.querySelector('#side-menu .bide-menu-apps').getAttribute('href')")) === '/');
-check('navegador · app: se mantienen ☰ y pie', (await ev(shown('#menu-open'))) && (await ev(shown('#dev-footer'))));
-check('navegador · app: el pie enlaza a todas las apps y al código', (await ev("document.querySelectorAll('#dev-footer .bide-apps-links a').length === BideNetworks.slugs.length")) && (await ev("!!document.querySelector('#dev-footer a[href*=\"bizkaibus-renewed\"]')")));
+check('navegador · app: se mantienen ☰ y pie', (await ev(shown('#menu-open'))) && (await ev(shown('#app-footer'))));
+check('navegador · app: el pie enlaza a todas las apps y al código', (await ev("document.querySelectorAll('#app-footer .bide-apps-links a').length === BideNetworks.slugs.length")) && (await ev("!!document.querySelector('#app-footer a[href*=\"bizkaibus-renewed\"]')")));
 check('navegador · app: el aviso legal sigue abriéndose desde el pie', (await ev("document.getElementById('legal-open').click(); document.getElementById('legal-panel').open")) === true);
 await ev("document.getElementById('legal-panel').close(); true");
 check('navegador · app: sin desbordar a lo ancho', await ev(noOverflow));
@@ -135,7 +135,7 @@ check('idioma · vuelve a castellano', await waitTrue("document.documentElement.
 
 await go('/?red=bus');
 check('instalada · app: barra de pestañas', await ev(shown('.bide-tabbar')));
-check('instalada · app: sin ☰ ni pie', (await ev(shown('#menu-open'))) === false && (await ev(shown('#dev-footer'))) === false);
+check('instalada · app: sin ☰ ni pie', (await ev(shown('#menu-open'))) === false && (await ev(shown('#app-footer'))) === false);
 check('instalada · app: se mantiene «Cerca de mí»', await ev(shown('#nearby-btn')));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
 check('instalada · Avisos: lleva el interruptor de notificaciones', await waitTrue("!!document.querySelector('[data-bide-view=avisos] .alerts-toggle')"));
@@ -194,7 +194,7 @@ check('ordenador · cada app con su logo', await waitTrue("[...document.querySel
 check('ordenador · marca la app actual', (await ev("document.querySelector('.bide-rail-applist [aria-current=page]').textContent")) === 'Bizkaibus+');
 check('ordenador · favoritos de todas las apps en la columna', await waitTrue("document.querySelectorAll('.bide-rail .bide-fav').length === 3"));
 check('ordenador · selector ES | EU en la banda, sin ☰', (await ev(shown('.app-container > header .bide-lang'))) && (await ev(shown('#menu-open'))) === false);
-check('ordenador · pie con las apps', (await ev(shown('#dev-footer'))) && (await ev(shown('#dev-footer .bide-apps-links'))));
+check('ordenador · pie con las apps', (await ev(shown('#app-footer'))) && (await ev(shown('#app-footer .bide-apps-links'))));
 check('ordenador · sin línea abierta, explica el hueco del detalle', await ev(shown('#detail-empty')));
 await ev("document.querySelector('.bide-rail [data-bide-tab=info]').click(); true");
 check('ordenador · Info se abre en el contenido', (await waitTrue(shown('[data-bide-view=info]'))) && (await ev(shown('.layout'))) === false && (await ev(shown('.bide-rail'))));
@@ -236,10 +236,14 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
-// ===== Tema «mi amor»: sin cambios =====
+// ===== Tema «mi amor»: la misma app que la normal, en rosa =====
 await phone();
 await go('/?red=bus&tema=miamor');
-check('«mi amor»: no usa la navegación de Bide+', (await ev("document.documentElement.classList.contains('bide')")) === false && (await ev(shown('.bide-tabbar'))) === false && (await ev(shown('.bide-rail'))) === false);
+check('«mi amor»: usa el formato de Bide+', await ev("document.documentElement.classList.contains('bide') && document.documentElement.classList.contains('is-miamor')"));
+check('«mi amor»: sus colores, también en otras redes', await ev("getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().toLowerCase() === '#db2777'"));
+check('«mi amor»: su subtítulo', await ev("document.getElementById('app-subtitle').textContent === 'Para el amor de mi vida'"));
+await go('/?red=metro&tema=miamor');
+check('«mi amor»: rosa también en Metro', await ev("getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().toLowerCase() === '#db2777'"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];

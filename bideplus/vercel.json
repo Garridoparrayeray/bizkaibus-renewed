@@ -28,7 +28,7 @@
       "continue": true
     },
     {
-      "src": "^/(data|scripts|tests|test_gtfs|engine)(/.*)?$",
+      "src": "^/(data|scripts|tests|engine)(/.*)?$",
       "dest": "/api/index.php"
     },
         {

@@ -61,9 +61,4 @@ class Request
         }
         return (string)$sValue;
     }
-
-    public function cookie(string $sName): string|null
-    {
-        return $_COOKIE[$sName] ?? null;
-    }
 }
