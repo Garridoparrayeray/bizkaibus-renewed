@@ -199,8 +199,8 @@ body.page-map {
     min-height: 0;
 }
     .network-map { position: absolute; inset: 0; background: var(--bide-bg); }
-        /* El mapa base en gris: sus verdes y azules (parques, ríos) no se confunden con el color de las líneas. */
-        .network-map .leaflet-tile-pane { filter: grayscale(1) brightness(1.06) contrast(.9); }
+        /* El mapa base con los colores apagados: el mar sigue azul, pero los verdes de los parques no compiten con las líneas. */
+        .network-map .leaflet-tile-pane { filter: saturate(.45) brightness(1.03); }
     .map-loading {
         position: absolute;
         top: 12px;
