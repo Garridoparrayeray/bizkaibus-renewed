@@ -111,8 +111,11 @@ jobs:
             echo "$r /api/lines -> $code"
             [ "$code" = "200" ] || fail=1
           done
-          for s in 4255 1137 2017 5402; do
-            curl -sS "$BASE/api/stops/$s/departures?red=bus" -o dep.json -w "parada $s -> %{http_code}\n"
+          # Paradas concurridas: Moyua, Catalina Gibaja, Bilbao Intermodal y La Casilla. Si una deja de existir, falla.
+          for s in 4255 1137 2877 356; do
+            code=$(curl -sS "$BASE/api/stops/$s/departures?red=bus" -o dep.json -w '%{http_code}')
+            echo "parada $s -> $code"
+            [ "$code" = "200" ] || { echo "::error::parada $s: esperaba 200, obtuve $code"; fail=1; continue; }
             python3 - <<'PY' || fail=1
           import json, collections
           d = json.load(open('dep.json'))
