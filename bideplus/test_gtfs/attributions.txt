@@ -1,5 +1,0 @@
-attribution_id,agency_id,route_id,trip_id,organization_name,is_producer,is_operator,is_authority,attribution_url,attribution_email,attribution_phone
-ES:Euskotren:Responsibility:1:,ES:Euskotren:Operator:EUS_Funi:,,,Eusko Trenbideak,0,1,0,https://gardentasuna.euskotren.eus/eu,,
-ES:Euskotren:Responsibility:2:,ES:Euskotren:Operator:EUS_TrBi:,,,Eusko Trenbideak,0,1,0,https://gardentasuna.euskotren.eus/eu,,
-ES:Euskotren:Responsibility:3:,ES:Euskotren:Operator:EUS_TrGa:,,,Eusko Trenbideak,0,1,0,https://gardentasuna.euskotren.eus/eu,,
-ES:Euskotren:Responsibility:4:,ES:Euskotren:Operator:EUS_Tren:,,,Eusko Trenbideak,0,1,0,https://gardentasuna.euskotren.eus/eu,,
