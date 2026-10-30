@@ -1,0 +1,310 @@
+/* Mapa de la red (/mapa). Los colores y la tipografía son los de Bide+ (variables de style-bide.css). */
+
+/* ===== Base ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body.page-map {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bide-bg);
+    color: var(--bide-ink);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+/* ===== Cabecera ===== */
+.map-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    background: var(--bide-surface);
+}
+    .map-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--bide-ink);
+        text-decoration: none;
+    }
+        .map-home > svg { width: 20px; height: 20px; }
+        .map-home .wordmark { height: 30px; width: auto; display: block; }
+    .map-top h1 {
+        margin: 0;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+/* ===== Redes ===== */
+.map-filters {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 12px;
+    overflow-x: auto;
+    background: var(--bide-surface);
+    scrollbar-width: none;
+}
+    .map-filters::-webkit-scrollbar { display: none; }
+    .map-filter {
+        flex: none;
+        height: 36px;
+        padding: 0 14px;
+        border: 2px solid var(--net-color);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        color: var(--net-color);
+        font: inherit;
+        font-size: .88rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+        .map-filter[aria-pressed="true"] { background: var(--net-color); color: #fff; }
+        .map-filter.is-loading { cursor: progress; opacity: .6; }
+        .map-filter:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
+
+/* ===== Selector de línea ===== */
+.map-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px 12px;
+    background: var(--bide-surface);
+    border-bottom: 1px solid var(--bide-line);
+}
+    .map-picker label { color: var(--bide-muted); font-size: .88rem; font-weight: 600; }
+    .map-picker select {
+        flex: 1;
+        min-width: 0;
+        max-width: 520px;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        font: inherit;
+        font-size: .92rem;
+    }
+        .map-picker select:focus-visible { outline: 3px solid var(--bide-green); outline-offset: 2px; }
+
+/* ===== Mapa ===== */
+.map-main {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+    .network-map { position: absolute; inset: 0; background: var(--bide-bg); }
+    .map-loading {
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        z-index: 500;
+        transform: translateX(-50%);
+        margin: 0;
+        padding: 8px 14px;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        font-size: .88rem;
+    }
+    .leaflet-tooltip { font-family: 'Hanken Grotesk', system-ui, sans-serif; font-size: .82rem; }
+
+/* ===== Panel de línea o parada: hoja inferior en el móvil, columna a la derecha en el ordenador ===== */
+.map-panel {
+    position: absolute;
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--bide-line);
+    background: var(--bide-surface);
+}
+    .map-panel[hidden] { display: none; }
+    .map-panel-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--bide-line);
+        border-radius: 50%;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        cursor: pointer;
+    }
+        .map-panel-close svg { width: 18px; height: 18px; }
+    .map-panel-body { overflow-y: auto; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+    .map-panel-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+        padding-right: 44px;
+    }
+        .map-panel-head h2 {
+            margin: 0;
+            font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+            font-size: 1.12rem;
+            line-height: 1.25;
+        }
+        .map-panel-head .map-chip { min-width: 40px; height: 30px; border-radius: 8px; font-size: .95rem; }
+    .map-network { margin: 2px 0 0; color: var(--bide-muted); font-size: .88rem; }
+    .map-subtitle {
+        margin: 18px 0 8px;
+        color: var(--bide-muted);
+        font-size: .78rem;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    .map-action {
+        display: block;
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 14px;
+        background: var(--bide-green);
+        color: #fff;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+    }
+
+@media (max-width: 759px) {
+    .map-panel { right: 0; bottom: 0; left: 0; max-height: 62%; border-radius: 20px 20px 0 0; }
+}
+@media (min-width: 760px) {
+    .map-panel { top: 12px; right: 12px; bottom: 12px; width: 380px; border-radius: 20px; }
+}
+
+/* ===== Código de línea ===== */
+.map-chip {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 6px;
+    font-size: .75rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+/* ===== Recorridos de una línea ===== */
+.map-patterns {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+    .map-pattern {
+        flex: none;
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        font: inherit;
+        font-size: .84rem;
+        cursor: pointer;
+    }
+        .map-pattern[aria-pressed="true"] { border-color: var(--bide-green); background: var(--bide-green); color: #fff; }
+
+/* ===== Esquema de la línea: barra del color de la línea y un punto por parada ===== */
+.map-schematic { margin: 0; padding: 0; list-style: none; }
+    .map-schematic li { position: relative; padding-left: 44px; }
+        .map-schematic li::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 23px;
+            width: 6px;
+            background: var(--line-color);
+        }
+        .map-schematic li:first-child::before { top: 50%; }
+        .map-schematic li:last-child::before { bottom: 50%; }
+        .map-schematic li::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 19px;
+            width: 14px;
+            height: 14px;
+            margin-top: -7px;
+            border: 3px solid var(--line-color);
+            border-radius: 50%;
+            background: #fff;
+        }
+        .map-schematic li.is-end::after { left: 17px; width: 18px; height: 18px; margin-top: -9px; border-width: 4px; }
+        .map-schematic li.is-end .map-stop-name { font-weight: 700; }
+    .map-min {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        transform: translateY(-50%);
+        min-width: 20px;
+        padding: 1px 4px;
+        border-radius: 6px;
+        background: var(--bide-bg);
+        color: var(--bide-muted);
+        font-size: .7rem;
+        font-weight: 700;
+        text-align: center;
+    }
+    .map-stop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        width: 100%;
+        min-height: 40px;
+        padding: 6px 4px;
+        border: 0;
+        border-radius: 8px;
+        background: none;
+        color: var(--bide-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+        .map-stop:hover { background: var(--bide-bg); }
+        .map-stop-name { font-size: .92rem; }
+    .map-transfers {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 3px;
+    }
+        .map-transfers .map-chip { min-width: 24px; height: 18px; font-size: .66rem; }
+    .map-more,
+    .map-bus-count { color: var(--bide-muted); font-size: .72rem; }
+    .map-bus-count { white-space: nowrap; }
+
+/* ===== Líneas y transbordos de una parada ===== */
+.map-line-list { display: flex; flex-direction: column; gap: 4px; }
+    .map-line-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        padding: 6px 10px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--bide-bg);
+        color: var(--bide-ink);
+        font: inherit;
+        font-size: .9rem;
+        text-align: left;
+        cursor: pointer;
+    }
+
+.map-noscript { padding: 16px; }
