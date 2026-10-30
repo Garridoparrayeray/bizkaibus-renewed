@@ -8,6 +8,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')).replace('\\', '/') + '/'
 PHP = os.environ.get('PHP_PATH') or shutil.which('php') or 'C:/xampp/php/php.exe'
+NODE = os.environ.get('NODE_BIN') or shutil.which('node') or 'C:/Program Files/AMD/AI_Bundle/LMStudio/resources/app/.webpack/bin/node.exe'
 failures = []
 
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", open(ROOT + 'js/app.js', encoding='utf-8').read()))
@@ -38,7 +39,7 @@ if php_bad:
     failures.append('errores de sintaxis PHP')
 
 for f in glob.glob(ROOT + 'js/*.js') + [ROOT + 'sw.js']:
-    r = subprocess.run(['node', '--check', f], capture_output=True, text=True)
+    r = subprocess.run([NODE, '--check', f], capture_output=True, text=True)
     ok = r.returncode == 0
     print('js', os.path.basename(f), 'OK' if ok else r.stderr[:200])
     if not ok:
