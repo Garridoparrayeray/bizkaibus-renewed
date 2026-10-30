@@ -62,7 +62,8 @@ $Router->get('/live/history', [$LiveRecord, 'history']);
 
 // «Avísame cuando llegue»: el cron (/live/record) es quien manda los avisos.
 $Push = new PushController();
-$Router->get('/push/key', [$Push, 'key']);
+// La clave no cambia: un día en la caché de Vercel, para no consultar el almacén en cada carga de la app.
+$Router->get('/push/key', [$Push, 'key'], 86400);
 $Router->post('/push/arrival', [$Push, 'createArrival']);
 $Router->post('/push/arrival/{id}/cancel', [$Push, 'cancelArrival']);
 $Router->post('/push/incidents', [$Push, 'saveIncidents']);
