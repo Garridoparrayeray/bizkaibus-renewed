@@ -1,5 +1,5 @@
-    <dialog id="legal-panel">
-        <button id="legal-close" class="btn-icon" type="button" aria-label="Cerrar">
+    <dialog id="legal-panel" class="legal-panel">
+        <button id="legal-close" class="btn-icon legal-close" type="button" aria-label="Cerrar">
             <?= BIDE_ICONS['close'] ?>
         </button>
         <h3>Aviso Legal, Privacidad y Cookies</h3>

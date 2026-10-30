@@ -95,7 +95,7 @@ body.page-map {
             color: var(--bide-muted);
             pointer-events: none;
         }
-        #map-search-input {
+        .map-search-input {
             flex: 1;
             min-width: 0;
             height: 100%;
@@ -107,7 +107,7 @@ body.page-map {
             font: inherit;
             font-size: 16px;
         }
-            #map-search-input::-webkit-search-cancel-button { display: none; }
+            .map-search-input::-webkit-search-cancel-button { display: none; }
         .map-search-clear {
             flex: none;
             display: grid;

@@ -57,7 +57,7 @@ $jsonLd = [
     <div class="map-search-bar" id="map-search-bar">
         <div class="map-search-box">
             <svg class="map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="map-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="map-search-results" placeholder="Buscar línea o parada…" data-i18n-attr="placeholder:map.search.placeholder,aria-label:map.search.placeholder" aria-label="Buscar línea o parada">
+            <input id="map-search-input" class="map-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="map-search-results" placeholder="Buscar línea o parada…" data-i18n-attr="placeholder:map.search.placeholder,aria-label:map.search.placeholder" aria-label="Buscar línea o parada">
             <button id="map-search-clear" type="button" class="map-search-clear" aria-label="Limpiar búsqueda" data-i18n-attr="aria-label:map.search.clear" hidden>
                 <?= BIDE_ICONS['close'] ?>
             </button>

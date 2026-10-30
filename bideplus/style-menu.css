@@ -277,7 +277,7 @@ main {
     [data-view="list"] .tile.is-launching .txt span,
     [data-view="list"] .tile.is-launching .chev { color: #fff; transition: color .18s ease .12s; }
     [data-view="list"] .tiles,
-    [data-view="list"] #tr .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    [data-view="list"] .menu-apps .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
     [data-view="list"] .tile {
         flex-direction: row;
         align-items: center;
@@ -366,7 +366,7 @@ main {
     body { padding-top: 48px; }
     main { gap: 30px; }
         header .wordmark { height: 56px; }
-        #tr .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .menu-apps .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .tile { min-height: 200px; }
 }
 

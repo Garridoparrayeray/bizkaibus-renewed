@@ -80,16 +80,16 @@ use Core\Networks;
 
         <header>
             <div class="home-link-wrap">
-                <button id="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
-                    <span id="app-logomark" aria-hidden="true"><?= $aNetwork['brand']['logomark'] ?></span>
+                <button id="home-link" class="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
+                    <span id="app-logomark" class="app-logomark" aria-hidden="true"><?= $aNetwork['brand']['logomark'] ?></span>
                     <hgroup>
-                        <h1 id="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark">+</span></h1>
-                        <span id="app-title-city"><?= htmlspecialchars($aNetwork['brand']['title'][1]) ?></span>
+                        <h1 id="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark" class="app-title-mark">+</span></h1>
+                        <span id="app-title-city" class="app-title-city"><?= htmlspecialchars($aNetwork['brand']['title'][1]) ?></span>
                         <p id="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></p>
                     </hgroup>
                 </button>
 
-                <nav id="network-switcher" aria-label="Cambiar red de transporte">
+                <nav id="network-switcher" class="network-switcher" aria-label="Cambiar red de transporte">
                     <?php foreach (Networks::all() as $sOtherSlug => $aOther): if ($sOtherSlug === $sNetworkSlug) continue; ?>
                     <a class="net-card" id="net-card-<?= $sOtherSlug ?>" href="/?red=<?= $sOtherSlug ?>">
                         <span class="net-card-logomark" aria-hidden="true"><?= $aOther['brand']['card_logomark'] ?></span>
@@ -115,8 +115,8 @@ use Core\Networks;
 
             <span class="header-actions">
                 <?= bideLangSwitch() ?>
-                <button id="lang-toggle" class="btn-icon btn-lang" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
-                <button id="menu-open" class="btn-icon" type="button" aria-label="Abrir menú">
+                <button id="lang-toggle" class="btn-icon btn-lang lang-toggle" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma">EU</button>
+                <button id="menu-open" class="btn-icon menu-open" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
                 </button>
             </span>
@@ -124,26 +124,26 @@ use Core\Networks;
 
         <div class="layout">
             <aside class="sidebar">
-            <form id="search-form" autocomplete="off">
-                <input id="search-input" type="search" data-i18n-attr="aria-label:app.search.placeholder,placeholder:app.search.placeholder" aria-label="Buscar parada, línea o destino" placeholder="Buscar parada, línea o destino..." minlength="2">
+            <form id="search-form" class="search-form" autocomplete="off">
+                <input id="search-input" class="search-input" type="search" data-i18n-attr="aria-label:app.search.placeholder,placeholder:app.search.placeholder" aria-label="Buscar parada, línea o destino" placeholder="Buscar parada, línea o destino..." minlength="2">
                 <button type="submit" aria-label="Buscar">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </button>
-                <ul id="search-results" hidden></ul>
+                <ul id="search-results" class="search-results" hidden></ul>
             </form>
             <button id="nearby-btn" class="nearby-btn" type="button">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/></svg>
                 <span data-i18n="app.nearby">Cerca de mí</span>
             </button>
-                <div id="favorites-panel" class="glass">
+                <div id="favorites-panel" class="glass favorites-panel">
                     <header>
                         <h2 data-i18n="app.favorites.title">Tus favoritos</h2>
-                        <button id="favorites-close" class="btn-icon" type="button" aria-label="Cerrar favoritos">
+                        <button id="favorites-close" class="btn-icon favorites-close" type="button" aria-label="Cerrar favoritos">
                             <?= BIDE_ICONS['close'] ?>
                         </button>
                     </header>
-                    <ul id="favorites-list">
-                        <li id="favorites-empty" data-i18n="app.favorites.empty">Busca una parada o línea y guárdala para verla aquí.</li>
+                    <ul id="favorites-list" class="favorites-list">
+                        <li id="favorites-empty" class="favorites-empty" data-i18n="app.favorites.empty">Busca una parada o línea y guárdala para verla aquí.</li>
                     </ul>
                 </div>
 
@@ -160,24 +160,24 @@ use Core\Networks;
                             </button>
                         </span>
                     </header>
-                    <h3 id="live-line"></h3>
-                    <p id="live-headsign"></p>
+                    <h3 id="live-line" class="live-line"></h3>
+                    <p id="live-headsign" class="live-headsign"></p>
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
                         <strong id="live-minutes">–</strong><span>min</span><sub id="live-delay" class="delay-sub" hidden></sub>
                     </button>
-                    <button id="live-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
+                    <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <footer>
                         <p>
                             <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>
-                            <button id="live-incidents-link" type="button" hidden data-i18n="app.incidents">Incidencias</button>
+                            <button id="live-incidents-link" class="live-incidents-link" type="button" hidden data-i18n="app.incidents">Incidencias</button>
                         </p>
                     </footer>
-                    <ul id="live-more-list"></ul>
+                    <ul id="live-more-list" class="live-more-list"></ul>
                 </article>
 
                 <div id="platform-panel" class="platform-panel" hidden>
                     <header>
-                        <h3 id="platform-panel-stop"></h3>
+                        <h3 id="platform-panel-stop" class="platform-panel-stop"></h3>
                         <span class="header-actions">
                             <button id="platform-favorite" class="btn-icon" type="button" aria-label="Guardar estación en favoritos"></button>
                             <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar">
@@ -188,14 +188,14 @@ use Core\Networks;
                     <button id="platform-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
-                    <div id="platform-columns" aria-live="polite"></div>
+                    <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
                 </div>
-                <p id="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
+                <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
 
             </div>
 
             <div class="detail">
-        <section id="timetable-section" class="timetable glass" hidden>
+        <section id="timetable-section" class="timetable glass timetable-section" hidden>
             <header>
                 <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
                 <span class="header-actions">
@@ -205,26 +205,26 @@ use Core\Networks;
                     </button>
                 </span>
             </header>
-            <p id="timetable-line"></p>
+            <p id="timetable-line" class="timetable-line"></p>
 
             <div id="map-search-bar" class="map-search-bar">
                 <div class="map-search-box">
                     <svg class="map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input id="map-search-input" type="search" autocomplete="off" placeholder="Buscar línea para ver en el mapa…" data-i18n-attr="placeholder:map.search.placeholder" aria-label="Buscar línea para ver en el mapa">
-                    <button id="map-search-clear" type="button" class="btn-icon" aria-label="Limpiar búsqueda" hidden>
+                    <input id="map-search-input" class="map-search-input" type="search" autocomplete="off" placeholder="Buscar línea para ver en el mapa…" data-i18n-attr="placeholder:map.search.placeholder" aria-label="Buscar línea para ver en el mapa">
+                    <button id="map-search-clear" type="button" class="btn-icon map-search-clear" aria-label="Limpiar búsqueda" hidden>
                         <?= BIDE_ICONS['close'] ?>
                     </button>
                 </div>
                 <ul id="map-search-results" class="map-search-results" hidden></ul>
                 <div id="map-active-chips" class="map-active-chips"></div>
-                <button id="map-clear-all" type="button" class="btn-sm map-clear-btn" hidden data-i18n="map.clearAll">Quitar todas</button>
+                <button id="map-clear-all" type="button" class="btn-sm map-clear-btn map-clear-all" hidden data-i18n="map.clearAll">Quitar todas</button>
             </div>
 
-            <div id="line-map"></div>
-            <p id="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
+            <div id="line-map" class="line-map"></div>
+            <p id="line-map-empty" class="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
 
             <div class="filters">
-                <input id="filter-date" type="date" aria-label="Fecha">
+                <input id="filter-date" class="filter-date" type="date" aria-label="Fecha">
                 <input id="filter-hour-from" type="time" aria-label="Hora desde">
                 <input id="filter-hour-to" type="time" aria-label="Hora hasta">
             </div>
@@ -244,23 +244,23 @@ use Core\Networks;
                     <tbody id="timetable-body"></tbody>
                 </table>
             </div>
-            <p id="timetable-empty" hidden data-i18n="app.noDepartures">No hay salidas programadas en ese rango.</p>
+            <p id="timetable-empty" class="timetable-empty" hidden data-i18n="app.noDepartures">No hay salidas programadas en ese rango.</p>
 
-            <button id="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
+            <button id="schedule-text-toggle" class="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
         </section>
-                <p id="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
+                <p id="detail-empty" class="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
             </div>
         </div>
 
 <?= bideViews() ?>
 
-        <p id="attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></p>
-        <p id="disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
+        <p id="attribution" class="attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></p>
+        <p id="disclaimer" class="disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
     </main>
 
 <?= bideInstallBanner() ?>
 
-    <footer id="dev-footer">
+    <footer id="dev-footer" class="dev-footer">
         <div class="bide-footer-brand">
             <span class="bide-wordmark">BIDE<span>+</span></span>
             <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
@@ -272,7 +272,7 @@ use Core\Networks;
                 <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
                 <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
                 <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
-                <button id="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
+                <button id="legal-open" class="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
             </p>
         </div>
     </footer>
@@ -281,41 +281,41 @@ use Core\Networks;
 
 <?php require __DIR__ . '/legal.php'; ?>
 
-    <dialog id="schedule-modal">
-        <button id="schedule-modal-close" class="btn-icon" type="button" aria-label="Cerrar">
+    <dialog id="schedule-modal" class="schedule-modal">
+        <button id="schedule-modal-close" class="btn-icon schedule-modal-close" type="button" aria-label="Cerrar">
             <?= BIDE_ICONS['close'] ?>
         </button>
-        <h3 id="schedule-modal-line"></h3>
+        <h3 id="schedule-modal-line" class="schedule-modal-line"></h3>
         <div id="schedule-modal-content"></div>
     </dialog>
 
-    <dialog id="vehicle-modal">
-        <button id="modal-close" class="btn-icon" type="button" aria-label="Cerrar">
+    <dialog id="vehicle-modal" class="vehicle-modal">
+        <button id="modal-close" class="btn-icon modal-close" type="button" aria-label="Cerrar">
             <?= BIDE_ICONS['close'] ?>
         </button>
         <span id="modal-badge" class="badge"></span>
-        <h3 id="modal-line"></h3>
-        <p id="modal-headsign"></p>
-        <p id="modal-vehicle"></p>
-        <button id="modal-alerts-toggle" type="button">Ver incidencias</button>
-        <ul id="modal-alerts" hidden></ul>
-        <ol id="modal-stops"></ol>
+        <h3 id="modal-line" class="modal-line"></h3>
+        <p id="modal-headsign" class="modal-headsign"></p>
+        <p id="modal-vehicle" class="modal-vehicle"></p>
+        <button id="modal-alerts-toggle" class="modal-alerts-toggle" type="button">Ver incidencias</button>
+        <ul id="modal-alerts" class="modal-alerts" hidden></ul>
+        <ol id="modal-stops" class="modal-stops"></ol>
     </dialog>
 
-    <dialog id="side-menu">
-        <button id="menu-close" class="btn-icon" type="button" aria-label="Cerrar menú">
+    <dialog id="side-menu" class="side-menu">
+        <button id="menu-close" class="btn-icon menu-close" type="button" aria-label="Cerrar menú">
             <?= BIDE_ICONS['close'] ?>
         </button>
         <a class="pill bide-menu-apps" href="/"><?= BIDE_ICONS['apps'] ?><span data-i18n="bide.allApps">Todas las apps</span></a>
-        <button id="menu-favorites-open" class="pill" type="button">
+        <button id="menu-favorites-open" class="pill menu-favorites-open" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
             <span data-i18n="app.favorites.title">Tus favoritos</span>
         </button>
         <h3 data-i18n="app.myLinesIncidents">Incidencias de mis líneas</h3>
         <label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMe">Avisarme de las incidencias nuevas de mis líneas favoritas</span></label>
         <p id="alerts-note" class="alerts-note" role="status" hidden></p>
-        <p id="menu-alerts-empty" data-i18n="app.noFavoriteIncidents">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
-        <ul id="menu-alerts-list"></ul>
+        <p id="menu-alerts-empty" class="menu-alerts-empty" data-i18n="app.noFavoriteIncidents">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
+        <ul id="menu-alerts-list" class="menu-alerts-list"></ul>
     </dialog>
 
     <script src="/lib/leaflet/leaflet.js"></script>
