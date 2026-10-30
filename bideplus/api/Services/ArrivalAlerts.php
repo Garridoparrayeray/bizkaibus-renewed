@@ -11,52 +11,25 @@ use Core\Store;
  * «Avísame cuando llegue»: desde la ficha de un viaje se pide que el móvil avise cuando falten unos minutos para que
  * ese viaje llegue a la parada. El aviso se guarda en el almacén unas horas; en la llamada de cada minuto del cron
  * (/api/live/record) se mira cuánto falta, con las mismas cuentas que la app, y al llegar el momento se manda la
- * notificación push (WebPush) y se borra. Las claves VAPID se crean solas la primera vez y se guardan en el almacén,
- * salvo que vengan en VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY.
+ * notificación push (Push y WebPush) y se borra.
  */
 class ArrivalAlerts
 {
     public const MINUTES = [2, 5, 10];
-    public const LANGS = ['es', 'eu', 'en'];
     private const TTL_SECONDS = 3 * 3600;
     private const MAX_PENDING = 5000;
     private const MAX_PER_RUN = 300;
     private const DEPARTURES_LIMIT = 40;
+    // Un aviso de llegada que no se entrega en 10 minutos ya no sirve.
+    private const PUSH_TTL_SECONDS = 600;
     private const PENDING_KEY = 'bide:arrival:pending';
     private const ALERT_PREFIX = 'bide:arrival:';
-    private const VAPID_KEY = 'bide:vapid';
     private const GONE_STATUSES = ['departed', 'likely_departed', 'finished'];
     private const TEXTS = [
         'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'body' => '→ {headsign} · {stop}'],
         'eu' => ['minutes' => '{line}: {min} min barru', 'now' => '{line} iristen ari da', 'body' => '→ {headsign} · {stop}'],
         'en' => ['minutes' => '{line} arrives in {min} min', 'now' => '{line} is arriving', 'body' => '→ {headsign} · {stop}'],
     ];
-
-    public static function vapidKeys(): array|null
-    {
-        $sPublic = Store::env('VAPID_PUBLIC_KEY');
-        $sPrivate = Store::env('VAPID_PRIVATE_KEY');
-        if ($sPublic !== null && $sPrivate !== null) {
-            return ['publicKey' => $sPublic, 'privateKey' => $sPrivate];
-        }
-        $aResult = Store::pipeline([['GET', self::VAPID_KEY]]);
-        if ($aResult === null) {
-            return null;
-        }
-        if (!is_string($aResult[0])) {
-            // Primera vez: se guardan solo si nadie lo ha hecho a la vez (NX), y se usan las que hayan quedado.
-            $aResult = Store::pipeline([['SET', self::VAPID_KEY, json_encode(WebPush::generateKeys()), 'NX'], ['GET', self::VAPID_KEY]]);
-            if ($aResult === null || !is_string($aResult[1])) {
-                return null;
-            }
-            $aResult = [$aResult[1]];
-        }
-        $aKeys = json_decode($aResult[0], true);
-        if (!is_array($aKeys) || !isset($aKeys['publicKey'], $aKeys['privateKey'])) {
-            return null;
-        }
-        return $aKeys;
-    }
 
     // Crea el aviso en la red actual. Estados: created (con id), now (ya llega: no hace falta), gone (ya pasó),
     // unknown (el viaje no sale de esa parada) y unavailable (sin almacén o demasiados avisos pendientes).
@@ -137,13 +110,9 @@ class ArrivalAlerts
         if ($aValues === null) {
             return $aCounts;
         }
+        $Sender ??= Push::sender(self::PUSH_TTL_SECONDS);
         if ($Sender === null) {
-            $aVapid = self::vapidKeys();
-            if ($aVapid === null) {
-                return $aCounts;
-            }
-            $sSubject = 'mailto:' . (require __DIR__ . '/../Config/site.php')['contact_email'];
-            $Sender = fn(array $aSubscription, string $sPayload) => WebPush::send($aSubscription, $sPayload, $aVapid, $sSubject);
+            return $aCounts;
         }
 
         // Caducados: se quitan de la lista. El resto, agrupados por parada para calcular sus salidas una sola vez.
@@ -204,7 +173,7 @@ class ArrivalAlerts
         if ($aTaken === null || (int)$aTaken[0] !== 1) {
             return false;
         }
-        $iStatus = (int)$Sender($aAlert['subscription'], json_encode(self::message($aAlert, $iLeft), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft)));
         $bDelivered = $iStatus >= 200 && $iStatus < 300;
         // 404 y 410: la suscripción ya no existe (se desinstaló la app o se quitó el permiso). No se reintenta.
         if ($bDelivered || $iStatus === 404 || $iStatus === 410) {

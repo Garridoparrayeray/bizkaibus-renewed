@@ -1,6 +1,7 @@
 <?php
-// Imita la API HTTPS de Upstash Redis (solo /pipeline) para tests/store-test.php y tests/arrival-alerts-test.php:
-// hashes (HSET, HMGET, HSCAN), textos (SET con NX y EX, GET, MGET, DEL), conjuntos (SADD, SREM, SMEMBERS, SCARD) y EXPIRE.
+// Imita la API HTTPS de Upstash Redis (solo /pipeline) para tests/store-test.php y tests/push-test.php:
+// hashes (HSET, HMGET, HSCAN), textos (SET con NX y EX, GET, MGET, DEL), conjuntos (SADD, SREM, SMEMBERS, SCARD,
+// SISMEMBER) y EXPIRE.
 $sFile = getenv('FAKE_UPSTASH_FILE');
 if (($_SERVER['HTTP_AUTHORIZATION'] ?? '') !== 'Bearer token-de-prueba') {
     http_response_code(401);
@@ -76,6 +77,8 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
         $aOut[] = ['result' => $iRemoved];
     } elseif ($sName === 'SMEMBERS') {
         $aOut[] = ['result' => $aData[$sKey]['__set'] ?? []];
+    } elseif ($sName === 'SISMEMBER') {
+        $aOut[] = ['result' => in_array((string)$aCmd[0], $aData[$sKey]['__set'] ?? [], true) ? 1 : 0];
     } elseif ($sName === 'SCARD') {
         $aOut[] = ['result' => count($aData[$sKey]['__set'] ?? [])];
     } else {

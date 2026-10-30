@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v34';
+const CACHE_VERSION = 'v35';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -43,6 +43,7 @@ const SHELL_FILES = [
     '/js/app/side-menu.js',
     '/js/app/alerts.js',
     '/js/app/arrival-alerts.js',
+    '/js/app/push.js',
     '/js/networks.js',
     '/js/alerts-store.js',
     '/js/menu.js',
@@ -206,8 +207,9 @@ async function appPageFallback(request) {
     return undefined;
 }
 
+// Solo sin push: con push, las incidencias las manda el servidor (js/app/alerts.js).
 async function notifyNewAlerts() {
-    if (!(await AlertsStore.get('enabled'))) return;
+    if (!(await AlertsStore.get('enabled')) || (await AlertsStore.get('mode')) === 'push') return;
     const fresh = await AlertsStore.checkAlerts();
     if (fresh.length > 0) await AlertsStore.notify(self.registration, fresh);
 }
@@ -218,7 +220,13 @@ self.addEventListener('periodicsync', (event) => {
     }
 });
 
-// «Avísame cuando llegue»: el servidor manda el texto ya listo (título, cuerpo y la dirección del viaje).
+// Notificaciones del servidor (avisos de llegada e incidencias): llegan con el texto ya listo. Solo se aceptan
+// direcciones e iconos de la propia app.
+function ownPath(value, fallback) {
+    if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) return value;
+    return fallback;
+}
+
 self.addEventListener('push', (event) => {
     let data = {};
     try {
@@ -228,12 +236,12 @@ self.addEventListener('push', (event) => {
     }
     event.waitUntil(self.registration.showNotification(data.title || 'Bide+', {
         body: data.body || '',
-        icon: '/icons-bide-rojo/icon-192.png',
+        icon: ownPath(data.icon, '/icons-bide-rojo/icon-192.png'),
         badge: '/icons-bide-rojo/icon-192.png',
         tag: data.tag || 'bide-arrival',
         renotify: true,
         vibrate: [200, 100, 200],
-        data: { url: data.url || '/' },
+        data: { url: ownPath(data.url, '/') },
     }));
 });
 

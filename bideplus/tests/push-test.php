@@ -1,7 +1,8 @@
 <?php
-// «Avísame cuando llegue» contra un Upstash falso (tests/fixtures/fake-upstash.php) y un servicio de push falso:
-// cifrado con el vector del RFC 8291, claves VAPID, direcciones permitidas, crear, enviar una sola vez, reintentar,
-// olvidar suscripciones caducadas y cancelar. Uso: php tests/arrival-alerts-test.php
+// Notificaciones push contra un Upstash falso (tests/fixtures/fake-upstash.php) y un servicio de push falso: cifrado
+// con el vector del RFC 8291, claves VAPID y direcciones permitidas; «Avísame cuando llegue» (crear, enviar una sola
+// vez, reintentar, olvidar suscripciones caducadas y cancelar) y avisos de incidencias de los favoritos (línea base,
+// solo lo nuevo, resumen, reintento, cada 5 minutos y darse de baja). Uso: php tests/push-test.php
 
 declare(strict_types=1);
 
@@ -12,6 +13,8 @@ use Controllers\StopsController;
 use Core\Config;
 use Core\Store;
 use Services\ArrivalAlerts;
+use Services\IncidentAlerts;
+use Services\Push;
 use Services\WebPush;
 
 $aFailures = [];
@@ -97,9 +100,9 @@ try {
     putenv('UPSTASH_REDIS_REST_URL=http://127.0.0.1:' . $iPort . '/');
     putenv('UPSTASH_REDIS_REST_TOKEN=token-de-prueba');
 
-    $aVapid = ArrivalAlerts::vapidKeys();
+    $aVapid = Push::keys();
     $expect('claves VAPID: se crean la primera vez', is_array($aVapid) && strlen(WebPush::base64UrlDecode($aVapid['publicKey'])) === 65);
-    $expect('claves VAPID: después se usan las mismas', ArrivalAlerts::vapidKeys() === $aVapid);
+    $expect('claves VAPID: después se usan las mismas', Push::keys() === $aVapid);
 
     // Un viaje de verdad de La Casilla al que le falten más de 10 minutos.
     Config::set('bus');
@@ -166,10 +169,100 @@ try {
 
     $aMessage = ArrivalAlerts::message(['id' => 'x', 'network' => 'metro', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'MB-1-2', 'lineCode' => 'MB', 'headsign' => 'Basauri', 'lang' => 'eu'], 3);
     $expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && $aMessage['url'] === '/stops/7?red=metro&viaje=MB-1-2' && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
+
+    // ===== Avisos de incidencias de los favoritos =====
+
+    $expect('incidencias: la clave es la misma que en la app (js/alerts-store.js)', IncidentAlerts::key('bus', 'Obras en Abando', 'Desvío por la calle Bidebarrieta 🚧 hasta el día 3.') === 'bus:zvsnys');
+    $aClean = IncidentAlerts::favorites(['bus' => ['lines' => ['3513', 3514, '3513', '<script>'], 'stops' => []], 'metro' => ['lines' => [], 'stops' => []], 'inventada' => ['lines' => ['A']]]);
+    $expect('incidencias: favoritos limpios (redes que existen, ids válidos, sin repetir)', $aClean === ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], json_encode($aClean));
+
+    $aFeeds = [
+        'bus|3513' => [['summary' => 'Obras', 'description' => 'Desvío en Gernika A']],
+        'bus|3514' => [],
+        'metro|*' => [['title' => 'Ascensor', 'description' => 'Fuera de servicio en Abando']],
+        'renfe|stop:13400' => [],
+    ];
+    $aAsked = [];
+    $Fetcher = function (string $sNetwork, string|null $sLine, string|null $sStop) use (&$aFeeds, &$aAsked): array|null {
+        $sKey = $sNetwork . '|' . ($sLine ?? ($sStop !== null ? 'stop:' . $sStop : '*'));
+        $aAsked[] = $sKey;
+        if (($aFeeds[$sKey] ?? []) === 'falla') {
+            throw new RuntimeException('fuente caída');
+        }
+        return $aFeeds[$sKey] ?? [];
+    };
+    $aSent = [];
+    $iAnswer = 201;
+    $run = function () use (&$Sender, &$Fetcher): array {
+        // La marca de «ya se revisó hace menos de 5 minutos» se quita para poder probar varias vueltas seguidas.
+        Store::pipeline([['DEL', 'bide:incident:run']]);
+        return IncidentAlerts::process($Sender, $Fetcher);
+    };
+    $aSubscriber = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/incidencias', 'keys' => $aSubscription['keys']];
+    $expect('incidencias: se guarda el suscriptor', IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514'], 'stops' => []], 'metro' => ['lines' => ['MB'], 'stops' => []], 'renfe' => ['lines' => [], 'stops' => ['13400']]], 'eu') === 'saved');
+
+    $aCounts = $run();
+    $expect('incidencias: la primera vuelta solo anota lo que ya hay', $aCounts['subscribers'] === 1 && $aCounts['sent'] === 0 && empty($aSent), json_encode($aCounts));
+    sort($aAsked);
+    $expect('incidencias: mira cada línea en Bizkaibus, toda la red en Metro y la estación en Renfe', $aAsked === ['bus|3513', 'bus|3514', 'metro|*', 'renfe|stop:13400'], json_encode($aAsked));
+    $expect('incidencias: dentro de 5 minutos no se vuelve a mirar', IncidentAlerts::process($Sender, $Fetcher) === ['skipped' => true]);
+
+    $aFeeds['bus|3514'] = [['summary' => 'Huelga', 'description' => '  Servicios mínimos el día 5  ']];
+    $run();
+    $expect('incidencias: una nueva se manda una vez', count($aSent) === 1);
+    $expect('incidencias: con la red en el título, en su idioma y con la app al tocarla', ($aSent[0]['title'] ?? '') === 'Bizkaibus+ · Huelga' && $aSent[0]['body'] === 'Servicios mínimos el día 5' && $aSent[0]['url'] === '/?red=bus' && $aSent[0]['tag'] === IncidentAlerts::key('bus', 'Huelga', 'Servicios mínimos el día 5') && $aSent[0]['icon'] === '/icons-pro/icon-192.png', json_encode($aSent[0] ?? null, JSON_UNESCAPED_UNICODE));
+    $run();
+    $expect('incidencias: la misma no se repite', count($aSent) === 1);
+
+    $aFeeds['metro|*'][] = ['title' => 'Obras L2', 'description' => 'Sin servicio entre Urbinaga y Kabiezes'];
+    $iAnswer = 500;
+    $run();
+    $expect('incidencias: si el servicio de push falla, no se da por avisada', count($aSent) === 2);
+    $iAnswer = 201;
+    $run();
+    $expect('incidencias: y se manda en la vuelta siguiente', count($aSent) === 3 && $aSent[2]['title'] === 'Metro+ · Obras L2', json_encode(end($aSent), JSON_UNESCAPED_UNICODE));
+
+    $aFeeds['bus|3513'] = 'falla';
+    $run();
+    $aFeeds['bus|3513'] = [['summary' => 'Obras', 'description' => 'Desvío en Gernika A']];
+    $run();
+    $expect('incidencias: una fuente caída no hace que lo de antes parezca nuevo', count($aSent) === 3);
+
+    for ($i = 1; $i <= 5; $i++) {
+        $aFeeds['bus|3513'][] = ['summary' => 'Aviso ' . $i, 'description' => 'Texto ' . $i];
+    }
+    $iBefore = count($aSent);
+    $run();
+    $aBatch = array_slice($aSent, $iBefore);
+    $expect('incidencias: muchas a la vez, tres sueltas y un resumen en su idioma', count($aBatch) === 4 && $aBatch[3]['title'] === 'Intzidentzia gehiago zure gogokoetan' && $aBatch[3]['body'] === 'Beste 2 abisu. Ireki aplikazioan.', json_encode($aBatch, JSON_UNESCAPED_UNICODE));
+    $run();
+    $expect('incidencias: el resumen también cuenta como avisado', count($aSent) === $iBefore + 4);
+
+    IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514', '3517'], 'stops' => []]], 'es');
+    $aFeeds['bus|3517'] = [['summary' => 'Parada trasladada', 'description' => 'En Plentzia']];
+    $run();
+    $expect('incidencias: un favorito nuevo empieza también sin avisar de lo que ya había', count($aSent) === $iBefore + 4);
+
+    IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], 'es');
+    $run();
+    $aFeeds['bus|3517'][] = ['summary' => 'Cambio de horario', 'description' => 'Desde el lunes'];
+    IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514', '3517'], 'stops' => []]], 'es');
+    $run();
+    $expect('incidencias: un favorito que se quita y se vuelve a poner tampoco avisa de lo que ya había', count($aSent) === $iBefore + 4);
+
+    $aFeeds['bus|3517'][] = ['summary' => 'Desvío', 'description' => 'Por fiestas'];
+    $iAnswer = 410;
+    $run();
+    $aLeft = Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0];
+    $expect('incidencias: si la suscripción ya no existe, se borra', $aLeft === [], json_encode($aLeft));
+    $iAnswer = 201;
+
+    IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513'], 'stops' => []]], 'es');
+    $expect('incidencias: darse de baja', IncidentAlerts::remove($aSubscriber['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0] === []);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);
 }
 
-echo "\nRESULTADO avisos de llegada: " . (empty($aFailures) ? 'OK' : 'FALLA -> ' . implode('; ', $aFailures)) . "\n";
+echo "\nRESULTADO notificaciones push: " . (empty($aFailures) ? 'OK' : 'FALLA -> ' . implode('; ', $aFailures)) . "\n";
 exit(empty($aFailures) ? 0 : 1);

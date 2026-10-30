@@ -13,7 +13,8 @@ const profileDir = mkdtempSync(join(tmpdir(), 'bide-shell-'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
+// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
+const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
 if (process.env.CI) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
@@ -295,9 +296,9 @@ if (sharedTrip) {
         const json = (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
         window.fetch = async (url, init = {}) => {
             const path = String(url);
-            if (path.includes('/api/arrival-alerts/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
+            if (path.includes('/api/push/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
             if (path.includes('/cancel')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'cancelled' }); }
-            if (path.includes('/api/arrival-alerts')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'created', id: '0123456789abcdef01234567' }); }
+            if (path.includes('/api/push/arrival')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'created', id: '0123456789abcdef01234567' }); }
             return realFetch(url, init);
         };
         Object.defineProperty(window, 'Notification', { value: { permission: 'default', requestPermission: async () => 'granted' }, configurable: true });
@@ -319,6 +320,40 @@ if (sharedTrip) {
 } else {
     results.push('SKIP avisos: ahora no hay viajes en las paradas de prueba');
 }
+
+// ===== Avisos de incidencias por push =====
+// Al activarlos se dan al servidor la suscripción, los favoritos de todas las apps y el idioma; al quitarlos, se borran.
+const fakeIncidentPush = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+    const realFetch = window.fetch.bind(window);
+    window.__pushCalls = [];
+    const json = (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+    window.fetch = async (url, init = {}) => {
+        const path = String(url);
+        if (path.includes('/api/push/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
+        if (path.includes('/api/push/incidents')) { window.__pushCalls.push({ path, body: JSON.parse(init.body || '{}') }); return json({ status: path.includes('/remove') ? 'removed' : 'saved' }); }
+        return realFetch(url, init);
+    };
+    Object.defineProperty(window, 'Notification', { value: { permission: 'granted', requestPermission: async () => 'granted' }, configurable: true });
+    const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/incidencias', options: { applicationServerKey: null }, toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'x', auth: 'y' } }; }, unsubscribe: async () => true };
+    const registration = { pushManager: { getSubscription: async () => subscription, subscribe: async () => subscription } };
+    Object.defineProperty(navigator.serviceWorker, 'ready', { get: () => Promise.resolve(registration), configurable: true });
+})();` });
+await go('/?red=bus', 2500);
+const savedFavorites = await ev("JSON.stringify([localStorage.getItem('bizkaibus_favorites'), localStorage.getItem('metrobilbao_favorites')])");
+await ev(`(async () => { localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'line', refId: '3513' }])); localStorage.setItem('metrobilbao_favorites', JSON.stringify([{ type: 'stop', refId: '7' }])); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
+await go('/?red=bus', 2500);
+await ev("document.getElementById('alerts-toggle').click(); true");
+check('incidencias: al activarlas quedan con push y lo dice', await waitTrue("document.getElementById('alerts-toggle').checked && document.getElementById('alerts-note').textContent === I18n.t('app.alerts.push')"), await ev("document.getElementById('alerts-note').textContent"));
+check('incidencias: el servidor recibe los favoritos de todas las apps y el idioma', await ev(`(() => { const call = window.__pushCalls.find((c) => !c.path.includes('/remove')); if (!call) return false; const f = call.body.favorites; return f.bus.lines[0] === '3513' && f.metro.stops[0] === '7' && call.body.lang === 'es' && call.body.subscription.endpoint.endsWith('/incidencias'); })()`), await ev('JSON.stringify(window.__pushCalls)'));
+check('incidencias: con push, la app no mira por su cuenta', (await ev("AlertsStore.get('mode')")) === 'push');
+await ev("document.getElementById('alerts-toggle').click(); true");
+check('incidencias: al quitarlas se borran del servidor', await waitTrue("!document.getElementById('alerts-toggle').checked && window.__pushCalls.some((c) => c.path.includes('/remove') && c.body.endpoint.endsWith('/incidencias'))"));
+// Quien ya los tenía activados sin push pasa a push al abrir la app, sin volver a pedir permiso.
+await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.set('mode', 'local'); localStorage.removeItem('bide-incident-push'); return true; })()`);
+await go('/?red=bus', 2500);
+check('incidencias: quien las tenía sin push pasa a push solo', await waitTrue("window.__pushCalls.some((c) => !c.path.includes('/remove')) && document.getElementById('alerts-toggle').checked") && (await ev("AlertsStore.get('mode')")) === 'push');
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeIncidentPush.identifier });
+await ev(`(async () => { const [bus, metro] = ${savedFavorites}; const restore = (key, value) => value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); restore('bizkaibus_favorites', bus); restore('metrobilbao_favorites', metro); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
 
 // ===== Pantalla de una parada =====
 await go('/stops/4255', 3000);
