@@ -42,7 +42,7 @@ return [
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,
-        'line_map' => false,
+        'line_map' => true,
         'schedule_text' => false,
         'trip_detail' => 'vehicle',
         'alerts' => 'network',

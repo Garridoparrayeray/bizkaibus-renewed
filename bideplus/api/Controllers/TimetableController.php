@@ -50,6 +50,10 @@ class TimetableController
         $sStopId = null;
         if ($sStopIdRaw !== null && $sStopIdRaw !== '') {
             $sStopId = $sStopIdRaw;
+            $aStop = (new \Models\Stop($Pdo))->find($sStopId);
+            if ($aStop !== null) {
+                $sStopId = (string)$aStop['id'];
+            }
         }
 
         $JourneyModel = new ServiceJourney($Pdo);

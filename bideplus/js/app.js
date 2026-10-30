@@ -32,6 +32,8 @@
         map: null,
         routeLayers: [],
         vehicleMarkers: [],
+        activeLines: new Map(),
+        allLinesCache: null,
         refreshTimer: null,
     };
     const LINE_MAP_REFRESH_MS = 25000;
@@ -86,6 +88,12 @@
         timetableBody: document.getElementById('timetable-body'),
         timetableEmpty: document.getElementById('timetable-empty'),
         lineMapEmpty: document.getElementById('line-map-empty'),
+        mapSearchBar: document.getElementById('map-search-bar'),
+        mapSearchInput: document.getElementById('map-search-input'),
+        mapSearchClear: document.getElementById('map-search-clear'),
+        mapSearchResults: document.getElementById('map-search-results'),
+        mapActiveChips: document.getElementById('map-active-chips'),
+        mapClearAll: document.getElementById('map-clear-all'),
         filterDate: document.getElementById('filter-date'),
         filterHourFrom: document.getElementById('filter-hour-from'),
         filterHourTo: document.getElementById('filter-hour-to'),
@@ -201,15 +209,26 @@
         el.platformPanel.hidden = true;
         el.liveEmpty.hidden = false;
         stopDeparturesRefresh();
+        if (state.currentLine && state.timetableStopId !== null) {
+            closeTimetableSection();
+        }
         if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
     }
 
     function closeTimetableSection() {
         state.currentLine = null;
+        state.timetableStopId = null;
         el.timetableSection.hidden = true;
         stopLineMapRefresh();
+        clearAllMapLines();
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        if (window.location.pathname.startsWith('/lines/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
+        if (window.location.pathname.startsWith('/lines/')) {
+            if (state.currentStop) {
+                history.replaceState({ view: 'stop', id: state.currentStop.id, fromApp: true }, '', '/stops/' + state.currentStop.id + networkQuery);
+            } else {
+                history.replaceState(null, '', '/?red=' + window.__bbNetwork);
+            }
+        }
     }
 
     function closeFromButton(view, close) {
@@ -367,10 +386,17 @@
             updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
             el.liveCard.hidden = false;
         }
+        if (state.currentLine && state.timetableStopId === null) {
+            closeTimetableSection();
+        }
         if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-            history.pushState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
+            if (history.state && (history.state.view === 'stop' || history.state.view === 'line')) {
+                history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
+            } else {
+                history.pushState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
+            }
         } else if (!history.state || !history.state.view) {
-            history.replaceState({ view: 'stop', id: stopId }, '', window.location.href);
+            history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', window.location.href);
         }
 
         await loadDepartures();
@@ -652,6 +678,9 @@
         } catch (e) {
             return;
         }
+        if (!scopeToCurrentStop && state.currentStop) {
+            closeLiveCard();
+        }
         state.currentLine = { id: line.id, code: line.code, name: line.name };
         state.timetableStopId = null;
         if (scopeToCurrentStop) state.timetableStopId = state.currentStop?.id ?? null;
@@ -661,9 +690,13 @@
         el.timetableSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         if (!window.location.pathname.startsWith('/lines/' + lineId)) {
-            history.pushState({ view: 'line', id: lineId, fromApp: true }, '', '/lines/' + lineId + networkQuery);
+            if (history.state && history.state.view === 'line') {
+                history.replaceState({ view: 'line', id: lineId, fromApp: true }, '', '/lines/' + lineId + networkQuery);
+            } else {
+                history.pushState({ view: 'line', id: lineId, fromApp: true }, '', '/lines/' + lineId + networkQuery);
+            }
         } else if (!history.state || !history.state.view) {
-            history.replaceState({ view: 'line', id: lineId }, '', window.location.href);
+            history.replaceState({ view: 'line', id: lineId, fromApp: true }, '', window.location.href);
         }
 
         await loadTimetable();
@@ -752,26 +785,131 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
         }).addTo(mapState.map);
         L.control.attribution({ prefix: false }).addTo(mapState.map);
+        mapState.map.setView([43.263, -2.935], 11);
         return mapState.map;
     }
 
-    function renderLineMap(data) {
-        const map = ensureLineMap();
-        mapState.routeLayers.forEach((layer) => map.removeLayer(layer));
-        mapState.vehicleMarkers.forEach((marker) => map.removeLayer(marker));
-        mapState.routeLayers = [];
-        mapState.vehicleMarkers = [];
+    async function loadAllNetworkLines() {
+        if (mapState.allLinesCache) return mapState.allLinesCache;
+        const slugs = BideNetworks.slugs;
+        const results = await Promise.all(
+            slugs.map(async (slug) => {
+                try {
+                    const res = await fetch('/api/lines?red=' + encodeURIComponent(slug));
+                    if (!res.ok) return [];
+                    const lines = await res.json();
+                    const net = BideNetworks.get(slug);
+                    const netName = BideNetworks.name(slug);
+                    const color = net?.brand?.color || '#01573c';
+                    return (lines || []).map((l) => ({
+                        id: String(l.id),
+                        code: String(l.code),
+                        name: String(l.name),
+                        network: slug,
+                        networkName: netName,
+                        color,
+                    }));
+                } catch (e) {
+                    return [];
+                }
+            })
+        );
+        mapState.allLinesCache = results.flat();
+        return mapState.allLinesCache;
+    }
 
-        const allPoints = [];
-        for (const pattern of data.patterns) {
-            const latlngs = pattern.stops.map((s) => [s.lat, s.lon]);
-            if (latlngs.length < 2) continue;
-            const polyline = L.polyline(latlngs, { color: '#db2777', weight: 3, opacity: 0.45 }).addTo(map);
-            mapState.routeLayers.push(polyline);
-            allPoints.push(...latlngs);
+    function renderActiveChips() {
+        el.mapActiveChips.innerHTML = '';
+        const count = mapState.activeLines.size;
+        el.mapClearAll.hidden = count < 2;
+
+        for (const [key, item] of mapState.activeLines) {
+            const chip = document.createElement('span');
+            chip.className = 'map-chip';
+
+            const dot = document.createElement('span');
+            dot.className = 'map-chip-dot';
+            dot.style.backgroundColor = item.color;
+
+            const code = document.createElement('strong');
+            code.textContent = item.code;
+
+            const name = document.createElement('span');
+            name.textContent = item.name;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'map-chip-remove';
+            removeBtn.setAttribute('aria-label', (I18n.t('map.active.remove') || 'Quitar') + ' ' + item.code);
+            removeBtn.textContent = '✕';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeMapLine(key);
+            });
+
+            chip.appendChild(dot);
+            chip.appendChild(code);
+            chip.appendChild(name);
+            chip.appendChild(removeBtn);
+            el.mapActiveChips.appendChild(chip);
         }
 
-        for (const vehicle of data.vehicles) {
+        updateMapViewState();
+    }
+
+    function updateMapViewState() {
+        const map = ensureLineMap();
+        const allPoints = [];
+        let totalVehicles = 0;
+
+        for (const item of mapState.activeLines.values()) {
+            allPoints.push(...item.points);
+            totalVehicles += (item.vehicles || []).length;
+        }
+
+        if (mapState.activeLines.size === 0) {
+            el.lineMapEmpty.textContent = I18n.t('map.empty.hint');
+            el.lineMapEmpty.hidden = false;
+            map.setView([43.263, -2.935], 11);
+        } else {
+            el.lineMapEmpty.textContent = I18n.t('app.noLiveBuses');
+            el.lineMapEmpty.hidden = totalVehicles > 0;
+            if (allPoints.length > 0) {
+                map.fitBounds(allPoints, { padding: [24, 24] });
+            }
+        }
+        setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    async function addMapLine(lineItem) {
+        const key = `${lineItem.network}:${lineItem.id}`;
+        if (mapState.activeLines.has(key)) return;
+
+        const map = ensureLineMap();
+        let data;
+        try {
+            const res = await fetch('/api/lines/' + encodeURIComponent(lineItem.id) + '/live?red=' + encodeURIComponent(lineItem.network));
+            if (!res.ok) return;
+            data = await res.json();
+        } catch (e) {
+            return;
+        }
+
+        const routeLayers = [];
+        const vehicleMarkers = [];
+        const points = [];
+        const lineColor = lineItem.color || '#01573c';
+
+        for (const pattern of data.patterns || []) {
+            const latlngs = (pattern.stops || []).map((s) => [s.lat, s.lon]);
+            if (latlngs.length < 2) continue;
+            const polyline = L.polyline(latlngs, { color: lineColor, weight: 3.5, opacity: 0.65 }).addTo(map);
+            routeLayers.push(polyline);
+            points.push(...latlngs);
+        }
+
+        for (const vehicle of data.vehicles || []) {
+            if (!vehicle.currentStop || vehicle.currentStop.lat === null || vehicle.currentStop.lon === null) continue;
             const { lat, lon, name } = vehicle.currentStop;
             let statusText = '';
             if (vehicle.delayMinutes !== null) {
@@ -780,17 +918,164 @@
             }
             const marker = L.marker([lat, lon], { icon: busDivIcon() })
                 .addTo(map)
-                .bindPopup(`<strong>${escapeHtml(vehicle.headsign)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
-            mapState.vehicleMarkers.push(marker);
-            allPoints.push([lat, lon]);
+                .bindPopup(`<strong>${escapeHtml(vehicle.headsign || lineItem.name)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
+            vehicleMarkers.push(marker);
+            points.push([lat, lon]);
         }
 
-        el.lineMapEmpty.hidden = data.vehicles.length > 0;
+        mapState.activeLines.set(key, {
+            ...lineItem,
+            routeLayers,
+            vehicleMarkers,
+            points,
+            vehicles: data.vehicles || [],
+        });
 
-        if (allPoints.length > 0) {
-            map.fitBounds(allPoints, { padding: [24, 24] });
+        renderActiveChips();
+    }
+
+    function removeMapLine(key) {
+        const item = mapState.activeLines.get(key);
+        if (!item) return;
+
+        const map = ensureLineMap();
+        (item.routeLayers || []).forEach((layer) => map.removeLayer(layer));
+        (item.vehicleMarkers || []).forEach((marker) => map.removeLayer(marker));
+        mapState.activeLines.delete(key);
+
+        renderActiveChips();
+    }
+
+    function clearAllMapLines() {
+        const map = ensureLineMap();
+        for (const item of mapState.activeLines.values()) {
+            (item.routeLayers || []).forEach((layer) => map.removeLayer(layer));
+            (item.vehicleMarkers || []).forEach((marker) => map.removeLayer(marker));
         }
-        setTimeout(() => map.invalidateSize(), 100);
+        mapState.activeLines.clear();
+        renderActiveChips();
+    }
+
+    async function handleMapSearchInput(query) {
+        const q = (query || '').trim().toLowerCase();
+        if (!q) {
+            el.mapSearchResults.hidden = true;
+            el.mapSearchResults.innerHTML = '';
+            el.mapSearchClear.hidden = true;
+            return;
+        }
+        el.mapSearchClear.hidden = false;
+        const allLines = await loadAllNetworkLines();
+        const matches = allLines.filter((l) => {
+            const code = l.code.toLowerCase();
+            const name = l.name.toLowerCase();
+            return code.includes(q) || name.includes(q);
+        }).slice(0, 15);
+
+        el.mapSearchResults.innerHTML = '';
+        if (matches.length === 0) {
+            const emptyLi = document.createElement('li');
+            emptyLi.className = 'map-search-empty';
+            emptyLi.textContent = I18n.t('map.search.empty');
+            el.mapSearchResults.appendChild(emptyLi);
+        } else {
+            for (const item of matches) {
+                const li = document.createElement('li');
+                li.className = 'map-search-item';
+                const key = `${item.network}:${item.id}`;
+                const isActive = mapState.activeLines.has(key);
+                if (isActive) li.classList.add('is-active');
+
+                const badge = document.createElement('span');
+                badge.className = 'map-badge';
+                badge.style.backgroundColor = item.color;
+                badge.textContent = item.networkName;
+
+                const code = document.createElement('strong');
+                code.className = 'map-line-code';
+                code.textContent = item.code;
+
+                const name = document.createElement('span');
+                name.className = 'map-line-name';
+                name.textContent = item.name;
+
+                li.appendChild(badge);
+                li.appendChild(code);
+                li.appendChild(name);
+
+                li.addEventListener('click', () => {
+                    if (isActive) {
+                        removeMapLine(key);
+                    } else {
+                        addMapLine(item);
+                    }
+                    el.mapSearchInput.value = '';
+                    el.mapSearchResults.hidden = true;
+                    el.mapSearchClear.hidden = true;
+                });
+                el.mapSearchResults.appendChild(li);
+            }
+        }
+        el.mapSearchResults.hidden = false;
+    }
+
+    function renderLineMap(data) {
+        if (!data || !data.line) return;
+        const net = BideNetworks.get(NETWORK.slug);
+        const lineItem = {
+            id: String(data.line.id),
+            code: String(data.line.code),
+            name: String(data.line.name),
+            network: NETWORK.slug,
+            networkName: BideNetworks.name(NETWORK.slug),
+            color: net?.brand?.color || '#01573c',
+        };
+
+        const map = ensureLineMap();
+        clearAllMapLines();
+        const routeLayers = [];
+        const vehicleMarkers = [];
+        const points = [];
+        const lineColor = lineItem.color;
+
+        for (const pattern of data.patterns || []) {
+            const latlngs = (pattern.stops || []).map((s) => [s.lat, s.lon]);
+            if (latlngs.length < 2) continue;
+            const polyline = L.polyline(latlngs, { color: lineColor, weight: 3.5, opacity: 0.65 }).addTo(map);
+            routeLayers.push(polyline);
+            points.push(...latlngs);
+        }
+
+        for (const vehicle of data.vehicles || []) {
+            if (!vehicle.currentStop || vehicle.currentStop.lat === null || vehicle.currentStop.lon === null) continue;
+            const { lat, lon, name } = vehicle.currentStop;
+            const statusText = vehicle.delayMinutes === null ? '' : vehicle.delayMinutes > 0 ? `Retraso +${vehicle.delayMinutes}m` : 'En hora';
+            const marker = L.marker([lat, lon], { icon: busDivIcon() })
+                .addTo(map)
+                .bindPopup(`<strong>${escapeHtml(vehicle.headsign || lineItem.name)}</strong><br>${escapeHtml(name)}<br>${escapeHtml(statusText)}`);
+            vehicleMarkers.push(marker);
+            points.push([lat, lon]);
+        }
+
+        const key = `${lineItem.network}:${lineItem.id}`;
+        if (mapState.activeLines.has(key)) {
+            const prev = mapState.activeLines.get(key);
+            (prev.routeLayers || []).forEach((l) => map.removeLayer(l));
+            (prev.vehicleMarkers || []).forEach((m) => map.removeLayer(m));
+        }
+
+        mapState.activeLines.set(key, {
+            ...lineItem,
+            routeLayers,
+            vehicleMarkers,
+            points,
+            vehicles: data.vehicles || [],
+        });
+
+        mapState.routeLayers = routeLayers;
+        mapState.vehicleMarkers = vehicleMarkers;
+
+        renderActiveChips();
     }
 
     async function loadLineMap(lineId) {
@@ -1615,9 +1900,35 @@
     el.filterHourFrom.value = `${pad2(now.getHours())}:00`;
     el.filterHourTo.value = `${pad2((now.getHours() + 2) % 24)}:00`;
 
+    let mapSearchDebounce = null;
+    el.mapSearchInput.addEventListener('input', () => {
+        clearTimeout(mapSearchDebounce);
+        mapSearchDebounce = setTimeout(() => {
+            handleMapSearchInput(el.mapSearchInput.value);
+        }, 150);
+    });
+
+    el.mapSearchClear.addEventListener('click', () => {
+        el.mapSearchInput.value = '';
+        el.mapSearchResults.hidden = true;
+        el.mapSearchClear.hidden = true;
+        el.mapSearchInput.focus();
+    });
+
+    el.mapClearAll.addEventListener('click', () => {
+        clearAllMapLines();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (el.mapSearchBar && !el.mapSearchBar.contains(e.target)) {
+            el.mapSearchResults.hidden = true;
+        }
+    });
+
     if (!FEATURES.line_map) {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
+        el.mapSearchBar.hidden = true;
     }
     if (!FEATURES.schedule_text) {
         el.scheduleTextToggle.hidden = true;
