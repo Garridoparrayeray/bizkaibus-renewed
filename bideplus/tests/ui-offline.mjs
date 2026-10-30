@@ -101,6 +101,14 @@ await goOwn('/?red=metro');
 await searchOwn('abando');
 check('busqueda online funciona (rellena la cache)', await waitTrue("document.querySelectorAll('#search-results .pill').length > 0"));
 
+// Horarios sin conexión: se guarda Bizkaibus desde Info y se abre una parada con el servidor caído.
+await goOwn('/?red=bus');
+await ev("document.querySelector('[data-bide-tab=info]').click()");
+await sleep(800);
+await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Bizkaibus')).querySelector('input'); input.click(); return true; })()");
+check('horarios sin conexion: Bizkaibus se guarda desde Info', await waitTrue("!!BideOffline.saved().bus"));
+await goOwn('/?red=bus');
+
 ownServer.kill();
 await sleep(1500);
 
@@ -112,6 +120,9 @@ await searchOwn('abando');
 check('servidor caido: una busqueda ya hecha responde desde la cache', await waitTrue("document.querySelectorAll('#search-results .pill').length > 0"));
 await searchOwn('zzqqxx');
 check('servidor caido: una consulta nueva muestra el aviso de conexion', await waitTrue("!document.getElementById('net-banner').hidden"));
+await goOwn('/stops/1137', 4000);
+check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && document.getElementById('live-badge').textContent === 'SOLO HORARIO' && /\\d/.test(document.getElementById('live-minutes').textContent)"));
+check('servidor caido: avisa de que es el horario guardado', await ev("document.getElementById('net-banner').textContent.includes('horario oficial guardado')"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
