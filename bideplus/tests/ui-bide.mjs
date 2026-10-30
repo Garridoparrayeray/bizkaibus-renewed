@@ -222,9 +222,18 @@ await ev("document.getElementById('map-panel-close').click()");
 check('mapa: el buscador filtra lineas', await ev("(() => { const inp = document.getElementById('map-search-input'); inp.value = 'L2'; inp.dispatchEvent(new Event('input')); return document.querySelectorAll('.map-search-item').length > 0; })()"));
 await ev("document.querySelector('.map-search-item').click()");
 check('mapa: elegir una linea en el buscador abre su esquema', await waitTrue("!document.getElementById('map-panel').hidden && /Kabiezes/.test(document.getElementById('map-panel-body').textContent)"));
+check('mapa: la línea elegida dibuja un punto en cada parada', await ev("document.querySelectorAll('.map-schematic li').length") > 10);
 await ev("document.getElementById('map-panel-close').click()");
+check('mapa: el buscador tiene su texto, no la clave', await ev("document.getElementById('map-search-input').placeholder.indexOf('map.') === -1"));
+await ev("window.BideMap.search('abando')");
+check('mapa: el buscador encuentra estaciones de redes ocultas', await waitTrue("[...document.querySelectorAll('.map-search-item.is-stop')].some(b => /Metro Bilbao/.test(b.textContent))"));
+await ev("window.BideMap.search('')");
+await ev("(() => { const b = document.querySelector('[data-map-network=renfe]'); b.click(); b.click(); return true; })()");
+await sleep(1500);
+check('mapa: dos toques seguidos en un filtro lo dejan apagado', await ev("document.querySelector('[data-map-network=renfe]').getAttribute('aria-pressed') === 'false'"));
 await ev("document.querySelector('[data-map-network=bus]').click()");
 check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.loaded().includes('bus')"));
+check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
 // ===== Tema «mi amor»: sin cambios =====

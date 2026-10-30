@@ -8,7 +8,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')).replace('\\', '/') + '/'
 PHP = os.environ.get('PHP_PATH') or shutil.which('php') or 'C:/xampp/php/php.exe'
-NODE = os.environ.get('NODE_PATH') or shutil.which('node') or 'C:/Program Files/AMD/AI_Bundle/LMStudio/resources/app/.webpack/bin/node.exe'
+NODE = os.environ.get('NODE_BIN') or shutil.which('node') or 'C:/Program Files/AMD/AI_Bundle/LMStudio/resources/app/.webpack/bin/node.exe'
 failures = []
 
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", open(ROOT + 'js/app.js', encoding='utf-8').read()))

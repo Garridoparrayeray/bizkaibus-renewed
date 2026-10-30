@@ -2,12 +2,13 @@
 // parada. Los datos (/map-data/*.json) se generan con las bases en cada reconstrucción; aquí solo se dibujan.
 (() => {
     const DATA_URL = '/map-data/';
-    // Las redes de tren se ven al entrar; las de autobús, más pesadas, al activarlas.
-    // Las redes se activan al buscarlas o pulsando sus filtros; el mapa arranca vacío.
-    const DEFAULT_ON = [];
+    // El mapa arranca vacío: las redes se ven al pulsar su filtro o al buscar una de sus líneas.
     const TRANSFER_METERS = 180;
-    const BUS_STOPS_MIN_ZOOM = 14;
+    const BUS_STOPS_MIN_ZOOM = 13;
     const RAIL_STOPS_MIN_ZOOM = 0;
+    // Con una línea elegida, las demás se quedan detrás pero se siguen viendo.
+    const DIMMED_OPACITY = 0.25;
+    const MAX_STOP_RESULTS = 8;
 
     const state = {
         map: null,
@@ -16,6 +17,7 @@
         networks: {},
         visible: new Set(),
         selectedLine: null,
+        selectionLayer: null,
     };
 
     const t = (key, vars) => {
@@ -61,6 +63,12 @@
         const b = value & 255;
         if ((0.299 * r + 0.587 * g + 0.114 * b) > 160) return '#111111';
         return '#ffffff';
+    }
+
+    function networkColor(slug) {
+        const info = state.index.find((n) => n.slug === slug);
+        if (!info) return '#555555';
+        return info.color;
     }
 
     function networkName(slug) {
@@ -113,7 +121,7 @@
         for (const [stopId, stop] of Object.entries(network.data.stops)) {
             const lines = [...(network.stopLines[stopId] || [])];
             let color = '#1c211d';
-        if (lines.length === 1) color = lines[0].color;
+            if (lines.length === 1) color = lines[0].color;
             const marker = L.circleMarker([stop[1], stop[2]], {
                 renderer: state.renderer,
                 radius: lineStyle(bus).radius,
@@ -158,7 +166,8 @@
                 if (button) button.classList.add('is-loading');
                 await loadNetwork(slug);
             }
-            showNetwork(slug, on);
+            // Mientras se cargaba se pudo volver a pulsar el filtro: manda lo último que se pidió.
+            showNetwork(slug, state.visible.has(slug));
         } catch (error) {
             state.visible.delete(slug);
             if (button) button.setAttribute('aria-pressed', 'false');
@@ -200,12 +209,19 @@
                 const isSelected = selected && layer.__line === selected.line;
                 let opacity = lineStyle(layer.__bus).opacity;
                 let weight = lineStyle(layer.__bus).weight;
-                if (selected && !isSelected) opacity = 0.18;
+                if (selected && !isSelected) opacity = DIMMED_OPACITY;
                 if (isSelected) weight += 3;
                 layer.setStyle({ opacity, weight });
                 if (isSelected) layer.bringToFront();
             }
         }
+    }
+
+    // Margen para encuadrar una línea sin que la tape el panel: a la derecha en el ordenador, abajo en el móvil.
+    function panelPadding() {
+        const panel = document.getElementById('map-panel').getBoundingClientRect();
+        if (window.innerWidth >= 760) return { paddingTopLeft: [40, 40], paddingBottomRight: [panel.width + 52, 40] };
+        return { paddingTopLeft: [24, 24], paddingBottomRight: [24, panel.height + 24] };
     }
 
     function openPanel() {
@@ -219,7 +235,38 @@
         state.selectedLine = null;
         const select = document.getElementById('map-line');
         if (select) select.value = '';
+        drawSelection(null);
         highlightSelection();
+    }
+
+    // La línea elegida, encima de todo: su recorrido con un borde blanco y un punto en cada parada, a cualquier zoom.
+    function drawSelection(selection) {
+        if (state.selectionLayer) state.map.removeLayer(state.selectionLayer);
+        state.selectionLayer = null;
+        if (!selection) return;
+        const { network, line, pattern } = selection;
+        const layer = L.layerGroup();
+        const casing = { renderer: state.renderer, color: '#ffffff', weight: 10, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false };
+        const stroke = { renderer: state.renderer, color: line.color, weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false };
+        L.polyline(pattern.path, casing).addTo(layer);
+        L.polyline(pattern.path, stroke).addTo(layer);
+        for (const stopId of pattern.stops) {
+            const stop = network.data.stops[stopId];
+            if (!stop) continue;
+            const marker = L.circleMarker([stop[1], stop[2]], {
+                renderer: state.renderer,
+                radius: 5,
+                color: line.color,
+                weight: 3,
+                fillColor: '#ffffff',
+                fillOpacity: 1,
+            });
+            marker.bindTooltip(stop[0], { direction: 'top' });
+            marker.on('click', () => selectStop(network.slug, stopId));
+            marker.addTo(layer);
+        }
+        layer.addTo(state.map);
+        state.selectionLayer = layer;
     }
 
     // Transbordos de una parada: otras líneas en la misma parada y paradas cercanas de las redes cargadas.
@@ -298,6 +345,7 @@
 
         const pattern = line.patterns[patternIndex];
         const network = state.networks[slug];
+        drawSelection({ network, line, pattern });
         const list = el('ol', 'map-schematic');
         list.style.setProperty('--line-color', line.color);
         pattern.stops.forEach((stopId, index) => {
@@ -332,7 +380,7 @@
 
         openPanel();
         const bounds = L.latLngBounds(pattern.path);
-        if (bounds.isValid()) state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        if (bounds.isValid()) state.map.fitBounds(bounds, { ...panelPadding(), maxZoom: 15 });
     }
 
     function selectStop(slug, stopId) {
@@ -484,19 +532,28 @@
 
             lineMatches.sort((a, b) => a.score - b.score || a.code.localeCompare(b.code));
 
-            // 2. Paradas de las redes actualmente cargadas
+            // 2. Paradas de las redes cargadas (las de tren se cargan al empezar a buscar): primero las que empiezan así.
             const stopMatches = [];
             for (const [slug, net] of Object.entries(state.networks)) {
-                if (!state.visible.has(slug)) continue;
                 for (const [stopId, stop] of Object.entries(net.data.stops)) {
                     const normStop = normalize(stop[0]);
                     if (tokens.every((tok) => normStop.includes(tok))) {
-                        stopMatches.push({ slug, stopId, name: stop[0] });
-                        if (stopMatches.length >= 6) break;
+                        let score = 1;
+                        if (normStop.startsWith(normQ)) score = 0;
+                        stopMatches.push({ score, slug, stopId, name: stop[0] });
                     }
                 }
-                if (stopMatches.length >= 6) break;
             }
+            stopMatches.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+            // Una parada por nombre y red: los dos sentidos de una calle se llaman igual.
+            const seenStops = new Set();
+            const uniqueStops = stopMatches.filter((m) => {
+                const key = `${m.slug}|${m.name}`;
+                if (seenStops.has(key)) return false;
+                seenStops.add(key);
+                return true;
+            });
+            stopMatches.splice(0, stopMatches.length, ...uniqueStops.slice(0, MAX_STOP_RESULTS));
 
             results.replaceChildren();
 
@@ -549,15 +606,17 @@
                     btn.id = `map-opt-stop-${idx}`;
                     btn.setAttribute('role', 'option');
 
-                    const pin = el('span', 'map-stop-pin', '📍');
-                    btn.appendChild(pin);
+                    const dot = el('span', 'map-stop-dot');
+                    dot.style.setProperty('--net-color', networkColor(s.slug));
+                    btn.appendChild(dot);
 
                     const info = el('div', 'map-search-info');
                     info.appendChild(el('span', 'map-search-title', s.name));
-                    info.appendChild(el('span', 'map-search-net', `${networkName(s.slug)} · Parada`));
+                    info.appendChild(el('span', 'map-search-net', `${networkName(s.slug)} · ${t('map.search.stop')}`));
                     btn.appendChild(info);
 
-                    btn.addEventListener('click', () => {
+                    btn.addEventListener('click', async () => {
+                        if (!state.visible.has(s.slug)) await toggleNetwork(s.slug, true);
                         const stop = state.networks[s.slug]?.data.stops[s.stopId];
                         if (stop) {
                             state.map.setView([stop[1], stop[2]], Math.max(state.map.getZoom(), 15));
@@ -578,7 +637,21 @@
             activeIndex = -1;
         }
 
-        input.addEventListener('input', doSearch);
+        // Las paradas de tren, metro y tranvía pesan poco: se cargan al buscar para encontrar estaciones de redes ocultas.
+        let railLoading = null;
+        function loadRailForSearch() {
+            if (!railLoading) {
+                const rail = state.index.filter((n) => n.kind !== 'bus').map((n) => loadNetwork(n.slug).catch(() => null));
+                railLoading = Promise.all(rail).then(() => {
+                    if (input.value.trim()) doSearch();
+                });
+            }
+        }
+
+        input.addEventListener('input', () => {
+            loadRailForSearch();
+            doSearch();
+        });
         input.addEventListener('focus', () => {
             if (input.value.trim()) doSearch();
         });
@@ -610,7 +683,8 @@
             } else if (e.key === 'Enter') {
                 if (!results.hidden && items.length > 0) {
                     e.preventDefault();
-                    const target = activeIndex >= 0 ? items[activeIndex] : items[0];
+                    let target = items[0];
+                    if (activeIndex >= 0) target = items[activeIndex];
                     if (target) target.click();
                 }
             } else if (e.key === 'Escape') {
@@ -675,7 +749,6 @@
             buildFilters();
             buildLinePicker();
             buildSearch();
-            await Promise.all(state.index.filter((n) => DEFAULT_ON.includes(n.slug)).map((n) => toggleNetwork(n.slug, true)));
             updateFiltersState();
             loading.hidden = true;
         } catch (error) {

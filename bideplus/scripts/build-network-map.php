@@ -29,6 +29,9 @@ const LINE_COLORS = [
     'tranvia-bilbao' => ['A' => '#78BE20', 'TR' => '#78BE20'],
 ];
 
+// Por encima de esta luminancia un trazo se pierde sobre el mapa (el verde claro de Bizkaibus es 0,52).
+const MAX_LINE_LUMINANCE = 0.5;
+
 $sOut = __DIR__ . '/../map-data';
 foreach ($argv as $sArg) {
     if (str_starts_with($sArg, '--out=')) {
@@ -199,13 +202,17 @@ function buildNetwork(string $sSlug, array $aNetwork): array
         if (empty($aChosen)) {
             continue;
         }
-        $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? $aLine['color'] ?? ($aNetwork['brand']['theme_color'] ?? '#555555');
+        $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? null;
+        $sTextColor = null;
+        if ($sColor === null) {
+            [$sColor, $sTextColor] = mapLineColors($aLine['color'] ?? null, $aLine['text_color'] ?? null, $aNetwork['brand']['theme_color'] ?? '#555555');
+        }
         $aOutLines[] = [
             'id' => (string)$aLine['id'],
             'code' => $aLine['code'],
             'name' => $aLine['name'],
             'color' => $sColor,
-            'textColor' => $aLine['text_color'] ?? null,
+            'textColor' => $sTextColor,
             'patterns' => $aChosen,
         ];
     }
@@ -231,6 +238,40 @@ function buildNetwork(string $sSlug, array $aNetwork): array
 
 // Algunos operadores publican cada sentido como una línea aparte (Renfe: «Abando -Santurtzi» y «Santurtzi -Abando»). En el
 // mapa van juntas: mismo código, mismo color y mismo núcleo (las tres primeras letras del id: 60T Bilbao, 61T Donostia).
+/*
+ * Color del trazo de una línea con los colores del GTFS. Un color muy claro (el blanco de Lurraldebus, el verde claro de
+ * Bizkaibus) no se ve sobre el mapa: entonces va el color del texto de la línea si es oscuro, y si no el de la red.
+ */
+function mapLineColors(string|null $sColor, string|null $sTextColor, string $sNetworkColor): array
+{
+    if ($sColor === null) {
+        return [$sNetworkColor, null];
+    }
+    if (luminance($sColor) <= MAX_LINE_LUMINANCE) {
+        return [$sColor, $sTextColor];
+    }
+    if ($sTextColor !== null && luminance($sTextColor) <= MAX_LINE_LUMINANCE) {
+        return [$sTextColor, null];
+    }
+    return [$sNetworkColor, null];
+}
+
+// Luminancia relativa (WCAG) de un color #RRGGBB: 0 el negro, 1 el blanco.
+function luminance(string $sHex): float
+{
+    $dTotal = 0.0;
+    foreach ([0.2126, 0.7152, 0.0722] as $iIndex => $dWeight) {
+        $dChannel = hexdec(substr($sHex, 1 + $iIndex * 2, 2)) / 255;
+        if ($dChannel <= 0.03928) {
+            $dChannel = $dChannel / 12.92;
+        } else {
+            $dChannel = (($dChannel + 0.055) / 1.055) ** 2.4;
+        }
+        $dTotal += $dWeight * $dChannel;
+    }
+    return $dTotal;
+}
+
 function mergeDirections(array $aLines): array
 {
     $aGroups = [];
