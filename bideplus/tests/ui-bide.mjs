@@ -244,6 +244,13 @@ check('«mi amor»: sus colores, también en otras redes', await ev("getComputed
 check('«mi amor»: su subtítulo', await ev("document.getElementById('app-subtitle').textContent === 'Para el amor de mi vida'"));
 await go('/?red=metro&tema=miamor');
 check('«mi amor»: rosa también en Metro', await ev("getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().toLowerCase() === '#db2777'"));
+check('«mi amor»: la cabecera es la de la red abierta, no Bizkaibus', await ev("document.getElementById('app-title').textContent.trim().startsWith('METRO')"));
+await go('/');
+check('«mi amor»: sigue en el menú de inicio', await ev("document.documentElement.classList.contains('is-miamor') && location.pathname === '/'"));
+await go('/mapa');
+check('«mi amor»: sigue en el mapa de la red', await ev("document.documentElement.classList.contains('is-miamor')"));
+await go('/?red=bus&tema=pro');
+check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.documentElement.classList.contains('is-miamor')"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];
