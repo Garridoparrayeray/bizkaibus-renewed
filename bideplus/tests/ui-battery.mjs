@@ -221,7 +221,7 @@ check('menu vista fichas', (await ev("document.documentElement.getAttribute('dat
 
 where = 'miamor';
 await go('/?red=metro&tema=miamor', 2800);
-check('tema mi amor carga (style.css)', (await ev("[...document.styleSheets].some(s => (s.href||'').endsWith('style.css'))")) === true);
+check('tema mi amor: la app normal con su capa de colores', (await ev("['style-app.css', 'style-miamor.css'].every(f => [...document.styleSheets].some(s => (s.href || '').endsWith(f)))")) === true);
 await search('abando');
 await ev("document.querySelector('#search-results .pill').click()"); await sleep(3500);
 check('tema mi amor abre parada', (await ev("!document.getElementById('platform-panel').hidden")) === true);
