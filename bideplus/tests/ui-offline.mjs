@@ -9,7 +9,8 @@ const CHROME = process.env.CHROME_PATH || 'C:/Program Files (x86)/Microsoft/Edge
 const profileDir = mkdtempSync(join(tmpdir(), 'bide-offline-'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
+// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
+const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
 if (process.env.CI) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
