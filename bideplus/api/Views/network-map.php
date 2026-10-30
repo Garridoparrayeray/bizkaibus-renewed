@@ -57,7 +57,7 @@ $jsonLd = [
     <div class="map-search-bar" id="map-search-bar">
         <div class="map-search-box">
             <svg class="map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="map-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="map-search-results" placeholder="Buscar línea para ver en el mapa…" data-i18n-attr="placeholder:map.search.placeholder;aria-label:map.search.placeholder" aria-label="Buscar línea para ver en el mapa">
+            <input id="map-search-input" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="map-search-results" placeholder="Buscar línea o parada…" data-i18n-attr="placeholder:map.search.placeholder,aria-label:map.search.placeholder" aria-label="Buscar línea o parada">
             <button id="map-search-clear" type="button" class="map-search-clear" aria-label="Limpiar búsqueda" data-i18n-attr="aria-label:map.search.clear" hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
             </button>
@@ -68,7 +68,7 @@ $jsonLd = [
     <main class="map-main">
         <div id="network-map" class="network-map" role="application" data-i18n-attr="aria-label:map.title" aria-label="Mapa de la red"></div>
         <p class="map-loading" id="map-loading" data-i18n="map.loading">Cargando líneas…</p>
-        <p class="map-hint" id="map-hint" data-i18n="map.empty.hint">Busca una línea para mostrar su recorrido en el mapa.</p>
+        <p class="map-hint" id="map-hint" data-i18n="map.empty.hint">Elige una red arriba o busca una línea o parada.</p>
         <aside class="map-panel" id="map-panel" hidden>
             <button type="button" class="map-panel-close" id="map-panel-close" data-i18n-attr="aria-label:map.close" aria-label="Cerrar"><?= BIDE_ICONS['close'] ?></button>
             <div class="map-panel-body" id="map-panel-body"></div>
