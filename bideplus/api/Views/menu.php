@@ -179,5 +179,7 @@ $jsonLd = [
     <script src="/js/menu.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/bide.js"></script>
+    <script src="/js/offline.js"></script>
+    <script src="/js/bide-info.js"></script>
 </body>
 </html>

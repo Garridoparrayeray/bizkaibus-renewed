@@ -25,6 +25,16 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-30', '30/10/2026', 21, 'Horarios sin conexión', 'Desde Info puedes guardar en el móvil el horario oficial de las redes que uses. Sin cobertura, cada parada sigue mostrando sus próximas salidas. Además, preguntas frecuentes y un apartado para mandar sugerencias o avisar de errores.'],
+    ['2026-10-30', '30/10/2026', 20, 'Mapa de la red', 'Todas las líneas de las siete redes sobre el mapa, con el esquema de cada una, los minutos entre paradas y los transbordos. Puedes buscar cualquier línea o parada y encender cada red por separado.'],
+    ['2026-10-30', '30/10/2026', 19, 'Autobuses sin GPS', 'Cuando un autobús no envía su posición, su llegada sale como «Estimado» y se calcula con lo que tardan de verdad los buses. La ficha del autobús da el mismo adelanto o retraso que la parada desde la que la abres.'],
+    ['2026-10-30', '30/10/2026', 18, 'Renfe más fiable', 'Todas las estaciones de Renfe se encuentran, también las que empiezan por cero, y ya salen los horarios de Vado-Cervera.'],
+    ['2026-10-29', '29/10/2026', 17, 'Horarios siempre del día', 'Los horarios de todas las redes se renuevan cada día con los datos oficiales, y en el horario de cada línea ves desde y hasta cuándo es válido.'],
+    ['2026-10-27', '27/10/2026', 16, 'Lurraldebus+', 'Llega Lurraldebus+, con los autobuses de Gipuzkoa de siete operadores y la dirección de cada parada.'],
+    ['2026-10-27', '27/10/2026', 15, 'Buscador más listo', 'El buscador encuentra la parada aunque escribas el pueblo y la calle en cualquier orden.'],
+    ['2026-10-26', '26/10/2026', 14, 'Más fácil de encontrar', 'Cada parada y cada línea tiene su propia página, para llegar a ella directamente desde Google.'],
+    ['2026-10-16', '16/10/2026', 13, 'Viajes más exactos', 'Cada autobús de Bizkaibus usa el calendario exacto de su día, y la ficha del viaje ya no da por salido un autobús del que no hay datos en vivo.'],
+    ['2026-10-14', '14/10/2026', 12, 'Retrasos más claros', 'El retraso se escribe entero junto a los minutos: «Lleva 5 min de retraso» o «Va 2 min adelantado». En Bizkaibus+, sin GPS se usa la última parada por la que pasó el autobús, y en Metro+ el recorrido del tren avanza con el reloj.'],
     ['2026-10-06', '06/10/2026', 11, 'Llegadas de Bizkaibus más precisas', 'Algunos buses usaban las horas de paso de otro tipo de día (por ejemplo, las de festivo en un laborable) y la app los daba por pasados antes de tiempo. Ahora cada viaje lleva sus horas oficiales, y en tramos como la autopista hacia Gernika la llegada se calcula con lo que tardan de verdad los buses.'],
     ['2026-10-05', '05/10/2026', 1, 'Metro+ en directo', 'Los próximos trenes de Metro Bilbao llegan en directo y con su retraso, gracias al Consorcio de Transportes de Bizkaia. Arreglados los tranvías que desaparecían algunos días.'],
     ['2026-10-04', '04/10/2026', 2, 'Más fácil de usar', 'El botón atrás del móvil funciona bien, la pestaña activa se distingue mejor y los colores cumplen las pautas de accesibilidad WCAG 2.1 AA.'],
@@ -36,6 +46,18 @@ const BIDE_CHANGELOG = [
     ['2026-08-18', '18/08/2026', 8, 'Metro+', 'Segunda red: horarios de Metro Bilbao, panel de andén por sentido y avisos de incidencias.'],
     ['2026-07-27', '27/07/2026', 9, 'Horarios siempre al día', 'Los horarios se actualizan solos cada día desde los datos oficiales, y las salidas con retraso ya no desaparecen.'],
     ['2026-07-16', '16/07/2026', 10, 'Primera versión (v0.8)', 'Nace BizkaiBus+: los horarios de Bizkaibus más fáciles de consultar, con buscador, favoritos y el tema «mi amor».'],
+];
+
+// Preguntas frecuentes de Info: [pregunta, respuesta] en castellano; el euskera está en i18n.js (bide.faq.N).
+const BIDE_FAQ = [
+    ['¿Las llegadas son en tiempo real?', 'Depende de la red. En Bizkaibus+ se calculan con la posición GPS de cada autobús y en Metro+ llegan en directo del Consorcio de Transportes de Bizkaia. En Euskotren, los tranvías, Renfe y Lurraldebus se muestra el horario oficial, con la etiqueta «Solo horario».'],
+    ['¿Qué significa «Estimado»?', 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.'],
+    ['¿Funciona sin conexión?', 'Sí, si guardas el horario de tus redes en «Horarios sin conexión», aquí en Info. Sin cobertura, las paradas muestran sus próximas salidas según el horario oficial, y el directo vuelve en cuanto hay conexión.'],
+    ['¿Cómo instalo Bide+ en el móvil?', 'En Android, pulsa «Instalar» en el aviso de abajo o en el menú del navegador. En iPhone, abre Bide+ en Safari, toca Compartir y elige «Añadir a pantalla de inicio».'],
+    ['¿Cómo guardo una parada o una línea?', 'Toca el corazón en la parada, la estación o la línea. Tus favoritos salen en la pestaña Favoritos y en todas las apps.'],
+    ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus líneas favoritas, y puedes activar que el móvil te avise cuando haya una nueva.'],
+    ['¿Cada cuánto se actualizan los horarios?', 'Cada día, con los datos oficiales que publican los operadores. En el horario de cada línea ves desde y hasta cuándo es válido.'],
+    ['¿Es una app oficial?', 'No. Bide+ es un proyecto independiente que usa los datos abiertos de los operadores. Si hay dudas, vale lo que diga cada operador.'],
 ];
 
 function bideTabbar(): string
@@ -103,6 +125,51 @@ function bideChangelog(): string
     return $sHtml . '</details></section>';
 }
 
+function bideFaq(): string
+{
+    $sHtml = '<section class="bide-card bide-faq"><h3 data-i18n="bide.faq.title">Preguntas frecuentes</h3>';
+    foreach (BIDE_FAQ as $iIndex => [$sQuestion, $sAnswer]) {
+        $iNumber = $iIndex + 1;
+        $sHtml .= '<details class="bide-faq-item"><summary data-i18n="bide.faq.' . $iNumber . '.q">' . $sQuestion . '</summary>'
+            . '<p data-i18n="bide.faq.' . $iNumber . '.a">' . $sAnswer . '</p></details>';
+    }
+    return $sHtml . '</section>';
+}
+
+// Redes cuyo horario se guarda en el móvil para usarlo sin conexión. La lista la rellena js/bide-info.js.
+function bideOffline(): string
+{
+    return '<section class="bide-card bide-offline"><h3 data-i18n="bide.offline.title">Horarios sin conexión</h3>'
+        . '<p data-i18n="bide.offline.text">Guarda en el móvil el horario oficial de las redes que uses. Sin cobertura, las paradas mostrarán sus próximas salidas según el horario. Se actualiza solo cuando tienes conexión.</p>'
+        . '<ul class="bide-offline-list" data-bide-offline></ul></section>';
+}
+
+// Sugerencias y errores: el mensaje se manda por correo desde el móvil de quien escribe (o se copia).
+function bideFeedback(): string
+{
+    $aSite = require __DIR__ . '/../Config/site.php';
+    $sTypes = '';
+    foreach (['suggestion' => 'Sugerencia', 'error' => 'Error', 'other' => 'Otro'] as $sType => $sLabel) {
+        $sPressed = 'false';
+        if ($sType === 'suggestion') {
+            $sPressed = 'true';
+        }
+        $sTypes .= '<button type="button" data-feedback-type="' . $sType . '" aria-pressed="' . $sPressed . '" data-i18n="bide.feedback.' . $sType . '">' . $sLabel . '</button>';
+    }
+    // La versión es la fecha de la última novedad.
+    return '<section class="bide-card bide-feedback" data-feedback-email="' . htmlspecialchars($aSite['contact_email']) . '" data-feedback-version="' . BIDE_CHANGELOG[0][1] . '">'
+        . '<h3 data-i18n="bide.feedback.title">Sugerencias y errores</h3>'
+        . '<p data-i18n="bide.feedback.text">¿Algo no funciona o se te ocurre una mejora? Cuéntamelo y lo reviso.</p>'
+        . '<div class="bide-seg bide-feedback-types" role="group" data-i18n-attr="aria-label:bide.feedback.type" aria-label="Tipo de mensaje">' . $sTypes . '</div>'
+        . '<label class="bide-feedback-field"><span class="bide-visually-hidden" data-i18n="bide.feedback.message">Mensaje</span>'
+        . '<textarea maxlength="1500" rows="5" data-feedback-text data-i18n-attr="placeholder:bide.feedback.placeholder" placeholder="Cuéntame qué ha pasado o qué te gustaría, y en qué pantalla."></textarea>'
+        . '<span class="bide-feedback-count" data-feedback-count>0 / 1500</span></label>'
+        . '<label class="bide-feedback-tech"><input type="checkbox" checked data-feedback-tech><span><strong data-i18n="bide.feedback.tech">Incluir datos técnicos</strong><small data-i18n="bide.feedback.techHint">Versión, sistema y pantalla. Nunca tu ubicación ni tus datos.</small></span></label>'
+        . '<div class="bide-feedback-actions"><button type="button" class="bide-button" data-feedback-send data-i18n="bide.feedback.send">Enviar por correo</button>'
+        . '<button type="button" class="bide-button is-secondary" data-feedback-copy data-i18n="bide.feedback.copy">Copiar mensaje</button></div>'
+        . '<p class="bide-feedback-status" data-feedback-status role="status"></p></section>';
+}
+
 function bideViews(): string
 {
     $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
@@ -125,6 +192,9 @@ function bideViews(): string
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
+    $sHtml .= bideOffline();
+    $sHtml .= bideFaq();
+    $sHtml .= bideFeedback();
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><p>Bizkaibus (Open Data Bizkaia, CC-BY 4.0) · Metro Bilbao (horario y tiempo real: Consorcio de Transportes de Bizkaia, CC-BY 4.0) · Euskotren, Tranvía Bilbao y Tranvía Vitoria (Open Data Euskadi, CC-BY 4.0) · Renfe (NAP, Punto de Acceso Nacional de Transporte).</p></section>';
     $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</h3><p class="bide-links"><a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a><a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a></p></section>';
     $sHtml .= bideChangelog();

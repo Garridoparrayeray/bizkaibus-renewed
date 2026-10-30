@@ -139,6 +139,92 @@ html.bide .bide-changelog-more summary {
     html.bide .bide-changelog-more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
     html.bide .bide-changelog-close, html.bide .bide-changelog-more[open] .bide-changelog-open { display: none; }
     html.bide .bide-changelog-more[open] .bide-changelog-close { display: inline; }
+/* ===== Info: horarios sin conexión, preguntas frecuentes y sugerencias ===== */
+html.bide .bide-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+html.bide .bide-offline-list { margin: 4px 0 0; padding: 0; list-style: none; }
+    html.bide .bide-offline-item + .bide-offline-item { border-top: 1px solid var(--bide-line); }
+        html.bide .bide-offline-item label { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
+        html.bide .bide-offline-text { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; }
+            html.bide .bide-offline-text strong { font-size: .95rem; }
+            html.bide .bide-offline-detail { grid-column: 2; color: var(--bide-muted); font-size: .8rem; }
+    html.bide .bide-offline-unsupported { color: var(--bide-muted); font-size: .9rem; }
+html.bide .bide-toggle {
+    position: relative;
+    flex: none;
+    width: 46px;
+    height: 28px;
+    margin: 0;
+    border-radius: 999px;
+    background: var(--bide-line);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: background-color .18s ease;
+}
+    html.bide .bide-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .18s var(--bide-ease); }
+    html.bide .bide-toggle:checked { background: var(--primary, var(--bide-green)); }
+        html.bide .bide-toggle:checked::after { transform: translateX(18px); }
+    html.bide .bide-toggle:disabled { cursor: progress; opacity: .6; }
+    html.bide .bide-toggle:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
+html.bide .bide-faq-item { border-top: 1px solid var(--bide-line); }
+    html.bide .bide-faq-item:first-of-type { margin-top: 4px; }
+    html.bide .bide-faq-item summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 48px;
+        color: var(--bide-ink);
+        font-size: .95rem;
+        font-weight: 700;
+        list-style: none;
+        cursor: pointer;
+    }
+        html.bide .bide-faq-item summary::-webkit-details-marker { display: none; }
+        html.bide .bide-faq-item summary::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--primary, var(--bide-green)); border-bottom: 2px solid var(--primary, var(--bide-green)); transform: translateY(-2px) rotate(45deg); transition: transform .2s var(--bide-ease); }
+        html.bide .bide-faq-item[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+    html.bide .bide-faq-item p { padding: 0 0 14px; color: var(--bide-muted); }
+html.bide .bide-feedback { gap: 10px; }
+    html.bide .bide-feedback-types { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
+    html.bide .bide-feedback-field { position: relative; display: block; }
+        html.bide .bide-feedback-field textarea {
+            display: block;
+            width: 100%;
+            min-height: 120px;
+            padding: 12px 14px 26px;
+            border: 1px solid var(--bide-line);
+            border-radius: 12px;
+            background: var(--bide-surface);
+            color: var(--bide-ink);
+            font: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+            html.bide .bide-feedback-field textarea:focus-visible { outline: 3px solid var(--primary, var(--bide-green)); outline-offset: 1px; }
+        html.bide .bide-feedback-count { position: absolute; right: 12px; bottom: 8px; color: var(--bide-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+    html.bide .bide-feedback-tech { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+        html.bide .bide-feedback-tech input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--primary, var(--bide-green)); }
+        html.bide .bide-feedback-tech span { display: flex; flex-direction: column; gap: 2px; }
+            html.bide .bide-feedback-tech strong { font-size: .92rem; }
+            html.bide .bide-feedback-tech small { color: var(--bide-muted); font-size: .8rem; }
+    html.bide .bide-feedback-actions { display: grid; gap: 8px; }
+    html.bide .bide-feedback-status:empty { display: none; }
+    html.bide .bide-feedback-status { color: var(--bide-muted); font-size: .85rem; }
+html.bide .bide-button {
+    min-height: 46px;
+    padding: 0 16px;
+    border: 1px solid var(--primary, var(--bide-green));
+    border-radius: 12px;
+    background: var(--primary, var(--bide-green));
+    color: #fff;
+    font: inherit;
+    font-size: .92rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+    html.bide .bide-button.is-secondary { background: var(--bide-surface); color: var(--primary, var(--bide-green)); }
+    html.bide .bide-button:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
+
 html.bide .bide-alerts-toggle:not(:empty) { margin: 0 0 12px; padding: 14px 16px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); }
     html.bide .bide-alerts-toggle .alerts-toggle { margin: 0; }
 
@@ -411,7 +497,7 @@ html.bide body.page-menu .legal-close {
         html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
 
     html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
-        html.bide .bide-changelog { grid-column: 1 / -1; }
+        html.bide :is(.bide-changelog, .bide-faq, .bide-feedback) { grid-column: 1 / -1; }
     html.bide .bide-view[data-bide-view="favoritos"], html.bide .bide-view[data-bide-view="avisos"] { max-width: 880px; }
 }
 
@@ -420,4 +506,5 @@ html.bide body.page-menu .legal-close {
     html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: none; }
     html.bide .bide-rail-chevron { transition: none; }
     html.bide .bide-changelog-more summary::after { transition: none; }
+    html.bide .bide-faq-item summary::after, html.bide .bide-toggle, html.bide .bide-toggle::after { transition: none; }
 }
