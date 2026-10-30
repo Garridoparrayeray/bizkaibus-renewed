@@ -41,7 +41,7 @@ return [
         'platforms' => true,
         'headsign_from_last_stop' => true,
         'stop_hints' => false,
-        'line_map' => false,
+        'line_map' => true,
         'schedule_text' => false,
         'trip_detail' => 'vehicle',
         'alerts' => 'network',

@@ -16,9 +16,17 @@ class Stop
         $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops WHERE id = ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops WHERE id = ?',
-            [$iId]
+            [(string)$iId]
         );
         $aRow = $Stmt->fetch();
+        if (!$aRow && is_numeric($iId) && strlen((string)$iId) < 5) {
+            $Stmt = $this->safeQuery(
+                'SELECT id, name, area, lat, lon FROM stops WHERE id = ?',
+                'SELECT id, name, \'\' AS area, lat, lon FROM stops WHERE id = ?',
+                [str_pad((string)$iId, 5, '0', STR_PAD_LEFT)]
+            );
+            $aRow = $Stmt->fetch();
+        }
         if (!$aRow) {
             return null;
         }

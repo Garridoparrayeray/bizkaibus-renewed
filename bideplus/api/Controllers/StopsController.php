@@ -27,6 +27,7 @@ class StopsController
             Response::error('Stop not found', 404);
             return;
         }
+        $sStopId = (string)$aStop['id'];
         $aStop['lines'] = $StopModel->linesServing($sStopId);
         Response::json($aStop);
     }
@@ -72,7 +73,11 @@ class StopsController
 
         $aBest = null;
         foreach ($aStopIds as $Id) {
-            foreach ($JourneyModel->upcomingAtStop($Id, 3, 4 * 3600) as $aRow) {
+            $aUpcoming = $JourneyModel->upcomingAtStop($Id, 3, 4 * 3600);
+            if (empty($aUpcoming)) {
+                $aUpcoming = $JourneyModel->upcomingAtStop($Id, 3, 24 * 3600);
+            }
+            foreach ($aUpcoming as $aRow) {
                 if ((int)$aRow['departure_seconds'] < $iNow) {
                     continue;
                 }
@@ -108,6 +113,7 @@ class StopsController
             Response::error('Stop not found', 404);
             return;
         }
+        $sStopId = (string)$aStop['id'];
 
         $iLimit = $Req->queryInt('limit', 8);
         $JourneyModel = new ServiceJourney($Pdo);
@@ -132,6 +138,9 @@ class StopsController
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {
                 $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 4 * 3600);
+                if (empty($aRows)) {
+                    $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 24 * 3600);
+                }
                 $aEnriched = $Matcher->enrich($aRows);
                 if ($TripMatcher !== null) {
                     $aEnriched = $TripMatcher->enrich((string)$aPlatform['id'], $aEnriched);
@@ -155,6 +164,9 @@ class StopsController
         }
 
         $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600);
+        if (empty($aRows)) {
+            $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 24 * 3600);
+        }
 
         $aDirectionLabels = null;
         if ($iReferenceStopId !== null) {
