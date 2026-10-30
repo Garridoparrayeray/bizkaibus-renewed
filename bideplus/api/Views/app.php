@@ -323,8 +323,10 @@ use Core\Networks;
     <script src="/lib/leaflet/leaflet.js"></script>
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
+    <script src="/js/offline.js"></script>
     <script src="js/app.js"></script>
     <script src="/js/bide.js"></script>
+    <script src="/js/bide-info.js"></script>
     <script src="/js/sw-register.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>

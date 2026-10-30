@@ -1,5 +1,6 @@
 (() => {
-    const NETWORK = BideNetworks.get(window.__bbNetwork);
+    const NETWORK_SLUG = window.__bbNetwork;
+    const NETWORK = BideNetworks.get(NETWORK_SLUG);
     const FEATURES = NETWORK.features;
     const HAS_PLATFORMS = FEATURES.platforms;
     const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
@@ -112,6 +113,7 @@
         modalAlertsToggle: document.getElementById('modal-alerts-toggle'),
         modalAlerts: document.getElementById('modal-alerts'),
         modalStops: document.getElementById('modal-stops'),
+        netBanner: document.getElementById('net-banner'),
     };
 
     // Los textos de los operadores (nombres, destinos, avisos) nunca se insertan como HTML sin escapar.
@@ -367,12 +369,29 @@
         }
     }
 
+    // Sin conexión, la parada y sus salidas salen del horario guardado en el móvil (Info → Horarios sin conexión).
+    async function offlineSchedule() {
+        if (typeof BideOffline === 'undefined') return null;
+        return BideOffline.load(NETWORK_SLUG).catch(() => null);
+    }
+
+    function showOfflineSchedule(isOffline) {
+        const message = el.netBanner.querySelector('[data-i18n]');
+        let key = 'app.offline.banner';
+        if (isOffline) key = 'app.offline.saved';
+        message.dataset.i18n = key;
+        message.textContent = I18n.t(key);
+        if (isOffline) el.netBanner.hidden = false;
+    }
+
     async function selectStop(stopId) {
         let stop;
         try {
             stop = await Api.stop(stopId);
         } catch (e) {
-            return;
+            const saved = await offlineSchedule();
+            if (saved) stop = BideOffline.stop(saved, stopId);
+            if (!stop) return;
         }
         state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
         el.liveEmpty.hidden = true;
@@ -453,10 +472,15 @@
         try {
             data = await Api.stopDepartures(state.currentStop.id, 20);
         } catch (e) {
-            state.lastDepartures = null;
-            renderDepartures({ departures: [], platforms: [] });
-            return;
+            const saved = await offlineSchedule();
+            if (saved) data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
+            if (!data) {
+                state.lastDepartures = null;
+                renderDepartures({ departures: [], platforms: [] });
+                return;
+            }
         }
+        showOfflineSchedule(data.offline === true);
         state.lastDepartures = data;
         renderDepartures(data);
     }
@@ -1017,13 +1041,13 @@
 
     function renderLineMap(data) {
         if (!data || !data.line) return;
-        const net = BideNetworks.get(NETWORK.slug);
+        const net = BideNetworks.get(NETWORK_SLUG);
         const lineItem = {
             id: String(data.line.id),
             code: String(data.line.code),
             name: String(data.line.name),
-            network: NETWORK.slug,
-            networkName: BideNetworks.name(NETWORK.slug),
+            network: NETWORK_SLUG,
+            networkName: BideNetworks.name(NETWORK_SLUG),
             // El color de la app (el de la red, o el rosa de «mi amor»).
             color: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || net?.brand?.color || '#01573c',
         };
@@ -1617,16 +1641,15 @@
         loadFavorites();
     }
 
-    const netBanner = document.getElementById('net-banner');
     window.addEventListener('bb:api', (event) => {
-        netBanner.hidden = event.detail.ok;
+        el.netBanner.hidden = event.detail.ok;
     });
-    window.addEventListener('offline', () => { netBanner.hidden = false; });
-    window.addEventListener('online', () => { netBanner.hidden = true; });
+    window.addEventListener('offline', () => { el.netBanner.hidden = false; });
+    window.addEventListener('online', () => { el.netBanner.hidden = true; });
     document.getElementById('net-retry').addEventListener('click', () => {
         if (state.currentStop) loadDepartures();
         if (state.currentLine) loadTimetable();
-        if (!state.currentStop && !state.currentLine) netBanner.hidden = true;
+        if (!state.currentStop && !state.currentLine) el.netBanner.hidden = true;
     });
 
     el.homeLink.addEventListener('click', toggleNetworkMenu);
