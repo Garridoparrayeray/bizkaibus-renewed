@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v30';
+const CACHE_VERSION = 'v31';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
@@ -32,6 +32,7 @@ const SHELL_FILES = [
     '/style-menu.css',
     '/style-splash.css',
     '/js/splash.js',
+    '/js/theme.js',
     '/js/boot.js',
     '/js/header-brand.js',
     '/js/sw-register.js',

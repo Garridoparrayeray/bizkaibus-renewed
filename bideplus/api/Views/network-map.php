@@ -43,6 +43,8 @@ $jsonLd = [
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <link rel="stylesheet" href="/style-bide.css">
     <link rel="stylesheet" href="/style-map.css">
+    <link rel="stylesheet" href="/style-miamor.css">
+    <script src="/js/theme.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>
     <script src="/js/network-map.js" defer></script>

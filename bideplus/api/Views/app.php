@@ -43,9 +43,11 @@ use Core\Networks;
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <script src="/js/theme.js"></script>
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
     <link rel="stylesheet" href="/style-bide.css">
+    <link rel="stylesheet" href="/style-miamor.css">
 </head>
 <body class="page-app">
     <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>

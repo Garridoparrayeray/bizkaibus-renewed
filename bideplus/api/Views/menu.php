@@ -97,11 +97,13 @@ $jsonLd = [
     <link rel="stylesheet" href="/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/menu-view.js"></script>
+    <script src="/js/theme.js"></script>
     <script src="/js/bide-mode.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/style-menu.css">
     <link rel="stylesheet" href="/style-bide.css">
+    <link rel="stylesheet" href="/style-miamor.css">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-menu">
