@@ -21,6 +21,7 @@ use Controllers\TimetableController;
 use Controllers\RealtimeController;
 use Controllers\AlertsController;
 use Controllers\LiveRecordController;
+use Controllers\ArrivalAlertsController;
 
 $Req = new Request();
 
@@ -58,6 +59,12 @@ $Router->get('/status', [$Realtime, 'status'], 30);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);
 $Router->get('/live/history', [$LiveRecord, 'history']);
+
+// «Avísame cuando llegue»: el cron (/live/record) es quien manda los avisos.
+$ArrivalAlerts = new ArrivalAlertsController();
+$Router->get('/arrival-alerts/key', [$ArrivalAlerts, 'key']);
+$Router->post('/arrival-alerts', [$ArrivalAlerts, 'create']);
+$Router->post('/arrival-alerts/{id}/cancel', [$ArrivalAlerts, 'cancel']);
 
 try {
     $Router->dispatch($Req);

@@ -7,8 +7,10 @@ use Core\Live;
 use Core\Request;
 use Core\Response;
 use Core\Store;
+use Services\ArrivalAlerts;
 
-// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app.
+// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app, y de paso
+// mandar los avisos de llegada a los que ya les toca.
 // Sin la clave secreta (BIDE_CRON_SECRET) responde como si la ruta no existiera.
 class LiveRecordController
 {
@@ -23,11 +25,12 @@ class LiveRecordController
             return;
         }
         $iRecorded = Live::record();
+        $aArrivalAlerts = ArrivalAlerts::process();
         if ($iRecorded === null && Config::hasLive('vehicle-monitoring')) {
-            Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed'], 502);
+            Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed', 'arrivalAlerts' => $aArrivalAlerts], 502);
             return;
         }
-        Response::json(['network' => Config::current()['network'], 'recorded' => $iRecorded]);
+        Response::json(['network' => Config::current()['network'], 'recorded' => $iRecorded, 'arrivalAlerts' => $aArrivalAlerts]);
     }
 
     // Pasos por parada de una línea en un día: /api/live/history?line=3514&date=2026-10-29&key=… (misma clave que el cron).
