@@ -324,7 +324,7 @@ html.bide body.page-menu #legal-close {
     }
         html.bide .bide-tab svg { width: 22px; height: 22px; }
         /* La pestaña activa rellena todo su hueco con el color de la app en la que estás (Metro+ rojo, Bizkaibus+ verde...). En el inicio de Bide+ es verde. */
-        html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff; font-weight: 800; }
+        html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff !important; font-weight: 800; transition: none; }
     html.bide.is-standalone body { padding-bottom: calc(76px + min(env(safe-area-inset-bottom), 34px)); }
     html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + min(env(safe-area-inset-bottom), 34px)); }
     /* iPhone con indicador de inicio: en unas páginas iOS da el margen inferior (34 px) y en otras 0, y la barra quedaba a distinta altura. Se fija en 34 px en todas. */

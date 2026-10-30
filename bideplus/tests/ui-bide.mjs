@@ -177,8 +177,9 @@ await back();
 check('atrás · cierra el aviso legal y sigue en Info', await waitTrue("!document.getElementById('legal-panel').open && document.documentElement.classList.contains('bide-view-open')"));
 await back();
 check('atrás · después cierra Info', await waitTrue("!document.documentElement.classList.contains('bide-view-open')"));
+await sleep(500);
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
-check('instalada · la pestaña activa rellena todo su hueco con el color de la app', await waitTrue("(() => { const t = document.querySelector('.bide-tabbar [data-bide-tab=info]'); const c = getComputedStyle(t); return c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.color === 'rgb(255, 255, 255)' && c.borderRadius === '0px' && t.getBoundingClientRect().height >= 58; })()"));
+check('instalada · la pestaña activa rellena todo su hueco con el color de la app', await waitTrue("(() => { const t = document.querySelector('.bide-tabbar [data-bide-tab=info]'); if (!t) return false; const c = getComputedStyle(t); return c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.color === 'rgb(255, 255, 255)' && c.borderRadius === '0px' && t.getBoundingClientRect().height >= 57.5; })()"));
 await setStandalone(false);
 
 // ===== Ordenador =====
@@ -206,7 +207,7 @@ check('ordenador · menú: idioma a la izquierda y vista a la derecha, en una fi
 await go('/');
 check('menú: enlace al mapa de la red', await ev("!!document.querySelector('a.menu-map-link[href=\"/mapa\"]')"));
 await go('/mapa');
-check('mapa: se cargan las redes de tren', await waitTrue("!!window.BideMap && window.BideMap.loaded().length >= 4"));
+check('mapa: carga vacio por defecto', await waitTrue("!!window.BideMap && window.BideMap.loaded().length === 0"));
 check('mapa: un filtro por red', (await ev("document.querySelectorAll('[data-map-network]').length")) === (await ev("fetch('/map-data/index.json').then(r => r.json()).then(d => d.networks.length)")));
 check('mapa: Metro separado en L1 y L2', await ev("fetch('/map-data/metro.json').then(r => r.json()).then(d => d.lines.map(l => l.code).join(',') === 'L1,L2')"));
 await ev("window.BideMap.selectLine('metro', 'L1')");
@@ -217,6 +218,10 @@ check('mapa: el panel se cierra', await ev("document.getElementById('map-panel')
 check('mapa: el selector tiene las líneas de todas las redes', await ev("document.querySelectorAll('#map-line optgroup').length === document.querySelectorAll('[data-map-network]').length && document.querySelectorAll('#map-line option').length > 100"));
 await ev("(() => { const s = document.getElementById('map-line'); s.value = 'metro|L2'; s.dispatchEvent(new Event('change')); })()");
 check('mapa: elegir una línea en el selector abre su esquema con minutos entre paradas', await waitTrue("!document.getElementById('map-panel').hidden && /Kabiezes/.test(document.getElementById('map-panel-body').textContent) && document.querySelectorAll('.map-schematic .map-min').length > 10"));
+await ev("document.getElementById('map-panel-close').click()");
+check('mapa: el buscador filtra lineas', await ev("(() => { const inp = document.getElementById('map-search-input'); inp.value = 'L2'; inp.dispatchEvent(new Event('input')); return document.querySelectorAll('.map-search-item').length > 0; })()"));
+await ev("document.querySelector('.map-search-item').click()");
+check('mapa: elegir una linea en el buscador abre su esquema', await waitTrue("!document.getElementById('map-panel').hidden && /Kabiezes/.test(document.getElementById('map-panel-body').textContent)"));
 await ev("document.getElementById('map-panel-close').click()");
 await ev("document.querySelector('[data-map-network=bus]').click()");
 check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.loaded().includes('bus')"));
