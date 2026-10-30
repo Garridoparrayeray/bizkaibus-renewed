@@ -69,7 +69,8 @@ main {
     }
 
 /* ===== Colores por app ===== */
-.tile--bus { --c: var(--green); }
+/* El verde de Bizkaibus en una ficha grande se ve casi negro: uno algo más claro, con el brillo de las demás fichas. */
+.tile--bus { --c: #0B6E4C; }
 .tile--metro { --c: var(--red); }
 .tile--euskotren { --c: var(--blue); }
 .tile--tranvia-bilbao { --c: var(--tram-bilbao); }

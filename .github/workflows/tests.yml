@@ -50,6 +50,10 @@ jobs:
       - name: Datos del mapa de la red
         run: php scripts/build-network-map.php
 
+      # Los horarios sin conexión (offline-data/*.json) también salen de las bases.
+      - name: Horarios sin conexión
+        run: php scripts/build-offline-data.php
+
       - name: Start local server
         run: |
           PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
@@ -69,6 +73,9 @@ jobs:
 
       - name: API contract (campos y tipos que usa la app)
         run: python tests/api-contract.py
+
+      - name: Horarios sin conexión (las salidas guardadas son las de la API)
+        run: node tests/offline-schedule.mjs
 
       - name: UI battery
         env:

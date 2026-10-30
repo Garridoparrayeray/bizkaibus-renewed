@@ -10,7 +10,7 @@ python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unit
 O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal:
 
 ```
-python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
+python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
 ```
 
 | Script | Qué comprueba |
@@ -21,6 +21,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 | `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
 | `api-smoke.py` | Todas las rutas de la API en las tres redes (búsqueda, paradas, salidas, líneas, horarios, trenes, alertas, línea en vivo, 404) |
 | `api-contract.py` | Forma del JSON de cada ruta en las seis redes: campos que usa `app.js`, tipos, horas `HH:MM` y estados conocidos (`scheduled`, `live`, `departed`, `finished`). Añadir campos está permitido; quitar o renombrar uno rompe la prueba |
+| `offline-schedule.mjs` | Horarios sin conexión: las salidas que calcula `js/offline.js` con `offline-data/<red>.json` (de `scripts/build-offline-data.php`) son las del horario que da la API, en varias paradas de cada red |
 | `ui-battery.mjs` | Navegador headless en móvil y ordenador: cargar, buscar, ficha, favoritos, menú, horario completo, modal del tren, aviso legal, selector de app, enlaces directos, menú Bide+, tema «mi amor» y 404 reales. Falla si hay errores de consola o de red |
 | `ui-offline.mjs` | Que las cuatro páginas solo piden recursos propios (tipografías y Leaflet ya no vienen de Google ni unpkg), que las tipografías y el mapa cargan, y que con el servidor caído la app arranca desde el service worker y avisa de la falta de conexión |
 | `ui-alerts.mjs` | Avisos de incidencias por línea favorita: línea base sin notificar, aviso nuevo una sola vez, tope de 3 notificaciones más un resumen, fallos de la API, interruptor del menú (permiso concedido y denegado) y notificación real del service worker con sincronización periódica |

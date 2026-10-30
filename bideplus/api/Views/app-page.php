@@ -18,9 +18,7 @@ $aAppNames = array_map(fn($aOne) => Networks::text($aOne, 'name'), Networks::all
 
 $sSiteUrl = $aSite['url'];
 if ($bMiamorDomain) {
-    // Los que muestran la vista previa de un enlace (WhatsApp...) no ejecutan JavaScript: el tema se decide aquí.
-    $sNetworkSlug = Networks::DEFAULT;
-    $aNetwork = Networks::get($sNetworkSlug);
+    // Los que muestran la vista previa de un enlace (WhatsApp...) no ejecutan JavaScript: el texto se decide aquí.
     $sTitle = 'Para el amor de mi vida 💕';
     $sDescription = 'Horarios y tiempo real de tu transporte, hecho con cariño para ti.';
     $sSiteUrl = 'https://bideplusmiamor.vercel.app';

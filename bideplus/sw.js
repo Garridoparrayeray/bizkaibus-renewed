@@ -1,8 +1,10 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v30';
+const CACHE_VERSION = 'v32';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
+// Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
+const OFFLINE_CACHE_NAME = 'bide-offline';
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
 // página nueva hasta tenerlos, y mientras muestra el último fotograma de la anterior (con el «+» de carga parado).
 const SLOW_NETWORK_MS = 1500;
@@ -23,6 +25,8 @@ const SHELL_FILES = [
     '/lib/leaflet/images/marker-icon-2x.png',
     '/lib/leaflet/images/marker-shadow.png',
     '/js/api.js',
+    '/js/offline.js',
+    '/js/bide-info.js',
     '/js/app.js',
     '/js/networks.js',
     '/js/alerts-store.js',
@@ -32,6 +36,7 @@ const SHELL_FILES = [
     '/style-menu.css',
     '/style-splash.css',
     '/js/splash.js',
+    '/js/theme.js',
     '/js/boot.js',
     '/js/header-brand.js',
     '/js/sw-register.js',
@@ -82,7 +87,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((key) => key !== CACHE_NAME && key !== API_CACHE_NAME).map((key) => caches.delete(key)))
+            Promise.all(keys.filter((key) => ![CACHE_NAME, API_CACHE_NAME, OFFLINE_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
         )
     );
     self.clients.claim();
@@ -92,6 +97,9 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
     if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+        return;
+    }
+    if (url.pathname.startsWith('/offline-data/')) {
         return;
     }
     if (url.pathname.startsWith('/api/')) {
@@ -161,9 +169,26 @@ function networkFirst(request, timeoutMs) {
             })
             .catch(() => {
                 clearTimeout(timer);
-                caches.match(request).then((hit) => settle(hit || Response.error()));
+                caches.match(request).then((hit) => hit || appPageFallback(request)).then((hit) => settle(hit || Response.error()));
             });
     });
+}
+
+// Sin conexión, una parada o línea que no se había abierto antes se sirve con cualquier página guardada de su app: la
+// página mira la dirección y, con el horario guardado, pinta la parada.
+async function appPageFallback(request) {
+    const url = new URL(request.url);
+    if (!/^\/(stops|lines)\//.test(url.pathname)) return undefined;
+    const red = url.searchParams.get('red') || BideNetworks.DEFAULT;
+    const cache = await caches.open(CACHE_NAME);
+    for (const key of await cache.keys()) {
+        const cached = new URL(key.url);
+        let cachedRed = cached.searchParams.get('red');
+        if (!cachedRed) cachedRed = BideNetworks.DEFAULT;
+        const isAppPage = cached.pathname === '/' || /^\/(stops|lines)\//.test(cached.pathname);
+        if (isAppPage && cachedRed === red && (cached.pathname !== '/' || cached.searchParams.has('red'))) return cache.match(key);
+    }
+    return undefined;
 }
 
 async function notifyNewAlerts() {

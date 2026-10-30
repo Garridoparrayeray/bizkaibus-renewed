@@ -43,9 +43,11 @@ use Core\Networks;
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <script src="/js/theme.js"></script>
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
     <link rel="stylesheet" href="/style-bide.css">
+    <link rel="stylesheet" href="/style-miamor.css">
 </head>
 <body class="page-app">
     <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>
@@ -321,8 +323,10 @@ use Core\Networks;
     <script src="/lib/leaflet/leaflet.js"></script>
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
+    <script src="/js/offline.js"></script>
     <script src="js/app.js"></script>
     <script src="/js/bide.js"></script>
+    <script src="/js/bide-info.js"></script>
     <script src="/js/sw-register.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
