@@ -82,7 +82,10 @@
 /* ===== Menú ===== */
 /* Todas las fichas de las apps, del mismo rosa. */
 :root.is-miamor .tile { --c: var(--primary); }
-    :root.is-miamor a.tile { background: linear-gradient(135deg, #f472b6 0%, var(--primary) 55%, var(--primary-dark) 100%); }
+    /* Más claro arriba y el rosa de la app abajo, donde va el texto blanco (contraste 4,6:1). Nada más oscuro que eso. */
+    :root.is-miamor a.tile { background: linear-gradient(to bottom left, #f472b6 0%, #ec4899 40%, var(--primary) 75%); }
+    /* Sin el icono grande de fondo: con el color de cada red dejaba una mancha oscura en la esquina. */
+    :root.is-miamor .tile .mark { display: none; }
 :root.is-miamor .menu-map-link > svg:first-child { color: var(--bide-green); }
 
 /* ===== Pie ===== */
