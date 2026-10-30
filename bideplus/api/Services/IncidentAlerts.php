@@ -26,7 +26,9 @@ class IncidentAlerts
     private const RUN_EVERY_SECONDS = 270;
     private const TTL_SECONDS = 90 * 86400;
     private const MAX_SUBSCRIBERS = 20000;
+    // Los ids más largos tienen menos de 40 caracteres; con estos topes nadie llena el almacén con favoritos inventados.
     private const MAX_FAVORITES = 60;
+    private const MAX_TOTAL_FAVORITES = 150;
     private const MAX_SEEN = 300;
     private const SEEN_REFRESH_SECONDS = 86400;
     private const MAX_NOTIFICATIONS = 3;
@@ -35,7 +37,7 @@ class IncidentAlerts
     private const BODY_LENGTH = 180;
     // Una incidencia sigue valiendo unas horas después: si el móvil está apagado, le llega al encenderlo.
     private const PUSH_TTL_SECONDS = 6 * 3600;
-    private const ID_PATTERN = '/^[A-Za-z0-9:._-]{1,160}$/';
+    private const ID_PATTERN = '/^[A-Za-z0-9:._-]{1,64}$/';
     // Como en la app: sin título, «Incidencia» (y así la clave de la incidencia es la misma).
     private const UNTITLED = 'Incidencia';
     // Espacios que quita trim() en JavaScript.
@@ -78,14 +80,17 @@ class IncidentAlerts
         if (!is_array($aInput)) {
             return $aFavorites;
         }
+        $iLeft = self::MAX_TOTAL_FAVORITES;
         foreach (Networks::slugs() as $sNetwork) {
             $aEntry = $aInput[$sNetwork] ?? null;
             if (!is_array($aEntry)) {
                 continue;
             }
-            $aClean = ['lines' => self::ids($aEntry['lines'] ?? []), 'stops' => self::ids($aEntry['stops'] ?? [])];
-            if (!empty($aClean['lines']) || !empty($aClean['stops'])) {
-                $aFavorites[$sNetwork] = $aClean;
+            $aLines = array_slice(self::ids($aEntry['lines'] ?? []), 0, $iLeft);
+            $aStops = array_slice(self::ids($aEntry['stops'] ?? []), 0, $iLeft - count($aLines));
+            $iLeft -= count($aLines) + count($aStops);
+            if (!empty($aLines) || !empty($aStops)) {
+                $aFavorites[$sNetwork] = ['lines' => $aLines, 'stops' => $aStops];
             }
         }
         return $aFavorites;

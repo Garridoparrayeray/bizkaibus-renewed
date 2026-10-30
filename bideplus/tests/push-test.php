@@ -175,6 +175,9 @@ try {
     $expect('incidencias: la clave es la misma que en la app (js/alerts-store.js)', IncidentAlerts::key('bus', 'Obras en Abando', 'Desvío por la calle Bidebarrieta 🚧 hasta el día 3.') === 'bus:zvsnys');
     $aClean = IncidentAlerts::favorites(['bus' => ['lines' => ['3513', 3514, '3513', '<script>'], 'stops' => []], 'metro' => ['lines' => [], 'stops' => []], 'inventada' => ['lines' => ['A']]]);
     $expect('incidencias: favoritos limpios (redes que existen, ids válidos, sin repetir)', $aClean === ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], json_encode($aClean));
+    $aMany = IncidentAlerts::favorites(['bus' => ['lines' => range(1, 100), 'stops' => range(1, 100)], 'metro' => ['lines' => [], 'stops' => range(1, 100)], 'renfe' => ['lines' => [str_repeat('1', 65)], 'stops' => []]]);
+    $iTotal = array_sum(array_map(fn($aEntry) => count($aEntry['lines']) + count($aEntry['stops']), $aMany));
+    $expect('incidencias: como mucho 150 favoritos y sin ids larguísimos', $iTotal === 150 && !isset($aMany['renfe']), (string)$iTotal);
 
     $aFeeds = [
         'bus|3513' => [['summary' => 'Obras', 'description' => 'Desvío en Gernika A']],
