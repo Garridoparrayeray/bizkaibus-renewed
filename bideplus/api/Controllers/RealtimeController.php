@@ -240,18 +240,9 @@ class RealtimeController
             ];
         }, $aStops);
 
-        // Abierta desde una parada que el bus aún no ha pasado, el adelanto o retraso es el de esa parada, el mismo
-        // que la tarjeta; si no, el de la siguiente parada del bus.
         $iDelaySeconds = 0;
         if ($bLive) {
             $iDelaySeconds = $Matcher->displayDelaySeconds($aJourney['id'], $aLive);
-            $sFromStopId = $Req->query('stopId');
-            foreach ($aStops as $iIndex => $aStop) {
-                if ($sFromStopId !== null && (string)Ids::forOutput($aStop['stop_id']) === $sFromStopId && !$aStopsOut[$iIndex]['isPast']) {
-                    $iDelaySeconds = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order'])[1];
-                    break;
-                }
-            }
         }
 
         $sStatus = self::tripStatus($bLive, $aStops, $iNow);
