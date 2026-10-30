@@ -236,10 +236,14 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
-// ===== Tema «mi amor»: sin cambios =====
+// ===== Tema «mi amor»: la misma app que la normal, en rosa =====
 await phone();
 await go('/?red=bus&tema=miamor');
-check('«mi amor»: no usa la navegación de Bide+', (await ev("document.documentElement.classList.contains('bide')")) === false && (await ev(shown('.bide-tabbar'))) === false && (await ev(shown('.bide-rail'))) === false);
+check('«mi amor»: usa el formato de Bide+', await ev("document.documentElement.classList.contains('bide') && document.documentElement.classList.contains('is-miamor')"));
+check('«mi amor»: sus colores, también en otras redes', await ev("getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().toLowerCase() === '#db2777'"));
+check('«mi amor»: su subtítulo', await ev("document.getElementById('app-subtitle').textContent === 'Para el amor de mi vida'"));
+await go('/?red=metro&tema=miamor');
+check('«mi amor»: rosa también en Metro', await ev("getComputedStyle(document.documentElement).getPropertyValue('--primary').trim().toLowerCase() === '#db2777'"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];
