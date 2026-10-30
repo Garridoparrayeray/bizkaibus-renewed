@@ -20,12 +20,15 @@ print('ids que app.js busca y no existen en la plantilla:', missing_ids or 'ning
 if missing_ids:
     failures.append('ids de app.js sin elemento')
 
-css = open(ROOT + 'style-app.css', encoding='utf-8').read()
-css_ids = set(re.findall(r'#([a-zA-Z][\w-]*)', re.sub(r'#[0-9a-fA-F]{3,8}\b(?![\w-])', '', css)))
-orphan_css = sorted(i for i in css_ids if i not in ids_html and i not in ids_js and i != 'app-logomark')
-print('ids en CSS sin elemento en la plantilla:', orphan_css or 'ninguno')
-if orphan_css:
-    failures.append('ids de style-app.css sin elemento')
+# Los estilos van por clase: los id quedan para lo que busca el JavaScript.
+css_with_ids = []
+for f in sorted(glob.glob(ROOT + 'style*.css')):
+    css = re.sub(r'#[0-9a-fA-F]{3,8}\b(?![\w-])', '', open(f, encoding='utf-8').read())
+    if re.search(r'#[a-zA-Z][\w-]*', css):
+        css_with_ids.append(os.path.basename(f))
+print('hojas de estilo con selectores de id:', css_with_ids or 'ninguna')
+if css_with_ids:
+    failures.append('selectores de id en ' + ', '.join(css_with_ids))
 
 php_files = [f for f in glob.glob(ROOT + '**/*.php', recursive=True) if 'vendor' not in f]
 php_bad = 0
