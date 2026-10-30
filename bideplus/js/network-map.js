@@ -2,11 +2,13 @@
 // parada. Los datos (/map-data/*.json) se generan con las bases en cada reconstrucción; aquí solo se dibujan.
 (() => {
     const DATA_URL = '/map-data/';
-    // Las redes de tren se ven al entrar; las de autobús, más pesadas, al activarlas.
-    const DEFAULT_ON = ['metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria'];
+    // El mapa arranca vacío: las redes se ven al pulsar su filtro o al buscar una de sus líneas.
     const TRANSFER_METERS = 180;
-    const BUS_STOPS_MIN_ZOOM = 14;
+    const BUS_STOPS_MIN_ZOOM = 13;
     const RAIL_STOPS_MIN_ZOOM = 0;
+    // Con una línea elegida, las demás se quedan detrás pero se siguen viendo.
+    const DIMMED_OPACITY = 0.25;
+    const MAX_STOP_RESULTS = 8;
 
     const state = {
         map: null,
@@ -15,6 +17,7 @@
         networks: {},
         visible: new Set(),
         selectedLine: null,
+        selectionLayer: null,
     };
 
     const t = (key, vars) => {
@@ -60,6 +63,12 @@
         const b = value & 255;
         if ((0.299 * r + 0.587 * g + 0.114 * b) > 160) return '#111111';
         return '#ffffff';
+    }
+
+    function networkColor(slug) {
+        const info = state.index.find((n) => n.slug === slug);
+        if (!info) return '#555555';
+        return info.color;
     }
 
     function networkName(slug) {
@@ -112,7 +121,7 @@
         for (const [stopId, stop] of Object.entries(network.data.stops)) {
             const lines = [...(network.stopLines[stopId] || [])];
             let color = '#1c211d';
-        if (lines.length === 1) color = lines[0].color;
+            if (lines.length === 1) color = lines[0].color;
             const marker = L.circleMarker([stop[1], stop[2]], {
                 renderer: state.renderer,
                 radius: lineStyle(bus).radius,
@@ -157,14 +166,38 @@
                 if (button) button.classList.add('is-loading');
                 await loadNetwork(slug);
             }
-            showNetwork(slug, on);
+            // Mientras se cargaba se pudo volver a pulsar el filtro: manda lo último que se pidió.
+            showNetwork(slug, state.visible.has(slug));
         } catch (error) {
             state.visible.delete(slug);
             if (button) button.setAttribute('aria-pressed', 'false');
         } finally {
             if (button) button.classList.remove('is-loading');
         }
+        updateFiltersState();
         highlightSelection();
+    }
+
+    function updateFiltersState() {
+        for (const button of document.querySelectorAll('[data-map-network]')) {
+            const slug = button.dataset.mapNetwork;
+            button.setAttribute('aria-pressed', String(state.visible.has(slug)));
+        }
+        const hint = document.getElementById('map-hint');
+        if (hint) hint.hidden = state.visible.size > 0;
+        const clearBtn = document.getElementById('map-clear-all');
+        if (clearBtn) clearBtn.hidden = state.visible.size === 0;
+    }
+
+    async function clearAllNetworks() {
+        for (const slug of [...state.visible]) {
+            await toggleNetwork(slug, false);
+        }
+        closePanel();
+        const searchInput = document.getElementById('map-search-input');
+        if (searchInput) searchInput.value = '';
+        const clearBtn = document.getElementById('map-search-clear');
+        if (clearBtn) clearBtn.hidden = true;
     }
 
     // ---------- selección ----------
@@ -176,12 +209,19 @@
                 const isSelected = selected && layer.__line === selected.line;
                 let opacity = lineStyle(layer.__bus).opacity;
                 let weight = lineStyle(layer.__bus).weight;
-                if (selected && !isSelected) opacity = 0.18;
+                if (selected && !isSelected) opacity = DIMMED_OPACITY;
                 if (isSelected) weight += 3;
                 layer.setStyle({ opacity, weight });
                 if (isSelected) layer.bringToFront();
             }
         }
+    }
+
+    // Margen para encuadrar una línea sin que la tape el panel: a la derecha en el ordenador, abajo en el móvil.
+    function panelPadding() {
+        const panel = document.getElementById('map-panel').getBoundingClientRect();
+        if (window.innerWidth >= 760) return { paddingTopLeft: [40, 40], paddingBottomRight: [panel.width + 52, 40] };
+        return { paddingTopLeft: [24, 24], paddingBottomRight: [24, panel.height + 24] };
     }
 
     function openPanel() {
@@ -193,8 +233,40 @@
         document.getElementById('map-panel').hidden = true;
         document.body.classList.remove('has-panel');
         state.selectedLine = null;
-        document.getElementById('map-line').value = '';
+        const select = document.getElementById('map-line');
+        if (select) select.value = '';
+        drawSelection(null);
         highlightSelection();
+    }
+
+    // La línea elegida, encima de todo: su recorrido con un borde blanco y un punto en cada parada, a cualquier zoom.
+    function drawSelection(selection) {
+        if (state.selectionLayer) state.map.removeLayer(state.selectionLayer);
+        state.selectionLayer = null;
+        if (!selection) return;
+        const { network, line, pattern } = selection;
+        const layer = L.layerGroup();
+        const casing = { renderer: state.renderer, color: '#ffffff', weight: 10, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false };
+        const stroke = { renderer: state.renderer, color: line.color, weight: 6, opacity: 1, lineCap: 'round', lineJoin: 'round', interactive: false };
+        L.polyline(pattern.path, casing).addTo(layer);
+        L.polyline(pattern.path, stroke).addTo(layer);
+        for (const stopId of pattern.stops) {
+            const stop = network.data.stops[stopId];
+            if (!stop) continue;
+            const marker = L.circleMarker([stop[1], stop[2]], {
+                renderer: state.renderer,
+                radius: 5,
+                color: line.color,
+                weight: 3,
+                fillColor: '#ffffff',
+                fillOpacity: 1,
+            });
+            marker.bindTooltip(stop[0], { direction: 'top' });
+            marker.on('click', () => selectStop(network.slug, stopId));
+            marker.addTo(layer);
+        }
+        layer.addTo(state.map);
+        state.selectionLayer = layer;
     }
 
     // Transbordos de una parada: otras líneas en la misma parada y paradas cercanas de las redes cargadas.
@@ -236,7 +308,8 @@
 
     function selectLine(slug, line, patternIndex = 0) {
         state.selectedLine = { slug, line };
-        document.getElementById('map-line').value = `${slug}|${line.id}`;
+        const select = document.getElementById('map-line');
+        if (select) select.value = `${slug}|${line.id}`;
         highlightSelection();
         const body = document.getElementById('map-panel-body');
         body.replaceChildren();
@@ -272,6 +345,7 @@
 
         const pattern = line.patterns[patternIndex];
         const network = state.networks[slug];
+        drawSelection({ network, line, pattern });
         const list = el('ol', 'map-schematic');
         list.style.setProperty('--line-color', line.color);
         pattern.stops.forEach((stopId, index) => {
@@ -306,7 +380,7 @@
 
         openPanel();
         const bounds = L.latLngBounds(pattern.path);
-        if (bounds.isValid()) state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+        if (bounds.isValid()) state.map.fitBounds(bounds, { ...panelPadding(), maxZoom: 15 });
     }
 
     function selectStop(slug, stopId) {
@@ -383,6 +457,252 @@
         });
     }
 
+
+    function normalize(str) {
+        return (str || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function buildSearch() {
+        const input = document.getElementById('map-search-input');
+        const clear = document.getElementById('map-search-clear');
+        const results = document.getElementById('map-search-results');
+        if (!input || !results) return;
+
+        let activeIndex = -1;
+
+        function hideResults() {
+            results.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+        }
+
+        function highlightResult(index) {
+            const items = results.querySelectorAll('.map-search-item');
+            if (!items.length) return;
+            items.forEach((item, i) => {
+                const isCurrent = i === index;
+                item.classList.toggle('is-selected', isCurrent);
+                if (isCurrent) {
+                    item.scrollIntoView({ block: 'nearest' });
+                    input.setAttribute('aria-activedescendant', item.id);
+                }
+            });
+            activeIndex = index;
+        }
+
+        function doSearch() {
+            const query = input.value.trim();
+            if (clear) clear.hidden = query.length === 0;
+            if (!query) {
+                hideResults();
+                return;
+            }
+
+            const normQ = normalize(query);
+            const tokens = normQ.split(/\s+/).filter(Boolean);
+            if (!tokens.length) {
+                hideResults();
+                return;
+            }
+
+            // 1. Líneas de todas las redes en state.index
+            const lineMatches = [];
+            for (const net of state.index) {
+                const netName = networkName(net.slug);
+                const normNet = normalize(netName);
+                for (const line of net.lines) {
+                    const [id, code, name, color] = line;
+                    const normCode = normalize(code);
+                    const normName = normalize(name);
+                    const fullText = `${normCode} ${normName} ${normNet}`;
+                    if (tokens.every((tok) => fullText.includes(tok))) {
+                        let score = 10;
+                        if (normCode === normQ) score = 0;
+                        else if (normCode.startsWith(normQ)) score = 1;
+                        else if (normCode.includes(normQ)) score = 2;
+                        else if (normName.startsWith(normQ)) score = 3;
+                        lineMatches.push({ score, net, id, code, name, color });
+                    }
+                }
+            }
+
+            lineMatches.sort((a, b) => a.score - b.score || a.code.localeCompare(b.code));
+
+            // 2. Paradas de las redes cargadas (las de tren se cargan al empezar a buscar): primero las que empiezan así.
+            const stopMatches = [];
+            for (const [slug, net] of Object.entries(state.networks)) {
+                for (const [stopId, stop] of Object.entries(net.data.stops)) {
+                    const normStop = normalize(stop[0]);
+                    if (tokens.every((tok) => normStop.includes(tok))) {
+                        let score = 1;
+                        if (normStop.startsWith(normQ)) score = 0;
+                        stopMatches.push({ score, slug, stopId, name: stop[0] });
+                    }
+                }
+            }
+            stopMatches.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+            // Una parada por nombre y red: los dos sentidos de una calle se llaman igual.
+            const seenStops = new Set();
+            const uniqueStops = stopMatches.filter((m) => {
+                const key = `${m.slug}|${m.name}`;
+                if (seenStops.has(key)) return false;
+                seenStops.add(key);
+                return true;
+            });
+            stopMatches.splice(0, stopMatches.length, ...uniqueStops.slice(0, MAX_STOP_RESULTS));
+
+            results.replaceChildren();
+
+            const totalMatches = lineMatches.slice(0, 20);
+            if (totalMatches.length === 0 && stopMatches.length === 0) {
+                const emptyItem = el('li', 'map-search-empty', t('map.search.empty'));
+                results.appendChild(emptyItem);
+                results.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                return;
+            }
+
+            totalMatches.forEach((m, idx) => {
+                const li = el('li');
+                const btn = el('button', 'map-search-item');
+                btn.type = 'button';
+                btn.id = `map-opt-${idx}`;
+                btn.setAttribute('role', 'option');
+
+                const chip = lineChip({ code: m.code, color: m.color });
+                btn.appendChild(chip);
+
+                const info = el('div', 'map-search-info');
+                info.appendChild(el('span', 'map-search-title', m.name));
+                info.appendChild(el('span', 'map-search-net', networkName(m.net.slug)));
+                btn.appendChild(info);
+
+                btn.addEventListener('click', async () => {
+                    if (!state.visible.has(m.net.slug)) {
+                        await toggleNetwork(m.net.slug, true);
+                    }
+                    const fullLine = state.networks[m.net.slug]?.data.lines.find((l) => l.id === m.id);
+                    if (fullLine) {
+                        selectLine(m.net.slug, fullLine);
+                        input.value = `${m.code} · ${m.name}`;
+                        if (clear) clear.hidden = false;
+                    }
+                    hideResults();
+                });
+
+                li.appendChild(btn);
+                results.appendChild(li);
+            });
+
+            if (stopMatches.length > 0) {
+                stopMatches.forEach((s, idx) => {
+                    const li = el('li');
+                    const btn = el('button', 'map-search-item is-stop');
+                    btn.type = 'button';
+                    btn.id = `map-opt-stop-${idx}`;
+                    btn.setAttribute('role', 'option');
+
+                    const dot = el('span', 'map-stop-dot');
+                    dot.style.setProperty('--net-color', networkColor(s.slug));
+                    btn.appendChild(dot);
+
+                    const info = el('div', 'map-search-info');
+                    info.appendChild(el('span', 'map-search-title', s.name));
+                    info.appendChild(el('span', 'map-search-net', `${networkName(s.slug)} · ${t('map.search.stop')}`));
+                    btn.appendChild(info);
+
+                    btn.addEventListener('click', async () => {
+                        if (!state.visible.has(s.slug)) await toggleNetwork(s.slug, true);
+                        const stop = state.networks[s.slug]?.data.stops[s.stopId];
+                        if (stop) {
+                            state.map.setView([stop[1], stop[2]], Math.max(state.map.getZoom(), 15));
+                            selectStop(s.slug, s.stopId);
+                            input.value = s.name;
+                            if (clear) clear.hidden = false;
+                        }
+                        hideResults();
+                    });
+
+                    li.appendChild(btn);
+                    results.appendChild(li);
+                });
+            }
+
+            results.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            activeIndex = -1;
+        }
+
+        // Las paradas de tren, metro y tranvía pesan poco: se cargan al buscar para encontrar estaciones de redes ocultas.
+        let railLoading = null;
+        function loadRailForSearch() {
+            if (!railLoading) {
+                const rail = state.index.filter((n) => n.kind !== 'bus').map((n) => loadNetwork(n.slug).catch(() => null));
+                railLoading = Promise.all(rail).then(() => {
+                    if (input.value.trim()) doSearch();
+                });
+            }
+        }
+
+        input.addEventListener('input', () => {
+            loadRailForSearch();
+            doSearch();
+        });
+        input.addEventListener('focus', () => {
+            if (input.value.trim()) doSearch();
+        });
+
+        if (clear) {
+            clear.addEventListener('click', () => {
+                input.value = '';
+                clear.hidden = true;
+                hideResults();
+                input.focus();
+            });
+        }
+
+        input.addEventListener('keydown', (e) => {
+            const items = results.querySelectorAll('.map-search-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (results.hidden) doSearch();
+                else {
+                    const next = (activeIndex + 1) % items.length;
+                    highlightResult(next);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!results.hidden && items.length > 0) {
+                    const prev = (activeIndex - 1 + items.length) % items.length;
+                    highlightResult(prev);
+                }
+            } else if (e.key === 'Enter') {
+                if (!results.hidden && items.length > 0) {
+                    e.preventDefault();
+                    let target = items[0];
+                    if (activeIndex >= 0) target = items[activeIndex];
+                    if (target) target.click();
+                }
+            } else if (e.key === 'Escape') {
+                if (!results.hidden) {
+                    e.stopPropagation();
+                    hideResults();
+                }
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const bar = document.getElementById('map-search-bar');
+            if (bar && !bar.contains(e.target)) {
+                hideResults();
+            }
+        });
+    }
+
     function buildFilters() {
         const nav = document.getElementById('map-filters');
         nav.replaceChildren();
@@ -396,6 +716,12 @@
             button.addEventListener('click', () => toggleNetwork(info.slug, !state.visible.has(info.slug)));
             nav.appendChild(button);
         }
+        const clearBtn = el('button', 'map-filter map-filter-clear', t('map.clearAll'));
+        clearBtn.id = 'map-clear-all';
+        clearBtn.type = 'button';
+        clearBtn.hidden = true;
+        clearBtn.addEventListener('click', clearAllNetworks);
+        nav.appendChild(clearBtn);
     }
 
     async function start() {
@@ -422,7 +748,8 @@
             state.index = (await response.json()).networks;
             buildFilters();
             buildLinePicker();
-            await Promise.all(state.index.filter((n) => DEFAULT_ON.includes(n.slug)).map((n) => toggleNetwork(n.slug, true)));
+            buildSearch();
+            updateFiltersState();
             loading.hidden = true;
         } catch (error) {
             loading.textContent = t('map.error');
@@ -431,17 +758,30 @@
 
     // Para las pruebas de interfaz: abrir una línea o una parada sin tener que acertar con el ratón en el lienzo.
     window.BideMap = {
-        selectLine: (slug, lineId) => {
+        selectLine: async (slug, lineId) => {
+            if (!state.visible.has(slug)) {
+                await toggleNetwork(slug, true);
+            }
             const line = state.networks[slug] && state.networks[slug].data.lines.find((l) => l.id === lineId);
             if (line) selectLine(slug, line);
             return Boolean(line);
         },
-        selectStop: (slug, stopId) => {
+        selectStop: async (slug, stopId) => {
+            if (!state.visible.has(slug)) {
+                await toggleNetwork(slug, true);
+            }
             if (!state.networks[slug]) return false;
             selectStop(slug, String(stopId));
             return true;
         },
         loaded: () => Object.keys(state.networks),
+        search: (query) => {
+            const input = document.getElementById('map-search-input');
+            if (input) {
+                input.value = query;
+                input.dispatchEvent(new Event('input'));
+            }
+        },
     };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
