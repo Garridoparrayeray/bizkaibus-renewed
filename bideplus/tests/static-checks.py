@@ -27,7 +27,7 @@ print('ids en CSS sin elemento en shell.php:', orphan_css or 'ninguno')
 if orphan_css:
     failures.append('ids de style-app.css sin elemento')
 
-php_files = [f for f in glob.glob(ROOT + '**/*.php', recursive=True) if 'vendor' not in f and 'test_gtfs' not in f]
+php_files = [f for f in glob.glob(ROOT + '**/*.php', recursive=True) if 'vendor' not in f]
 php_bad = 0
 for f in php_files:
     r = subprocess.run([PHP, '-l', f], capture_output=True, text=True)
