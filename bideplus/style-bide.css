@@ -237,7 +237,6 @@ html.bide body.page-menu header { flex-wrap: wrap; align-items: center; row-gap:
     html.bide body.page-menu .header-controls { display: flex; flex: 1 1 100%; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; }
     html.bide body.page-menu .view-toggle.bide-seg { padding: 4px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); box-shadow: none; }
         html.bide body.page-menu .view-toggle.bide-seg button { width: auto; min-width: 48px; height: 34px; border-radius: 10px; box-shadow: none; }
-html.bide body.page-menu .menu-apps .tiles li:has(.soon) { order: 1; }
 html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; width: 100vw; max-width: none; margin: 24px 0 0 calc(50% - 50vw); padding: 26px 16px calc(28px + env(safe-area-inset-bottom)); background: var(--bide-green); color: #e3efe0; }
 html.bide:not(.is-standalone) body.page-menu { padding-bottom: 0; overflow-x: clip; }
     html.bide body.page-menu .menu-footer p { margin: 0; }

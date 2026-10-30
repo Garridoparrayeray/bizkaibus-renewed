@@ -693,27 +693,6 @@ tbody tr { cursor: pointer; }
         cursor: pointer;
     }
         .dev-footer a:hover, .dev-footer button.legal-open:hover { text-decoration: underline; }
-.theme-toggle-link {
-    position: fixed;
-    right: 10px;
-    bottom: 10px;
-    z-index: 30;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: 1px solid rgba(255, 255, 255, .5);
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .35);
-    text-decoration: none;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    opacity: .35;
-    transition: opacity .15s ease, transform .15s ease;
-}
-    .theme-toggle-link::before { content: '♥'; color: #db2777; font-size: .7rem; line-height: 1; }
-    .theme-toggle-link:hover, .theme-toggle-link:focus-visible { opacity: 1; transform: scale(1.15); }
 
 /* ===== Diálogos ===== */
 dialog {
