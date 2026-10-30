@@ -672,15 +672,15 @@ tbody tr { cursor: pointer; }
 /* ===== Pie ===== */
 .attribution { margin: 12px 0 4px; color: var(--text-secondary); font-size: .75rem; text-align: center; }
 .disclaimer { margin: 0 0 20px; padding: 0 20px; color: var(--text-secondary); font-size: .7rem; text-align: center; }
-.dev-footer {
+.app-footer {
     flex-shrink: 0;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     background: var(--primary);
     text-align: center;
 }
-    .dev-footer p { margin: 0 0 8px; color: rgba(255, 255, 255, .8); font-size: .78rem; }
-        .dev-footer p:last-child { margin-bottom: 0; }
-    .dev-footer a, .dev-footer button.legal-open {
+    .app-footer p { margin: 0 0 8px; color: rgba(255, 255, 255, .8); font-size: .78rem; }
+        .app-footer p:last-child { margin-bottom: 0; }
+    .app-footer a, .app-footer button.legal-open {
         margin: 0 10px;
         padding: 0;
         border: none;
@@ -692,7 +692,7 @@ tbody tr { cursor: pointer; }
         text-decoration: none;
         cursor: pointer;
     }
-        .dev-footer a:hover, .dev-footer button.legal-open:hover { text-decoration: underline; }
+        .app-footer a:hover, .app-footer button.legal-open:hover { text-decoration: underline; }
 
 /* ===== Diálogos ===== */
 dialog {
@@ -783,7 +783,7 @@ dialog {
 @media (min-width: 960px) {
     :root { --gutter: 24px; }
 
-    .dev-footer {
+    .app-footer {
         width: min(100% - var(--gutter) * 2, var(--container) - var(--gutter) * 2);
         margin: 8px auto 24px;
         border-radius: var(--radius);
