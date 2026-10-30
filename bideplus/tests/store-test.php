@@ -30,7 +30,7 @@ $Server = proc_open(
     [1 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w'], 2 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w']],
     $aPipes,
     null,
-    ['FAKE_UPSTASH_FILE' => $sDataFile]
+    array_filter(array_merge($_SERVER, $_ENV), 'is_string') + ['FAKE_UPSTASH_FILE' => $sDataFile]
 );
 for ($i = 0; $i < 50 && @fsockopen('127.0.0.1', $iPort) === false; $i++) {
     usleep(100000);

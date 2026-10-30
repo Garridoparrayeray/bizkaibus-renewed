@@ -3,7 +3,8 @@
 (() => {
     const DATA_URL = '/map-data/';
     // Las redes de tren se ven al entrar; las de autobús, más pesadas, al activarlas.
-    const DEFAULT_ON = ['metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria'];
+    // Las redes se activan al buscarlas o pulsando sus filtros; el mapa arranca vacío.
+    const DEFAULT_ON = [];
     const TRANSFER_METERS = 180;
     const BUS_STOPS_MIN_ZOOM = 14;
     const RAIL_STOPS_MIN_ZOOM = 0;
@@ -164,7 +165,30 @@
         } finally {
             if (button) button.classList.remove('is-loading');
         }
+        updateFiltersState();
         highlightSelection();
+    }
+
+    function updateFiltersState() {
+        for (const button of document.querySelectorAll('[data-map-network]')) {
+            const slug = button.dataset.mapNetwork;
+            button.setAttribute('aria-pressed', String(state.visible.has(slug)));
+        }
+        const hint = document.getElementById('map-hint');
+        if (hint) hint.hidden = state.visible.size > 0;
+        const clearBtn = document.getElementById('map-clear-all');
+        if (clearBtn) clearBtn.hidden = state.visible.size === 0;
+    }
+
+    async function clearAllNetworks() {
+        for (const slug of [...state.visible]) {
+            await toggleNetwork(slug, false);
+        }
+        closePanel();
+        const searchInput = document.getElementById('map-search-input');
+        if (searchInput) searchInput.value = '';
+        const clearBtn = document.getElementById('map-search-clear');
+        if (clearBtn) clearBtn.hidden = true;
     }
 
     // ---------- selección ----------
@@ -193,7 +217,8 @@
         document.getElementById('map-panel').hidden = true;
         document.body.classList.remove('has-panel');
         state.selectedLine = null;
-        document.getElementById('map-line').value = '';
+        const select = document.getElementById('map-line');
+        if (select) select.value = '';
         highlightSelection();
     }
 
@@ -236,7 +261,8 @@
 
     function selectLine(slug, line, patternIndex = 0) {
         state.selectedLine = { slug, line };
-        document.getElementById('map-line').value = `${slug}|${line.id}`;
+        const select = document.getElementById('map-line');
+        if (select) select.value = `${slug}|${line.id}`;
         highlightSelection();
         const body = document.getElementById('map-panel-body');
         body.replaceChildren();
@@ -383,6 +409,226 @@
         });
     }
 
+
+    function normalize(str) {
+        return (str || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function buildSearch() {
+        const input = document.getElementById('map-search-input');
+        const clear = document.getElementById('map-search-clear');
+        const results = document.getElementById('map-search-results');
+        if (!input || !results) return;
+
+        let activeIndex = -1;
+
+        function hideResults() {
+            results.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+        }
+
+        function highlightResult(index) {
+            const items = results.querySelectorAll('.map-search-item');
+            if (!items.length) return;
+            items.forEach((item, i) => {
+                const isCurrent = i === index;
+                item.classList.toggle('is-selected', isCurrent);
+                if (isCurrent) {
+                    item.scrollIntoView({ block: 'nearest' });
+                    input.setAttribute('aria-activedescendant', item.id);
+                }
+            });
+            activeIndex = index;
+        }
+
+        function doSearch() {
+            const query = input.value.trim();
+            if (clear) clear.hidden = query.length === 0;
+            if (!query) {
+                hideResults();
+                return;
+            }
+
+            const normQ = normalize(query);
+            const tokens = normQ.split(/\s+/).filter(Boolean);
+            if (!tokens.length) {
+                hideResults();
+                return;
+            }
+
+            // 1. Líneas de todas las redes en state.index
+            const lineMatches = [];
+            for (const net of state.index) {
+                const netName = networkName(net.slug);
+                const normNet = normalize(netName);
+                for (const line of net.lines) {
+                    const [id, code, name, color] = line;
+                    const normCode = normalize(code);
+                    const normName = normalize(name);
+                    const fullText = `${normCode} ${normName} ${normNet}`;
+                    if (tokens.every((tok) => fullText.includes(tok))) {
+                        let score = 10;
+                        if (normCode === normQ) score = 0;
+                        else if (normCode.startsWith(normQ)) score = 1;
+                        else if (normCode.includes(normQ)) score = 2;
+                        else if (normName.startsWith(normQ)) score = 3;
+                        lineMatches.push({ score, net, id, code, name, color });
+                    }
+                }
+            }
+
+            lineMatches.sort((a, b) => a.score - b.score || a.code.localeCompare(b.code));
+
+            // 2. Paradas de las redes actualmente cargadas
+            const stopMatches = [];
+            for (const [slug, net] of Object.entries(state.networks)) {
+                if (!state.visible.has(slug)) continue;
+                for (const [stopId, stop] of Object.entries(net.data.stops)) {
+                    const normStop = normalize(stop[0]);
+                    if (tokens.every((tok) => normStop.includes(tok))) {
+                        stopMatches.push({ slug, stopId, name: stop[0] });
+                        if (stopMatches.length >= 6) break;
+                    }
+                }
+                if (stopMatches.length >= 6) break;
+            }
+
+            results.replaceChildren();
+
+            const totalMatches = lineMatches.slice(0, 20);
+            if (totalMatches.length === 0 && stopMatches.length === 0) {
+                const emptyItem = el('li', 'map-search-empty', t('map.search.empty'));
+                results.appendChild(emptyItem);
+                results.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                return;
+            }
+
+            totalMatches.forEach((m, idx) => {
+                const li = el('li');
+                const btn = el('button', 'map-search-item');
+                btn.type = 'button';
+                btn.id = `map-opt-${idx}`;
+                btn.setAttribute('role', 'option');
+
+                const chip = lineChip({ code: m.code, color: m.color });
+                btn.appendChild(chip);
+
+                const info = el('div', 'map-search-info');
+                info.appendChild(el('span', 'map-search-title', m.name));
+                info.appendChild(el('span', 'map-search-net', networkName(m.net.slug)));
+                btn.appendChild(info);
+
+                btn.addEventListener('click', async () => {
+                    if (!state.visible.has(m.net.slug)) {
+                        await toggleNetwork(m.net.slug, true);
+                    }
+                    const fullLine = state.networks[m.net.slug]?.data.lines.find((l) => l.id === m.id);
+                    if (fullLine) {
+                        selectLine(m.net.slug, fullLine);
+                        input.value = `${m.code} · ${m.name}`;
+                        if (clear) clear.hidden = false;
+                    }
+                    hideResults();
+                });
+
+                li.appendChild(btn);
+                results.appendChild(li);
+            });
+
+            if (stopMatches.length > 0) {
+                stopMatches.forEach((s, idx) => {
+                    const li = el('li');
+                    const btn = el('button', 'map-search-item is-stop');
+                    btn.type = 'button';
+                    btn.id = `map-opt-stop-${idx}`;
+                    btn.setAttribute('role', 'option');
+
+                    const pin = el('span', 'map-stop-pin', '📍');
+                    btn.appendChild(pin);
+
+                    const info = el('div', 'map-search-info');
+                    info.appendChild(el('span', 'map-search-title', s.name));
+                    info.appendChild(el('span', 'map-search-net', `${networkName(s.slug)} · Parada`));
+                    btn.appendChild(info);
+
+                    btn.addEventListener('click', () => {
+                        const stop = state.networks[s.slug]?.data.stops[s.stopId];
+                        if (stop) {
+                            state.map.setView([stop[1], stop[2]], Math.max(state.map.getZoom(), 15));
+                            selectStop(s.slug, s.stopId);
+                            input.value = s.name;
+                            if (clear) clear.hidden = false;
+                        }
+                        hideResults();
+                    });
+
+                    li.appendChild(btn);
+                    results.appendChild(li);
+                });
+            }
+
+            results.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
+            activeIndex = -1;
+        }
+
+        input.addEventListener('input', doSearch);
+        input.addEventListener('focus', () => {
+            if (input.value.trim()) doSearch();
+        });
+
+        if (clear) {
+            clear.addEventListener('click', () => {
+                input.value = '';
+                clear.hidden = true;
+                hideResults();
+                input.focus();
+            });
+        }
+
+        input.addEventListener('keydown', (e) => {
+            const items = results.querySelectorAll('.map-search-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (results.hidden) doSearch();
+                else {
+                    const next = (activeIndex + 1) % items.length;
+                    highlightResult(next);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!results.hidden && items.length > 0) {
+                    const prev = (activeIndex - 1 + items.length) % items.length;
+                    highlightResult(prev);
+                }
+            } else if (e.key === 'Enter') {
+                if (!results.hidden && items.length > 0) {
+                    e.preventDefault();
+                    const target = activeIndex >= 0 ? items[activeIndex] : items[0];
+                    if (target) target.click();
+                }
+            } else if (e.key === 'Escape') {
+                if (!results.hidden) {
+                    e.stopPropagation();
+                    hideResults();
+                }
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const bar = document.getElementById('map-search-bar');
+            if (bar && !bar.contains(e.target)) {
+                hideResults();
+            }
+        });
+    }
+
     function buildFilters() {
         const nav = document.getElementById('map-filters');
         nav.replaceChildren();
@@ -396,6 +642,12 @@
             button.addEventListener('click', () => toggleNetwork(info.slug, !state.visible.has(info.slug)));
             nav.appendChild(button);
         }
+        const clearBtn = el('button', 'map-filter map-filter-clear', t('map.clearAll'));
+        clearBtn.id = 'map-clear-all';
+        clearBtn.type = 'button';
+        clearBtn.hidden = true;
+        clearBtn.addEventListener('click', clearAllNetworks);
+        nav.appendChild(clearBtn);
     }
 
     async function start() {
@@ -422,7 +674,9 @@
             state.index = (await response.json()).networks;
             buildFilters();
             buildLinePicker();
+            buildSearch();
             await Promise.all(state.index.filter((n) => DEFAULT_ON.includes(n.slug)).map((n) => toggleNetwork(n.slug, true)));
+            updateFiltersState();
             loading.hidden = true;
         } catch (error) {
             loading.textContent = t('map.error');
@@ -431,17 +685,30 @@
 
     // Para las pruebas de interfaz: abrir una línea o una parada sin tener que acertar con el ratón en el lienzo.
     window.BideMap = {
-        selectLine: (slug, lineId) => {
+        selectLine: async (slug, lineId) => {
+            if (!state.visible.has(slug)) {
+                await toggleNetwork(slug, true);
+            }
             const line = state.networks[slug] && state.networks[slug].data.lines.find((l) => l.id === lineId);
             if (line) selectLine(slug, line);
             return Boolean(line);
         },
-        selectStop: (slug, stopId) => {
+        selectStop: async (slug, stopId) => {
+            if (!state.visible.has(slug)) {
+                await toggleNetwork(slug, true);
+            }
             if (!state.networks[slug]) return false;
             selectStop(slug, String(stopId));
             return true;
         },
         loaded: () => Object.keys(state.networks),
+        search: (query) => {
+            const input = document.getElementById('map-search-input');
+            if (input) {
+                input.value = query;
+                input.dispatchEvent(new Event('input'));
+            }
+        },
     };
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

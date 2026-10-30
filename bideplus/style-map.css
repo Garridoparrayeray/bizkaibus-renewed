@@ -66,30 +66,184 @@ body.page-map {
         .map-filter.is-loading { cursor: progress; opacity: .6; }
         .map-filter:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
 
-/* ===== Selector de línea ===== */
-.map-picker {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+/* ===== Buscador de líneas ===== */
+.map-search-bar {
+    position: relative;
     padding: 0 16px 12px;
     background: var(--bide-surface);
     border-bottom: 1px solid var(--bide-line);
+    z-index: 550;
 }
-    .map-picker label { color: var(--bide-muted); font-size: .88rem; font-weight: 600; }
-    .map-picker select {
+.map-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    max-width: 580px;
+    height: 42px;
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    background: var(--bide-bg);
+    transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+    .map-search-box:focus-within {
+        border-color: var(--bide-green);
+        box-shadow: 0 0 0 3px rgba(0, 130, 72, .18);
+        background: var(--bide-surface);
+    }
+    .map-search-icon {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        margin-left: 12px;
+        color: var(--bide-muted);
+        pointer-events: none;
+    }
+    #map-search-input {
         flex: 1;
         min-width: 0;
-        max-width: 520px;
-        height: 40px;
-        padding: 0 12px;
-        border: 1px solid var(--bide-line);
-        border-radius: 14px;
-        background: var(--bide-surface);
+        height: 100%;
+        padding: 0 10px;
+        border: 0;
+        background: transparent;
         color: var(--bide-ink);
         font: inherit;
-        font-size: .92rem;
+        font-size: 16px;
+        outline: none;
     }
-        .map-picker select:focus-visible { outline: 3px solid var(--bide-green); outline-offset: 2px; }
+    #map-search-input::-webkit-search-cancel-button {
+        display: none;
+    }
+    .map-search-clear {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        margin-right: 6px;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--bide-muted);
+        cursor: pointer;
+    }
+        .map-search-clear:hover {
+            background: var(--bide-line);
+            color: var(--bide-ink);
+        }
+        .map-search-clear svg {
+            width: 16px;
+            height: 16px;
+        }
+
+.map-search-results {
+    position: absolute;
+    top: calc(100% - 4px);
+    left: 16px;
+    right: 16px;
+    max-width: 580px;
+    max-height: min(360px, 50vh);
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    background: var(--bide-surface);
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .14);
+    overflow-y: auto;
+    z-index: 600;
+}
+    .map-search-results[hidden] {
+        display: none;
+    }
+    .map-search-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 10px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--bide-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: background .1s ease;
+    }
+        .map-search-item:hover,
+        .map-search-item.is-selected {
+            background: var(--bide-bg);
+        }
+        .map-search-item:focus-visible {
+            outline: 2px solid var(--bide-green);
+            outline-offset: -1px;
+        }
+    .map-search-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .map-search-title {
+        font-size: .88rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .map-search-net {
+        font-size: .76rem;
+        color: var(--bide-muted);
+    }
+    .map-search-empty {
+        padding: 12px 14px;
+        color: var(--bide-muted);
+        font-size: .88rem;
+        text-align: center;
+    }
+    .map-stop-pin {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 22px;
+        font-size: .95rem;
+    }
+
+.map-picker { display: none; }
+
+.map-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    margin: 0;
+    padding: 10px 18px;
+    border: 1px solid var(--bide-line);
+    border-radius: 20px;
+    background: var(--bide-surface);
+    color: var(--bide-muted);
+    font-size: .86rem;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+    pointer-events: none;
+    text-align: center;
+    max-width: calc(100% - 32px);
+}
+    .map-hint[hidden] { display: none; }
+
+.map-filter-clear {
+    border-color: var(--bide-line);
+    color: var(--bide-muted);
+    margin-left: auto;
+}
+    .map-filter-clear:hover {
+        border-color: var(--bide-ink);
+        color: var(--bide-ink);
+    }
 
 /* ===== Mapa ===== */
 .map-main {
