@@ -71,21 +71,6 @@ class Stop
         return array_map(fn($aRow) => ['id' => Ids::forOutput($aRow['id']), 'label' => $aRow['platform_label']], $aRows);
     }
 
-    public function headsignsFor(int|string $iStopId, int $iLimit = 2): array
-    {
-        $Stmt = $this->Pdo->prepare('
-            SELECT DISTINCT jp.headsign
-            FROM journey_pattern_stops jps
-            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
-            WHERE jps.stop_id = ? AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
-            LIMIT ?
-        ');
-        $Stmt->bindValue(1, $iStopId);
-        $Stmt->bindValue(2, $iLimit, \PDO::PARAM_INT);
-        $Stmt->execute();
-        return $Stmt->fetchAll(\PDO::FETCH_COLUMN);
-    }
-
     public function nearest(float $dLat, float $dLon, int $iLimit = 5, int $iRadiusMeters = 2000): array
     {
         $dLatDelta = $iRadiusMeters / 111320;
