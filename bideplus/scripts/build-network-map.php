@@ -9,7 +9,7 @@ require __DIR__ . '/../api/Core/Networks.php';
 
 use Core\Networks;
 
-const SIMPLIFY_METERS = 12.0;
+const SIMPLIFY_METERS = 2.0;
 const MAX_PATTERNS_PER_LINE = 6;
 
 // Redes que publican varias líneas como una sola (Metro Bilbao: «MB» para L1 y L2). Cada línea del mapa sale del recorrido
