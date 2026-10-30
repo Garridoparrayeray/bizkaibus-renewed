@@ -11,3 +11,4 @@ __pycache__/
 
 # El algoritmo vive en un repositorio privado (Garridoparrayeray/bideplus-engine); los workflows lo colocan aqui.
 engine/
+map-data/

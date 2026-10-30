@@ -47,6 +47,10 @@
       "dest": "/api/index.php"
     },
     {
+      "src": "/mapa",
+      "dest": "/api/shell.php"
+    },
+    {
       "src": "/lines/(.*)",
       "dest": "/api/shell.php"
     },
