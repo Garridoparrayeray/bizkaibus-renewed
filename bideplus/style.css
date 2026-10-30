@@ -1,3 +1,6 @@
+/* Tema «mi amor» (?tema=miamor y bideplusmiamor.vercel.app): rosa, cristal y animaciones suaves. */
+
+/* ===== Variables ===== */
 :root {
     --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #ffc3a0 100%);
     --pink-light: #ff7eb3;
@@ -11,6 +14,7 @@
     --status-muted: #9ca3af;
 }
 
+/* ===== Base ===== */
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
@@ -61,6 +65,7 @@ body {
 
 .app-container { max-width: 450px; margin: 0 auto; position: relative; }
 
+/* ===== Componentes ===== */
 .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
@@ -130,6 +135,7 @@ body {
 .status-warn { color: var(--status-warn); font-weight: bold; }
 .status-muted { color: var(--status-muted); font-weight: bold; }
 
+/* ===== Cabecera ===== */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
 
 .home-link-wrap { display: inline-grid; grid-template-columns: max-content; position: relative; min-width: 0; }
@@ -140,7 +146,7 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .app-logomark { display: none; }
 .dev-footer { display: none; }
 
-.header-actions { flex-shrink: 0; }
+.header-actions { display: flex; flex-shrink: 0; gap: 8px; align-items: center; }
     .header-actions .btn-icon { width: 34px; height: 34px; }
         .header-actions .btn-icon svg { width: 16px; height: 16px; }
 
@@ -178,6 +184,7 @@ header p {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* ===== Buscador ===== */
 .search-form { position: relative; margin-bottom: 20px; }
 .search-input {
     width: 100%; box-sizing: border-box;
@@ -187,12 +194,12 @@ header p {
     font-size: 1rem; font-family: inherit;
     box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
 }
-.search-form > button {
-    position: absolute; right: 6px; top: 6px; bottom: 6px; width: 44px;
-    border: none; background: transparent; cursor: pointer;
-    color: var(--pink);
-    display: flex; align-items: center; justify-content: center;
-}
+    .search-form > button {
+        position: absolute; right: 6px; top: 6px; bottom: 6px; width: 44px;
+        border: none; background: transparent; cursor: pointer;
+        color: var(--pink);
+        display: flex; align-items: center; justify-content: center;
+    }
     .search-form > button svg { width: 20px; height: 20px; }
 .search-results {
     position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 8px);
@@ -207,8 +214,7 @@ header p {
         .search-results li:last-child { margin-bottom: 0; }
     .search-results .pill { width: 100%; box-sizing: border-box; text-align: left; }
 
-.header-actions { display: flex; gap: 8px; align-items: center; }
-
+/* ===== Favoritos ===== */
 .live-column { min-width: 0; }
 
 .favorites-panel {
@@ -234,6 +240,7 @@ header p {
     padding: 12px 4px; white-space: normal;
 }
 
+/* ===== Próxima salida (bus) ===== */
 .live-card { padding: 30px; position: relative; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     .live-card header { margin-bottom: 1rem; }
 .live-line { color: var(--pink-dark); font-weight: 700; margin: 0 0 4px; }
@@ -268,6 +275,7 @@ header p {
     .live-more-list span:last-child { color: var(--pink); font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 .live-empty { text-align: center; color: #886; opacity: 0.7; font-weight: 600; margin: 0 0 20px; }
 
+/* ===== Panel de andén (metro y Euskotren) ===== */
 .platform-panel {
     background: var(--glass-bg); border: var(--glass-border); border-radius: 24px;
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -305,6 +313,7 @@ header p {
     .platform-column-list span:first-child { flex: 1; color: rgba(255, 255, 255, 0.85); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .platform-column-list span:last-child { color: white; font-weight: 700; font-size: 0.8rem; white-space: nowrap; }
 
+/* ===== Horarios ===== */
 .timetable { padding: 25px; animation: cardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     .timetable header { display: flex; justify-content: space-between; align-items: center; margin: 0; }
     .timetable h2 { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; font-size: 1.2rem; margin: 0; font-weight: 700; }
@@ -332,8 +341,8 @@ header p {
 .table-scroll { overflow-x: auto; margin: 0 -25px; padding: 0 25px; }
 table { width: 100%; min-width: 320px; table-layout: fixed; border-collapse: separate; border-spacing: 0 10px; }
 th { color: var(--pink); text-align: left; padding: 0 10px; font-size: 0.9rem; }
-th:first-child, td:first-child { width: 22%; }
-th:last-child, td:last-child { width: 32%; }
+    th:first-child, td:first-child { width: 22%; }
+    th:last-child, td:last-child { width: 32%; }
 td { padding: 15px 10px; background: rgba(255, 255, 255, 0.3); overflow-wrap: break-word; }
     td:first-child { border-radius: 15px 0 0 15px; }
     td:last-child { border-radius: 0 15px 15px 0; }
@@ -350,9 +359,11 @@ tbody tr { cursor: pointer; }
 }
     .schedule-text-toggle:disabled { opacity: 0.6; cursor: default; }
 
+/* ===== Pie ===== */
 .attribution { text-align: center; font-size: 0.75rem; color: #88556b; opacity: 0.7; margin: 10px 0 4px; }
 .disclaimer { text-align: center; font-size: 0.7rem; color: #88556b; opacity: 0.55; margin: 0 0 30px; padding: 0 20px; }
 
+/* ===== Diálogos ===== */
 dialog.schedule-modal {
     border: var(--glass-border); border-radius: 30px; padding: 30px;
     max-width: 380px; width: 90vw; max-height: 80vh; overflow-y: auto;
@@ -426,6 +437,7 @@ dialog.side-menu {
     .schedule-block p { margin: 0 0 12px; font-size: 0.85rem; color: #444; line-height: 1.5; white-space: pre-line; }
         .schedule-block p:last-child { margin-bottom: 0; }
 
+/* ===== Selector de red ===== */
 .network-switcher {
     position: absolute; top: 100%; left: 0; width: 100%; z-index: 40;
     display: flex; flex-direction: column; gap: 4px;
@@ -461,6 +473,7 @@ dialog.side-menu {
         font-size: 0.76rem; color: #886; font-weight: 500;
     }
 
+/* ===== Escritorio ===== */
 @media (min-width: 960px) {
     .app-container { max-width: 1100px; }
 
@@ -490,6 +503,7 @@ dialog.side-menu {
     html.is-metro .platform-column { flex: 1; min-width: 0; }
 }
 
+/* ===== Aviso legal ===== */
 dialog.legal-panel {
     border: var(--glass-border, 1px solid rgba(0,0,0,0.1));
     border-radius: 30px;
@@ -500,25 +514,25 @@ dialog.legal-panel {
     color: var(--text, #444);
     box-shadow: var(--shadow-soft, 0 10px 25px rgba(0,0,0,0.1));
 }
-dialog.legal-panel::backdrop {
-    background: rgba(0, 0, 0, 0.35);
-    backdrop-filter: blur(4px);
-}
-dialog.legal-panel h3 {
-    font-family: inherit;
-    font-size: 1.2rem;
-    color: var(--pink-dark, inherit);
-    margin-bottom: 15px;
-}
-dialog.legal-panel p {
-    font-size: 0.85rem;
-    line-height: 1.5;
-    margin-bottom: 12px;
-}
-dialog.legal-panel strong {
-    color: inherit;
-    font-weight: 600;
-}
+    dialog.legal-panel::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(4px);
+    }
+    dialog.legal-panel h3 {
+        font-family: inherit;
+        font-size: 1.2rem;
+        color: var(--pink-dark, inherit);
+        margin-bottom: 15px;
+    }
+    dialog.legal-panel p {
+        font-size: 0.85rem;
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+    dialog.legal-panel strong {
+        color: inherit;
+        font-weight: 600;
+    }
 .legal-close {
     position: absolute;
     right: 20px;
@@ -536,6 +550,6 @@ dialog.legal-panel strong {
     margin: 0 10px;
     padding: 0;
 }
-.dev-footer button.legal-open:hover {
-    text-decoration: underline;
-}
+    .dev-footer button.legal-open:hover {
+        text-decoration: underline;
+    }
