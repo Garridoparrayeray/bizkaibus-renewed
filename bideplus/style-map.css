@@ -46,7 +46,6 @@ body.page-map {
     padding: 0 16px 12px;
     overflow-x: auto;
     background: var(--bide-surface);
-    border-bottom: 1px solid var(--bide-line);
     scrollbar-width: none;
 }
     .map-filters::-webkit-scrollbar { display: none; }
@@ -66,6 +65,31 @@ body.page-map {
         .map-filter[aria-pressed="true"] { background: var(--net-color); color: #fff; }
         .map-filter.is-loading { cursor: progress; opacity: .6; }
         .map-filter:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
+
+/* ===== Selector de línea ===== */
+.map-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px 12px;
+    background: var(--bide-surface);
+    border-bottom: 1px solid var(--bide-line);
+}
+    .map-picker label { color: var(--bide-muted); font-size: .88rem; font-weight: 600; }
+    .map-picker select {
+        flex: 1;
+        min-width: 0;
+        max-width: 520px;
+        height: 40px;
+        padding: 0 12px;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        font: inherit;
+        font-size: .92rem;
+    }
+        .map-picker select:focus-visible { outline: 3px solid var(--bide-green); outline-offset: 2px; }
 
 /* ===== Mapa ===== */
 .map-main {
@@ -195,13 +219,13 @@ body.page-map {
 
 /* ===== Esquema de la línea: barra del color de la línea y un punto por parada ===== */
 .map-schematic { margin: 0; padding: 0; list-style: none; }
-    .map-schematic li { position: relative; padding-left: 30px; }
+    .map-schematic li { position: relative; padding-left: 44px; }
         .map-schematic li::before {
             content: '';
             position: absolute;
             top: 0;
             bottom: 0;
-            left: 9px;
+            left: 23px;
             width: 6px;
             background: var(--line-color);
         }
@@ -211,7 +235,7 @@ body.page-map {
             content: '';
             position: absolute;
             top: 50%;
-            left: 5px;
+            left: 19px;
             width: 14px;
             height: 14px;
             margin-top: -7px;
@@ -219,8 +243,23 @@ body.page-map {
             border-radius: 50%;
             background: #fff;
         }
-        .map-schematic li.is-end::after { left: 3px; width: 18px; height: 18px; margin-top: -9px; border-width: 4px; }
+        .map-schematic li.is-end::after { left: 17px; width: 18px; height: 18px; margin-top: -9px; border-width: 4px; }
         .map-schematic li.is-end .map-stop-name { font-weight: 700; }
+    .map-min {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        transform: translateY(-50%);
+        min-width: 20px;
+        padding: 1px 4px;
+        border-radius: 6px;
+        background: var(--bide-bg);
+        color: var(--bide-muted);
+        font-size: .7rem;
+        font-weight: 700;
+        text-align: center;
+    }
     .map-stop {
         display: flex;
         align-items: center;
@@ -246,7 +285,9 @@ body.page-map {
         gap: 3px;
     }
         .map-transfers .map-chip { min-width: 24px; height: 18px; font-size: .66rem; }
-    .map-more { color: var(--bide-muted); font-size: .72rem; }
+    .map-more,
+    .map-bus-count { color: var(--bide-muted); font-size: .72rem; }
+    .map-bus-count { white-space: nowrap; }
 
 /* ===== Líneas y transbordos de una parada ===== */
 .map-line-list { display: flex; flex-direction: column; gap: 4px; }

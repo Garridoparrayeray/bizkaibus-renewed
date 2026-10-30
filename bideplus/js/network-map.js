@@ -193,6 +193,7 @@
         document.getElementById('map-panel').hidden = true;
         document.body.classList.remove('has-panel');
         state.selectedLine = null;
+        document.getElementById('map-line').value = '';
         highlightSelection();
     }
 
@@ -218,19 +219,24 @@
         return out;
     }
 
+    // Transbordos de una parada en el esquema: las líneas de tren, metro y tranvía una a una; las de autobús, contadas.
     function transferChips(transfers, limit) {
         const wrap = el('span', 'map-transfers');
-        for (const transfer of transfers.slice(0, limit)) {
+        const rail = transfers.filter((x) => !isBus(x.slug));
+        const buses = transfers.length - rail.length;
+        for (const transfer of rail.slice(0, limit)) {
             const chip = lineChip(transfer.line);
             chip.title = `${networkName(transfer.slug)} · ${transfer.line.name}`;
             wrap.appendChild(chip);
         }
-        if (transfers.length > limit) wrap.appendChild(el('span', 'map-more', `+${transfers.length - limit}`));
+        if (rail.length > limit) wrap.appendChild(el('span', 'map-more', `+${rail.length - limit}`));
+        if (buses > 0) wrap.appendChild(el('span', 'map-bus-count', t('map.buses', { n: buses })));
         return wrap;
     }
 
     function selectLine(slug, line, patternIndex = 0) {
         state.selectedLine = { slug, line };
+        document.getElementById('map-line').value = `${slug}|${line.id}`;
         highlightSelection();
         const body = document.getElementById('map-panel-body');
         body.replaceChildren();
@@ -245,12 +251,16 @@
 
         if (line.patterns.length > 1) {
             const tabs = el('div', 'map-patterns');
-            line.patterns.forEach((pattern, index) => {
-                const network = state.networks[slug];
+            const network = state.networks[slug];
+            // Cada recorrido por sus extremos («Bilbao → Balmaseda»): varios pueden ir al mismo destino.
+            const labels = line.patterns.map((pattern) => {
+                const first = network.data.stops[pattern.stops[0]];
                 const last = network.data.stops[pattern.stops[pattern.stops.length - 1]];
-                let label = pattern.headsign;
-                if (!label && last) label = last[0];
-                if (!label) label = String(index + 1);
+                return `${first[0]} → ${last[0]}`;
+            });
+            line.patterns.forEach((pattern, index) => {
+                let label = labels[index];
+                if (labels.indexOf(label) !== labels.lastIndexOf(label)) label += ` · ${t('map.stopsCount', { n: pattern.stops.length })}`;
                 const button = el('button', 'map-pattern', label);
                 button.type = 'button';
                 button.setAttribute('aria-pressed', String(index === patternIndex));
@@ -268,6 +278,10 @@
             const stop = network.data.stops[stopId];
             if (!stop) return;
             const item = el('li');
+            // Minutos desde la parada anterior, en la barra entre las dos.
+            if (index > 0 && pattern.mins && Number.isFinite(pattern.mins[index - 1])) {
+                item.appendChild(el('span', 'map-min', `${pattern.mins[index - 1]}'`));
+            }
             if (index === 0 || index === pattern.stops.length - 1) item.classList.add('is-end');
             const button = el('button', 'map-stop');
             button.type = 'button';
@@ -345,6 +359,30 @@
 
     // ---------- arranque ----------
 
+    // Selector de línea: todas las líneas de todas las redes, agrupadas por red. Elegir una de una red oculta la muestra.
+    function buildLinePicker() {
+        const select = document.getElementById('map-line');
+        select.replaceChildren(el('option', null, t('map.pickLine')));
+        select.firstChild.value = '';
+        for (const info of state.index) {
+            const group = el('optgroup');
+            group.label = networkName(info.slug);
+            for (const [id, code, name] of info.lines) {
+                const option = el('option', null, `${code} · ${name}`);
+                option.value = `${info.slug}|${id}`;
+                group.appendChild(option);
+            }
+            select.appendChild(group);
+        }
+        select.addEventListener('change', async () => {
+            if (!select.value) return;
+            const [slug, id] = select.value.split('|');
+            if (!state.visible.has(slug)) await toggleNetwork(slug, true);
+            const line = state.networks[slug] && state.networks[slug].data.lines.find((l) => l.id === id);
+            if (line) selectLine(slug, line);
+        });
+    }
+
     function buildFilters() {
         const nav = document.getElementById('map-filters');
         nav.replaceChildren();
@@ -383,6 +421,7 @@
             const response = await fetch(DATA_URL + 'index.json');
             state.index = (await response.json()).networks;
             buildFilters();
+            buildLinePicker();
             await Promise.all(state.index.filter((n) => DEFAULT_ON.includes(n.slug)).map((n) => toggleNetwork(n.slug, true)));
             loading.hidden = true;
         } catch (error) {

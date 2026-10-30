@@ -54,6 +54,10 @@ $jsonLd = [
         <h1 data-i18n="map.title">Mapa de la red</h1>
     </header>
     <nav class="map-filters" id="map-filters" data-i18n-attr="aria-label:map.filters" aria-label="Redes que se ven en el mapa"></nav>
+    <div class="map-picker">
+        <label for="map-line" data-i18n="map.line">Línea</label>
+        <select id="map-line"></select>
+    </div>
     <main class="map-main">
         <div id="network-map" class="network-map" role="application" data-i18n-attr="aria-label:map.title" aria-label="Mapa de la red"></div>
         <p class="map-loading" id="map-loading" data-i18n="map.loading">Cargando líneas…</p>
