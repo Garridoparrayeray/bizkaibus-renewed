@@ -2,6 +2,7 @@
 import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, state } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
+import { showArrivalAlerts } from './arrival-alerts.js';
 
 /*
  * El recorrido abierto sigue el reloj: se vuelve a pedir cada 15 s (el ritmo del feed) y, entre peticiones, los
@@ -152,6 +153,7 @@ export async function openVehicleModal(tripKey) {
 
     el.modalStops.innerHTML = '';
     renderModalStops(data);
+    showArrivalAlerts(tripKey);
 
     el.modal.showModal();
     modalState.refreshTimer = setInterval(refreshVehicleModal, MODAL_REFRESH_MS);
@@ -191,6 +193,7 @@ async function openTripStopsModal(tripKey) {
         });
         el.modalStops.appendChild(li);
     }
+    showArrivalAlerts(tripKey);
 
     el.modal.showModal();
 }

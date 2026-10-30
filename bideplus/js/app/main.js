@@ -10,6 +10,7 @@ import { setUpScheduleModal } from './schedule-modal.js';
 import { modalState, renderModalHeader, renderModalStops, setUpVehicleModal } from './vehicle-modal.js';
 import { setUpSideMenu } from './side-menu.js';
 import { setUpAlerts } from './alerts.js';
+import { setUpArrivalAlerts } from './arrival-alerts.js';
 
 // El botón enseña el idioma al que cambia.
 function updateLangToggleLabel() {
@@ -55,6 +56,7 @@ setUpStop();
 setUpTimetable();
 setUpScheduleModal();
 setUpVehicleModal();
+setUpArrivalAlerts();
 setUpLineMap();
 loadFavorites();
 startRouting();

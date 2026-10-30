@@ -302,6 +302,16 @@ use Core\Networks;
         <p id="modal-headsign" class="modal-headsign"></p>
         <p id="modal-vehicle" class="modal-vehicle"></p>
         <button id="modal-share" class="modal-share" type="button" data-i18n="app.share.button">Compartir este viaje</button>
+        <section id="modal-notify" class="modal-notify" hidden>
+            <p class="modal-notify-title" data-i18n="app.notify.title">Avísame cuando llegue</p>
+            <div id="modal-notify-options" class="modal-notify-options" role="group" aria-label="Avísame cuando llegue" data-i18n-attr="aria-label:app.notify.title">
+                <button type="button" data-notify-minutes="2">2 min</button>
+                <button type="button" data-notify-minutes="5">5 min</button>
+                <button type="button" data-notify-minutes="10">10 min</button>
+            </div>
+            <button id="modal-notify-cancel" class="modal-notify-cancel" type="button" data-i18n="app.notify.cancel" hidden>Cancelar el aviso</button>
+            <p id="modal-notify-status" class="modal-notify-status" role="status"></p>
+        </section>
         <button id="modal-alerts-toggle" class="modal-alerts-toggle" type="button">Ver incidencias</button>
         <ul id="modal-alerts" class="modal-alerts" hidden></ul>
         <ol id="modal-stops" class="modal-stops"></ol>

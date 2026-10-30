@@ -752,6 +752,13 @@ dialog {
 .modal-alerts-toggle,
 .modal-share { display: block; width: 100%; margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-size: .88rem; font-weight: 600; cursor: pointer; }
     .modal-alerts-toggle:disabled { opacity: .7; cursor: default; }
+.modal-notify { margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+    .modal-notify-title { margin: 0 0 10px; color: var(--text); font-size: .88rem; font-weight: 700; }
+    .modal-notify-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .modal-notify-options button { padding: 10px 0; border: 1px solid var(--primary-light); border-radius: var(--radius-sm); background: var(--primary-tint); color: var(--primary); font-size: .88rem; font-weight: 700; cursor: pointer; }
+    .modal-notify-cancel { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--status-warn); font-size: .88rem; font-weight: 600; cursor: pointer; }
+    .modal-notify-status { margin: 10px 0 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.4; }
+        .modal-notify-status:empty { display: none; }
 .modal-alerts { margin: 0 0 14px; padding: 0; list-style: none; }
     .modal-alerts li { margin-bottom: 8px; padding: 10px 14px; border-radius: 10px; background: var(--warn-tint); color: var(--status-warn); font-size: .8rem; font-weight: 600; }
 .modal-stops { margin: 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }

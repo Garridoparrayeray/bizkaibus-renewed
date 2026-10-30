@@ -282,6 +282,44 @@ if (sharedTrip) {
     results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
 }
 
+// ===== Avísame cuando llegue =====
+// En local no hay almacén ni servicio de push: se simulan el servidor (clave y avisos) y la suscripción del navegador.
+if (sharedTrip) {
+    const tripUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`;
+    await go(tripUrl, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    check('avisos: sin almacén en el servidor, no se ofrecen', await ev("document.getElementById('modal-notify').hidden"));
+    const fakePush = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+        const realFetch = window.fetch.bind(window);
+        window.__alertCalls = [];
+        const json = (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+        window.fetch = async (url, init = {}) => {
+            const path = String(url);
+            if (path.includes('/api/arrival-alerts/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
+            if (path.includes('/cancel')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'cancelled' }); }
+            if (path.includes('/api/arrival-alerts')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'created', id: '0123456789abcdef01234567' }); }
+            return realFetch(url, init);
+        };
+        Object.defineProperty(window, 'Notification', { value: { permission: 'default', requestPermission: async () => 'granted' }, configurable: true });
+        const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/prueba', options: { applicationServerKey: null }, toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'x', auth: 'y' } }; }, unsubscribe: async () => true };
+        const registration = { pushManager: { getSubscription: async () => null, subscribe: async () => subscription } };
+        Object.defineProperty(navigator.serviceWorker, 'ready', { get: () => Promise.resolve(registration), configurable: true });
+    })();` });
+    await ev("localStorage.removeItem('bide-arrival-alerts'); true");
+    await go(tripUrl, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    check('avisos: la ficha ofrece 2, 5 y 10 min', await waitTrue("!document.getElementById('modal-notify').hidden && document.querySelectorAll('[data-notify-minutes]').length === 3"));
+    await ev("document.querySelector('[data-notify-minutes=\"5\"]').click(); true");
+    check('avisos: al elegir 5 min queda activo', await waitTrue("document.getElementById('modal-notify-status').textContent.includes('5 min') && !document.getElementById('modal-notify-cancel').hidden && document.getElementById('modal-notify-options').hidden"));
+    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
+    await ev("document.getElementById('modal-notify-cancel').click(); true");
+    check('avisos: se puede cancelar', await waitTrue("window.__alertCalls.some((call) => call.path.includes('/cancel')) && !document.getElementById('modal-notify-options').hidden"));
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakePush.identifier });
+    await ev("localStorage.removeItem('bide-arrival-alerts'); true");
+} else {
+    results.push('SKIP avisos: ahora no hay viajes en las paradas de prueba');
+}
+
 // ===== Pantalla de una parada =====
 await go('/stops/4255', 3000);
 check('pantalla: la tarjeta de la parada enlaza a su pantalla', await waitTrue("(document.getElementById('live-screen').getAttribute('href') || '') === '/pantalla/4255'"));

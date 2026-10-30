@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v33';
+const CACHE_VERSION = 'v34';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -42,6 +42,7 @@ const SHELL_FILES = [
     '/js/app/favorites.js',
     '/js/app/side-menu.js',
     '/js/app/alerts.js',
+    '/js/app/arrival-alerts.js',
     '/js/networks.js',
     '/js/alerts-store.js',
     '/js/menu.js',
@@ -215,6 +216,25 @@ self.addEventListener('periodicsync', (event) => {
     if (event.tag === 'line-alerts-check') {
         event.waitUntil(notifyNewAlerts());
     }
+});
+
+// «Avísame cuando llegue»: el servidor manda el texto ya listo (título, cuerpo y la dirección del viaje).
+self.addEventListener('push', (event) => {
+    let data = {};
+    try {
+        data = event.data.json();
+    } catch (e) {
+        data = {};
+    }
+    event.waitUntil(self.registration.showNotification(data.title || 'Bide+', {
+        body: data.body || '',
+        icon: '/icons-bide-rojo/icon-192.png',
+        badge: '/icons-bide-rojo/icon-192.png',
+        tag: data.tag || 'bide-arrival',
+        renotify: true,
+        vibrate: [200, 100, 200],
+        data: { url: data.url || '/' },
+    }));
 });
 
 self.addEventListener('notificationclick', (event) => {
