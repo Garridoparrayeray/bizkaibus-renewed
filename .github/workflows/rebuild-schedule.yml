@@ -122,6 +122,10 @@ jobs:
       - name: Rebuild network map data
         run: php bideplus/scripts/build-network-map.php
 
+      # Horarios sin conexión: el horario oficial de cada red, que el móvil guarda si la persona lo elige en Info.
+      - name: Rebuild offline timetables
+        run: php bideplus/scripts/build-offline-data.php
+
       # Puerta antes de desplegar: si las bases nuevas rompen el cálculo de llegadas, la
       # integridad de los datos o el contrato de la API, no se despliega y producción
       # sigue con el último despliegue bueno.
