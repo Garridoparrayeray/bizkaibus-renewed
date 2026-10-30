@@ -133,7 +133,6 @@ main {
 }
     a.tile:active { transform: scale(.98); }
     a.tile:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-    .tile .glyph { width: 46px; height: 46px; display: block; }
     .tile .appicon {
         display: block;
         width: 56px;
@@ -204,27 +203,6 @@ main {
             opacity: 1;
         }
 
-/* ===== Ficha "próximamente" ===== */
-.tile.soon {
-    background: transparent;
-    color: var(--muted);
-    border: 2px dashed #CFCBC0;
-}
-    .tile.soon strong { color: var(--ink); }
-    .tile.soon .glyph {
-        width: 46px;
-        height: 46px;
-        border-radius: 14px;
-        background: #F2A900;
-        color: var(--ink);
-        display: grid;
-        place-items: center;
-        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-weight: 800;
-        font-size: 1.5rem;
-    }
-    .tile.soon svg.glyph { padding: 9px; }
-
 /* ===== Selector de vista ===== */
 .view-toggle {
     display: inline-flex;
@@ -291,7 +269,6 @@ main {
         color: var(--ink);
     }
         [data-view="list"] a.tile:hover { border-color: #C9C5BB; background: #FAF9F6; }
-        [data-view="list"] .tile:not(.soon) .glyph,
         [data-view="list"] .tile .mark,
         [data-view="list"] .tile .go { display: none; }
         [data-view="list"] .tile .appicon {
@@ -318,11 +295,6 @@ main {
             height: 20px;
             color: #8C8A82;
         }
-        [data-view="list"] .tile.soon {
-            border: 1px dashed #CFCBC0;
-            background: #FAF9F6;
-        }
-            [data-view="list"] .tile.soon .glyph { flex: none; width: 56px; height: 56px; }
 
 /* ===== Página 404 ===== */
 .notfound {
