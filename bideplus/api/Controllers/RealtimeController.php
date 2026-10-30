@@ -192,22 +192,7 @@ class RealtimeController
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
 
-        $iNextSeqOrder = null;
-        if ($aPosition !== null) {
-            foreach ($aStops as $aStop) {
-                if ((int)$aStop['arrival_seconds'] >= $aPosition['scheduledSeconds']) {
-                    $iNextSeqOrder = (int)$aStop['seq_order'];
-                    break;
-                }
-            }
-        } elseif ($bLive) {
-            foreach ($aStops as $aStop) {
-                if ($aStop['stop_id'] === $aLive['currentStopId']) {
-                    $iNextSeqOrder = (int)$aStop['seq_order'];
-                    break;
-                }
-            }
-        }
+        $iNextSeqOrder = self::nextSeqOrder($aStops, $aPosition, $aLive, $bLive);
 
         $aStopsOut = array_map(function ($aStop) use ($Matcher, $aJourney, $aLive, $bLive, $aPosition, $iNextSeqOrder, $iNow) {
 
@@ -240,18 +225,9 @@ class RealtimeController
             ];
         }, $aStops);
 
-        // Abierta desde una parada que el bus aún no ha pasado, el adelanto o retraso es el de esa parada, el mismo
-        // que la tarjeta; si no, el de la siguiente parada del bus.
         $iDelaySeconds = 0;
         if ($bLive) {
-            $iDelaySeconds = $Matcher->displayDelaySeconds($aJourney['id'], $aLive);
-            $sFromStopId = $Req->query('stopId');
-            foreach ($aStops as $iIndex => $aStop) {
-                if ($sFromStopId !== null && (string)Ids::forOutput($aStop['stop_id']) === $sFromStopId && !$aStopsOut[$iIndex]['isPast']) {
-                    $iDelaySeconds = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order'])[1];
-                    break;
-                }
-            }
+            $iDelaySeconds = self::delaySeconds($Matcher, $aJourney['id'], $aLive, $aStops, $aStopsOut, $Req->query('stopId'));
         }
 
         $sStatus = self::tripStatus($bLive, $aStops, $iNow);
@@ -280,6 +256,32 @@ class RealtimeController
             'delayMinutes' => $iDelayMinutes,
             'stops' => $aStopsOut,
         ]);
+    }
+
+    // Orden de la siguiente parada del bus: por su posición GPS o, sin GPS, la última parada que registró.
+    private static function nextSeqOrder(array $aStops, array|null $aPosition, array|null $aLive, bool $bLive): int|null
+    {
+        foreach ($aStops as $aStop) {
+            if ($aPosition !== null && (int)$aStop['arrival_seconds'] >= $aPosition['scheduledSeconds']) {
+                return (int)$aStop['seq_order'];
+            }
+            if ($aPosition === null && $bLive && $aStop['stop_id'] === $aLive['currentStopId']) {
+                return (int)$aStop['seq_order'];
+            }
+        }
+        return null;
+    }
+
+    // Adelanto o retraso en la siguiente parada del bus. Abierta desde una parada que el bus aún no ha pasado, el de esa
+    // parada: el mismo que la tarjeta.
+    private static function delaySeconds(object $Matcher, string $sJourneyId, array $aLive, array $aStops, array $aStopsOut, string|null $sFromStopId): int
+    {
+        foreach ($aStops as $iIndex => $aStop) {
+            if ($sFromStopId !== null && (string)Ids::forOutput($aStop['stop_id']) === $sFromStopId && !$aStopsOut[$iIndex]['isPast']) {
+                return $Matcher->etaForStop($sJourneyId, (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order'])[1];
+            }
+        }
+        return $Matcher->displayDelaySeconds($sJourneyId, $aLive);
     }
 
     /*
