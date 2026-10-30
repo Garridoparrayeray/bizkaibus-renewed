@@ -26,6 +26,11 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-30', '30/10/2026', 26, 'Incidencias con la app cerrada', 'Los avisos de incidencias de tus favoritos llegan aunque no abras la app: los manda el servidor cada pocos minutos, de todas las apps a la vez. Si ya los tenías activados, pasan a funcionar así sin hacer nada.'],
+    ['2026-10-30', '30/10/2026', 25, 'Avísame cuando llegue', 'En la ficha de un viaje elige 2, 5 o 10 minutos y el móvil te avisa antes de que llegue a tu parada, aunque tengas la app cerrada. En iPhone, con Bide+ añadida a la pantalla de inicio.'],
+    ['2026-10-30', '30/10/2026', 24, 'Bide+ en inglés', 'Toda la app, también en inglés. Si tu móvil está en inglés, Bide+ se abre en inglés; puedes cambiar de idioma cuando quieras.'],
+    ['2026-10-30', '30/10/2026', 23, 'Pantalla de parada', 'Cada parada tiene su pantalla a tamaño completo con las próximas salidas y la hora, que se actualiza sola. Pensada para una tele o una tablet en un bar, un portal o una tienda.'],
+    ['2026-10-30', '30/10/2026', 22, 'Comparte tu viaje', 'Desde la ficha de un viaje, manda un enlace a quien quieras: lo abre en directo y ve por dónde va tu bus o tu tren y cuándo llega.'],
     ['2026-10-30', '30/10/2026', 21, 'Horarios sin conexión', 'Desde Info puedes guardar en el móvil el horario oficial de las redes que uses. Sin cobertura, cada parada sigue mostrando sus próximas salidas. Además, preguntas frecuentes y un apartado para mandar sugerencias o avisar de errores.'],
     ['2026-10-30', '30/10/2026', 20, 'Mapa de la red', 'Todas las líneas de las siete redes sobre el mapa, con el esquema de cada una, los minutos entre paradas y los transbordos. Puedes buscar cualquier línea o parada y encender cada red por separado.'],
     ['2026-10-30', '30/10/2026', 19, 'Autobuses sin GPS', 'Cuando un autobús no envía su posición, su llegada sale como «Estimado» y se calcula con lo que tardan de verdad los buses. La ficha del autobús da el mismo adelanto o retraso que la parada desde la que la abres.'],
