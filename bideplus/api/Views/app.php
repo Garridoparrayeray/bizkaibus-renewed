@@ -299,6 +299,7 @@ use Core\Networks;
         <h3 id="modal-line" class="modal-line"></h3>
         <p id="modal-headsign" class="modal-headsign"></p>
         <p id="modal-vehicle" class="modal-vehicle"></p>
+        <button id="modal-share" class="modal-share" type="button" data-i18n="app.share.button">Compartir este viaje</button>
         <button id="modal-alerts-toggle" class="modal-alerts-toggle" type="button">Ver incidencias</button>
         <ul id="modal-alerts" class="modal-alerts" hidden></ul>
         <ol id="modal-stops" class="modal-stops"></ol>

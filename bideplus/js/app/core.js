@@ -97,6 +97,7 @@ export const el = {
     modalLine: document.getElementById('modal-line'),
     modalHeadsign: document.getElementById('modal-headsign'),
     modalVehicle: document.getElementById('modal-vehicle'),
+    modalShare: document.getElementById('modal-share'),
     modalAlertsToggle: document.getElementById('modal-alerts-toggle'),
     modalAlerts: document.getElementById('modal-alerts'),
     modalStops: document.getElementById('modal-stops'),

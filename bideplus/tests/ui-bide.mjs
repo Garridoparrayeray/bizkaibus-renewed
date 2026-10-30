@@ -242,6 +242,30 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
+// ===== Compartir un viaje =====
+// El enlace compartido abre la parada con la ficha del viaje, y el botón manda el texto con el enlace.
+await phone();
+// Paradas con mucho paso, por si a esta hora alguna ya no tiene viajes (de noche queda Metro).
+let sharedTrip = null;
+let sharedStop = null;
+for (const [red, stop] of [['bus', '1137'], ['bus', '356'], ['bus', '4255'], ['metro', '7']]) {
+    const data = await (await fetch(`${BASE}/api/stops/${stop}/departures?limit=8&red=${red}`)).json();
+    sharedTrip = (data.departures || []).find(d => d.tripKey);
+    if (sharedTrip) {
+        sharedStop = { red, stop };
+        break;
+    }
+}
+if (sharedTrip) {
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    check('compartir: el enlace abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));
+    check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
+    await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
+    check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+} else {
+    results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
+}
+
 // ===== Tema «mi amor»: la misma app que la normal, en rosa =====
 await phone();
 await go('/?red=bus&tema=miamor');

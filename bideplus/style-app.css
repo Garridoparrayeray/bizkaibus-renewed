@@ -749,7 +749,8 @@ dialog {
 .modal-close, .schedule-modal-close, .menu-close, .legal-close { position: absolute; top: 16px; right: 16px; }
 .modal-headsign { margin: 4px 0 14px; color: var(--text-secondary); font-weight: 500; }
 .modal-vehicle { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; }
-.modal-alerts-toggle { display: block; width: 100%; margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-size: .88rem; font-weight: 600; cursor: pointer; }
+.modal-alerts-toggle,
+.modal-share { display: block; width: 100%; margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-size: .88rem; font-weight: 600; cursor: pointer; }
     .modal-alerts-toggle:disabled { opacity: .7; cursor: default; }
 .modal-alerts { margin: 0 0 14px; padding: 0; list-style: none; }
     .modal-alerts li { margin-bottom: 8px; padding: 10px 14px; border-radius: 10px; background: var(--warn-tint); color: var(--status-warn); font-size: .8rem; font-weight: 600; }
