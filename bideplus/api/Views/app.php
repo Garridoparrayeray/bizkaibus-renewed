@@ -211,19 +211,6 @@ use Core\Networks;
             </header>
             <p id="timetable-line" class="timetable-line"></p>
 
-            <div id="map-search-bar" class="map-search-bar">
-                <div class="map-search-box">
-                    <svg class="map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input id="map-search-input" class="map-search-input" type="search" autocomplete="off" placeholder="Buscar línea para ver en el mapa…" data-i18n-attr="placeholder:map.search.placeholder" aria-label="Buscar línea para ver en el mapa">
-                    <button id="map-search-clear" type="button" class="btn-icon map-search-clear" aria-label="Limpiar búsqueda" hidden>
-                        <?= BIDE_ICONS['close'] ?>
-                    </button>
-                </div>
-                <ul id="map-search-results" class="map-search-results" hidden></ul>
-                <div id="map-active-chips" class="map-active-chips"></div>
-                <button id="map-clear-all" type="button" class="btn-sm map-clear-btn map-clear-all" hidden data-i18n="map.clearAll">Quitar todas</button>
-            </div>
-
             <div id="line-map" class="line-map"></div>
             <p id="line-map-empty" class="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
 
