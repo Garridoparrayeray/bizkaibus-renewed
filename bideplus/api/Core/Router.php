@@ -12,6 +12,11 @@ class Router
         $this->add('GET', $sPattern, $Handler, $iCacheSeconds);
     }
 
+    public function post(string $sPattern, callable $Handler): void
+    {
+        $this->add('POST', $sPattern, $Handler);
+    }
+
     private function add(string $sMethod, string $sPattern, callable $Handler, int $iCacheSeconds = 0): void
     {
         $aParamNames = [];

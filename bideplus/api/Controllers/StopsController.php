@@ -104,18 +104,27 @@ class StopsController
 
     public function departures(Request $Req, array $aParams): void
     {
+        $aData = $this->departuresData($aParams['id'], $Req->queryInt('limit', 8));
+        if ($aData === null) {
+            Response::error('Stop not found', 404);
+            return;
+        }
+        Response::json($aData);
+    }
+
+    // Próximas salidas de una parada (o de los andenes de una estación) en la red actual, o null si no existe. Lo usan
+    // la API y los avisos de llegada, que así cuentan los minutos exactamente igual que la app.
+    public function departuresData(string $sStopId, int $iLimit): array|null
+    {
         $Pdo = Database::connection();
-        $sStopId = $aParams['id'];
         $StopModel = new Stop($Pdo);
 
         $aStop = $StopModel->find($sStopId);
         if ($aStop === null) {
-            Response::error('Stop not found', 404);
-            return;
+            return null;
         }
         $sStopId = (string)$aStop['id'];
 
-        $iLimit = $Req->queryInt('limit', 8);
         $JourneyModel = new ServiceJourney($Pdo);
         $aConfig = Config::current();
         $iReferenceStopId = null;
@@ -154,13 +163,12 @@ class StopsController
                 }
             }
 
-            Response::json([
+            return [
                 'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
                 'platforms' => $aPlatforms,
                 'departures' => $aDepartures,
                 'attribution' => $aConfig['attribution'],
-            ]);
-            return;
+            ];
         }
 
         $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600);
@@ -193,13 +201,13 @@ class StopsController
         }
         $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign), 0, $iLimit);
 
-        Response::json([
+        return [
             'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
             'platforms' => [],
             'directionLabels' => $aDirectionLabels,
             'departures' => $aDepartures,
             'attribution' => $aConfig['attribution'],
-        ]);
+        ];
     }
 
     private function buildDepartureItems(array $aEnriched, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array
