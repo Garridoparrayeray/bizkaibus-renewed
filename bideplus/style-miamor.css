@@ -27,6 +27,11 @@
     --bide-surface: #fffafc;
     --bide-bg: #fff0f6;
 
+    --paper: #fffafc;
+    --ink: #3b2530;
+    --muted: #7a5566;
+    --line: #f6cfe0;
+
     --miamor-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #ffc3a0 100%);
     --miamor-glass: rgba(255, 255, 255, .55);
     --miamor-glass-border: rgba(255, 255, 255, .75);
@@ -37,6 +42,7 @@
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
 }
+:root.is-miamor,
 :root.is-miamor body {
     background: var(--miamor-gradient) fixed;
     background-size: 200% 200%;
@@ -68,8 +74,17 @@
 :root.is-miamor :is(.live-card, .timetable, .platform-panel) { animation: miamor-card-in .45s cubic-bezier(.22, 1, .36, 1); }
 :root.is-miamor .is-favorite svg { animation: miamor-heart-pop .4s ease; }
 
+/* ===== Logotipo ===== */
+/* El logotipo de Bide+ (menú y mapa) es un SVG con sus colores puestos: se pintan con los del tema. */
+:root.is-miamor .wordmark [fill="#01573C"] { fill: var(--bide-green); }
+:root.is-miamor .wordmark [fill="#C8102E"] { fill: var(--bide-red); }
+
+/* ===== Menú ===== */
+/* Las fichas de cada app conservan el color de su red; el resto, rosa. */
+:root.is-miamor .menu-map-link > svg:first-child { color: var(--bide-green); }
+
 /* ===== Pie ===== */
-:root.is-miamor .bide-footer-title { color: #ffe0ee; }
+:root.is-miamor.bide body :is(.app-footer, .menu-footer) .bide-footer-title { color: #ffe0ee; }
 
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
