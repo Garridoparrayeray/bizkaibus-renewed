@@ -15,7 +15,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 
 | Script | Qué comprueba |
 |---|---|
-| `static-checks.py` | Sintaxis de PHP y JS, ids que usa `app.js` frente a `api/shell.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
+| `static-checks.py` | Sintaxis de PHP y JS, ids que usa `app.js` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
 | `build-test.php` | Funciones de `scripts/build-database.php`: al fusionar viajes iguales con calendarios distintos, una fecha solo queda anulada si ninguno de esos calendarios circula ese día. La lanza `static-checks.py` |
 | `unit-test.php` | Lógica sin servidor ni red, sobre una base de datos en memoria: `engine/`, parseo SIRI-VM, GTFS-Realtime de Metro Bilbao (con un feed real en `fixtures/`), registro de redes (`api/Networks`), `TripKey` y `Calendar`. La lanza `static-checks.py` |
 | `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |

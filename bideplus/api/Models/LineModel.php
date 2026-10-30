@@ -23,6 +23,27 @@ class LineModel
         return $aRow;
     }
 
+    // Paradas de una línea por orden alfabético, para los enlaces de su página.
+    public function stopsByName(int|string $iLineId, int $iLimit = 60): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT DISTINCT s.id, s.name FROM journey_pattern_stops jps
+            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+            JOIN stops s ON s.id = jps.stop_id
+            WHERE jp.line_id = ?
+            ORDER BY s.name
+            LIMIT ?
+        ');
+        $Stmt->bindValue(1, $iLineId);
+        $Stmt->bindValue(2, $iLimit, \PDO::PARAM_INT);
+        $Stmt->execute();
+        $aRows = $Stmt->fetchAll();
+        foreach ($aRows as &$aRow) {
+            $aRow['id'] = Ids::forOutput($aRow['id']);
+        }
+        return $aRows;
+    }
+
     public function all(): array
     {
         $aRows = $this->Pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll();
