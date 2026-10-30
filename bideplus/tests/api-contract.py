@@ -99,7 +99,9 @@ def check(value, schema, path, where):
         for i, item in enumerate(value[:25]):
             check(item, schema[0], f'{path}[{i}]', where)
         return
-    types = schema if isinstance(schema, tuple) else (schema,)
+    types = (schema,)
+    if isinstance(schema, tuple):
+        types = schema
     if isinstance(value, bool) and bool not in types:
         fails.append(f'{where} {path}: {types} esperado, llegó bool')
     elif not isinstance(value, types):
@@ -165,7 +167,10 @@ NETS = {
 def net(path, suffix):
     if not suffix:
         return path
-    return path + ('&' if '?' in path else '?') + suffix
+    separator = '?'
+    if '?' in path:
+        separator = '&'
+    return path + separator + suffix
 
 
 def enc(value):
@@ -220,9 +225,14 @@ for name, (q, s, (lat, lon)) in NETS.items():
         fails.append(f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)')
     if departures_seen == 0 and not quiet_hours:
         fails.append(f'{name}: ninguna parada muestra próximas salidas')
-    print(name, 'OK' if len(fails) == before else f'{len(fails) - before} fallos')
+    summary = 'OK'
+    if len(fails) != before:
+        summary = f'{len(fails) - before} fallos'
+    print(name, summary)
 
 print(f'RESULTADO contrato: {checked} comprobaciones, {len(fails)} fallos')
 for f in fails[:60]:
     print(' -', f)
-sys.exit(1 if fails else 0)
+if fails:
+    sys.exit(1)
+sys.exit(0)

@@ -35,7 +35,8 @@ ws.onmessage = e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 const waitTrue = async (expr, ms = 12000) => {
     const end = Date.now() + ms;
@@ -46,7 +47,12 @@ const waitTrue = async (expr, ms = 12000) => {
     return false;
 };
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 const go = async (url, wait = 3000) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 const primeGeolocation = () => Promise.race([ev("new Promise((res) => navigator.geolocation.getCurrentPosition(() => res(true), () => res(false), { maximumAge: 0, timeout: 5000 }))"), sleep(7000).then(() => 'sin respuesta')]);
 const resultsText = "(document.querySelector('#search-results .pill') || document.getElementById('search-results') || {}).innerText || ''";
@@ -93,4 +99,6 @@ console.log(results.join('\n'));
 console.log(`\nRESULTADO cerca de mi: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${unique.length} excepciones`);
 for (const p of unique.slice(0, 10)) console.log(' -', p);
 ws.close();
-shutdown(bad || unique.length ? 1 : 0);
+let exitCode = 0;
+if (bad || unique.length) exitCode = 1;
+shutdown(exitCode);

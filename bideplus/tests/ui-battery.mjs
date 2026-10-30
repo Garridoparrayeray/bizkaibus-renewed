@@ -44,13 +44,16 @@ ws.onmessage = e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
 
 const results = [];
 const check = (name, ok, extra = '') => {
-    const line = `${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`;
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
     results.push(line);
     if (process.env.VERBOSE) console.log(line);
 };
@@ -80,8 +83,10 @@ const apps = [
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
-const sizeFilter = process.env.SIZES ? process.env.SIZES.split(',') : null;
-const appFilter = process.env.APPS ? process.env.APPS.split(',') : null;
+let sizeFilter = null;
+if (process.env.SIZES) sizeFilter = process.env.SIZES.split(',');
+let appFilter = null;
+if (process.env.APPS) appFilter = process.env.APPS.split(',');
 for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n)))) {
     await send('Emulation.setDeviceMetricsOverride', { width: size.w, height: size.h, deviceScaleFactor: 1, mobile: size.m });
     for (const a of apps) {
@@ -89,7 +94,9 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         const tag = `${a.key}/${size.n}`;
         where = tag;
         await go(a.url);
-        check(`${tag} carga con estilos`, (await ev("getComputedStyle(document.querySelector('header')).position")) === (size.m ? 'sticky' : 'static'));
+        let headerPosition = 'static';
+        if (size.m) headerPosition = 'sticky';
+        check(`${tag} carga con estilos`, (await ev("getComputedStyle(document.querySelector('header')).position")) === headerPosition);
         check(`${tag} sin scroll horizontal`, (await ev('document.documentElement.scrollWidth - document.documentElement.clientWidth')) <= 0);
         await search(a.q);
         check(`${tag} aparecen resultados de busqueda`, (await ev("document.querySelectorAll('#search-results .pill').length")) > 0);
@@ -132,14 +139,18 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
         check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         // Hoy el aviso solo sale si el horario publicado ya terminó (bases del repositorio sin reconstruir): entonces debe citar una fecha pasada.
-        const noteToday = await ev("document.getElementById('timetable-note').hidden ? '' : document.getElementById('timetable-note').textContent");
+        const noteToday = await ev("(() => { const note = document.getElementById('timetable-note'); if (note.hidden) return ''; return note.textContent; })()");
         const publishedUntil = (noteToday.match(/(\d{2})\/(\d{2})\/(\d{4})/) || []).slice(1).reverse().join('-');
-        check(`${tag} aviso de fecha sin publicar oculto hoy`, noteToday === '' || (publishedUntil !== '' && publishedUntil < localToday), noteToday ? `publicado hasta ${publishedUntil}` : '');
+        let noteDetail = '';
+        if (noteToday) noteDetail = `publicado hasta ${publishedUntil}`;
+        check(`${tag} aviso de fecha sin publicar oculto hoy`, noteToday === '' || (publishedUntil !== '' && publishedUntil < localToday), noteDetail);
         await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-        await until(noteToday === '' ? "document.getElementById('timetable-note').hidden" : "!document.getElementById('timetable-note').hidden");
+        let noteBack = "!document.getElementById('timetable-note').hidden";
+        if (noteToday === '') noteBack = "document.getElementById('timetable-note').hidden";
+        await until(noteBack);
         check(`${tag} aviso vuelve a ocultarse al volver a hoy`, (await ev("document.getElementById('timetable-note').hidden")) === (noteToday === ''));
         await ev("document.querySelector('#timetable-body tr').click()");
         await until("document.getElementById('vehicle-modal').open");
@@ -150,7 +161,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             if (liveModal) {
                 const pastBefore = await ev("document.querySelectorAll('#modal-stops .stop-past').length");
                 // Se adelanta el reloj hasta pasada la próxima parada (de noche el tren puede tardar más de 10 min en llegar a ella).
-                const nextMin = await ev("(() => { const li = [...document.querySelectorAll('#modal-stops li')].find((x) => !x.classList.contains('stop-past') && / · \\d+ min$/.test(x.textContent)); return li ? Number(li.textContent.match(/ · (\\d+) min$/)[1]) : 10; })()");
+                const nextMin = await ev("(() => { const li = [...document.querySelectorAll('#modal-stops li')].find((x) => !x.classList.contains('stop-past') && / · \\d+ min$/.test(x.textContent)); if (!li) return 10; return Number(li.textContent.match(/ · (\\d+) min$/)[1]); })()");
                 const jumpMs = (Math.max(nextMin, 0) + 2) * 60000;
                 await ev(`(()=>{window.__realNow = Date.now.bind(Date);Date.now=()=>window.__realNow()+${jumpMs};})()`);
                 await sleep(11500);
@@ -239,4 +250,6 @@ console.log(results.join('\n'));
 console.log(`\nRESULTADO UI: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${results.filter(r => r.startsWith('SKIP')).length} SKIP, ${unique.length} problemas de consola/red`);
 for (const p of unique.slice(0, 25)) console.log(' -', p);
 ws.close();
-shutdown(bad || unique.length ? 1 : 0);
+let exitCode = 0;
+if (bad || unique.length) exitCode = 1;
+shutdown(exitCode);

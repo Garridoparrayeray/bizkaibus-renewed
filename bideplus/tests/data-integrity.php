@@ -12,7 +12,14 @@ $aDatabases = array_values(array_map(fn($aNetwork) => $aNetwork['db'], \Core\Net
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {
-    echo ($ok ? 'OK  ' : 'MAL ') . $name . ($detail === '' ? '' : '  [' . $detail . ']') . "\n";
+    $line = 'OK  ' . $name;
+    if (!$ok) {
+        $line = 'MAL ' . $name;
+    }
+    if ($detail !== '') {
+        $line .= '  [' . $detail . ']';
+    }
+    echo $line . "\n";
     if (!$ok) {
         $failures[] = $name;
     }
@@ -25,7 +32,16 @@ foreach ($aDatabases as $sName) {
         $expect($sName . ': existe data/' . $sName . '.sqlite', false);
         continue;
     }
-    $Pdo = new PDO('sqlite:' . $sPath, null, null, [constant(defined('Pdo\\Sqlite::ATTR_OPEN_FLAGS') ? 'Pdo\\Sqlite::ATTR_OPEN_FLAGS' : 'PDO::SQLITE_ATTR_OPEN_FLAGS') => constant(defined('Pdo\\Sqlite::OPEN_READONLY') ? 'Pdo\\Sqlite::OPEN_READONLY' : 'PDO::SQLITE_OPEN_READONLY')]);
+    // PHP 8.4 tiene las constantes en Pdo\\Sqlite; antes, en PDO.
+    $sOpenFlags = 'PDO::SQLITE_ATTR_OPEN_FLAGS';
+    if (defined('Pdo\\Sqlite::ATTR_OPEN_FLAGS')) {
+        $sOpenFlags = 'Pdo\\Sqlite::ATTR_OPEN_FLAGS';
+    }
+    $sReadOnly = 'PDO::SQLITE_OPEN_READONLY';
+    if (defined('Pdo\\Sqlite::OPEN_READONLY')) {
+        $sReadOnly = 'Pdo\\Sqlite::OPEN_READONLY';
+    }
+    $Pdo = new PDO('sqlite:' . $sPath, null, null, [constant($sOpenFlags) => constant($sReadOnly)]);
     $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $count = fn(string $sSql): int => (int)$Pdo->query($sSql)->fetchColumn();
     $aTables = $Pdo->query("SELECT name FROM sqlite_master WHERE type = 'table'")->fetchAll(PDO::FETCH_COLUMN);
@@ -136,5 +152,9 @@ foreach ($aDatabases as $sName) {
     }
 }
 
-echo "\nRESULTADO datos: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
-exit(empty($failures) ? 0 : 1);
+if (!empty($failures)) {
+    echo "\nRESULTADO datos: FALLA -> " . implode('; ', $failures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO datos: OK\n";
+exit(0);

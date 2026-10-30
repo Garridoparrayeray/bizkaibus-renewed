@@ -21,7 +21,14 @@ use Engine\Metro\TripUpdatesMatcher;
 
 $failures = [];
 $expect = function (string $name, bool $ok, string $detail = '') use (&$failures): void {
-    echo ($ok ? 'OK  ' : 'MAL ') . $name . ($ok || $detail === '' ? '' : '  [' . $detail . ']') . "\n";
+    $line = 'OK  ' . $name;
+    if (!$ok) {
+        $line = 'MAL ' . $name;
+        if ($detail !== '') {
+            $line .= '  [' . $detail . ']';
+        }
+    }
+    echo $line . "\n";
     if (!$ok) {
         $failures[] = $name;
     }
@@ -45,6 +52,15 @@ function lonOffset(float $dMeters): float
 function hms(int $iSeconds): string
 {
     return sprintf('%02d:%02d:%02d', intdiv($iSeconds, 3600), intdiv($iSeconds % 3600, 60), $iSeconds % 60);
+}
+
+// La hora del horario en la que se sitúa el bus, para el detalle de un fallo.
+function positionText(array|null $aPos): string
+{
+    if ($aPos === null) {
+        return 'null';
+    }
+    return hms($aPos['scheduledSeconds']);
 }
 
 /*
@@ -131,7 +147,7 @@ $aLive = live(1500, 0, 3, $iGps);
 $M = matcher($aLive, $iGps + 30);
 $aPos = $M->positionFor('J_LINE', $aLive);
 $expect('el GPS a mitad del tramo P2-P3 se sitúa con el trazado', $aPos !== null && $aPos['method'] === 'shape');
-$expect('T_pos se interpola por metros (08:04:30)', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 270, $aPos === null ? 'null' : hms($aPos['scheduledSeconds']));
+$expect('T_pos se interpola por metros (08:04:30)', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 270, positionText($aPos));
 $expect('el retraso es T_gps - T_pos (-30 s, adelantado)', $M->currentDelaySeconds('J_LINE', $aLive) === -30);
 
 [$iEta, $iDelay, $bPositioned] = $M->etaForStop('J_LINE', T0 + 720, $aLive);
@@ -461,15 +477,15 @@ $section('RealtimeMatcher: trazados que vuelven sobre sí mismos');
 
 $aOut = live(250, 0, 2, T0 + 60);
 $aPos = matcher($aOut, T0 + 60)->positionFor('J_LOOP', $aOut);
-$expect('en la ida (próxima = P2) se queda en la ida', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 45, $aPos === null ? 'null' : hms($aPos['scheduledSeconds']));
+$expect('en la ida (próxima = P2) se queda en la ida', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 45, positionText($aPos));
 
 $aBack = live(250, 40, 2, T0 + 300);
 $aPos = matcher($aBack, T0 + 300, null, 40.0)->positionFor('J_LOOP', $aBack);
-$expect('en la vuelta, 40 m más cerca, gana la vuelta aunque el feed diga P2', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 315, $aPos === null ? 'null' : hms($aPos['scheduledSeconds']));
+$expect('en la vuelta, 40 m más cerca, gana la vuelta aunque el feed diga P2', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 315, positionText($aPos));
 
 $aClose = live(250, 10, 2, T0 + 300);
 $aPos = matcher($aClose, T0 + 300, null, 10.0)->positionFor('J_LOOP', $aClose);
-$expect('si la vuelta está a menos de 20 m de diferencia, manda la próxima parada del feed', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 45, $aPos === null ? 'null' : hms($aPos['scheduledSeconds']));
+$expect('si la vuelta está a menos de 20 m de diferencia, manda la próxima parada del feed', $aPos !== null && $aPos['scheduledSeconds'] === T0 + 45, positionText($aPos));
 
 /* ------------------------------------------------------------------ */
 $section('RealtimeMatcher: emparejar el feed con el horario y enrich()');
@@ -862,5 +878,9 @@ $aDedupeRows = [
 $aDeduped = $Dedupe->invoke(new ServiceJourney(buildFixture(40)), $aDedupeRows, 10);
 $expect('el mismo viaje en dos calendarios sale una vez; otro viaje del mismo número un minuto después también sale', \count($aDeduped) === 2 && $aDeduped[1]['first_departure_seconds'] === 56700, (string)\count($aDeduped));
 
-echo "\nRESULTADO unitarias: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
-exit(empty($failures) ? 0 : 1);
+if (!empty($failures)) {
+    echo "\nRESULTADO unitarias: FALLA -> " . implode('; ', $failures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO unitarias: OK\n";
+exit(0);

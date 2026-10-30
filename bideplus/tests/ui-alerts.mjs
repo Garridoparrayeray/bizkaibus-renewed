@@ -42,7 +42,10 @@ ws.onmessage = async e => {
     if (m.method === 'Fetch.requestPaused') {
         const { requestId, request } = m.params;
         requested.push(request.url);
-        const body = request.url.includes('red=metro') ? mock.metro : request.url.includes('red=renfe') ? mock.renfe : request.url.includes('red=euskotren') ? mock.euskotren : request.url.includes('line=') ? mock.bus : null;
+        const mocks = [['red=metro', mock.metro], ['red=renfe', mock.renfe], ['red=euskotren', mock.euskotren], ['line=', mock.bus]];
+        const match = mocks.find(([part]) => request.url.includes(part));
+        let body = null;
+        if (match) body = match[1];
         if (body === null && mock.status === 200) {
             send('Fetch.continueRequest', { requestId });
         } else {
@@ -58,7 +61,8 @@ ws.onmessage = async e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 const waitTrue = async (expr, ms = 9000) => {
     const end = Date.now() + ms;
@@ -69,7 +73,12 @@ const waitTrue = async (expr, ms = 9000) => {
     return false;
 };
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 const skip = (name, why) => results.push(`SKIP ${name} — ${why}`);
 const go = async (url, wait = 3000) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 
@@ -171,7 +180,9 @@ await go('/?red=bus');
 await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.resetBaseline(); await AlertsStore.setFavorites('bus', ['3513']); })()`);
 const realAlerts = await ev(`fetch('/api/alerts?line=3513').then(r => r.json()).then(d => d.alerts.length).catch(() => -1)`);
 if (!(realAlerts > 0) || !registrationId) {
-    skip('service worker: notificacion al llegar un aviso nuevo', realAlerts > 0 ? 'no se obtuvo el registro del service worker' : 'la linea 3513 no tiene avisos en el feed real ahora mismo');
+    let why = 'la linea 3513 no tiene avisos en el feed real ahora mismo';
+    if (realAlerts > 0) why = 'no se obtuvo el registro del service worker';
+    skip('service worker: notificacion al llegar un aviso nuevo', why);
 } else {
     await ev(`AlertsStore.checkAlerts()`);
     await ev(`(async () => { const seen = await AlertsStore.get('seen'); delete seen[Object.keys(seen)[0]]; await AlertsStore.set('seen', seen); })()`);
@@ -193,4 +204,6 @@ console.log(results.join('\n'));
 console.log(`\nRESULTADO avisos: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${results.filter(r => r.startsWith('SKIP')).length} SKIP, ${uniqueProblems.length} excepciones`);
 for (const p of uniqueProblems.slice(0, 10)) console.log(' -', p);
 ws.close();
-shutdown(bad || uniqueProblems.length ? 1 : 0);
+let exitCode = 0;
+if (bad || uniqueProblems.length) exitCode = 1;
+shutdown(exitCode);

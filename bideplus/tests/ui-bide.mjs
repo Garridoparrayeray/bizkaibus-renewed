@@ -39,7 +39,8 @@ ws.onmessage = e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 const waitTrue = async (expr, ms = 10000) => {
     const end = Date.now() + ms;
@@ -50,7 +51,12 @@ const waitTrue = async (expr, ms = 10000) => {
     return false;
 };
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 const go = async (url, wait = 2500) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 const shown = sel => `(() => { const n = document.querySelector(${JSON.stringify(sel)}); return !!n && getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().height > 0; })()`;
 const noOverflow = "document.documentElement.scrollWidth <= window.innerWidth";
@@ -330,7 +336,7 @@ const fakeIncidentPush = await send('Page.addScriptToEvaluateOnNewDocument', { s
     window.fetch = async (url, init = {}) => {
         const path = String(url);
         if (path.includes('/api/push/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
-        if (path.includes('/api/push/incidents')) { window.__pushCalls.push({ path, body: JSON.parse(init.body || '{}') }); return json({ status: path.includes('/remove') ? 'removed' : 'saved' }); }
+        if (path.includes('/api/push/incidents')) { window.__pushCalls.push({ path, body: JSON.parse(init.body || '{}') }); if (path.includes('/remove')) return json({ status: 'removed' }); return json({ status: 'saved' }); }
         return realFetch(url, init);
     };
     Object.defineProperty(window, 'Notification', { value: { permission: 'granted', requestPermission: async () => 'granted' }, configurable: true });
@@ -353,7 +359,7 @@ await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsSto
 await go('/?red=bus', 2500);
 check('incidencias: quien las tenía sin push pasa a push solo', await waitTrue("window.__pushCalls.some((c) => !c.path.includes('/remove')) && document.getElementById('alerts-toggle').checked") && (await ev("AlertsStore.get('mode')")) === 'push');
 await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeIncidentPush.identifier });
-await ev(`(async () => { const [bus, metro] = ${savedFavorites}; const restore = (key, value) => value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); restore('bizkaibus_favorites', bus); restore('metrobilbao_favorites', metro); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
+await ev(`(async () => { const [bus, metro] = ${savedFavorites}; const restore = (key, value) => { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }; restore('bizkaibus_favorites', bus); restore('metrobilbao_favorites', metro); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
 
 // ===== Pantalla de una parada =====
 await go('/stops/4255', 3000);
@@ -388,4 +394,6 @@ console.log(results.join('\n'));
 console.log(`\nRESULTADO bide: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${unique.length} excepciones`);
 for (const p of unique.slice(0, 10)) console.log(' -', p);
 ws.close();
-shutdown(bad || unique.length ? 1 : 0);
+let exitCode = 0;
+if (bad || unique.length) exitCode = 1;
+shutdown(exitCode);

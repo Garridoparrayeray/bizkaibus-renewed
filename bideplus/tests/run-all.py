@@ -69,7 +69,13 @@ finally:
 
 print('\n===== Resumen =====')
 for label, ok, secs in results:
-    print(f"{'OK ' if ok else 'MAL'}  {label:<32} {secs:5.1f} s")
+    mark = 'MAL'
+    if ok:
+        mark = 'OK '
+    print(f"{mark}  {label:<32} {secs:5.1f} s")
 failed = [label for label, ok, _ in results if not ok]
-print('\nRESULTADO: ' + ('todo en verde' if not failed else 'FALLA -> ' + ', '.join(failed)))
-sys.exit(1 if failed else 0)
+if failed:
+    print('\nRESULTADO: FALLA -> ' + ', '.join(failed))
+    sys.exit(1)
+print('\nRESULTADO: todo en verde')
+sys.exit(0)

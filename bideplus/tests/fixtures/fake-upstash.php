@@ -12,7 +12,10 @@ if (($_SERVER['REQUEST_URI'] ?? '') !== '/pipeline' || ($_SERVER['REQUEST_METHOD
     http_response_code(404);
     return;
 }
-$aData = is_file($sFile) ? json_decode(file_get_contents($sFile), true) : [];
+$aData = [];
+if (is_file($sFile)) {
+    $aData = json_decode(file_get_contents($sFile), true);
+}
 $aOut = [];
 foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
     $sName = strtoupper(array_shift($aCmd));
@@ -20,7 +23,9 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
     if ($sName === 'HSET') {
         $iNew = 0;
         for ($i = 0; $i + 1 < count($aCmd); $i += 2) {
-            $iNew += isset($aData[$sKey][$aCmd[$i]]) ? 0 : 1;
+            if (!isset($aData[$sKey][$aCmd[$i]])) {
+                $iNew++;
+            }
             $aData[$sKey][$aCmd[$i]] = (string)$aCmd[$i + 1];
         }
         $aOut[] = ['result' => $iNew];
@@ -43,7 +48,7 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
         }
         $aOut[] = ['result' => ['0', $aPairs]];
     } elseif ($sName === 'EXPIRE') {
-        $aOut[] = ['result' => isset($aData[$sKey]) ? 1 : 0];
+        $aOut[] = ['result' => (int)isset($aData[$sKey])];
     } elseif ($sName === 'SET') {
         $aFlags = array_map('strtoupper', array_map('strval', array_slice($aCmd, 1)));
         if (in_array('NX', $aFlags, true) && isset($aData[$sKey])) {
@@ -78,7 +83,7 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
     } elseif ($sName === 'SMEMBERS') {
         $aOut[] = ['result' => $aData[$sKey]['__set'] ?? []];
     } elseif ($sName === 'SISMEMBER') {
-        $aOut[] = ['result' => in_array((string)$aCmd[0], $aData[$sKey]['__set'] ?? [], true) ? 1 : 0];
+        $aOut[] = ['result' => (int)in_array((string)$aCmd[0], $aData[$sKey]['__set'] ?? [], true)];
     } elseif ($sName === 'SCARD') {
         $aOut[] = ['result' => count($aData[$sKey]['__set'] ?? [])];
     } else {

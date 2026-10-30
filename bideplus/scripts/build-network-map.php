@@ -391,8 +391,12 @@ function patternPath(string $sPatternId, array $aStops, array $aStopsAll, array 
     if ($ShapeStmt !== null && isset($aPatternShape[$sPatternId])) {
         $ShapeStmt->execute([$aPatternShape[$sPatternId]]);
         $sPoints = $ShapeStmt->fetchColumn();
+        $aDecoded = null;
         if (\is_string($sPoints)) {
-            foreach (json_decode($sPoints, true) ?: [] as $aPoint) {
+            $aDecoded = json_decode($sPoints, true);
+        }
+        if (\is_array($aDecoded)) {
+            foreach ($aDecoded as $aPoint) {
                 $aPoints[] = [(float)$aPoint[0], (float)$aPoint[1]];
             }
         }

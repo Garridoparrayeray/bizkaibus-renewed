@@ -177,7 +177,11 @@ class IncidentAlerts
     public static function key(string $sNetwork, string $sTitle, string $sBody): string
     {
         $iValue = 5381;
-        foreach (unpack('n*', mb_convert_encoding($sTitle . '|' . $sBody, 'UTF-16BE', 'UTF-8')) ?: [] as $iUnit) {
+        $aUnits = unpack('n*', mb_convert_encoding($sTitle . '|' . $sBody, 'UTF-16BE', 'UTF-8'));
+        if ($aUnits === false) {
+            $aUnits = [];
+        }
+        foreach ($aUnits as $iUnit) {
             $iValue = (($iValue << 5) + $iValue + $iUnit) & 0xFFFFFFFF;
         }
         return $sNetwork . ':' . base_convert((string)$iValue, 10, 36);
@@ -275,7 +279,13 @@ class IncidentAlerts
         }
         $aAlerts = [];
         foreach ($aRaw as $aAlert) {
-            $sTitle = (string)(($aAlert['summary'] ?? '') ?: ($aAlert['title'] ?? '') ?: self::UNTITLED);
+            $sTitle = (string)($aAlert['summary'] ?? '');
+            if ($sTitle === '') {
+                $sTitle = (string)($aAlert['title'] ?? '');
+            }
+            if ($sTitle === '') {
+                $sTitle = self::UNTITLED;
+            }
             $sBody = preg_replace(self::EDGE_SPACES, '', (string)($aAlert['description'] ?? '')) ?? '';
             $aAlerts[] = ['title' => $sTitle, 'body' => $sBody, 'key' => self::key($sNetwork, $sTitle, $sBody)];
         }

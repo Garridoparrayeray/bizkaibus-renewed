@@ -46,7 +46,10 @@ NETS = {
 def with_net(path, suffix):
     if not suffix:
         return path
-    return path + ('&' if '?' in path else '?') + suffix
+    separator = '?'
+    if '?' in path:
+        separator = '&'
+    return path + separator + suffix
 
 
 def enc(value):
@@ -190,15 +193,27 @@ except Exception:
     sitemap = ''
 locs = [loc.replace('&amp;', '&') for loc in _re.findall(r'<loc>([^<]+)</loc>', sitemap)]
 for red in NETS:
-    suffix = '' if red == 'bus' else '?red=' + red
+    suffix = ''
+    if red != 'bus':
+        suffix = '?red=' + red
+
+    def of_network(loc):
+        # La red por defecto no lleva ?red= en sus direcciones.
+        if suffix:
+            return loc.endswith(suffix)
+        return '?' not in loc
+
     for kind in ('lines', 'stops'):
-        sample = [loc for loc in locs if f'/{kind}/' in loc and (loc.endswith(suffix) if suffix else '?' not in loc)]
+        sample = [loc for loc in locs if f'/{kind}/' in loc and of_network(loc)]
         if not sample:
             fails.append(f'/sitemap.xml: sin {kind} de {red}')
             continue
         for loc in sample[::max(1, len(sample) // 2)][:2]:
             parts = urllib.parse.urlparse(loc)
-            code, page = fetch_text(parts.path + ('?' + parts.query if parts.query else ''))
+            target = parts.path
+            if parts.query:
+                target += '?' + parts.query
+            code, page = fetch_text(target)
             canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
             if code != 200 or canonical != loc:
                 fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
@@ -207,4 +222,6 @@ print('sitemap ok')
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:
     print(' -', f)
-sys.exit(1 if fails else 0)
+if fails:
+    sys.exit(1)
+sys.exit(0)

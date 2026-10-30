@@ -134,7 +134,9 @@ async function enableLocalAlerts() {
 async function enableLineAlerts() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
         // En iPhone, Safari solo permite notificaciones a la app añadida a la pantalla de inicio.
-        setAlertsNote(isIos() ? 'app.notify.ios' : 'app.alerts.unsupported');
+        let note = 'app.alerts.unsupported';
+        if (isIos()) note = 'app.notify.ios';
+        setAlertsNote(note);
         return false;
     }
     if ((await Notification.requestPermission()) !== 'granted') {
@@ -198,7 +200,9 @@ export function setUpAlerts() {
             }
         } catch (error) {
             alertsToggle.checked = !wanted;
-            setAlertsNote(wanted ? 'app.alerts.enableError' : 'app.alerts.disableError');
+            let note = 'app.alerts.disableError';
+            if (wanted) note = 'app.alerts.enableError';
+            setAlertsNote(note);
         } finally {
             alertsToggle.disabled = false;
         }

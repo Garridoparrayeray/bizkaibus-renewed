@@ -4,7 +4,11 @@ require __DIR__ . '/../scripts/build-database.php';
 
 $failures = [];
 $expect = function (string $name, bool $ok) use (&$failures): void {
-    echo ($ok ? 'OK  ' : 'MAL ') . $name . "\n";
+    $label = 'OK  ';
+    if (!$ok) {
+        $label = 'MAL ';
+    }
+    echo $label . $name . "\n";
     if (!$ok) {
         $failures[] = $name;
     }
@@ -106,5 +110,9 @@ $aUnion = $fRuns($aMonThu) + $fRuns($aFridays);
 [$iMask, $aInc, $aExc] = exactCalendarForWindow($aUnion, $aWindow);
 $expect('variantes L-J y V fusionadas: lunes a viernes menos el 8 de diciembre', $iMask === 31 && $aExc === ['2026-12-08'] && $aInc === []);
 
-echo "\nRESULTADO construcción: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
-exit(empty($failures) ? 0 : 1);
+if (!empty($failures)) {
+    echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $failures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO construcción: OK\n";
+exit(0);

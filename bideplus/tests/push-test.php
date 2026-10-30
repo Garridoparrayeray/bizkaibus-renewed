@@ -187,7 +187,14 @@ try {
     ];
     $aAsked = [];
     $Fetcher = function (string $sNetwork, string|null $sLine, string|null $sStop) use (&$aFeeds, &$aAsked): array|null {
-        $sKey = $sNetwork . '|' . ($sLine ?? ($sStop !== null ? 'stop:' . $sStop : '*'));
+        $sSource = '*';
+        if ($sStop !== null) {
+            $sSource = 'stop:' . $sStop;
+        }
+        if ($sLine !== null) {
+            $sSource = $sLine;
+        }
+        $sKey = $sNetwork . '|' . $sSource;
         $aAsked[] = $sKey;
         if (($aFeeds[$sKey] ?? []) === 'falla') {
             throw new RuntimeException('fuente caída');
@@ -267,5 +274,9 @@ try {
     @unlink($sDataFile);
 }
 
-echo "\nRESULTADO notificaciones push: " . (empty($aFailures) ? 'OK' : 'FALLA -> ' . implode('; ', $aFailures)) . "\n";
-exit(empty($aFailures) ? 0 : 1);
+if (!empty($aFailures)) {
+    echo "\nRESULTADO notificaciones push: FALLA -> " . implode('; ', $aFailures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO notificaciones push: OK\n";
+exit(0);

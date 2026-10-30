@@ -37,7 +37,8 @@ ws.onmessage = e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -54,7 +55,12 @@ const waitTrue = async (expr, ms = 9000) => {
 const baseHost = new URL(BASE).host;
 const allowed = h => h === baseHost || /(^|\.)tile\.openstreetmap\.org$/.test(h) || /cartocdn\.com$/.test(h);
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 const go = async (url, wait = 3000) => { currentHosts = new Set(); await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 
 for (const [url, name] of [['/', 'menu Bide+'], ['/?red=bus', 'Bizkaibus+'], ['/?red=metro', 'Metro+'], ['/?red=euskotren', 'Euskotren+'], ['/?red=tranvia-bilbao', 'Tranvía Bilbao+'], ['/?red=tranvia-vitoria', 'Tranvía Vitoria+'], ['/?red=renfe', 'Renfe Cercanías+'], ['/?red=lurraldebus', 'Lurraldebus+'], ['/pagina-que-no-existe', 'pagina 404']]) {
@@ -81,7 +87,8 @@ check('Leaflet local cargado (window.L)', (await ev("typeof L === 'object' && ty
 check('el mapa de la linea se dibuja', await waitTrue("!!document.querySelector('#line-map .leaflet-pane')"));
 check('la ruta de la linea se dibuja sobre el mapa', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length > 0"));
 
-const PHP = process.env.PHP_PATH || (existsSync('C:/xampp/php/php.exe') ? 'C:/xampp/php/php.exe' : 'php');
+let PHP = process.env.PHP_PATH || 'php';
+if (!process.env.PHP_PATH && existsSync('C:/xampp/php/php.exe')) PHP = 'C:/xampp/php/php.exe';
 const APP_DIR = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const OFFLINE_PORT = Number(process.env.OFFLINE_PORT || 8213);
 const OFFLINE_BASE = `http://localhost:${OFFLINE_PORT}`;
@@ -129,4 +136,6 @@ const bad = results.filter(r => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
 console.log(`\nRESULTADO offline: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL`);
 ws.close();
-shutdown(bad ? 1 : 0);
+let exitCode = 0;
+if (bad) exitCode = 1;
+shutdown(exitCode);
