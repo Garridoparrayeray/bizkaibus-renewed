@@ -731,7 +731,8 @@
         }
         state.renderer = L.canvas({ padding: 0.5, tolerance: 6 });
         // Bizkaia y Gipuzkoa enteras; Renfe llega hasta León, pero eso no es lo que se busca al abrir el mapa.
-        state.map = L.map('network-map', { zoomControl: true, preferCanvas: true }).fitBounds([[42.83, -3.45], [43.45, -1.78]]);
+        // zoomSnap de un cuarto: en el móvil Bizkaia y Gipuzkoa llenan la pantalla en vez de saltar un zoom entero hacia fuera.
+        state.map = L.map('network-map', { zoomControl: true, preferCanvas: true, zoomSnap: 0.25, zoomDelta: 1 }).fitBounds([[42.83, -3.45], [43.45, -1.78]]);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
