@@ -53,7 +53,7 @@ if (str_starts_with($sUri, '/api/')) {
     return true;
 }
 
-if ($sUri === '/' || $sUri === '/mapa' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/')) {
+if ($sUri === '/' || $sUri === '/mapa' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/') || str_starts_with($sUri, '/pantalla/')) {
     if (isset($_COOKIE['lento'])) {
         usleep((int) $_COOKIE['lento'] * 1000);
     }

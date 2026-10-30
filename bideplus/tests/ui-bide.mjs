@@ -266,6 +266,17 @@ if (sharedTrip) {
     results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
 }
 
+// ===== Pantalla de una parada =====
+await go('/stops/4255', 3000);
+check('pantalla: la tarjeta de la parada enlaza a su pantalla', await waitTrue("(document.getElementById('live-screen').getAttribute('href') || '') === '/pantalla/4255'"));
+await go('/pantalla/7?red=metro', 3000);
+check('pantalla: sale el nombre de la estación', await ev("document.querySelector('.screen-stop').textContent.trim() === 'Abando'"));
+check('pantalla: hay salidas o el aviso de que no quedan', await waitTrue("document.querySelectorAll('.screen-row').length > 0 || !document.querySelector('[data-screen-empty]').hidden"));
+check('pantalla: el reloj está en marcha', await ev("/^\\d{2}:\\d{2}$/.test(document.querySelector('[data-screen-clock]').textContent)"));
+check('pantalla: sin desbordes en el móvil', await ev(noOverflow));
+check('pantalla: no se indexa', await ev("document.querySelector('meta[name=robots]').content === 'noindex'"));
+check('pantalla: una parada que no existe da 404', (await fetch(`${BASE}/pantalla/no-existe`)).status === 404);
+
 // ===== Tema «mi amor»: la misma app que la normal, en rosa =====
 await phone();
 await go('/?red=bus&tema=miamor');

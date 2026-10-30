@@ -156,6 +156,7 @@ use Core\Networks;
                     <header>
                         <span id="live-badge" class="badge">Solo horario</span>
                         <span class="header-actions">
+                            <a id="live-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la parada" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
                             <button id="live-favorite" class="btn-icon" type="button" aria-label="Guardar parada en favoritos"></button>
                             <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar">
                                 <?= BIDE_ICONS['close'] ?>
@@ -181,6 +182,7 @@ use Core\Networks;
                     <header>
                         <h3 id="platform-panel-stop" class="platform-panel-stop"></h3>
                         <span class="header-actions">
+                            <a id="platform-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la estación" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
                             <button id="platform-favorite" class="btn-icon" type="button" aria-label="Guardar estación en favoritos"></button>
                             <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar">
                                 <?= BIDE_ICONS['close'] ?>
