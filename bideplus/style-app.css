@@ -635,7 +635,7 @@ header p {
 .map-clear-all { margin-top: 6px; font-size: .78rem; }
 .line-map { position: relative; z-index: 0; height: 240px; margin-bottom: 10px; overflow: hidden; border-radius: var(--radius-sm); isolation: isolate; }
 .line-map-empty { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; text-align: center; }
-.bus-marker { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+.bus-marker { display: flex; color: var(--primary); align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
     .bus-marker svg { width: 28px; height: 28px; }
 .leaflet-popup-content-wrapper { border-radius: 10px; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
