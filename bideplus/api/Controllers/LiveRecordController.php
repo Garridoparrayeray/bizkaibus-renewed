@@ -25,7 +25,13 @@ class LiveRecordController
             return;
         }
         $iRecorded = Live::record();
-        $aArrivalAlerts = ArrivalAlerts::process();
+        // Un fallo en los avisos no estropea el registro de pasos: se apunta y se sigue.
+        try {
+            $aArrivalAlerts = ArrivalAlerts::process();
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ avisos de llegada: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+            $aArrivalAlerts = ['error' => 'failed'];
+        }
         if ($iRecorded === null && Config::hasLive('vehicle-monitoring')) {
             Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed', 'arrivalAlerts' => $aArrivalAlerts], 502);
             return;
