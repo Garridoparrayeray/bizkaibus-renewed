@@ -9,7 +9,7 @@
     --border: #f6cfe0;
     --primary: #db2777;
     --primary-light: #ffc2dc;
-    --primary-dark: #9d174d;
+    --primary-dark: #be185d;
     --primary-tint: #fde7f1;
     --text: #3b2530;
     --text-secondary: #7a5566;
@@ -80,7 +80,9 @@
 :root.is-miamor .wordmark [fill="#C8102E"] { fill: var(--bide-red); }
 
 /* ===== Menú ===== */
-/* Las fichas de cada app conservan el color de su red; el resto, rosa. */
+/* Todas las fichas de las apps, del mismo rosa. */
+:root.is-miamor .tile { --c: var(--primary); }
+    :root.is-miamor a.tile { background: linear-gradient(135deg, #f472b6 0%, var(--primary) 55%, var(--primary-dark) 100%); }
 :root.is-miamor .menu-map-link > svg:first-child { color: var(--bide-green); }
 
 /* ===== Pie ===== */
