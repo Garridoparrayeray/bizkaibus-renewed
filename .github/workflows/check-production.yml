@@ -74,6 +74,16 @@ jobs:
           [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
           exit $fail
 
+      # Lo que no se ve desde fuera hasta que falla: el feed en directo de Bizkaibus y el almacén de las notificaciones.
+      - name: Directo y notificaciones
+        run: |
+          fail=0
+          curl -fsS "$BASE/api/status?red=bus" -o status.json || { echo "::error::/api/status no responde"; fail=1; }
+          python3 -c "import json, sys; d = json.load(open('status.json')); print('feed de Bizkaibus:', d.get('ok'), '|', d.get('vehicles'), 'buses'); sys.exit(not d.get('ok'))" || { echo "::error::el feed en directo de Bizkaibus no responde"; fail=1; }
+          curl -fsS "$BASE/api/push/key" -o push.json || { echo "::error::/api/push/key no responde"; fail=1; }
+          python3 -c "import json, sys; d = json.load(open('push.json')); print('notificaciones, con clave pública:', bool(d.get('publicKey'))); sys.exit(not d.get('publicKey'))" || { echo "::error::sin clave de notificaciones: falta Upstash o sus variables en Vercel"; fail=1; }
+          exit $fail
+
       - name: 404 en páginas inexistentes y en lo que no se publica
         run: |
           fail=0
