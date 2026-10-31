@@ -1,6 +1,8 @@
 // Horarios sin conexión: el horario oficial de las redes que elige la persona, guardado en el móvil (Cache Storage).
 // Sin cobertura, la parada se abre con ese horario y sus salidas se calculan aquí, con la misma forma que las de la
-// API y el estado «solo horario». Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
+// API. Donde la red trae horas estimadas con los tramos aprendidos (Bizkaibus), se aplican las mismas reglas que en el
+// servidor sin datos del bus: «estimado» con la hora oficial al lado, «probablemente ya pasó» si el horario va muy
+// lento, y si no, «solo horario». Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
 const BideOffline = (() => {
     const CACHE_NAME = 'bide-offline';
     const LIST_KEY = 'bide-offline-networks';
@@ -8,6 +10,10 @@ const BideOffline = (() => {
     const CHECK_EVERY_MS = 6 * 3600 * 1000;
     const DAY_SECONDS = 86400;
     const PAST_MARGIN_SECONDS = 60;
+    // Las mismas que el motor: un bus «probablemente ya pasó» si la estimación quedó 10 min atrás y el horario va
+    // 10 min o más lento que lo aprendido.
+    const LIKELY_PASSED_SECONDS = 600;
+    const SLOW_SCHEDULE_SECONDS = 600;
     const prepared = new Map();
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
@@ -175,16 +181,18 @@ const BideOffline = (() => {
                     const atStop = trip[2] + data.timings[trip[1]][position];
                     for (const day of days) {
                         const seconds = atStop + day.offset * DAY_SECONDS;
-                        if (seconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
+                        const timing = arrival(data, trip, position, day.date, seconds, nowSeconds);
+                        if (timing.etaSeconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
                         if (!runsOn(data.calendars[trip[3]], day.date)) continue;
-                        items.push({ seconds, trip, pattern, position });
+                        items.push({ seconds, trip, pattern, position, ...timing });
                     }
                 }
             }
-            items.sort((a, b) => a.seconds - b.seconds);
+            // Por hora prevista; los que probablemente ya pasaron, al final (como la API).
+            items.sort((a, b) => rank(a) - rank(b) || a.etaSeconds - b.etaSeconds);
             for (const item of items.slice(0, limit)) found.push(departureItem(data, item, target, platforms.length > 0, now, nowSeconds));
         }
-        found.sort((a, b) => a.etaAt - b.etaAt);
+        found.sort((a, b) => rank(a) - rank(b) || a.etaAt - b.etaAt);
 
         const stop = data.stops[id] || [''];
         return {
@@ -194,6 +202,28 @@ const BideOffline = (() => {
             departures: found,
             offline: true,
         };
+    }
+
+    function rank(item) {
+        if (item.status === 'likely_departed') return 1;
+        return 0;
+    }
+
+    // Hora y estado de un viaje en una parada: la estimada con los tramos aprendidos si la red la trae para ese tipo de
+    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
+    function arrival(data, trip, position, date, officialSeconds, nowSeconds) {
+        const official = { status: 'scheduled', etaSeconds: officialSeconds };
+        if (!data.estimates || position === 0) return official;
+        let slot = trip[6];
+        const weekday = date.getDay();
+        if (weekday === 0 || weekday === 6) slot = trip[7];
+        if (slot === undefined || slot < 0) return official;
+        const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
+        if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };
+        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot] === 1) {
+            return { status: 'likely_departed', etaSeconds: officialSeconds };
+        }
+        return official;
     }
 
     function departureItem(data, item, target, isPlatform, now, nowSeconds) {
@@ -211,9 +241,9 @@ const BideOffline = (() => {
             headsign,
             tripKey: `${line[0]}-${item.trip[4]}-${item.trip[5]}`,
             scheduledTime: `${String(((hours % 24) + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
-            etaMinutes: Math.round((item.seconds - nowSeconds) / 60),
-            etaAt: Math.round(now.getTime() / 1000) + (item.seconds - nowSeconds),
-            status: 'scheduled',
+            etaMinutes: Math.round((item.etaSeconds - nowSeconds) / 60),
+            etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
+            status: item.status,
             delayMinutes: null,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
@@ -264,6 +294,7 @@ const BideOffline = (() => {
         load,
         prepare,
         departures,
+        arrival,
         stop,
     };
 })();

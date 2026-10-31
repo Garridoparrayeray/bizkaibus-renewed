@@ -52,6 +52,27 @@ for (const { slug } of index.networks) {
     check(`${slug}: las salidas guardadas son las del horario (${same}/${sample.length} paradas)`, differences.length === 0, differences.slice(0, 3).join(' | '));
 }
 
+// Horas estimadas con los tramos aprendidos (las mismas reglas que el motor sin datos del bus). Viaje de ejemplo que sale
+// a las 08:00 y llega a la tercera parada a las 08:40 según el horario, pero a las 08:10 según lo aprendido.
+const T = 8 * 3600;
+const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: [1] };
+const trip = [0, 0, T, 0, '1', T, 0, -1];
+const thursday = new Date(2026, 10, 5);
+const saturday = new Date(2026, 10, 7);
+const at = (date, now, data = sample) => BideOffline.arrival(data, trip, 2, date, T + 2400, now);
+let r = at(thursday, T + 300);
+check('sin conexión, antes de la hora estimada sale «estimado» con esa hora', r.status === 'estimated' && r.etaSeconds === T + 600, JSON.stringify(r));
+r = at(thursday, T + 900);
+check('sin conexión, si la estimación pasó hace menos de 10 min se deja la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 1500);
+check('sin conexión, horario 30 min más lento y estimación pasada hace 15 min: «probablemente ya pasó» con la hora oficial', r.status === 'likely_departed' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 1500, { ...sample, estimateTrusted: [0] });
+check('sin conexión, con pocos tramos aprendidos no se dice que ya pasó', r.status === 'scheduled', JSON.stringify(r));
+r = at(saturday, T + 300);
+check('sin conexión, sin estimación para ese tipo de día sale la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 300, { timings: sample.timings });
+check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.status === 'scheduled', JSON.stringify(r));
+
 const bad = results.filter((r) => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
 console.log(`\nRESULTADO horarios sin conexión: ${results.length - bad} OK, ${bad} MAL`);

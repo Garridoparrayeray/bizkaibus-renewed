@@ -129,8 +129,10 @@ check('servidor caido: una busqueda ya hecha responde desde la cache', await wai
 await searchOwn('zzqqxx');
 check('servidor caido: una consulta nueva muestra el aviso de conexion', await waitTrue("!document.getElementById('net-banner').hidden"));
 await goOwn('/stops/1137', 4000);
-check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && document.getElementById('live-badge').textContent === 'SOLO HORARIO' && /\\d/.test(document.getElementById('live-minutes').textContent)"));
-check('servidor caido: avisa de que es el horario guardado', await ev("document.getElementById('net-banner').textContent.includes('horario oficial guardado')"));
+check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && ['ESTIMADO', 'SOLO HORARIO'].includes(document.getElementById('live-badge').textContent) && /\\d/.test(document.getElementById('live-minutes').textContent)"));
+// Bizkaibus guarda también lo que tardan de verdad los buses: sin conexión sale la hora estimada con la oficial al lado.
+check('servidor caido: Bizkaibus enseña la hora estimada con los tramos aprendidos', await ev("document.getElementById('live-badge').textContent === 'ESTIMADO' || document.getElementById('live-more-list').textContent.includes('≈')"));
+check('servidor caido: avisa de que es el horario guardado y sin directo', await ev("document.getElementById('net-banner').textContent.includes('sin directo')"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 console.log(results.join('\n'));

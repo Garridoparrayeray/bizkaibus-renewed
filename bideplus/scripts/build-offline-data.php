@@ -10,17 +10,27 @@ declare(strict_types=1);
  * hora de salida y su calendario. Un viaje pasa por una parada a «salida + desfase» de esa parada. Los calendarios son
  * los mismos que usa la API (días de la semana y excepciones), sin el de pruebas.
  *
+ * Con el motor de llegadas a mano (engine/, que el workflow trae del repositorio privado), las redes que lo usan llevan
+ * también la hora estimada de cada viaje con los tramos aprendidos, para un día laborable y para un fin de semana:
+ * sin conexión la parada enseña primero esa estimación y al lado la hora oficial, como con conexión y sin datos del bus.
+ *
  * Uso: php scripts/build-offline-data.php [--out=dir]
  */
 
 ini_set('memory_limit', '1024M');
 date_default_timezone_set('Europe/Madrid');
 
-require_once __DIR__ . '/../api/Core/Networks.php';
+require_once __DIR__ . '/../api/autoload.php';
 
 use Core\Networks;
 
-const OFFLINE_FORMAT = 1;
+const OFFLINE_FORMAT = 2;
+// Como el motor sin datos del bus: la salida real de cabecera va un minuto después de la publicada.
+const ESTIMATE_ORIGIN_OFFSET_SECONDS = 60;
+// Por debajo de este reparto de tiempo aprendido, la estimación no basta para decir que un bus ya pasó.
+const ESTIMATE_TRUSTED_SHARE = 0.8;
+// Un día de cada tipo para elegir la franja horaria de los tramos aprendidos.
+const ESTIMATE_DAYS = ['laborable' => '2026-11-04', 'fin_semana' => '2026-11-07'];
 
 $sOut = __DIR__ . '/../offline-data';
 foreach ($argv as $sArg) {
@@ -42,7 +52,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     $sJson = json_encode($aData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     file_put_contents("$sOut/$sSlug.json", $sJson);
     $aIndex[] = ['slug' => $sSlug, 'bytes' => \strlen($sJson), 'generated' => $aData['generated']];
-    printf("  %s: %d viajes, %d recorridos, %.0f KB\n", $sSlug, \count($aData['trips']), \count($aData['patterns']), \strlen($sJson) / 1024);
+    printf("  %s: %d viajes, %d recorridos, %d horas estimadas, %.0f KB\n", $sSlug, \count($aData['trips']), \count($aData['patterns']), \count($aData['estimates']), \strlen($sJson) / 1024);
 }
 file_put_contents("$sOut/index.json", json_encode(['format' => OFFLINE_FORMAT, 'networks' => $aIndex], JSON_UNESCAPED_SLASHES));
 
@@ -97,7 +107,12 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
     $sCurrent = null;
     $aStops = [];
     $aTimes = [];
-    $Flush = function () use (&$sCurrent, &$aStops, &$aTimes, &$aJourneys, &$aLineIndex, &$aCalendarIndex, &$aPatternIndex, &$aPatterns, &$aTimingIndex, &$aTimings, &$aTrips, &$aStopsUsed): void {
+    $aMeters = [];
+    $Estimator = offlineEstimator($aNetwork);
+    $aEstimateIndex = [];
+    $aEstimates = [];
+    $aEstimateTrusted = [];
+    $Flush = function () use (&$sCurrent, &$aStops, &$aTimes, &$aMeters, &$aJourneys, &$aLineIndex, &$aCalendarIndex, &$aPatternIndex, &$aPatterns, &$aTimingIndex, &$aTimings, &$aTrips, &$aStopsUsed, &$aCalendars, $Estimator, &$aEstimateIndex, &$aEstimates, &$aEstimateTrusted): void {
         if ($sCurrent === null || !isset($aJourneys[$sCurrent]) || \count($aStops) < 2) {
             return;
         }
@@ -117,15 +132,43 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
             $aTimingIndex[$sTimingKey] = \count($aTimings);
             $aTimings[] = $aOffsets;
         }
-        $aTrips[] = [$aPatternIndex[$sPatternKey], $aTimingIndex[$sTimingKey], $iFirst, $aCalendarIndex[$aJourney['calendar_id']], (string)$aJourney['trip_number'], (int)$aJourney['first_departure_seconds']];
+        $aTrip = [$aPatternIndex[$sPatternKey], $aTimingIndex[$sTimingKey], $iFirst, $aCalendarIndex[$aJourney['calendar_id']], (string)$aJourney['trip_number'], (int)$aJourney['first_departure_seconds']];
+        if ($Estimator !== null) {
+            // Posiciones 6 y 7: hora estimada en laborable y en fin de semana (índice en «estimates», -1 si ese día no hay viaje).
+            $iMask = $aCalendars[$aCalendarIndex[$aJourney['calendar_id']]][0];
+            $bHasExtraDays = !empty($aCalendars[$aCalendarIndex[$aJourney['calendar_id']]][1]);
+            foreach (['laborable' => 31, 'fin_semana' => 96] as $sDayType => $iDayBits) {
+                $iSlot = -1;
+                if (($iMask & $iDayBits) !== 0 || $bHasExtraDays) {
+                    [$aEstimate, $bTrusted] = $Estimator((string)$aJourney['line_id'], $aStops, $aOffsets, $aMeters, $iFirst, ESTIMATE_DAYS[$sDayType]);
+                    $sEstimateKey = implode(',', $aEstimate) . '|' . (int)$bTrusted;
+                    if (!isset($aEstimateIndex[$sEstimateKey])) {
+                        $aEstimateIndex[$sEstimateKey] = \count($aEstimates);
+                        $aEstimates[] = $aEstimate;
+                        $aEstimateTrusted[] = (int)$bTrusted;
+                    }
+                    $iSlot = $aEstimateIndex[$sEstimateKey];
+                }
+                $aTrip[] = $iSlot;
+            }
+        }
+        $aTrips[] = $aTrip;
     };
-    $Stmt = $Pdo->query('SELECT service_journey_id, stop_id, arrival_seconds, departure_seconds FROM passing_times ORDER BY service_journey_id, seq_order');
+    // dist_m (metros desde la cabecera) solo lo tienen las redes con trazado; sin él, los tramos sin aprender usan el ritmo.
+    $sMeters = 'NULL';
+    foreach ($Pdo->query('PRAGMA table_info(passing_times)') as $aColumn) {
+        if ($aColumn['name'] === 'dist_m') {
+            $sMeters = 'dist_m';
+        }
+    }
+    $Stmt = $Pdo->query("SELECT service_journey_id, stop_id, arrival_seconds, departure_seconds, $sMeters AS dist_m FROM passing_times ORDER BY service_journey_id, seq_order");
     foreach ($Stmt as $aRow) {
         if ($aRow['service_journey_id'] !== $sCurrent) {
             $Flush();
             $sCurrent = $aRow['service_journey_id'];
             $aStops = [];
             $aTimes = [];
+            $aMeters = [];
         }
         // La hora que se enseña es la de llegada a la parada, como en la API.
         $iTime = $aRow['arrival_seconds'] ?? $aRow['departure_seconds'];
@@ -134,6 +177,7 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         }
         $aStops[] = (string)$aRow['stop_id'];
         $aTimes[] = (int)$iTime;
+        $aMeters[] = $aRow['dist_m'];
     }
     $Flush();
 
@@ -187,5 +231,61 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'patterns' => $aPatterns,
         'timings' => $aTimings,
         'trips' => $aTrips,
+        'estimates' => $aEstimates,
+        'estimateTrusted' => $aEstimateTrusted,
     ];
+}
+
+/*
+ * Calcula la hora estimada de un viaje en cada parada con los tramos aprendidos del motor (como cuando no hay datos del
+ * bus): salida publicada + 1 min + lo que tardan de verdad los buses en cada tramo; un tramo sin aprender usa la
+ * proporción por largo o el factor de ritmo de la línea. Devuelve los segundos desde la salida en cada parada (0 en la
+ * primera) y si los tramos aprendidos cubren lo bastante del recorrido para fiarse de que un bus ya pasó.
+ * Null si la red no usa el motor o no está a mano.
+ */
+function offlineEstimator(array $aNetwork): \Closure|null
+{
+    $sEngine = $aNetwork['engine'] ?? null;
+    if ($sEngine === null) {
+        return null;
+    }
+    $sSegmentsClass = 'Engine\\' . ucfirst($sEngine) . '\\SegmentTimes';
+    $sPaceClass = 'Engine\\' . ucfirst($sEngine) . '\\PaceFactors';
+    if (!class_exists($sSegmentsClass) || !class_exists($sPaceClass)) {
+        if (!is_dir(__DIR__ . '/../engine')) {
+            fwrite(STDERR, "  {$aNetwork['network']}: sin el motor (engine/), solo horario oficial\n");
+        }
+        return null;
+    }
+    $Segments = $sSegmentsClass::fromFile();
+    if ($Segments->isEmpty()) {
+        return null;
+    }
+    $Pace = $sPaceClass::fromFile();
+    return function (string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, string $sDate) use ($Segments, $Pace, $sPaceClass): array {
+        $sBand = $sPaceClass::bandFor($sDate, $iFirst);
+        $dFactor = $Pace->factor($sLineId, $sDate, $iFirst);
+        $aEstimate = [0];
+        $dCumulative = (float)ESTIMATE_ORIGIN_OFFSET_SECONDS;
+        $iScheduledTotal = 0;
+        $iLearnedTotal = 0;
+        for ($i = 0; $i < \count($aStops) - 1; $i++) {
+            $iScheduled = $aOffsets[$i + 1] - $aOffsets[$i];
+            $dSegment = $Segments->seconds($aStops[$i], $aStops[$i + 1], $sBand);
+            $iScheduledTotal += $iScheduled;
+            if ($dSegment !== null) {
+                $iLearnedTotal += $iScheduled;
+            } else {
+                $dMeters = null;
+                if ($aMeters[$i] !== null && $aMeters[$i + 1] !== null) {
+                    $dMeters = (float)$aMeters[$i + 1] - (float)$aMeters[$i];
+                }
+                $dSegment = $Segments->fallbackSeconds((float)$iScheduled, $dMeters, $sBand) ?? $dFactor * $iScheduled;
+            }
+            $dCumulative += $dSegment;
+            $aEstimate[] = (int)round($dCumulative);
+        }
+        $bTrusted = $iScheduledTotal > 0 && $iLearnedTotal / $iScheduledTotal >= ESTIMATE_TRUSTED_SHARE;
+        return [$aEstimate, $bTrusted];
+    };
 }
