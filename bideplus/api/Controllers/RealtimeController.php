@@ -21,11 +21,9 @@ use Engine\Metro\TripUpdatesMatcher;
 // (/api/vehicles/{tripKey}) y el diagnóstico de la fuente (/api/status). El cálculo de llegadas está en engine/.
 class RealtimeController
 {
+    // Antes de su hora prevista se da la parada por pasada solo si han pasado más de 60 s (sin datos en directo).
+    private const PASSED_MARGIN_SECONDS = 60;
 
-    /*
-     * Diagnóstico de la fuente de los buses en directo: pide a Open Data Euskadi desde el servidor (como lo hace la app)
-     * y cuenta qué trae. Sirve para ver si el feed responde desde el despliegue y si trae GPS, hora del dato y retraso.
-     */
     /*
      * Estado de un viaje en su ficha. Con datos en vivo es «live». Sin ellos solo se sabe lo que dice el horario: no se
      * afirma que el bus ya salió (la hora pasada no prueba que haya salido), solo que el viaje terminó si ya pasó su
@@ -42,6 +40,10 @@ class RealtimeController
         return 'scheduled';
     }
 
+    /*
+     * Diagnóstico de la fuente de los buses en directo: pide a Open Data Euskadi desde el servidor (como lo hace la app)
+     * y cuenta qué trae. Sirve para ver si el feed responde desde el despliegue y si trae GPS, hora del dato y retraso.
+     */
     public function status(Request $Req, array $aParams): void
     {
         $aConfig = Config::current();
@@ -55,27 +57,8 @@ class RealtimeController
         try {
             $sBody = Http::get($sUrl, $aConfig['siri']['http_timeout_seconds']);
             $aOut['bytes'] = \strlen($sBody);
-            $aMap = SiriVehicleMonitoringClient::parse($sBody);
-            $iVehicles = 0;
-            $iGps = 0;
-            $iTime = 0;
-            $iDelay = 0;
-            foreach ($aMap as $aEntries) {
-                foreach ($aEntries as $aEntry) {
-                    $iVehicles++;
-                    if ($aEntry['lat'] !== null) {
-                        $iGps++;
-                    }
-                    if ($aEntry['recordedSeconds'] !== null) {
-                        $iTime++;
-                    }
-                    if ($aEntry['delaySeconds'] !== 0) {
-                        $iDelay++;
-                    }
-                }
-            }
-            $aOut += ['vehicles' => $iVehicles, 'withGps' => $iGps, 'withTime' => $iTime, 'withDelay' => $iDelay];
-            $aOut['ok'] = $iVehicles > 0;
+            $aOut += self::feedCounts(SiriVehicleMonitoringClient::parse($sBody));
+            $aOut['ok'] = $aOut['vehicles'] > 0;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }
@@ -83,23 +66,45 @@ class RealtimeController
         Response::json($aOut);
     }
 
+    // Cuántos buses trae el feed y cuántos con GPS, con hora del dato y con retraso.
+    private static function feedCounts(array $aMap): array
+    {
+        $aCounts = ['vehicles' => 0, 'withGps' => 0, 'withTime' => 0, 'withDelay' => 0];
+        foreach ($aMap as $aEntries) {
+            foreach ($aEntries as $aEntry) {
+                $aCounts['vehicles']++;
+                $aCounts['withGps'] += (int)($aEntry['lat'] !== null);
+                $aCounts['withTime'] += (int)($aEntry['recordedSeconds'] !== null);
+                $aCounts['withDelay'] += (int)($aEntry['delaySeconds'] !== 0);
+            }
+        }
+        return $aCounts;
+    }
+
+    // Los autobuses de una línea en el mapa: su recorrido y, por cada bus, la parada por la que va y su retraso.
     public function lineLive(Request $Req, array $aParams): void
     {
         $sLineId = $aParams['id'];
         $Pdo = Database::connection();
-
         $LineModel = new LineModel($Pdo);
         $aLine = $LineModel->find($sLineId);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
+        Response::json([
+            'line' => $aLine,
+            'patterns' => $LineModel->patternsWithStops($sLineId),
+            'vehicles' => self::vehiclesOnLine($Pdo, $sLineId),
+        ]);
+    }
 
+    private static function vehiclesOnLine(\PDO $Pdo, string $sLineId): array
+    {
         $aVmMap = Live::vehicles();
         $Matcher = Live::matcher(new ServiceJourney($Pdo), $aVmMap);
-
-        $JourneyStmt = $Pdo->prepare('
-            SELECT sj.trip_number, jp.headsign
+        $HeadsignStmt = $Pdo->prepare('
+            SELECT jp.headsign
             FROM service_journeys sj
             JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
             WHERE sj.line_id = ? AND sj.trip_number = ?
@@ -109,6 +114,7 @@ class RealtimeController
 
         $aVehicles = [];
         foreach ($aVmMap as $sKey => $aEntries) {
+            // Las claves del feed son «línea|número de viaje».
             [$sKeyLineId, $sTripNumber] = explode('|', $sKey);
             if ((string)$sKeyLineId !== (string)$sLineId) {
                 continue;
@@ -122,15 +128,12 @@ class RealtimeController
                 if (!\is_array($aStop)) {
                     continue;
                 }
-                $JourneyStmt->execute([$sLineId, $sTripNumber]);
-                $aJourney = $JourneyStmt->fetch();
-                $sHeadsign = null;
-                if (isset($aJourney['headsign'])) {
-                    $sHeadsign = $aJourney['headsign'];
+                $HeadsignStmt->execute([$sLineId, $sTripNumber]);
+                $sHeadsign = $HeadsignStmt->fetchColumn();
+                if ($sHeadsign === false) {
+                    $sHeadsign = null;
                 }
-
                 $iDelaySeconds = $Matcher->displayDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
-
                 $aVehicles[] = [
                     'vehicleRef' => $aEntry['vehicleRef'],
                     'delayMinutes' => $Matcher->displayDelayMinutes($iDelaySeconds),
@@ -144,14 +147,11 @@ class RealtimeController
                 ];
             }
         }
-
-        Response::json([
-            'line' => $aLine,
-            'patterns' => $LineModel->patternsWithStops($sLineId),
-            'vehicles' => $aVehicles,
-        ]);
+        return $aVehicles;
     }
 
+    // Ficha de un viaje (/api/vehicles/{tripKey}?stopId=): sus paradas con la llegada prevista a cada una, la parada
+    // por la que va, su estado y su retraso. En Metro, con las horas del feed; en los autobuses, con el algoritmo.
     public function vehicle(Request $Req, array $aParams): void
     {
         $aTripKey = TripKey::parse($aParams['tripKey']);
@@ -159,105 +159,122 @@ class RealtimeController
             Response::error('Invalid vehicle key', 422);
             return;
         }
-        [$sLineId, $sTripNumber, $iFirstDepartureSeconds] = $aTripKey;
-
-        $Pdo = Database::connection();
-        $JourneyModel = new ServiceJourney($Pdo);
-        $aVariants = $JourneyModel->variantsByLineAndTrip($sLineId, $sTripNumber, $iFirstDepartureSeconds);
+        $JourneyModel = new ServiceJourney(Database::connection());
+        $aVariants = $JourneyModel->variantsByLineAndTrip(...$aTripKey);
         if (empty($aVariants)) {
             Response::error('Trip not found', 404);
             return;
         }
-        $aJourney = $aVariants[0];
-
-        $aCurrentConfig = Config::current();
         if (Config::hasLive('trip-updates')) {
-            $this->vehicleFromTripUpdates($aCurrentConfig, $JourneyModel, $aJourney, $Req->query('stopId'));
+            Response::json(self::trainSheet($JourneyModel, $aVariants[0], $Req->query('stopId')));
             return;
         }
+        Response::json(self::busSheet($JourneyModel, $aTripKey, $aVariants, $Req->query('stopId')));
+    }
 
-        // Sin fuente en directo, el viaje sale con su horario oficial.
-        $Matcher = Live::matcher($JourneyModel);
-        // Entre las variantes del viaje (calendarios distintos), la que el directo sigue; si ninguna, la que circula hoy.
-        $aLive = null;
-        foreach ($aVariants as $aVariant) {
-            $aFound = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aVariant['id']);
-            if ($aFound !== null && $Matcher->isLive($aVariant['id'], $aFound)) {
-                $aJourney = $aVariant;
-                $aLive = $aFound;
-                break;
-            }
-        }
-        $bLive = $Matcher->isLive($aJourney['id'], $aLive);
-        $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
-
-        $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
-        $iNow = Calendar::nowSecondsSinceMidnight();
-
-        $iNextSeqOrder = self::nextSeqOrder($aStops, $aPosition, $aLive, $bLive);
-
-        $aStopsOut = array_map(function ($aStop) use ($Matcher, $aJourney, $aLive, $bLive, $aPosition, $iNextSeqOrder, $iNow) {
-
-            $bAlreadyPassed = false;
-            if ($aPosition !== null) {
-                $bAlreadyPassed = (int)$aStop['arrival_seconds'] < $aPosition['scheduledSeconds'];
-            } elseif ($bLive && isset($aLive['order'])) {
-                $bAlreadyPassed = (int)$aStop['seq_order'] < (int)$aLive['order'];
-            }
-
-            $iEtaMinutes = null;
-            $iEtaAt = null;
-            if (!$bAlreadyPassed) {
-                $iEta = (int)$aStop['arrival_seconds'];
-                if ($bLive) {
-                    [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order']);
-                }
-                $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
-                $iEtaAt = time() + ($iEta - $iNow);
-            }
-
-            return [
-                'stopId' => Ids::forOutput($aStop['stop_id']),
-                'name' => $aStop['name'],
-                'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
-                'etaMinutes' => $iEtaMinutes,
-                'etaAt' => $iEtaAt,
-                'isPast' => $bAlreadyPassed,
-                'isCurrent' => $iNextSeqOrder !== null && (int)$aStop['seq_order'] === $iNextSeqOrder,
-            ];
-        }, $aStops);
-
-        $iDelaySeconds = 0;
-        if ($bLive) {
-            $iDelaySeconds = self::delaySeconds($Matcher, $aJourney['id'], $aLive, $aStops, $aStopsOut, $Req->query('stopId'));
-        }
-
-        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
-
-        $iDelayMinutes = $Matcher->displayDelayMinutes($iDelaySeconds);
-
-        $sVehicleRef = null;
-        if ($bLive && isset($aLive['vehicleRef'])) {
-            $sVehicleRef = $aLive['vehicleRef'];
-        }
-
-        // Sin GPS (solo la última parada registrada) es una estimación, como en la tarjeta de la parada: ni «en
-        // directo» ni adelanto o retraso.
-        if ($sStatus === 'live' && $aPosition === null && \in_array($aCurrentConfig['engine'] ?? null, ['bizkaibus', 'lurraldebus'], true)) {
-            $sStatus = 'estimated';
-            $iDelayMinutes = 0;
-            $sVehicleRef = null;
-        }
-
-        Response::json([
+    // Lo común a las dos fichas. $aExtra va tras el vehículo (en Metro, feedTimes: las horas son las del feed).
+    private static function sheet(array $aJourney, string $sStatus, string|null $sVehicleRef, int $iDelayMinutes, array $aStops, array $aExtra = []): array
+    {
+        return [
             'lineCode' => $aJourney['line_code'],
             'lineName' => $aJourney['line_name'],
             'headsign' => $aJourney['headsign'],
             'status' => $sStatus,
             'vehicleRef' => $sVehicleRef,
+        ] + $aExtra + [
             'delayMinutes' => $iDelayMinutes,
-            'stops' => $aStopsOut,
-        ]);
+            'stops' => $aStops,
+        ];
+    }
+
+    // Una parada de la ficha. $iEta es la llegada prevista en segundos desde medianoche (null si ya pasó).
+    private static function stopEntry(array $aStop, int|null $iEta, bool $bPast, bool $bCurrent, int $iNow): array
+    {
+        $iEtaMinutes = null;
+        $iEtaAt = null;
+        if ($iEta !== null) {
+            $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
+            $iEtaAt = time() + ($iEta - $iNow);
+        }
+        return [
+            'stopId' => Ids::forOutput($aStop['stop_id']),
+            'name' => $aStop['name'],
+            'scheduledTime' => Calendar::secondsToHm((int)$aStop['arrival_seconds']),
+            'etaMinutes' => $iEtaMinutes,
+            'etaAt' => $iEtaAt,
+            'isPast' => $bPast,
+            'isCurrent' => $bCurrent,
+        ];
+    }
+
+    // ===== Autobuses: el algoritmo (engine/) sitúa el bus con su GPS o con la última parada que registró =====
+
+    private static function busSheet(ServiceJourney $JourneyModel, array $aTripKey, array $aVariants, string|null $sFromStopId): array
+    {
+        $Matcher = Live::matcher($JourneyModel);
+        [$aJourney, $aLive] = self::liveVariant($Matcher, $aTripKey, $aVariants);
+        $bLive = $Matcher->isLive($aJourney['id'], $aLive);
+        $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
+        $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
+        $iNow = Calendar::nowSecondsSinceMidnight();
+        $iNextSeqOrder = self::nextSeqOrder($aStops, $aPosition, $aLive, $bLive);
+
+        $aStopsOut = [];
+        foreach ($aStops as $aStop) {
+            $bPast = self::busPassed($aStop, $aPosition, $aLive, $bLive);
+            $iEta = null;
+            if (!$bPast) {
+                $iEta = (int)$aStop['arrival_seconds'];
+            }
+            if (!$bPast && $bLive) {
+                [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order']);
+            }
+            $bCurrent = $iNextSeqOrder !== null && (int)$aStop['seq_order'] === $iNextSeqOrder;
+            $aStopsOut[] = self::stopEntry($aStop, $iEta, $bPast, $bCurrent, $iNow);
+        }
+
+        $iDelaySeconds = 0;
+        $sVehicleRef = null;
+        if ($bLive) {
+            $iDelaySeconds = self::delaySeconds($Matcher, $aJourney['id'], $aLive, $aStops, $aStopsOut, $sFromStopId);
+            $sVehicleRef = $aLive['vehicleRef'] ?? null;
+        }
+        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
+        $iDelayMinutes = $Matcher->displayDelayMinutes($iDelaySeconds);
+
+        // Sin GPS (solo la última parada registrada) es una estimación, como en la tarjeta de la parada: ni «en
+        // directo» ni adelanto o retraso.
+        if ($sStatus === 'live' && $aPosition === null && \in_array(Config::current()['engine'] ?? null, ['bizkaibus', 'lurraldebus'], true)) {
+            $sStatus = 'estimated';
+            $iDelayMinutes = 0;
+            $sVehicleRef = null;
+        }
+        return self::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut);
+    }
+
+    // Entre las variantes del viaje (calendarios distintos), la que el directo sigue; si ninguna, la que circula hoy.
+    private static function liveVariant(object $Matcher, array $aTripKey, array $aVariants): array
+    {
+        [$sLineId, $sTripNumber, $iFirstDepartureSeconds] = $aTripKey;
+        foreach ($aVariants as $aVariant) {
+            $aFound = $Matcher->lookup($sLineId, $sTripNumber, $iFirstDepartureSeconds, $aVariant['id']);
+            if ($aFound !== null && $Matcher->isLive($aVariant['id'], $aFound)) {
+                return [$aVariant, $aFound];
+            }
+        }
+        return [$aVariants[0], null];
+    }
+
+    // Con GPS, las paradas de antes de su posición; sin GPS, las de antes de la parada que registró.
+    private static function busPassed(array $aStop, array|null $aPosition, array|null $aLive, bool $bLive): bool
+    {
+        if ($aPosition !== null) {
+            return (int)$aStop['arrival_seconds'] < $aPosition['scheduledSeconds'];
+        }
+        if ($bLive && isset($aLive['order'])) {
+            return (int)$aStop['seq_order'] < (int)$aLive['order'];
+        }
+        return false;
     }
 
     // Orden de la siguiente parada del bus: por su posición GPS o, sin GPS, la última parada que registró.
@@ -286,53 +303,23 @@ class RealtimeController
         return $Matcher->displayDelaySeconds($sJourneyId, $aLive);
     }
 
+    // ===== Trenes (Metro Bilbao): el feed GTFS-Realtime da la hora prevista en las paradas que le quedan =====
+
     /*
-     * Redes con GTFS-Realtime (Metro Bilbao): el feed da, por cada tren, la hora prevista en las paradas que le
-     * quedan. Se empareja el viaje con el feed como en las salidas de una parada (mismo reparto) y se devuelve
-     * el recorrido con esas horas. Las paradas que ya no aparecen en el feed, antes de la primera que sí, ya
-     * están pasadas.
+     * Se empareja el viaje con el feed como en las salidas de una parada (mismo reparto) y se devuelve el recorrido con
+     * esas horas. Las paradas que ya no aparecen en el feed, antes de la primera que sí, ya están pasadas; las que no
+     * vienen después de ella llevan el retraso de la primera.
      */
-    private function vehicleFromTripUpdates(array $aConfig, ServiceJourney $JourneyModel, array $aJourney, string|null $sPreferredStopId): void
+    private static function trainSheet(ServiceJourney $JourneyModel, array $aJourney, string|null $sPreferredStopId): array
     {
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
-
-        $aStopIds = array_map(fn($aStop) => (string)$aStop['stop_id'], $aStops);
-        $sAnchorStopId = null;
-        if ($sPreferredStopId !== null && in_array($sPreferredStopId, $aStopIds, true)) {
-            $sAnchorStopId = $sPreferredStopId;
-        }
-        if ($sAnchorStopId === null) {
-            foreach ($aStops as $aStop) {
-                if ((int)$aStop['arrival_seconds'] >= $iNow - 60) {
-                    $sAnchorStopId = (string)$aStop['stop_id'];
-                    break;
-                }
-            }
-        }
-
-        $aFeedStops = null;
-        $TripMatcher = new TripUpdatesMatcher((new GtfsRealtimeClient($aConfig))->fetchTripUpdates(), $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
-        if ($sAnchorStopId !== null && $TripMatcher->hasData()) {
-            $aRows = $JourneyModel->upcomingAtStop($sAnchorStopId, 40, 3 * 3600);
-            foreach ($aRows as $iRow => $aRow) {
-                $aRows[$iRow]['status'] = 'scheduled';
-            }
-            $aFeedStops = $TripMatcher->liveTrip($sAnchorStopId, $aRows, $aJourney['id']);
-        }
-
-        $aPredicted = [];
+        $aPredicted = self::predictedSeconds($JourneyModel, $aJourney, $aStops, $sPreferredStopId, $iNow);
         $iFirstPredictedOrder = null;
-        if ($aFeedStops !== null) {
-            foreach ($aFeedStops as [$sFeedStopId, $iTime]) {
-                $aPredicted[$sFeedStopId] = $iTime - $iMidnight;
-            }
-            foreach ($aStops as $aStop) {
-                if (isset($aPredicted[(string)$aStop['stop_id']])) {
-                    $iFirstPredictedOrder = (int)$aStop['seq_order'];
-                    break;
-                }
+        foreach ($aStops as $aStop) {
+            if (isset($aPredicted[(string)$aStop['stop_id']])) {
+                $iFirstPredictedOrder = (int)$aStop['seq_order'];
+                break;
             }
         }
         $bLive = $iFirstPredictedOrder !== null;
@@ -341,71 +328,81 @@ class RealtimeController
         $bCurrentSet = false;
         $aStopsOut = [];
         foreach ($aStops as $aStop) {
-            $sStopId = (string)$aStop['stop_id'];
-            $iScheduled = (int)$aStop['arrival_seconds'];
-            $iEta = null;
-            $bAlreadyPassed = false;
-            if ($bLive) {
-                if (isset($aPredicted[$sStopId]) && $aPredicted[$sStopId] < $iNow - TripUpdatesMatcher::LIVE_DEPARTED_AFTER_SECONDS) {
-                    // El feed mantiene una parada hasta ~110 s después de su hora prevista: el tren ya la ha dejado.
-                    $bAlreadyPassed = true;
-                } elseif (isset($aPredicted[$sStopId])) {
-                    $iEta = $aPredicted[$sStopId];
-                    if (!$bCurrentSet) {
-                        $iDelaySeconds = $iEta - $iScheduled;
-                    }
-                } else {
-                    $bAlreadyPassed = (int)$aStop['seq_order'] < $iFirstPredictedOrder;
-                    if (!$bAlreadyPassed) {
-                        $iEta = $iScheduled + $iDelaySeconds;
-                    }
-                }
-            } else {
-                $bAlreadyPassed = $iScheduled < $iNow - 60;
-                if (!$bAlreadyPassed) {
-                    $iEta = $iScheduled;
-                }
+            [$iEta, $bPast] = self::trainEta($aStop, $aPredicted, $bLive, $iFirstPredictedOrder, $iDelaySeconds, $iNow);
+            // El retraso del tren es el de la primera parada que le queda según el feed.
+            if (!$bPast && !$bCurrentSet && isset($aPredicted[(string)$aStop['stop_id']])) {
+                $iDelaySeconds = $iEta - (int)$aStop['arrival_seconds'];
             }
-
-            $bIsCurrent = false;
-            if (!$bAlreadyPassed && !$bCurrentSet) {
-                $bIsCurrent = true;
-                $bCurrentSet = true;
-            }
-
-            $iEtaMinutes = null;
-            $iEtaAt = null;
-            if ($iEta !== null) {
-                $iEtaMinutes = (int)round(($iEta - $iNow) / 60);
-                $iEtaAt = time() + ($iEta - $iNow);
-            }
-            $aStopsOut[] = [
-                'stopId' => Ids::forOutput($aStop['stop_id']),
-                'name' => $aStop['name'],
-                'scheduledTime' => Calendar::secondsToHm($iScheduled),
-                'etaMinutes' => $iEtaMinutes,
-                'etaAt' => $iEtaAt,
-                'isPast' => $bAlreadyPassed,
-                'isCurrent' => $bIsCurrent,
-            ];
+            $bCurrent = !$bPast && !$bCurrentSet;
+            $bCurrentSet = $bCurrentSet || $bCurrent;
+            $aStopsOut[] = self::stopEntry($aStop, $iEta, $bPast, $bCurrent, $iNow);
         }
-
-        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
 
         $iDelayMinutes = 0;
         if (abs($iDelaySeconds) >= 60) {
             $iDelayMinutes = (int)round($iDelaySeconds / 60);
         }
+        return self::sheet($aJourney, self::tripStatus($bLive, $aStops, $iNow), null, $iDelayMinutes, $aStopsOut, ['feedTimes' => true]);
+    }
 
-        Response::json([
-            'lineCode' => $aJourney['line_code'],
-            'lineName' => $aJourney['line_name'],
-            'headsign' => $aJourney['headsign'],
-            'status' => $sStatus,
-            'vehicleRef' => null,
-            'feedTimes' => true,
-            'delayMinutes' => $iDelayMinutes,
-            'stops' => $aStopsOut,
-        ]);
+    // Hora prevista por el feed en cada parada que le queda al tren (segundos desde medianoche), o [] si no se encuentra.
+    private static function predictedSeconds(ServiceJourney $JourneyModel, array $aJourney, array $aStops, string|null $sPreferredStopId, int $iNow): array
+    {
+        $aConfig = Config::current();
+        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $sAnchorStopId = self::anchorStopId($aStops, $sPreferredStopId, $iNow);
+        $TripMatcher = new TripUpdatesMatcher((new GtfsRealtimeClient($aConfig))->fetchTripUpdates(), $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
+        if ($sAnchorStopId === null || !$TripMatcher->hasData()) {
+            return [];
+        }
+        $aRows = $JourneyModel->upcomingAtStop($sAnchorStopId, 40, 3 * 3600);
+        foreach ($aRows as $iRow => $aRow) {
+            $aRows[$iRow]['status'] = 'scheduled';
+        }
+        $aFeedStops = $TripMatcher->liveTrip($sAnchorStopId, $aRows, $aJourney['id']);
+        $aPredicted = [];
+        foreach ($aFeedStops ?? [] as [$sFeedStopId, $iTime]) {
+            $aPredicted[$sFeedStopId] = $iTime - $iMidnight;
+        }
+        return $aPredicted;
+    }
+
+    // La parada desde la que se empareja con el feed: la de la ficha si es del recorrido, o la próxima según el horario.
+    private static function anchorStopId(array $aStops, string|null $sPreferredStopId, int $iNow): string|null
+    {
+        $aStopIds = array_map(fn($aStop) => (string)$aStop['stop_id'], $aStops);
+        if ($sPreferredStopId !== null && in_array($sPreferredStopId, $aStopIds, true)) {
+            return $sPreferredStopId;
+        }
+        foreach ($aStops as $aStop) {
+            if ((int)$aStop['arrival_seconds'] >= $iNow - self::PASSED_MARGIN_SECONDS) {
+                return (string)$aStop['stop_id'];
+            }
+        }
+        return null;
+    }
+
+    // Llegada prevista a una parada del tren y si ya la ha pasado: [segundos desde medianoche o null, pasada].
+    private static function trainEta(array $aStop, array $aPredicted, bool $bLive, int|null $iFirstPredictedOrder, int $iDelaySeconds, int $iNow): array
+    {
+        $sStopId = (string)$aStop['stop_id'];
+        $iScheduled = (int)$aStop['arrival_seconds'];
+        if (!$bLive) {
+            if ($iScheduled < $iNow - self::PASSED_MARGIN_SECONDS) {
+                return [null, true];
+            }
+            return [$iScheduled, false];
+        }
+        if (isset($aPredicted[$sStopId])) {
+            // El feed mantiene una parada hasta ~110 s después de su hora prevista: el tren ya la ha dejado.
+            if ($aPredicted[$sStopId] < $iNow - TripUpdatesMatcher::LIVE_DEPARTED_AFTER_SECONDS) {
+                return [null, true];
+            }
+            return [$aPredicted[$sStopId], false];
+        }
+        if ((int)$aStop['seq_order'] < $iFirstPredictedOrder) {
+            return [null, true];
+        }
+        return [$iScheduled + $iDelaySeconds, false];
     }
 }
