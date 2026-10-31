@@ -9,6 +9,7 @@
     // Con una línea elegida, las demás se quedan detrás pero se siguen viendo.
     const DIMMED_OPACITY = 0.25;
     const MAX_STOP_RESULTS = 8;
+    const MAX_LINE_RESULTS = 20;
 
     const state = {
         map: null,
@@ -466,6 +467,77 @@
             .trim();
     }
 
+    // Cuánto se parece una línea a lo buscado: 0 si el código es exacto; después, código que empieza así, código que lo
+    // contiene y nombre que empieza así; el resto, 10.
+    function lineScore(normCode, normName, normQuery) {
+        if (normCode === normQuery) return 0;
+        if (normCode.startsWith(normQuery)) return 1;
+        if (normCode.includes(normQuery)) return 2;
+        if (normName.startsWith(normQuery)) return 3;
+        return 10;
+    }
+
+    // Líneas de todas las redes (las del índice, aunque la red esté oculta) con todas las palabras en su código, nombre
+    // o red, de la más parecida a la menos.
+    function searchLines(tokens, normQuery) {
+        const matches = [];
+        for (const net of state.index) {
+            const normNet = normalize(networkName(net.slug));
+            for (const [id, code, name, color] of net.lines) {
+                const normCode = normalize(code);
+                const normName = normalize(name);
+                const fullText = `${normCode} ${normName} ${normNet}`;
+                if (tokens.every((token) => fullText.includes(token))) {
+                    matches.push({ score: lineScore(normCode, normName, normQuery), net, id, code, name, color });
+                }
+            }
+        }
+        matches.sort((a, b) => a.score - b.score || a.code.localeCompare(b.code));
+        return matches.slice(0, MAX_LINE_RESULTS);
+    }
+
+    // Paradas de las redes cargadas (las de tren se cargan al empezar a buscar), primero las que empiezan así. Una por
+    // nombre y red: los dos sentidos de una calle se llaman igual.
+    function searchStops(tokens, normQuery) {
+        const matches = [];
+        for (const [slug, net] of Object.entries(state.networks)) {
+            for (const [stopId, stop] of Object.entries(net.data.stops)) {
+                const normStop = normalize(stop[0]);
+                if (tokens.every((token) => normStop.includes(token))) {
+                    let score = 1;
+                    if (normStop.startsWith(normQuery)) score = 0;
+                    matches.push({ score, slug, stopId, name: stop[0] });
+                }
+            }
+        }
+        matches.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
+        const seen = new Set();
+        const unique = matches.filter((match) => {
+            const key = `${match.slug}|${match.name}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        return unique.slice(0, MAX_STOP_RESULTS);
+    }
+
+    // Una opción de la lista de resultados: marca (chip de línea o punto de parada), título, red y qué hacer al elegirla.
+    function searchOption(id, className, mark, title, subtitle, onPick) {
+        const item = el('li');
+        const button = el('button', className);
+        button.type = 'button';
+        button.id = id;
+        button.setAttribute('role', 'option');
+        button.appendChild(mark);
+        const info = el('div', 'map-search-info');
+        info.appendChild(el('span', 'map-search-title', title));
+        info.appendChild(el('span', 'map-search-net', subtitle));
+        button.appendChild(info);
+        button.addEventListener('click', onPick);
+        item.appendChild(button);
+        return item;
+    }
+
     function buildSearch() {
         const input = document.getElementById('map-search-input');
         const clear = document.getElementById('map-search-clear');
@@ -478,6 +550,11 @@
             results.hidden = true;
             input.setAttribute('aria-expanded', 'false');
             activeIndex = -1;
+        }
+
+        function showResults() {
+            results.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
         }
 
         function highlightResult(index) {
@@ -494,147 +571,88 @@
             activeIndex = index;
         }
 
+        // Lo elegido queda escrito en el buscador.
+        function chosen(text) {
+            input.value = text;
+            if (clear) clear.hidden = false;
+        }
+
+        async function pickLine(match) {
+            if (!state.visible.has(match.net.slug)) await toggleNetwork(match.net.slug, true);
+            const fullLine = state.networks[match.net.slug]?.data.lines.find((line) => line.id === match.id);
+            if (fullLine) {
+                selectLine(match.net.slug, fullLine);
+                chosen(`${match.code} · ${match.name}`);
+            }
+            hideResults();
+        }
+
+        async function pickStop(match) {
+            if (!state.visible.has(match.slug)) await toggleNetwork(match.slug, true);
+            const stop = state.networks[match.slug]?.data.stops[match.stopId];
+            if (stop) {
+                state.map.setView([stop[1], stop[2]], Math.max(state.map.getZoom(), 15));
+                selectStop(match.slug, match.stopId);
+                chosen(match.name);
+            }
+            hideResults();
+        }
+
         function doSearch() {
             const query = input.value.trim();
             if (clear) clear.hidden = query.length === 0;
-            if (!query) {
-                hideResults();
-                return;
-            }
-
-            const normQ = normalize(query);
-            const tokens = normQ.split(/\s+/).filter(Boolean);
+            const normQuery = normalize(query);
+            const tokens = normQuery.split(/\s+/).filter(Boolean);
             if (!tokens.length) {
                 hideResults();
                 return;
             }
-
-            // 1. Líneas de todas las redes en state.index
-            const lineMatches = [];
-            for (const net of state.index) {
-                const netName = networkName(net.slug);
-                const normNet = normalize(netName);
-                for (const line of net.lines) {
-                    const [id, code, name, color] = line;
-                    const normCode = normalize(code);
-                    const normName = normalize(name);
-                    const fullText = `${normCode} ${normName} ${normNet}`;
-                    if (tokens.every((tok) => fullText.includes(tok))) {
-                        let score = 10;
-                        if (normCode === normQ) score = 0;
-                        else if (normCode.startsWith(normQ)) score = 1;
-                        else if (normCode.includes(normQ)) score = 2;
-                        else if (normName.startsWith(normQ)) score = 3;
-                        lineMatches.push({ score, net, id, code, name, color });
-                    }
-                }
-            }
-
-            lineMatches.sort((a, b) => a.score - b.score || a.code.localeCompare(b.code));
-
-            // 2. Paradas de las redes cargadas (las de tren se cargan al empezar a buscar): primero las que empiezan así.
-            const stopMatches = [];
-            for (const [slug, net] of Object.entries(state.networks)) {
-                for (const [stopId, stop] of Object.entries(net.data.stops)) {
-                    const normStop = normalize(stop[0]);
-                    if (tokens.every((tok) => normStop.includes(tok))) {
-                        let score = 1;
-                        if (normStop.startsWith(normQ)) score = 0;
-                        stopMatches.push({ score, slug, stopId, name: stop[0] });
-                    }
-                }
-            }
-            stopMatches.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name));
-            // Una parada por nombre y red: los dos sentidos de una calle se llaman igual.
-            const seenStops = new Set();
-            const uniqueStops = stopMatches.filter((m) => {
-                const key = `${m.slug}|${m.name}`;
-                if (seenStops.has(key)) return false;
-                seenStops.add(key);
-                return true;
-            });
-            stopMatches.splice(0, stopMatches.length, ...uniqueStops.slice(0, MAX_STOP_RESULTS));
-
+            const lines = searchLines(tokens, normQuery);
+            const stops = searchStops(tokens, normQuery);
             results.replaceChildren();
-
-            const totalMatches = lineMatches.slice(0, 20);
-            if (totalMatches.length === 0 && stopMatches.length === 0) {
-                const emptyItem = el('li', 'map-search-empty', t('map.search.empty'));
-                results.appendChild(emptyItem);
-                results.hidden = false;
-                input.setAttribute('aria-expanded', 'true');
+            if (lines.length === 0 && stops.length === 0) {
+                results.appendChild(el('li', 'map-search-empty', t('map.search.empty')));
+                showResults();
                 return;
             }
-
-            totalMatches.forEach((m, idx) => {
-                const li = el('li');
-                const btn = el('button', 'map-search-item');
-                btn.type = 'button';
-                btn.id = `map-opt-${idx}`;
-                btn.setAttribute('role', 'option');
-
-                const chip = lineChip({ code: m.code, color: m.color });
-                btn.appendChild(chip);
-
-                const info = el('div', 'map-search-info');
-                info.appendChild(el('span', 'map-search-title', m.name));
-                info.appendChild(el('span', 'map-search-net', networkName(m.net.slug)));
-                btn.appendChild(info);
-
-                btn.addEventListener('click', async () => {
-                    if (!state.visible.has(m.net.slug)) {
-                        await toggleNetwork(m.net.slug, true);
-                    }
-                    const fullLine = state.networks[m.net.slug]?.data.lines.find((l) => l.id === m.id);
-                    if (fullLine) {
-                        selectLine(m.net.slug, fullLine);
-                        input.value = `${m.code} · ${m.name}`;
-                        if (clear) clear.hidden = false;
-                    }
-                    hideResults();
-                });
-
-                li.appendChild(btn);
-                results.appendChild(li);
+            lines.forEach((match, index) => {
+                const chip = lineChip({ code: match.code, color: match.color });
+                results.appendChild(searchOption(`map-opt-${index}`, 'map-search-item', chip, match.name, networkName(match.net.slug), () => pickLine(match)));
             });
-
-            if (stopMatches.length > 0) {
-                stopMatches.forEach((s, idx) => {
-                    const li = el('li');
-                    const btn = el('button', 'map-search-item is-stop');
-                    btn.type = 'button';
-                    btn.id = `map-opt-stop-${idx}`;
-                    btn.setAttribute('role', 'option');
-
-                    const dot = el('span', 'map-stop-dot');
-                    dot.style.setProperty('--net-color', networkColor(s.slug));
-                    btn.appendChild(dot);
-
-                    const info = el('div', 'map-search-info');
-                    info.appendChild(el('span', 'map-search-title', s.name));
-                    info.appendChild(el('span', 'map-search-net', `${networkName(s.slug)} · ${t('map.search.stop')}`));
-                    btn.appendChild(info);
-
-                    btn.addEventListener('click', async () => {
-                        if (!state.visible.has(s.slug)) await toggleNetwork(s.slug, true);
-                        const stop = state.networks[s.slug]?.data.stops[s.stopId];
-                        if (stop) {
-                            state.map.setView([stop[1], stop[2]], Math.max(state.map.getZoom(), 15));
-                            selectStop(s.slug, s.stopId);
-                            input.value = s.name;
-                            if (clear) clear.hidden = false;
-                        }
-                        hideResults();
-                    });
-
-                    li.appendChild(btn);
-                    results.appendChild(li);
-                });
-            }
-
-            results.hidden = false;
-            input.setAttribute('aria-expanded', 'true');
+            stops.forEach((match, index) => {
+                const dot = el('span', 'map-stop-dot');
+                dot.style.setProperty('--net-color', networkColor(match.slug));
+                const subtitle = `${networkName(match.slug)} · ${t('map.search.stop')}`;
+                results.appendChild(searchOption(`map-opt-stop-${index}`, 'map-search-item is-stop', dot, match.name, subtitle, () => pickStop(match)));
+            });
+            showResults();
             activeIndex = -1;
+        }
+
+        // Flechas para moverse por los resultados, Intro para elegir (el primero si no hay ninguno marcado) y Escape para
+        // cerrarlos.
+        function onKey(event) {
+            const items = results.querySelectorAll('.map-search-item');
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (results.hidden) doSearch();
+                else highlightResult((activeIndex + 1) % items.length);
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (!results.hidden && items.length > 0) highlightResult((activeIndex - 1 + items.length) % items.length);
+            } else if (event.key === 'Enter') {
+                if (!results.hidden && items.length > 0) {
+                    event.preventDefault();
+                    let target = items[0];
+                    if (activeIndex >= 0) target = items[activeIndex];
+                    if (target) target.click();
+                }
+            } else if (event.key === 'Escape') {
+                if (!results.hidden) {
+                    event.stopPropagation();
+                    hideResults();
+                }
+            }
         }
 
         // Las paradas de tren, metro y tranvía pesan poco: se cargan al buscar para encontrar estaciones de redes ocultas.
@@ -655,7 +673,7 @@
         input.addEventListener('focus', () => {
             if (input.value.trim()) doSearch();
         });
-
+        input.addEventListener('keydown', onKey);
         if (clear) {
             clear.addEventListener('click', () => {
                 input.value = '';
@@ -664,42 +682,9 @@
                 input.focus();
             });
         }
-
-        input.addEventListener('keydown', (e) => {
-            const items = results.querySelectorAll('.map-search-item');
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (results.hidden) doSearch();
-                else {
-                    const next = (activeIndex + 1) % items.length;
-                    highlightResult(next);
-                }
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (!results.hidden && items.length > 0) {
-                    const prev = (activeIndex - 1 + items.length) % items.length;
-                    highlightResult(prev);
-                }
-            } else if (e.key === 'Enter') {
-                if (!results.hidden && items.length > 0) {
-                    e.preventDefault();
-                    let target = items[0];
-                    if (activeIndex >= 0) target = items[activeIndex];
-                    if (target) target.click();
-                }
-            } else if (e.key === 'Escape') {
-                if (!results.hidden) {
-                    e.stopPropagation();
-                    hideResults();
-                }
-            }
-        });
-
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', (event) => {
             const bar = document.getElementById('map-search-bar');
-            if (bar && !bar.contains(e.target)) {
-                hideResults();
-            }
+            if (bar && !bar.contains(event.target)) hideResults();
         });
     }
 

@@ -3,7 +3,7 @@
 Puerta de regresión: todo tiene que salir en verde antes de commitear. Lo más cómodo es un solo comando, que arranca el servidor local si no está en marcha:
 
 ```
-python tests/run-all.py            # todo, con navegador (unos 6 min)
+python tests/run-all.py            # todo, con navegador (unos 10 min); si faltan, genera antes map-data y offline-data
 python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unitarias, datos, API y contrato
 ```
 
