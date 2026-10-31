@@ -5,6 +5,14 @@
 
 $sUri = urldecode((string)strtok($_SERVER['REQUEST_URI'], '?#'));
 
+// Un byte nulo o de control en la ruta nunca es un fichero ni una ruta válida: fuera antes de tocar el disco
+// (realpath() con un byte nulo aborta). En producción (Vercel) estas rutas ya acaban en «no encontrado».
+if ($sUri === '' || preg_match('/[\x00-\x1f]/', $sUri)) {
+    http_response_code(404);
+    readfile(__DIR__ . '/404.html');
+    return true;
+}
+
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
     if (empty($aRoute['headers'])) {
