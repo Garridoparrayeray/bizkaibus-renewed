@@ -4,7 +4,7 @@ Apps de horarios de transporte de Euskadi (Bizkaibus, Metro Bilbao, Euskotren, R
 
 ## Arquitectura
 
-- **`api/Networks/`** — una ficha por red (`bus.php`, `metro.php`, `euskotren.php`, `renfe.php`, `tranvia-bilbao.php`, `tranvia-vitoria.php`). Es el núcleo común: todo lo demás lee de aquí.
+- **`api/Networks/`** — una ficha por red (`bus.php`, `metro.php`, `euskotren.php`, `renfe.php`, `lurraldebus.php`, `tranvia-bilbao.php`, `tranvia-vitoria.php`). Es el núcleo común: todo lo demás lee de aquí.
 - **`data/<red>.sqlite`** — paradas, líneas, patrones de ruta y horarios, precompilados por red desde su GTFS oficial (`scripts/build-database.php --network=<red>`). Se reconstruyen a diario (`.github/workflows/rebuild-schedule.yml`).
 - **`api/`** — API REST en PHP nativo, sin framework:
   - `index.php` — punto de entrada de la API (Vercel enruta `/api/*` aquí vía `vercel.json`)
@@ -12,8 +12,17 @@ Apps de horarios de transporte de Euskadi (Bizkaibus, Metro Bilbao, Euskotren, R
   - `Views/app-page.php` y `Views/app.php` — los datos (título, descripción, JSON-LD) y la plantilla de la app de cada red
   - `Core/` — Router, Request, Response, `Networks` (el registro de redes), `Config` (la red activa), Database (SQLite de solo lectura), Cache, Http
   - `Controllers/`, `Models/`, `Services/` — API, consultas y clientes de los feeds (GTFS-RT, SIRI, avisos)
-- **`engine/<motor>/`** — cálculo de llegadas en directo, un motor por red (`engine` en la ficha de la red).
+- **`engine/<motor>/`** — cálculo de llegadas en directo, un motor por red (`engine` en la ficha de la red). Vive en su propio repositorio; los flujos de trabajo lo colocan aquí.
 - **`js/`** — frontend estático, sin build step. `js/networks.js` se genera desde `api/Networks` (`php scripts/build-networks-js.php`).
+  - `js/app/` — la app de cada red, en módulos (`main.js` es la entrada): parada, línea, ficha del viaje, búsqueda, favoritos, avisos.
+  - `js/bide.js`, `js/bide-info.js`, `js/settings.js` — Bide+ como una sola app: pestañas (Apps, Favoritos, Avisos, Ajustes, Info), novedades y Ajustes.
+  - `js/i18n.js` — los textos en castellano, euskera e inglés.
+  - `js/offline.js` — horarios sin conexión; `js/push.js`, `js/incident-alerts.js` y `js/app/arrival-alerts.js` — notificaciones.
+- **`sw.js`** — service worker: lo que se guarda para ir sin conexión y las notificaciones con la app cerrada.
+- **`scripts/`** — construcción de las bases, del mapa de la red, de los horarios sin conexión y del sitemap, y alta de redes nuevas.
+- **`tests/`** — toda la batería, incluida la de limpieza del código (`tests/README.md`).
+
+Lo que cada parte hace en detalle, y cómo ampliarla, está en [docs/](docs/README.md): [notificaciones](docs/notificaciones.md), [sin conexión](docs/sin-conexion.md), [registro de pasos](docs/registro-de-pasos.md), [cómo ampliar](docs/ampliar.md), [operación](docs/operacion.md) y [el algoritmo](docs/algoritmo-explicado.md).
 
 ## Todas las redes, un solo código
 
