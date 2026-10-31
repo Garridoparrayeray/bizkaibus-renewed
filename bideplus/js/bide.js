@@ -6,7 +6,7 @@
     BideNetworks.slugs.forEach((slug) => {
         APPS[slug] = { name: BideNetworks.name(slug), storageKey: BideNetworks.get(slug).favoritesKey };
     });
-    const VIEWS = ['favoritos', 'avisos', 'info'];
+    const VIEWS = ['favoritos', 'avisos', 'ajustes', 'info'];
     const INSTALL_DISMISS_KEY = 'bide_install_dismissed';
     const INSTALL_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
     const desktop = window.matchMedia('(min-width: 1024px)');
@@ -193,13 +193,6 @@
 
     async function renderAlerts() {
         const list = document.querySelector('[data-bide-alerts]');
-        const toggle = document.querySelector('.alerts-toggle');
-        const toggleSlot = document.querySelector('.bide-alerts-toggle');
-        if (toggle && !toggleSlot.contains(toggle)) {
-            toggleSlot.append(toggle);
-            const note = document.getElementById('alerts-note');
-            if (note) toggleSlot.append(note);
-        }
         list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
         const groups = [];
         for (const app of Object.keys(APPS)) {
@@ -292,10 +285,26 @@
         if (isIos && /Safari/.test(userAgent) && !/CriOS|FxiOS|EdgiOS/.test(userAgent)) show(true);
     }
 
+    // Una pestaña dentro de un diálogo abierto (el menú ☰): al cerrarlo, el historial vuelve atrás, y la vista se abre
+    // después de eso para que ese «atrás» no la cierre. Si el diálogo no estaba en el historial, se abre igual.
+    function selectTabFromDialog(dialog, name) {
+        let opened = false;
+        const open = () => {
+            if (opened) return;
+            opened = true;
+            selectTab(name);
+        };
+        window.addEventListener('popstate', open, { once: true });
+        setTimeout(open, 400);
+        dialog.close();
+    }
+
     document.addEventListener('click', (e) => {
         const tab = e.target.closest('[data-bide-tab]');
         const lang = e.target.closest('[data-bide-lang]');
-        if (tab) selectTab(tab.getAttribute('data-bide-tab'));
+        const dialog = e.target.closest('dialog[open]');
+        if (tab && dialog) selectTabFromDialog(dialog, tab.getAttribute('data-bide-tab'));
+        else if (tab) selectTab(tab.getAttribute('data-bide-tab'));
         else if (lang) selectLang(lang.getAttribute('data-bide-lang'));
         else if (e.target.closest('[data-bide-close]')) closeView();
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();

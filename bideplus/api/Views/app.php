@@ -257,15 +257,7 @@ use Core\Networks;
             <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
         </div>
         <?= bideAppsLinks() ?>
-        <div class="bide-footer-author">
-            <p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
-            <p class="bide-footer-links">
-                <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-                <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
-                <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
-                <button id="legal-open" class="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>
-            </p>
-        </div>
+        <?= bideFooterAuthor('<button id="legal-open" class="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
     </footer>
 
 <?= bideTabbar() ?>
@@ -313,9 +305,8 @@ use Core\Networks;
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>
             <span data-i18n="app.favorites.title">Tus favoritos</span>
         </button>
+        <button class="pill" type="button" data-bide-tab="ajustes"><?= BIDE_ICONS['ajustes'] ?><span data-i18n="bide.tab.settings">Ajustes</span></button>
         <h3 data-i18n="app.myLinesIncidents">Incidencias de mis líneas</h3>
-        <label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMe">Avisarme de las incidencias nuevas de mis líneas favoritas</span></label>
-        <p id="alerts-note" class="alerts-note" role="status" hidden></p>
         <p id="menu-alerts-empty" class="menu-alerts-empty" data-i18n="app.noFavoriteIncidents">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
         <ul id="menu-alerts-list" class="menu-alerts-list"></ul>
     </dialog>
@@ -325,6 +316,7 @@ use Core\Networks;
     <script src="js/alerts-store.js"></script>
     <script src="/js/offline.js"></script>
     <script type="module" src="/js/app/main.js"></script>
+    <script type="module" src="/js/settings.js"></script>
     <script defer src="/js/bide.js"></script>
     <script defer src="/js/bide-info.js"></script>
     <script defer src="/js/sw-register.js"></script>

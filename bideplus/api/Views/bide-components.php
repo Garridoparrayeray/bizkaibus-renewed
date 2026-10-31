@@ -17,6 +17,7 @@ const BIDE_ICONS = [
     'favoritos' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C.6 8.1 2.3 5 5.6 5 8 5 10 6.6 12 9c2-2.4 4-4 6.4-4 3.3 0 5 3.1 3.6 6.7C19.5 16.4 12 21 12 21z"/></svg>',
     'avisos' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     'mapa' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>',
+    'ajustes' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
     'info' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>',
     'back' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>',
     'next' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>',
@@ -58,10 +59,10 @@ const BIDE_CHANGELOG = [
 const BIDE_FAQ = [
     ['¿Las llegadas son en tiempo real?', 'Depende de la red. En Bizkaibus+ se calculan con la posición GPS de cada autobús y en Metro+ llegan en directo del Consorcio de Transportes de Bizkaia. En Euskotren, los tranvías, Renfe y Lurraldebus se muestra el horario oficial, con la etiqueta «Solo horario».'],
     ['¿Qué significa «Estimado»?', 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.'],
-    ['¿Funciona sin conexión?', 'Sí, si guardas el horario de tus redes en «Horarios sin conexión», aquí en Info. Sin cobertura, las paradas muestran sus próximas salidas según el horario oficial, y el directo vuelve en cuanto hay conexión.'],
+    ['¿Funciona sin conexión?', 'Sí, si guardas el horario de tus redes en «Horarios sin conexión», en Ajustes. Sin cobertura, las paradas muestran sus próximas salidas según el horario oficial, y el directo vuelve en cuanto hay conexión.'],
     ['¿Cómo instalo Bide+ en el móvil?', 'En Android, pulsa «Instalar» en el aviso de abajo o en el menú del navegador. En iPhone, abre Bide+ en Safari, toca Compartir y elige «Añadir a pantalla de inicio».'],
     ['¿Cómo guardo una parada o una línea?', 'Toca el corazón en la parada, la estación o la línea. Tus favoritos salen en la pestaña Favoritos y en todas las apps.'],
-    ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus líneas favoritas, y puedes activar que el móvil te avise cuando haya una nueva.'],
+    ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus favoritos, y en Ajustes puedes activar que el móvil te avise de cada una nueva, aunque tengas la app cerrada.'],
     ['¿Cada cuánto se actualizan los horarios?', 'Cada día, con los datos oficiales que publican los operadores. En el horario de cada línea ves desde y hasta cuándo es válido.'],
     ['¿Es una app oficial?', 'No. Bide+ es un proyecto independiente que usa los datos abiertos de los operadores. Si hay dudas, vale lo que diga cada operador.'],
 ];
@@ -72,6 +73,7 @@ function bideTabbar(): string
         ['apps', 'bide.tab.apps', 'Apps'],
         ['favoritos', 'bide.tab.favorites', 'Favoritos'],
         ['avisos', 'bide.tab.alerts', 'Avisos'],
+        ['ajustes', 'bide.tab.settings', 'Ajustes'],
         ['info', 'bide.tab.info', 'Info'],
     ];
     $sHtml = '<nav class="bide-tabbar" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
@@ -108,6 +110,7 @@ function bideRail(string|null $sCurrentApp): string
     $sHtml .= '<div class="bide-rail-sep"></div>';
     $sHtml .= '<a class="bide-rail-item" href="/mapa">' . BIDE_ICONS['mapa'] . '<span data-i18n="map.title">Mapa de la red</span></a>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
+    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
     $sHtml .= '</nav>';
     $sHtml .= '<section class="bide-rail-favorites"><h2 data-i18n="app.favorites.title">Tus favoritos</h2><ul class="bide-fav-list" data-bide-favorites="compact"></ul></section>';
@@ -151,10 +154,41 @@ function bideOffline(): string
         . '<ul class="bide-offline-list" data-bide-offline></ul></section>';
 }
 
+// Datos del sitio (api/Config/site.php): nombre, autor, enlaces y correo de contacto.
+function bideSite(): array
+{
+    static $aSite = null;
+    if ($aSite === null) {
+        $aSite = require __DIR__ . '/../Config/site.php';
+    }
+    return $aSite;
+}
+
+function bideAuthorLinks(): string
+{
+    $aSite = bideSite();
+    $sHtml = '';
+    foreach ($aSite['author_links'] as $sLabel => $sUrl) {
+        $sHtml .= '<a href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($sLabel) . '</a>';
+    }
+    return $sHtml . '<a href="' . htmlspecialchars($aSite['source_url']) . '" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>';
+}
+
+// Pie del menú y de las apps: Ajustes e Info (en el navegador del móvil no hay barra de pestañas), el autor y el aviso
+// legal, que cada página abre a su manera.
+function bideFooterAuthor(string $sLegalButton): string
+{
+    return '<div class="bide-footer-author"><p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</p>'
+        . '<p class="bide-footer-links">'
+        . '<button type="button" class="bide-footer-legal" data-bide-tab="ajustes" data-i18n="bide.tab.settings">Ajustes</button>'
+        . '<button type="button" class="bide-footer-legal" data-bide-tab="info" data-i18n="bide.tab.info">Info</button>'
+        . bideAuthorLinks() . $sLegalButton . '</p></div>';
+}
+
 // Sugerencias y errores: el mensaje se manda por correo desde el móvil de quien escribe (o se copia).
 function bideFeedback(): string
 {
-    $aSite = require __DIR__ . '/../Config/site.php';
+    $aSite = bideSite();
     $sTypes = '';
     foreach (['suggestion' => 'Sugerencia', 'error' => 'Error', 'other' => 'Otro'] as $sType => $sLabel) {
         $sPressed = 'false';
@@ -177,6 +211,36 @@ function bideFeedback(): string
         . '<p class="bide-feedback-status" data-feedback-status role="status"></p></section>';
 }
 
+// Ajustes: idioma, notificaciones, horarios sin conexión y borrar los datos del móvil. Lo que cambia (permiso, avisos
+// de llegada activos) lo rellena js/settings.js; el interruptor de incidencias lo maneja js/incident-alerts.js.
+function bideSettings(string $sBack): string
+{
+    $sHtml = '<section class="bide-view" data-bide-view="ajustes" hidden>';
+    $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="bide.settings.title">Ajustes</h2></header>';
+    $sHtml .= '<div class="bide-info-grid">';
+
+    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.settings.lang">Idioma</h3>' . bideLangSwitch() . '</section>';
+
+    $sHtml .= '<section class="bide-card bide-settings-notifications"><h3 data-i18n="bide.settings.notifications">Notificaciones</h3>';
+    $sHtml .= '<label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMeFavorites">Avisarme de las incidencias nuevas de mis favoritos</span></label>';
+    $sHtml .= '<p id="alerts-note" class="alerts-note" role="status" hidden></p>';
+    $sHtml .= '<p class="bide-note" data-settings-permission></p>';
+    $sHtml .= '<h4 data-i18n="bide.settings.arrivals">Avisos de llegada</h4>';
+    $sHtml .= '<ul class="bide-settings-arrivals" data-settings-arrivals></ul>';
+    $sHtml .= '<p class="bide-note" data-settings-arrivals-empty data-i18n="bide.settings.arrivalsEmpty">No tienes avisos de llegada activos. Se crean desde la ficha de un viaje.</p>';
+    $sHtml .= '</section>';
+
+    $sHtml .= bideOffline();
+
+    $sHtml .= '<section class="bide-card bide-settings-data"><h3 data-i18n="bide.settings.data">Tus datos</h3>';
+    $sHtml .= '<p data-i18n="bide.settings.dataText">Tus favoritos, el idioma, los avisos y los horarios guardados están solo en este móvil, salvo lo justo para mandarte las notificaciones. Puedes borrarlo todo de una vez.</p>';
+    $sHtml .= '<button type="button" class="bide-button is-danger" data-settings-delete data-i18n="bide.settings.delete">Borrar mis datos de este móvil</button>';
+    $sHtml .= '<p class="bide-feedback-status" data-settings-delete-status role="status"></p>';
+    $sHtml .= '</section>';
+
+    return $sHtml . '</div></section>';
+}
+
 function bideViews(): string
 {
     $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
@@ -190,20 +254,21 @@ function bideViews(): string
 
     $sHtml .= '<section class="bide-view" data-bide-view="avisos" hidden>';
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="bide.alerts.title">Avisos de tus favoritos</h2></header>';
-    $sHtml .= '<div class="bide-alerts-toggle"></div>';
+    $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-tab="ajustes"><span data-i18n="bide.alerts.settings">Avisos en el móvil, en Ajustes</span>' . BIDE_ICONS['next'] . '</button>';
     $sHtml .= '<div class="bide-alerts-list" data-bide-alerts></div>';
     $sHtml .= '<p class="bide-note" data-i18n="bide.alerts.note">Solo aparecen los avisos de lo que tienes en Favoritos, en todas las apps.</p>';
     $sHtml .= '</section>';
+
+    $sHtml .= bideSettings($sBack);
 
     $sHtml .= '<section class="bide-view" data-bide-view="info" hidden>';
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
-    $sHtml .= bideOffline();
     $sHtml .= bideFaq();
     $sHtml .= bideFeedback();
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><p>Bizkaibus (Open Data Bizkaia, CC-BY 4.0) · Metro Bilbao (horario y tiempo real: Consorcio de Transportes de Bizkaia, CC-BY 4.0) · Euskotren, Tranvía Bilbao y Tranvía Vitoria (Open Data Euskadi, CC-BY 4.0) · Renfe (NAP, Punto de Acceso Nacional de Transporte).</p></section>';
-    $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</h3><p class="bide-links"><a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a><a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a></p></section>';
+    $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
     $sHtml .= '</div></section>';

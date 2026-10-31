@@ -109,12 +109,12 @@ await goOwn('/?red=metro');
 await searchOwn('abando');
 check('busqueda online funciona (rellena la cache)', await waitTrue("document.querySelectorAll('#search-results .pill').length > 0"));
 
-// Horarios sin conexión: se guarda Bizkaibus desde Info y se abre una parada con el servidor caído.
+// Horarios sin conexión: se guarda Bizkaibus desde Ajustes y se abre una parada con el servidor caído.
 await goOwn('/?red=bus');
-await ev("document.querySelector('[data-bide-tab=info]').click()");
+await ev("document.querySelector('[data-bide-tab=ajustes]').click()");
 await sleep(800);
 await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Bizkaibus')).querySelector('input'); input.click(); return true; })()");
-check('horarios sin conexion: Bizkaibus se guarda desde Info', await waitTrue("!!BideOffline.saved().bus"));
+check('horarios sin conexion: Bizkaibus se guarda desde Ajustes', await waitTrue("!!BideOffline.saved().bus"));
 await goOwn('/?red=bus');
 
 ownServer.kill();

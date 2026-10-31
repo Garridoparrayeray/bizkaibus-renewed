@@ -71,7 +71,7 @@ class ArrivalAlerts
         if ($aStored === null) {
             return ['status' => 'unavailable'];
         }
-        return ['status' => 'created', 'id' => $sId, 'minutesLeft' => $iLeft];
+        return ['status' => 'created', 'id' => $sId, 'minutesLeft' => $iLeft, 'lineCode' => $aAlert['lineCode'], 'headsign' => $aAlert['headsign'], 'stopName' => $aAlert['stopName']];
     }
 
     // Solo cancela quien creó el aviso: hay que dar la misma suscripción.

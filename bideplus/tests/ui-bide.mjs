@@ -105,7 +105,7 @@ await send('Emulation.setUserAgentOverride', { userAgent: '' });
 // ===== App instalada =====
 await setStandalone(true);
 await go('/');
-check('instalada · menú: barra con 4 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 4);
+check('instalada · menú: barra con 5 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 5);
 check('instalada · menú: «Apps» marcada', (await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').getAttribute('aria-current')")) === 'page');
 check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('main > footer'))) === false && (await ev(shown('.bide-install'))) === false);
 
@@ -126,7 +126,6 @@ check('instalada · Info: novedades plegadas, solo la última', await ev("(() =>
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
 check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 26"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
-check('instalada · Info: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=info] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
 check('instalada · Info: sugerencias cuenta los caracteres', await ev("document.querySelector('[data-feedback-count]').textContent === '6 / 1500'"));
@@ -150,12 +149,32 @@ check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bid
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
 
+// ===== Ajustes =====
+await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234567', tripKey: 'x', stopId: '4255', minutes: 5, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now(), lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); return true; })()`);
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('instalada · Ajustes: se abre como página', await waitTrue(shown('[data-bide-view=ajustes]')));
+check('instalada · Ajustes: idioma, notificaciones, sin conexión y datos', await ev("['.bide-lang', '#alerts-toggle', '[data-settings-permission]', '.bide-offline', '[data-settings-delete]'].every((s) => !!document.querySelector('[data-bide-view=ajustes] ' + s))"));
+check('instalada · Ajustes: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=ajustes] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
+check('instalada · Ajustes: el estado del permiso, con su texto', await ev("(() => { const p = document.querySelector('[data-settings-permission]').textContent; return p.length > 10 && p.indexOf('bide.') === -1; })()"));
+check('instalada · Ajustes: el aviso de llegada activo, con línea y parada', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('A3514 → GERNIKA') && document.querySelector('[data-settings-arrivals-empty]').hidden"));
+await ev("document.querySelector('[data-settings-arrivals] button').click(); true");
+check('instalada · Ajustes: cancelar el aviso lo quita', await waitTrue("document.querySelectorAll('[data-settings-arrivals] li').length === 0 && !document.querySelector('[data-settings-arrivals-empty]').hidden && JSON.parse(localStorage.getItem('bide-arrival-alerts')).length === 0"));
+await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]').click(); true");
+check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
+await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
+check('instalada · Ajustes: sin desbordar a lo ancho', await ev(noOverflow));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
+check('instalada · Avisos: enlaza con Ajustes', await waitTrue("!!document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]')"));
+await ev("document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]').click(); true");
+check('instalada · Avisos: el enlace abre Ajustes', await waitTrue(shown('[data-bide-view=ajustes]')));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
+
 await go('/?red=bus');
 check('instalada · app: barra de pestañas', await ev(shown('.bide-tabbar')));
 check('instalada · app: sin ☰ ni pie', (await ev(shown('#menu-open'))) === false && (await ev(shown('#app-footer'))) === false);
 check('instalada · app: se mantiene «Cerca de mí»', await ev(shown('#nearby-btn')));
-await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
-check('instalada · Avisos: lleva el interruptor de notificaciones', await waitTrue("!!document.querySelector('[data-bide-view=avisos] .alerts-toggle')"));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('instalada · app: Ajustes lleva el interruptor de notificaciones', await waitTrue(`${shown('[data-bide-view=ajustes]')} && !!document.querySelector('[data-bide-view=ajustes] #alerts-toggle')`));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 check('instalada · «Apps» cierra la página abierta', await waitTrue(shown('.layout')));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
@@ -387,6 +406,19 @@ await go('/mapa');
 check('«mi amor»: sigue en el mapa de la red', await ev("document.documentElement.classList.contains('is-miamor')"));
 await go('/?red=bus&tema=pro');
 check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.documentElement.classList.contains('is-miamor')"));
+
+// ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
+await setStandalone(false);
+await phone();
+await go('/');
+await ev("localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'stop', refId: '4255' }])); true");
+await ev("document.querySelector('.menu-footer [data-bide-tab=ajustes]').click(); true");
+check('navegador · Ajustes: se abre desde el pie', await waitTrue(shown('[data-bide-view=ajustes]')));
+await ev("document.querySelector('[data-settings-delete]').click(); true");
+check('borrar datos: la primera pulsación pide confirmación', await waitTrue("document.querySelector('[data-settings-delete]').getAttribute('data-i18n') === 'bide.settings.deleteConfirm'") && (await ev("localStorage.getItem('bizkaibus_favorites') !== null")));
+await ev("document.querySelector('[data-settings-delete]').click(); true");
+await sleep(3000);
+check('borrar datos: la segunda lo borra y recarga', await waitTrue("document.readyState === 'complete' && localStorage.getItem('bizkaibus_favorites') === null && location.pathname === '/'"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];

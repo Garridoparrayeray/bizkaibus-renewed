@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v35';
+const CACHE_VERSION = 'v36';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -43,9 +43,12 @@ const SHELL_FILES = [
     '/js/app/side-menu.js',
     '/js/app/alerts.js',
     '/js/app/arrival-alerts.js',
-    '/js/app/push.js',
     '/js/networks.js',
     '/js/alerts-store.js',
+    '/js/push.js',
+    '/js/incident-alerts.js',
+    '/js/arrival-alerts-store.js',
+    '/js/settings.js',
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/i18n.js',

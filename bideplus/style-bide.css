@@ -225,8 +225,20 @@ html.bide .bide-button {
     html.bide .bide-button.is-secondary { background: var(--bide-surface); color: var(--primary, var(--bide-green)); }
     html.bide .bide-button:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
 
-html.bide .bide-alerts-toggle:not(:empty) { margin: 0 0 12px; padding: 14px 16px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); }
-    html.bide .bide-alerts-toggle .alerts-toggle { margin: 0; }
+    html.bide .bide-button.is-danger { border-color: #b3261e; background: var(--bide-surface); color: #b3261e; }
+
+/* Ajustes: el interruptor de incidencias (igual en el menú de inicio y en las apps) y los avisos de llegada activos. */
+html.bide .bide-settings-notifications h4 { margin: 16px 0 8px; font-size: .95rem; }
+html.bide .alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--bide-ink); font-size: .92rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
+    html.bide .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary, var(--bide-green)); }
+html.bide .alerts-note { margin: 0 0 8px; color: var(--bide-muted); font-size: .82rem; line-height: 1.4; }
+html.bide .bide-settings-arrivals { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    html.bide .bide-settings-arrivals:empty { display: none; }
+html.bide .bide-settings-arrival { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--bide-line); border-radius: 12px; }
+    html.bide .bide-settings-arrival > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    html.bide .bide-settings-arrival span span { color: var(--bide-muted); font-size: .82rem; }
+    html.bide .bide-settings-arrival .bide-button { flex: none; min-height: 38px; }
+html.bide .bide-settings-data .bide-button { width: 100%; margin-top: 4px; }
 
 html.bide.bide-view-open body.page-app .app-container > :not(.bide-views):not(.bide-rail):not(.net-banner),
 html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail) { display: none; }
@@ -381,7 +393,7 @@ html.bide body.page-menu .legal-close {
         left: 0;
         z-index: 55;
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 0;
         /* El margen seguro de iOS (indicador de inicio) va en la franja de la barra, no dentro de las pestañas: el color de la activa no se estira. Tope de 34 px por si iOS da un valor raro. */
         padding: 0 0 min(env(safe-area-inset-bottom), 34px);

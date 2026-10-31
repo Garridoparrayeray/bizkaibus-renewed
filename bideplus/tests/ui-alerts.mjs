@@ -157,10 +157,16 @@ check('tras un fallo, el aviso no se pierde (se detecta despues)', Array.isArray
 await send('Fetch.disable');
 await ev(`AlertsStore.set('enabled', false)`);
 
+// El interruptor está en Ajustes, que se abre desde el menú lateral.
+const openSettings = async () => {
+    await ev("document.getElementById('menu-open').click()");
+    await sleep(500);
+    await ev("document.querySelector('#side-menu [data-bide-tab=ajustes]').click()");
+    await sleep(500);
+};
 await go('/?red=bus');
-await ev("document.getElementById('menu-open').click()");
-await sleep(500);
-check('interruptor de avisos visible en el menu lateral', (await ev("!!document.getElementById('alerts-toggle') && document.getElementById('alerts-toggle').offsetParent !== null")) === true);
+await openSettings();
+check('interruptor de avisos visible en Ajustes, desde el menu lateral', (await ev("!!document.getElementById('alerts-toggle') && document.getElementById('alerts-toggle').offsetParent !== null")) === true);
 await ev("document.getElementById('alerts-toggle').click()");
 check('activar avisos: queda marcado y muestra la nota', await waitTrue("document.getElementById('alerts-toggle').checked === true && !document.getElementById('alerts-note').hidden"), await ev("document.getElementById('alerts-note').textContent"));
 check('activar avisos: se guarda como activado', (await ev(`AlertsStore.get('enabled')`)) === true);
@@ -170,8 +176,7 @@ check('desactivar avisos: enabled = false', (await ev(`AlertsStore.get('enabled'
 
 await send('Browser.setPermission', { permission: { name: 'notifications' }, setting: 'denied', origin: BASE });
 await go('/?red=bus');
-await ev("document.getElementById('menu-open').click()");
-await sleep(500);
+await openSettings();
 await ev("document.getElementById('alerts-toggle').click()");
 check('permiso denegado: no se activa y explica por que', await waitTrue("document.getElementById('alerts-toggle').checked === false && document.getElementById('alerts-note').textContent.includes('bloqueadas')"));
 await send('Browser.grantPermissions', { permissions: ['notifications'], origin: BASE });

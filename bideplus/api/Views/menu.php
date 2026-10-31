@@ -163,15 +163,7 @@ $jsonLd = [
                 <p data-i18n="menu.footer">Datos abiertos de Bizkaibus, Metro Bilbao, Euskotren y Renfe (CC-BY 4.0 donde corresponde). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
             </div>
             <?= bideAppsLinks() ?>
-            <div class="bide-footer-author">
-                <p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> Yeray Garrido</p>
-                <p class="bide-footer-links">
-                    <a href="https://www.linkedin.com/in/yeray-garrido" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-                    <a href="https://www.yeraygarrido.dev/" target="_blank" rel="noopener noreferrer">Portfolio</a>
-                    <a href="https://github.com/Garridoparrayeray/bizkaibus-renewed" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>
-                    <button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>
-                </p>
-            </div>
+            <?= bideFooterAuthor('<button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
         </footer>
     </main>
 <?= bideTabbar() ?>
@@ -179,7 +171,10 @@ $jsonLd = [
     <script src="/js/menu.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/bide.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/alerts-store.js"></script>
     <script src="/js/offline.js"></script>
     <script src="/js/bide-info.js"></script>
+    <script type="module" src="/js/settings.js"></script>
 </body>
 </html>

@@ -2,32 +2,13 @@
 // minutos, aunque la app esté cerrada (notificaciones push; en iPhone, con Bide+ en la pantalla de inicio). El
 // servidor guarda el aviso y lo manda en el momento justo (api/Services/ArrivalAlerts.php).
 import { el, state } from './core.js';
-import { isIos, pushSubscription, pushSupported, serverKey } from './push.js';
+import { cancelArrivalAlert, readArrivalAlerts, writeArrivalAlerts } from '../arrival-alerts-store.js';
+import { isIos, pushSubscription, pushSupported, serverKey } from '../push.js';
 
-const STORAGE_KEY = 'bide-arrival-alerts';
-const KEEP_MS = 3 * 3600 * 1000;
 let current = { tripKey: null, stopId: null };
 
-// Avisos creados desde este móvil, para enseñar «aviso activo» y poder cancelarlo. Caducan como en el servidor.
-function readAlerts() {
-    try {
-        const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        return list.filter((alert) => Date.now() - alert.created < KEEP_MS);
-    } catch (e) {
-        return [];
-    }
-}
-
-function writeAlerts(list) {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch (e) {
-        // Sin almacenamiento el aviso llega igual; solo no se podrá cancelar desde aquí.
-    }
-}
-
 function activeAlert() {
-    return readAlerts().find((alert) => alert.tripKey === current.tripKey && String(alert.stopId) === String(current.stopId));
+    return readArrivalAlerts().find((alert) => alert.tripKey === current.tripKey && String(alert.stopId) === String(current.stopId));
 }
 
 function setStatus(key, vars) {
@@ -82,7 +63,9 @@ async function createAlert(minutes) {
         return;
     }
     if (result.status === 'created') {
-        writeAlerts([...readAlerts(), { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, endpoint: subscription.endpoint, created: Date.now() }]);
+        // La línea, el destino y la parada, para enseñarlo en Ajustes.
+        const alert = { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, endpoint: subscription.endpoint, created: Date.now() };
+        writeArrivalAlerts([...readArrivalAlerts(), { ...alert, lineCode: result.lineCode, headsign: result.headsign, stopName: result.stopName }]);
         if (target.tripKey === current.tripKey) renderState();
     } else if (result.status === 'now') {
         setStatus('app.notify.now');
@@ -96,12 +79,7 @@ async function createAlert(minutes) {
 async function cancelAlert() {
     const active = activeAlert();
     if (!active) return;
-    try {
-        await Api.cancelArrivalAlert(active.id, active.endpoint);
-    } catch (e) {
-        // Si el servidor ya lo había mandado o borrado, también vale: se quita de aquí.
-    }
-    writeAlerts(readAlerts().filter((alert) => alert.id !== active.id));
+    await cancelArrivalAlert(active);
     renderState();
     setStatus('app.notify.cancelled');
 }
@@ -111,4 +89,10 @@ export function setUpArrivalAlerts() {
         button.addEventListener('click', () => createAlert(Number(button.dataset.notifyMinutes)));
     });
     el.modalNotifyCancel.addEventListener('click', cancelAlert);
+    // Si se cancela desde Ajustes con la ficha abierta, la ficha vuelve a ofrecer el aviso.
+    window.addEventListener('bide:arrival-alerts', () => {
+        if (el.modalNotify.hidden) return;
+        if (!activeAlert()) el.modalNotifyStatus.textContent = '';
+        renderState();
+    });
 }
