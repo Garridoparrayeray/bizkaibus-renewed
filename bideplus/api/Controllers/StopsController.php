@@ -75,11 +75,7 @@ class StopsController
 
         $aBest = null;
         foreach ($aStopIds as $Id) {
-            $aUpcoming = $JourneyModel->upcomingAtStop($Id, 3, 4 * 3600);
-            if (empty($aUpcoming)) {
-                $aUpcoming = $JourneyModel->upcomingAtStop($Id, 3, 24 * 3600);
-            }
-            foreach ($aUpcoming as $aRow) {
+            foreach (self::upcomingRows($JourneyModel, $Id, 3) as $aRow) {
                 if ((int)$aRow['departure_seconds'] < $iNow) {
                     continue;
                 }
@@ -120,150 +116,147 @@ class StopsController
     {
         $Pdo = Database::connection();
         $StopModel = new Stop($Pdo);
-
         $aStop = $StopModel->find($sStopId);
         if ($aStop === null) {
             return null;
         }
         $sStopId = (string)$aStop['id'];
-
-        $JourneyModel = new ServiceJourney($Pdo);
         $aConfig = Config::current();
-        $iReferenceStopId = null;
-        if (isset($aConfig['direction_reference_stop_id'])) {
-            $iReferenceStopId = $aConfig['direction_reference_stop_id'];
-        }
-
+        $JourneyModel = new ServiceJourney($Pdo);
         $Matcher = Live::matcher($JourneyModel);
-        $TripMatcher = null;
-        if (Config::hasLive('trip-updates')) {
-            $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
-            $TripMatcher = new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds']);
-        }
-
+        $TripMatcher = self::tripMatcher($JourneyModel);
         $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
+        $aOut = ['stop' => ['id' => $aStop['id'], 'name' => $aStop['name']]];
 
+        // Estación con andenes (Metro, Euskotren): las salidas de cada andén, cada una con el suyo.
         $aPlatforms = $StopModel->platformsFor($sStopId);
-
         if (!empty($aPlatforms)) {
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {
-                $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 4 * 3600);
-                if (empty($aRows)) {
-                    $aRows = $JourneyModel->upcomingAtStop($aPlatform['id'], $iLimit, 24 * 3600);
-                }
-                $aEnriched = $Matcher->enrich($aRows);
-                if ($TripMatcher !== null) {
-                    $aEnriched = $TripMatcher->enrich((string)$aPlatform['id'], $aEnriched);
-                    if ($TripMatcher->hasData()) {
-                        $aEnriched = $TripMatcher->withoutDeparted($aEnriched, Calendar::nowSecondsSinceMidnight());
-                    }
-                }
-                $aPlatformDepartures = $this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign, $aPlatform);
-                foreach (array_slice($aPlatformDepartures, 0, $iLimit) as $aDeparture) {
-                    $aDepartures[] = $aDeparture;
-                }
+                $aRows = self::withLive($Matcher, $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit));
+                array_push($aDepartures, ...array_slice(self::departureItems($aRows, $bUseLastStopHeadsign, $aPlatform), 0, $iLimit));
             }
-
-            return [
-                'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
-                'platforms' => $aPlatforms,
-                'departures' => $aDepartures,
-                'attribution' => $aConfig['attribution'],
-            ];
+            return $aOut + ['platforms' => $aPlatforms, 'departures' => $aDepartures, 'attribution' => $aConfig['attribution']];
         }
 
-        $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 4 * 3600);
-        if (empty($aRows)) {
-            $aRows = $JourneyModel->upcomingAtStop($sStopId, $iLimit, 24 * 3600);
-        }
-
+        $aRows = self::upcomingRows($JourneyModel, $sStopId, $iLimit);
         $aDirectionLabels = null;
-        if ($iReferenceStopId !== null) {
-            $aDirections = $JourneyModel->directionsByPattern($sStopId, $iReferenceStopId);
-            foreach ($aRows as &$aRow) {
-                $aRow['direction'] = $aDirections[$aRow['journey_pattern_id']]['direction'] ?? 'toward_reference';
-            }
-            unset($aRow);
-            $aTermini = ['toward_reference' => [], 'away_from_reference' => []];
-            foreach ($aDirections as $aInfo) {
-                if ($aInfo['terminus'] !== $aStop['name'] && !in_array($aInfo['terminus'], $aTermini[$aInfo['direction']], true)) {
-                    $aTermini[$aInfo['direction']][] = $aInfo['terminus'];
-                }
-            }
-            $aDirectionLabels = array_map(fn($aNames) => implode(' · ', $aNames), $aTermini);
+        if (isset($aConfig['direction_reference_stop_id'])) {
+            [$aRows, $aDirectionLabels] = self::withDirections($JourneyModel, $aRows, $sStopId, $aStop['name'], $aConfig['direction_reference_stop_id']);
         }
-
-        $aEnriched = $Matcher->enrich($aRows);
-        if ($TripMatcher !== null) {
-            $aEnriched = $TripMatcher->enrich((string)$sStopId, $aEnriched);
-            if ($TripMatcher->hasData()) {
-                $aEnriched = $TripMatcher->withoutDeparted($aEnriched, Calendar::nowSecondsSinceMidnight());
-            }
-        }
-        $aDepartures = array_slice($this->buildDepartureItems($aEnriched, $bUseLastStopHeadsign), 0, $iLimit);
-
-        return [
-            'stop' => ['id' => $aStop['id'], 'name' => $aStop['name']],
+        $aRows = self::withLive($Matcher, $TripMatcher, $sStopId, $aRows);
+        return $aOut + [
             'platforms' => [],
             'directionLabels' => $aDirectionLabels,
-            'departures' => $aDepartures,
+            'departures' => array_slice(self::departureItems($aRows, $bUseLastStopHeadsign), 0, $iLimit),
             'attribution' => $aConfig['attribution'],
         ];
     }
 
-    private function buildDepartureItems(array $aEnriched, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array
+    // Salidas del horario de las próximas 4 horas o, si no hay ninguna (de noche), de las próximas 24.
+    private static function upcomingRows(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit): array
+    {
+        $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600);
+        if (empty($aRows)) {
+            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600);
+        }
+        return $aRows;
+    }
+
+    // En las redes con GTFS-Realtime (Metro), el emparejador de su feed; si no, null.
+    private static function tripMatcher(ServiceJourney $JourneyModel): TripUpdatesMatcher|null
+    {
+        if (!Config::hasLive('trip-updates')) {
+            return null;
+        }
+        $aConfig = Config::current();
+        $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
+        return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds']);
+    }
+
+    // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en Metro, las horas del feed (sin los
+    // trenes que ya han salido).
+    private static function withLive(object $Matcher, TripUpdatesMatcher|null $TripMatcher, string $sStopId, array $aRows): array
+    {
+        $aRows = $Matcher->enrich($aRows);
+        if ($TripMatcher === null) {
+            return $aRows;
+        }
+        $aRows = $TripMatcher->enrich($sStopId, $aRows);
+        if ($TripMatcher->hasData()) {
+            $aRows = $TripMatcher->withoutDeparted($aRows, Calendar::nowSecondsSinceMidnight());
+        }
+        return $aRows;
+    }
+
+    // Redes con parada de referencia (Metro): cada salida va hacia ella o se aleja, y los dos sentidos se titulan con
+    // los finales de línea de cada uno («Etxebarri · Basauri»).
+    private static function withDirections(ServiceJourney $JourneyModel, array $aRows, string $sStopId, string $sStopName, string|int $ReferenceStopId): array
+    {
+        $aDirections = $JourneyModel->directionsByPattern($sStopId, $ReferenceStopId);
+        foreach ($aRows as &$aRow) {
+            $aRow['direction'] = $aDirections[$aRow['journey_pattern_id']]['direction'] ?? 'toward_reference';
+        }
+        unset($aRow);
+        $aTermini = ['toward_reference' => [], 'away_from_reference' => []];
+        foreach ($aDirections as $aInfo) {
+            if ($aInfo['terminus'] !== $sStopName && !in_array($aInfo['terminus'], $aTermini[$aInfo['direction']], true)) {
+                $aTermini[$aInfo['direction']][] = $aInfo['terminus'];
+            }
+        }
+        return [$aRows, array_map(fn($aNames) => implode(' · ', $aNames), $aTermini)];
+    }
+
+    private static function departureItems(array $aRows, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();
-        // Por hora de llegada prevista, no por la teorica: un bus adelantado llega antes que uno anterior en el horario.
+        // Por hora de llegada prevista, no por la teórica: un bus adelantado llega antes que uno anterior en el horario.
         // Los que probablemente ya pasaron (estimación, sin datos del bus) van al final, nunca delante de uno que viene.
-        usort($aEnriched, function ($aA, $aB) {
-            $iRankA = 0;
-            if ($aA['status'] === 'likely_departed') {
-                $iRankA = 1;
+        usort($aRows, fn($aA, $aB) => [(int)($aA['status'] === 'likely_departed'), $aA['etaSeconds']] <=> [(int)($aB['status'] === 'likely_departed'), $aB['etaSeconds']]);
+        $sPlatformId = null;
+        if ($aPlatform !== null) {
+            $sPlatformId = $aPlatform['id'];
+        }
+        $aDepartures = [];
+        foreach ($aRows as $aRow) {
+            $iEtaMinutes = (int)round(($aRow['etaSeconds'] - $iNow) / 60);
+            // Hasta 2 minutos después de su hora se sigue enseñando: puede estar saliendo.
+            if ($iEtaMinutes < -2) {
+                continue;
             }
-            $iRankB = 0;
-            if ($aB['status'] === 'likely_departed') {
-                $iRankB = 1;
-            }
-            return [$iRankA, $aA['etaSeconds']] <=> [$iRankB, $aB['etaSeconds']];
-        });
-        $aDepartures = array_map(function ($aRow) use ($iNow, $bUseLastStopHeadsign, $aPlatform) {
-            $sHeadsign = $aRow['headsign'];
-            if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
-                $sHeadsign = $aRow['last_stop_name'];
-            }
-            $iDelayMinutes = 0;
-            if ($aRow['delaySeconds'] === null) {
-                $iDelayMinutes = null;
-            } elseif ($aRow['delaySeconds'] !== 0) {
-                $iDelayMinutes = (int)round($aRow['delaySeconds'] / 60);
-            }
-            $sDirection = null;
-            if (isset($aRow['direction'])) {
-                $sDirection = $aRow['direction'];
-            }
-            $sPlatformId = null;
-            if ($aPlatform !== null) {
-                $sPlatformId = $aPlatform['id'];
-            }
-            return [
+            $aDepartures[] = [
                 'lineId' => Ids::forOutput($aRow['line_id']),
                 'lineCode' => $aRow['line_code'],
                 'lineName' => $aRow['line_name'],
-                'headsign' => $sHeadsign,
-                'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
+                'headsign' => self::headsign($aRow, $bUseLastStopHeadsign),
+                'tripKey' => TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']),
                 'scheduledTime' => Calendar::secondsToHm((int)$aRow['arrival_seconds']),
-                'etaMinutes' => (int)round(($aRow['etaSeconds'] - $iNow) / 60),
+                'etaMinutes' => $iEtaMinutes,
                 'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
                 'status' => $aRow['status'],
-                'delayMinutes' => $iDelayMinutes,
-                'direction' => $sDirection,
+                'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
+                'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,
             ];
-        }, $aEnriched);
+        }
+        return $aDepartures;
+    }
 
-        return array_values(array_filter($aDepartures, fn($aD) => $aD['etaMinutes'] >= -2));
+    private static function headsign(array $aRow, bool $bUseLastStopHeadsign): string|null
+    {
+        if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
+            return $aRow['last_stop_name'];
+        }
+        return $aRow['headsign'];
+    }
+
+    // Null si no se sabe (estimación sin datos del bus); 0 si va en hora.
+    private static function delayMinutes(int|float|null $iDelaySeconds): int|null
+    {
+        if ($iDelaySeconds === null) {
+            return null;
+        }
+        return (int)round($iDelaySeconds / 60);
     }
 
     public function tripStops(Request $Req, array $aParams): void
