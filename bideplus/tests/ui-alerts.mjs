@@ -202,6 +202,76 @@ if (!(realAlerts > 0) || !registrationId) {
     check('service worker: una segunda sincronizacion no repite la notificacion', again === 0, `${again}`);
 }
 
+// Notificaciones push con la app cerrada: ninguna ventana del sitio abierta y el service worker parado. El navegador
+// lo despierta al llegar el push y tiene que enseñar la notificación él solo.
+const swEval = async expr => {
+    const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
+    const target = list.find(t => t.type === 'service_worker' && t.url.startsWith(BASE));
+    if (!target) return 'EXC:sin service worker';
+    const sw = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise(r => sw.onopen = r);
+    const reply = await new Promise(r => {
+        sw.onmessage = e => { const m = JSON.parse(e.data); if (m.id === 1) r(m.result); };
+        sw.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: expr, returnByValue: true, awaitPromise: true } }));
+    });
+    sw.close();
+    if (reply.exceptionDetails) return 'EXC:' + (reply.exceptionDetails.exception?.description || '').split('\n')[0];
+    return reply.result && reply.result.value;
+};
+const notifications = () => ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.map(n => ({ title: n.title, body: n.body, tag: n.tag, badge: n.badge, url: n.data && n.data.url })))`);
+
+await go('/?red=bus');
+await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+if (!registrationId) {
+    skip('push con la app cerrada', 'no se obtuvo el registro del service worker');
+} else {
+    const arrival = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=prueba', tag: 'bide-arrival-prueba' };
+    await send('Page.navigate', { url: 'about:blank' });
+    await sleep(800);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(arrival) });
+    await sleep(1500);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: 'esto no es JSON' });
+    await sleep(1500);
+    await go('/?red=bus');
+    const shown = await notifications();
+    const real = (shown || []).find(n => n.tag === arrival.tag);
+    check('push con la app cerrada: sale la notificacion con su texto', !!real && real.title === arrival.title && real.body === arrival.body, JSON.stringify(shown));
+    check('push con la app cerrada: al tocarla abre la parada del aviso', !!real && real.url === arrival.url);
+    check('push con la app cerrada: icono de la barra de estado en silueta', !!real && real.badge.endsWith('/icons-bide-rojo/badge-96.png'));
+    check('push con un mensaje roto: sale igual una notificacion (iPhone quita el permiso si no)', (shown || []).some(n => n.tag === 'bide-arrival' && n.title === 'Bide+'));
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+}
+
+// Al tocarla: la ventana abierta va a la dirección del aviso.
+await go('/?red=bus');
+await swEval(`openFromNotification('/stops/4255?red=bus')`);
+await sleep(2500);
+check('tocar la notificacion: la app abierta va a la parada', (await ev('location.pathname')) === '/stops/4255', await ev('location.pathname + location.search'));
+
+// iPhone con la app cerrada: la ventana que abre el sistema no se deja llevar («navigate failed»); se le pide a la página.
+const fallback = await swEval(`(async () => {
+    const sent = [];
+    const fake = { focus: async () => fake, navigate: async () => { throw new TypeError('navigate failed'); }, postMessage: (message) => sent.push(message) };
+    clients.matchAll = async () => [fake];
+    try {
+        await openFromNotification('/stops/4255?red=bus');
+    } finally {
+        delete clients.matchAll;
+    }
+    return sent;
+})()`);
+check('tocar la notificacion: si la ventana no se deja llevar, se le pide a la pagina', Array.isArray(fallback) && fallback.length === 1 && fallback[0].type === 'bide:open' && fallback[0].url === '/stops/4255?red=bus', JSON.stringify(fallback));
+await go('/?red=bus');
+await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'bide:open', url: '/stops/4255?red=bus' })))`);
+await sleep(2500);
+check('la pagina, al recibirlo, va a la parada', (await ev('location.pathname')) === '/stops/4255', await ev('location.pathname + location.search'));
+await go('/');
+await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'bide:open', url: '//ejemplo.com/x' })))`);
+await sleep(1500);
+check('la pagina no va a direcciones de fuera', (await ev('location.host')) === new URL(BASE).host);
+
 await ev(`AlertsStore.set('enabled', false)`);
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const uniqueProblems = [...new Set(problems)];

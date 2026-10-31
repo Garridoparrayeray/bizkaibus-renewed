@@ -46,6 +46,7 @@ use Core\Networks;
     <script src="/js/theme.js"></script>
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
+    <script src="/js/notification-open.js"></script>
     <link rel="stylesheet" href="/style-bide.css">
     <link rel="stylesheet" href="/style-networks.css">
     <link rel="stylesheet" href="/style-miamor.css">
