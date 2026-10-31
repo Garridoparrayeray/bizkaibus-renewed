@@ -101,75 +101,98 @@ class IncidentAlerts
     // los dos son falsos.
     public static function process(callable|null $Sender = null, callable|null $Fetcher = null): array
     {
-        $aCounts = ['subscribers' => 0, 'sent' => 0, 'removed' => 0];
         // Cada comando del almacén cuenta: la lista de suscriptores solo se pide cuando toca revisar.
-        $aRun = Store::pipeline([['SET', self::RUN_KEY, (string)time(), 'NX', 'EX', self::RUN_EVERY_SECONDS]]);
-        if ($aRun === null || $aRun[0] === null) {
+        $aRunMark = Store::pipeline([['SET', self::RUN_KEY, (string)time(), 'NX', 'EX', self::RUN_EVERY_SECONDS]]);
+        if ($aRunMark === null || $aRunMark[0] === null) {
             return ['skipped' => true];
         }
+        $aRun = [
+            'counts' => ['subscribers' => 0, 'sent' => 0, 'removed' => 0],
+            'sender' => $Sender ?? Push::sender(self::PUSH_TTL_SECONDS),
+            'fetcher' => $Fetcher ?? self::defaultFetcher(),
+            // Las incidencias de cada fuente se piden una vez por vuelta, aunque las sigan muchos.
+            'cache' => [],
+            'budget' => self::MAX_SENDS_PER_RUN,
+        ];
         $aIds = Store::pipeline([['SMEMBERS', self::SUBSCRIBERS_KEY]]);
-        if ($aIds === null || !is_array($aIds[0]) || empty($aIds[0])) {
-            return $aCounts;
+        if ($aIds === null || !is_array($aIds[0]) || empty($aIds[0]) || $aRun['sender'] === null) {
+            return $aRun['counts'];
         }
-        $aIds = $aIds[0];
-        $Sender ??= Push::sender(self::PUSH_TTL_SECONDS);
-        if ($Sender === null) {
-            return $aCounts;
-        }
+        // Cada fuente se mira en su red; al acabar se vuelve a la de la llamada.
         $sNetwork = Config::current()['network'];
-        $Fetcher ??= function (string $sNetwork, string|null $sLine, string|null $sStop): array {
-            Config::set($sNetwork);
-            return (new AlertsController())->alerts($sLine, $sStop);
-        };
-        $aCache = [];
-        $iBudget = self::MAX_SENDS_PER_RUN;
-
-        foreach (array_chunk($aIds, self::CHUNK) as $aChunk) {
-            $aKeys = [];
-            foreach ($aChunk as $sId) {
-                $aKeys[] = self::SUBSCRIBER_PREFIX . $sId;
-                $aKeys[] = self::STATE_PREFIX . $sId;
-            }
-            $aValues = Store::pipeline([array_merge(['MGET'], $aKeys)]);
-            if ($aValues === null || !is_array($aValues[0])) {
+        foreach (array_chunk($aIds[0], self::CHUNK) as $aChunk) {
+            if (!self::processChunk($aChunk, $aRun)) {
                 break;
-            }
-            $aSaves = [];
-            foreach ($aChunk as $iIndex => $sId) {
-                $aRecord = self::decode($aValues[0][$iIndex * 2] ?? null);
-                if ($aRecord === null) {
-                    // Caducado: ya no abre la app desde hace 90 días.
-                    self::forget($sId);
-                    continue;
-                }
-                $aCounts['subscribers']++;
-                $aState = self::decode($aValues[0][$iIndex * 2 + 1] ?? null) ?? [];
-                $aState += ['seen' => [], 'base' => []];
-                $sBefore = Push::json($aState);
-                $aFresh = self::freshAlerts($aRecord['favorites'] ?? [], $aState, $Fetcher, $aCache);
-                $sOutcome = 'kept';
-                if (!empty($aFresh) && $iBudget > 0) {
-                    [$sOutcome, $iSent] = self::deliver($aRecord, $aFresh, $aState, $Sender);
-                    $iBudget -= max(1, $iSent);
-                    $aCounts['sent'] += $iSent;
-                }
-                if ($sOutcome === 'gone') {
-                    self::forget($sId);
-                    $aCounts['removed']++;
-                    continue;
-                }
-                // Solo se guarda si cambia algo (una incidencia nueva, un favorito nuevo…).
-                $sAfter = Push::json(self::pruned($aState));
-                if ($sAfter !== $sBefore) {
-                    $aSaves[] = ['SET', self::STATE_PREFIX . $sId, $sAfter, 'EX', self::TTL_SECONDS];
-                }
-            }
-            if (!empty($aSaves)) {
-                Store::pipeline($aSaves);
             }
         }
         Config::set($sNetwork);
-        return $aCounts;
+        return $aRun['counts'];
+    }
+
+    private static function defaultFetcher(): callable
+    {
+        return function (string $sNetwork, string|null $sLine, string|null $sStop): array {
+            Config::set($sNetwork);
+            return (new AlertsController())->alerts($sLine, $sStop);
+        };
+    }
+
+    // Un grupo de suscriptores: se leen de una vez (suscripción y estado) y se guarda de una vez lo que cambie.
+    // Devuelve false si el almacén no responde.
+    private static function processChunk(array $aChunk, array &$aRun): bool
+    {
+        $aKeys = [];
+        foreach ($aChunk as $sId) {
+            $aKeys[] = self::SUBSCRIBER_PREFIX . $sId;
+            $aKeys[] = self::STATE_PREFIX . $sId;
+        }
+        $aValues = Store::pipeline([array_merge(['MGET'], $aKeys)]);
+        if ($aValues === null || !is_array($aValues[0])) {
+            return false;
+        }
+        $aSaves = [];
+        foreach ($aChunk as $iIndex => $sId) {
+            $aSave = self::processSubscriber($sId, $aValues[0][$iIndex * 2] ?? null, $aValues[0][$iIndex * 2 + 1] ?? null, $aRun);
+            if ($aSave !== null) {
+                $aSaves[] = $aSave;
+            }
+        }
+        if (!empty($aSaves)) {
+            Store::pipeline($aSaves);
+        }
+        return true;
+    }
+
+    // Un suscriptor: sus incidencias nuevas y el envío. Devuelve el comando para guardar su estado, si ha cambiado.
+    private static function processSubscriber(string $sId, mixed $sRecord, mixed $sState, array &$aRun): array|null
+    {
+        $aRecord = self::decode($sRecord);
+        if ($aRecord === null) {
+            // Caducado: ya no abre la app desde hace 90 días.
+            self::forget($sId);
+            return null;
+        }
+        $aRun['counts']['subscribers']++;
+        $aState = self::decode($sState) ?? [];
+        $aState += ['seen' => [], 'base' => []];
+        $sBefore = Push::json($aState);
+        $aFresh = self::freshAlerts($aRecord['favorites'] ?? [], $aState, $aRun['fetcher'], $aRun['cache']);
+        if (!empty($aFresh) && $aRun['budget'] > 0) {
+            [$sOutcome, $iSent] = self::deliver($aRecord, $aFresh, $aState, $aRun['sender']);
+            $aRun['budget'] -= max(1, $iSent);
+            $aRun['counts']['sent'] += $iSent;
+            if ($sOutcome === 'gone') {
+                self::forget($sId);
+                $aRun['counts']['removed']++;
+                return null;
+            }
+        }
+        // Solo se guarda si cambia algo (una incidencia nueva, un favorito nuevo…).
+        $sAfter = Push::json(self::pruned($aState));
+        if ($sAfter === $sBefore) {
+            return null;
+        }
+        return ['SET', self::STATE_PREFIX . $sId, $sAfter, 'EX', self::TTL_SECONDS];
     }
 
     // La misma clave que usa la app para cada incidencia (js/alerts-store.js): red y un resumen (djb2) del título y

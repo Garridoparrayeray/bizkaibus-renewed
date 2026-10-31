@@ -107,21 +107,34 @@ class ArrivalAlerts
         $aIds = array_slice($aIds[0], 0, self::MAX_PER_RUN);
         $aCounts['pending'] = count($aIds);
         $aValues = Store::pipeline([array_merge(['MGET'], array_map(fn($sId) => self::ALERT_PREFIX . $sId, $aIds))]);
-        if ($aValues === null) {
-            return $aCounts;
-        }
         $Sender ??= Push::sender(self::PUSH_TTL_SECONDS);
-        if ($Sender === null) {
+        if ($aValues === null || $Sender === null) {
             return $aCounts;
         }
 
-        // Caducados: se quitan de la lista. El resto, agrupados por parada para calcular sus salidas una sola vez.
-        $aForget = [];
+        [$aByStop, $aForget] = self::groupByStop($aIds, $aValues[0]);
+        // Cada parada se mira en su red; al acabar se vuelve a la de la llamada.
+        $sNetwork = Config::current()['network'];
+        foreach ($aByStop as $aAlerts) {
+            [$iSent, $aGone] = self::processStop($aAlerts, $Sender);
+            $aCounts['sent'] += $iSent;
+            array_push($aForget, ...$aGone);
+        }
+        Config::set($sNetwork);
+        $aCounts['dropped'] = self::forget($aForget);
+        return $aCounts;
+    }
+
+    // Los avisos agrupados por parada, para calcular sus salidas una sola vez, y los que ya no están en el almacén
+    // (caducados), para quitarlos de la lista.
+    private static function groupByStop(array $aIds, array $aValues): array
+    {
         $aByStop = [];
+        $aForget = [];
         foreach ($aIds as $iIndex => $sId) {
             $aAlert = null;
-            if (is_string($aValues[0][$iIndex] ?? null)) {
-                $aAlert = json_decode($aValues[0][$iIndex], true);
+            if (is_string($aValues[$iIndex] ?? null)) {
+                $aAlert = json_decode($aValues[$iIndex], true);
             }
             if (!is_array($aAlert)) {
                 $aForget[] = $sId;
@@ -129,40 +142,45 @@ class ArrivalAlerts
             }
             $aByStop[$aAlert['network'] . '|' . $aAlert['stopId']][] = $aAlert;
         }
+        return [$aByStop, $aForget];
+    }
 
-        $sNetwork = Config::current()['network'];
-        foreach ($aByStop as $aAlerts) {
-            Config::set($aAlerts[0]['network']);
-            $aData = (new StopsController())->departuresData($aAlerts[0]['stopId'], self::DEPARTURES_LIMIT);
-            foreach ($aAlerts as $aAlert) {
-                $aDeparture = self::findTrip($aData, $aAlert['tripKey']);
-                if ($aDeparture === null) {
-                    continue;
-                }
-                if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
-                    $aForget[] = $aAlert['id'];
-                    continue;
-                }
-                $iLeft = self::minutesLeft($aDeparture);
-                if ($iLeft > $aAlert['minutes']) {
-                    continue;
-                }
-                if (self::sendOnce($aAlert, max(0, $iLeft), $Sender)) {
-                    $aCounts['sent']++;
-                }
+    // Los avisos de una parada: manda los que ya tocan y devuelve [enviados, ids de viajes que ya pasaron].
+    private static function processStop(array $aAlerts, callable $Sender): array
+    {
+        Config::set($aAlerts[0]['network']);
+        $aData = (new StopsController())->departuresData($aAlerts[0]['stopId'], self::DEPARTURES_LIMIT);
+        $iSent = 0;
+        $aGone = [];
+        foreach ($aAlerts as $aAlert) {
+            $aDeparture = self::findTrip($aData, $aAlert['tripKey']);
+            if ($aDeparture === null) {
+                continue;
+            }
+            if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
+                $aGone[] = $aAlert['id'];
+                continue;
+            }
+            $iLeft = self::minutesLeft($aDeparture);
+            if ($iLeft <= $aAlert['minutes'] && self::sendOnce($aAlert, max(0, $iLeft), $Sender)) {
+                $iSent++;
             }
         }
-        Config::set($sNetwork);
+        return [$iSent, $aGone];
+    }
 
-        if (!empty($aForget)) {
-            $aCommands = [array_merge(['SREM', self::PENDING_KEY], $aForget)];
-            foreach ($aForget as $sId) {
-                $aCommands[] = ['DEL', self::ALERT_PREFIX . $sId];
-            }
-            Store::pipeline($aCommands);
-            $aCounts['dropped'] = count($aForget);
+    // Quita los avisos de la lista y del almacén. Devuelve cuántos.
+    private static function forget(array $aIds): int
+    {
+        if (empty($aIds)) {
+            return 0;
         }
-        return $aCounts;
+        $aCommands = [array_merge(['SREM', self::PENDING_KEY], $aIds)];
+        foreach ($aIds as $sId) {
+            $aCommands[] = ['DEL', self::ALERT_PREFIX . $sId];
+        }
+        Store::pipeline($aCommands);
+        return count($aIds);
     }
 
     // Se quita de la lista antes de enviar (SREM devuelve 1 solo a quien lo quita): dos llamadas del cron a la vez no
