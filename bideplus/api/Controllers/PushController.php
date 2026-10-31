@@ -15,11 +15,14 @@ class PushController
 {
     private const MAX_ID_LENGTH = 160;
 
+    // Sin almacén no hay notificaciones push: no es un error, la app simplemente no las ofrece. Esa respuesta no se
+    // guarda en caché, para que un fallo momentáneo del almacén no las quite un día entero.
     public function key(Request $Req, array $aParams): void
     {
         $aKeys = Push::keys();
         if ($aKeys === null) {
-            Response::json(['error' => 'not available'], 503);
+            Response::$iCacheSeconds = 0;
+            Response::json(['publicKey' => null]);
             return;
         }
         Response::json(['publicKey' => $aKeys['publicKey'], 'minutes' => ArrivalAlerts::MINUTES]);

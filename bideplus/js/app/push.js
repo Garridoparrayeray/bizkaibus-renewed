@@ -12,7 +12,14 @@ export function isIos() {
 
 // La clave del servidor se pide una vez. Sin ella (sin almacén) no hay notificaciones push.
 export function serverKey() {
-    if (!keyRequest) keyRequest = Api.pushKey().catch(() => null);
+    if (!keyRequest) {
+        keyRequest = Api.pushKey()
+            .then((key) => {
+                if (!key.publicKey) return null;
+                return key;
+            })
+            .catch(() => null);
+    }
     return keyRequest;
 }
 
