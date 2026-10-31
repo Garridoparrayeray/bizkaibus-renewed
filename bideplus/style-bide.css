@@ -233,6 +233,8 @@ html.bide .bide-settings-arrival { display: flex; align-items: center; justify-c
     html.bide .bide-settings-arrival span span { color: var(--bide-muted); font-size: .82rem; }
     html.bide .bide-settings-arrival .bide-button { flex: none; min-height: 38px; }
 html.bide .bide-settings-data .bide-button { width: 100%; margin-top: 4px; }
+html.bide .bide-sources { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
+    html.bide .bide-sources strong { color: var(--bide-ink); }
 
 html.bide.bide-view-open body.page-app .app-container > :not(.bide-views):not(.bide-rail):not(.net-banner),
 html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail) { display: none; }
@@ -313,8 +315,8 @@ html.bide body.page-app .app-footer { display: grid; gap: 12px; text-align: cent
     html.bide body.page-app .app-footer .bide-footer-title { color: #fff; }
     html.bide.is-metro body.page-app .app-footer .bide-wordmark span { color: var(--primary-light); }
     html.bide body.page-app .app-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
-        html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, .legal-open) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
-        html.bide body.page-app .app-footer :is(a, .legal-open):hover { text-decoration: underline; }
+        html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
+        html.bide body.page-app .app-footer :is(a, button):hover { text-decoration: underline; }
 html.bide body.page-app .bide-lang { display: none; }
 html.bide body.page-app .bide-menu-apps { display: flex; width: 100%; justify-content: flex-start; margin: 44px 0 10px; font-size: .9rem; text-decoration: none; }
     html.bide body.page-app .bide-menu-apps + .menu-favorites-open { margin-top: 0; font-size: .9rem; }

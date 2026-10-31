@@ -241,6 +241,16 @@ function bideSettings(string $sBack): string
     return $sHtml . '</div></section>';
 }
 
+// Fuentes de datos: la atribución de cada red (api/Networks, campo attribution), que es la que pide cada licencia.
+function bideSources(): string
+{
+    $sHtml = '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><ul class="bide-sources">';
+    foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
+        $sHtml .= '<li><strong data-i18n="net.' . $sSlug . '.name">' . htmlspecialchars(\Core\Networks::text($aNetwork, 'name')) . '</strong> ' . htmlspecialchars($aNetwork['attribution']) . '</li>';
+    }
+    return $sHtml . '</ul></section>';
+}
+
 function bideViews(): string
 {
     $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
@@ -267,7 +277,7 @@ function bideViews(): string
     $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
     $sHtml .= bideFaq();
     $sHtml .= bideFeedback();
-    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><p>Bizkaibus (Open Data Bizkaia, CC-BY 4.0) · Metro Bilbao (horario y tiempo real: Consorcio de Transportes de Bizkaia, CC-BY 4.0) · Euskotren, Tranvía Bilbao y Tranvía Vitoria (Open Data Euskadi, CC-BY 4.0) · Renfe (NAP, Punto de Acceso Nacional de Transporte).</p></section>';
+    $sHtml .= bideSources();
     $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
