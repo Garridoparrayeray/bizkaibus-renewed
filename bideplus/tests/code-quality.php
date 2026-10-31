@@ -1,7 +1,8 @@
 <?php
 // Batería de limpieza: que todo el código siga las pautas del proyecto (CONTRIBUTING.md) y no arrastre restos.
 // Formato, sin ternarios, nombres con prefijo de tipo en PHP, JavaScript moderno y estricto, textos completos en los
-// tres idiomas, sin código, estilos ni archivos muertos, y el precache del service worker al día.
+// tres idiomas, sin código, estilos ni archivos muertos (ni comentarios que nombran archivos que ya no existen), y el
+// precache del service worker al día. El Python lo mira static-checks.py, con su propio analizador.
 // Uso: php tests/code-quality.php (también la lanza static-checks.py).
 
 declare(strict_types=1);
@@ -514,6 +515,23 @@ foreach (array_merge($aJsFiles, $aCssFiles) as $sFile) {
     }
     if (!$bUsed) {
         $Report('Código muerto: archivo que no carga nadie', $sFile);
+    }
+}
+
+// Comentarios y textos del código que nombran un archivo del proyecto que ya no existe: suelen ser restos de cuando se
+// movió o se borró. Lo de engine/ solo se mira si el algoritmo está.
+foreach ($aSources as $sFile => $sText) {
+    if (!in_array(pathinfo($sFile, PATHINFO_EXTENSION), ['php', 'js', 'mjs', 'css', 'py', 'yml'], true)) {
+        continue;
+    }
+    preg_match_all('#(?<![\w./-])((?:api|js|scripts|tests|docs|engine|icons[\w-]*|offline-data|map-data|data)/[\w./-]*\.(?:php|js|mjs|css|py|md|json|sqlite|png|svg|html))(?!\w)#', $sText, $aMatches);
+    foreach (array_unique($aMatches[1]) as $sPath) {
+        if (str_starts_with($sPath, 'engine/') && !$bEngine) {
+            continue;
+        }
+        if (!file_exists(ROOT . $sPath)) {
+            $Report('Código muerto: nombra un archivo que ya no existe', $sFile . ' → ' . $sPath);
+        }
     }
 }
 

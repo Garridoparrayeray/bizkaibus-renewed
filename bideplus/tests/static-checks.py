@@ -1,3 +1,4 @@
+import ast
 import glob
 import json
 import os
@@ -57,6 +58,17 @@ for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
     print('js', os.path.basename(f), js_result)
     if not ok:
         failures.append('sintaxis JS ' + os.path.basename(f))
+
+# Python sin ternarios («x if c else y»), como el PHP y el JavaScript (tests/code-quality.php): se buscan con su analizador.
+python_ternaries = []
+for f in sorted(glob.glob(ROOT + 'tests/*.py') + glob.glob(ROOT + 'scripts/**/*.py', recursive=True) + glob.glob(ROOT + '../.github/scripts/*.py')):
+    tree = ast.parse(open(f, encoding='utf-8').read())
+    for node in ast.walk(tree):
+        if isinstance(node, ast.IfExp):
+            python_ternaries.append(os.path.basename(f) + ':' + str(node.lineno))
+print('Python sin ternarios:', python_ternaries or 'ninguno')
+if python_ternaries:
+    failures.append('ternarios en Python (' + ', '.join(python_ternaries) + ')')
 
 sw = open(ROOT + 'sw.js', encoding='utf-8').read()
 # Solo las líneas que son una ruta entera: los iconos de cada red se generan desde js/networks.js.
