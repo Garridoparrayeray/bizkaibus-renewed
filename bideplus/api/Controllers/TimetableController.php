@@ -12,6 +12,8 @@ use Services\Calendar;
 use Services\ScheduleRange;
 use Core\Live;
 
+// Horario de una línea para un día y una franja (/api/lines/{id}/timetable), con las salidas que pasan de
+// medianoche y, si se pide, solo las de una parada.
 class TimetableController
 {
 

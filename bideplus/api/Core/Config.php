@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// La red de la petición (?red=) y su configuración (api/Networks/*.php). Por defecto, Bizkaibus.
 class Config
 {
     private static array|null $aCurrent = null;

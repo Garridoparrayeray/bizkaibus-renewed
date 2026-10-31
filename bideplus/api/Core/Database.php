@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// Conexión de solo lectura a la base de datos SQLite de cada red (data/*.sqlite), una por red.
 class Database
 {
     private static array $aConnections = [];

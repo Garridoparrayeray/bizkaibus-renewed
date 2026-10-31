@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// Peticiones HTTP a las fuentes de datos, con tiempo máximo y la opción de probar varias direcciones.
 class Http
 {
 

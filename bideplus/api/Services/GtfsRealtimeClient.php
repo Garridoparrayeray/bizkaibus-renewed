@@ -5,6 +5,8 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
+// Lee el feed GTFS-Realtime (protobuf, sin librerías) de Metro Bilbao: la hora prevista de cada tren en
+// cada parada.
 class GtfsRealtimeClient
 {
     private const WIRE_VARINT = 0;

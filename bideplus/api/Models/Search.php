@@ -2,6 +2,7 @@
 
 namespace Models;
 
+// Normalizar texto para buscar sin tildes ni mayúsculas, y montar la condición SQL palabra a palabra.
 class Search
 {
     public static function normalize(string $sText): string

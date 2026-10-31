@@ -15,6 +15,8 @@ use Services\GtfsRealtimeClient;
 use Core\Live;
 use Engine\Metro\TripUpdatesMatcher;
 
+// Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
+// (/api/stops/{id}/departures) y las paradas de un viaje (/api/trips/{tripKey}).
 class StopsController
 {
     public function show(Request $Req, array $aParams): void

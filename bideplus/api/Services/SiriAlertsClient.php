@@ -5,6 +5,7 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
+// Incidencias en formato SIRI (Situation Exchange) de Open Data Euskadi, por línea; el texto, en castellano.
 class SiriAlertsClient
 {
     private array $aConfig;

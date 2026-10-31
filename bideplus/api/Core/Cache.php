@@ -2,6 +2,8 @@
 
 namespace Core;
 
+// Caché en archivos temporales para las fuentes externas (incidencias, directo). Si la fuente falla, devuelve lo
+// último bueno y no vuelve a intentarlo hasta pasado un minuto.
 class Cache
 {
     private const FAILURE_RETRY_SECONDS = 60;

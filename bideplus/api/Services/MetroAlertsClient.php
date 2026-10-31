@@ -5,6 +5,7 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
+// Avisos de servicio de Metro Bilbao, desde su web de datos abiertos.
 class MetroAlertsClient
 {
     private array $aConfig;

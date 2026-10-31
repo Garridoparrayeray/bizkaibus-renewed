@@ -9,6 +9,8 @@ use Services\MetroAlertsClient;
 use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
+// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=). Las fuentes son los clientes de
+// Services (Metro, Renfe y SIRI).
 class AlertsController
 {
     public function index(Request $Req): void

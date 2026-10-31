@@ -17,6 +17,8 @@ use Core\Live;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 use Engine\Metro\TripUpdatesMatcher;
 
+// Directo: los autobuses o trenes de una línea en el mapa (/api/lines/{id}/live), la ficha de un viaje
+// (/api/vehicles/{tripKey}) y el diagnóstico de la fuente (/api/status). El cálculo de llegadas está en engine/.
 class RealtimeController
 {
 

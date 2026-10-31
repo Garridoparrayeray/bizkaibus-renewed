@@ -6,6 +6,8 @@ use Core\Cache;
 use Core\Database;
 use Core\Http;
 
+// Avisos de Renfe Cercanías Bilbao: el feed de Renfe trae texto libre y aquí se reparten por línea y por
+// estación, buscando los nombres de las estaciones en el texto.
 class RenfeAlertsClient
 {
     private const SUMMARY_MAX_LENGTH = 70;

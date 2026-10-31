@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// Rutas de la API: patrón con {parámetros}, método y segundos de caché. Ver api/index.php.
 class Router
 {
 
