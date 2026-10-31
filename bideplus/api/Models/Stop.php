@@ -5,6 +5,7 @@ namespace Models;
 use Core\Config;
 use Core\Ids;
 
+// Consultas de paradas: buscar, las más cercanas, los andenes de una estación y las líneas que pasan.
 class Stop
 {
     public function __construct(private \PDO $Pdo)

@@ -11,6 +11,21 @@ return [
         'theme_color' => '#003F8C',
         'title' => ['EUSKOTREN', ''],
         'logomark' => '<img src="/icons-euskotren/icon-192.png" alt="">',
+        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
+        'tile_color' => '#003F8C',
+        'swatch_color' => '#003F8C',
+        'palette' => [
+            'bg' => '#f0f4f8',
+            'border' => '#d0dce8',
+            'primary' => '#003F8C',
+            'primary-light' => '#5B9BD5',
+            'primary-dark' => '#002560',
+            'primary-tint' => '#E6F0FA',
+            'text' => '#171d26',
+            'text-secondary' => '#4d5966',
+            'backdrop' => 'rgba(10, 14, 20, .5)',
+        ],
     ],
 
     'texts' => [
@@ -28,6 +43,14 @@ return [
             'switcher' => 'Euskotrenen ordutegiak',
             'subtitle' => 'Euskotrenen ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+        ],
+        'en' => [
+            'name' => 'Euskotren+',
+            'tile' => 'Trains with official timetables',
+            'switcher' => 'Euskotren timetables',
+            'subtitle' => 'Euskotren timetables',
+            'liveEmpty' => 'Search for a station to see the next train.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
         ],
     ],
 

@@ -1,7 +1,8 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, HAS_PLATFORMS, el, state } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, state } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
+import { showArrivalAlerts } from './arrival-alerts.js';
 
 /*
  * El recorrido abierto sigue el reloj: se vuelve a pedir cada 15 s (el ritmo del feed) y, entre peticiones, los
@@ -13,6 +14,9 @@ const MODAL_TICK_MS = 10000;
 const MODAL_PASSED_AFTER_MS = 45000;
 export const DEPARTED_GRACE_MS = 45 * 1000;
 export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
+// Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
+const shareState = { tripKey: null, data: null };
+const SHARE_DONE_MS = 2500;
 
 function freshModalStops(data) {
     const now = Date.now();
@@ -104,6 +108,7 @@ async function refreshVehicleModal() {
     }
     if (modalState.tripKey !== tripKey || !el.modal.open) return;
     modalState.data = data;
+    shareState.data = data;
     renderModalHeader(data);
     renderModalStops(data);
 }
@@ -134,6 +139,9 @@ export async function openVehicleModal(tripKey) {
     modalState.signature = '';
     modalState.tripKey = tripKey;
     modalState.data = data;
+    shareState.tripKey = tripKey;
+    shareState.data = data;
+    el.modalVehicle.hidden = false;
     renderModalHeader(data);
 
     el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
@@ -145,6 +153,7 @@ export async function openVehicleModal(tripKey) {
 
     el.modalStops.innerHTML = '';
     renderModalStops(data);
+    showArrivalAlerts(tripKey);
 
     el.modal.showModal();
     modalState.refreshTimer = setInterval(refreshVehicleModal, MODAL_REFRESH_MS);
@@ -158,6 +167,8 @@ async function openTripStopsModal(tripKey) {
     } catch (e) {
         return;
     }
+    shareState.tripKey = tripKey;
+    shareState.data = data;
 
     el.modalBadge.textContent = I18n.t('app.status.scheduled');
     el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
@@ -182,6 +193,7 @@ async function openTripStopsModal(tripKey) {
         });
         el.modalStops.appendChild(li);
     }
+    showArrivalAlerts(tripKey);
 
     el.modal.showModal();
 }
@@ -215,8 +227,62 @@ async function loadModalAlerts() {
     el.modalAlertsToggle.hidden = true;
 }
 
+// Compartir el viaje: el enlace abre la misma parada con la ficha del viaje en directo («?viaje=»).
+function shareUrl() {
+    const params = new URLSearchParams();
+    if (NETWORK_SLUG !== BideNetworks.DEFAULT) params.set('red', NETWORK_SLUG);
+    params.set('viaje', shareState.tripKey);
+    let path = '/';
+    if (state.currentStop) path = '/stops/' + encodeURIComponent(state.currentStop.id);
+    return location.origin + path + '?' + params.toString();
+}
+
+// La hora a la que el viaje pasa por la parada abierta: la prevista en directo o, si no, la del horario.
+function arrivalTime(data) {
+    if (!state.currentStop) return '';
+    const stop = data.stops.find((s) => String(s.stopId) === String(state.currentStop.id));
+    if (!stop) return '';
+    if (Number.isFinite(stop.etaAt) && (data.status === 'live' || data.status === 'estimated')) {
+        return new Date(stop.etaAt * 1000).toTimeString().slice(0, 5);
+    }
+    return stop.scheduledTime || '';
+}
+
+function shareText() {
+    const data = shareState.data;
+    const vars = { line: data.lineCode, headsign: data.headsign, stop: state.currentStop?.name ?? '', time: arrivalTime(data) };
+    if (vars.stop && vars.time) return I18n.t('app.share.arrives', vars);
+    return I18n.t('app.share.follow', vars);
+}
+
+function showShareDone() {
+    el.modalShare.textContent = I18n.t('app.share.copied');
+    setTimeout(() => { el.modalShare.textContent = I18n.t('app.share.button'); }, SHARE_DONE_MS);
+}
+
+async function shareTrip() {
+    if (!shareState.tripKey || !shareState.data) return;
+    const url = shareUrl();
+    const text = shareText();
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: 'Bide+', text, url });
+            return;
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+        }
+    }
+    try {
+        await navigator.clipboard.writeText(text + ' ' + url);
+        showShareDone();
+    } catch (e) {
+        window.prompt(I18n.t('app.share.prompt'), url);
+    }
+}
+
 export function setUpVehicleModal() {
     el.modalClose.addEventListener('click', () => el.modal.close());
+    el.modalShare.addEventListener('click', shareTrip);
     el.modal.addEventListener('close', stopModalFollow);
     el.modalAlertsToggle.addEventListener('click', loadModalAlerts);
     el.modal.addEventListener('click', (e) => {

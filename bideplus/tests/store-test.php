@@ -15,7 +15,14 @@ use Models\ServiceJourney;
 
 $aFailures = [];
 $expect = function (string $sName, bool $bOk, string $sDetail = '') use (&$aFailures): void {
-    echo ($bOk ? 'OK  ' : 'MAL ') . $sName . ($bOk || $sDetail === '' ? '' : '  [' . $sDetail . ']') . "\n";
+    $sLine = 'OK  ' . $sName;
+    if (!$bOk) {
+        $sLine = 'MAL ' . $sName;
+        if ($sDetail !== '') {
+            $sLine .= '  [' . $sDetail . ']';
+        }
+    }
+    echo $sLine . "\n";
     if (!$bOk) {
         $aFailures[] = $sName;
     }
@@ -25,9 +32,13 @@ $sMarker = sys_get_temp_dir() . '/bizkaibusplus_store.fail';
 @unlink($sMarker);
 $sDataFile = tempnam(sys_get_temp_dir(), 'fake-upstash');
 $iPort = 18000 + random_int(0, 999);
+$sNull = '/dev/null';
+if (PHP_OS_FAMILY === 'Windows') {
+    $sNull = 'NUL';
+}
 $Server = proc_open(
     [PHP_BINARY, '-S', '127.0.0.1:' . $iPort, __DIR__ . '/fixtures/fake-upstash.php'],
-    [1 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w'], 2 => ['file', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null', 'w']],
+    [1 => ['file', $sNull, 'w'], 2 => ['file', $sNull, 'w']],
     $aPipes,
     null,
     array_filter(array_merge($_SERVER, $_ENV), 'is_string') + ['FAKE_UPSTASH_FILE' => $sDataFile]
@@ -114,5 +125,9 @@ try {
     @unlink($sMarker);
 }
 
-echo "\nRESULTADO almacén: " . (empty($aFailures) ? 'OK' : 'FALLA -> ' . implode('; ', $aFailures)) . "\n";
-exit(empty($aFailures) ? 0 : 1);
+if (!empty($aFailures)) {
+    echo "\nRESULTADO almacén: FALLA -> " . implode('; ', $aFailures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO almacén: OK\n";
+exit(0);

@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /pantalla/
 
 User-agent: GPTBot
 User-agent: OAI-SearchBot
@@ -16,5 +17,6 @@ User-agent: CCBot
 User-agent: Bytespider
 Allow: /
 Disallow: /api/
+Disallow: /pantalla/
 
 Sitemap: https://bideplus.vercel.app/sitemap.xml

@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// La petición: método, ruta (sin /api), parámetros, cabeceras y el cuerpo JSON de los POST.
 class Request
 {
     public string $sMethod;

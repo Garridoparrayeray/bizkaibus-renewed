@@ -14,6 +14,9 @@ return [
         'theme_color' => '#01573C',
         'title' => ['BizkaiBus', ''],
         'logomark' => '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5C7 4 4 8.8 4 13.5A8 8 0 0 0 12 21.5A8 8 0 0 0 20 13.5C20 8.8 17 4 12 2.5Z" fill="#9CCD64"/><path d="M12 6V19" stroke="#01573C" stroke-width="1.3" stroke-linecap="round"/></svg>',
+        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
+        'tile_color' => '#0B6E4C',
     ],
 
     'texts' => [
@@ -31,6 +34,14 @@ return [
             'switcher' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'subtitle' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+        ],
+        'en' => [
+            'name' => 'Bizkaibus+',
+            'tile' => 'Timetables and real time',
+            'switcher' => 'Bizkaibus timetables and real time',
+            'subtitle' => 'Bizkaibus timetables and real time',
+            'liveEmpty' => 'Search for a stop to see the next bus.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia.',
         ],
     ],
 

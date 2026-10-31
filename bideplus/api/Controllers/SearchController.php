@@ -9,6 +9,8 @@ use Core\Response;
 use Models\LineModel;
 use Models\Stop;
 
+// Buscador (/api/search?q=): paradas y líneas. En las redes con stop_hints, cada parada dice hacia dónde van sus
+// autobuses («hacia Gernika»), para distinguir las dos aceras.
 class SearchController
 {
 

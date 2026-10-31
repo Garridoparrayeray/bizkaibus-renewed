@@ -21,6 +21,7 @@ use Controllers\TimetableController;
 use Controllers\RealtimeController;
 use Controllers\AlertsController;
 use Controllers\LiveRecordController;
+use Controllers\PushController;
 
 $Req = new Request();
 
@@ -58,6 +59,15 @@ $Router->get('/status', [$Realtime, 'status'], 30);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);
 $Router->get('/live/history', [$LiveRecord, 'history']);
+
+// «Avísame cuando llegue»: el cron (/live/record) es quien manda los avisos.
+$Push = new PushController();
+// La clave no cambia: un día en la caché de Vercel, para no consultar el almacén en cada carga de la app.
+$Router->get('/push/key', [$Push, 'key'], 86400);
+$Router->post('/push/arrival', [$Push, 'createArrival']);
+$Router->post('/push/arrival/{id}/cancel', [$Push, 'cancelArrival']);
+$Router->post('/push/incidents', [$Push, 'saveIncidents']);
+$Router->post('/push/incidents/remove', [$Push, 'removeIncidents']);
 
 try {
     $Router->dispatch($Req);

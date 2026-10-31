@@ -4,6 +4,8 @@ namespace Models;
 
 use Services\Calendar;
 
+// Consultas de viajes del horario: próximas salidas en una parada, horario de una línea y los datos de un
+// viaje concreto. Los calendarios (qué días circula cada viaje) se resuelven aquí.
 class ServiceJourney
 {
     private const DEDUPE_TOLERANCE_SECONDS = 90;

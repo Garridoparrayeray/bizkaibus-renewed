@@ -69,6 +69,7 @@ const AlertsStore = (() => {
         return [{ id: '*', url: base }];
     }
 
+    // Petición directa y no por js/api.js: este archivo también lo usa el service worker, donde no hay página.
     async function fetchAlerts(network, source) {
         const response = await fetch(source.url);
         if (!response.ok) throw new Error(String(response.status));

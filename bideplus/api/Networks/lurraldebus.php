@@ -12,6 +12,21 @@ return [
         'title' => ['LURRALDEBUS', ''],
         'logomark' => '<img class="is-icon" src="/icons-lurraldebus/icon-192.png" alt="">',
         'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="">',
+        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
+        'tile_color' => '#0062A8',
+        'swatch_color' => '#0062A8',
+        'palette' => [
+            'bg' => '#f4f7fb',
+            'border' => '#d9e3ef',
+            'primary' => '#0062A8',
+            'primary-light' => '#8DC63F',
+            'primary-dark' => '#003F70',
+            'primary-tint' => '#E6F0F8',
+            'text' => '#152230',
+            'text-secondary' => '#556372',
+            'backdrop' => 'rgba(8, 16, 26, .5)',
+        ],
     ],
 
     'texts' => [
@@ -29,6 +44,14 @@ return [
             'switcher' => 'Lurraldebusen ordutegiak Gipuzkoan',
             'subtitle' => 'Lurraldebusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+        ],
+        'en' => [
+            'name' => 'Lurraldebus+',
+            'tile' => 'Gipuzkoa buses',
+            'switcher' => 'Lurraldebus timetables in Gipuzkoa',
+            'subtitle' => 'Lurraldebus timetables',
+            'liveEmpty' => 'Search for a stop to see the next bus.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
         ],
     ],
 

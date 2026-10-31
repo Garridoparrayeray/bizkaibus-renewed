@@ -43,26 +43,34 @@ print(f'php lint: {len(php_files)} archivos, {php_bad} con error')
 if php_bad:
     failures.append('errores de sintaxis PHP')
 
-# Los módulos se comprueban como módulos: con `node --check archivo.js` un error de sintaxis en un módulo pasaría.
+# Los módulos (los que usan import o export) se comprueban como módulos: con `node --check archivo.js` un error de
+# sintaxis en un módulo pasaría.
 for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
-    if f in APP_JS:
+    if re.search(r'^\s*(import|export)\s', open(f, encoding='utf-8').read(), re.M):
         r = subprocess.run([NODE, '--input-type=module', '--check'], stdin=open(f, encoding='utf-8'), capture_output=True, text=True)
     else:
         r = subprocess.run([NODE, '--check', f], capture_output=True, text=True)
     ok = r.returncode == 0
-    print('js', os.path.basename(f), 'OK' if ok else r.stderr[:200])
+    js_result = 'OK'
+    if not ok:
+        js_result = r.stderr[:200]
+    print('js', os.path.basename(f), js_result)
     if not ok:
         failures.append('sintaxis JS ' + os.path.basename(f))
 
 sw = open(ROOT + 'sw.js', encoding='utf-8').read()
-shell_files = re.findall(r"'(/[^']+)'", sw.split('SHELL_FILES = [')[1].split('];')[0])
+# Solo las líneas que son una ruta entera: los iconos de cada red se generan desde js/networks.js.
+shell_files = re.findall(r"^\s*'(/[^']+)',?\s*$", sw.split('SHELL_FILES = [')[1].split('];')[0], re.M)
 missing_files = [f for f in shell_files if f != '/' and not os.path.exists(ROOT + f.lstrip('/'))]
 print('archivos del precache que no existen:', missing_files or 'ninguno')
 if missing_files:
     failures.append('precache con archivos inexistentes')
 
 geo = subprocess.run([PHP, ROOT + 'tests/geocache-test.php'], capture_output=True, text=True)
-print('geocache (caché de geocodificación):', 'OK' if geo.returncode == 0 else geo.stdout[-400:] + geo.stderr[-200:])
+geo_result = 'OK'
+if geo.returncode != 0:
+    geo_result = geo.stdout[-400:] + geo.stderr[-200:]
+print('geocache (caché de geocodificación):', geo_result)
 if geo.returncode != 0:
     failures.append('prueba de geocache')
 
@@ -70,7 +78,10 @@ if geo.returncode != 0:
 fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check.xml')
 r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output=' + fresh], capture_output=True, text=True)
 stale = r.returncode != 0 or open(fresh, encoding='utf-8').read() != open(ROOT + 'sitemap.xml', encoding='utf-8').read()
-print('sitemap.xml:', 'desactualizado, ejecuta php scripts/build-sitemap.php' if stale else 'al día (' + r.stdout.strip() + ')')
+sitemap_result = 'al día (' + r.stdout.strip() + ')'
+if stale:
+    sitemap_result = 'desactualizado, ejecuta php scripts/build-sitemap.php'
+print('sitemap.xml:', sitemap_result)
 if stale:
     failures.append('sitemap.xml desactualizado')
 
@@ -78,9 +89,23 @@ if stale:
 fresh_js = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.js')
 r = subprocess.run([PHP, ROOT + 'scripts/build-networks-js.php', '--output=' + fresh_js], capture_output=True, text=True)
 stale_js = r.returncode != 0 or open(fresh_js, encoding='utf-8').read() != open(ROOT + 'js/networks.js', encoding='utf-8').read()
-print('js/networks.js:', 'desactualizado, ejecuta php scripts/build-networks-js.php' if stale_js else 'al día (' + r.stdout.strip() + ')')
+networks_result = 'al día (' + r.stdout.strip() + ')'
+if stale_js:
+    networks_result = 'desactualizado, ejecuta php scripts/build-networks-js.php'
+print('js/networks.js:', networks_result)
 if stale_js:
     failures.append('js/networks.js desactualizado')
+
+# style-networks.css: los colores de cada red, generados por scripts/build-networks-css.php desde api/Networks.
+fresh_css = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.css')
+r = subprocess.run([PHP, ROOT + 'scripts/build-networks-css.php', '--output=' + fresh_css], capture_output=True, text=True)
+stale_css = r.returncode != 0 or open(fresh_css, encoding='utf-8').read() != open(ROOT + 'style-networks.css', encoding='utf-8').read()
+css_result = 'al día (' + r.stdout.strip() + ')'
+if stale_css:
+    css_result = 'desactualizado, ejecuta php scripts/build-networks-css.php'
+print('style-networks.css:', css_result)
+if stale_css:
+    failures.append('style-networks.css desactualizado')
 
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
@@ -89,7 +114,10 @@ for slug, net in registry.items():
     missing = [f for f in files if not os.path.exists(ROOT + f)]
     missing += ['texto ' + k for k in ('name', 'tile', 'switcher', 'subtitle', 'liveEmpty', 'disclaimer') if not net['texts']['es'].get(k)]
     missing += ['seo.' + k for k in ('title', 'description') if not net['seo'].get(k)]
-    print('red', slug + ':', 'OK' if not missing else 'falta ' + ', '.join(missing))
+    network_result = 'OK'
+    if missing:
+        network_result = 'falta ' + ', '.join(missing)
+    print('red', slug + ':', network_result)
     if missing:
         failures.append('piezas de la red ' + slug)
 
@@ -102,7 +130,9 @@ for route in vercel.get('routes', []):
 csp = headers.get('Content-Security-Policy', '')
 required = ['Content-Security-Policy', 'Strict-Transport-Security', 'X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy']
 missing_headers = [h for h in required if h not in headers]
-weak_csp = [d for d in ("'unsafe-inline'", "'unsafe-eval'", '*;') if d in csp] + ([] if "frame-ancestors 'none'" in csp else ['sin frame-ancestors'])
+weak_csp = [d for d in ("'unsafe-inline'", "'unsafe-eval'", '*;') if d in csp]
+if "frame-ancestors 'none'" not in csp:
+    weak_csp.append('sin frame-ancestors')
 print('cabeceras de seguridad que faltan:', missing_headers or 'ninguna', '| CSP débil:', weak_csp or 'no')
 if missing_headers or weak_csp:
     failures.append('cabeceras de seguridad')
@@ -130,11 +160,17 @@ print('HTML con datos sin escapar:', unescaped or 'ninguno')
 if unescaped:
     failures.append('HTML sin escapar')
 
-for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php')):
+for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php'), ('notificaciones push (llegadas e incidencias)', 'push-test.php')):
     r = subprocess.run([PHP, ROOT + 'tests/' + script], capture_output=True, text=True)
-    print(label + ':', 'OK' if r.returncode == 0 else '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:])
+    script_result = 'OK'
+    if r.returncode != 0:
+        script_result = '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:]
+    print(label + ':', script_result)
     if r.returncode != 0:
         failures.append(label)
 
-print('RESULTADO estatico:', 'OK' if not failures else 'FALLA -> ' + '; '.join(failures))
-sys.exit(1 if failures else 0)
+if failures:
+    print('RESULTADO estatico: FALLA -> ' + '; '.join(failures))
+    sys.exit(1)
+print('RESULTADO estatico: OK')
+sys.exit(0)

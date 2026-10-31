@@ -14,7 +14,12 @@ const DIR = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z
 const STOPS_PER_NETWORK = 8;
 
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 
 if (!existsSync(resolve(DIR, 'index.json'))) {
     console.log('MAL falta offline-data: php scripts/build-offline-data.php');
@@ -50,4 +55,6 @@ for (const { slug } of index.networks) {
 const bad = results.filter((r) => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
 console.log(`\nRESULTADO horarios sin conexión: ${results.length - bad} OK, ${bad} MAL`);
-process.exit(bad ? 1 : 0);
+let exitCode = 0;
+if (bad) exitCode = 1;
+process.exit(exitCode);

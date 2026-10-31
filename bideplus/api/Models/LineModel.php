@@ -5,6 +5,7 @@ namespace Models;
 use Core\Config;
 use Core\Ids;
 
+// Consultas de líneas en la base de datos: buscar, listar, sus recorridos (patterns) y sus paradas.
 class LineModel
 {
     public function __construct(private \PDO $Pdo)

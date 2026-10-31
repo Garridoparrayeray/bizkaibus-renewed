@@ -10,7 +10,11 @@ require __DIR__ . '/../scripts/build-database.php';
 
 $failures = [];
 $expect = function (string $name, bool $ok) use (&$failures): void {
-    echo ($ok ? 'OK  ' : 'MAL ') . $name . "\n";
+    $label = 'OK  ';
+    if (!$ok) {
+        $label = 'MAL ';
+    }
+    echo $label . $name . "\n";
     if (!$ok) {
         $failures[] = $name;
     }
@@ -69,5 +73,9 @@ $skipped = geocodeStops($stops, true, $lookup);
 $expect('con skip (Metro) no se consulta nada y la zona queda vacia', $skipped[1]['area'] === '');
 
 @unlink($cachePath);
-echo "\nRESULTADO geocache: " . (empty($failures) ? 'OK' : 'FALLA -> ' . implode('; ', $failures)) . "\n";
-exit(empty($failures) ? 0 : 1);
+if (!empty($failures)) {
+    echo "\nRESULTADO geocache: FALLA -> " . implode('; ', $failures) . "\n";
+    exit(1);
+}
+echo "\nRESULTADO geocache: OK\n";
+exit(0);

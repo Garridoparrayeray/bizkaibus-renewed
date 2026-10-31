@@ -1,5 +1,6 @@
 <?php
-// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
+// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa), la pantalla de una parada (/pantalla/{id}) y la app de
+// cada red (/?red=, /stops/{id}, /lines/{id}).
 
 require __DIR__ . '/autoload.php';
 
@@ -10,6 +11,10 @@ $bMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
 
 if ($sPath === '/mapa') {
     require __DIR__ . '/Views/network-map.php';
+    exit;
+}
+if (str_starts_with($sPath, '/pantalla/')) {
+    require __DIR__ . '/Views/screen.php';
     exit;
 }
 if (($sPath === '/' || $sPath === '') && !isset($_GET['red'])) {

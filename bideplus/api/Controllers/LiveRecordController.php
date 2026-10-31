@@ -7,8 +7,11 @@ use Core\Live;
 use Core\Request;
 use Core\Response;
 use Core\Store;
+use Services\ArrivalAlerts;
+use Services\IncidentAlerts;
 
-// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app.
+// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app, y de paso
+// mandar las notificaciones: los avisos de llegada a los que ya les toca y, cada 5 minutos, las incidencias nuevas.
 // Sin la clave secreta (BIDE_CRON_SECRET) responde como si la ruta no existiera.
 class LiveRecordController
 {
@@ -23,11 +26,30 @@ class LiveRecordController
             return;
         }
         $iRecorded = Live::record();
+        $aNotifications = [
+            'arrivalAlerts' => self::safely('avisos de llegada', fn() => ArrivalAlerts::process()),
+            'incidentAlerts' => self::safely('avisos de incidencias', fn() => IncidentAlerts::process()),
+        ];
         if ($iRecorded === null && Config::hasLive('vehicle-monitoring')) {
-            Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed'], 502);
+            Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed'] + $aNotifications, 502);
             return;
         }
-        Response::json(['network' => Config::current()['network'], 'recorded' => $iRecorded]);
+        Response::json(['network' => Config::current()['network'], 'recorded' => $iRecorded] + $aNotifications);
+    }
+
+    // Un fallo en las notificaciones no estropea el registro de pasos: se apunta y se sigue. Recorren todas las redes,
+    // así que al acabar se vuelve a la de la llamada pase lo que pase.
+    private static function safely(string $sName, callable $Task): array
+    {
+        $sNetwork = Config::current()['network'];
+        try {
+            return $Task();
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ ' . $sName . ': ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+            return ['error' => 'failed'];
+        } finally {
+            Config::set($sNetwork);
+        }
     }
 
     // Pasos por parada de una línea en un día: /api/live/history?line=3514&date=2026-10-29&key=… (misma clave que el cron).

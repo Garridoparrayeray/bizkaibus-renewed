@@ -5,6 +5,7 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
+// Horario de cada línea de Bizkaibus en texto, tal como lo publica el operador (lo enseña «Ver horario oficial»).
 class ScheduleTextClient
 {
     private array $aConfig;

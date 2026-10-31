@@ -37,6 +37,14 @@
                 "switcher": "Bizkaibusen ordutegiak eta zuzenekoa",
                 "subtitle": "Bizkaibusen ordutegiak eta zuzenekoa",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko."
+            },
+            "en": {
+                "name": "Bizkaibus+",
+                "tile": "Timetables and real time",
+                "switcher": "Bizkaibus timetables and real time",
+                "subtitle": "Bizkaibus timetables and real time",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia."
             }
         }
     },
@@ -76,6 +84,14 @@
                 "switcher": "Bilboko Metroaren ordutegiak",
                 "subtitle": "Bilboko Metroaren ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko."
+            },
+            "en": {
+                "name": "Metro+",
+                "tile": "Metro Bilbao",
+                "switcher": "Metro Bilbao timetables",
+                "subtitle": "Metro Bilbao timetables",
+                "liveEmpty": "Search for a station to see the next metro.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator's forecast."
             }
         }
     },
@@ -115,6 +131,14 @@
                 "switcher": "Euskotrenen ordutegiak",
                 "subtitle": "Euskotrenen ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko."
+            },
+            "en": {
+                "name": "Euskotren+",
+                "tile": "Trains with official timetables",
+                "switcher": "Euskotren timetables",
+                "subtitle": "Euskotren timetables",
+                "liveEmpty": "Search for a station to see the next train.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
             }
         }
     },
@@ -154,6 +178,14 @@
                 "switcher": "Bilbo eta Donostiako Aldirien ordutegiak",
                 "subtitle": "Aldirien ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko."
+            },
+            "en": {
+                "name": "Renfe Cercanías+",
+                "tile": "Commuter trains in Bilbao and Donostia",
+                "switcher": "Commuter train timetables in Bilbao and Donostia",
+                "subtitle": "Commuter train timetables",
+                "liveEmpty": "Search for a stop to see the next train.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
             }
         }
     },
@@ -193,6 +225,14 @@
                 "switcher": "Lurraldebusen ordutegiak Gipuzkoan",
                 "subtitle": "Lurraldebusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko."
+            },
+            "en": {
+                "name": "Lurraldebus+",
+                "tile": "Gipuzkoa buses",
+                "switcher": "Lurraldebus timetables in Gipuzkoa",
+                "subtitle": "Lurraldebus timetables",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
             }
         }
     },
@@ -235,6 +275,16 @@
                 "switcher": "Bilboko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko."
+            },
+            "en": {
+                "name": "Bilbao Tram+",
+                "tile": "Tram timetables",
+                "tile_title": "Tram",
+                "tile_city": "Bilbao",
+                "switcher": "Bilbao tram timetables",
+                "subtitle": "Tram timetables",
+                "liveEmpty": "Search for a stop to see the next tram.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
             }
         }
     },
@@ -277,20 +327,32 @@
                 "switcher": "Gasteizko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko."
+            },
+            "en": {
+                "name": "Vitoria Tram+",
+                "tile": "Tram timetables",
+                "tile_title": "Tram",
+                "tile_city": "Vitoria",
+                "switcher": "Vitoria-Gasteiz tram timetables",
+                "subtitle": "Tram timetables",
+                "liveEmpty": "Search for a stop to see the next tram.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
             }
         }
     }
 };
     var order = Object.keys(networks);
     global.BideNetworks = {
-        DEFAULT: 'bus',
+        DEFAULT: "bus",
         all: networks,
         slugs: order,
-        get: function (slug) { return networks[slug] || networks.bus; },
+        get: function (slug) { return networks[slug] || networks["bus"]; },
         exists: function (slug) { return Object.prototype.hasOwnProperty.call(networks, slug); },
+        // En el idioma elegido si hay diccionario (páginas); en castellano si no (service worker).
         name: function (slug) {
-            if (networks[slug]) return networks[slug].texts.es.name;
-            return slug;
+            if (!networks[slug]) return slug;
+            if (global.I18n) return global.I18n.t('net.' + slug + '.name');
+            return networks[slug].texts.es.name;
         },
     };
     // Los textos de cada red entran en el diccionario como net.<red>.<clave>.

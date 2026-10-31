@@ -5,9 +5,22 @@ namespace Core;
 // Registro de redes: cada fichero de api/Networks describe una. Añadir una red es añadir su fichero.
 class Networks
 {
-    public const DEFAULT = 'bus';
-
     private static array|null $aAll = null;
+    private static string|null $sDefault = null;
+
+    // La red por defecto (default_network en api/Config/site.php): se abre en «/» y sus direcciones no llevan ?red=.
+    // Si esa red no existe, la primera.
+    public static function defaultSlug(): string
+    {
+        if (self::$sDefault === null) {
+            $sSlug = (require __DIR__ . '/../Config/site.php')['default_network'] ?? null;
+            if (!isset(self::all()[$sSlug])) {
+                $sSlug = array_key_first(self::all());
+            }
+            self::$sDefault = $sSlug;
+        }
+        return self::$sDefault;
+    }
 
     public static function all(): array
     {
@@ -40,7 +53,7 @@ class Networks
 
     public static function get(string $sSlug): array
     {
-        return self::all()[$sSlug] ?? self::all()[self::DEFAULT];
+        return self::all()[$sSlug] ?? self::all()[self::defaultSlug()];
     }
 
     // ?red=... válido, o la red por defecto.
@@ -49,13 +62,13 @@ class Networks
         if (self::exists($sSlug)) {
             return $sSlug;
         }
-        return self::DEFAULT;
+        return self::defaultSlug();
     }
 
     // Sufijo de las URL públicas: la red por defecto no lo lleva.
     public static function urlSuffix(string $sSlug): string
     {
-        if ($sSlug === self::DEFAULT) {
+        if ($sSlug === self::defaultSlug()) {
             return '';
         }
         return '?red=' . $sSlug;

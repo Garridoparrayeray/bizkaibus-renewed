@@ -172,7 +172,5 @@
     setUpFeedback();
     if (typeof BideOffline !== 'undefined') BideOffline.refresh().catch(() => {});
     // Al cambiar de idioma se rehace la lista con los textos nuevos.
-    document.addEventListener('click', (event) => {
-        if (event.target.closest('[data-bide-lang]')) setTimeout(renderOffline, 0);
-    });
+    window.addEventListener('bide:lang', renderOffline);
 })();

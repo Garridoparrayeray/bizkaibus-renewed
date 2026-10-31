@@ -1,8 +1,9 @@
 // Cerrar la parada o la línea, el menú de redes y la navegación con el historial (atrás, enlaces /stops y /lines).
 import { el, networkQuery, state } from './core.js';
-import { clearAllMapLines, stopLineMapRefresh } from './line-map.js';
+import { clearLineMap, stopLineMapRefresh } from './line-map.js';
 import { selectStop, stopDeparturesRefresh } from './stop.js';
 import { selectLine } from './timetable.js';
+import { openVehicleModal } from './vehicle-modal.js';
 
 function toggleNetworkMenu() {
     const isOpen = el.networkSwitch.classList.toggle('open');
@@ -31,7 +32,7 @@ export function closeTimetableSection() {
     state.timetableStopId = null;
     el.timetableSection.hidden = true;
     stopLineMapRefresh();
-    clearAllMapLines();
+    clearLineMap();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (window.location.pathname.startsWith('/lines/')) {
         if (state.currentStop) {
@@ -81,6 +82,8 @@ export function startRouting() {
     });
 
     const pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
+    const sharedTrip = new URLSearchParams(window.location.search).get('viaje');
+    let opened = Promise.resolve();
     if (pathMatch) {
         // El id llega codificado (Euskotren usa «ES:Euskotren:StopPlace:2577:»): sin descodificar, la API no encuentra la parada.
         let pathId = pathMatch[2];
@@ -88,9 +91,18 @@ export function startRouting() {
             pathId = decodeURIComponent(pathId);
         } catch (e) { /* se usa tal cual */ }
         if (pathMatch[1] === 'stops') {
-            selectStop(pathId);
+            opened = selectStop(pathId);
         } else if (pathMatch[1] === 'lines') {
-            selectLine(pathId);
+            opened = selectLine(pathId);
         }
     }
+    if (sharedTrip) opened.then(() => openSharedTrip(sharedTrip));
+}
+
+// Un viaje compartido («?viaje=») se abre una vez y se quita de la dirección.
+async function openSharedTrip(tripKey) {
+    await openVehicleModal(tripKey);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('viaje');
+    history.replaceState(history.state, '', url.pathname + url.search);
 }

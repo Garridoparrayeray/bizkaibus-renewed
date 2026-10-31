@@ -1,0 +1,74 @@
+/* ===== Pantalla de una parada (/pantalla/{id}): próximas salidas a pantalla completa ===== */
+/* Pensada para verse de lejos: fondo oscuro, letra grande que crece con la pantalla y el color de la red. */
+
+:root {
+    --network: #01573C;
+    --screen-bg: #0E1512;
+    --screen-text: #F4F7F5;
+    --screen-muted: #A9B6AF;
+    --screen-line: rgba(255, 255, 255, .12);
+    --screen-live: #3DDC84;
+    --screen-warn: #FFB020;
+}
+
+* { box-sizing: border-box; }
+
+/* ===== Página ===== */
+
+.screen {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--screen-bg);
+    color: var(--screen-text);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+}
+
+/* ===== Cabecera: red, parada y reloj ===== */
+
+.screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3vw;
+    padding: 3vh 4vw;
+    background: var(--network);
+}
+    .screen-place { min-width: 0; }
+        .screen-app { margin: 0; font-size: clamp(14px, 1.8vw, 28px); font-weight: 600; opacity: .85; }
+        .screen-stop { margin: .2em 0 0; overflow-wrap: anywhere; font-family: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif; font-size: clamp(24px, 4.2vw, 72px); line-height: 1.05; }
+    .screen-clock { flex: none; font-size: clamp(28px, 5vw, 84px); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ===== Salidas ===== */
+
+.screen-main { flex: 1; padding: 2vh 4vw; }
+    .screen-heading { margin: 0 0 1.5vh; color: var(--screen-muted); font-size: clamp(13px, 1.6vw, 26px); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+    .screen-list { margin: 0; padding: 0; list-style: none; }
+        .screen-row {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 2.5vw;
+            padding: 1.6vh 0;
+            border-bottom: 1px solid var(--screen-line);
+        }
+            .screen-line { min-width: 3.2em; padding: .25em .5em; border-radius: .35em; background: var(--network); color: #FFFFFF; font-size: clamp(16px, 2.8vw, 48px); font-weight: 800; text-align: center; }
+            .screen-dest { overflow: hidden; font-size: clamp(16px, 2.8vw, 48px); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+                .screen-detail { display: block; overflow: hidden; color: var(--screen-muted); font-size: max(12px, .5em); font-weight: 500; text-overflow: ellipsis; }
+            .screen-time { font-size: clamp(20px, 3.4vw, 60px); font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+                .screen-time.is-live::before { content: ''; display: inline-block; width: .3em; height: .3em; margin-right: .3em; border-radius: 50%; background: var(--screen-live); vertical-align: middle; }
+    .screen-empty { color: var(--screen-muted); font-size: clamp(18px, 2.6vw, 40px); }
+
+/* ===== Pie: estado de la conexión y marca ===== */
+
+.screen-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1vh 2vw;
+    padding: 2vh 4vw;
+    color: var(--screen-muted);
+    font-size: clamp(12px, 1.4vw, 22px);
+}
+    .screen.is-offline .screen-status { color: var(--screen-warn); }

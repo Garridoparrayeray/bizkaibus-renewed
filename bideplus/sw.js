@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v33';
+const CACHE_VERSION = 'v38';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -11,8 +11,10 @@ const SLOW_NETWORK_MS = 1500;
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
+    '/style-networks.css',
     '/style-miamor.css',
     '/style-app.css',
+    '/style-screen.css',
     '/fonts/fonts.css',
     '/fonts/inter-latin.woff2',
     '/fonts/bricolage-grotesque-latin.woff2',
@@ -27,6 +29,7 @@ const SHELL_FILES = [
     '/js/api.js',
     '/js/offline.js',
     '/js/bide-info.js',
+    '/js/screen.js',
     '/js/app/main.js',
     '/js/app/core.js',
     '/js/app/ui.js',
@@ -40,8 +43,13 @@ const SHELL_FILES = [
     '/js/app/favorites.js',
     '/js/app/side-menu.js',
     '/js/app/alerts.js',
+    '/js/app/arrival-alerts.js',
     '/js/networks.js',
     '/js/alerts-store.js',
+    '/js/push.js',
+    '/js/incident-alerts.js',
+    '/js/arrival-alerts-store.js',
+    '/js/settings.js',
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/i18n.js',
@@ -56,44 +64,41 @@ const SHELL_FILES = [
     '/js/bide-mode.js',
     '/js/bide.js',
     '/style-bide.css',
-    '/manifest.json',
-    '/manifest-miamor.json',
-    '/manifest-metro.json',
-    '/manifest-euskotren.json',
-    '/manifest-tranvia-bilbao.json',
-    '/manifest-tranvia-vitoria.json',
-    '/manifest-renfe.json',
     '/manifest-bide.json',
+    '/manifest-miamor.json',
     '/miamor.html',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
-    '/icons-pro/icon-192.png',
-    '/icons-pro/icon-512.png',
-    '/icons-metro/icon-192.png',
-    '/icons-metro/icon-512.png',
-    '/icons-euskotren/icon-192.png',
-    '/icons-euskotren/icon-512.png',
-    '/icons-tranvia-bilbao/icon-192.png',
-    '/icons-tranvia-bilbao/icon-512.png',
-    '/icons-tranvia-vitoria/icon-192.png',
-    '/icons-tranvia-vitoria/icon-512.png',
-    '/icons-renfe/icon-192.png',
-    '/icons-renfe/icon-512.png',
-    '/icons-lurraldebus/icon-192.png',
-    '/icons-lurraldebus/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',
+    // Los iconos de cada red salen de su configuración (js/networks.js): una red nueva no hay que añadirla aquí.
+    ...BideNetworks.slugs.flatMap((slug) => ['/' + BideNetworks.get(slug).icons + '/icon-192.png', '/' + BideNetworks.get(slug).icons + '/icon-512.png']),
 ];
 
+// La app entera, recién bajada (sin la caché HTTP). Falla si se corta la conexión: así no se guarda a medias.
+function downloadShell() {
+    return Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => [file, response])));
+}
+
+function storeShell(files) {
+    return caches.open(CACHE_NAME).then((cache) => Promise.all(files.filter(([, response]) => response.ok).map(([file, response]) => cache.put(file, response))));
+}
+
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => {
-            if (response.ok) return cache.put(file, response);
-            return undefined;
-        }))))
-    );
+    event.waitUntil(downloadShell().then(storeShell));
     self.skipWaiting();
+});
+
+// Ajustes → «Vaciar caché y actualizar»: se baja la app entera y solo si llega todo se cambia por lo guardado, para no
+// quedarse sin nada sin conexión. Los horarios sin conexión no se tocan, y el service worker sigue registrado, así que
+// las notificaciones siguen llegando. Responde por el puerto que manda la página.
+self.addEventListener('message', (event) => {
+    const reply = event.ports[0];
+    if (!event.data || event.data.type !== 'refresh-cache' || !reply) return;
+    event.waitUntil(downloadShell()
+        .then((files) => Promise.all([caches.delete(CACHE_NAME), caches.delete(API_CACHE_NAME)]).then(() => storeShell(files)))
+        .then(() => reply.postMessage({ ok: true }), () => reply.postMessage({ ok: false })));
 });
 
 self.addEventListener('activate', (event) => {
@@ -203,8 +208,9 @@ async function appPageFallback(request) {
     return undefined;
 }
 
+// Solo sin push: con push, las incidencias las manda el servidor (js/app/alerts.js).
 async function notifyNewAlerts() {
-    if (!(await AlertsStore.get('enabled'))) return;
+    if (!(await AlertsStore.get('enabled')) || (await AlertsStore.get('mode')) === 'push') return;
     const fresh = await AlertsStore.checkAlerts();
     if (fresh.length > 0) await AlertsStore.notify(self.registration, fresh);
 }
@@ -213,6 +219,31 @@ self.addEventListener('periodicsync', (event) => {
     if (event.tag === 'line-alerts-check') {
         event.waitUntil(notifyNewAlerts());
     }
+});
+
+// Notificaciones del servidor (avisos de llegada e incidencias): llegan con el texto ya listo. Solo se aceptan
+// direcciones e iconos de la propia app.
+function ownPath(value, fallback) {
+    if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) return value;
+    return fallback;
+}
+
+self.addEventListener('push', (event) => {
+    let data = {};
+    try {
+        data = event.data.json();
+    } catch (e) {
+        data = {};
+    }
+    event.waitUntil(self.registration.showNotification(data.title || 'Bide+', {
+        body: data.body || '',
+        icon: ownPath(data.icon, '/icons-bide-rojo/icon-192.png'),
+        badge: '/icons-bide-rojo/icon-192.png',
+        tag: data.tag || 'bide-arrival',
+        renotify: true,
+        vibrate: [200, 100, 200],
+        data: { url: ownPath(data.url, '/') },
+    }));
 });
 
 self.addEventListener('notificationclick', (event) => {

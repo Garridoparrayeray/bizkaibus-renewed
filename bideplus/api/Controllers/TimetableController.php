@@ -4,140 +4,161 @@ namespace Controllers;
 
 use Core\Config;
 use Core\Database;
+use Core\Live;
 use Core\Request;
 use Core\Response;
+use Core\TripKey;
 use Models\LineModel;
 use Models\ServiceJourney;
+use Models\Stop;
 use Services\Calendar;
 use Services\ScheduleRange;
-use Core\Live;
 
+// Horario de una línea para un día y una franja (/api/lines/{id}/timetable), con las salidas que pasan de
+// medianoche y, si se pide, solo las de una parada.
 class TimetableController
 {
+    private const DAY_SECONDS = 86400;
 
     public function show(Request $Req, array $aParams): void
     {
-        $aConfig = Config::current();
         $Pdo = Database::connection();
-        $sLineId = $aParams['id'];
-        $aLine = (new LineModel($Pdo))->find($sLineId);
+        $aLine = (new LineModel($Pdo))->find($aParams['id']);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
-
-        $sDateStr = $Req->query('date');
-        if (!$sDateStr) {
-            $sDateStr = Calendar::todayMadrid()->format('Y-m-d');
-        }
-        try {
-            $Date = new \DateTime($sDateStr, new \DateTimeZone('Europe/Madrid'));
-        } catch (\Throwable $Ex) {
+        $Date = self::date($Req->query('date'));
+        if ($Date === null) {
             Response::error('Invalid date', 422);
             return;
         }
 
-        $iHourFrom = $this->hmToSeconds($Req->query('hourFrom', '00:00'));
-        $iHourTo = $this->hmToSeconds($Req->query('hourTo', '23:59'));
-
-        $bCrossesMidnight = $iHourTo < $iHourFrom;
-        $iNextDayHourTo = $iHourTo;
-        if ($bCrossesMidnight) {
-            $iHourTo += 24 * 3600;
-        }
-
-        $sStopIdRaw = $Req->query('stopId');
-        $sStopId = null;
-        if ($sStopIdRaw !== null && $sStopIdRaw !== '') {
-            $sStopId = $sStopIdRaw;
-            $aStop = (new \Models\Stop($Pdo))->find($sStopId);
-            if ($aStop !== null) {
-                $sStopId = (string)$aStop['id'];
-            }
-        }
-
         $JourneyModel = new ServiceJourney($Pdo);
-        $aRows = $JourneyModel->timetableForLine($sLineId, $Date, $iHourFrom, $iHourTo, $sStopId);
+        $iHourFrom = self::hmToSeconds($Req->query('hourFrom', '00:00'));
+        $iHourTo = self::hmToSeconds($Req->query('hourTo', '23:59'));
+        $aRows = self::rowsInRange($JourneyModel, $aParams['id'], $Date, $iHourFrom, $iHourTo, self::stopId($Pdo, $Req->query('stopId')));
+        $aRows = self::withStatus($JourneyModel, $aRows, $Date);
 
-        if ($bCrossesMidnight) {
-            $NextDate = (clone $Date)->modify('+1 day');
-            $aNextDayRows = $JourneyModel->timetableForLine($sLineId, $NextDate, 0, $iNextDayHourTo, $sStopId);
-            foreach ($aNextDayRows as &$aNextDayRow) {
-                $aNextDayRow['departure_seconds'] = (int)$aNextDayRow['departure_seconds'] + 24 * 3600;
-            }
-            unset($aNextDayRow);
-            $aRows = array_merge($aRows, $aNextDayRows);
-            usort($aRows, fn($aA, $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        $sDate = $Date->format('Y-m-d');
+        $iPastBefore = self::pastBefore($sDate);
+        $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
+        $aEntries = array_map(fn($aRow) => self::entry($aRow, $iPastBefore, $bUseLastStopHeadsign), $aRows);
+
+        Response::json([
+            'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
+            'date' => $sDate,
+            'entries' => $aEntries,
+        ] + self::publication($Pdo, $sDate));
+    }
+
+    // La fecha pedida (AAAA-MM-DD) o hoy, a medianoche y en hora de Madrid. Null si no es una fecha.
+    private static function date(string|null $sDate): \DateTime|null
+    {
+        if (!$sDate) {
+            $sDate = Calendar::todayMadrid()->format('Y-m-d');
         }
+        try {
+            return new \DateTime($sDate, new \DateTimeZone('Europe/Madrid'));
+        } catch (\Throwable $Ex) {
+            return null;
+        }
+    }
 
+    // La parada por la que filtrar, con el id tal como está en la base de datos (si existe).
+    private static function stopId(\PDO $Pdo, string|null $sStopId): string|null
+    {
+        if ($sStopId === null || $sStopId === '') {
+            return null;
+        }
+        $aStop = (new Stop($Pdo))->find($sStopId);
+        if ($aStop === null) {
+            return $sStopId;
+        }
+        return (string)$aStop['id'];
+    }
+
+    // Salidas entre dos horas. Si la franja pasa de medianoche (22:00 a 02:00), se suman las de la madrugada del día
+    // siguiente, con la hora contada desde hoy (26:00 para las 2:00) para ordenarlas.
+    private static function rowsInRange(ServiceJourney $JourneyModel, string $sLineId, \DateTime $Date, int $iFrom, int $iTo, string|null $sStopId): array
+    {
+        if ($iTo >= $iFrom) {
+            return $JourneyModel->timetableForLine($sLineId, $Date, $iFrom, $iTo, $sStopId);
+        }
+        $aRows = $JourneyModel->timetableForLine($sLineId, $Date, $iFrom, $iTo + self::DAY_SECONDS, $sStopId);
+        $NextDate = (clone $Date)->modify('+1 day');
+        foreach ($JourneyModel->timetableForLine($sLineId, $NextDate, 0, $iTo, $sStopId) as $aRow) {
+            $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + self::DAY_SECONDS;
+            $aRows[] = $aRow;
+        }
+        usort($aRows, fn($aA, $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        return $aRows;
+    }
+
+    // Hoy, en las redes con autobuses en directo, cada salida lleva su estado y retraso; si no, solo el horario.
+    private static function withStatus(ServiceJourney $JourneyModel, array $aRows, \DateTime $Date): array
+    {
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
         if ($bIsToday && Config::hasLive('vehicle-monitoring')) {
-            $aRows = Live::matcher($JourneyModel)->enrich(array_map(
-                fn($aR) => $aR + ['arrival_seconds' => $aR['departure_seconds']],
-                $aRows
-            ));
-        } else {
-            $aRows = array_map(fn($aR) => $aR + ['status' => 'scheduled', 'delaySeconds' => 0], $aRows);
+            return Live::matcher($JourneyModel)->enrich(array_map(fn($aRow) => $aRow + ['arrival_seconds' => $aRow['departure_seconds']], $aRows));
         }
+        return array_map(fn($aRow) => $aRow + ['status' => 'scheduled', 'delaySeconds' => 0], $aRows);
+    }
 
-        $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
-
+    // Hasta qué hora (segundos desde medianoche) las salidas del día pedido ya pasaron: todas en un día anterior,
+    // las de antes de ahora hoy y ninguna en un día futuro.
+    private static function pastBefore(string $sDate): int
+    {
         $sToday = Calendar::todayMadrid()->format('Y-m-d');
-        $sDate = $Date->format('Y-m-d');
-        $iNow = Calendar::nowSecondsSinceMidnight();
+        if ($sDate < $sToday) {
+            return PHP_INT_MAX;
+        }
+        if ($sDate === $sToday) {
+            return Calendar::nowSecondsSinceMidnight();
+        }
+        return -1;
+    }
 
-        $aEntries = array_map(function ($aRow) use ($bUseLastStopHeadsign, $sToday, $sDate, $iNow) {
-            $sHeadsign = $aRow['headsign'];
-            if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
-                $sHeadsign = $aRow['last_stop_name'];
-            }
-            $iDelaySeconds = 0;
-            if (isset($aRow['delaySeconds'])) {
-                $iDelaySeconds = $aRow['delaySeconds'];
-            }
-            $iDelayMinutes = 0;
-            if ($iDelaySeconds !== 0) {
-                $iDelayMinutes = (int)round($iDelaySeconds / 60);
-            }
-            $sStatus = $aRow['status'];
-            if ($sStatus === 'scheduled' && ($sDate < $sToday || ($sDate === $sToday && (int)$aRow['departure_seconds'] < $iNow))) {
-                $sStatus = 'departed';
-            }
-            return [
-                'tripKey' => $aRow['line_id'] . '-' . $aRow['trip_number'] . '-' . $aRow['first_departure_seconds'],
-                'departure' => Calendar::secondsToHm((int)$aRow['departure_seconds']),
-                'headsign' => $sHeadsign,
-                'status' => $sStatus,
-                'delayMinutes' => $iDelayMinutes,
-            ];
-        }, $aRows);
+    private static function entry(array $aRow, int $iPastBefore, bool $bUseLastStopHeadsign): array
+    {
+        $sHeadsign = $aRow['headsign'];
+        if ($bUseLastStopHeadsign && !empty($aRow['last_stop_name'])) {
+            $sHeadsign = $aRow['last_stop_name'];
+        }
+        // Una salida del horario que ya pasó se da por salida.
+        $sStatus = $aRow['status'];
+        if ($sStatus === 'scheduled' && (int)$aRow['departure_seconds'] < $iPastBefore) {
+            $sStatus = 'departed';
+        }
+        return [
+            'tripKey' => TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']),
+            'departure' => Calendar::secondsToHm((int)$aRow['departure_seconds']),
+            'headsign' => $sHeadsign,
+            'status' => $sStatus,
+            'delayMinutes' => (int)round(($aRow['delaySeconds'] ?? 0) / 60),
+        ];
+    }
 
+    // Cuándo se publicó el horario y de qué fecha a qué fecha vale, para avisar si el día pedido se sale.
+    private static function publication(\PDO $Pdo, string $sDate): array
+    {
         $PublishedStmt = $Pdo->prepare('SELECT value FROM meta WHERE key = ?');
         $PublishedStmt->execute(['schedule_source_published']);
         $sPublished = $PublishedStmt->fetchColumn();
         if (!$sPublished) {
-            $sPublished = $aConfig['schedule_source_published'];
+            $sPublished = Config::current()['schedule_source_published'];
         }
-
         $aRange = ScheduleRange::forDatabase($Pdo);
-        $sPublishedFrom = $aRange['from'];
-        $sPublishedUntilOut = $aRange['to'];
-        $bBeyondPublished = $sPublishedUntilOut !== null && $sDate > $sPublishedUntilOut;
-        $bBeforePublished = $sPublishedFrom !== null && $sDate < $sPublishedFrom;
-
-        Response::json([
-            'line' => ['id' => $aLine['id'], 'code' => $aLine['code'], 'name' => $aLine['name']],
-            'date' => $Date->format('Y-m-d'),
-            'entries' => $aEntries,
+        return [
             'scheduleSourcePublished' => $sPublished,
-            'publishedFrom' => $sPublishedFrom,
-            'publishedUntil' => $sPublishedUntilOut,
-            'beyondPublished' => $bBeyondPublished,
-            'beforePublished' => $bBeforePublished,
-        ]);
+            'publishedFrom' => $aRange['from'],
+            'publishedUntil' => $aRange['to'],
+            'beyondPublished' => $aRange['to'] !== null && $sDate > $aRange['to'],
+            'beforePublished' => $aRange['from'] !== null && $sDate < $aRange['from'],
+        ];
     }
 
-    private function hmToSeconds(string $sHm): int
+    private static function hmToSeconds(string $sHm): int
     {
         if (!preg_match('/^(\d{1,2}):(\d{2})$/', $sHm, $aM)) {
             return 0;

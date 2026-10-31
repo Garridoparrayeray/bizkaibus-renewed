@@ -11,6 +11,21 @@ return [
         'theme_color' => '#C8102E',
         'title' => ['METRO', ''],
         'logomark' => '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.3" fill="#C8102E"/><circle cx="9.25" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/><circle cx="12" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/><circle cx="14.75" cy="12" r="3.05" fill="#C8102E" stroke="#FF6505" stroke-width="1.55"/></svg>',
+        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
+        'tile_color' => '#C8102E',
+        'swatch_color' => '#C8102E',
+        'palette' => [
+            'bg' => '#f6f4f4',
+            'border' => '#e3ddde',
+            'primary' => '#C8102E',
+            'primary-light' => '#FF8A80',
+            'primary-dark' => '#7A0C1D',
+            'primary-tint' => '#FCEBEA',
+            'text' => '#211c1c',
+            'text-secondary' => '#665c5d',
+            'backdrop' => 'rgba(20, 10, 11, .5)',
+        ],
     ],
 
     'texts' => [
@@ -28,6 +43,14 @@ return [
             'switcher' => 'Bilboko Metroaren ordutegiak',
             'subtitle' => 'Bilboko Metroaren ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
+        ],
+        'en' => [
+            'name' => 'Metro+',
+            'tile' => 'Metro Bilbao',
+            'switcher' => 'Metro Bilbao timetables',
+            'subtitle' => 'Metro Bilbao timetables',
+            'liveEmpty' => 'Search for a station to see the next metro.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator\'s forecast.',
         ],
     ],
 

@@ -59,6 +59,10 @@
       "dest": "/api/shell.php"
     },
     {
+      "src": "/pantalla/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
       "src": "/",
       "dest": "/api/shell.php"
     }

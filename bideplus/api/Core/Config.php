@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// La red de la petición (?red=) y su configuración (api/Networks/*.php). Por defecto, Bizkaibus.
 class Config
 {
     private static array|null $aCurrent = null;
@@ -23,7 +24,7 @@ class Config
     public static function current(): array
     {
         if (self::$aCurrent === null) {
-            self::set(Networks::DEFAULT);
+            self::set(Networks::defaultSlug());
         }
         return self::$aCurrent;
     }

@@ -35,12 +35,15 @@ export async function selectStop(stopId) {
     }
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
+    const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
     if (HAS_PLATFORMS) {
         updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
+        el.platformScreen.href = screenUrl;
         el.platformPanelStop.textContent = stop.name;
         el.platformPanel.hidden = false;
     } else {
         updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
+        el.liveScreen.href = screenUrl;
         el.liveCard.hidden = false;
     }
     if (state.currentLine && state.timetableStopId === null) {

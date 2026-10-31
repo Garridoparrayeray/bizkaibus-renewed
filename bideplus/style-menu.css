@@ -5,12 +5,6 @@
     --muted: #5B6470;
     --line: #E6E3DC;
     --green: #01573C;
-    --red: #C8102E;
-    --blue: #003F8C;
-    --tram-bilbao: #4EB848;
-    --tram-vitoria: #60AE27;
-    --renfe: #74349A;
-    --lurraldebus: #0062A8;
 }
 
 /* ===== Base ===== */
@@ -70,13 +64,6 @@ main {
 
 /* ===== Colores por app ===== */
 /* El verde de Bizkaibus en una ficha grande se ve casi negro: uno algo más claro, con el brillo de las demás fichas. */
-.tile--bus { --c: #0B6E4C; }
-.tile--metro { --c: var(--red); }
-.tile--euskotren { --c: var(--blue); }
-.tile--tranvia-bilbao { --c: var(--tram-bilbao); }
-.tile--tranvia-vitoria { --c: var(--tram-vitoria); }
-.tile--renfe { --c: var(--renfe); }
-.tile--lurraldebus { --c: var(--lurraldebus); }
 
 /* ===== Fichas de las apps ===== */
 .tiles {

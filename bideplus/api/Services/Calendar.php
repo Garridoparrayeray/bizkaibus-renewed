@@ -2,6 +2,7 @@
 
 namespace Services;
 
+// Fechas y horas en hora de Madrid: hoy, segundos desde medianoche y el bit del día de la semana.
 class Calendar
 {
     public static function todayMadrid(): \DateTime

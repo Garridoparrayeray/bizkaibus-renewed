@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// Conexión de solo lectura a la base de datos SQLite de cada red (data/*.sqlite), una por red.
 class Database
 {
     private static array $aConnections = [];
@@ -9,7 +10,7 @@ class Database
     public static function connection(): \PDO
     {
         $aConfig = Config::current();
-        $sNetwork = $aConfig['network'] ?? 'bus';
+        $sNetwork = $aConfig['network'];
 
         if (!isset(self::$aConnections[$sNetwork])) {
             $sPath = $aConfig['db_path'];

@@ -13,7 +13,8 @@ const profileDir = mkdtempSync(join(tmpdir(), 'bide-shell-'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
+// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
+const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
 if (process.env.CI) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
@@ -38,7 +39,8 @@ ws.onmessage = e => {
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 const ev = async expr => {
     const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-    return r.exceptionDetails ? 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0] : (r.result && r.result.value);
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
 };
 const waitTrue = async (expr, ms = 10000) => {
     const end = Date.now() + ms;
@@ -49,7 +51,12 @@ const waitTrue = async (expr, ms = 10000) => {
     return false;
 };
 const results = [];
-const check = (name, ok, extra = '') => results.push(`${ok ? 'OK ' : 'MAL'} ${name}${extra ? ' — ' + extra : ''}`);
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
 const go = async (url, wait = 2500) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
 const shown = sel => `(() => { const n = document.querySelector(${JSON.stringify(sel)}); return !!n && getComputedStyle(n).display !== 'none' && n.getBoundingClientRect().height > 0; })()`;
 const noOverflow = "document.documentElement.scrollWidth <= window.innerWidth";
@@ -98,7 +105,7 @@ await send('Emulation.setUserAgentOverride', { userAgent: '' });
 // ===== App instalada =====
 await setStandalone(true);
 await go('/');
-check('instalada · menú: barra con 4 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 4);
+check('instalada · menú: barra con 5 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 5);
 check('instalada · menú: «Apps» marcada', (await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').getAttribute('aria-current')")) === 'page');
 check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('main > footer'))) === false && (await ev(shown('.bide-install'))) === false);
 
@@ -117,9 +124,8 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 21"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 28"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
-check('instalada · Info: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=info] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
 check('instalada · Info: sugerencias cuenta los caracteres', await ev("document.querySelector('[data-feedback-count]').textContent === '6 / 1500'"));
@@ -136,15 +142,65 @@ check('idioma · EU cambia la página y las pestañas', await waitTrue("document
 check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
 check('idioma · EU traduce las preguntas frecuentes y las sugerencias', await ev("document.querySelector('.bide-faq h3').textContent === 'Ohiko galderak' && document.querySelector('.bide-feedback h3').textContent === 'Iradokizunak eta akatsak'"));
 check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
+await ev("document.querySelector('[data-bide-lang=en]').click(); true");
+check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
+check('idioma · EN traduce las novedades, las preguntas y las sugerencias', await ev("document.querySelector('.bide-changelog h3').textContent === \"What's new\" && document.querySelector('.bide-faq h3').textContent === 'Frequently asked questions' && document.querySelector('.bide-feedback h3').textContent === 'Suggestions and bugs'"));
+check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang=en]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
+
+// ===== Ajustes =====
+await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234567', tripKey: 'x', stopId: '4255', minutes: 5, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now(), lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); return true; })()`);
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('instalada · Ajustes: se abre como página', await waitTrue(shown('[data-bide-view=ajustes]')));
+check('instalada · Ajustes: idioma, notificaciones, sin conexión y datos', await ev("['.bide-lang', '#alerts-toggle', '[data-settings-permission]', '.bide-offline', '[data-settings-delete]'].every((s) => !!document.querySelector('[data-bide-view=ajustes] ' + s))"));
+check('instalada · Ajustes: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=ajustes] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
+check('instalada · Ajustes: el estado del permiso, con su texto', await ev("(() => { const p = document.querySelector('[data-settings-permission]').textContent; return p.length > 10 && p.indexOf('bide.') === -1; })()"));
+check('instalada · Ajustes: el aviso de llegada activo, con línea y parada', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('A3514 → GERNIKA') && document.querySelector('[data-settings-arrivals-empty]').hidden"));
+await ev("document.querySelector('[data-settings-arrivals] button').click(); true");
+check('instalada · Ajustes: cancelar el aviso lo quita', await waitTrue("document.querySelectorAll('[data-settings-arrivals] li').length === 0 && !document.querySelector('[data-settings-arrivals-empty]').hidden && JSON.parse(localStorage.getItem('bide-arrival-alerts')).length === 0"));
+await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]').click(); true");
+check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
+await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
+check('instalada · Ajustes: sin desbordar a lo ancho', await ev(noOverflow));
+check('instalada · Ajustes: ubicación, la caché y la versión', await ev("['[data-settings-location]', '[data-settings-cache]', '[data-settings-version]'].every((s) => !!document.querySelector('[data-bide-view=ajustes] ' + s))"));
+check('instalada · Ajustes: la versión es la de la última novedad', await ev("(() => { const n = document.querySelector('.bide-changelog-entry strong').getAttribute('data-i18n').split('.')[2]; return document.querySelector('[data-settings-version]').textContent.startsWith(n + ' · '); })()"));
+check('instalada · Ajustes: la ubicación, aún sin pedir y con su botón', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationPrompt' && !document.querySelector('[data-settings-location-ask]').hidden"));
+await send('Browser.grantPermissions', { permissions: ['geolocation'], origin: BASE });
+check('instalada · Ajustes: al darla, «Permitida» sin recargar', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationGranted' && document.querySelector('[data-settings-location-ask]').hidden"));
+await send('Browser.resetPermissions', {});
+
+// Vaciar la caché: la app se vuelve a bajar entera y se recarga; los horarios sin conexión y el service worker se quedan.
+await waitTrue('!!navigator.serviceWorker.controller');
+await ev(`(async () => {
+    const shell = (await caches.keys()).find((k) => k.startsWith('bizkaibus-shell-'));
+    await (await caches.open(shell)).put('/__viejo', new Response('viejo'));
+    await (await caches.open('bide-offline')).put('/__prueba-sin-conexion', new Response('ok'));
+    window.__antesDeVaciar = true;
+    return true;
+})()`);
+await ev("document.querySelector('[data-settings-cache]').click(); true");
+check('caché · se vacía, se vuelve a bajar la app y recarga', await waitTrue(`(async () => {
+    if (window.__antesDeVaciar || document.readyState !== 'complete') return false;
+    const shell = (await caches.keys()).find((k) => k.startsWith('bizkaibus-shell-'));
+    if (!shell) return false;
+    const cache = await caches.open(shell);
+    return !(await cache.match('/__viejo')) && !!(await cache.match('/js/settings.js'));
+})()`, 30000));
+check('caché · los horarios sin conexión y el service worker se quedan', await ev("(async () => !!(await (await caches.open('bide-offline')).match('/__prueba-sin-conexion')) && !!(await navigator.serviceWorker.getRegistration()))()"));
+await ev("caches.open('bide-offline').then((c) => c.delete('/__prueba-sin-conexion')).then(() => true)");
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
+check('instalada · Avisos: enlaza con Ajustes', await waitTrue("!!document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]')"));
+await ev("document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]').click(); true");
+check('instalada · Avisos: el enlace abre Ajustes', await waitTrue(shown('[data-bide-view=ajustes]')));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 
 await go('/?red=bus');
 check('instalada · app: barra de pestañas', await ev(shown('.bide-tabbar')));
 check('instalada · app: sin ☰ ni pie', (await ev(shown('#menu-open'))) === false && (await ev(shown('#app-footer'))) === false);
 check('instalada · app: se mantiene «Cerca de mí»', await ev(shown('#nearby-btn')));
-await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
-check('instalada · Avisos: lleva el interruptor de notificaciones', await waitTrue("!!document.querySelector('[data-bide-view=avisos] .alerts-toggle')"));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('instalada · app: Ajustes lleva el interruptor de notificaciones', await waitTrue(`${shown('[data-bide-view=ajustes]')} && !!document.querySelector('[data-bide-view=ajustes] #alerts-toggle')`));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
 check('instalada · «Apps» cierra la página abierta', await waitTrue(shown('.layout')));
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').click(); true");
@@ -242,6 +298,125 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
+// ===== Inglés para quien tiene el móvil en inglés =====
+await phone();
+await go('/?red=bus', 1500);
+await ev("localStorage.removeItem('bide_lang'); true");
+const englishPhone = await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-GB', 'en'] });" });
+await go('/?red=bus', 3000);
+check('idioma · con el móvil en inglés, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
+check('idioma · el botón de la cabecera pasa después a castellano', await ev("document.getElementById('lang-toggle').textContent.trim() === 'ES'"));
+check('idioma · los textos de la red también salen en inglés', await ev("document.getElementById('app-subtitle').textContent.trim() === 'Bizkaibus timetables and real time'"));
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: englishPhone.identifier });
+await ev("localStorage.setItem('bide_lang', 'es'); true");
+
+// ===== Compartir un viaje =====
+// El enlace compartido abre la parada con la ficha del viaje, y el botón manda el texto con el enlace.
+await phone();
+// Paradas con mucho paso, por si a esta hora alguna ya no tiene viajes (de noche queda Metro).
+let sharedTrip = null;
+let sharedStop = null;
+for (const [red, stop] of [['bus', '1137'], ['bus', '356'], ['bus', '4255'], ['metro', '7']]) {
+    const data = await (await fetch(`${BASE}/api/stops/${stop}/departures?limit=8&red=${red}`)).json();
+    sharedTrip = (data.departures || []).find(d => d.tripKey);
+    if (sharedTrip) {
+        sharedStop = { red, stop };
+        break;
+    }
+}
+if (sharedTrip) {
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    check('compartir: el enlace abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));
+    check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
+    await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
+    check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+} else {
+    results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
+}
+
+// ===== Avísame cuando llegue =====
+// En local no hay almacén ni servicio de push: se simulan el servidor (clave y avisos) y la suscripción del navegador.
+if (sharedTrip) {
+    const tripUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`;
+    await go(tripUrl, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    check('avisos: sin almacén en el servidor, no se ofrecen', await ev("document.getElementById('modal-notify').hidden"));
+    const fakePush = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+        const realFetch = window.fetch.bind(window);
+        window.__alertCalls = [];
+        const json = (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+        window.fetch = async (url, init = {}) => {
+            const path = String(url);
+            if (path.includes('/api/push/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
+            if (path.includes('/cancel')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'cancelled' }); }
+            if (path.includes('/api/push/arrival')) { window.__alertCalls.push({ path, body: init.body }); return json({ status: 'created', id: '0123456789abcdef01234567' }); }
+            return realFetch(url, init);
+        };
+        Object.defineProperty(window, 'Notification', { value: { permission: 'default', requestPermission: async () => 'granted' }, configurable: true });
+        const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/prueba', options: { applicationServerKey: null }, toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'x', auth: 'y' } }; }, unsubscribe: async () => true };
+        const registration = { pushManager: { getSubscription: async () => null, subscribe: async () => subscription } };
+        Object.defineProperty(navigator.serviceWorker, 'ready', { get: () => Promise.resolve(registration), configurable: true });
+    })();` });
+    await ev("localStorage.removeItem('bide-arrival-alerts'); true");
+    await go(tripUrl, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    check('avisos: la ficha ofrece 2, 5 y 10 min', await waitTrue("!document.getElementById('modal-notify').hidden && document.querySelectorAll('[data-notify-minutes]').length === 3"));
+    await ev("document.querySelector('[data-notify-minutes=\"5\"]').click(); true");
+    check('avisos: al elegir 5 min queda activo', await waitTrue("document.getElementById('modal-notify-status').textContent.includes('5 min') && !document.getElementById('modal-notify-cancel').hidden && document.getElementById('modal-notify-options').hidden"));
+    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
+    await ev("document.getElementById('modal-notify-cancel').click(); true");
+    check('avisos: se puede cancelar', await waitTrue("window.__alertCalls.some((call) => call.path.includes('/cancel')) && !document.getElementById('modal-notify-options').hidden"));
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakePush.identifier });
+    await ev("localStorage.removeItem('bide-arrival-alerts'); true");
+} else {
+    results.push('SKIP avisos: ahora no hay viajes en las paradas de prueba');
+}
+
+// ===== Avisos de incidencias por push =====
+// Al activarlos se dan al servidor la suscripción, los favoritos de todas las apps y el idioma; al quitarlos, se borran.
+const fakeIncidentPush = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+    const realFetch = window.fetch.bind(window);
+    window.__pushCalls = [];
+    const json = (body) => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+    window.fetch = async (url, init = {}) => {
+        const path = String(url);
+        if (path.includes('/api/push/key')) return json({ publicKey: 'BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4', minutes: [2, 5, 10] });
+        if (path.includes('/api/push/incidents')) { window.__pushCalls.push({ path, body: JSON.parse(init.body || '{}') }); if (path.includes('/remove')) return json({ status: 'removed' }); return json({ status: 'saved' }); }
+        return realFetch(url, init);
+    };
+    Object.defineProperty(window, 'Notification', { value: { permission: 'granted', requestPermission: async () => 'granted' }, configurable: true });
+    const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/incidencias', options: { applicationServerKey: null }, toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'x', auth: 'y' } }; }, unsubscribe: async () => true };
+    const registration = { pushManager: { getSubscription: async () => subscription, subscribe: async () => subscription } };
+    Object.defineProperty(navigator.serviceWorker, 'ready', { get: () => Promise.resolve(registration), configurable: true });
+})();` });
+await go('/?red=bus', 2500);
+const savedFavorites = await ev("JSON.stringify([localStorage.getItem('bizkaibus_favorites'), localStorage.getItem('metrobilbao_favorites')])");
+await ev(`(async () => { localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'line', refId: '3513' }])); localStorage.setItem('metrobilbao_favorites', JSON.stringify([{ type: 'stop', refId: '7' }])); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
+await go('/?red=bus', 2500);
+await ev("document.getElementById('alerts-toggle').click(); true");
+check('incidencias: al activarlas quedan con push y lo dice', await waitTrue("document.getElementById('alerts-toggle').checked && document.getElementById('alerts-note').textContent === I18n.t('app.alerts.push')"), await ev("document.getElementById('alerts-note').textContent"));
+check('incidencias: el servidor recibe los favoritos de todas las apps y el idioma', await ev(`(() => { const call = window.__pushCalls.find((c) => !c.path.includes('/remove')); if (!call) return false; const f = call.body.favorites; return f.bus.lines[0] === '3513' && f.metro.stops[0] === '7' && call.body.lang === 'es' && call.body.subscription.endpoint.endsWith('/incidencias'); })()`), await ev('JSON.stringify(window.__pushCalls)'));
+check('incidencias: con push, la app no mira por su cuenta', (await ev("AlertsStore.get('mode')")) === 'push');
+await ev("document.getElementById('alerts-toggle').click(); true");
+check('incidencias: al quitarlas se borran del servidor', await waitTrue("!document.getElementById('alerts-toggle').checked && window.__pushCalls.some((c) => c.path.includes('/remove') && c.body.endpoint.endsWith('/incidencias'))"));
+// Quien ya los tenía activados sin push pasa a push al abrir la app, sin volver a pedir permiso.
+await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.set('mode', 'local'); localStorage.removeItem('bide-incident-push'); return true; })()`);
+await go('/?red=bus', 2500);
+check('incidencias: quien las tenía sin push pasa a push solo', await waitTrue("window.__pushCalls.some((c) => !c.path.includes('/remove')) && document.getElementById('alerts-toggle').checked") && (await ev("AlertsStore.get('mode')")) === 'push');
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeIncidentPush.identifier });
+await ev(`(async () => { const [bus, metro] = ${savedFavorites}; const restore = (key, value) => { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }; restore('bizkaibus_favorites', bus); restore('metrobilbao_favorites', metro); localStorage.removeItem('bide-incident-push'); await AlertsStore.set('enabled', false); await AlertsStore.set('mode', null); return true; })()`);
+
+// ===== Pantalla de una parada =====
+await go('/stops/4255', 3000);
+check('pantalla: la tarjeta de la parada enlaza a su pantalla', await waitTrue("(document.getElementById('live-screen').getAttribute('href') || '') === '/pantalla/4255'"));
+await go('/pantalla/7?red=metro', 3000);
+check('pantalla: sale el nombre de la estación', await ev("document.querySelector('.screen-stop').textContent.trim() === 'Abando'"));
+check('pantalla: hay salidas o el aviso de que no quedan', await waitTrue("document.querySelectorAll('.screen-row').length > 0 || !document.querySelector('[data-screen-empty]').hidden"));
+check('pantalla: el reloj está en marcha', await ev("/^\\d{2}:\\d{2}$/.test(document.querySelector('[data-screen-clock]').textContent)"));
+check('pantalla: sin desbordes en el móvil', await ev(noOverflow));
+check('pantalla: no se indexa', await ev("document.querySelector('meta[name=robots]').content === 'noindex'"));
+check('pantalla: una parada que no existe da 404', (await fetch(`${BASE}/pantalla/no-existe`)).status === 404);
+
 // ===== Tema «mi amor»: la misma app que la normal, en rosa =====
 await phone();
 await go('/?red=bus&tema=miamor');
@@ -258,10 +433,25 @@ check('«mi amor»: sigue en el mapa de la red', await ev("document.documentElem
 await go('/?red=bus&tema=pro');
 check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.documentElement.classList.contains('is-miamor')"));
 
+// ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
+await setStandalone(false);
+await phone();
+await go('/');
+await ev("localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'stop', refId: '4255' }])); true");
+await ev("document.querySelector('.menu-footer [data-bide-tab=ajustes]').click(); true");
+check('navegador · Ajustes: se abre desde el pie', await waitTrue(shown('[data-bide-view=ajustes]')));
+await ev("document.querySelector('[data-settings-delete]').click(); true");
+check('borrar datos: la primera pulsación pide confirmación', await waitTrue("document.querySelector('[data-settings-delete]').getAttribute('data-i18n') === 'bide.settings.deleteConfirm'") && (await ev("localStorage.getItem('bizkaibus_favorites') !== null")));
+await ev("document.querySelector('[data-settings-delete]').click(); true");
+await sleep(3000);
+check('borrar datos: la segunda lo borra y recarga', await waitTrue("document.readyState === 'complete' && localStorage.getItem('bizkaibus_favorites') === null && location.pathname === '/'"));
+
 const bad = results.filter(r => r.startsWith('MAL')).length;
 const unique = [...new Set(problems)];
 console.log(results.join('\n'));
 console.log(`\nRESULTADO bide: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${unique.length} excepciones`);
 for (const p of unique.slice(0, 10)) console.log(' -', p);
 ws.close();
-shutdown(bad || unique.length ? 1 : 0);
+let exitCode = 0;
+if (bad || unique.length) exitCode = 1;
+shutdown(exitCode);

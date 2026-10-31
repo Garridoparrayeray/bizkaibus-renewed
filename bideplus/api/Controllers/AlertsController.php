@@ -9,20 +9,25 @@ use Services\MetroAlertsClient;
 use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
+// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=). Las fuentes son los clientes de
+// Services (Metro, Renfe y SIRI).
 class AlertsController
 {
     public function index(Request $Req): void
     {
+        Response::json(['alerts' => $this->alerts($Req->query('line'), $Req->query('stop'))]);
+    }
+
+    // Avisos de la red actual: todos, los de una línea (?line=) o, en Renfe, los de una estación (?stop=).
+    // También los usan las notificaciones de incidencias (Services\IncidentAlerts).
+    public function alerts(string|null $sLine, string|null $sStop): array
+    {
         $aConfig = Config::current();
 
         if (isset($aConfig['metro_alerts'])) {
-            $Client = new MetroAlertsClient($aConfig);
-            $aAlerts = $Client->fetchAlerts();
-
+            $aAlerts = (new MetroAlertsClient($aConfig))->fetchAlerts();
             if (isset($aConfig['siri'])) {
-                $SiriClient = new SiriAlertsClient($aConfig);
-                $aSiriAlerts = $SiriClient->fetchAlerts();
-                foreach ($aSiriAlerts as $aSiri) {
+                foreach ((new SiriAlertsClient($aConfig))->fetchAlerts() as $aSiri) {
                     $aAlerts[] = [
                         'title' => $aSiri['summary'] ?? 'Aviso SIRI',
                         'description' => $aSiri['description'] ?? '',
@@ -30,8 +35,7 @@ class AlertsController
                     ];
                 }
             }
-            Response::json(['alerts' => $aAlerts]);
-            return;
+            return $aAlerts;
         }
 
         if (isset($aConfig['renfe_alerts'])) {
@@ -39,27 +43,15 @@ class AlertsController
         } elseif (isset($aConfig['siri'])) {
             $Client = new SiriAlertsClient($aConfig);
         } else {
-            Response::json(['alerts' => []]);
-            return;
+            return [];
         }
 
-        $sStopFilter = $Req->query('stop');
-        if ($sStopFilter !== null && $Client instanceof RenfeAlertsClient) {
-            Response::json(['alerts' => $Client->alertsForStop($sStopFilter)]);
-            return;
+        if ($sStop !== null && $Client instanceof RenfeAlertsClient) {
+            return $Client->alertsForStop($sStop);
         }
-
-        $sLineFilter = $Req->query('line');
-        if ($sLineFilter !== null) {
-            $aByLine = $Client->alertsByLine();
-            $aAlerts = [];
-            if (isset($aByLine[$sLineFilter])) {
-                $aAlerts = $aByLine[$sLineFilter];
-            }
-            Response::json(['alerts' => $aAlerts]);
-            return;
+        if ($sLine !== null) {
+            return $Client->alertsByLine()[$sLine] ?? [];
         }
-
-        Response::json(['alerts' => $Client->fetchAlerts()]);
+        return $Client->fetchAlerts();
     }
 }

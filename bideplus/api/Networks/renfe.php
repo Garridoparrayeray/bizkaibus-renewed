@@ -12,6 +12,21 @@ return [
         'title' => ['RENFE', ''],
         'logomark' => '<img src="/icons-renfe/glyph.png" alt="">',
         'card_logomark' => '<img src="/icons-renfe/icon-192.png" alt="">',
+        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
+        'tile_color' => '#74349A',
+        'swatch_color' => '#74349A',
+        'palette' => [
+            'bg' => '#f8f4fa',
+            'border' => '#e6dbec',
+            'primary' => '#74349A',
+            'primary-light' => '#B98BD1',
+            'primary-dark' => '#4A1D66',
+            'primary-tint' => '#F3EAF8',
+            'text' => '#24192b',
+            'text-secondary' => '#65596c',
+            'backdrop' => 'rgba(18, 10, 22, .5)',
+        ],
     ],
 
     'texts' => [
@@ -29,6 +44,14 @@ return [
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak',
             'subtitle' => 'Aldirien ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+        ],
+        'en' => [
+            'name' => 'Renfe Cercanías+',
+            'tile' => 'Commuter trains in Bilbao and Donostia',
+            'switcher' => 'Commuter train timetables in Bilbao and Donostia',
+            'subtitle' => 'Commuter train timetables',
+            'liveEmpty' => 'Search for a stop to see the next train.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
         ],
     ],
 

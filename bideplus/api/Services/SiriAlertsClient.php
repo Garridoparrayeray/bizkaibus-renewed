@@ -5,6 +5,7 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
+// Incidencias en formato SIRI (Situation Exchange) de Open Data Euskadi, por línea; el texto, en castellano.
 class SiriAlertsClient
 {
     private array $aConfig;
@@ -19,7 +20,7 @@ class SiriAlertsClient
         $aCfg = $this->aConfig['siri'];
         // Redes con varios operadores (Lurraldebus): un feed por operador, se juntan los avisos de todos.
         if (!empty($aCfg['alerts_urls'])) {
-            return Cache::remember('siri_alerts_' . ($this->aConfig['network'] ?? 'bus'), $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
+            return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
                 $aAlerts = [];
                 foreach ($aCfg['alerts_urls'] as $sUrl) {
                     try {
@@ -31,7 +32,7 @@ class SiriAlertsClient
             });
         }
         $aUrls = array_filter([$aCfg['alerts_url'], $aCfg['alerts_fallback_url'] ?? null]);
-        return Cache::remember('siri_alerts_' . ($this->aConfig['network'] ?? 'bus'), $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
+        return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
             return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
         });
     }

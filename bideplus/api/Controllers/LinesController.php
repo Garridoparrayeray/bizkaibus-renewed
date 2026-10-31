@@ -9,6 +9,8 @@ use Core\Response;
 use Models\LineModel;
 use Services\ScheduleTextClient;
 
+// Líneas de la red: la lista (/api/lines), una línea con sus paradas (/api/lines/{id}) y el horario en texto
+// que publica el operador (/api/lines/{id}/schedule-text).
 class LinesController
 {
 

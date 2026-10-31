@@ -22,22 +22,19 @@ Cada red se describe en `api/Networks/<red>.php`:
 | Clave | Para qué |
 | --- | --- |
 | `slug`, `order`, `db`, `kind` | `?red=<slug>`, posición en el menú, `data/<db>.sqlite`, tipo de vehículo (`bus`, `metro`, `train`, `tram`) |
-| `brand` | carpeta de iconos, color, título de la cabecera y logotipo |
-| `texts` | nombre, textos del menú y de la app, en castellano (`es`) y euskera (`eu`) |
+| `brand` | carpeta de iconos, color, título de la cabecera, logotipo y colores (ficha del menú, cuadradito y paleta de la app) |
+| `texts` | nombre, textos del menú y de la app, en castellano (`es`), euskera (`eu`) e inglés (`en`) |
 | `seo`, `attribution` | título y descripción de la página, atribución de los datos |
 | `features` | andenes, mapa de la línea, horario en texto, tipo de avisos (`lines`, `stops`, `network`)… |
 | `live` | fuentes en directo: `vehicle-monitoring` (SIRI-VM), `trip-updates` (GTFS-RT) o ninguna (`[]`, horario oficial) |
 | `siri`, `gtfs_rt`, `metro_alerts`, `renfe_alerts` | URLs de los feeds |
 | `gtfs` | origen del GTFS, operador, lector de paradas y si su reconstrucción diaria es obligatoria |
 
-De ahí salen la API, la página de cada app, el menú, la barra lateral, el sitemap, la reconstrucción diaria, el comprobador de producción y `js/networks.js`.
+De ahí salen la API, la página de cada app, el menú, la barra lateral, el sitemap, la reconstrucción diaria, el comprobador de producción, `js/networks.js` y `style-networks.css`.
 
 ### Añadir una red
 
-1. Copiar la ficha de una red parecida a `api/Networks/<red>.php` y cambiar sus datos.
-2. Portada: iconos en `icons-<red>/` (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`) y sus colores en `style-app.css` (`html.is-<red>`, `.tile--<red>`).
-3. `php scripts/build-database.php --network=<red>`, `php scripts/build-networks-js.php` y `php scripts/build-sitemap.php`.
-4. `python tests/static-checks.py` avisa de lo que falte.
+`php scripts/new-network.php --slug=<red> --name="<Nombre>+" --color=#RRGGBB --gtfs=<url del GTFS>` crea la ficha de la red con sus textos y colores, unos iconos provisionales y regenera `js/networks.js` y `style-networks.css` (los colores de cada red salen de su ficha). Después: iconos de verdad, `php scripts/build-database.php --network=<red>` y `php scripts/build-sitemap.php`. La guía completa, también para montar una versión propia para un ayuntamiento, está en [docs/nueva-red.md](docs/nueva-red.md).
 
 ## Tres temas visuales
 

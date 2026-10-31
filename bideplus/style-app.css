@@ -22,72 +22,6 @@
     --container: 1180px;
     --font-display: 'Bricolage Grotesque', 'Inter', sans-serif;
 }
-html.is-metro {
-    --bg: #f6f4f4;
-    --border: #e3ddde;
-    --primary: #C8102E;
-    --primary-light: #FF8A80;
-    --primary-dark: #7A0C1D;
-    --primary-tint: #FCEBEA;
-    --text: #211c1c;
-    --text-secondary: #665c5d;
-    --backdrop: rgba(20, 10, 11, .5);
-}
-html.is-euskotren {
-    --bg: #f0f4f8;
-    --border: #d0dce8;
-    --primary: #003F8C;
-    --primary-light: #5B9BD5;
-    --primary-dark: #002560;
-    --primary-tint: #E6F0FA;
-    --text: #171d26;
-    --text-secondary: #4d5966;
-    --backdrop: rgba(10, 14, 20, .5);
-}
-html.is-tranvia-bilbao {
-    --bg: #f4f8f4;
-    --border: #dde8dc;
-    --primary: #2F7A2A;
-    --primary-light: #D8F5C8;
-    --primary-dark: #1E5420;
-    --primary-tint: #EAF7E6;
-    --text: #1c2a1d;
-    --text-secondary: #5c6b5e;
-    --backdrop: rgba(10, 20, 12, .5);
-}
-html.is-tranvia-vitoria {
-    --bg: #f5f8f3;
-    --border: #dfe8da;
-    --primary: #3B7D23;
-    --primary-light: #ECFAE2;
-    --primary-dark: #2A5612;
-    --primary-tint: #EEF7E7;
-    --text: #1e2a19;
-    --text-secondary: #5e6b58;
-    --backdrop: rgba(12, 20, 10, .5);
-}
-html.is-renfe {
-    --bg: #f8f4fa;
-    --border: #e6dbec;
-    --primary: #74349A;
-    --primary-light: #B98BD1;
-    --primary-dark: #4A1D66;
-    --primary-tint: #F3EAF8;
-    --text: #24192b;
-    --text-secondary: #65596c;
-    --backdrop: rgba(18, 10, 22, .5);
-}
-html.is-lurraldebus {
-    --bg: #f4f7fb;
-    --border: #d9e3ef;
-    --primary: #0062A8;
-    --primary-light: #8DC63F;
-    --primary-dark: #003F70;
-    --primary-tint: #E6F0F8;
-    --text: #152230;
-    --text-secondary: #556372;
-    --backdrop: rgba(8, 16, 26, .5);
-}
 
 /* ===== Base ===== */
 *, *::before, *::after { box-sizing: border-box; }
@@ -612,27 +546,6 @@ header p {
     .timetable > header { margin: 0; }
     .timetable h2 { margin: 0; font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; }
 .timetable-line { margin: 4px 0 18px; color: var(--text-secondary); font-weight: 600; }
-.map-search-bar { position: relative; margin-bottom: 10px; }
-.map-search-box { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 12px; transition: border-color .15s ease; }
-    .map-search-box:focus-within { border-color: var(--network-brand, #01573c); }
-.map-search-icon { width: 18px; height: 18px; color: var(--text-secondary); flex-shrink: 0; }
-.map-search-input { flex: 1; min-width: 0; padding: 10px 0; border: none; background: transparent; color: var(--text); font-size: .88rem; font-family: inherit; outline: none; }
-    .map-search-input::placeholder { color: var(--text-secondary); }
-.map-search-clear { width: 28px; height: 28px; padding: 4px; color: var(--text-secondary); flex-shrink: 0; }
-.map-search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 1000; list-style: none; margin: 0; padding: 6px; max-height: 220px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0, 0, 0, .15); }
-.map-search-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: .88rem; transition: background .12s ease; }
-    .map-search-item:hover, .map-search-item.is-selected { background: var(--surface-hover, rgba(0, 0, 0, .04)); }
-    .map-search-item.is-active { opacity: .6; }
-.map-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
-.map-line-code { font-family: var(--font-display); font-weight: 700; color: var(--text); flex-shrink: 0; }
-.map-line-name { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
-.map-search-empty { padding: 12px; color: var(--text-secondary); font-size: .85rem; text-align: center; }
-.map-active-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
-.map-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: .8rem; color: var(--text); }
-.map-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.map-chip-remove { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0 2px; font-size: .85rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
-    .map-chip-remove:hover { color: var(--text); }
-.map-clear-all { margin-top: 6px; font-size: .78rem; }
 .line-map { position: relative; z-index: 0; height: 240px; margin-bottom: 10px; overflow: hidden; border-radius: var(--radius-sm); isolation: isolate; }
 .line-map-empty { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; text-align: center; }
 .bus-marker { display: flex; color: var(--primary); align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
@@ -749,8 +662,16 @@ dialog {
 .modal-close, .schedule-modal-close, .menu-close, .legal-close { position: absolute; top: 16px; right: 16px; }
 .modal-headsign { margin: 4px 0 14px; color: var(--text-secondary); font-weight: 500; }
 .modal-vehicle { margin: 0 0 14px; color: var(--text-secondary); font-size: .85rem; }
-.modal-alerts-toggle { display: block; width: 100%; margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-size: .88rem; font-weight: 600; cursor: pointer; }
+.modal-alerts-toggle,
+.modal-share { display: block; width: 100%; margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--primary); font-size: .88rem; font-weight: 600; cursor: pointer; }
     .modal-alerts-toggle:disabled { opacity: .7; cursor: default; }
+.modal-notify { margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+    .modal-notify-title { margin: 0 0 10px; color: var(--text); font-size: .88rem; font-weight: 700; }
+    .modal-notify-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .modal-notify-options button { padding: 10px 0; border: 1px solid var(--primary-light); border-radius: var(--radius-sm); background: var(--primary-tint); color: var(--primary); font-size: .88rem; font-weight: 700; cursor: pointer; }
+    .modal-notify-cancel { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--status-warn); font-size: .88rem; font-weight: 600; cursor: pointer; }
+    .modal-notify-status { margin: 10px 0 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.4; }
+        .modal-notify-status:empty { display: none; }
 .modal-alerts { margin: 0 0 14px; padding: 0; list-style: none; }
     .modal-alerts li { margin-bottom: 8px; padding: 10px 14px; border-radius: 10px; background: var(--warn-tint); color: var(--status-warn); font-size: .8rem; font-weight: 600; }
 .modal-stops { margin: 0; padding: 0; list-style: none; border-left: 2px solid var(--border); }
@@ -760,9 +681,6 @@ dialog {
         .modal-stops li.stop-clickable { cursor: pointer; border-radius: 6px; transition: background .12s ease, color .12s ease; }
         .modal-stops li.stop-clickable:hover { background: var(--primary-tint); color: var(--primary); }
 .menu-favorites-open { width: 100%; justify-content: flex-start; margin: 44px 0 24px; }
-.alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--text); font-size: .9rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
-    .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary); }
-.alerts-note { margin: 0 0 14px; color: var(--text-secondary); font-size: .8rem; line-height: 1.4; }
 .menu-alerts-empty { color: var(--text-secondary); font-size: .85rem; }
 .menu-alerts-list { margin: 0; padding: 0; list-style: none; }
     .menu-alerts-list li { margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }

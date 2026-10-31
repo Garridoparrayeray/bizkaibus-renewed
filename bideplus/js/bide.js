@@ -6,7 +6,7 @@
     BideNetworks.slugs.forEach((slug) => {
         APPS[slug] = { name: BideNetworks.name(slug), storageKey: BideNetworks.get(slug).favoritesKey };
     });
-    const VIEWS = ['favoritos', 'avisos', 'info'];
+    const VIEWS = ['favoritos', 'avisos', 'ajustes', 'info'];
     const INSTALL_DISMISS_KEY = 'bide_install_dismissed';
     const INSTALL_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
     const desktop = window.matchMedia('(min-width: 1024px)');
@@ -98,16 +98,15 @@
     async function favoriteLabel(app, favorite) {
         const cacheKey = `${app}:${favorite.type}:${favorite.refId}`;
         if (labelCache.has(cacheKey)) return labelCache.get(cacheKey);
-        let path = '/api/lines/';
-        if (favorite.type === 'stop') path = '/api/stops/';
+        const api = Api.forNetwork(app);
         let label = { title: '#' + favorite.refId, area: '' };
         try {
-            // Como en js/api.js: los identificadores de Euskotren llevan «:» y la API los espera sin codificar.
-            const response = await fetch(path + encodeURIComponent(favorite.refId).replace(/%3A/gi, ':') + appQuery(app));
-            if (response.ok) {
-                const data = await response.json();
-                if (favorite.type === 'stop') label = { title: data.name, area: data.area || '' };
-                else label = { title: `${data.code} ${data.name}`, area: '' };
+            if (favorite.type === 'stop') {
+                const stop = await api.stop(favorite.refId);
+                label = { title: stop.name, area: stop.area || '' };
+            } else {
+                const line = await api.line(favorite.refId);
+                label = { title: `${line.code} ${line.name}`, area: '' };
             }
         } catch (e) {
             return label;
@@ -159,33 +158,35 @@
         });
     }
 
-    function alertUrls(app, favorites) {
-        const lines = favorites.filter((f) => f.type === 'line').map((f) => encodeURIComponent(f.refId));
-        const stops = favorites.filter((f) => f.type === 'stop').map((f) => encodeURIComponent(f.refId));
+    // Qué incidencias se piden, como en js/alerts-store.js: en Bizkaibus por línea, en Renfe por estación y por línea,
+    // y en el resto toda la red (si hay algún favorito).
+    function alertQueries(app, favorites) {
+        const lines = favorites.filter((f) => f.type === 'line').map((f) => [f.refId, null]);
+        const stops = favorites.filter((f) => f.type === 'stop').map((f) => [null, f.refId]);
         const mode = BideNetworks.get(app).features.alerts;
-        const base = `/api/alerts?red=${encodeURIComponent(app)}`;
-        if (mode === 'lines') return lines.map((id) => `${base}&line=${id}`);
-        if (mode === 'stops') return [...stops.map((id) => `${base}&stop=${id}`), ...lines.map((id) => `${base}&line=${id}`)];
-        if (favorites.length) return [base];
+        if (mode === 'lines') return lines;
+        if (mode === 'stops') return [...stops, ...lines];
+        if (favorites.length) return [[null, null]];
         return [];
     }
 
     async function fetchAlerts(app) {
+        const api = Api.forNetwork(app);
         const seen = new Set();
         const alerts = [];
-        for (const url of alertUrls(app, readFavorites(app))) {
+        for (const [lineId, stopId] of alertQueries(app, readFavorites(app))) {
+            let data;
             try {
-                const response = await fetch(url);
-                if (!response.ok) continue;
-                for (const alert of (await response.json()).alerts || []) {
-                    const title = alert.summary || alert.title || '';
-                    const key = `${title}|${alert.description || ''}`;
-                    if (!title || seen.has(key)) continue;
-                    seen.add(key);
-                    alerts.push({ title, description: alert.description || '' });
-                }
+                data = await api.alerts(lineId, stopId);
             } catch (e) {
                 continue;
+            }
+            for (const alert of data.alerts || []) {
+                const title = alert.summary || alert.title || '';
+                const key = `${title}|${alert.description || ''}`;
+                if (!title || seen.has(key)) continue;
+                seen.add(key);
+                alerts.push({ title, description: alert.description || '' });
             }
         }
         return alerts;
@@ -193,13 +194,6 @@
 
     async function renderAlerts() {
         const list = document.querySelector('[data-bide-alerts]');
-        const toggle = document.querySelector('.alerts-toggle');
-        const toggleSlot = document.querySelector('.bide-alerts-toggle');
-        if (toggle && !toggleSlot.contains(toggle)) {
-            toggleSlot.append(toggle);
-            const note = document.getElementById('alerts-note');
-            if (note) toggleSlot.append(note);
-        }
         list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
         const groups = [];
         for (const app of Object.keys(APPS)) {
@@ -230,7 +224,10 @@
 
     function selectLang(lang) {
         if (lang === I18n.getLang()) return;
-        document.getElementById('lang-toggle').click();
+        I18n.setLang(lang);
+    }
+
+    function onLangChange() {
         syncLangSwitch();
         if (currentView === 'favoritos') renderFavorites();
     }
@@ -289,10 +286,26 @@
         if (isIos && /Safari/.test(userAgent) && !/CriOS|FxiOS|EdgiOS/.test(userAgent)) show(true);
     }
 
+    // Una pestaña dentro de un diálogo abierto (el menú ☰): al cerrarlo, el historial vuelve atrás, y la vista se abre
+    // después de eso para que ese «atrás» no la cierre. Si el diálogo no estaba en el historial, se abre igual.
+    function selectTabFromDialog(dialog, name) {
+        let opened = false;
+        const open = () => {
+            if (opened) return;
+            opened = true;
+            selectTab(name);
+        };
+        window.addEventListener('popstate', open, { once: true });
+        setTimeout(open, 400);
+        dialog.close();
+    }
+
     document.addEventListener('click', (e) => {
         const tab = e.target.closest('[data-bide-tab]');
         const lang = e.target.closest('[data-bide-lang]');
-        if (tab) selectTab(tab.getAttribute('data-bide-tab'));
+        const dialog = e.target.closest('dialog[open]');
+        if (tab && dialog) selectTabFromDialog(dialog, tab.getAttribute('data-bide-tab'));
+        else if (tab) selectTab(tab.getAttribute('data-bide-tab'));
         else if (lang) selectLang(lang.getAttribute('data-bide-lang'));
         else if (e.target.closest('[data-bide-close]')) closeView();
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();
@@ -343,6 +356,7 @@
     new MutationObserver(syncLangSwitch).observe(root, { attributes: true, attributeFilter: ['lang'] });
     window.addEventListener('storage', renderFavorites);
     window.addEventListener('bide:favorites', renderFavorites);
+    window.addEventListener('bide:lang', onLangChange);
     syncLangSwitch();
     setUpInstallBanner();
     renderFavorites();

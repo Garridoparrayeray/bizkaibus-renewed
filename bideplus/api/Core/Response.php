@@ -2,6 +2,7 @@
 
 namespace Core;
 
+// Respuestas JSON, con caché pública en Vercel para las rutas que la piden (Router::get con segundos).
 class Response
 {
     public static int $iCacheSeconds = 0;
