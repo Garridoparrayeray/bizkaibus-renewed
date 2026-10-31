@@ -390,6 +390,34 @@ if (sharedTrip) {
     check('avisos: todos los días se pide al servidor y se explica', await waitTrue("window.__alertCalls.filter((call) => !call.path.includes('/cancel')).length === 2 && JSON.parse(window.__alertCalls.filter((call) => !call.path.includes('/cancel'))[1].body).repeat === true && document.getElementById('modal-notify-status').textContent.includes('todos los días')"), await ev("document.getElementById('modal-notify-status').textContent"));
     check('avisos: todos los días queda guardado como tal', await ev("JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').some((alert) => alert.repeat === true && alert.minutes === 10)"));
     await ev("document.getElementById('modal-notify-cancel').click(); true");
+
+    // En todas las apps: la ficha de un viaje de cada red ofrece el aviso, también el de todos los días.
+    const sampleStops = {
+        bus: ['331', '277', '298'],
+        metro: ['7'],
+        euskotren: ['ES:Euskotren:StopPlace:2581:', 'ES:Euskotren:StopPlace:2590:'],
+        'tranvia-bilbao': ['ES:Euskotren:StopPlace:1471:', 'ES:Euskotren:StopPlace:1475:'],
+        'tranvia-vitoria': ['ES:Euskotren:StopPlace:1560:', 'ES:Euskotren:StopPlace:1568:'],
+        renfe: ['13200'],
+        lurraldebus: ['1700', '1704', '1701'],
+    };
+    for (const [red, stops] of Object.entries(sampleStops)) {
+        let sample = null;
+        for (const stop of stops) {
+            const data = await (await fetch(`${BASE}/api/stops/${encodeURIComponent(stop)}/departures?limit=8&red=${red}`)).json();
+            const trip = (data.departures || []).find((d) => d.tripKey && d.etaMinutes > 3);
+            if (trip) {
+                sample = { stop, trip };
+                break;
+            }
+        }
+        if (!sample) {
+            results.push(`SKIP avisos en todas las apps: ${red} no tiene viajes ahora`);
+            continue;
+        }
+        await go(`/stops/${encodeURIComponent(sample.stop)}?red=${red}&viaje=${encodeURIComponent(sample.trip.tripKey)}`, 3000);
+        check(`avisos en todas las apps: ${red} lo ofrece en la ficha del viaje`, await waitTrue("document.getElementById('vehicle-modal').open && !document.getElementById('modal-notify').hidden && !document.getElementById('modal-notify-options').hidden && !document.getElementById('modal-notify-repeat').hidden"));
+    }
     await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakePush.identifier });
     await ev("localStorage.removeItem('bide-arrival-alerts'); true");
 } else {

@@ -209,6 +209,42 @@ try {
         ArrivalAlerts::cancel($aFar['id'], $aSubscription['endpoint']);
     }
 
+    // En todas las apps, no solo en Bizkaibus: un viaje de cada red se avisa y su enlace lleva la red. Una red sin
+    // viajes a esta hora (de noche) se salta.
+    $aSampleStops = [
+        'metro' => ['7'],
+        'euskotren' => ['ES:Euskotren:StopPlace:2581:', 'ES:Euskotren:StopPlace:2590:'],
+        'tranvia-bilbao' => ['ES:Euskotren:StopPlace:1471:', 'ES:Euskotren:StopPlace:1475:'],
+        'tranvia-vitoria' => ['ES:Euskotren:StopPlace:1560:', 'ES:Euskotren:StopPlace:1568:'],
+        'renfe' => ['13200'],
+        'lurraldebus' => ['1700', '1704', '1701'],
+    ];
+    foreach ($aSampleStops as $sNetwork => $aStopIds) {
+        Config::set($sNetwork);
+        $aSample = null;
+        foreach ($aStopIds as $sStopId) {
+            foreach ((new StopsController())->departuresData($sStopId, 40)['departures'] ?? [] as $aDeparture) {
+                if ($aDeparture['etaAt'] - time() > 15 * 60 && !in_array($aDeparture['status'], ['departed', 'likely_departed'], true)) {
+                    $aSample = [$sStopId, $aDeparture];
+                    break 2;
+                }
+            }
+        }
+        if ($aSample === null) {
+            echo 'SKIP todas las apps: ' . $sNetwork . " no tiene viajes ahora\n";
+            continue;
+        }
+        [$sStopId, $aDeparture] = $aSample;
+        $aCreated = ArrivalAlerts::create($aSubscription, $sStopId, $aDeparture['tripKey'], 10, 'es', true);
+        $alertNow($aCreated['id'] ?? 'x');
+        $iBefore = count($aSent);
+        ArrivalAlerts::process($Sender);
+        $aLast = end($aSent);
+        $expect('todas las apps: ' . $sNetwork . ' avisa y abre su parada en su app', $aCreated['status'] === 'created' && count($aSent) === $iBefore + 1 && str_contains($aLast['url'] ?? '', 'red=' . $sNetwork), json_encode($aCreated) . ' ' . ($aLast['url'] ?? ''));
+        ArrivalAlerts::cancel($aCreated['id'] ?? 'x', $aSubscription['endpoint']);
+    }
+    Config::set('bus');
+
     Store::pipeline([['SADD', 'bide:arrival:pending', 'aaaaaaaaaaaaaaaaaaaaaaaa']]);
     ArrivalAlerts::process($Sender);
     $expect('caducado: un aviso que ya no está en el almacén sale de la lista', !in_array('aaaaaaaaaaaaaaaaaaaaaaaa', $pending(), true));
