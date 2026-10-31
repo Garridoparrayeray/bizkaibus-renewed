@@ -124,7 +124,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 27"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 28"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -163,6 +163,32 @@ await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]')
 check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
 await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
 check('instalada · Ajustes: sin desbordar a lo ancho', await ev(noOverflow));
+check('instalada · Ajustes: ubicación, la caché y la versión', await ev("['[data-settings-location]', '[data-settings-cache]', '[data-settings-version]'].every((s) => !!document.querySelector('[data-bide-view=ajustes] ' + s))"));
+check('instalada · Ajustes: la versión es la de la última novedad', await ev("(() => { const n = document.querySelector('.bide-changelog-entry strong').getAttribute('data-i18n').split('.')[2]; return document.querySelector('[data-settings-version]').textContent.startsWith(n + ' · '); })()"));
+check('instalada · Ajustes: la ubicación, aún sin pedir y con su botón', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationPrompt' && !document.querySelector('[data-settings-location-ask]').hidden"));
+await send('Browser.grantPermissions', { permissions: ['geolocation'], origin: BASE });
+check('instalada · Ajustes: al darla, «Permitida» sin recargar', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationGranted' && document.querySelector('[data-settings-location-ask]').hidden"));
+await send('Browser.resetPermissions', {});
+
+// Vaciar la caché: la app se vuelve a bajar entera y se recarga; los horarios sin conexión y el service worker se quedan.
+await waitTrue('!!navigator.serviceWorker.controller');
+await ev(`(async () => {
+    const shell = (await caches.keys()).find((k) => k.startsWith('bizkaibus-shell-'));
+    await (await caches.open(shell)).put('/__viejo', new Response('viejo'));
+    await (await caches.open('bide-offline')).put('/__prueba-sin-conexion', new Response('ok'));
+    window.__antesDeVaciar = true;
+    return true;
+})()`);
+await ev("document.querySelector('[data-settings-cache]').click(); true");
+check('caché · se vacía, se vuelve a bajar la app y recarga', await waitTrue(`(async () => {
+    if (window.__antesDeVaciar || document.readyState !== 'complete') return false;
+    const shell = (await caches.keys()).find((k) => k.startsWith('bizkaibus-shell-'));
+    if (!shell) return false;
+    const cache = await caches.open(shell);
+    return !(await cache.match('/__viejo')) && !!(await cache.match('/js/settings.js'));
+})()`, 30000));
+check('caché · los horarios sin conexión y el service worker se quedan', await ev("(async () => !!(await (await caches.open('bide-offline')).match('/__prueba-sin-conexion')) && !!(await navigator.serviceWorker.getRegistration()))()"));
+await ev("caches.open('bide-offline').then((c) => c.delete('/__prueba-sin-conexion')).then(() => true)");
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=avisos]').click(); true");
 check('instalada · Avisos: enlaza con Ajustes', await waitTrue("!!document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]')"));
 await ev("document.querySelector('[data-bide-view=avisos] [data-bide-tab=ajustes]').click(); true");

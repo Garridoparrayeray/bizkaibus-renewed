@@ -27,6 +27,7 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-31', '31/10/2026', 28, 'Versión, caché y ubicación', 'En Ajustes ves la versión de la app, puedes vaciar la caché si algo no carga y ver y dar el permiso de ubicación para «Cerca de mí».'],
     ['2026-10-31', '31/10/2026', 27, 'Ajustes', 'Una pestaña nueva con el idioma, las notificaciones (las incidencias de tus favoritos y los avisos de llegada que tengas activos, que puedes cancelar), los horarios sin conexión y un botón para borrar tus datos del móvil.'],
     ['2026-10-30', '30/10/2026', 26, 'Incidencias con la app cerrada', 'Los avisos de incidencias de tus favoritos llegan aunque no abras la app: los manda el servidor cada pocos minutos, de todas las apps a la vez. Si ya los tenías activados, pasan a funcionar así sin hacer nada.'],
     ['2026-10-30', '30/10/2026', 25, 'Avísame cuando llegue', 'En la ficha de un viaje elige 2, 5 o 10 minutos y el móvil te avisa antes de que llegue a tu parada, aunque tengas la app cerrada. En iPhone, con Bide+ añadida a la pantalla de inicio.'],
@@ -61,7 +62,7 @@ const BIDE_FAQ = [
     ['¿Las llegadas son en tiempo real?', 'Depende de la red. En Bizkaibus+ se calculan con la posición GPS de cada autobús y en Metro+ llegan en directo del Consorcio de Transportes de Bizkaia. En Euskotren, los tranvías, Renfe y Lurraldebus se muestra el horario oficial, con la etiqueta «Solo horario».'],
     ['¿Qué significa «Estimado»?', 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.'],
     ['¿Funciona sin conexión?', 'Sí, si guardas el horario de tus redes en «Horarios sin conexión», en Ajustes. Sin cobertura, las paradas muestran sus próximas salidas según el horario oficial, y el directo vuelve en cuanto hay conexión.'],
-    ['¿Cómo instalo Bide+ en el móvil?', 'En Android, pulsa «Instalar» en el aviso de abajo o en el menú del navegador. En iPhone, abre Bide+ en Safari, toca Compartir y elige «Añadir a pantalla de inicio».'],
+    ['¿Cómo instalo Bide+ en el móvil?', 'Instálala desde Chrome en Android o desde Safari en iPhone. En Android, abre Bide+ en Chrome y pulsa «Instalar» en el aviso de abajo o en el menú ⋮ del navegador. En iPhone, ábrela en Safari, toca Compartir y elige «Añadir a pantalla de inicio». Otros navegadores, como DuckDuckGo, solo crean un acceso directo a la web: se abre dentro del navegador y sin avisos con la app cerrada.'],
     ['¿Cómo guardo una parada o una línea?', 'Toca el corazón en la parada, la estación o la línea. Tus favoritos salen en la pestaña Favoritos y en todas las apps.'],
     ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus favoritos, y en Ajustes puedes activar que el móvil te avise de cada una nueva, aunque tengas la app cerrada.'],
     ['¿Cada cuánto se actualizan los horarios?', 'Cada día, con los datos oficiales que publican los operadores. En el horario de cada línea ves desde y hasta cuándo es válido.'],
@@ -198,8 +199,7 @@ function bideFeedback(): string
         }
         $sTypes .= '<button type="button" data-feedback-type="' . $sType . '" aria-pressed="' . $sPressed . '" data-i18n="bide.feedback.' . $sType . '">' . $sLabel . '</button>';
     }
-    // La versión es la fecha de la última novedad.
-    return '<section class="bide-card bide-feedback" data-feedback-email="' . htmlspecialchars($aSite['contact_email']) . '" data-feedback-version="' . BIDE_CHANGELOG[0][1] . '">'
+    return '<section class="bide-card bide-feedback" data-feedback-email="' . htmlspecialchars($aSite['contact_email']) . '" data-feedback-version="' . htmlspecialchars(bideVersion()) . '">'
         . '<h3 data-i18n="bide.feedback.title">Sugerencias y errores</h3>'
         . '<p data-i18n="bide.feedback.text">¿Algo no funciona o se te ocurre una mejora? Cuéntamelo y lo reviso.</p>'
         . '<div class="bide-seg bide-feedback-types" role="group" data-i18n-attr="aria-label:bide.feedback.type" aria-label="Tipo de mensaje">' . $sTypes . '</div>'
@@ -212,8 +212,22 @@ function bideFeedback(): string
         . '<p class="bide-feedback-status" data-feedback-status role="status"></p></section>';
 }
 
-// Ajustes: idioma, notificaciones, horarios sin conexión y borrar los datos del móvil. Lo que cambia (permiso, avisos
-// de llegada activos) lo rellena js/settings.js; el interruptor de incidencias lo maneja js/incident-alerts.js.
+// La versión que se ve en Ajustes y va en los avisos de error: el número y la fecha de la última novedad y, en Vercel,
+// el commit publicado, para saber exactamente qué código tiene quien avisa de un fallo.
+function bideVersion(): string
+{
+    [, $sDate, $iNumber] = BIDE_CHANGELOG[0];
+    $sVersion = $iNumber . ' · ' . $sDate;
+    $sCommit = (string)getenv('VERCEL_GIT_COMMIT_SHA');
+    if ($sCommit !== '') {
+        $sVersion .= ' · ' . substr($sCommit, 0, 7);
+    }
+    return $sVersion;
+}
+
+// Ajustes: idioma, notificaciones, ubicación, horarios sin conexión, la app (vaciar la caché y su versión) y borrar los
+// datos del móvil. Lo que cambia (permisos, avisos de llegada activos) lo rellena js/settings.js; el interruptor de
+// incidencias lo maneja js/incident-alerts.js.
 function bideSettings(string $sBack): string
 {
     $sHtml = '<section class="bide-view" data-bide-view="ajustes" hidden>';
@@ -231,7 +245,21 @@ function bideSettings(string $sBack): string
     $sHtml .= '<p class="bide-note" data-settings-arrivals-empty data-i18n="bide.settings.arrivalsEmpty">No tienes avisos de llegada activos. Se crean desde la ficha de un viaje.</p>';
     $sHtml .= '</section>';
 
+    $sHtml .= '<section class="bide-card bide-settings-location"><h3 data-i18n="bide.settings.location">Ubicación</h3>';
+    $sHtml .= '<p data-i18n="bide.settings.locationText">Para «Cerca de mí»: ver las paradas que tienes al lado.</p>';
+    $sHtml .= '<p class="bide-note" data-settings-location role="status"></p>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-ask data-i18n="bide.settings.locationAsk" hidden>Permitir la ubicación</button>';
+    $sHtml .= '</section>';
+
     $sHtml .= bideOffline();
+
+    $sHtml .= '<section class="bide-card bide-settings-app"><h3 data-i18n="bide.settings.app">La app</h3>';
+    $sHtml .= '<h4 data-i18n="bide.settings.cache">Caché</h4>';
+    $sHtml .= '<p data-i18n="bide.settings.cacheText">Si algo no carga o la app se queda con una versión vieja, vacía la caché: se vuelve a descargar entera. Tus favoritos, avisos y horarios sin conexión se quedan.</p>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-cache data-i18n="bide.settings.cacheButton">Vaciar caché y actualizar</button>';
+    $sHtml .= '<p class="bide-feedback-status" data-settings-cache-status role="status"></p>';
+    $sHtml .= '<p class="bide-settings-version"><span data-i18n="bide.settings.version">Versión</span> <span data-settings-version>' . htmlspecialchars(bideVersion()) . '</span></p>';
+    $sHtml .= '</section>';
 
     $sHtml .= '<section class="bide-card bide-settings-data"><h3 data-i18n="bide.settings.data">Tus datos</h3>';
     $sHtml .= '<p data-i18n="bide.settings.dataText">Tus favoritos, el idioma, los avisos y los horarios guardados están solo en este móvil, salvo lo justo para mandarte las notificaciones. Puedes borrarlo todo de una vez.</p>';

@@ -233,6 +233,14 @@ html.bide .bide-settings-arrival { display: flex; align-items: center; justify-c
     html.bide .bide-settings-arrival span span { color: var(--bide-muted); font-size: .82rem; }
     html.bide .bide-settings-arrival .bide-button { flex: none; min-height: 38px; }
 html.bide .bide-settings-data .bide-button { width: 100%; margin-top: 4px; }
+
+/* Ajustes: la ubicación y la app (vaciar la caché y la versión, que va en pequeño al final). */
+html.bide .bide-settings-location .bide-button,
+html.bide .bide-settings-app .bide-button { width: 100%; margin-top: 4px; }
+html.bide .bide-settings-app h4 { margin: 0 0 8px; font-size: .95rem; }
+html.bide .bide-settings-app .bide-feedback-status { margin: 8px 0 0; }
+html.bide .bide-settings-version { margin: 16px 0 0; color: var(--bide-muted); font-size: .82rem; }
+    html.bide .bide-settings-version [data-settings-version] { font-variant-numeric: tabular-nums; }
 html.bide .bide-sources { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
     html.bide .bide-sources strong { color: var(--bide-ink); }
 

@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v37';
+const CACHE_VERSION = 'v38';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -76,14 +76,29 @@ const SHELL_FILES = [
     ...BideNetworks.slugs.flatMap((slug) => ['/' + BideNetworks.get(slug).icons + '/icon-192.png', '/' + BideNetworks.get(slug).icons + '/icon-512.png']),
 ];
 
+// La app entera, recién bajada (sin la caché HTTP). Falla si se corta la conexión: así no se guarda a medias.
+function downloadShell() {
+    return Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => [file, response])));
+}
+
+function storeShell(files) {
+    return caches.open(CACHE_NAME).then((cache) => Promise.all(files.filter(([, response]) => response.ok).map(([file, response]) => cache.put(file, response))));
+}
+
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => {
-            if (response.ok) return cache.put(file, response);
-            return undefined;
-        }))))
-    );
+    event.waitUntil(downloadShell().then(storeShell));
     self.skipWaiting();
+});
+
+// Ajustes → «Vaciar caché y actualizar»: se baja la app entera y solo si llega todo se cambia por lo guardado, para no
+// quedarse sin nada sin conexión. Los horarios sin conexión no se tocan, y el service worker sigue registrado, así que
+// las notificaciones siguen llegando. Responde por el puerto que manda la página.
+self.addEventListener('message', (event) => {
+    const reply = event.ports[0];
+    if (!event.data || event.data.type !== 'refresh-cache' || !reply) return;
+    event.waitUntil(downloadShell()
+        .then((files) => Promise.all([caches.delete(CACHE_NAME), caches.delete(API_CACHE_NAME)]).then(() => storeShell(files)))
+        .then(() => reply.postMessage({ ok: true }), () => reply.postMessage({ ok: false })));
 });
 
 self.addEventListener('activate', (event) => {
