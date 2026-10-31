@@ -56,14 +56,14 @@ function options(): array
     return $aOptions;
 }
 
-// Mezcla dos colores (#rrggbb): $fWeight es la parte del segundo.
-function mix(string $sA, string $sB, float $fWeight): string
+// Mezcla dos colores (#rrggbb): $dWeight es la parte del segundo.
+function mix(string $sA, string $sB, float $dWeight): string
 {
     $aA = sscanf($sA, '#%02x%02x%02x');
     $aB = sscanf($sB, '#%02x%02x%02x');
     $aOut = [];
     foreach ([0, 1, 2] as $i) {
-        $aOut[] = (int)round($aA[$i] * (1 - $fWeight) + $aB[$i] * $fWeight);
+        $aOut[] = (int)round($aA[$i] * (1 - $dWeight) + $aB[$i] * $dWeight);
     }
     return vsprintf('#%02x%02x%02x', $aOut);
 }
@@ -109,8 +109,8 @@ function config(array $aOptions): string
     $iOrder = 1 + max(array_column(Networks::all(), 'order'));
     // Título de la cabecera: el nombre en mayúsculas, sin el «+».
     $sTitle = phpString(mb_strtoupper(preg_replace('/\+$/', '', $sName)));
-    // Para escribir textos entre comillas dentro de la plantilla: {$q('texto')}.
-    $q = 'phpString';
+    // Para escribir textos entre comillas dentro de la plantilla: {$Quote('texto')}.
+    $Quote = 'phpString';
     $aPalette = palette($aOptions['color']);
     $sPalette = '';
     foreach ($aPalette as $sKey => $sValue) {
@@ -141,35 +141,35 @@ $sPalette        ],
 
     'texts' => [
         'es' => [
-            'name' => {$q($sName)},
-            'tile' => {$q('Horarios del ' . $sEs . $sWhere)},
-            'switcher' => {$q('Horarios del ' . $sEs . $sWhere)},
-            'subtitle' => {$q('Horarios del ' . $sEs . $sWhere)},
-            'liveEmpty' => {$q('Busca una parada para ver el próximo ' . $sEs . '.')},
-            'disclaimer' => {$q('Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. Horario programado oficial: no refleja retrasos ni cancelaciones.')},
+            'name' => {$Quote($sName)},
+            'tile' => {$Quote('Horarios del ' . $sEs . $sWhere)},
+            'switcher' => {$Quote('Horarios del ' . $sEs . $sWhere)},
+            'subtitle' => {$Quote('Horarios del ' . $sEs . $sWhere)},
+            'liveEmpty' => {$Quote('Busca una parada para ver el próximo ' . $sEs . '.')},
+            'disclaimer' => {$Quote('Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. Horario programado oficial: no refleja retrasos ni cancelaciones.')},
         ],
         'eu' => [
-            'name' => {$q($sName)},
-            'tile' => {$q(ucfirst($sEu) . 'ren ordutegiak')},
-            'switcher' => {$q(ucfirst($sEu) . 'ren ordutegiak')},
-            'subtitle' => {$q(ucfirst($sEu) . 'ren ordutegiak')},
-            'liveEmpty' => {$q('Bilatu geraleku bat hurrengo ' . $sEu . ' ikusteko.')},
+            'name' => {$Quote($sName)},
+            'tile' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
+            'switcher' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
+            'subtitle' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
+            'liveEmpty' => {$Quote('Bilatu geraleku bat hurrengo ' . $sEu . ' ikusteko.')},
         ],
         'en' => [
-            'name' => {$q($sName)},
-            'tile' => {$q(ucfirst($sWhereEn . $sEn) . ' timetables')},
-            'switcher' => {$q(ucfirst($sWhereEn . $sEn) . ' timetables')},
-            'subtitle' => {$q(ucfirst($sWhereEn . $sEn) . ' timetables')},
-            'liveEmpty' => {$q('Search for a stop to see the next ' . $sEn . '.')},
-            'disclaimer' => {$q('An independent, unofficial project, not affiliated with ' . $sOperator . '. Official scheduled timetable: it does not reflect delays or cancellations.')},
+            'name' => {$Quote($sName)},
+            'tile' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
+            'switcher' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
+            'subtitle' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
+            'liveEmpty' => {$Quote('Search for a stop to see the next ' . $sEn . '.')},
+            'disclaimer' => {$Quote('An independent, unofficial project, not affiliated with ' . $sOperator . '. Official scheduled timetable: it does not reflect delays or cancellations.')},
         ],
     ],
 
     'seo' => [
-        'title' => {$q($sName . ' · Horarios del ' . $sEs . $sWhere)},
-        'description' => {$q('Consulta los horarios del ' . $sEs . $sWhere . ' por parada y línea.')},
+        'title' => {$Quote($sName . ' · Horarios del ' . $sEs . $sWhere)},
+        'description' => {$Quote('Consulta los horarios del ' . $sEs . $sWhere . ' por parada y línea.')},
     ],
-    'attribution' => {$q('Datos: ' . $sOperator . ' (GTFS)')},
+    'attribution' => {$Quote('Datos: ' . $sOperator . ' (GTFS)')},
 
     'features' => [
         'platforms' => false,
@@ -186,7 +186,7 @@ $sPalette        ],
     'live' => [],
 
     'gtfs' => [
-        'source' => {$q($aOptions['gtfs'])},
+        'source' => {$Quote($aOptions['gtfs'])},
         'fallback_source' => null,
         'agency_id' => null,
         'stops' => 'generic',

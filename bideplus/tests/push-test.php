@@ -18,7 +18,7 @@ use Services\Push;
 use Services\WebPush;
 
 $aFailures = [];
-$expect = function (string $sName, bool $bOk, string $sDetail = '') use (&$aFailures): void {
+$Expect = function (string $sName, bool $bOk, string $sDetail = '') use (&$aFailures): void {
     $sLine = 'OK  ' . $sName;
     if (!$bOk) {
         $sLine = 'MAL ' . $sName;
@@ -39,26 +39,26 @@ $sBody = WebPush::encrypt(
     ['publicKey' => 'BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8', 'privateKey' => 'yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw'],
     WebPush::base64UrlDecode('DGv6ra1nlYgDCS1FRnbzlw')
 );
-$expect('cifrado: igual que el vector del RFC 8291', WebPush::base64UrlEncode($sBody) === 'DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A_yl95bQpu6cVPTpK4Mqgkf1CXztLVBSt2Ks3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN');
+$Expect('cifrado: igual que el vector del RFC 8291', WebPush::base64UrlEncode($sBody) === 'DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A_yl95bQpu6cVPTpK4Mqgkf1CXztLVBSt2Ks3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN');
 
 $aKeys = WebPush::generateKeys();
 $sJwt = WebPush::vapidToken('https://fcm.googleapis.com/fcm/send/abc', $aKeys, 'mailto:prueba@example.com');
 [$sHeader, $sClaims, $sSignature] = explode('.', $sJwt);
 $sRaw = WebPush::base64UrlDecode($sSignature);
 // La firma r || s se vuelve a DER para que OpenSSL la verifique con la clave pública.
-$derInteger = function (string $sValue): string {
+$DerInteger = function (string $sValue): string {
     $sValue = ltrim($sValue, "\0");
     if (ord($sValue[0]) & 0x80) {
         $sValue = "\0" . $sValue;
     }
     return "\x02" . chr(strlen($sValue)) . $sValue;
 };
-$sSequence = $derInteger(substr($sRaw, 0, 32)) . $derInteger(substr($sRaw, 32));
+$sSequence = $DerInteger(substr($sRaw, 0, 32)) . $DerInteger(substr($sRaw, 32));
 $sDer = "\x30" . chr(strlen($sSequence)) . $sSequence;
 $sPem = "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode(hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200') . WebPush::base64UrlDecode($aKeys['publicKey'])), 64, "\n") . "-----END PUBLIC KEY-----\n";
-$expect('firma VAPID: la verifica la clave pública', openssl_verify($sHeader . '.' . $sClaims, $sDer, $sPem, OPENSSL_ALGO_SHA256) === 1);
+$Expect('firma VAPID: la verifica la clave pública', openssl_verify($sHeader . '.' . $sClaims, $sDer, $sPem, OPENSSL_ALGO_SHA256) === 1);
 $aClaims = json_decode(WebPush::base64UrlDecode($sClaims), true);
-$expect('firma VAPID: va al origen del servicio de push', $aClaims['aud'] === 'https://fcm.googleapis.com' && $aClaims['exp'] > time());
+$Expect('firma VAPID: va al origen del servicio de push', $aClaims['aud'] === 'https://fcm.googleapis.com' && $aClaims['exp'] > time());
 
 foreach ([
     ['https://fcm.googleapis.com/fcm/send/x', true],
@@ -71,7 +71,7 @@ foreach ([
     ['https://user@fcm.googleapis.com/x', false],
     ['https://fcm.googleapis.com:8443/x', false],
 ] as [$sUrl, $bAllowed]) {
-    $expect('direcciones de push: ' . $sUrl, WebPush::allowedEndpoint($sUrl) === $bAllowed);
+    $Expect('direcciones de push: ' . $sUrl, WebPush::allowedEndpoint($sUrl) === $bAllowed);
 }
 
 // ===== Avisos contra el almacén falso =====
@@ -101,8 +101,8 @@ try {
     putenv('UPSTASH_REDIS_REST_TOKEN=token-de-prueba');
 
     $aVapid = Push::keys();
-    $expect('claves VAPID: se crean la primera vez', is_array($aVapid) && strlen(WebPush::base64UrlDecode($aVapid['publicKey'])) === 65);
-    $expect('claves VAPID: después se usan las mismas', Push::keys() === $aVapid);
+    $Expect('claves VAPID: se crean la primera vez', is_array($aVapid) && strlen(WebPush::base64UrlDecode($aVapid['publicKey'])) === 65);
+    $Expect('claves VAPID: después se usan las mismas', Push::keys() === $aVapid);
 
     // Un viaje de verdad de La Casilla al que le falten más de 10 minutos.
     Config::set('bus');
@@ -114,7 +114,7 @@ try {
             break;
         }
     }
-    $expect('hay un viaje de prueba en La Casilla', $aTrip !== null);
+    $Expect('hay un viaje de prueba en La Casilla', $aTrip !== null);
 
     $aSubscription = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/prueba', 'keys' => ['p256dh' => WebPush::generateKeys()['publicKey'], 'auth' => WebPush::base64UrlEncode(random_bytes(16))]];
     $aSent = [];
@@ -123,8 +123,8 @@ try {
         $aSent[] = json_decode($sPayload, true);
         return $iAnswer;
     };
-    $pending = fn() => Store::pipeline([['SMEMBERS', 'bide:arrival:pending']])[0];
-    $alertNow = function (string $sId): void {
+    $Pending = fn() => Store::pipeline([['SMEMBERS', 'bide:arrival:pending']])[0];
+    $AlertNow = function (string $sId): void {
         // Que le toque ya: se guarda como si pidiera el aviso con un día de antelación.
         $aAlert = json_decode(Store::pipeline([['GET', 'bide:arrival:' . $sId]])[0], true);
         $aAlert['minutes'] = 1440;
@@ -133,79 +133,79 @@ try {
 
     if ($aTrip !== null) {
         $aCreated = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 10, 'en');
-        $expect('crear: queda guardado y pendiente', $aCreated['status'] === 'created' && in_array($aCreated['id'], $pending(), true), json_encode($aCreated));
-        $expect('crear: si ya falta menos, no hace falta aviso', ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 1440, 'es')['status'] === 'now');
-        $expect('crear: un viaje que no pasa por la parada no vale', ArrivalAlerts::create($aSubscription, '356', 'no-existe-1-1', 10, 'es')['status'] === 'unknown');
+        $Expect('crear: queda guardado y pendiente', $aCreated['status'] === 'created' && in_array($aCreated['id'], $Pending(), true), json_encode($aCreated));
+        $Expect('crear: si ya falta menos, no hace falta aviso', ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 1440, 'es')['status'] === 'now');
+        $Expect('crear: un viaje que no pasa por la parada no vale', ArrivalAlerts::create($aSubscription, '356', 'no-existe-1-1', 10, 'es')['status'] === 'unknown');
 
         $aCounts = ArrivalAlerts::process($Sender);
-        $expect('enviar: si aún falta, no se manda', $aCounts['sent'] === 0 && empty($aSent) && in_array($aCreated['id'], $pending(), true));
+        $Expect('enviar: si aún falta, no se manda', $aCounts['sent'] === 0 && empty($aSent) && in_array($aCreated['id'], $Pending(), true));
 
-        $alertNow($aCreated['id']);
+        $AlertNow($aCreated['id']);
         $aCounts = ArrivalAlerts::process($Sender);
-        $expect('enviar: cuando toca, se manda una vez', $aCounts['sent'] === 1 && count($aSent) === 1);
-        $expect('enviar: en el idioma pedido y con la línea', str_contains($aSent[0]['title'] ?? '', $aTrip['lineCode']) && (str_contains($aSent[0]['title'], 'arrives in') || str_contains($aSent[0]['title'], 'is arriving')), json_encode($aSent[0] ?? null));
-        $expect('enviar: al tocarla se abre la parada con el viaje', str_starts_with($aSent[0]['url'] ?? '', '/stops/356?viaje=' . rawurlencode($aTrip['tripKey']) . '&aviso=' . $aCreated['id'] . '-'), $aSent[0]['url'] ?? '');
-        $expect('enviar: enviado, ya no queda pendiente', !in_array($aCreated['id'], $pending(), true));
+        $Expect('enviar: cuando toca, se manda una vez', $aCounts['sent'] === 1 && count($aSent) === 1);
+        $Expect('enviar: en el idioma pedido y con la línea', str_contains($aSent[0]['title'] ?? '', $aTrip['lineCode']) && (str_contains($aSent[0]['title'], 'arrives in') || str_contains($aSent[0]['title'], 'is arriving')), json_encode($aSent[0] ?? null));
+        $Expect('enviar: al tocarla se abre la parada con el viaje', str_starts_with($aSent[0]['url'] ?? '', '/stops/356?viaje=' . rawurlencode($aTrip['tripKey']) . '&aviso=' . $aCreated['id'] . '-'), $aSent[0]['url'] ?? '');
+        $Expect('enviar: enviado, ya no queda pendiente', !in_array($aCreated['id'], $Pending(), true));
         ArrivalAlerts::process($Sender);
-        $expect('enviar: no se repite', count($aSent) === 1);
+        $Expect('enviar: no se repite', count($aSent) === 1);
 
         $aRetry = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 10, 'es');
-        $alertNow($aRetry['id']);
+        $AlertNow($aRetry['id']);
         $iAnswer = 500;
         ArrivalAlerts::process($Sender);
-        $expect('reintento: si el servicio de push falla, vuelve a la lista', in_array($aRetry['id'], $pending(), true));
+        $Expect('reintento: si el servicio de push falla, vuelve a la lista', in_array($aRetry['id'], $Pending(), true));
         $iAnswer = 410;
         ArrivalAlerts::process($Sender);
-        $expect('caducada: si la suscripción ya no existe, se olvida', !in_array($aRetry['id'], $pending(), true) && Store::pipeline([['GET', 'bide:arrival:' . $aRetry['id']]])[0] === null);
+        $Expect('caducada: si la suscripción ya no existe, se olvida', !in_array($aRetry['id'], $Pending(), true) && Store::pipeline([['GET', 'bide:arrival:' . $aRetry['id']]])[0] === null);
 
         $aCancel = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 10, 'es');
-        $expect('cancelar: con otra suscripción no se puede', ArrivalAlerts::cancel($aCancel['id'], 'https://fcm.googleapis.com/fcm/send/otra') === false);
-        $expect('cancelar: con la suya sí', ArrivalAlerts::cancel($aCancel['id'], $aSubscription['endpoint']) === true && !in_array($aCancel['id'], $pending(), true));
+        $Expect('cancelar: con otra suscripción no se puede', ArrivalAlerts::cancel($aCancel['id'], 'https://fcm.googleapis.com/fcm/send/otra') === false);
+        $Expect('cancelar: con la suya sí', ArrivalAlerts::cancel($aCancel['id'], $aSubscription['endpoint']) === true && !in_array($aCancel['id'], $Pending(), true));
 
         // «Avisarme todos los días»: avisa, se queda y ese día no se repite; al día siguiente vuelve a avisar.
-        $patch = function (string $sId, array $aChanges): void {
+        $Patch = function (string $sId, array $aChanges): void {
             $aAlert = json_decode(Store::pipeline([['GET', 'bide:arrival:' . $sId]])[0], true);
             Store::pipeline([['SET', 'bide:arrival:' . $sId, json_encode($aChanges + $aAlert)]]);
         };
-        $stored = fn(string $sKey) => Store::pipeline([['GET', $sKey]])[0];
+        $Stored = fn(string $sKey) => Store::pipeline([['GET', $sKey]])[0];
         $iAnswer = 201;
         $aDaily = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 10, 'es', true);
-        $expect('todos los días: se crea', $aDaily['status'] === 'created' && $aDaily['repeat'] === true && $aDaily['today'] === 'coming', json_encode($aDaily));
-        $alertNow($aDaily['id']);
+        $Expect('todos los días: se crea', $aDaily['status'] === 'created' && $aDaily['repeat'] === true && $aDaily['today'] === 'coming', json_encode($aDaily));
+        $AlertNow($aDaily['id']);
         $iBefore = count($aSent);
         ArrivalAlerts::process($Sender);
         $aLast = end($aSent);
-        $expect('todos los días: cuando toca, avisa', count($aSent) === $iBefore + 1 && ($aLast['repeat'] ?? null) === true && ($aLast['alertId'] ?? '') === $aDaily['id'], json_encode($aLast));
-        $expect('todos los días: tras avisar sigue guardado', in_array($aDaily['id'], $pending(), true) && $stored('bide:arrival:' . $aDaily['id']) !== null);
+        $Expect('todos los días: cuando toca, avisa', count($aSent) === $iBefore + 1 && ($aLast['repeat'] ?? null) === true && ($aLast['alertId'] ?? '') === $aDaily['id'], json_encode($aLast));
+        $Expect('todos los días: tras avisar sigue guardado', in_array($aDaily['id'], $Pending(), true) && $Stored('bide:arrival:' . $aDaily['id']) !== null);
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: ese día no se repite', count($aSent) === $iBefore + 1);
+        $Expect('todos los días: ese día no se repite', count($aSent) === $iBefore + 1);
         // Pasa el día: la marca de enviado caduca.
         Store::pipeline([['DEL', 'bide:arrival:sent:' . $aDaily['id']]]);
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: al día siguiente vuelve a avisar', count($aSent) === $iBefore + 2);
+        $Expect('todos los días: al día siguiente vuelve a avisar', count($aSent) === $iBefore + 2);
         Store::pipeline([['DEL', 'bide:arrival:sent:' . $aDaily['id']]]);
         $iAnswer = 500;
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: si el servicio de push falla, se reintenta al minuto siguiente', $stored('bide:arrival:sent:' . $aDaily['id']) === null && in_array($aDaily['id'], $pending(), true));
+        $Expect('todos los días: si el servicio de push falla, se reintenta al minuto siguiente', $Stored('bide:arrival:sent:' . $aDaily['id']) === null && in_array($aDaily['id'], $Pending(), true));
         $iAnswer = 410;
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: si la suscripción ya no existe, se olvida', !in_array($aDaily['id'], $pending(), true) && $stored('bide:arrival:' . $aDaily['id']) === null);
+        $Expect('todos los días: si la suscripción ya no existe, se olvida', !in_array($aDaily['id'], $Pending(), true) && $Stored('bide:arrival:' . $aDaily['id']) === null);
         $iAnswer = 201;
 
         // Lejos de su hora en el horario ni se mira (aunque, si se mirara, ya tocaría avisar).
         $aFar = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 10, 'es', true);
-        $alertNow($aFar['id']);
-        $patch($aFar['id'], ['scheduledSeconds' => (\Services\Calendar::nowSecondsSinceMidnight() + 86400 - 3 * 3600) % 86400]);
+        $AlertNow($aFar['id']);
+        $Patch($aFar['id'], ['scheduledSeconds' => (\Services\Calendar::nowSecondsSinceMidnight() + 86400 - 3 * 3600) % 86400]);
         $iBefore = count($aSent);
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: lejos de su hora en el horario no se mira', count($aSent) === $iBefore && in_array($aFar['id'], $pending(), true));
+        $Expect('todos los días: lejos de su hora en el horario no se mira', count($aSent) === $iBefore && in_array($aFar['id'], $Pending(), true));
 
         // Pedido cuando hoy ya está llegando: se crea igual y hoy no avisa (la ficha ya lo enseña).
         $aLate = ArrivalAlerts::create($aSubscription, '356', $aTrip['tripKey'], 1440, 'es', true);
-        $alertNow($aLate['id']);
+        $AlertNow($aLate['id']);
         ArrivalAlerts::process($Sender);
-        $expect('todos los días: si hoy ya está llegando, se crea y hoy no avisa', $aLate['status'] === 'created' && $aLate['today'] === 'now' && count($aSent) === $iBefore, json_encode($aLate));
-        $expect('todos los días: al cancelar se borra todo', ArrivalAlerts::cancel($aLate['id'], $aSubscription['endpoint']) === true && $stored('bide:arrival:' . $aLate['id']) === null && $stored('bide:arrival:sent:' . $aLate['id']) === null && !in_array($aLate['id'], $pending(), true));
+        $Expect('todos los días: si hoy ya está llegando, se crea y hoy no avisa', $aLate['status'] === 'created' && $aLate['today'] === 'now' && count($aSent) === $iBefore, json_encode($aLate));
+        $Expect('todos los días: al cancelar se borra todo', ArrivalAlerts::cancel($aLate['id'], $aSubscription['endpoint']) === true && $Stored('bide:arrival:' . $aLate['id']) === null && $Stored('bide:arrival:sent:' . $aLate['id']) === null && !in_array($aLate['id'], $Pending(), true));
         ArrivalAlerts::cancel($aFar['id'], $aSubscription['endpoint']);
     }
 
@@ -236,31 +236,31 @@ try {
         }
         [$sStopId, $aDeparture] = $aSample;
         $aCreated = ArrivalAlerts::create($aSubscription, $sStopId, $aDeparture['tripKey'], 10, 'es', true);
-        $alertNow($aCreated['id'] ?? 'x');
+        $AlertNow($aCreated['id'] ?? 'x');
         $iBefore = count($aSent);
         ArrivalAlerts::process($Sender);
         $aLast = end($aSent);
-        $expect('todas las apps: ' . $sNetwork . ' avisa y abre su parada en su app', $aCreated['status'] === 'created' && count($aSent) === $iBefore + 1 && str_contains($aLast['url'] ?? '', 'red=' . $sNetwork), json_encode($aCreated) . ' ' . ($aLast['url'] ?? ''));
+        $Expect('todas las apps: ' . $sNetwork . ' avisa y abre su parada en su app', $aCreated['status'] === 'created' && count($aSent) === $iBefore + 1 && str_contains($aLast['url'] ?? '', 'red=' . $sNetwork), json_encode($aCreated) . ' ' . ($aLast['url'] ?? ''));
         ArrivalAlerts::cancel($aCreated['id'] ?? 'x', $aSubscription['endpoint']);
     }
     Config::set('bus');
 
     Store::pipeline([['SADD', 'bide:arrival:pending', 'aaaaaaaaaaaaaaaaaaaaaaaa']]);
     ArrivalAlerts::process($Sender);
-    $expect('caducado: un aviso que ya no está en el almacén sale de la lista', !in_array('aaaaaaaaaaaaaaaaaaaaaaaa', $pending(), true));
+    $Expect('caducado: un aviso que ya no está en el almacén sale de la lista', !in_array('aaaaaaaaaaaaaaaaaaaaaaaa', $Pending(), true));
 
     $aMessage = ArrivalAlerts::message(['id' => 'x', 'network' => 'metro', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'MB-1-2', 'lineCode' => 'MB', 'headsign' => 'Basauri', 'lang' => 'eu'], 3);
-    $expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && str_starts_with($aMessage['url'], '/stops/7?red=metro&viaje=MB-1-2&aviso=x-') && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
-    $expect('mensaje: lleva el id y si es de una vez, para que la app lo quite de su lista', $aMessage['alertId'] === 'x' && $aMessage['repeat'] === false);
+    $Expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && str_starts_with($aMessage['url'], '/stops/7?red=metro&viaje=MB-1-2&aviso=x-') && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
+    $Expect('mensaje: lleva el id y si es de una vez, para que la app lo quite de su lista', $aMessage['alertId'] === 'x' && $aMessage['repeat'] === false);
 
     // ===== Avisos de incidencias de los favoritos =====
 
-    $expect('incidencias: la clave es la misma que en la app (js/alerts-store.js)', IncidentAlerts::key('bus', 'Obras en Abando', 'Desvío por la calle Bidebarrieta 🚧 hasta el día 3.') === 'bus:zvsnys');
+    $Expect('incidencias: la clave es la misma que en la app (js/alerts-store.js)', IncidentAlerts::key('bus', 'Obras en Abando', 'Desvío por la calle Bidebarrieta 🚧 hasta el día 3.') === 'bus:zvsnys');
     $aClean = IncidentAlerts::favorites(['bus' => ['lines' => ['3513', 3514, '3513', '<script>'], 'stops' => []], 'metro' => ['lines' => [], 'stops' => []], 'inventada' => ['lines' => ['A']]]);
-    $expect('incidencias: favoritos limpios (redes que existen, ids válidos, sin repetir)', $aClean === ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], json_encode($aClean));
+    $Expect('incidencias: favoritos limpios (redes que existen, ids válidos, sin repetir)', $aClean === ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], json_encode($aClean));
     $aMany = IncidentAlerts::favorites(['bus' => ['lines' => range(1, 100), 'stops' => range(1, 100)], 'metro' => ['lines' => [], 'stops' => range(1, 100)], 'renfe' => ['lines' => [str_repeat('1', 65)], 'stops' => []]]);
     $iTotal = array_sum(array_map(fn($aEntry) => count($aEntry['lines']) + count($aEntry['stops']), $aMany));
-    $expect('incidencias: como mucho 150 favoritos y sin ids larguísimos', $iTotal === 150 && !isset($aMany['renfe']), (string)$iTotal);
+    $Expect('incidencias: como mucho 150 favoritos y sin ids larguísimos', $iTotal === 150 && !isset($aMany['renfe']), (string)$iTotal);
 
     $aFeeds = [
         'bus|3513' => [['summary' => 'Obras', 'description' => 'Desvío en Gernika A']],
@@ -286,72 +286,72 @@ try {
     };
     $aSent = [];
     $iAnswer = 201;
-    $run = function () use (&$Sender, &$Fetcher): array {
+    $Run = function () use (&$Sender, &$Fetcher): array {
         // La marca de «ya se revisó hace menos de 5 minutos» se quita para poder probar varias vueltas seguidas.
         Store::pipeline([['DEL', 'bide:incident:run']]);
         return IncidentAlerts::process($Sender, $Fetcher);
     };
     $aSubscriber = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/incidencias', 'keys' => $aSubscription['keys']];
-    $expect('incidencias: se guarda el suscriptor', IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514'], 'stops' => []], 'metro' => ['lines' => ['MB'], 'stops' => []], 'renfe' => ['lines' => [], 'stops' => ['13400']]], 'eu') === 'saved');
+    $Expect('incidencias: se guarda el suscriptor', IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514'], 'stops' => []], 'metro' => ['lines' => ['MB'], 'stops' => []], 'renfe' => ['lines' => [], 'stops' => ['13400']]], 'eu') === 'saved');
 
-    $aCounts = $run();
-    $expect('incidencias: la primera vuelta solo anota lo que ya hay', $aCounts['subscribers'] === 1 && $aCounts['sent'] === 0 && empty($aSent), json_encode($aCounts));
+    $aCounts = $Run();
+    $Expect('incidencias: la primera vuelta solo anota lo que ya hay', $aCounts['subscribers'] === 1 && $aCounts['sent'] === 0 && empty($aSent), json_encode($aCounts));
     sort($aAsked);
-    $expect('incidencias: mira cada línea en Bizkaibus, toda la red en Metro y la estación en Renfe', $aAsked === ['bus|3513', 'bus|3514', 'metro|*', 'renfe|stop:13400'], json_encode($aAsked));
-    $expect('incidencias: dentro de 5 minutos no se vuelve a mirar', IncidentAlerts::process($Sender, $Fetcher) === ['skipped' => true]);
+    $Expect('incidencias: mira cada línea en Bizkaibus, toda la red en Metro y la estación en Renfe', $aAsked === ['bus|3513', 'bus|3514', 'metro|*', 'renfe|stop:13400'], json_encode($aAsked));
+    $Expect('incidencias: dentro de 5 minutos no se vuelve a mirar', IncidentAlerts::process($Sender, $Fetcher) === ['skipped' => true]);
 
     $aFeeds['bus|3514'] = [['summary' => 'Huelga', 'description' => '  Servicios mínimos el día 5  ']];
-    $run();
-    $expect('incidencias: una nueva se manda una vez', count($aSent) === 1);
-    $expect('incidencias: con la red en el título, en su idioma y con la app al tocarla', ($aSent[0]['title'] ?? '') === 'Bizkaibus+ · Huelga' && $aSent[0]['body'] === 'Servicios mínimos el día 5' && $aSent[0]['url'] === '/?red=bus' && $aSent[0]['tag'] === IncidentAlerts::key('bus', 'Huelga', 'Servicios mínimos el día 5') && $aSent[0]['icon'] === '/icons-pro/icon-192.png', json_encode($aSent[0] ?? null, JSON_UNESCAPED_UNICODE));
-    $run();
-    $expect('incidencias: la misma no se repite', count($aSent) === 1);
+    $Run();
+    $Expect('incidencias: una nueva se manda una vez', count($aSent) === 1);
+    $Expect('incidencias: con la red en el título, en su idioma y con la app al tocarla', ($aSent[0]['title'] ?? '') === 'Bizkaibus+ · Huelga' && $aSent[0]['body'] === 'Servicios mínimos el día 5' && $aSent[0]['url'] === '/?red=bus' && $aSent[0]['tag'] === IncidentAlerts::key('bus', 'Huelga', 'Servicios mínimos el día 5') && $aSent[0]['icon'] === '/icons-pro/icon-192.png', json_encode($aSent[0] ?? null, JSON_UNESCAPED_UNICODE));
+    $Run();
+    $Expect('incidencias: la misma no se repite', count($aSent) === 1);
 
     $aFeeds['metro|*'][] = ['title' => 'Obras L2', 'description' => 'Sin servicio entre Urbinaga y Kabiezes'];
     $iAnswer = 500;
-    $run();
-    $expect('incidencias: si el servicio de push falla, no se da por avisada', count($aSent) === 2);
+    $Run();
+    $Expect('incidencias: si el servicio de push falla, no se da por avisada', count($aSent) === 2);
     $iAnswer = 201;
-    $run();
-    $expect('incidencias: y se manda en la vuelta siguiente', count($aSent) === 3 && $aSent[2]['title'] === 'Metro+ · Obras L2', json_encode(end($aSent), JSON_UNESCAPED_UNICODE));
+    $Run();
+    $Expect('incidencias: y se manda en la vuelta siguiente', count($aSent) === 3 && $aSent[2]['title'] === 'Metro+ · Obras L2', json_encode(end($aSent), JSON_UNESCAPED_UNICODE));
 
     $aFeeds['bus|3513'] = 'falla';
-    $run();
+    $Run();
     $aFeeds['bus|3513'] = [['summary' => 'Obras', 'description' => 'Desvío en Gernika A']];
-    $run();
-    $expect('incidencias: una fuente caída no hace que lo de antes parezca nuevo', count($aSent) === 3);
+    $Run();
+    $Expect('incidencias: una fuente caída no hace que lo de antes parezca nuevo', count($aSent) === 3);
 
     for ($i = 1; $i <= 5; $i++) {
         $aFeeds['bus|3513'][] = ['summary' => 'Aviso ' . $i, 'description' => 'Texto ' . $i];
     }
     $iBefore = count($aSent);
-    $run();
+    $Run();
     $aBatch = array_slice($aSent, $iBefore);
-    $expect('incidencias: muchas a la vez, tres sueltas y un resumen en su idioma', count($aBatch) === 4 && $aBatch[3]['title'] === 'Intzidentzia gehiago zure gogokoetan' && $aBatch[3]['body'] === 'Beste 2 abisu. Ireki aplikazioan.', json_encode($aBatch, JSON_UNESCAPED_UNICODE));
-    $run();
-    $expect('incidencias: el resumen también cuenta como avisado', count($aSent) === $iBefore + 4);
+    $Expect('incidencias: muchas a la vez, tres sueltas y un resumen en su idioma', count($aBatch) === 4 && $aBatch[3]['title'] === 'Intzidentzia gehiago zure gogokoetan' && $aBatch[3]['body'] === 'Beste 2 abisu. Ireki aplikazioan.', json_encode($aBatch, JSON_UNESCAPED_UNICODE));
+    $Run();
+    $Expect('incidencias: el resumen también cuenta como avisado', count($aSent) === $iBefore + 4);
 
     IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514', '3517'], 'stops' => []]], 'es');
     $aFeeds['bus|3517'] = [['summary' => 'Parada trasladada', 'description' => 'En Plentzia']];
-    $run();
-    $expect('incidencias: un favorito nuevo empieza también sin avisar de lo que ya había', count($aSent) === $iBefore + 4);
+    $Run();
+    $Expect('incidencias: un favorito nuevo empieza también sin avisar de lo que ya había', count($aSent) === $iBefore + 4);
 
     IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514'], 'stops' => []]], 'es');
-    $run();
+    $Run();
     $aFeeds['bus|3517'][] = ['summary' => 'Cambio de horario', 'description' => 'Desde el lunes'];
     IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513', '3514', '3517'], 'stops' => []]], 'es');
-    $run();
-    $expect('incidencias: un favorito que se quita y se vuelve a poner tampoco avisa de lo que ya había', count($aSent) === $iBefore + 4);
+    $Run();
+    $Expect('incidencias: un favorito que se quita y se vuelve a poner tampoco avisa de lo que ya había', count($aSent) === $iBefore + 4);
 
     $aFeeds['bus|3517'][] = ['summary' => 'Desvío', 'description' => 'Por fiestas'];
     $iAnswer = 410;
-    $run();
+    $Run();
     $aLeft = Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0];
-    $expect('incidencias: si la suscripción ya no existe, se borra', $aLeft === [], json_encode($aLeft));
+    $Expect('incidencias: si la suscripción ya no existe, se borra', $aLeft === [], json_encode($aLeft));
     $iAnswer = 201;
 
     IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513'], 'stops' => []]], 'es');
-    $expect('incidencias: darse de baja', IncidentAlerts::remove($aSubscriber['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0] === []);
+    $Expect('incidencias: darse de baja', IncidentAlerts::remove($aSubscriber['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0] === []);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);

@@ -82,7 +82,7 @@ class ArrivalAlerts
             'subscription' => $aSubscription,
             'created' => time(),
             'repeat' => $bRepeat,
-            'scheduledSeconds' => self::hmToSeconds((string)$aDeparture['scheduledTime']),
+            'scheduledSeconds' => Calendar::hmToSeconds((string)$aDeparture['scheduledTime']),
         ];
         $iTtl = self::TTL_SECONDS;
         if ($bRepeat) {
@@ -288,12 +288,6 @@ class ArrivalAlerts
             $iDiff -= 86400;
         }
         return $iDiff >= -self::REPEAT_WINDOW_SECONDS && $iDiff <= (int)$aAlert['minutes'] * 60 + self::REPEAT_WINDOW_SECONDS;
-    }
-
-    private static function hmToSeconds(string $sTime): int
-    {
-        $aParts = explode(':', $sTime);
-        return (int)$aParts[0] * 3600 + (int)($aParts[1] ?? 0) * 60;
     }
 
     public static function message(array $aAlert, int $iLeft): array

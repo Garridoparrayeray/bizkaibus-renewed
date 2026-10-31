@@ -14,7 +14,7 @@ date_default_timezone_set('Europe/Madrid');
 $aOptions = getopt('', ['output:']);
 $sRoot = dirname(__DIR__);
 $sOutput = $aOptions['output'] ?? $sRoot . '/sitemap.xml';
-$site = require $sRoot . '/api/Config/site.php';
+$aSite = require $sRoot . '/api/Config/site.php';
 
 require_once $sRoot . '/api/Core/Networks.php';
 $aNetworks = array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all());
@@ -63,10 +63,10 @@ foreach ($aNetworks as $sSlug => $sDb) {
     $aLastModified[$sSlug] = $sLastModified;
     $sSuffix = \Core\Networks::urlSuffix($sSlug);
     foreach ($Pdo->query('SELECT id FROM lines ORDER BY id') as $aRow) {
-        $aPages[] = urlEntry($site['url'] . '/lines/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.7');
+        $aPages[] = urlEntry($aSite['url'] . '/lines/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.7');
     }
     foreach ($Pdo->query('SELECT id FROM stops ORDER BY id') as $aRow) {
-        $aPages[] = urlEntry($site['url'] . '/stops/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.6');
+        $aPages[] = urlEntry($aSite['url'] . '/stops/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.6');
     }
 }
 
@@ -77,10 +77,10 @@ if (!$aLastModified) {
 
 $sXml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 $sXml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-$sXml .= urlEntry($site['url'] . '/', max($aLastModified), 'weekly', '1.0');
-$sXml .= urlEntry($site['url'] . '/mapa', max($aLastModified), 'weekly', '0.8');
+$sXml .= urlEntry($aSite['url'] . '/', max($aLastModified), 'weekly', '1.0');
+$sXml .= urlEntry($aSite['url'] . '/mapa', max($aLastModified), 'weekly', '0.8');
 foreach ($aLastModified as $sSlug => $sLastModified) {
-    $sXml .= urlEntry($site['url'] . '/?red=' . $sSlug, $sLastModified, 'daily', '0.9');
+    $sXml .= urlEntry($aSite['url'] . '/?red=' . $sSlug, $sLastModified, 'daily', '0.9');
 }
 $sXml .= implode('', $aPages);
 $sXml .= '</urlset>' . "\n";

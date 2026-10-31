@@ -1,19 +1,19 @@
 <?php
-$site = require __DIR__ . '/../Config/site.php';
+$aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
-$wordmark = require __DIR__ . '/wordmark.php';
-$title = 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+';
-$description = 'Mapa con todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.';
-$canonical = $site['url'] . '/mapa';
-$ogImage = $site['url'] . '/icons-bide-rojo/og-image.png';
-$jsonLd = [
+$sWordmark = require __DIR__ . '/wordmark.php';
+$sTitle = 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+';
+$sDescription = 'Mapa con todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.';
+$sCanonical = $aSite['url'] . '/mapa';
+$sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
+$aJsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'WebPage',
-    'name' => $title,
-    'description' => $description,
-    'url' => $canonical,
+    'name' => $sTitle,
+    'description' => $sDescription,
+    'url' => $sCanonical,
     'inLanguage' => 'es',
-    'isPartOf' => ['@type' => 'WebSite', 'name' => $site['name'], 'url' => $site['url'] . '/'],
+    'isPartOf' => ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'],
 ];
 ?>
 <!DOCTYPE html>
@@ -21,16 +21,16 @@ $jsonLd = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><?= htmlspecialchars($title) ?></title>
-    <meta name="description" content="<?= htmlspecialchars($description) ?>">
+    <title><?= htmlspecialchars($sTitle) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <link rel="canonical" href="<?= htmlspecialchars($canonical) ?>">
+    <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="<?= htmlspecialchars($site['name']) ?>">
-    <meta property="og:url" content="<?= htmlspecialchars($canonical) ?>">
-    <meta property="og:title" content="<?= htmlspecialchars($title) ?>">
-    <meta property="og:description" content="<?= htmlspecialchars($description) ?>">
-    <meta property="og:image" content="<?= htmlspecialchars($ogImage) ?>">
+    <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="manifest" href="/manifest-bide.json">
@@ -49,11 +49,11 @@ $jsonLd = [
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>
     <script src="/js/network-map.js" defer></script>
-    <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+    <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-map">
     <header class="map-top">
-        <a class="map-home" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><?= BIDE_ICONS['back'] ?><?= $wordmark ?></a>
+        <a class="map-home" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><?= BIDE_ICONS['back'] ?><?= $sWordmark ?></a>
         <h1 data-i18n="map.title">Mapa de la red</h1>
     </header>
     <nav class="map-filters" id="map-filters" data-i18n-attr="aria-label:map.filters" aria-label="Redes que se ven en el mapa"></nav>

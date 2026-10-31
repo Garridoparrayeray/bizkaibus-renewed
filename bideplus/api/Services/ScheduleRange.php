@@ -33,11 +33,11 @@ class ScheduleRange
         return ['from' => $sFrom, 'to' => $sTo];
     }
 
-    private static function validDate(mixed $mValue): string|null
+    private static function validDate(mixed $sValue): string|null
     {
-        if (!is_string($mValue) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $mValue)) {
+        if (!is_string($sValue) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $sValue)) {
             return null;
         }
-        return $mValue;
+        return $sValue;
     }
 }

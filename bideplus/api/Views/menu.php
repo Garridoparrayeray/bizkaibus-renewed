@@ -1,53 +1,53 @@
 <?php
-$site = require __DIR__ . '/../Config/site.php';
+$aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
-$title = 'Bide+ · Tu red de transporte público';
-$description = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
-$canonical = $site['url'] . '/';
-$ogImage = $site['url'] . '/icons-bide-rojo/og-image.png';
-$ogAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
-$wordmark = require __DIR__ . '/wordmark.php';
+$sTitle = 'Bide+ · Tu red de transporte público';
+$sDescription = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
+$sCanonical = $aSite['url'] . '/';
+$sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
+$sOgAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
+$sWordmark = require __DIR__ . '/wordmark.php';
 
-$apps = [];
+$aApps = [];
 foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
-    $apps[] = ['name' => \Core\Networks::text($aNetwork, 'name'), 'description' => \Core\Networks::text($aNetwork, 'switcher'), 'url' => $site['url'] . '/?red=' . $sSlug];
+    $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name'), 'description' => \Core\Networks::text($aNetwork, 'switcher'), 'url' => $aSite['url'] . '/?red=' . $sSlug];
 }
 
-$author = ['@type' => 'Person', 'name' => $site['author'], 'url' => $site['author_url']];
-$items = [];
-foreach ($apps as $i => $app) {
-    $items[] = [
+$aAuthor = ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']];
+$aItems = [];
+foreach ($aApps as $i => $aApp) {
+    $aItems[] = [
         '@type' => 'ListItem',
         'position' => $i + 1,
         'item' => [
             '@type' => 'SoftwareApplication',
-            'name' => $app['name'],
-            'description' => $app['description'],
-            'url' => $app['url'],
+            'name' => $aApp['name'],
+            'description' => $aApp['description'],
+            'url' => $aApp['url'],
             'applicationCategory' => 'TravelApplication',
             'operatingSystem' => 'Web, Android, iOS',
             'inLanguage' => 'es',
             'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
-            'author' => $author,
+            'author' => $aAuthor,
         ],
     ];
 }
-$jsonLd = [
+$aJsonLd = [
     '@context' => 'https://schema.org',
     '@graph' => [
         [
             '@type' => 'WebSite',
-            '@id' => $canonical . '#website',
-            'name' => $site['name'],
-            'url' => $canonical,
-            'description' => $description,
+            '@id' => $sCanonical . '#website',
+            'name' => $aSite['name'],
+            'url' => $sCanonical,
+            'description' => $sDescription,
             'inLanguage' => 'es',
-            'publisher' => $author,
+            'publisher' => $aAuthor,
         ],
         [
             '@type' => 'ItemList',
             'name' => 'Apps de movilidad de Bide+',
-            'itemListElement' => $items,
+            'itemListElement' => $aItems,
         ],
     ],
 ];
@@ -57,29 +57,29 @@ $jsonLd = [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><?= htmlspecialchars($title) ?></title>
-    <meta name="description" content="<?= htmlspecialchars($description) ?>">
-    <meta name="author" content="<?= htmlspecialchars($site['author']) ?>">
+    <title><?= htmlspecialchars($sTitle) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
-    <meta name="google-site-verification" content="<?= htmlspecialchars($site['gsc_verification']) ?>">
-    <link rel="canonical" href="<?= htmlspecialchars($canonical) ?>">
+    <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
+    <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
 
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="<?= htmlspecialchars($site['name']) ?>">
-    <meta property="og:locale" content="<?= htmlspecialchars($site['locale']) ?>">
-    <meta property="og:url" content="<?= htmlspecialchars($canonical) ?>">
-    <meta property="og:title" content="<?= htmlspecialchars($title) ?>">
-    <meta property="og:description" content="<?= htmlspecialchars($description) ?>">
-    <meta property="og:image" content="<?= htmlspecialchars($ogImage) ?>">
+    <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
+    <meta property="og:locale" content="<?= htmlspecialchars($aSite['locale']) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="<?= htmlspecialchars($ogAlt) ?>">
+    <meta property="og:image:alt" content="<?= htmlspecialchars($sOgAlt) ?>">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?= htmlspecialchars($title) ?>">
-    <meta name="twitter:description" content="<?= htmlspecialchars($description) ?>">
-    <meta name="twitter:image" content="<?= htmlspecialchars($ogImage) ?>">
-    <meta name="twitter:image:alt" content="<?= htmlspecialchars($ogAlt) ?>">
+    <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars($sOgAlt) ?>">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -106,16 +106,16 @@ $jsonLd = [
     <link rel="stylesheet" href="/style-bide.css">
     <link rel="stylesheet" href="/style-networks.css">
     <link rel="stylesheet" href="/style-miamor.css">
-    <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+    <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-menu">
-    <div class="splash" aria-hidden="true"><?= $wordmark ?></div>
+    <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>
     <main>
 <?= bideRail(null) ?>
 
         <header>
             <div class="menu-brand">
-                <h1><?= $wordmark ?></h1>
+                <h1><?= $sWordmark ?></h1>
                 <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
             </div>
             <div class="header-controls">

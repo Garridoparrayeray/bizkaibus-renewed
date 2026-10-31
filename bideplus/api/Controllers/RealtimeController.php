@@ -52,7 +52,7 @@ class RealtimeController
             return;
         }
         $sUrl = $aConfig['siri']['vehicle_monitoring_url'];
-        $fStart = microtime(true);
+        $dStart = microtime(true);
         $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
         try {
             $sBody = Http::get($sUrl, $aConfig['siri']['http_timeout_seconds']);
@@ -62,7 +62,7 @@ class RealtimeController
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }
-        $aOut['ms'] = (int)round((microtime(true) - $fStart) * 1000);
+        $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         Response::json($aOut);
     }
 

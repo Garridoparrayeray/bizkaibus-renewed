@@ -271,7 +271,7 @@ function offlineEstimator(array $aNetwork): \Closure|null
     return function (string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, int $iDeparture, string $sDate) use ($Segments, $Pace, $sPaceClass): array {
         // Lo que tarda cada tramo en cada franja, con lo aprendido o, si no hay, la proporción por largo o el ritmo.
         $aSegmentCache = [];
-        $fSegment = function (int $i, string $sBand, float $dFactor) use ($Segments, $aStops, $aOffsets, $aMeters, &$aSegmentCache): array {
+        $dSegment = function (int $i, string $sBand, float $dFactor) use ($Segments, $aStops, $aOffsets, $aMeters, &$aSegmentCache): array {
             $sKey = $i . '|' . $sBand . '|' . $dFactor;
             if (!isset($aSegmentCache[$sKey])) {
                 $iScheduled = $aOffsets[$i + 1] - $aOffsets[$i];
@@ -298,7 +298,7 @@ function offlineEstimator(array $aNetwork): \Closure|null
             $dFactor = $Pace->factor($sLineId, $sDate, $iMid);
             $dCumulative = (float)($iDeparture - $iFirst + ESTIMATE_ORIGIN_OFFSET_SECONDS);
             for ($i = 0; $i < $iTarget; $i++) {
-                [$dSeconds, $bLearned, $iScheduled] = $fSegment($i, $sBand, $dFactor);
+                [$dSeconds, $bLearned, $iScheduled] = $dSegment($i, $sBand, $dFactor);
                 $dCumulative += $dSeconds;
                 if ($iTarget === \count($aStops) - 1) {
                     $iScheduledTotal += $iScheduled;
