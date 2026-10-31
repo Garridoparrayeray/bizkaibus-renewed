@@ -108,11 +108,12 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
     $aStops = [];
     $aTimes = [];
     $aMeters = [];
+    $iFirstDeparture = null;
     $Estimator = offlineEstimator($aNetwork);
     $aEstimateIndex = [];
     $aEstimates = [];
     $aEstimateTrusted = [];
-    $Flush = function () use (&$sCurrent, &$aStops, &$aTimes, &$aMeters, &$aJourneys, &$aLineIndex, &$aCalendarIndex, &$aPatternIndex, &$aPatterns, &$aTimingIndex, &$aTimings, &$aTrips, &$aStopsUsed, &$aCalendars, $Estimator, &$aEstimateIndex, &$aEstimates, &$aEstimateTrusted): void {
+    $Flush = function () use (&$sCurrent, &$aStops, &$aTimes, &$aMeters, &$aJourneys, &$aLineIndex, &$aCalendarIndex, &$aPatternIndex, &$aPatterns, &$aTimingIndex, &$aTimings, &$aTrips, &$aStopsUsed, &$aCalendars, &$iFirstDeparture, $Estimator, &$aEstimateIndex, &$aEstimates, &$aEstimateTrusted): void {
         if ($sCurrent === null || !isset($aJourneys[$sCurrent]) || \count($aStops) < 2) {
             return;
         }
@@ -140,7 +141,7 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
             foreach (['laborable' => 31, 'fin_semana' => 96] as $sDayType => $iDayBits) {
                 $iSlot = -1;
                 if (($iMask & $iDayBits) !== 0 || $bHasExtraDays) {
-                    [$aEstimate, $bTrusted] = $Estimator((string)$aJourney['line_id'], $aStops, $aOffsets, $aMeters, $iFirst, ESTIMATE_DAYS[$sDayType]);
+                    [$aEstimate, $bTrusted] = $Estimator((string)$aJourney['line_id'], $aStops, $aOffsets, $aMeters, $iFirst, $iFirstDeparture ?? $iFirst, ESTIMATE_DAYS[$sDayType]);
                     $sEstimateKey = implode(',', $aEstimate) . '|' . (int)$bTrusted;
                     if (!isset($aEstimateIndex[$sEstimateKey])) {
                         $aEstimateIndex[$sEstimateKey] = \count($aEstimates);
@@ -169,11 +170,15 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
             $aStops = [];
             $aTimes = [];
             $aMeters = [];
+            $iFirstDeparture = null;
         }
         // La hora que se enseña es la de llegada a la parada, como en la API.
         $iTime = $aRow['arrival_seconds'] ?? $aRow['departure_seconds'];
         if ($iTime === null) {
             continue;
+        }
+        if ($aStops === [] && $aRow['departure_seconds'] !== null) {
+            $iFirstDeparture = (int)$aRow['departure_seconds'];
         }
         $aStops[] = (string)$aRow['stop_id'];
         $aTimes[] = (int)$iTime;
@@ -237,9 +242,9 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
 }
 
 /*
- * Calcula la hora estimada de un viaje en cada parada con los tramos aprendidos del motor (como cuando no hay datos del
- * bus): salida publicada + 1 min + lo que tardan de verdad los buses en cada tramo; un tramo sin aprender usa la
- * proporción por largo o el factor de ritmo de la línea. Devuelve los segundos desde la salida en cada parada (0 en la
+ * Calcula la hora estimada de un viaje en cada parada con los tramos aprendidos del motor, igual que el motor cuando no
+ * hay datos del bus: salida publicada + 1 min + lo que tardan de verdad los buses en cada tramo, con la franja horaria y
+ * el ritmo del punto medio hasta esa parada; un tramo sin aprender usa la proporción por largo o el ritmo de la línea. Devuelve los segundos desde la salida en cada parada (0 en la
  * primera) y si los tramos aprendidos cubren lo bastante del recorrido para fiarse de que un bus ya pasó.
  * Null si la red no usa el motor o no está a mano.
  */
@@ -262,27 +267,46 @@ function offlineEstimator(array $aNetwork): \Closure|null
         return null;
     }
     $Pace = $sPaceClass::fromFile();
-    return function (string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, string $sDate) use ($Segments, $Pace, $sPaceClass): array {
-        $sBand = $sPaceClass::bandFor($sDate, $iFirst);
-        $dFactor = $Pace->factor($sLineId, $sDate, $iFirst);
+    // $iFirst es la llegada a la cabecera (de ella cuentan las horas del fichero) y $iDeparture su salida (de ella cuenta el motor).
+    return function (string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, int $iDeparture, string $sDate) use ($Segments, $Pace, $sPaceClass): array {
+        // Lo que tarda cada tramo en cada franja, con lo aprendido o, si no hay, la proporción por largo o el ritmo.
+        $aSegmentCache = [];
+        $fSegment = function (int $i, string $sBand, float $dFactor) use ($Segments, $aStops, $aOffsets, $aMeters, &$aSegmentCache): array {
+            $sKey = $i . '|' . $sBand . '|' . $dFactor;
+            if (!isset($aSegmentCache[$sKey])) {
+                $iScheduled = $aOffsets[$i + 1] - $aOffsets[$i];
+                $dSeconds = $Segments->seconds($aStops[$i], $aStops[$i + 1], $sBand);
+                $bLearned = $dSeconds !== null;
+                if (!$bLearned) {
+                    $dMeters = null;
+                    if ($aMeters[$i] !== null && $aMeters[$i + 1] !== null) {
+                        $dMeters = (float)$aMeters[$i + 1] - (float)$aMeters[$i];
+                    }
+                    $dSeconds = $Segments->fallbackSeconds((float)$iScheduled, $dMeters, $sBand) ?? $dFactor * $iScheduled;
+                }
+                $aSegmentCache[$sKey] = [$dSeconds, $bLearned, $iScheduled];
+            }
+            return $aSegmentCache[$sKey];
+        };
+        // Como el motor: la franja y el ritmo de cada parada son los del punto medio entre la salida y esa parada.
         $aEstimate = [0];
-        $dCumulative = (float)ESTIMATE_ORIGIN_OFFSET_SECONDS;
         $iScheduledTotal = 0;
         $iLearnedTotal = 0;
-        for ($i = 0; $i < \count($aStops) - 1; $i++) {
-            $iScheduled = $aOffsets[$i + 1] - $aOffsets[$i];
-            $dSegment = $Segments->seconds($aStops[$i], $aStops[$i + 1], $sBand);
-            $iScheduledTotal += $iScheduled;
-            if ($dSegment !== null) {
-                $iLearnedTotal += $iScheduled;
-            } else {
-                $dMeters = null;
-                if ($aMeters[$i] !== null && $aMeters[$i + 1] !== null) {
-                    $dMeters = (float)$aMeters[$i + 1] - (float)$aMeters[$i];
+        for ($iTarget = 1; $iTarget < \count($aStops); $iTarget++) {
+            $iMid = intdiv($iDeparture + $iFirst + $aOffsets[$iTarget], 2);
+            $sBand = $sPaceClass::bandFor($sDate, $iMid);
+            $dFactor = $Pace->factor($sLineId, $sDate, $iMid);
+            $dCumulative = (float)($iDeparture - $iFirst + ESTIMATE_ORIGIN_OFFSET_SECONDS);
+            for ($i = 0; $i < $iTarget; $i++) {
+                [$dSeconds, $bLearned, $iScheduled] = $fSegment($i, $sBand, $dFactor);
+                $dCumulative += $dSeconds;
+                if ($iTarget === \count($aStops) - 1) {
+                    $iScheduledTotal += $iScheduled;
+                    if ($bLearned) {
+                        $iLearnedTotal += $iScheduled;
+                    }
                 }
-                $dSegment = $Segments->fallbackSeconds((float)$iScheduled, $dMeters, $sBand) ?? $dFactor * $iScheduled;
             }
-            $dCumulative += $dSegment;
             $aEstimate[] = (int)round($dCumulative);
         }
         $bTrusted = $iScheduledTotal > 0 && $iLearnedTotal / $iScheduledTotal >= ESTIMATE_TRUSTED_SHARE;

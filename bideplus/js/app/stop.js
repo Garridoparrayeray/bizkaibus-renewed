@@ -15,6 +15,45 @@ async function offlineSchedule() {
     return BideOffline.load(NETWORK_SLUG).catch(() => null);
 }
 
+// Las salidas que se ven, ¿salen del horario guardado (sin conexión)? Solo entonces se puede marcar si un bus pasó.
+let offlineView = null;
+
+async function refreshOfflineDepartures() {
+    const saved = await offlineSchedule();
+    if (!saved || !state.currentStop) return;
+    const data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
+    state.lastDepartures = data;
+    renderDepartures(data);
+}
+
+// «Ya pasó» o, en los que salen como probablemente pasados, «no ha pasado». Sin conexión, sin directo que lo diga.
+function offlineMarkButton(departure, button = document.createElement('button')) {
+    button.type = 'button';
+    button.className = 'offline-mark';
+    let kind = 'passed';
+    if (departure.status === 'likely_departed') kind = 'coming';
+    button.textContent = I18n.t('app.mark.' + kind);
+    button.setAttribute('aria-label', `${I18n.t('app.mark.' + kind)}: ${departure.lineCode} ${departure.headsign} ${departure.scheduledTime}`);
+    button.onclick = (event) => {
+        event.stopPropagation();
+        BideOffline.mark(departure, kind);
+        refreshOfflineDepartures();
+    };
+    return button;
+}
+
+function renderMarksUndo(button, data) {
+    const hidden = (data && data.hiddenByMarks) || [];
+    const trips = new Set(hidden.map((h) => h.serviceDay + '|' + h.tripKey));
+    button.hidden = !offlineView || trips.size === 0;
+    if (button.hidden) return;
+    button.textContent = I18n.t('app.mark.undo', { n: trips.size });
+    button.onclick = () => {
+        BideOffline.unmark(hidden);
+        refreshOfflineDepartures();
+    };
+}
+
 function showOfflineSchedule(isOffline) {
     const message = el.netBanner.querySelector('[data-i18n]');
     let key = 'app.offline.banner';
@@ -102,10 +141,14 @@ function departuresSignature(departures) {
 export function renderDepartures(data) {
     const fresh = { ...data, departures: freshDepartures(data.departures) };
     state.departuresSignature = departuresSignature(fresh.departures);
+    offlineView = null;
+    if (data.offline === true) offlineView = data;
     if (HAS_PLATFORMS) {
         renderPlatformPanel(fresh);
+        renderMarksUndo(el.platformMarksUndo, offlineView);
     } else {
         renderLiveCard(fresh.departures);
+        renderMarksUndo(el.liveMarksUndo, offlineView);
     }
 }
 
@@ -164,6 +207,9 @@ function renderLiveCard(departures) {
     const departure = departures[heroIndex] || null;
     const others = departures.filter((_, i) => i !== heroIndex);
     el.liveMoreList.innerHTML = '';
+    el.liveOfflineMarks.hidden = !offlineView;
+    el.liveMark.hidden = !offlineView || !departure;
+    if (offlineView && departure) offlineMarkButton(departure, el.liveMark);
 
     if (!departure) {
         el.liveLine.textContent = state.currentStop.name;
@@ -213,6 +259,10 @@ function renderLiveCard(departures) {
         button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
         li.appendChild(button);
+        if (offlineView) {
+            li.classList.add('has-mark');
+            li.appendChild(offlineMarkButton(other));
+        }
         el.liveMoreList.appendChild(li);
     }
 }
@@ -262,6 +312,7 @@ function renderPlatformColumn(direction, departures) {
     scheduled.append(dot, `${next.scheduledTime} · ${text}`);
 
     column.append(headsignEl, badge, nextButton, scheduled);
+    if (offlineView) column.appendChild(offlineMarkButton(next));
 
     if (rest.length > 0) {
         const list = document.createElement('ul');
@@ -273,6 +324,10 @@ function renderPlatformColumn(direction, departures) {
             button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(departure.scheduledTime)} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
             button.addEventListener('click', () => openVehicleModal(departure.tripKey));
             li.appendChild(button);
+            if (offlineView) {
+                li.classList.add('has-mark');
+                li.appendChild(offlineMarkButton(departure));
+            }
             list.appendChild(li);
         }
         column.appendChild(list);
