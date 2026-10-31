@@ -485,6 +485,37 @@ header p {
     }
     .live-more-list span:last-child, .platform-column-list span:last-child { color: #fff; font-size: .8rem; font-weight: 700; white-space: nowrap; }
     .live-more-list li.is-likely-past { opacity: .55; }
+    /* Sin conexión: «ya pasó» / «no ha pasado» al lado de cada salida. */
+    .live-more-list li.has-mark, .platform-column-list li.has-mark { display: flex; gap: 6px; }
+        .live-more-list li.has-mark > button:first-child, .platform-column-list li.has-mark > button:first-child { flex: 1; min-width: 0; }
+    .live-more-list .offline-mark, .platform-column-list .offline-mark, .offline-mark {
+        flex: none;
+        width: auto;
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, .35);
+        border-radius: 10px;
+        background: transparent;
+        color: #fff;
+        font-size: .75rem;
+        font-weight: 700;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+        .offline-mark:hover, .offline-mark:focus-visible { background: rgba(255, 255, 255, .16); }
+.offline-marks { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 0; }
+    .offline-marks[hidden], .offline-mark[hidden], .offline-marks-undo[hidden] { display: none; }
+    .offline-marks-undo {
+        padding: 6px 0;
+        border: 0;
+        background: transparent;
+        color: var(--primary-light);
+        font-size: .8rem;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    .platform-panel .offline-marks-undo { color: var(--primary); }
+    .platform-column > .offline-mark { align-self: flex-start; margin-top: 8px; }
 .live-empty {
     margin: 0 0 16px;
     padding: 28px 20px;
@@ -784,4 +815,42 @@ dialog {
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* Aviso de sin conexión (horario guardado o datos de la caché): una pastilla pequeña abajo, sin tapar la parada. */
+.net-banner {
+    position: fixed;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    z-index: 60;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    padding: 6px 6px 6px 14px;
+    border: 1px solid rgba(0, 0, 0, .06);
+    border-radius: 999px;
+    background: var(--warn-tint);
+    box-shadow: 0 6px 18px -8px rgba(0, 0, 0, .35);
+    color: var(--status-warn);
+    font-size: .72rem;
+    font-weight: 600;
+    line-height: 1.3;
+    transform: translateX(-50%);
+}
+    .net-banner[hidden] { display: none; }
+    .net-banner button {
+        flex: none;
+        padding: 4px 10px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
+/* App instalada en el móvil: encima de la barra de pestañas (58 px). */
+@media (max-width: 1023px) {
+    html.bide.is-standalone .net-banner { bottom: calc(70px + min(env(safe-area-inset-bottom), 34px)); }
 }

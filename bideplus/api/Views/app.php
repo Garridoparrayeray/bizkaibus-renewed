@@ -176,6 +176,10 @@ use Core\Networks;
                             <button id="live-incidents-link" class="live-incidents-link" type="button" hidden data-i18n="app.incidents">Incidencias</button>
                         </p>
                     </footer>
+                    <p id="live-offline-marks" class="offline-marks" hidden>
+                        <button id="live-mark" class="offline-mark" type="button"></button>
+                        <button id="live-marks-undo" class="offline-marks-undo" type="button" hidden></button>
+                    </p>
                     <ul id="live-more-list" class="live-more-list"></ul>
                 </article>
 
@@ -194,6 +198,7 @@ use Core\Networks;
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
+                    <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>
                 </div>
                 <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
 

@@ -6,6 +6,8 @@
 const BideOffline = (() => {
     const CACHE_NAME = 'bide-offline';
     const LIST_KEY = 'bide-offline-networks';
+    // Marcas que pone la persona sin conexión: { 'AAAA-MM-DD': { tripKey: { passed: posición } | { coming: posición } } }.
+    const MARKS_KEY = 'bide-offline-marks';
     const CHECKED_KEY = 'bide-offline-checked';
     const CHECK_EVERY_MS = 6 * 3600 * 1000;
     const DAY_SECONDS = 86400;
@@ -93,6 +95,56 @@ const BideOffline = (() => {
         }
     }
 
+    /*
+     * Sin conexión no hay directo ni registro de pasos, así que la persona puede decir lo que ve en la calle:
+     * - «ya pasó» en una parada: el bus ya pasó por esa parada y por las anteriores de su recorrido (no se enseña).
+     * - «no ha pasado»: el bus todavía no ha llegado a esa parada ni a las siguientes (deja de salir como
+     *   «probablemente ya pasó» y vuelve con su hora oficial).
+     * Valen para el día del viaje y se borran solas pasado ese día. Con conexión no se usan.
+     */
+    function readMarks() {
+        try {
+            return JSON.parse(localStorage.getItem(MARKS_KEY) || '{}') || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function writeMarks(marks) {
+        // Se guardan los de ayer (viajes de madrugada) en adelante; los anteriores ya no sirven.
+        const yesterday = isoDate(new Date(Date.now() - DAY_SECONDS * 1000));
+        for (const day of Object.keys(marks)) {
+            if (day < yesterday) delete marks[day];
+        }
+        try {
+            localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+        } catch (e) {
+            // Sin almacenamiento la marca no se recuerda.
+        }
+    }
+
+    function mark(departure, kind) {
+        const marks = readMarks();
+        if (!marks[departure.serviceDay]) marks[departure.serviceDay] = {};
+        const entry = {};
+        entry[kind] = departure.position;
+        marks[departure.serviceDay][departure.tripKey] = entry;
+        writeMarks(marks);
+    }
+
+    function unmark(hidden) {
+        const marks = readMarks();
+        for (const { serviceDay, tripKey } of hidden) {
+            if (marks[serviceDay]) delete marks[serviceDay][tripKey];
+        }
+        writeMarks(marks);
+    }
+
+    function markFor(marks, serviceDay, tripKey) {
+        if (!marks[serviceDay]) return null;
+        return marks[serviceDay][tripKey] || null;
+    }
+
     // Índices para no recorrer todos los viajes en cada consulta: paradas → [recorrido, posición] y recorrido → viajes.
     function prepare(data) {
         const byStop = new Map();
@@ -173,6 +225,8 @@ const BideOffline = (() => {
         });
 
         const found = [];
+        const hidden = [];
+        const marks = readMarks();
         for (const target of targets) {
             const items = [];
             for (const [patternIndex, position] of data.byStop.get(target) || []) {
@@ -184,7 +238,18 @@ const BideOffline = (() => {
                         const timing = arrival(data, trip, position, day.date, seconds, nowSeconds);
                         if (timing.etaSeconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
                         if (!runsOn(data.calendars[trip[3]], day.date)) continue;
-                        items.push({ seconds, trip, pattern, position, ...timing });
+                        const serviceDay = isoDate(day.date);
+                        const tripKey = tripKeyOf(data, pattern, trip);
+                        const userMark = markFor(marks, serviceDay, tripKey);
+                        if (userMark && userMark.passed !== undefined && position <= userMark.passed) {
+                            hidden.push({ serviceDay, tripKey });
+                            continue;
+                        }
+                        let finalTiming = timing;
+                        if (userMark && userMark.coming !== undefined && position >= userMark.coming && timing.status === 'likely_departed') {
+                            finalTiming = { status: 'scheduled', etaSeconds: seconds };
+                        }
+                        items.push({ seconds, trip, pattern, position, serviceDay, tripKey, ...finalTiming });
                     }
                 }
             }
@@ -200,6 +265,7 @@ const BideOffline = (() => {
             platforms: platforms.map((platform) => ({ id: outputId(platform.id), label: platform.label })),
             directionLabels: directionLabels(found),
             departures: found,
+            hiddenByMarks: hidden,
             offline: true,
         };
     }
@@ -226,6 +292,10 @@ const BideOffline = (() => {
         return official;
     }
 
+    function tripKeyOf(data, pattern, trip) {
+        return `${data.lines[pattern[0]][0]}-${trip[4]}-${trip[5]}`;
+    }
+
     function departureItem(data, item, target, isPlatform, now, nowSeconds) {
         const line = data.lines[item.pattern[0]];
         let headsign = item.pattern[1];
@@ -239,7 +309,9 @@ const BideOffline = (() => {
             lineCode: line[1],
             lineName: line[2],
             headsign,
-            tripKey: `${line[0]}-${item.trip[4]}-${item.trip[5]}`,
+            tripKey: item.tripKey,
+            serviceDay: item.serviceDay,
+            position: item.position,
             scheduledTime: `${String(((hours % 24) + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
             etaMinutes: Math.round((item.etaSeconds - nowSeconds) / 60),
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
@@ -295,6 +367,8 @@ const BideOffline = (() => {
         prepare,
         departures,
         arrival,
+        mark,
+        unmark,
         stop,
     };
 })();

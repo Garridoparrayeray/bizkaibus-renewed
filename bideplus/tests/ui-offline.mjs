@@ -115,6 +115,8 @@ await ev("document.querySelector('[data-bide-tab=ajustes]').click()");
 await sleep(800);
 await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Bizkaibus')).querySelector('input'); input.click(); return true; })()");
 check('horarios sin conexion: Bizkaibus se guarda desde Ajustes', await waitTrue("!!BideOffline.saved().bus"));
+await goOwn('/stops/3388', 4000);
+check('con conexion: no se puede marcar si un bus paso (manda el directo)', await waitTrue("!document.getElementById('live-card').hidden") && (await ev("document.getElementById('live-offline-marks').hidden && document.querySelectorAll('#live-more-list .offline-mark').length === 0")));
 await goOwn('/?red=bus');
 
 ownServer.kill();
@@ -133,6 +135,14 @@ check('servidor caido: la parada sale del horario guardado', await waitTrue("!do
 // Bizkaibus guarda también lo que tardan de verdad los buses: sin conexión sale la hora estimada con la oficial al lado.
 check('servidor caido: Bizkaibus enseña la hora estimada con los tramos aprendidos', await ev("document.getElementById('live-badge').textContent === 'ESTIMADO' || document.getElementById('live-more-list').textContent.includes('≈')"));
 check('servidor caido: avisa de que es el horario guardado y sin directo', await ev("document.getElementById('net-banner').textContent.includes('sin directo')"));
+// Sin conexión la persona puede decir si un bus ya pasó: se esconde, y «mostrar» lo devuelve.
+check('servidor caido: cada salida se puede marcar como pasada', await ev("!document.getElementById('live-mark').hidden && document.querySelectorAll('#live-more-list .offline-mark').length > 0"));
+const rowsBefore = await ev("document.querySelectorAll('#live-more-list li').length");
+await ev("document.querySelector('#live-more-list .offline-mark').click()");
+check('servidor caido: marcar «ya pasó» esconde ese bus', await waitTrue(`document.querySelectorAll('#live-more-list li').length === ${rowsBefore} - 1 || !document.getElementById('live-marks-undo').hidden`));
+check('servidor caido: ofrece mostrar los marcados', await ev("!document.getElementById('live-marks-undo').hidden && document.getElementById('live-marks-undo').textContent.includes('(1)')"));
+await ev("document.getElementById('live-marks-undo').click()");
+check('servidor caido: «mostrar» los devuelve', await waitTrue("document.getElementById('live-marks-undo').hidden"));
 
 const bad = results.filter(r => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
