@@ -861,11 +861,11 @@ $MPassBroken->setPassageLoader(function (array $aIds) {
 $expect('si el registro falla, se sigue con el horario', @$MPassBroken->enrich([$aPassRows[0]])[0]['status'] === 'scheduled');
 
 // Orden de las salidas: un bus que probablemente ya pasó (estimación) va al final aunque su hora oficial sea anterior.
-$BuildItems = new ReflectionMethod(Controllers\StopsController::class, 'buildDepartureItems');
+$BuildItems = new ReflectionMethod(Controllers\StopsController::class, 'departureItems');
 $iNowItems = Calendar::nowSecondsSinceMidnight();
 $fItem = fn(string $sTrip, string $sStatus, int $iEta) => ['line_id' => '3514', 'line_code' => 'A3514', 'line_name' => 'x', 'headsign' => 'GERNIKA', 'last_stop_name' => null,
     'trip_number' => $sTrip, 'first_departure_seconds' => 0, 'arrival_seconds' => $iEta, 'etaSeconds' => $iEta, 'status' => $sStatus, 'delaySeconds' => 0];
-$aItems = $BuildItems->invoke(new Controllers\StopsController(), [$fItem('A', 'likely_departed', $iNowItems + 600), $fItem('B', 'estimated', $iNowItems + 1200), $fItem('C', 'live', $iNowItems + 900)], false);
+$aItems = $BuildItems->invoke(null, [$fItem('A', 'likely_departed', $iNowItems + 600), $fItem('B', 'estimated', $iNowItems + 1200), $fItem('C', 'live', $iNowItems + 900)], false);
 $expect('el que probablemente ya pasó va el último; los demás por hora', array_column($aItems, 'status') === ['live', 'estimated', 'likely_departed'], json_encode(array_column($aItems, 'status')));
 
 // Filas repetidas: mismo número de viaje en dos calendarios se junta; dos viajes distintos a la vez por la parada, no.
