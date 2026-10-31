@@ -702,6 +702,9 @@ dialog {
     .modal-alerts-toggle:disabled { opacity: .7; cursor: default; }
 .modal-notify { margin: 0 0 14px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
     .modal-notify-title { margin: 0 0 10px; color: var(--text); font-size: .88rem; font-weight: 700; }
+    .modal-notify-repeat { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: var(--text-secondary); font-size: .84rem; font-weight: 600; cursor: pointer; }
+        .modal-notify-repeat[hidden] { display: none; }
+        .modal-notify-repeat input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--primary); }
     .modal-notify-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .modal-notify-options button { padding: 10px 0; border: 1px solid var(--primary-light); border-radius: var(--radius-sm); background: var(--primary-tint); color: var(--primary); font-size: .88rem; font-weight: 700; cursor: pointer; }
     .modal-notify-cancel { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--status-warn); font-size: .88rem; font-weight: 600; cursor: pointer; }

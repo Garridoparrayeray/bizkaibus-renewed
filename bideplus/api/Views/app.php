@@ -291,6 +291,7 @@ use Core\Networks;
         <button id="modal-share" class="modal-share" type="button" data-i18n="app.share.button">Compartir este viaje</button>
         <section id="modal-notify" class="modal-notify" hidden>
             <p class="modal-notify-title" data-i18n="app.notify.title">Avísame cuando llegue</p>
+            <label id="modal-notify-repeat" class="modal-notify-repeat"><input id="modal-notify-repeat-input" type="checkbox"><span data-i18n="app.notify.repeat">Avisarme todos los días</span></label>
             <div id="modal-notify-options" class="modal-notify-options" role="group" aria-label="Avísame cuando llegue" data-i18n-attr="aria-label:app.notify.title">
                 <button type="button" data-notify-minutes="2">2 min</button>
                 <button type="button" data-notify-minutes="5">5 min</button>
