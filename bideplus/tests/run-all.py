@@ -23,6 +23,7 @@ STEPS = [
     ('API (todas las rutas)', [PY, 'tests/api-smoke.py']),
     ('Contrato de la API', [PY, 'tests/api-contract.py']),
     ('Horarios sin conexión', ['node', 'tests/offline-schedule.mjs']),
+    ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
 ]
 if not QUICK:
     STEPS += [

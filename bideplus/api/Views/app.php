@@ -245,7 +245,7 @@ use Core\Networks;
             </div>
             <p id="timetable-empty" class="timetable-empty" hidden data-i18n="app.noDepartures">No hay salidas programadas en ese rango.</p>
 
-            <button id="schedule-text-toggle" class="schedule-text-toggle" type="button" data-i18n="app.officialSchedule2026">Ver horario oficial 2026</button>
+            <button id="schedule-text-toggle" class="schedule-text-toggle" type="button" data-i18n="app.officialSchedule">Ver horario oficial</button>
         </section>
                 <p id="detail-empty" class="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
             </div>

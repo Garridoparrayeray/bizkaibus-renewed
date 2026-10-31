@@ -77,6 +77,9 @@ jobs:
       - name: Horarios sin conexión (las salidas guardadas son las de la API)
         run: node tests/offline-schedule.mjs
 
+      - name: Periodos del horario oficial (sin años pasados, días sueltos juntos)
+        run: node tests/schedule-periods.mjs
+
       - name: UI battery
         env:
           CHROME_PATH: google-chrome
