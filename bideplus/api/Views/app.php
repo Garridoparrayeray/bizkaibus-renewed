@@ -56,6 +56,7 @@ use Core\Networks;
     <main class="app-container">
 
         <div id="net-banner" class="net-banner" role="status" hidden>
+            <span class="net-banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M14.4 10.2A10 10 0 0 1 19 12.9"/><path d="M2 8.8a15 15 0 0 1 4.2-2.7"/><path d="M10.7 5A15 15 0 0 1 22 8.8"/><path d="M12 20h.01"/></svg></span>
             <span data-i18n="app.offline.banner">Sin conexión con el servidor. Puede que veas datos guardados.</span>
             <button id="net-retry" type="button" data-i18n="app.retry">Reintentar</button>
         </div>

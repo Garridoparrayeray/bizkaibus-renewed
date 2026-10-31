@@ -27,6 +27,7 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-31', '31/10/2026', 30, 'Sin conexión, como con conexión', 'En Ajustes puedes guardar todas las redes de una vez. Sin cobertura, Bizkaibus enseña la hora estimada con lo que tardan de verdad los buses y, debajo, la oficial; y en cualquier red puedes marcar si un bus ya pasó o no. Con conexión, las horas estimadas también llevan debajo la oficial. El aviso de sin conexión es ahora una pastilla pequeña abajo.'],
     ['2026-10-31', '31/10/2026', 29, 'Llegadas más precisas', 'Cuando en un tramo hay pocos buses medidos a una hora, lo que tardan a esa hora se completa con lo que tardan a cualquier hora. Las llegadas aciertan algo más, sobre todo las que faltan de 5 a 20 minutos. Y en Info, la pregunta de cómo instalar Bide+ dice desde qué navegador: Chrome o Firefox en Android y Safari en iPhone.'],
     ['2026-10-31', '31/10/2026', 28, 'Versión, caché y ubicación', 'En Ajustes ves la versión de la app, puedes vaciar la caché si algo no carga y ver y dar el permiso de ubicación para «Cerca de mí».'],
     ['2026-10-31', '31/10/2026', 27, 'Ajustes', 'Una pestaña nueva con el idioma, las notificaciones (las incidencias de tus favoritos y los avisos de llegada que tengas activos, que puedes cancelar), los horarios sin conexión y un botón para borrar tus datos del móvil.'],

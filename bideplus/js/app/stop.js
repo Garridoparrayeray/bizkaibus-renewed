@@ -231,12 +231,9 @@ function renderLiveCard(departures) {
     el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
-    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
+    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime);
     el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
-    if (departure.status === 'estimated') {
-        el.liveStatusText.textContent = `${departure.lineCode} · ${I18n.t('app.officialTime', { time: departure.scheduledTime })}`;
-    }
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
     el.liveOpenDetail.disabled = false;
@@ -248,13 +245,22 @@ function renderLiveCard(departures) {
         const li = document.createElement('li');
         const button = document.createElement('button');
         button.type = 'button';
-        let when = `${Math.max(other.etaMinutes, 0)} min`;
-        if (other.status === 'estimated') when = '≈ ' + when;
+        const when = document.createElement('span');
+        when.className = 'live-more-when';
+        when.textContent = `${Math.max(other.etaMinutes, 0)} min`;
+        // Estimada arriba y, debajo y en gris, la hora oficial.
+        if (other.status === 'estimated') {
+            when.textContent = `≈ ${when.textContent}`;
+            const official = document.createElement('small');
+            official.textContent = I18n.t('app.list.official', { time: other.scheduledTime });
+            when.appendChild(official);
+        }
         if (other.status === 'likely_departed') {
-            when = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
+            when.textContent = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
             li.className = 'is-likely-past';
         }
-        button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${escapeHtml(when)}</span>`;
+        button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span>`;
+        button.appendChild(when);
 
         button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
@@ -297,7 +303,7 @@ function renderPlatformColumn(direction, departures) {
     nextButton.type = 'button';
     nextButton.className = 'time-display';
     nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
-    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes);
+    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime);
     nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
     const badge = document.createElement('span');
