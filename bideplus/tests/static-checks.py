@@ -160,11 +160,11 @@ print('HTML con datos sin escapar:', unescaped or 'ninguno')
 if unescaped:
     failures.append('HTML sin escapar')
 
-for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php'), ('notificaciones push (llegadas e incidencias)', 'push-test.php')):
+for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php'), ('notificaciones push (llegadas e incidencias)', 'push-test.php'), ('calidad del código (batería de limpieza)', 'code-quality.php')):
     r = subprocess.run([PHP, ROOT + 'tests/' + script], capture_output=True, text=True)
     script_result = 'OK'
     if r.returncode != 0:
-        script_result = '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:]
+        script_result = '\n'.join(l for l in r.stdout.splitlines() if l.startswith(('MAL', '      ')) or 'RESULTADO' in l) + r.stderr[-300:]
     print(label + ':', script_result)
     if r.returncode != 0:
         failures.append(label)

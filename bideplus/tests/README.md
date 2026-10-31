@@ -15,7 +15,8 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 
 | Script | Qué comprueba |
 |---|---|
-| `static-checks.py` | Sintaxis de PHP y JS, ids que usan los módulos de `js/app/` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
+| `static-checks.py` | Sintaxis de PHP y JS, ids que usan los módulos de `js/app/` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php`, `data-integrity.php`, `store-test.php`, `push-test.php` y `code-quality.php` |
+| `code-quality.php` | Batería de limpieza: que todo el código siga las pautas de `CONTRIBUTING.md`. Formato (sin tabuladores, sin espacios al final, salto final, sangría de 4 en 4), sin operador ternario en PHP ni en JavaScript, variables de PHP con prefijo de tipo, `elseif`, JavaScript con `const`/`let` y `===`, sin restos de depuración, textos completos en castellano, euskera e inglés (sin claves repetidas, de más ni sin usar), sin funciones, constantes, clases de CSS ni archivos muertos, y el precache del service worker con todo lo que cargan las páginas. Con `engine/` presente cuenta también lo que usa el algoritmo. La lanza `static-checks.py` |
 | `build-test.php` | Funciones de `scripts/build-database.php`: al fusionar viajes iguales con calendarios distintos, una fecha solo queda anulada si ninguno de esos calendarios circula ese día. La lanza `static-checks.py` |
 | `unit-test.php` | Lógica sin servidor ni red, sobre una base de datos en memoria: `engine/`, parseo SIRI-VM, GTFS-Realtime de Metro Bilbao (con un feed real en `fixtures/`), registro de redes (`api/Networks`), `TripKey` y `Calendar`. La lanza `static-checks.py` |
 | `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
@@ -41,4 +42,5 @@ El navegador de pruebas usa un perfil temporal propio y se cierra por PID: no to
 - **Una ruta o un campo nuevo en la API:** añádelo al esquema de `api-contract.py` y una llamada en `api-smoke.py`.
 - **Un operador nuevo (por ejemplo Lurraldebus):** añade su base a `data-integrity.php`, su búsqueda y su ubicación a `api-smoke.py` y `api-contract.py`, y su app a `ui-battery.mjs`.
 - **Cambios en `engine/`:** además de `unit-test.php`, mide con `php engine/bizkaibus/tools/realtime-backtest.php analyze` antes y después.
+- **Antes de cada commit:** `php tests/code-quality.php` tarda medio segundo y dice exactamente qué línea no sigue las pautas.
 - Si una prueba falla con tu cambio, arregla el código, no la prueba, salvo que el comportamiento haya cambiado a propósito (y entonces dilo en la *pull request*).
