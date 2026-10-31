@@ -98,16 +98,15 @@
     async function favoriteLabel(app, favorite) {
         const cacheKey = `${app}:${favorite.type}:${favorite.refId}`;
         if (labelCache.has(cacheKey)) return labelCache.get(cacheKey);
-        let path = '/api/lines/';
-        if (favorite.type === 'stop') path = '/api/stops/';
+        const api = Api.forNetwork(app);
         let label = { title: '#' + favorite.refId, area: '' };
         try {
-            // Como en js/api.js: los identificadores de Euskotren llevan «:» y la API los espera sin codificar.
-            const response = await fetch(path + encodeURIComponent(favorite.refId).replace(/%3A/gi, ':') + appQuery(app));
-            if (response.ok) {
-                const data = await response.json();
-                if (favorite.type === 'stop') label = { title: data.name, area: data.area || '' };
-                else label = { title: `${data.code} ${data.name}`, area: '' };
+            if (favorite.type === 'stop') {
+                const stop = await api.stop(favorite.refId);
+                label = { title: stop.name, area: stop.area || '' };
+            } else {
+                const line = await api.line(favorite.refId);
+                label = { title: `${line.code} ${line.name}`, area: '' };
             }
         } catch (e) {
             return label;
@@ -159,33 +158,35 @@
         });
     }
 
-    function alertUrls(app, favorites) {
-        const lines = favorites.filter((f) => f.type === 'line').map((f) => encodeURIComponent(f.refId));
-        const stops = favorites.filter((f) => f.type === 'stop').map((f) => encodeURIComponent(f.refId));
+    // Qué incidencias se piden, como en js/alerts-store.js: en Bizkaibus por línea, en Renfe por estación y por línea,
+    // y en el resto toda la red (si hay algún favorito).
+    function alertQueries(app, favorites) {
+        const lines = favorites.filter((f) => f.type === 'line').map((f) => [f.refId, null]);
+        const stops = favorites.filter((f) => f.type === 'stop').map((f) => [null, f.refId]);
         const mode = BideNetworks.get(app).features.alerts;
-        const base = `/api/alerts?red=${encodeURIComponent(app)}`;
-        if (mode === 'lines') return lines.map((id) => `${base}&line=${id}`);
-        if (mode === 'stops') return [...stops.map((id) => `${base}&stop=${id}`), ...lines.map((id) => `${base}&line=${id}`)];
-        if (favorites.length) return [base];
+        if (mode === 'lines') return lines;
+        if (mode === 'stops') return [...stops, ...lines];
+        if (favorites.length) return [[null, null]];
         return [];
     }
 
     async function fetchAlerts(app) {
+        const api = Api.forNetwork(app);
         const seen = new Set();
         const alerts = [];
-        for (const url of alertUrls(app, readFavorites(app))) {
+        for (const [lineId, stopId] of alertQueries(app, readFavorites(app))) {
+            let data;
             try {
-                const response = await fetch(url);
-                if (!response.ok) continue;
-                for (const alert of (await response.json()).alerts || []) {
-                    const title = alert.summary || alert.title || '';
-                    const key = `${title}|${alert.description || ''}`;
-                    if (!title || seen.has(key)) continue;
-                    seen.add(key);
-                    alerts.push({ title, description: alert.description || '' });
-                }
+                data = await api.alerts(lineId, stopId);
             } catch (e) {
                 continue;
+            }
+            for (const alert of data.alerts || []) {
+                const title = alert.summary || alert.title || '';
+                const key = `${title}|${alert.description || ''}`;
+                if (!title || seen.has(key)) continue;
+                seen.add(key);
+                alerts.push({ title, description: alert.description || '' });
             }
         }
         return alerts;
