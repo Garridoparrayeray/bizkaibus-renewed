@@ -124,7 +124,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 29"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 30"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -436,6 +436,10 @@ check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.docume
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);
 await phone();
+// En el móvil el idioma de la cabecera es el botón «EU», pero el selector de Ajustes se tiene que ver (antes salía vacío).
+await go('/?red=bus');
+await ev("document.querySelector('[data-bide-tab=ajustes]').click(); true");
+check('navegador · app: en Ajustes se ve el selector de idioma', await waitTrue("[...document.querySelectorAll('[data-bide-view=ajustes] .bide-lang')].some((e) => e.getClientRects().length > 0)"));
 await go('/');
 await ev("localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'stop', refId: '4255' }])); true");
 await ev("document.querySelector('.menu-footer [data-bide-tab=ajustes]').click(); true");

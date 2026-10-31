@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v38';
+const CACHE_VERSION = 'v44';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -8,6 +8,8 @@ const OFFLINE_CACHE_NAME = 'bide-offline';
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
 // página nueva hasta tenerlos, y mientras muestra el último fotograma de la anterior (con el «+» de carga parado).
 const SLOW_NETWORK_MS = 1500;
+// El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
+const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
@@ -62,6 +64,7 @@ const SHELL_FILES = [
     '/js/sw-register.js',
     '/js/menu-lang.js',
     '/js/bide-mode.js',
+    '/js/notification-open.js',
     '/js/bide.js',
     '/style-bide.css',
     '/manifest-bide.json',
@@ -71,6 +74,7 @@ const SHELL_FILES = [
     '/icons/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
+    '/icons-bide-rojo/badge-96.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',
     // Los iconos de cada red salen de su configuración (js/networks.js): una red nueva no hay que añadirla aquí.
     ...BideNetworks.slugs.flatMap((slug) => ['/' + BideNetworks.get(slug).icons + '/icon-192.png', '/' + BideNetworks.get(slug).icons + '/icon-512.png']),
@@ -228,6 +232,8 @@ function ownPath(value, fallback) {
     return fallback;
 }
 
+// Siempre se enseña algo, aunque el mensaje llegue roto: en iPhone, un push sin notificación hace que el sistema
+// acabe quitando el permiso.
 self.addEventListener('push', (event) => {
     let data = {};
     try {
@@ -238,7 +244,7 @@ self.addEventListener('push', (event) => {
     event.waitUntil(self.registration.showNotification(data.title || 'Bide+', {
         body: data.body || '',
         icon: ownPath(data.icon, '/icons-bide-rojo/icon-192.png'),
-        badge: '/icons-bide-rojo/icon-192.png',
+        badge: BADGE_ICON,
         tag: data.tag || 'bide-arrival',
         renotify: true,
         vibrate: [200, 100, 200],
@@ -246,17 +252,31 @@ self.addEventListener('push', (event) => {
     }));
 });
 
+// Al tocar una notificación se abre su dirección: en la ventana de la app que ya haya o, si no hay, en una nueva. En
+// iPhone, con la app cerrada, el sistema la abre por el inicio para atender el toque y esa ventana aún no se deja
+// llevar a otra dirección («navigate failed»): entonces se le pide a la página que vaya ella (js/notification-open.js).
+async function openFromNotification(url) {
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (windows.length === 0) {
+        await clients.openWindow(url);
+        return;
+    }
+    const client = windows[0];
+    try {
+        await client.focus();
+    } catch (e) {
+        // Sin permiso para traerla al frente se sigue igual: lo importante es la dirección.
+    }
+    try {
+        await client.navigate(url);
+    } catch (e) {
+        client.postMessage({ type: 'bide:open', url });
+    }
+}
+
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const url = (event.notification.data && event.notification.data.url) || '/';
-    event.waitUntil((async () => {
-        const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-        for (const client of windows) {
-            if ('navigate' in client) {
-                await client.navigate(url);
-                return client.focus();
-            }
-        }
-        return clients.openWindow(url);
-    })());
+    let url = '/';
+    if (event.notification.data) url = ownPath(event.notification.data.url, '/');
+    event.waitUntil(openFromNotification(url));
 });

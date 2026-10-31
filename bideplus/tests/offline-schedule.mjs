@@ -52,6 +52,60 @@ for (const { slug } of index.networks) {
     check(`${slug}: las salidas guardadas son las del horario (${same}/${sample.length} paradas)`, differences.length === 0, differences.slice(0, 3).join(' | '));
 }
 
+// Horas estimadas con los tramos aprendidos (las mismas reglas que el motor sin datos del bus). Viaje de ejemplo que sale
+// a las 08:00 y llega a la tercera parada a las 08:40 según el horario, pero a las 08:10 según lo aprendido.
+const T = 8 * 3600;
+const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: [1] };
+const trip = [0, 0, T, 0, '1', T, 0, -1];
+const thursday = new Date(2026, 10, 5);
+const saturday = new Date(2026, 10, 7);
+const at = (date, now, data = sample) => BideOffline.arrival(data, trip, 2, date, T + 2400, now);
+let r = at(thursday, T + 300);
+check('sin conexión, antes de la hora estimada sale «estimado» con esa hora', r.status === 'estimated' && r.etaSeconds === T + 600, JSON.stringify(r));
+r = at(thursday, T + 900);
+check('sin conexión, si la estimación pasó hace menos de 10 min se deja la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 1500);
+check('sin conexión, horario 30 min más lento y estimación pasada hace 15 min: «probablemente ya pasó» con la hora oficial', r.status === 'likely_departed' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 1500, { ...sample, estimateTrusted: [0] });
+check('sin conexión, con pocos tramos aprendidos no se dice que ya pasó', r.status === 'scheduled', JSON.stringify(r));
+r = at(saturday, T + 300);
+check('sin conexión, sin estimación para ese tipo de día sale la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
+r = at(thursday, T + 300, { timings: sample.timings });
+check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.status === 'scheduled', JSON.stringify(r));
+
+// Marcas sin conexión («ya pasó» / «no ha pasado»), guardadas en el móvil.
+const store = new Map();
+globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+const net = BideOffline.prepare({
+    lines: [['1', 'A1', 'Línea de ejemplo']],
+    patterns: [[0, 'Final', ['S1', 'S2', 'S3', 'S4']]],
+    timings: [[0, 600, 2400, 2500]],
+    estimates: [[0, 300, 600, 700]],
+    estimateTrusted: [1],
+    trips: [[0, 0, T, 0, '7', T, 0, -1]],
+    calendars: [[127, [], []]],
+    stops: { S1: ['Uno'], S2: ['Dos'], S3: ['Tres'], S4: ['Cuatro'] },
+    lon: {},
+    directionReference: null,
+});
+const nowAt = (seconds) => new Date(2026, 10, 5, 0, 0, seconds);
+const statusAt = (stopId, seconds) => BideOffline.departures(net, stopId, nowAt(seconds), 5).departures.map((d) => d.status).join(',');
+check('marcas: sin marcas el bus sale estimado en la tercera parada', statusAt('S3', T + 100) === 'estimated', statusAt('S3', T + 100));
+let shown = BideOffline.departures(net, 'S2', nowAt(T + 100), 5).departures[0];
+BideOffline.mark(shown, 'passed');
+check('marcas: «ya pasó» en la segunda parada lo esconde ahí', statusAt('S2', T + 100) === '', statusAt('S2', T + 100));
+check('marcas: pero sigue saliendo en la parada siguiente', statusAt('S3', T + 100) === 'estimated', statusAt('S3', T + 100));
+const withHidden = BideOffline.departures(net, 'S2', nowAt(T + 100), 5);
+check('marcas: la parada sabe cuántos buses escondió la marca', withHidden.hiddenByMarks.length === 1);
+BideOffline.unmark(withHidden.hiddenByMarks);
+check('marcas: «deshacer» lo devuelve', statusAt('S2', T + 100) === 'estimated', statusAt('S2', T + 100));
+check('marcas: sin marca, a los 25 min sale como «probablemente ya pasó»', statusAt('S3', T + 1500) === 'likely_departed', statusAt('S3', T + 1500));
+shown = BideOffline.departures(net, 'S3', nowAt(T + 1500), 5).departures[0];
+BideOffline.mark(shown, 'coming');
+check('marcas: «no ha pasado» lo devuelve con su hora oficial', statusAt('S3', T + 1500) === 'scheduled', statusAt('S3', T + 1500));
+const otherDay = BideOffline.departures(net, 'S3', new Date(2026, 10, 6, 0, 0, T + 1500), 5).departures.map((d) => d.status).join(',');
+check('marcas: una marca vale solo para el día de ese viaje', otherDay === 'likely_departed', otherDay);
+
 const bad = results.filter((r) => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
 console.log(`\nRESULTADO horarios sin conexión: ${results.length - bad} OK, ${bad} MAL`);

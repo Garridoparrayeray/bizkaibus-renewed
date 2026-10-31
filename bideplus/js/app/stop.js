@@ -15,6 +15,45 @@ async function offlineSchedule() {
     return BideOffline.load(NETWORK_SLUG).catch(() => null);
 }
 
+// Las salidas que se ven, ¿salen del horario guardado (sin conexión)? Solo entonces se puede marcar si un bus pasó.
+let offlineView = null;
+
+async function refreshOfflineDepartures() {
+    const saved = await offlineSchedule();
+    if (!saved || !state.currentStop) return;
+    const data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
+    state.lastDepartures = data;
+    renderDepartures(data);
+}
+
+// «Ya pasó» o, en los que salen como probablemente pasados, «no ha pasado». Sin conexión, sin directo que lo diga.
+function offlineMarkButton(departure, button = document.createElement('button')) {
+    button.type = 'button';
+    button.className = 'offline-mark';
+    let kind = 'passed';
+    if (departure.status === 'likely_departed') kind = 'coming';
+    button.textContent = I18n.t('app.mark.' + kind);
+    button.setAttribute('aria-label', `${I18n.t('app.mark.' + kind)}: ${departure.lineCode} ${departure.headsign} ${departure.scheduledTime}`);
+    button.onclick = (event) => {
+        event.stopPropagation();
+        BideOffline.mark(departure, kind);
+        refreshOfflineDepartures();
+    };
+    return button;
+}
+
+function renderMarksUndo(button, data) {
+    const hidden = (data && data.hiddenByMarks) || [];
+    const trips = new Set(hidden.map((h) => h.serviceDay + '|' + h.tripKey));
+    button.hidden = !offlineView || trips.size === 0;
+    if (button.hidden) return;
+    button.textContent = I18n.t('app.mark.undo', { n: trips.size });
+    button.onclick = () => {
+        BideOffline.unmark(hidden);
+        refreshOfflineDepartures();
+    };
+}
+
 function showOfflineSchedule(isOffline) {
     const message = el.netBanner.querySelector('[data-i18n]');
     let key = 'app.offline.banner';
@@ -102,10 +141,14 @@ function departuresSignature(departures) {
 export function renderDepartures(data) {
     const fresh = { ...data, departures: freshDepartures(data.departures) };
     state.departuresSignature = departuresSignature(fresh.departures);
+    offlineView = null;
+    if (data.offline === true) offlineView = data;
     if (HAS_PLATFORMS) {
         renderPlatformPanel(fresh);
+        renderMarksUndo(el.platformMarksUndo, offlineView);
     } else {
         renderLiveCard(fresh.departures);
+        renderMarksUndo(el.liveMarksUndo, offlineView);
     }
 }
 
@@ -164,6 +207,9 @@ function renderLiveCard(departures) {
     const departure = departures[heroIndex] || null;
     const others = departures.filter((_, i) => i !== heroIndex);
     el.liveMoreList.innerHTML = '';
+    el.liveOfflineMarks.hidden = !offlineView;
+    el.liveMark.hidden = !offlineView || !departure;
+    if (offlineView && departure) offlineMarkButton(departure, el.liveMark);
 
     if (!departure) {
         el.liveLine.textContent = state.currentStop.name;
@@ -185,12 +231,9 @@ function renderLiveCard(departures) {
     el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
-    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes);
+    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime);
     el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
-    if (departure.status === 'estimated') {
-        el.liveStatusText.textContent = `${departure.lineCode} · ${I18n.t('app.officialTime', { time: departure.scheduledTime })}`;
-    }
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
     el.liveOpenDetail.disabled = false;
@@ -202,17 +245,30 @@ function renderLiveCard(departures) {
         const li = document.createElement('li');
         const button = document.createElement('button');
         button.type = 'button';
-        let when = `${Math.max(other.etaMinutes, 0)} min`;
-        if (other.status === 'estimated') when = '≈ ' + when;
+        const when = document.createElement('span');
+        when.className = 'live-more-when';
+        when.textContent = `${Math.max(other.etaMinutes, 0)} min`;
+        // Estimada arriba y, debajo y en gris, la hora oficial.
+        if (other.status === 'estimated') {
+            when.textContent = `≈ ${when.textContent}`;
+            const official = document.createElement('small');
+            official.textContent = I18n.t('app.list.official', { time: other.scheduledTime });
+            when.appendChild(official);
+        }
         if (other.status === 'likely_departed') {
-            when = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
+            when.textContent = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
             li.className = 'is-likely-past';
         }
-        button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span><span>${escapeHtml(when)}</span>`;
+        button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span>`;
+        button.appendChild(when);
 
         button.addEventListener('click', () => openVehicleModal(other.tripKey));
 
         li.appendChild(button);
+        if (offlineView) {
+            li.classList.add('has-mark');
+            li.appendChild(offlineMarkButton(other));
+        }
         el.liveMoreList.appendChild(li);
     }
 }
@@ -247,7 +303,7 @@ function renderPlatformColumn(direction, departures) {
     nextButton.type = 'button';
     nextButton.className = 'time-display';
     nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
-    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes);
+    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime);
     nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
 
     const badge = document.createElement('span');
@@ -262,6 +318,7 @@ function renderPlatformColumn(direction, departures) {
     scheduled.append(dot, `${next.scheduledTime} · ${text}`);
 
     column.append(headsignEl, badge, nextButton, scheduled);
+    if (offlineView) column.appendChild(offlineMarkButton(next));
 
     if (rest.length > 0) {
         const list = document.createElement('ul');
@@ -273,6 +330,10 @@ function renderPlatformColumn(direction, departures) {
             button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(departure.scheduledTime)} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
             button.addEventListener('click', () => openVehicleModal(departure.tripKey));
             li.appendChild(button);
+            if (offlineView) {
+                li.classList.add('has-mark');
+                li.appendChild(offlineMarkButton(departure));
+            }
             list.appendChild(li);
         }
         column.appendChild(list);

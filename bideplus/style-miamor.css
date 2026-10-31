@@ -87,6 +87,13 @@
     /* Sin el icono grande de fondo: con el color de cada red dejaba una mancha oscura en la esquina. */
     :root.is-miamor .tile .mark { display: none; }
 :root.is-miamor .menu-map-link > svg:first-child { color: var(--bide-green); }
+/* La cabecera fija de Favoritos, Avisos, Ajustes e Info: cristal sobre el degradado, como las tarjetas. */
+:root.is-miamor .bide-view-head {
+    background: var(--miamor-glass);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+}
+    :root.is-miamor .bide-view-head::after { display: none; }
 
 /* ===== Pie ===== */
 :root.is-miamor.bide body :is(.app-footer, .menu-footer) .bide-footer-title { color: #ffe0ee; }

@@ -44,8 +44,14 @@ function delayText(status, delayMinutes) {
     return '';
 }
 
-export function setDelaySub(node, status, delayMinutes) {
-    const text = delayText(status, delayMinutes);
+// Bajo los minutos: el retraso si va en directo, o en gris la hora oficial si la hora es estimada.
+export function setDelaySub(node, status, delayMinutes, scheduledTime = null) {
+    let text = delayText(status, delayMinutes);
+    node.classList.remove('is-official');
+    if (text === '' && status === 'estimated' && scheduledTime) {
+        text = I18n.t('app.officialTime', { time: scheduledTime });
+        node.classList.add('is-official');
+    }
     node.textContent = text;
     node.hidden = text === '';
 }

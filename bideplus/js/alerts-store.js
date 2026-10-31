@@ -6,6 +6,8 @@ const AlertsStore = (() => {
     const MAX_NOTIFICATIONS = 3;
     const appLabel = (network) => BideNetworks.name(network);
     const appIcon = (network) => `/${BideNetworks.get(network).icons}/icon-192.png`;
+    // El de la barra de estado de Android: la silueta de Bide+ en blanco sobre transparente.
+    const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 
     function openDb() {
         return new Promise((resolve, reject) => {
@@ -126,6 +128,7 @@ const AlertsStore = (() => {
             await registration.showNotification(`${appLabel(alert.network)} · ${alert.title}`, {
                 body: alert.body.slice(0, 180),
                 icon: appIcon(alert.network),
+                badge: BADGE_ICON,
                 tag: alert.key,
                 data: { url: `/?red=${alert.network}` },
             });
@@ -134,6 +137,7 @@ const AlertsStore = (() => {
             await registration.showNotification('Más incidencias en tus líneas', {
                 body: `${alerts.length - MAX_NOTIFICATIONS} avisos más. Ábrelos en la app.`,
                 icon: appIcon(alerts[0].network),
+                badge: BADGE_ICON,
                 tag: 'bide-more-alerts',
                 data: { url: `/?red=${alerts[0].network}` },
             });

@@ -26,10 +26,10 @@ use Core\Networks;
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sImage) ?>">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
+    <meta property="og:image:width" content="<?= $iImageWidth ?>">
+    <meta property="og:image:height" content="<?= $iImageHeight ?>">
     <meta property="og:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="<?= $sTwitterCard ?>">
     <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="twitter:image" content="<?= htmlspecialchars($sImage) ?>">
@@ -46,6 +46,7 @@ use Core\Networks;
     <script src="/js/theme.js"></script>
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
+    <script src="/js/notification-open.js"></script>
     <link rel="stylesheet" href="/style-bide.css">
     <link rel="stylesheet" href="/style-networks.css">
     <link rel="stylesheet" href="/style-miamor.css">
@@ -56,6 +57,7 @@ use Core\Networks;
     <main class="app-container">
 
         <div id="net-banner" class="net-banner" role="status" hidden>
+            <span class="net-banner-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.9a10 10 0 0 1 5.2-2.8"/><path d="M14.4 10.2A10 10 0 0 1 19 12.9"/><path d="M2 8.8a15 15 0 0 1 4.2-2.7"/><path d="M10.7 5A15 15 0 0 1 22 8.8"/><path d="M12 20h.01"/></svg></span>
             <span data-i18n="app.offline.banner">Sin conexión con el servidor. Puede que veas datos guardados.</span>
             <button id="net-retry" type="button" data-i18n="app.retry">Reintentar</button>
         </div>
@@ -176,6 +178,10 @@ use Core\Networks;
                             <button id="live-incidents-link" class="live-incidents-link" type="button" hidden data-i18n="app.incidents">Incidencias</button>
                         </p>
                     </footer>
+                    <p id="live-offline-marks" class="offline-marks" hidden>
+                        <button id="live-mark" class="offline-mark" type="button"></button>
+                        <button id="live-marks-undo" class="offline-marks-undo" type="button" hidden></button>
+                    </p>
                     <ul id="live-more-list" class="live-more-list"></ul>
                 </article>
 
@@ -194,6 +200,7 @@ use Core\Networks;
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
+                    <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>
                 </div>
                 <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
 

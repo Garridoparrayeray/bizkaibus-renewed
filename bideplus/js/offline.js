@@ -1,13 +1,21 @@
 // Horarios sin conexión: el horario oficial de las redes que elige la persona, guardado en el móvil (Cache Storage).
 // Sin cobertura, la parada se abre con ese horario y sus salidas se calculan aquí, con la misma forma que las de la
-// API y el estado «solo horario». Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
+// API. Donde la red trae horas estimadas con los tramos aprendidos (Bizkaibus), se aplican las mismas reglas que en el
+// servidor sin datos del bus: «estimado» con la hora oficial al lado, «probablemente ya pasó» si el horario va muy
+// lento, y si no, «solo horario». Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
 const BideOffline = (() => {
     const CACHE_NAME = 'bide-offline';
     const LIST_KEY = 'bide-offline-networks';
+    // Marcas que pone la persona sin conexión: { 'AAAA-MM-DD': { tripKey: { passed: posición } | { coming: posición } } }.
+    const MARKS_KEY = 'bide-offline-marks';
     const CHECKED_KEY = 'bide-offline-checked';
     const CHECK_EVERY_MS = 6 * 3600 * 1000;
     const DAY_SECONDS = 86400;
     const PAST_MARGIN_SECONDS = 60;
+    // Las mismas que el motor: un bus «probablemente ya pasó» si la estimación quedó 10 min atrás y el horario va
+    // 10 min o más lento que lo aprendido.
+    const LIKELY_PASSED_SECONDS = 600;
+    const SLOW_SCHEDULE_SECONDS = 600;
     const prepared = new Map();
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
@@ -85,6 +93,56 @@ const BideOffline = (() => {
                 await save(network.slug).catch(() => {});
             }
         }
+    }
+
+    /*
+     * Sin conexión no hay directo ni registro de pasos, así que la persona puede decir lo que ve en la calle:
+     * - «ya pasó» en una parada: el bus ya pasó por esa parada y por las anteriores de su recorrido (no se enseña).
+     * - «no ha pasado»: el bus todavía no ha llegado a esa parada ni a las siguientes (deja de salir como
+     *   «probablemente ya pasó» y vuelve con su hora oficial).
+     * Valen para el día del viaje y se borran solas pasado ese día. Con conexión no se usan.
+     */
+    function readMarks() {
+        try {
+            return JSON.parse(localStorage.getItem(MARKS_KEY) || '{}') || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function writeMarks(marks) {
+        // Se guardan los de ayer (viajes de madrugada) en adelante; los anteriores ya no sirven.
+        const yesterday = isoDate(new Date(Date.now() - DAY_SECONDS * 1000));
+        for (const day of Object.keys(marks)) {
+            if (day < yesterday) delete marks[day];
+        }
+        try {
+            localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+        } catch (e) {
+            // Sin almacenamiento la marca no se recuerda.
+        }
+    }
+
+    function mark(departure, kind) {
+        const marks = readMarks();
+        if (!marks[departure.serviceDay]) marks[departure.serviceDay] = {};
+        const entry = {};
+        entry[kind] = departure.position;
+        marks[departure.serviceDay][departure.tripKey] = entry;
+        writeMarks(marks);
+    }
+
+    function unmark(hidden) {
+        const marks = readMarks();
+        for (const { serviceDay, tripKey } of hidden) {
+            if (marks[serviceDay]) delete marks[serviceDay][tripKey];
+        }
+        writeMarks(marks);
+    }
+
+    function markFor(marks, serviceDay, tripKey) {
+        if (!marks[serviceDay]) return null;
+        return marks[serviceDay][tripKey] || null;
     }
 
     // Índices para no recorrer todos los viajes en cada consulta: paradas → [recorrido, posición] y recorrido → viajes.
@@ -167,6 +225,8 @@ const BideOffline = (() => {
         });
 
         const found = [];
+        const hidden = [];
+        const marks = readMarks();
         for (const target of targets) {
             const items = [];
             for (const [patternIndex, position] of data.byStop.get(target) || []) {
@@ -175,16 +235,29 @@ const BideOffline = (() => {
                     const atStop = trip[2] + data.timings[trip[1]][position];
                     for (const day of days) {
                         const seconds = atStop + day.offset * DAY_SECONDS;
-                        if (seconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
+                        const timing = arrival(data, trip, position, day.date, seconds, nowSeconds);
+                        if (timing.etaSeconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
                         if (!runsOn(data.calendars[trip[3]], day.date)) continue;
-                        items.push({ seconds, trip, pattern, position });
+                        const serviceDay = isoDate(day.date);
+                        const tripKey = tripKeyOf(data, pattern, trip);
+                        const userMark = markFor(marks, serviceDay, tripKey);
+                        if (userMark && userMark.passed !== undefined && position <= userMark.passed) {
+                            hidden.push({ serviceDay, tripKey });
+                            continue;
+                        }
+                        let finalTiming = timing;
+                        if (userMark && userMark.coming !== undefined && position >= userMark.coming && timing.status === 'likely_departed') {
+                            finalTiming = { status: 'scheduled', etaSeconds: seconds };
+                        }
+                        items.push({ seconds, trip, pattern, position, serviceDay, tripKey, ...finalTiming });
                     }
                 }
             }
-            items.sort((a, b) => a.seconds - b.seconds);
+            // Por hora prevista; los que probablemente ya pasaron, al final (como la API).
+            items.sort((a, b) => rank(a) - rank(b) || a.etaSeconds - b.etaSeconds);
             for (const item of items.slice(0, limit)) found.push(departureItem(data, item, target, platforms.length > 0, now, nowSeconds));
         }
-        found.sort((a, b) => a.etaAt - b.etaAt);
+        found.sort((a, b) => rank(a) - rank(b) || a.etaAt - b.etaAt);
 
         const stop = data.stops[id] || [''];
         return {
@@ -192,8 +265,35 @@ const BideOffline = (() => {
             platforms: platforms.map((platform) => ({ id: outputId(platform.id), label: platform.label })),
             directionLabels: directionLabels(found),
             departures: found,
+            hiddenByMarks: hidden,
             offline: true,
         };
+    }
+
+    function rank(item) {
+        if (item.status === 'likely_departed') return 1;
+        return 0;
+    }
+
+    // Hora y estado de un viaje en una parada: la estimada con los tramos aprendidos si la red la trae para ese tipo de
+    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
+    function arrival(data, trip, position, date, officialSeconds, nowSeconds) {
+        const official = { status: 'scheduled', etaSeconds: officialSeconds };
+        if (!data.estimates || position === 0) return official;
+        let slot = trip[6];
+        const weekday = date.getDay();
+        if (weekday === 0 || weekday === 6) slot = trip[7];
+        if (slot === undefined || slot < 0) return official;
+        const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
+        if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };
+        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot] === 1) {
+            return { status: 'likely_departed', etaSeconds: officialSeconds };
+        }
+        return official;
+    }
+
+    function tripKeyOf(data, pattern, trip) {
+        return `${data.lines[pattern[0]][0]}-${trip[4]}-${trip[5]}`;
     }
 
     function departureItem(data, item, target, isPlatform, now, nowSeconds) {
@@ -209,11 +309,13 @@ const BideOffline = (() => {
             lineCode: line[1],
             lineName: line[2],
             headsign,
-            tripKey: `${line[0]}-${item.trip[4]}-${item.trip[5]}`,
+            tripKey: item.tripKey,
+            serviceDay: item.serviceDay,
+            position: item.position,
             scheduledTime: `${String(((hours % 24) + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
-            etaMinutes: Math.round((item.seconds - nowSeconds) / 60),
-            etaAt: Math.round(now.getTime() / 1000) + (item.seconds - nowSeconds),
-            status: 'scheduled',
+            etaMinutes: Math.round((item.etaSeconds - nowSeconds) / 60),
+            etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
+            status: item.status,
             delayMinutes: null,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
@@ -264,6 +366,9 @@ const BideOffline = (() => {
         load,
         prepare,
         departures,
+        arrival,
+        mark,
+        unmark,
         stop,
     };
 })();
