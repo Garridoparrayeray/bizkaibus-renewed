@@ -88,7 +88,7 @@ export function startRouting() {
     if (sharedTrip || alertToken) removeLaunchParams();
     if (alertToken && !firstOpening(alertToken)) {
         // Esa notificación ya se abrió: es el sistema recargando la dirección con la que se abrió la app. Se queda en
-        // el inicio, sin la parada ni la ficha del viaje.
+        // el inicio, sin la parada, la ficha del viaje ni la pestaña Avisos.
         sharedTrip = null;
         pathMatch = null;
         history.replaceState(null, '', '/?red=' + window.__bbNetwork);
@@ -110,16 +110,17 @@ export function startRouting() {
 }
 
 // Un viaje compartido o de una notificación («?viaje=») se abre al cargar y se quita en el acto de la dirección: al
-// recargar ya no vuelve a salir.
+// recargar ya no vuelve a salir. La pestaña que pida la notificación (#avisos) se queda: la abre js/bide.js.
 function removeLaunchParams() {
     const url = new URL(window.location.href);
     url.searchParams.delete('viaje');
     url.searchParams.delete('aviso');
-    history.replaceState(history.state, '', url.pathname + url.search);
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
 }
 
-// Una notificación abre su viaje una sola vez: su dirección lleva «?aviso=», distinto en cada envío, y se apunta al
-// abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió: entonces ya no sale.
+// Una notificación (de llegada o de incidencias) se abre una sola vez: su dirección lleva «?aviso=», distinto en cada
+// envío, y se apunta al abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió:
+// entonces ya no sale.
 const OPENED_ALERTS_KEY = 'bide-opened-alerts';
 const OPENED_ALERTS_KEEP_MS = 7 * 24 * 3600 * 1000;
 

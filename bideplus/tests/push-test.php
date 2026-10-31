@@ -303,7 +303,7 @@ try {
     $aFeeds['bus|3514'] = [['summary' => 'Huelga', 'description' => '  Servicios mínimos el día 5  ']];
     $Run();
     $Expect('incidencias: una nueva se manda una vez', count($aSent) === 1);
-    $Expect('incidencias: con la red en el título, en su idioma y con la app al tocarla', ($aSent[0]['title'] ?? '') === 'Bizkaibus+ · Huelga' && $aSent[0]['body'] === 'Servicios mínimos el día 5' && $aSent[0]['url'] === '/?red=bus' && $aSent[0]['tag'] === IncidentAlerts::key('bus', 'Huelga', 'Servicios mínimos el día 5') && $aSent[0]['icon'] === '/icons-pro/icon-192.png', json_encode($aSent[0] ?? null, JSON_UNESCAPED_UNICODE));
+    $Expect('incidencias: con la red en el título, en su idioma y con la app al tocarla', ($aSent[0]['title'] ?? '') === 'Bizkaibus+ · Huelga' && $aSent[0]['body'] === 'Servicios mínimos el día 5' && preg_match('/^\/\?red=bus&aviso=[a-z0-9]+-[a-f0-9]{8}#avisos$/', $aSent[0]['url']) === 1 && $aSent[0]['tag'] === IncidentAlerts::key('bus', 'Huelga', 'Servicios mínimos el día 5') && $aSent[0]['icon'] === '/icons-pro/icon-192.png', json_encode($aSent[0] ?? null, JSON_UNESCAPED_UNICODE));
     $Run();
     $Expect('incidencias: la misma no se repite', count($aSent) === 1);
 
@@ -352,6 +352,29 @@ try {
 
     IncidentAlerts::save($aSubscriber, ['bus' => ['lines' => ['3513'], 'stops' => []]], 'es');
     $Expect('incidencias: darse de baja', IncidentAlerts::remove($aSubscriber['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:incident:subs']])[0] === []);
+
+    // En todas las apps: Euskotren, los dos tranvías y Lurraldebus miran toda la red, como Metro.
+    $aOthers = ['euskotren', 'tranvia-bilbao', 'tranvia-vitoria', 'lurraldebus'];
+    $aEveryNetwork = [];
+    foreach ($aOthers as $sNetwork) {
+        $aEveryNetwork[$sNetwork] = ['lines' => [], 'stops' => ['P1']];
+        $aFeeds[$sNetwork . '|*'] = [];
+    }
+    $aOtherSubscriber = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/otras-redes', 'keys' => $aSubscription['keys']];
+    IncidentAlerts::save($aOtherSubscriber, $aEveryNetwork, 'es');
+    $Run();
+    foreach ($aOthers as $sNetwork) {
+        $aFeeds[$sNetwork . '|*'][] = ['title' => 'Obras', 'description' => 'Corte en ' . $sNetwork];
+    }
+    $iBefore = count($aSent);
+    $Run();
+    $aNew = array_slice($aSent, $iBefore);
+    $aNetworksSent = array_map(fn($aMessage) => explode('&', substr($aMessage['url'], strlen('/?red=')))[0], $aNew);
+    sort($aNetworksSent);
+    $aExpected = $aOthers;
+    sort($aExpected);
+    $Expect('incidencias en todas las apps: Euskotren, tranvías y Lurraldebus avisan y abren su pestaña Avisos', $aNetworksSent === $aExpected && count(array_filter($aNew, fn($aMessage) => str_ends_with($aMessage['url'], '#avisos'))) === 4, json_encode($aNew, JSON_UNESCAPED_UNICODE));
+    IncidentAlerts::remove($aOtherSubscriber['endpoint']);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);

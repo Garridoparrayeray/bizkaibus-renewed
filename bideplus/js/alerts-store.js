@@ -8,6 +8,13 @@ const AlertsStore = (() => {
     const appIcon = (network) => `/${BideNetworks.get(network).icons}/icon-192.png`;
     // El de la barra de estado de Android: la silueta de Bide+ en blanco sobre transparente.
     const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
+    // El resumen cuando hay más de tres, como lo manda el servidor (api/Services/IncidentAlerts.php). El service worker
+    // no carga el diccionario de la app: el idioma lo deja apuntado la página (js/incident-alerts.js).
+    const MORE_TEXTS = {
+        es: { title: 'Más incidencias en tus favoritos', body: '{n} avisos más. Ábrelos en la app.' },
+        eu: { title: 'Intzidentzia gehiago zure gogokoetan', body: 'Beste {n} abisu. Ireki aplikazioan.' },
+        en: { title: 'More disruptions on your favourites', body: '{n} more alerts. Open them in the app.' },
+    };
 
     function openDb() {
         return new Promise((resolve, reject) => {
@@ -123,6 +130,11 @@ const AlertsStore = (() => {
         await set('seen', {});
     }
 
+    // Al tocarla se abre la pestaña Avisos de esa app, una sola vez («aviso», como las del servidor).
+    function openUrl(network, seed) {
+        return `/?red=${network}&aviso=${Date.now().toString(36)}-${hash(seed)}#avisos`;
+    }
+
     async function notify(registration, alerts) {
         for (const alert of alerts.slice(0, MAX_NOTIFICATIONS)) {
             await registration.showNotification(`${appLabel(alert.network)} · ${alert.title}`, {
@@ -130,16 +142,17 @@ const AlertsStore = (() => {
                 icon: appIcon(alert.network),
                 badge: BADGE_ICON,
                 tag: alert.key,
-                data: { url: `/?red=${alert.network}` },
+                data: { url: openUrl(alert.network, alert.key) },
             });
         }
         if (alerts.length > MAX_NOTIFICATIONS) {
-            await registration.showNotification('Más incidencias en tus líneas', {
-                body: `${alerts.length - MAX_NOTIFICATIONS} avisos más. Ábrelos en la app.`,
+            const texts = MORE_TEXTS[(await get('lang').catch(() => null)) || 'es'] || MORE_TEXTS.es;
+            await registration.showNotification(texts.title, {
+                body: texts.body.replace('{n}', String(alerts.length - MAX_NOTIFICATIONS)),
                 icon: appIcon(alerts[0].network),
                 badge: BADGE_ICON,
                 tag: 'bide-more-alerts',
-                data: { url: `/?red=${alerts[0].network}` },
+                data: { url: openUrl(alerts[0].network, 'bide-more-alerts') },
             });
         }
     }

@@ -110,12 +110,18 @@ const many = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
 check('varios avisos nuevos a la vez se detectan todos', many === 5, `${many}`);
 const notified = await ev(`(async () => {
     const calls = [];
-    const fake = { showNotification: async (title, options) => { calls.push({ title, tag: options.tag }); } };
+    const fake = { showNotification: async (title, options) => { calls.push({ title, tag: options.tag, url: options.data.url, badge: options.badge }); } };
     const alerts = ['a', 'b', 'c', 'd', 'e'].map(k => ({ network: 'bus', title: 'Incidencia', body: 'x' + k, key: 'bus:' + k }));
     await AlertsStore.notify(fake, alerts);
+    await AlertsStore.set('lang', 'en');
+    await AlertsStore.notify(fake, alerts);
+    await AlertsStore.set('lang', I18n.getLang());
     return calls;
 })()`);
-check('se muestran como mucho 3 notificaciones y un resumen', notified.length === 4 && notified[0].title.startsWith('Bizkaibus+') && notified[3].tag === 'bide-more-alerts', `${notified.length} notificaciones`);
+check('se muestran como mucho 3 notificaciones y un resumen', notified.length === 8 && notified[0].title.startsWith('Bizkaibus+') && notified[3].tag === 'bide-more-alerts', `${notified.length} notificaciones`);
+check('sin push: al tocarlas se abre la pestaña Avisos, una sola vez', notified.every(n => /^\/\?red=bus&aviso=[a-z0-9]+-[a-z0-9]+#avisos$/.test(n.url)), JSON.stringify(notified.map(n => n.url)));
+check('sin push: el resumen va en el idioma elegido', notified[3].title === 'Más incidencias en tus favoritos' && notified[7].title === 'More disruptions on your favourites', `${notified[3].title} / ${notified[7].title}`);
+check('sin push: llevan el icono de la barra de estado', notified.every(n => n.badge === '/icons-bide-rojo/badge-96.png'));
 
 await ev(`AlertsStore.setFavorites('metro', ['MB'])`);
 mock.metro = [{ title: 'Incidencia', description: 'Metro M1' }];
@@ -286,6 +292,28 @@ await go('/');
 await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'bide:open', url: '//ejemplo.com/x' })))`);
 await sleep(1500);
 check('la pagina no va a direcciones de fuera', (await ev('location.host')) === new URL(BASE).host);
+
+// Incidencias por push: con la app cerrada salen igual que las de llegada, y al tocarlas se abre la pestaña Avisos de
+// esa app una sola vez.
+if (registrationId) {
+    const incidentUrl = `/?red=metro&aviso=prueba-${Date.now().toString(36)}#avisos`;
+    const incident = { title: 'Metro+ · Obras L2', body: 'Sin servicio entre Urbinaga y Kabiezes', url: incidentUrl, tag: 'metro:prueba', icon: '/icons-metro/icon-192.png' };
+    await send('Page.navigate', { url: 'about:blank' });
+    await sleep(800);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(incident) });
+    await sleep(1500);
+    await go('/?red=bus');
+    const shownIncident = (await notifications() || []).find(n => n.tag === 'metro:prueba');
+    check('incidencia con la app cerrada: sale con su texto y su enlace', !!shownIncident && shownIncident.title === incident.title && shownIncident.url === incidentUrl, JSON.stringify(shownIncident));
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+    await go(incidentUrl, 3500);
+    check('incidencia: al tocarla se abre la pestaña Avisos de su app', await waitTrue("!document.querySelector('[data-bide-view=avisos]').hidden && location.hash === '#avisos' && !location.search.includes('aviso=')"), await ev('location.pathname + location.search + location.hash'));
+    await go(incidentUrl, 3500);
+    check('incidencia: si el sistema vuelve a cargar su dirección, no se abre otra vez', await ev("document.querySelector('[data-bide-view=avisos]').hidden && location.hash === '' && location.search === '?red=metro'"), await ev('location.pathname + location.search + location.hash'));
+} else {
+    skip('incidencias por push con la app cerrada', 'no se obtuvo el registro del service worker');
+}
 
 await ev(`AlertsStore.set('enabled', false)`);
 const bad = results.filter(r => r.startsWith('MAL')).length;

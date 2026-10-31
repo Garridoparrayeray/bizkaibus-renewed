@@ -216,10 +216,18 @@ class IncidentAlerts
         return [
             'title' => Networks::text($aNetwork, 'name', $sLang) . ' · ' . $aAlert['title'],
             'body' => mb_substr($aAlert['body'], 0, self::BODY_LENGTH),
-            'url' => '/?red=' . $sNetwork,
+            'url' => self::openUrl($sNetwork, $aAlert['key']),
             'tag' => $aAlert['key'],
             'icon' => '/' . $aNetwork['brand']['icons'] . '/icon-192.png',
         ];
+    }
+
+    // Al tocarla se abre la pestaña Avisos de esa app (#avisos), con las incidencias de los favoritos. «aviso», distinto
+    // en cada envío, hace que se abra una sola vez aunque el sistema vuelva a cargar esa dirección (js/app/navigation.js).
+    private static function openUrl(string $sNetwork, string $sSeed): string
+    {
+        $sToken = base_convert((string)time(), 10, 36) . '-' . hash('crc32b', $sSeed);
+        return '/?red=' . $sNetwork . '&aviso=' . $sToken . '#avisos';
     }
 
     // Incidencias que este suscriptor no ha visto. Una fuente (línea, parada o red) que se mira por primera vez solo
@@ -330,7 +338,7 @@ class IncidentAlerts
             $aMessages[] = [[
                 'title' => $aTexts['moreTitle'],
                 'body' => strtr($aTexts['moreBody'], ['{n}' => (string)count($aRest)]),
-                'url' => '/?red=' . $aRest[0]['network'],
+                'url' => self::openUrl($aRest[0]['network'], 'bide-more-alerts'),
                 'tag' => 'bide-more-alerts',
             ], $aRest];
         }

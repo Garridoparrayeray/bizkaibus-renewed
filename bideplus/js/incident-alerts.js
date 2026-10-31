@@ -186,7 +186,14 @@ async function restoreAlerts() {
     runForegroundAlertCheck();
 }
 
+// El idioma, para los avisos que monta el service worker sin push (js/alerts-store.js).
+function rememberLang() {
+    AlertsStore.set('lang', I18n.getLang()).catch(() => {});
+}
+
 export function setUpIncidentAlerts() {
+    rememberLang();
+    window.addEventListener('bide:lang', rememberLang);
     alertsToggle = document.getElementById('alerts-toggle');
     alertsNote = document.getElementById('alerts-note');
     if (!alertsToggle) return;
