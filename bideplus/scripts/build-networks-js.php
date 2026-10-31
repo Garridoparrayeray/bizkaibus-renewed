@@ -32,8 +32,8 @@ $sDefault = json_encode(Networks::defaultSlug());
 $sJs = <<<JS
 // Generado por scripts/build-networks-js.php a partir de api/Networks. No editar a mano.
 (function (global) {
-    var networks = $sJson;
-    var order = Object.keys(networks);
+    const networks = $sJson;
+    const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: $sDefault,
         all: networks,
@@ -51,7 +51,7 @@ $sJs = <<<JS
     if (global.I18n && global.I18n.extend) {
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
-                var table = {};
+                const table = {};
                 Object.keys(networks[slug].texts[lang]).forEach(function (key) {
                     table['net.' + slug + '.' + key] = networks[slug].texts[lang][key];
                 });

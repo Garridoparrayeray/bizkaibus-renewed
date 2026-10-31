@@ -4,7 +4,7 @@
 (function () {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.addEventListener('message', function (event) {
-        var data = event.data;
+        const data = event.data;
         if (!data || data.type !== 'bide:open' || typeof data.url !== 'string') return;
         // Solo direcciones de la propia app.
         if (data.url.charAt(0) !== '/' || data.url.charAt(1) === '/' || data.url.charAt(1) === '\\') return;

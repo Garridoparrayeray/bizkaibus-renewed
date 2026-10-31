@@ -1,9 +1,9 @@
 (function (global) {
     'use strict';
 
-    var STORAGE_KEY = 'bide_lang';
+    const STORAGE_KEY = 'bide_lang';
 
-    var dict = {
+    const dict = {
         es: {
             'menu.tagline': 'Movilidad en Euskadi',
             'menu.section': 'Apps de movilidad',
@@ -210,7 +210,6 @@
             'app.estimatedNoGps': 'Sin GPS del bus: llegada calculada por el algoritmo de Bide+.',
             'map.title': 'Mapa de la red',
             'map.subtitle': 'Todas las líneas, sus paradas y transbordos',
-            'map.line': 'Línea',
             'map.pickLine': 'Elige una línea',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} paradas',
@@ -222,7 +221,6 @@
             'map.openLine': 'Ver horarios de la línea',
             'map.openStop': 'Ver próximas salidas',
             'map.error': 'No se pudieron cargar las líneas. Inténtalo de nuevo más tarde.',
-            'bide.tab.map': 'Mapa',
             'app.status.likelyDeparted': 'Probablemente ya ha pasado',
             'app.officialTime': 'horario oficial {time}',
             'app.list.likelyDeparted': 'prob. ya pasó · {time}',
@@ -230,7 +228,6 @@
             'app.mark.passed': 'Ya pasó',
             'app.mark.coming': 'No ha pasado',
             'app.mark.undo': 'Mostrar los marcados como pasados ({n})',
-            'app.lang.toggle': 'Español',
             'switcher.allApps': 'Todas las apps',
             'app.offline.banner': 'Sin conexión con el servidor. Puede que veas datos guardados.',
             'app.retry': 'Reintentar',
@@ -254,10 +251,8 @@
             'app.madeBy': 'Hecho por',
             'app.legalNotice': 'Aviso legal y privacidad',
             'app.myLinesIncidents': 'Incidencias de mis líneas',
-            'app.notifyMe': 'Avisarme de las incidencias nuevas de mis líneas favoritas',
             'app.noFavoriteIncidents': 'Guarda alguna línea en favoritos para ver aquí sus incidencias activas.',
             'app.myStopsIncidents': 'Avisos de mis paradas y líneas',
-            'app.notifyMeStops': 'Avisarme de los avisos nuevos de mis paradas y líneas favoritas',
             'app.saveStopOrLineToSeeIncidents': 'Guarda una parada o una línea en favoritos, o abre una, para ver aquí sus avisos activos.',
             'app.noneOfYourStopsHaveIncidents': 'Ninguna de tus paradas ni líneas tiene avisos activos ahora mismo.',
             'app.myFavoritesIncidents': 'Incidencias de mis favoritos',
@@ -530,7 +525,6 @@
             'app.estimatedNoGps': 'Autobusaren GPSrik gabe: Bide+-en algoritmoak kalkulatutako iritsiera.',
             'map.title': 'Sarearen mapa',
             'map.subtitle': 'Linea guztiak, haien geltokiak eta aldaketak',
-            'map.line': 'Linea',
             'map.pickLine': 'Aukeratu linea bat',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} geltoki',
@@ -542,7 +536,6 @@
             'map.openLine': 'Linearen ordutegiak ikusi',
             'map.openStop': 'Hurrengo irteerak ikusi',
             'map.error': 'Ezin izan dira lineak kargatu. Saiatu berriro geroago.',
-            'bide.tab.map': 'Mapa',
             'app.status.likelyDeparted': 'Seguruenik pasatu da jada',
             'app.officialTime': 'ordutegi ofiziala {time}',
             'app.list.likelyDeparted': 'seguruenik pasatu da · {time}',
@@ -550,7 +543,6 @@
             'app.mark.passed': 'Pasatu da',
             'app.mark.coming': 'Ez da pasatu',
             'app.mark.undo': 'Erakutsi pasatutzat markatutakoak ({n})',
-            'app.lang.toggle': 'Gaztelania',
             'switcher.allApps': 'Aplikazio guztiak',
             'app.offline.banner': 'Ez dago konexiorik zerbitzariarekin. Baliteke gordetako datuak ikustea.',
             'app.retry': 'Berriz saiatu',
@@ -574,10 +566,8 @@
             'app.madeBy': 'Egilea:',
             'app.legalNotice': 'Lege oharra eta pribatutasuna',
             'app.myLinesIncidents': 'Nire lineen intzidentziak',
-            'app.notifyMe': 'Jakinarazi nire gogoko lineen intzidentzia berriak',
             'app.noFavoriteIncidents': 'Gorde linea bat gogokoetan hemen bere intzidentzia aktiboak ikusteko.',
             'app.myStopsIncidents': 'Nire geldialdi eta lineen intzidentziak',
-            'app.notifyMeStops': 'Jakinarazi nire gogoko geldialdi eta lineen intzidentzia berriak',
             'app.saveStopOrLineToSeeIncidents': 'Gorde geldialdi edo linea bat gogokoetan, edo ireki bat, hemen bere intzidentzia aktiboak ikusteko.',
             'app.noneOfYourStopsHaveIncidents': 'Zure geldialdi edo linea batek ere ez du intzidentzia aktiborik orain.',
             'app.myFavoritesIncidents': 'Nire gogokoen intzidentziak',
@@ -850,7 +840,6 @@
             'app.estimatedNoGps': 'No GPS from the bus: arrival worked out by the Bide+ algorithm.',
             'map.title': 'Network map',
             'map.subtitle': 'Every line, its stops and transfers',
-            'map.line': 'Line',
             'map.pickLine': 'Pick a line',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} stops',
@@ -862,7 +851,6 @@
             'map.openLine': 'See line timetable',
             'map.openStop': 'See next departures',
             'map.error': 'The lines couldn\'t be loaded. Please try again later.',
-            'bide.tab.map': 'Map',
             'app.status.likelyDeparted': 'Probably already gone',
             'app.officialTime': 'official time {time}',
             'app.list.likelyDeparted': 'prob. gone · {time}',
@@ -870,7 +858,6 @@
             'app.mark.passed': 'Already gone',
             'app.mark.coming': 'Not gone yet',
             'app.mark.undo': 'Show the ones marked as gone ({n})',
-            'app.lang.toggle': 'English',
             'switcher.allApps': 'All the apps',
             'app.offline.banner': 'Can\'t reach the server. You may be seeing saved data.',
             'app.retry': 'Retry',
@@ -894,10 +881,8 @@
             'app.madeBy': 'Made by',
             'app.legalNotice': 'Legal notice and privacy',
             'app.myLinesIncidents': 'Disruptions on my lines',
-            'app.notifyMe': 'Notify me of new disruptions on my favourite lines',
             'app.noFavoriteIncidents': 'Save a line to your favourites to see its active disruptions here.',
             'app.myStopsIncidents': 'Alerts for my stops and lines',
-            'app.notifyMeStops': 'Notify me of new alerts for my favourite stops and lines',
             'app.saveStopOrLineToSeeIncidents': 'Save a stop or a line to your favourites, or open one, to see its active alerts here.',
             'app.noneOfYourStopsHaveIncidents': 'None of your stops or lines have active alerts right now.',
             'app.myFavoritesIncidents': 'Disruptions on my favourites',
@@ -967,13 +952,13 @@
     };
 
     // Orden del botón de la cabecera: castellano → euskera → inglés → castellano.
-    var LANGS = ['es', 'eu', 'en'];
-    var chosenLang = null;
+    const LANGS = ['es', 'eu', 'en'];
+    let chosenLang = null;
 
     function getLang() {
         if (chosenLang) return chosenLang;
         try {
-            var stored = localStorage.getItem(STORAGE_KEY);
+            const stored = localStorage.getItem(STORAGE_KEY);
             if (LANGS.indexOf(stored) !== -1) return stored;
         } catch (e) { /* private mode / storage blocked */ }
         return browserLang();
@@ -981,7 +966,7 @@
 
     // Sin idioma elegido, quien tiene el móvil en inglés (turistas) ve Bide+ en inglés; el resto, en castellano.
     function browserLang() {
-        var preferred = '';
+        let preferred = '';
         if (global.navigator) preferred = (global.navigator.languages && global.navigator.languages[0]) || global.navigator.language || '';
         if (preferred.toLowerCase().indexOf('en') === 0) return 'en';
         return 'es';
@@ -1000,9 +985,9 @@
     }
 
     function t(key, vars) {
-        var lang = getLang();
-        var table = dict[lang] || dict.es;
-        var text = table[key];
+        const lang = getLang();
+        const table = dict[lang] || dict.es;
+        let text = table[key];
         if (text === undefined) text = dict.es[key];
         if (text === undefined) return key;
         if (vars) {
@@ -1020,9 +1005,9 @@
         });
         root.querySelectorAll('[data-i18n-attr]').forEach(function (el) {
             el.getAttribute('data-i18n-attr').split(',').forEach(function (pair) {
-                var parts = pair.split(':');
-                var attr = parts[0];
-                var key = parts[1];
+                const parts = pair.split(':');
+                const attr = parts[0];
+                const key = parts[1];
                 el.setAttribute(attr, t(key));
             });
         });

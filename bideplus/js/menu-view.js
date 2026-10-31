@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var view = 'tiles';
+    let view = 'tiles';
     try {
         if (localStorage.getItem('bide_menu_view') === 'list') {
             view = 'list';
