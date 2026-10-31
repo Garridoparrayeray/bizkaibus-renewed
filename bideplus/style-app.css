@@ -733,7 +733,7 @@ dialog {
         .schedule-block p:last-child { margin-bottom: 0; }
 
 /* ===== Escritorio ===== */
-@media (min-width: 960px) {
+@media (min-width: 1024px) {
     :root { --gutter: 24px; }
 
     .app-footer {
@@ -790,6 +790,26 @@ dialog {
         border: none;
         border-radius: var(--radius) 0 0 var(--radius);
     }
+}
+
+/* ===== Tablet en vertical: como un móvil grande ===== */
+/* El contenido va en una columna central y la cabecera llega de lado a lado como en el móvil, con el logo, el título
+   y la flecha alineados con esa columna (hasta 1023 px; desde 1024 está la versión de ordenador). */
+@media (min-width: 600px) and (max-width: 1023px) {
+    :root { --gutter: 20px; }
+    body { overflow-x: clip; }
+    .app-container { max-width: 720px; }
+    .app-container > header {
+        margin-right: calc(50% - 50vw);
+        margin-left: calc(50% - 50vw);
+        padding-right: calc(50vw - 50% + 4px);
+        padding-left: calc(50vw - 50% + 4px);
+        padding-top: calc(16px + env(safe-area-inset-top));
+        padding-bottom: 18px;
+    }
+    .app-container > header h1 { font-size: 2.05rem; }
+    .app-container > header p { font-size: .92rem; }
+    .app-logomark { width: 46px; height: 46px; }
 }
 
 /* ===== Pantallas muy anchas ===== */
