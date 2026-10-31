@@ -27,6 +27,7 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-31', '31/10/2026', 29, 'Llegadas más precisas', 'Cuando en un tramo hay pocos buses medidos a una hora, lo que tardan a esa hora se completa con lo que tardan a cualquier hora. Las llegadas aciertan algo más, sobre todo las que faltan de 5 a 20 minutos. Y en Info, la pregunta de cómo instalar Bide+ dice desde qué navegador: Chrome o Firefox en Android y Safari en iPhone.'],
     ['2026-10-31', '31/10/2026', 28, 'Versión, caché y ubicación', 'En Ajustes ves la versión de la app, puedes vaciar la caché si algo no carga y ver y dar el permiso de ubicación para «Cerca de mí».'],
     ['2026-10-31', '31/10/2026', 27, 'Ajustes', 'Una pestaña nueva con el idioma, las notificaciones (las incidencias de tus favoritos y los avisos de llegada que tengas activos, que puedes cancelar), los horarios sin conexión y un botón para borrar tus datos del móvil.'],
     ['2026-10-30', '30/10/2026', 26, 'Incidencias con la app cerrada', 'Los avisos de incidencias de tus favoritos llegan aunque no abras la app: los manda el servidor cada pocos minutos, de todas las apps a la vez. Si ya los tenías activados, pasan a funcionar así sin hacer nada.'],
