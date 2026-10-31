@@ -47,6 +47,7 @@
             return;
         }
         const saved = BideOffline.saved();
+        offlineList.appendChild(saveAllItem(saved));
         for (const slug of BideNetworks.slugs) {
             const name = BideNetworks.name(slug);
             const item = createNode('li', 'bide-offline-item');
@@ -63,6 +64,38 @@
             label.append(text, toggle);
             item.appendChild(label);
             offlineList.appendChild(item);
+        }
+    }
+
+    // «Guardar todas las redes»: todas las paradas y líneas, con su horario oficial y, donde hay, la hora estimada.
+    function saveAllItem(saved) {
+        const item = createNode('li', 'bide-offline-all');
+        const button = createNode('button', 'bide-offline-all-button');
+        button.type = 'button';
+        const missing = BideNetworks.slugs.filter((slug) => !saved[slug]);
+        if (missing.length === 0) {
+            button.textContent = translate('bide.offline.allSaved');
+            button.disabled = true;
+        } else {
+            const bytes = missing.reduce((sum, slug) => sum + (offlineSizes[slug] || 0), 0);
+            button.textContent = [translate('bide.offline.saveAll'), formatSize(bytes)].filter(Boolean).join(' · ');
+        }
+        button.addEventListener('click', () => saveAll(button, missing));
+        item.appendChild(button);
+        return item;
+    }
+
+    async function saveAll(button, slugs) {
+        button.disabled = true;
+        let failed = false;
+        for (const [index, slug] of slugs.entries()) {
+            button.textContent = translate('bide.offline.savingAll', { done: index, total: slugs.length });
+            await BideOffline.save(slug).catch(() => { failed = true; });
+        }
+        renderOffline();
+        if (failed) {
+            const status = offlineList.querySelector('.bide-offline-all-button');
+            if (status) status.textContent = translate('bide.offline.error');
         }
     }
 
