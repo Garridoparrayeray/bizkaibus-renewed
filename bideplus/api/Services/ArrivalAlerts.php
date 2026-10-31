@@ -52,12 +52,7 @@ class ArrivalAlerts
             return ['status' => 'unknown'];
         }
         $iLeft = self::minutesLeft($aDeparture);
-        $sToday = 'coming';
-        if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
-            $sToday = 'gone';
-        } elseif ($iLeft <= $iMinutes) {
-            $sToday = 'now';
-        }
+        $sToday = self::today($aDeparture, $iLeft, $iMinutes);
         if (!$bRepeat && $sToday === 'gone') {
             return ['status' => 'gone'];
         }
@@ -68,9 +63,8 @@ class ArrivalAlerts
         if ($aCount === null || (int)$aCount[0] >= self::MAX_PENDING) {
             return ['status' => 'unavailable'];
         }
-        $sId = bin2hex(random_bytes(12));
         $aAlert = [
-            'id' => $sId,
+            'id' => bin2hex(random_bytes(12)),
             'network' => Config::current()['network'],
             'stopId' => (string)$aStop['id'],
             'stopName' => $aStop['name'],
@@ -84,24 +78,13 @@ class ArrivalAlerts
             'repeat' => $bRepeat,
             'scheduledSeconds' => Calendar::hmToSeconds((string)$aDeparture['scheduledTime']),
         ];
-        $iTtl = self::TTL_SECONDS;
-        if ($bRepeat) {
-            $iTtl = self::REPEAT_TTL_SECONDS;
-        }
-        $aCommands = [
-            ['SET', self::ALERT_PREFIX . $sId, json_encode($aAlert, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'EX', $iTtl],
-            ['SADD', self::PENDING_KEY, $sId],
-        ];
-        // Si hoy ya está llegando, el aviso de hoy se da por hecho: la ficha ya lo está enseñando.
-        if ($bRepeat && $sToday === 'now') {
-            $aCommands[] = ['SET', self::SENT_PREFIX . $sId, '1', 'EX', self::REPEAT_SENT_SECONDS];
-        }
-        if (Store::pipeline($aCommands) === null) {
+        // Si hoy ya está llegando, el aviso de hoy de uno de todos los días se da por hecho: la ficha ya lo enseña.
+        if (!self::store($aAlert, $bRepeat && $sToday === 'now')) {
             return ['status' => 'unavailable'];
         }
         return [
             'status' => 'created',
-            'id' => $sId,
+            'id' => $aAlert['id'],
             'minutesLeft' => $iLeft,
             'repeat' => $bRepeat,
             'today' => $sToday,
@@ -109,6 +92,35 @@ class ArrivalAlerts
             'headsign' => $aAlert['headsign'],
             'stopName' => $aAlert['stopName'],
         ];
+    }
+
+    // Cómo va hoy el viaje: ya pasó (gone), llega dentro de los minutos pedidos (now) o aún viene (coming).
+    private static function today(array $aDeparture, int $iLeft, int $iMinutes): string
+    {
+        if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
+            return 'gone';
+        }
+        if ($iLeft <= $iMinutes) {
+            return 'now';
+        }
+        return 'coming';
+    }
+
+    // Guarda el aviso (unas horas el de una vez, dos meses el de todos los días) y lo pone en la lista del cron.
+    private static function store(array $aAlert, bool $bSentToday): bool
+    {
+        $iTtl = self::TTL_SECONDS;
+        if ($aAlert['repeat']) {
+            $iTtl = self::REPEAT_TTL_SECONDS;
+        }
+        $aCommands = [
+            ['SET', self::ALERT_PREFIX . $aAlert['id'], json_encode($aAlert, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'EX', $iTtl],
+            ['SADD', self::PENDING_KEY, $aAlert['id']],
+        ];
+        if ($bSentToday) {
+            $aCommands[] = ['SET', self::SENT_PREFIX . $aAlert['id'], '1', 'EX', self::REPEAT_SENT_SECONDS];
+        }
+        return Store::pipeline($aCommands) !== null;
     }
 
     // Solo cancela quien creó el aviso: hay que dar la misma suscripción.
