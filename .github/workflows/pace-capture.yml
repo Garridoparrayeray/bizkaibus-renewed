@@ -1,20 +1,33 @@
 name: Ritmo de los buses (k)
 
-# Captura periódica del feed en directo de Bizkaibus y recalibrado diario de los datos del algoritmo.
+# Captura continua del feed en directo de Bizkaibus y recalibrado diario de los datos del algoritmo.
 # El algoritmo y su documentación viven en un repositorio aparte (todos los derechos reservados).
 # Las horas están en UTC; GitHub puede retrasar unos minutos los trabajos programados.
+#
+# Cada trabajo de captura dura unas 5 horas y media (el límite es 6) y, si ha ido bien, lanza el siguiente al acabar.
+# Como GitHub retrasa o se salta muchas ejecuciones programadas, el cron horario queda de respaldo: si ya hay una
+# captura en marcha, la nueva espera su turno (concurrency) y arranca en cuanto la otra acaba. Si llegan varias mientras
+# tanto, solo espera la última; GitHub cancela las demás, y es normal verlas como canceladas.
 
 on:
   schedule:
-    # Cada hora, en el minuto 17 (GitHub retrasa o pierde trabajos programados a la hora en punto).
     - cron: '17 * * * *'
     # Recalibrado diario.
     - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       minutes:
-        description: 'Minutos de captura (para probar, 3)'
-        default: '45'
+        description: 'Minutos de captura en total (para probar, 6)'
+        default: '330'
+      block:
+        description: 'Minutos por bloque (vacío: hasta la siguiente hora en punto; para probar, 3)'
+        default: ''
+      release:
+        description: 'Release donde se acumulan las muestras'
+        default: 'pace-data'
+      engine_ref:
+        description: 'Rama del algoritmo (vacío: la principal)'
+        default: ''
       recalibrate:
         description: 'Recalibrar en vez de capturar'
         type: boolean
@@ -22,10 +35,7 @@ on:
 
 permissions:
   contents: write
-
-concurrency:
-  group: pace-data
-  cancel-in-progress: false
+  actions: write
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -35,7 +45,10 @@ jobs:
   capture:
     if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate != 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 350
+    concurrency:
+      group: pace-capture-${{ github.event.inputs.release || 'pace-data' }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +57,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Garridoparrayeray/bideplus-engine
+          ref: ${{ github.event.inputs.engine_ref }}
           token: ${{ secrets.ENGINE_REPO_TOKEN }}
           path: bideplus/engine
 
@@ -59,52 +73,32 @@ jobs:
           GEOCODE_MAX_RETRIES: '0'
         run: php bideplus/scripts/build-database.php --network=bus
 
-      - name: Capturar el feed en directo
+      # Captura en bloques de una hora; al acabar cada bloque mide la precisión, añade las muestras a la release y
+      # archiva las capturas en bruto en el repositorio del algoritmo. Ver .github/scripts/captura-continua.sh.
+      - name: Capturar y medir sin parar
         env:
-          MINUTES: ${{ github.event.inputs.minutes || '45' }}
-        run: php bideplus/engine/bizkaibus/tools/realtime-backtest.php capture "$RUNNER_TEMP/capturas" "$MINUTES" 45
-
-      - name: Medir la precision de las llegadas con esta captura
-        continue-on-error: true
-        timeout-minutes: 10
+          MINUTOS: ${{ github.event.inputs.minutes || '330' }}
+          BLOQUE: ${{ github.event.inputs.block }}
+          RELEASE: ${{ github.event.inputs.release || 'pace-data' }}
+          ARCHIVO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
         run: |
-          {
-            echo "### Precision de las llegadas (esta captura contra los pasos reales por parada)"
-            echo '```'
-            php bideplus/engine/bizkaibus/tools/eval-eta.php "$RUNNER_TEMP/capturas" || echo "Sin datos suficientes"
-            echo '```'
-          } | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Descargar las muestras acumuladas
-        run: |
-          gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay muestras acumuladas"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
-
-      - name: Anadir las muestras de esta captura
-        run: |
-          php bideplus/engine/bizkaibus/tools/realtime-backtest.php samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/pace-samples.jsonl"
-          php bideplus/engine/bizkaibus/tools/realtime-backtest.php segment-samples "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/segment-samples.jsonl"
-
-      - name: Medir la cobertura del feed por linea
-        # Cuantos viajes del horario en ruta aparecen en el feed. Si falla, no impide guardar el resto.
-        continue-on-error: true
-        timeout-minutes: 5
-        run: |
-          gh release download pace-data -p coverage-samples.jsonl -D "$RUNNER_TEMP" || echo "Todavia no hay cobertura acumulada"
-          php bideplus/engine/bizkaibus/tools/coverage-samples.php "$RUNNER_TEMP/capturas" "$RUNNER_TEMP/coverage-samples.jsonl" 15
-
-      - name: Guardar las muestras acumuladas
-        run: |
-          gh release view pace-data >/dev/null 2>&1 || gh release create pace-data --prerelease --title "Datos de ritmo (no es una version)" --notes "Muestras acumuladas para calibrar el factor k. Las genera el workflow Ritmo de los buses; no es una version de la app."
-          gh release upload pace-data "$RUNNER_TEMP/pace-samples.jsonl" "$RUNNER_TEMP/segment-samples.jsonl" --clobber
-          if [ -f "$RUNNER_TEMP/coverage-samples.jsonl" ]; then
-            gh release upload pace-data "$RUNNER_TEMP/coverage-samples.jsonl" --clobber
+          ENCADENAR=1
+          if [ "$RELEASE" != pace-data ]; then
+            ENCADENAR=0
+            gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Pruebas de la captura (no es una version)" --notes "Release de prueba del workflow Ritmo de los buses."
           fi
+          export ENCADENAR
+          bash .github/scripts/captura-continua.sh
 
   recalibrate:
     if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    concurrency:
+      group: pace-recalibrate
+      cancel-in-progress: false
+    env:
+      RELEASE: ${{ github.event.inputs.release || 'pace-data' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -113,6 +107,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Garridoparrayeray/bideplus-engine
+          ref: ${{ github.event.inputs.engine_ref }}
           token: ${{ secrets.ENGINE_REPO_TOKEN }}
           path: bideplus/engine
 
@@ -122,16 +117,34 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
+      # La captura sube los acumulados cada hora mientras tanto; las funciones de pace-data.sh reintentan y, si pillan
+      # el momento del cambio, descargan la copia nueva.
       - name: Descargar las muestras acumuladas
         run: |
-          gh release download pace-data -p pace-samples.jsonl -D "$RUNNER_TEMP"
-          gh release download pace-data -p segment-samples.jsonl -D "$RUNNER_TEMP" || gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
+          source .github/scripts/pace-data.sh
+          descargar_acumulado pace-samples.jsonl "$RUNNER_TEMP"
+          if ! descargar_acumulado segment-samples.jsonl "$RUNNER_TEMP"; then
+            gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$RUNNER_TEMP/segment-samples.jsonl"
+          fi
+          descargar_acumulado eta-eval.jsonl "$RUNNER_TEMP" || echo "Todavia no hay medidas de precision"
+          descargar_acumulado eta-eval-historial.jsonl "$RUNNER_TEMP" || echo "Todavia no hay historial de precision"
 
       - name: Calibrar
         run: |
           php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate "$RUNNER_TEMP/pace-samples.jsonl" --write
           if [ -f "$RUNNER_TEMP/segment-samples.jsonl" ]; then
             php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate-segments "$RUNNER_TEMP/segment-samples.jsonl" --write
+          fi
+
+      - name: Informe de precision de los ultimos dias
+        continue-on-error: true
+        run: |
+          HISTORIAL=""
+          if [ -f "$RUNNER_TEMP/eta-eval-historial.jsonl" ]; then
+            HISTORIAL="--historial=$RUNNER_TEMP/eta-eval-historial.jsonl"
+          fi
+          if [ -f "$RUNNER_TEMP/eta-eval.jsonl" ]; then
+            python3 bideplus/engine/bizkaibus/tools/eta-report.py "$RUNNER_TEMP/eta-eval.jsonl" $HISTORIAL >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Guardar el resultado si ha cambiado
