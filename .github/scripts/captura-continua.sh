@@ -30,6 +30,8 @@ INTERVALO=${INTERVALO:-20}
 SUBIR=${SUBIR:-1}
 ARCHIVO_REPO=${ARCHIVO_REPO:-Garridoparrayeray/bideplus-engine}
 ARCHIVO_TOKEN=${ARCHIVO_TOKEN:-}
+# Un secreto pegado con un salto de línea al final no vale como cabecera HTTP.
+ARCHIVO_TOKEN=$(printf '%s' "$ARCHIVO_TOKEN" | tr -d '[:space:]')
 TRABAJO=${TRABAJO:-${RUNNER_TEMP:-/tmp}/captura-continua}
 RESUMEN=${GITHUB_STEP_SUMMARY:-/dev/null}
 MOTOR=bideplus/engine/bizkaibus/tools
@@ -126,6 +128,10 @@ subir_acumulados() {
   fi
   local sNombre
   for sNombre in "${ACUMULADOS[@]}"; do
+    if [ ! -s "$ACUM/$sNombre" ]; then
+      # GitHub no acepta ficheros vacíos; se subirá cuando tenga algo.
+      continue
+    fi
     if ! subir_acumulado "$ACUM/$sNombre"; then
       aviso "No se ha podido subir $sNombre; se reintenta con el bloque siguiente"
     fi
