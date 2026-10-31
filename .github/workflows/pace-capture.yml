@@ -4,9 +4,10 @@ name: Ritmo de los buses (k)
 # El algoritmo y su documentación viven en un repositorio aparte (todos los derechos reservados).
 # Las horas están en UTC; GitHub puede retrasar unos minutos los trabajos programados.
 #
-# Cada trabajo de captura dura unas 5 horas y media (el límite es 6). Se lanza uno cada hora: si ya hay uno capturando,
-# el nuevo espera su turno (concurrency) y arranca en cuanto el otro acaba, así que el feed se captura sin huecos. Si
-# llegan varios mientras tanto, solo espera el último; GitHub cancela los demás, y es normal verlos como cancelados.
+# Cada trabajo de captura dura unas 5 horas y media (el límite es 6) y, si ha ido bien, lanza el siguiente al acabar.
+# Como GitHub retrasa o se salta muchas ejecuciones programadas, el cron horario queda de respaldo: si ya hay una
+# captura en marcha, la nueva espera su turno (concurrency) y arranca en cuanto la otra acaba. Si llegan varias mientras
+# tanto, solo espera la última; GitHub cancela las demás, y es normal verlas como canceladas.
 
 on:
   schedule:
@@ -34,6 +35,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -80,9 +82,12 @@ jobs:
           RELEASE: ${{ github.event.inputs.release || 'pace-data' }}
           ARCHIVO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
         run: |
+          ENCADENAR=1
           if [ "$RELEASE" != pace-data ]; then
+            ENCADENAR=0
             gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Pruebas de la captura (no es una version)" --notes "Release de prueba del workflow Ritmo de los buses."
           fi
+          export ENCADENAR
           bash .github/scripts/captura-continua.sh
 
   recalibrate:

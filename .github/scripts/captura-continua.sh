@@ -20,6 +20,8 @@
 #   ARCHIVO_TOKEN  token con permiso de escritura en ARCHIVO_REPO; sin él no se archiva
 #                  (con una RELEASE de pruebas, el archivo va a <RELEASE>-capturas-AAAA-MM para no mezclarse)
 #   TRABAJO        carpeta de trabajo ($RUNNER_TEMP/captura-continua por defecto)
+#   ENCADENAR      1 lanza al acabar la siguiente captura (GitHub retrasa o se salta muchas ejecuciones programadas);
+#                  solo si esta ha capturado al menos una hora, para no encadenar fallos
 set -uo pipefail
 
 MINUTOS=${MINUTOS:-330}
@@ -209,7 +211,8 @@ borrar_bloque() {
   fi
 }
 
-FIN_TRABAJO=$(($(date +%s) + MINUTOS * 60))
+INICIO=$(date +%s)
+FIN_TRABAJO=$((INICIO + MINUTOS * 60))
 mkdir -p "$TRABAJO"
 descargar_acumulados
 
@@ -266,3 +269,11 @@ if [ -n "$ANTERIOR" ]; then
   borrar_bloque "$ANTERIOR"
 fi
 subir_acumulados
+if [ "${ENCADENAR:-0}" = 1 ] && (($(date +%s) - INICIO >= 3600)); then
+  # La siguiente espera su turno (concurrency) y arranca en cuanto acabe esta.
+  if gh workflow run pace-capture.yml --repo "$REPO_APP" --ref "${GITHUB_REF_NAME:-master}"; then
+    echo "Siguiente captura lanzada"
+  else
+    aviso "No se ha podido lanzar la siguiente captura; queda el cron horario"
+  fi
+fi
