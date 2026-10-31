@@ -46,10 +46,9 @@ function arrivalTitle(alert) {
 }
 
 function arrivalDetail(alert) {
-    let when = I18n.t('bide.settings.before', { min: alert.minutes });
-    if (alert.repeat === true) when += ` · ${I18n.t('bide.settings.daily')}`;
-    if (alert.stopName) return `${alert.stopName} · ${when}`;
-    return when;
+    const before = I18n.t('bide.settings.before', { min: alert.minutes });
+    if (alert.stopName) return `${alert.stopName} · ${before}`;
+    return before;
 }
 
 function arrivalItem(alert) {

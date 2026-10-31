@@ -124,7 +124,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 31"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 30"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -157,12 +157,8 @@ check('instalada · Ajustes: idioma, notificaciones, sin conexión y datos', awa
 check('instalada · Ajustes: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=ajustes] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
 check('instalada · Ajustes: el estado del permiso, con su texto', await ev("(() => { const p = document.querySelector('[data-settings-permission]').textContent; return p.length > 10 && p.indexOf('bide.') === -1; })()"));
 check('instalada · Ajustes: el aviso de llegada activo, con línea y parada', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('A3514 → GERNIKA') && document.querySelector('[data-settings-arrivals-empty]').hidden"));
-check('instalada · Ajustes: uno de una vez no dice «todos los días»', await ev("!(document.querySelector('[data-settings-arrivals]').textContent || '').includes('todos los días')"));
 await ev("document.querySelector('[data-settings-arrivals] button').click(); true");
 check('instalada · Ajustes: cancelar el aviso lo quita', await waitTrue("document.querySelectorAll('[data-settings-arrivals] li').length === 0 && !document.querySelector('[data-settings-arrivals-empty]').hidden && JSON.parse(localStorage.getItem('bide-arrival-alerts')).length === 0"));
-await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234568', tripKey: 'x', stopId: '4255', minutes: 5, repeat: true, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now() - 86400000, lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); return true; })()`);
-check('instalada · Ajustes: uno de todos los días lo dice y no caduca a las 3 horas', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('5 min antes · todos los días')"));
-await ev("localStorage.removeItem('bide-arrival-alerts'); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); true");
 await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]').click(); true");
 check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
 await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
@@ -334,20 +330,6 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
-
-    // Al tocar una notificación: abre la ficha una vez. Ni al recargar ni si Android vuelve a cargar la dirección con
-    // la que se abrió la app sale otra vez.
-    const alertUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}&aviso=prueba-${Date.now()}`;
-    await go(alertUrl, 3000);
-    check('notificación: abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));
-    check('notificación: la dirección queda sin ?viaje ni ?aviso', await ev("!location.search.includes('viaje') && !location.search.includes('aviso')"), await ev('location.search'));
-    await send('Page.reload');
-    await sleep(3000);
-    check('notificación: al recargar no vuelve a salir la ficha', await ev("!document.getElementById('vehicle-modal').open"));
-    await go(alertUrl, 3000);
-    check('notificación: si se vuelve a cargar su dirección, se queda en el inicio, sin la parada ni la ficha', await ev("!document.getElementById('vehicle-modal').open && location.pathname === '/' && !location.search.includes('viaje') && document.getElementById('live-card').hidden"), await ev("location.pathname + location.search"));
-    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
-    check('compartir: el mismo enlace compartido se puede abrir más veces', await waitTrue("document.getElementById('vehicle-modal').open"));
 } else {
     results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
 }
@@ -381,15 +363,9 @@ if (sharedTrip) {
     check('avisos: la ficha ofrece 2, 5 y 10 min', await waitTrue("!document.getElementById('modal-notify').hidden && document.querySelectorAll('[data-notify-minutes]').length === 3"));
     await ev("document.querySelector('[data-notify-minutes=\"5\"]').click(); true");
     check('avisos: al elegir 5 min queda activo', await waitTrue("document.getElementById('modal-notify-status').textContent.includes('5 min') && !document.getElementById('modal-notify-cancel').hidden && document.getElementById('modal-notify-options').hidden"));
-    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.repeat === false && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
-    check('avisos: por defecto avisa una vez y se quita', await ev("document.getElementById('modal-notify-status').textContent.includes('una vez') && document.getElementById('modal-notify-repeat').hidden"));
+    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
     await ev("document.getElementById('modal-notify-cancel').click(); true");
     check('avisos: se puede cancelar', await waitTrue("window.__alertCalls.some((call) => call.path.includes('/cancel')) && !document.getElementById('modal-notify-options').hidden"));
-    check('avisos: se ofrece «Avisarme todos los días», sin marcar', await ev("!document.getElementById('modal-notify-repeat').hidden && document.getElementById('modal-notify-repeat-input').checked === false"));
-    await ev("document.getElementById('modal-notify-repeat-input').click(); document.querySelector('[data-notify-minutes=\"10\"]').click(); true");
-    check('avisos: todos los días se pide al servidor y se explica', await waitTrue("window.__alertCalls.filter((call) => !call.path.includes('/cancel')).length === 2 && JSON.parse(window.__alertCalls.filter((call) => !call.path.includes('/cancel'))[1].body).repeat === true && document.getElementById('modal-notify-status').textContent.includes('todos los días')"), await ev("document.getElementById('modal-notify-status').textContent"));
-    check('avisos: todos los días queda guardado como tal', await ev("JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').some((alert) => alert.repeat === true && alert.minutes === 10)"));
-    await ev("document.getElementById('modal-notify-cancel').click(); true");
     await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakePush.identifier });
     await ev("localStorage.removeItem('bide-arrival-alerts'); true");
 } else {

@@ -81,18 +81,8 @@ export function startRouting() {
         }
     });
 
-    let pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
-    const launch = new URLSearchParams(window.location.search);
-    let sharedTrip = launch.get('viaje');
-    const alertToken = launch.get('aviso');
-    if (sharedTrip || alertToken) removeLaunchParams();
-    if (alertToken && !firstOpening(alertToken)) {
-        // Esa notificación ya se abrió: es el sistema recargando la dirección con la que se abrió la app. Se queda en
-        // el inicio, sin la parada ni la ficha del viaje.
-        sharedTrip = null;
-        pathMatch = null;
-        history.replaceState(null, '', '/?red=' + window.__bbNetwork);
-    }
+    const pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
+    const sharedTrip = new URLSearchParams(window.location.search).get('viaje');
     let opened = Promise.resolve();
     if (pathMatch) {
         // El id llega codificado (Euskotren usa «ES:Euskotren:StopPlace:2577:»): sin descodificar, la API no encuentra la parada.
@@ -106,39 +96,13 @@ export function startRouting() {
             opened = selectLine(pathId);
         }
     }
-    if (sharedTrip) opened.then(() => openVehicleModal(sharedTrip));
+    if (sharedTrip) opened.then(() => openSharedTrip(sharedTrip));
 }
 
-// Un viaje compartido o de una notificación («?viaje=») se abre al cargar y se quita en el acto de la dirección: al
-// recargar ya no vuelve a salir.
-function removeLaunchParams() {
+// Un viaje compartido («?viaje=») se abre una vez y se quita de la dirección.
+async function openSharedTrip(tripKey) {
+    await openVehicleModal(tripKey);
     const url = new URL(window.location.href);
     url.searchParams.delete('viaje');
-    url.searchParams.delete('aviso');
     history.replaceState(history.state, '', url.pathname + url.search);
-}
-
-// Una notificación abre su viaje una sola vez: su dirección lleva «?aviso=», distinto en cada envío, y se apunta al
-// abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió: entonces ya no sale.
-const OPENED_ALERTS_KEY = 'bide-opened-alerts';
-const OPENED_ALERTS_KEEP_MS = 7 * 24 * 3600 * 1000;
-
-function firstOpening(token) {
-    let opened = {};
-    try {
-        opened = JSON.parse(localStorage.getItem(OPENED_ALERTS_KEY) || '{}') || {};
-    } catch (e) {
-        opened = {};
-    }
-    if (opened[token]) return false;
-    for (const [key, at] of Object.entries(opened)) {
-        if (Date.now() - at > OPENED_ALERTS_KEEP_MS) delete opened[key];
-    }
-    opened[token] = Date.now();
-    try {
-        localStorage.setItem(OPENED_ALERTS_KEY, JSON.stringify(opened));
-    } catch (e) {
-        // Sin almacenamiento se abre igual: la dirección ya no lleva el viaje.
-    }
-    return true;
 }

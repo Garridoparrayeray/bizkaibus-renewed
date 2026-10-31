@@ -225,17 +225,11 @@ await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(lis
 if (!registrationId) {
     skip('push con la app cerrada', 'no se obtuvo el registro del service worker');
 } else {
-    const arrival = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=prueba', tag: 'bide-arrival-prueba', alertId: 'aaaaaaaaaaaaaaaaaaaaaaaa', repeat: false };
-    const daily = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=diario', tag: 'bide-arrival-diario', alertId: 'bbbbbbbbbbbbbbbbbbbbbbbb', repeat: true };
-    // En la lista de la app: el de una vez y uno de todos los días.
-    const listed = (id, repeat) => ({ id, tripKey: 'x', stopId: '4255', minutes: 5, repeat, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now(), lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' });
-    await ev(`localStorage.setItem('bide-arrival-alerts', ${JSON.stringify(JSON.stringify([listed(arrival.alertId, false), listed(daily.alertId, true)]))}); true`);
+    const arrival = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=prueba', tag: 'bide-arrival-prueba' };
     await send('Page.navigate', { url: 'about:blank' });
     await sleep(800);
     await send('ServiceWorker.stopAllWorkers');
     await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(arrival) });
-    await sleep(1500);
-    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(daily) });
     await sleep(1500);
     await send('ServiceWorker.stopAllWorkers');
     await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: 'esto no es JSON' });
@@ -247,16 +241,7 @@ if (!registrationId) {
     check('push con la app cerrada: al tocarla abre la parada del aviso', !!real && real.url === arrival.url);
     check('push con la app cerrada: icono de la barra de estado en silueta', !!real && real.badge.endsWith('/icons-bide-rojo/badge-96.png'));
     check('push con un mensaje roto: sale igual una notificacion (iPhone quita el permiso si no)', (shown || []).some(n => n.tag === 'bide-arrival' && n.title === 'Bide+'));
-    const ids = () => ev(`JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').map(a => a.id)`);
-    const afterClosed = await waitTrue(`!JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').some(a => a.id === '${arrival.alertId}')`, 5000);
-    check('aviso de una vez: tras avisar con la app cerrada, al abrirla ya no esta en la lista', afterClosed, JSON.stringify(await ids()));
-    check('aviso de todos los dias: tras avisar sigue en la lista', (await ids()).includes(daily.alertId), JSON.stringify(await ids()));
-    // Con la app abierta se quita al momento.
-    const openOnce = { ...arrival, alertId: 'cccccccccccccccccccccccc', tag: 'bide-arrival-abierta' };
-    await ev(`localStorage.setItem('bide-arrival-alerts', ${JSON.stringify(JSON.stringify([listed(openOnce.alertId, false)]))}); true`);
-    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(openOnce) });
-    check('aviso de una vez: con la app abierta se quita de la lista al avisar', await waitTrue(`JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').length === 0`, 5000), JSON.stringify(await ids()));
-    await ev(`localStorage.removeItem('bide-arrival-alerts'); navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
 }
 
 // Al tocarla: la ventana abierta va a la dirección del aviso.

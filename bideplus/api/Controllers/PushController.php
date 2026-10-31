@@ -39,9 +39,7 @@ class PushController
             Response::error('Invalid alert', 400);
             return;
         }
-        // «Todos los días»: solo si llega true; cualquier otra cosa es un aviso de una vez.
-        $bRepeat = ($aBody['repeat'] ?? false) === true;
-        $aResult = ArrivalAlerts::create($aSubscription, $sStopId, $sTripKey, $iMinutes, Push::lang($aBody['lang'] ?? null), $bRepeat);
+        $aResult = ArrivalAlerts::create($aSubscription, $sStopId, $sTripKey, $iMinutes, Push::lang($aBody['lang'] ?? null));
         $iStatus = 200;
         if ($aResult['status'] === 'unavailable') {
             $iStatus = 503;
