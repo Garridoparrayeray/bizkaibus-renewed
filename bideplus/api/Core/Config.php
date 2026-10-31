@@ -24,7 +24,7 @@ class Config
     public static function current(): array
     {
         if (self::$aCurrent === null) {
-            self::set(Networks::DEFAULT);
+            self::set(Networks::defaultSlug());
         }
         return self::$aCurrent;
     }

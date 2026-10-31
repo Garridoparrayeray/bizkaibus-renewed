@@ -343,10 +343,10 @@
 };
     var order = Object.keys(networks);
     global.BideNetworks = {
-        DEFAULT: 'bus',
+        DEFAULT: "bus",
         all: networks,
         slugs: order,
-        get: function (slug) { return networks[slug] || networks.bus; },
+        get: function (slug) { return networks[slug] || networks["bus"]; },
         exists: function (slug) { return Object.prototype.hasOwnProperty.call(networks, slug); },
         // En el idioma elegido si hay diccionario (páginas); en castellano si no (service worker).
         name: function (slug) {

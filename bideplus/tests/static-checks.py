@@ -59,7 +59,8 @@ for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
         failures.append('sintaxis JS ' + os.path.basename(f))
 
 sw = open(ROOT + 'sw.js', encoding='utf-8').read()
-shell_files = re.findall(r"'(/[^']+)'", sw.split('SHELL_FILES = [')[1].split('];')[0])
+# Solo las líneas que son una ruta entera: los iconos de cada red se generan desde js/networks.js.
+shell_files = re.findall(r"^\s*'(/[^']+)',?\s*$", sw.split('SHELL_FILES = [')[1].split('];')[0], re.M)
 missing_files = [f for f in shell_files if f != '/' and not os.path.exists(ROOT + f.lstrip('/'))]
 print('archivos del precache que no existen:', missing_files or 'ninguno')
 if missing_files:
@@ -94,6 +95,17 @@ if stale_js:
 print('js/networks.js:', networks_result)
 if stale_js:
     failures.append('js/networks.js desactualizado')
+
+# style-networks.css: los colores de cada red, generados por scripts/build-networks-css.php desde api/Networks.
+fresh_css = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.css')
+r = subprocess.run([PHP, ROOT + 'scripts/build-networks-css.php', '--output=' + fresh_css], capture_output=True, text=True)
+stale_css = r.returncode != 0 or open(fresh_css, encoding='utf-8').read() != open(ROOT + 'style-networks.css', encoding='utf-8').read()
+css_result = 'al día (' + r.stdout.strip() + ')'
+if stale_css:
+    css_result = 'desactualizado, ejecuta php scripts/build-networks-css.php'
+print('style-networks.css:', css_result)
+if stale_css:
+    failures.append('style-networks.css desactualizado')
 
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)

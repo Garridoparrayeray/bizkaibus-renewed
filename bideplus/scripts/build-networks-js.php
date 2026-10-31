@@ -28,16 +28,17 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
 }
 
 $sJson = json_encode($aOut, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$sDefault = json_encode(Networks::defaultSlug());
 $sJs = <<<JS
 // Generado por scripts/build-networks-js.php a partir de api/Networks. No editar a mano.
 (function (global) {
     var networks = $sJson;
     var order = Object.keys(networks);
     global.BideNetworks = {
-        DEFAULT: 'bus',
+        DEFAULT: $sDefault,
         all: networks,
         slugs: order,
-        get: function (slug) { return networks[slug] || networks.bus; },
+        get: function (slug) { return networks[slug] || networks[$sDefault]; },
         exists: function (slug) { return Object.prototype.hasOwnProperty.call(networks, slug); },
         // En el idioma elegido si hay diccionario (páginas); en castellano si no (service worker).
         name: function (slug) {

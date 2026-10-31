@@ -10,7 +10,7 @@ class Database
     public static function connection(): \PDO
     {
         $aConfig = Config::current();
-        $sNetwork = $aConfig['network'] ?? 'bus';
+        $sNetwork = $aConfig['network'];
 
         if (!isset(self::$aConnections[$sNetwork])) {
             $sPath = $aConfig['db_path'];

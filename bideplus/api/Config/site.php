@@ -4,6 +4,8 @@ return [
     'url' => 'https://bideplus.vercel.app',
     'name' => 'Bide+',
     'locale' => 'es_ES',
+    // La red que se abre en «/» y cuyas direcciones no llevan ?red= (una de api/Networks).
+    'default_network' => 'bus',
     'author' => 'Yeray Garrido',
     'author_url' => 'https://www.yeraygarrido.dev/',
     // Enlaces bajo «Hecho por», en el pie y en Info.

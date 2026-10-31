@@ -103,6 +103,7 @@ $jsonLd = [
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/style-menu.css">
     <link rel="stylesheet" href="/style-bide.css">
+    <link rel="stylesheet" href="/style-networks.css">
     <link rel="stylesheet" href="/style-miamor.css">
     <script type="application/ld+json"><?= json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>

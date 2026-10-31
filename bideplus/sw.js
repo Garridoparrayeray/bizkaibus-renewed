@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v36';
+const CACHE_VERSION = 'v37';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -11,6 +11,7 @@ const SLOW_NETWORK_MS = 1500;
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
+    '/style-networks.css',
     '/style-miamor.css',
     '/style-app.css',
     '/style-screen.css',
@@ -63,34 +64,16 @@ const SHELL_FILES = [
     '/js/bide-mode.js',
     '/js/bide.js',
     '/style-bide.css',
-    '/manifest.json',
-    '/manifest-miamor.json',
-    '/manifest-metro.json',
-    '/manifest-euskotren.json',
-    '/manifest-tranvia-bilbao.json',
-    '/manifest-tranvia-vitoria.json',
-    '/manifest-renfe.json',
     '/manifest-bide.json',
+    '/manifest-miamor.json',
     '/miamor.html',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
-    '/icons-pro/icon-192.png',
-    '/icons-pro/icon-512.png',
-    '/icons-metro/icon-192.png',
-    '/icons-metro/icon-512.png',
-    '/icons-euskotren/icon-192.png',
-    '/icons-euskotren/icon-512.png',
-    '/icons-tranvia-bilbao/icon-192.png',
-    '/icons-tranvia-bilbao/icon-512.png',
-    '/icons-tranvia-vitoria/icon-192.png',
-    '/icons-tranvia-vitoria/icon-512.png',
-    '/icons-renfe/icon-192.png',
-    '/icons-renfe/icon-512.png',
-    '/icons-lurraldebus/icon-192.png',
-    '/icons-lurraldebus/icon-512.png',
     '/icons-bide-rojo/icon-192.png',
     '/icons-bide-rojo/icon-512.png',
     '/icons-bide-rojo/bide-wordmark-mayusculas.svg',
+    // Los iconos de cada red salen de su configuración (js/networks.js): una red nueva no hay que añadirla aquí.
+    ...BideNetworks.slugs.flatMap((slug) => ['/' + BideNetworks.get(slug).icons + '/icon-192.png', '/' + BideNetworks.get(slug).icons + '/icon-512.png']),
 ];
 
 self.addEventListener('install', (event) => {

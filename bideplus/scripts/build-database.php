@@ -36,7 +36,7 @@ function main(array $aArgv): void
 {
     $GLOBALS['BUILD_ARGV'] = $aArgv;
     $aOptions = parseArgs($aArgv);
-    $sNetwork = $aOptions['network'] ?? \Core\Networks::DEFAULT;
+    $sNetwork = $aOptions['network'] ?? \Core\Networks::defaultSlug();
     if (!\Core\Networks::exists($sNetwork)) {
         fwrite(STDERR, "Unknown --network=\"$sNetwork\" (expected " . implode('|', \Core\Networks::slugs()) . ")\n");
         exit(1);

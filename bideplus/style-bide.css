@@ -16,12 +16,6 @@ html.bide .bide-views { display: block; overflow-x: clip; }
 
 /* ===== Piezas comunes ===== */
 html.bide .bide-swatch { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--bide-green); }
-html.bide .bide-swatch--metro { background: #C8102E; }
-html.bide .bide-swatch--euskotren { background: #003F8C; }
-html.bide .bide-swatch--renfe { background: #74349A; }
-html.bide .bide-swatch--lurraldebus { background: #0062A8; }
-html.bide .bide-swatch--tranvia-bilbao { background: #2f7a2a; }
-html.bide .bide-swatch--tranvia-vitoria { background: #3f7f1c; }
 html.bide .bide-wordmark { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; color: var(--bide-green); }
     html.bide .bide-wordmark span { color: var(--bide-red); }
 

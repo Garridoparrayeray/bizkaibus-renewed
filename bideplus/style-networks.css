@@ -1,0 +1,86 @@
+/* Generado por scripts/build-networks-css.php desde api/Networks: no lo edites a mano. */
+
+/* Ficha de cada red en el menú de inicio. */
+.tile--bus { --c: #0B6E4C; }
+.tile--metro { --c: #C8102E; }
+.tile--euskotren { --c: #003F8C; }
+.tile--renfe { --c: #74349A; }
+.tile--lurraldebus { --c: #0062A8; }
+.tile--tranvia-bilbao { --c: #4EB848; }
+.tile--tranvia-vitoria { --c: #60AE27; }
+
+/* Cuadradito de cada red en las listas de Bide+ (favoritos, avisos). */
+html.bide .bide-swatch--metro { background: #C8102E; }
+html.bide .bide-swatch--euskotren { background: #003F8C; }
+html.bide .bide-swatch--renfe { background: #74349A; }
+html.bide .bide-swatch--lurraldebus { background: #0062A8; }
+html.bide .bide-swatch--tranvia-bilbao { background: #2f7a2a; }
+html.bide .bide-swatch--tranvia-vitoria { background: #3f7f1c; }
+
+/* Paleta de la app de cada red (la red por defecto usa la de style-app.css). */
+html.is-metro {
+    --bg: #f6f4f4;
+    --border: #e3ddde;
+    --primary: #C8102E;
+    --primary-light: #FF8A80;
+    --primary-dark: #7A0C1D;
+    --primary-tint: #FCEBEA;
+    --text: #211c1c;
+    --text-secondary: #665c5d;
+    --backdrop: rgba(20, 10, 11, .5);
+}
+html.is-euskotren {
+    --bg: #f0f4f8;
+    --border: #d0dce8;
+    --primary: #003F8C;
+    --primary-light: #5B9BD5;
+    --primary-dark: #002560;
+    --primary-tint: #E6F0FA;
+    --text: #171d26;
+    --text-secondary: #4d5966;
+    --backdrop: rgba(10, 14, 20, .5);
+}
+html.is-renfe {
+    --bg: #f8f4fa;
+    --border: #e6dbec;
+    --primary: #74349A;
+    --primary-light: #B98BD1;
+    --primary-dark: #4A1D66;
+    --primary-tint: #F3EAF8;
+    --text: #24192b;
+    --text-secondary: #65596c;
+    --backdrop: rgba(18, 10, 22, .5);
+}
+html.is-lurraldebus {
+    --bg: #f4f7fb;
+    --border: #d9e3ef;
+    --primary: #0062A8;
+    --primary-light: #8DC63F;
+    --primary-dark: #003F70;
+    --primary-tint: #E6F0F8;
+    --text: #152230;
+    --text-secondary: #556372;
+    --backdrop: rgba(8, 16, 26, .5);
+}
+html.is-tranvia-bilbao {
+    --bg: #f4f8f4;
+    --border: #dde8dc;
+    --primary: #2F7A2A;
+    --primary-light: #D8F5C8;
+    --primary-dark: #1E5420;
+    --primary-tint: #EAF7E6;
+    --text: #1c2a1d;
+    --text-secondary: #5c6b5e;
+    --backdrop: rgba(10, 20, 12, .5);
+}
+html.is-tranvia-vitoria {
+    --bg: #f5f8f3;
+    --border: #dfe8da;
+    --primary: #3B7D23;
+    --primary-light: #ECFAE2;
+    --primary-dark: #2A5612;
+    --primary-tint: #EEF7E7;
+    --text: #1e2a19;
+    --text-secondary: #5e6b58;
+    --backdrop: rgba(12, 20, 10, .5);
+}
