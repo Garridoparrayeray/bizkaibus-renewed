@@ -436,6 +436,10 @@ check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.docume
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);
 await phone();
+// En el móvil el idioma de la cabecera es el botón «EU», pero el selector de Ajustes se tiene que ver (antes salía vacío).
+await go('/?red=bus');
+await ev("document.querySelector('[data-bide-tab=ajustes]').click(); true");
+check('navegador · app: en Ajustes se ve el selector de idioma', await waitTrue("[...document.querySelectorAll('[data-bide-view=ajustes] .bide-lang')].some((e) => e.getClientRects().length > 0)"));
 await go('/');
 await ev("localStorage.setItem('bizkaibus_favorites', JSON.stringify([{ type: 'stop', refId: '4255' }])); true");
 await ev("document.querySelector('.menu-footer [data-bide-tab=ajustes]').click(); true");
