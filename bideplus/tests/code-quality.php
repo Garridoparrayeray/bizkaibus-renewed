@@ -290,6 +290,16 @@ foreach ($aPhpFiles as $sFile) {
                 $Report('PHP: variable sin prefijo de tipo ($aLista, $sTexto, $iNumero, $dDecimal, $bBandera; objetos y funciones en PascalCase)', $sFile . ':' . $iLine . ' $' . $sName);
             }
         }
+        // Una función guardada en una variable va en PascalCase ($Sender = function…), no con prefijo de tipo.
+        if (is_array($Token) && $Token[0] === T_VARIABLE && ($aTokens[$iIndex + 1] ?? null) === '=' && preg_match('/^\$[a-z]/', $Token[1])) {
+            $Next = $aTokens[$iIndex + 2] ?? null;
+            if (is_array($Next) && $Next[0] === T_STATIC) {
+                $Next = $aTokens[$iIndex + 3] ?? null;
+            }
+            if (is_array($Next) && in_array($Next[0], [T_FUNCTION, T_FN], true)) {
+                $Report('PHP: una función guardada en una variable va en PascalCase ($Sender = function…)', $sFile . ':' . $iLine . ' ' . $Token[1]);
+            }
+        }
         if (is_array($Token) && $Token[0] === T_STRING && in_array(strtolower($Token[1]), ['var_dump', 'print_r', 'var_export', 'dd'], true) && !$IsTest($sFile) && !str_starts_with($sFile, 'scripts/')) {
             $Report('PHP: restos de depuración', $sFile . ':' . $iLine . ' ' . $Token[1]);
         }
