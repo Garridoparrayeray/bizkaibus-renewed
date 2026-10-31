@@ -100,6 +100,8 @@ export const el = {
     modalShare: document.getElementById('modal-share'),
     modalNotify: document.getElementById('modal-notify'),
     modalNotifyOptions: document.getElementById('modal-notify-options'),
+    modalNotifyRepeat: document.getElementById('modal-notify-repeat'),
+    modalNotifyRepeatInput: document.getElementById('modal-notify-repeat-input'),
     modalNotifyCancel: document.getElementById('modal-notify-cancel'),
     modalNotifyStatus: document.getElementById('modal-notify-status'),
     modalAlertsToggle: document.getElementById('modal-alerts-toggle'),

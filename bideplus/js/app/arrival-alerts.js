@@ -1,6 +1,7 @@
 // «Avísame cuando llegue»: desde la ficha de un viaje abierta en una parada, el móvil avisa cuando faltan 2, 5 o 10
 // minutos, aunque la app esté cerrada (notificaciones push; en iPhone, con Bide+ en la pantalla de inicio). El
-// servidor guarda el aviso y lo manda en el momento justo (api/Services/ArrivalAlerts.php).
+// servidor guarda el aviso y lo manda en el momento justo (api/Services/ArrivalAlerts.php). Por defecto avisa una vez
+// y se quita; con «Avisarme todos los días», cada día que haya ese viaje hasta que se cancele.
 import { el, state } from './core.js';
 import { cancelArrivalAlert, readArrivalAlerts, writeArrivalAlerts } from '../arrival-alerts-store.js';
 import { isIos, pushSubscription, pushSupported, serverKey } from '../push.js';
@@ -15,11 +16,17 @@ function setStatus(key, vars) {
     el.modalNotifyStatus.textContent = I18n.t(key, vars);
 }
 
+function activeKey(alert) {
+    if (alert.repeat === true) return 'app.notify.setRepeat';
+    return 'app.notify.set';
+}
+
 function renderState() {
     const active = activeAlert();
     el.modalNotifyOptions.hidden = Boolean(active);
+    el.modalNotifyRepeat.hidden = Boolean(active);
     el.modalNotifyCancel.hidden = !active;
-    if (active) setStatus('app.notify.set', { min: active.minutes });
+    if (active) setStatus(activeKey(active), { min: active.minutes });
 }
 
 // Se enseña en la ficha de un viaje abierta desde una parada, si el servidor y el navegador lo permiten.
@@ -35,6 +42,7 @@ export async function showArrivalAlerts(tripKey) {
         if (!isIos()) return;
         el.modalNotify.hidden = false;
         el.modalNotifyOptions.hidden = true;
+        el.modalNotifyRepeat.hidden = true;
         el.modalNotifyCancel.hidden = true;
         setStatus('app.notify.ios');
         return;
@@ -53,20 +61,26 @@ async function createAlert(minutes) {
         return;
     }
     const target = { ...current };
+    const repeat = el.modalNotifyRepeatInput.checked;
     let result;
     let subscription;
     try {
         subscription = await pushSubscription(key.publicKey);
-        result = await Api.createArrivalAlert({ subscription, stopId: target.stopId, tripKey: target.tripKey, minutes, lang: I18n.getLang() });
+        result = await Api.createArrivalAlert({ subscription, stopId: target.stopId, tripKey: target.tripKey, minutes, repeat, lang: I18n.getLang() });
     } catch (e) {
         setStatus('app.notify.error');
         return;
     }
     if (result.status === 'created') {
-        // La línea, el destino y la parada, para enseñarlo en Ajustes.
-        const alert = { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, endpoint: subscription.endpoint, created: Date.now() };
+        // La línea, el destino y la parada, para enseñarlo en Ajustes. Uno de una vez guarda cuándo llega el viaje,
+        // para quitarlo de la lista si por lo que sea nunca avisa.
+        const alert = { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, repeat, endpoint: subscription.endpoint, created: Date.now() };
+        if (typeof result.minutesLeft === 'number') alert.expectedAt = Date.now() + result.minutesLeft * 60000;
         writeArrivalAlerts([...readArrivalAlerts(), { ...alert, lineCode: result.lineCode, headsign: result.headsign, stopName: result.stopName }]);
+        el.modalNotifyRepeatInput.checked = false;
         if (target.tripKey === current.tripKey) renderState();
+        // Uno de todos los días pedido cuando hoy ya llega o ya pasó: empieza la próxima vez.
+        if (repeat && (result.today === 'now' || result.today === 'gone')) setStatus('app.notify.repeatLater', { min: minutes });
     } else if (result.status === 'now') {
         setStatus('app.notify.now');
     } else if (result.status === 'gone') {
