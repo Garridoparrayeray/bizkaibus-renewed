@@ -330,6 +330,20 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+
+    // Al tocar una notificación: abre la ficha una vez. Ni al recargar ni si Android vuelve a cargar la dirección con
+    // la que se abrió la app sale otra vez.
+    const alertUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}&aviso=prueba-${Date.now()}`;
+    await go(alertUrl, 3000);
+    check('notificación: abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));
+    check('notificación: la dirección queda sin ?viaje ni ?aviso', await ev("!location.search.includes('viaje') && !location.search.includes('aviso')"), await ev('location.search'));
+    await send('Page.reload');
+    await sleep(3000);
+    check('notificación: al recargar no vuelve a salir la ficha', await ev("!document.getElementById('vehicle-modal').open"));
+    await go(alertUrl, 3000);
+    check('notificación: si se vuelve a cargar su dirección, se queda en el inicio, sin la parada ni la ficha', await ev("!document.getElementById('vehicle-modal').open && location.pathname === '/' && !location.search.includes('viaje') && document.getElementById('live-card').hidden"), await ev("location.pathname + location.search"));
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    check('compartir: el mismo enlace compartido se puede abrir más veces', await waitTrue("document.getElementById('vehicle-modal').open"));
 } else {
     results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
 }

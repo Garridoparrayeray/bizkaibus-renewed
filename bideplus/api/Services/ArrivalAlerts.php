@@ -216,7 +216,8 @@ class ArrivalAlerts
         if (str_contains($sUrl, '?')) {
             $sSeparator = '&';
         }
-        $sUrl .= $sSeparator . 'viaje=' . rawurlencode($aAlert['tripKey']);
+        // «aviso», distinto en cada envío: la app abre la ficha una sola vez aunque el sistema recargue esa dirección.
+        $sUrl .= $sSeparator . 'viaje=' . rawurlencode($aAlert['tripKey']) . '&aviso=' . $aAlert['id'] . '-' . base_convert((string)time(), 10, 36);
         return ['title' => $sTitle, 'body' => strtr($aTexts['body'], $aVars), 'url' => $sUrl, 'tag' => 'bide-arrival-' . $aAlert['id']];
     }
 

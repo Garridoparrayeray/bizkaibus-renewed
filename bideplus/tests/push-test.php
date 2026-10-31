@@ -144,7 +144,7 @@ try {
         $aCounts = ArrivalAlerts::process($Sender);
         $expect('enviar: cuando toca, se manda una vez', $aCounts['sent'] === 1 && count($aSent) === 1);
         $expect('enviar: en el idioma pedido y con la línea', str_contains($aSent[0]['title'] ?? '', $aTrip['lineCode']) && (str_contains($aSent[0]['title'], 'arrives in') || str_contains($aSent[0]['title'], 'is arriving')), json_encode($aSent[0] ?? null));
-        $expect('enviar: al tocarla se abre la parada con el viaje', ($aSent[0]['url'] ?? '') === '/stops/356?viaje=' . rawurlencode($aTrip['tripKey']));
+        $expect('enviar: al tocarla se abre la parada con el viaje', str_starts_with($aSent[0]['url'] ?? '', '/stops/356?viaje=' . rawurlencode($aTrip['tripKey']) . '&aviso=' . $aCreated['id'] . '-'), $aSent[0]['url'] ?? '');
         $expect('enviar: enviado, ya no queda pendiente', !in_array($aCreated['id'], $pending(), true));
         ArrivalAlerts::process($Sender);
         $expect('enviar: no se repite', count($aSent) === 1);
@@ -168,7 +168,7 @@ try {
     $expect('caducado: un aviso que ya no está en el almacén sale de la lista', !in_array('aaaaaaaaaaaaaaaaaaaaaaaa', $pending(), true));
 
     $aMessage = ArrivalAlerts::message(['id' => 'x', 'network' => 'metro', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'MB-1-2', 'lineCode' => 'MB', 'headsign' => 'Basauri', 'lang' => 'eu'], 3);
-    $expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && $aMessage['url'] === '/stops/7?red=metro&viaje=MB-1-2' && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
+    $expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && str_starts_with($aMessage['url'], '/stops/7?red=metro&viaje=MB-1-2&aviso=x-') && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
 
     // ===== Avisos de incidencias de los favoritos =====
 
