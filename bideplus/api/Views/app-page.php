@@ -23,16 +23,25 @@ if ($bMiamorDomain) {
     $sDescription = 'Horarios y tiempo real de tu transporte, hecho con cariño para ti.';
     $sSiteUrl = 'https://bideplusmiamor.vercel.app';
     $sImage = $sSiteUrl . '/icons/icon-512.png';
+    $iImageWidth = 512;
+    $iImageHeight = 512;
+    $sImageAlt = 'Icono de ' . $sTitle;
     $sFaviconFolder = 'icons';
 } else {
     $sTitle = $aNetwork['seo']['title'];
     $sDescription = $aNetwork['seo']['description'];
-    $sImage = $aSite['url'] . '/' . $aNetwork['brand']['icons'] . '/icon-512.png';
+    // Al compartir cualquier página (parada, línea, red), la vista previa es siempre la imagen de Bide+.
+    $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
+    $iImageWidth = 1200;
+    $iImageHeight = 630;
+    $sImageAlt = 'Bide+: bus, metro, tren y tranvía de Euskadi en un solo sitio';
     $sFaviconFolder = $aNetwork['brand']['icons'];
 }
-
-// El texto alternativo describe el icono de la app, también en las páginas de parada o línea.
-$sImageAlt = 'Icono de ' . $sTitle;
+// Imagen apaisada: vista previa grande en las redes que lo distinguen.
+$sTwitterCard = 'summary';
+if ($iImageWidth > $iImageHeight) {
+    $sTwitterCard = 'summary_large_image';
+}
 
 $sCanonical = $sSiteUrl . $sPath;
 if ($sPath === '/' || $sPath === '') {

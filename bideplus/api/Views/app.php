@@ -26,10 +26,10 @@ use Core\Networks;
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sImage) ?>">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
+    <meta property="og:image:width" content="<?= $iImageWidth ?>">
+    <meta property="og:image:height" content="<?= $iImageHeight ?>">
     <meta property="og:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="<?= $sTwitterCard ?>">
     <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="twitter:image" content="<?= htmlspecialchars($sImage) ?>">
