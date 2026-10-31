@@ -27,6 +27,7 @@ const BIDE_ICONS = [
 ];
 
 const BIDE_CHANGELOG = [
+    ['2026-10-31', '31/10/2026', 27, 'Ajustes', 'Una pestaña nueva con el idioma, las notificaciones (las incidencias de tus favoritos y los avisos de llegada que tengas activos, que puedes cancelar), los horarios sin conexión y un botón para borrar tus datos del móvil.'],
     ['2026-10-30', '30/10/2026', 26, 'Incidencias con la app cerrada', 'Los avisos de incidencias de tus favoritos llegan aunque no abras la app: los manda el servidor cada pocos minutos, de todas las apps a la vez. Si ya los tenías activados, pasan a funcionar así sin hacer nada.'],
     ['2026-10-30', '30/10/2026', 25, 'Avísame cuando llegue', 'En la ficha de un viaje elige 2, 5 o 10 minutos y el móvil te avisa antes de que llegue a tu parada, aunque tengas la app cerrada. En iPhone, con Bide+ añadida a la pantalla de inicio.'],
     ['2026-10-30', '30/10/2026', 24, 'Bide+ en inglés', 'Toda la app, también en inglés. Si tu móvil está en inglés, Bide+ se abre en inglés; puedes cambiar de idioma cuando quieras.'],
