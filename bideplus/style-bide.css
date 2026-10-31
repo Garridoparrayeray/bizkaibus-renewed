@@ -339,7 +339,8 @@ html.bide body.page-app .app-footer { display: grid; gap: 12px; text-align: cent
     html.bide body.page-app .app-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
         html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
         html.bide body.page-app .app-footer :is(a, button):hover { text-decoration: underline; }
-html.bide body.page-app .bide-lang { display: none; }
+/* En el móvil, el idioma de la cabecera es el botón «EU»; el selector de Ajustes se ve siempre. */
+html.bide body.page-app .header-actions .bide-lang { display: none; }
 html.bide body.page-app .bide-menu-apps { display: flex; width: 100%; justify-content: flex-start; margin: 44px 0 10px; font-size: .9rem; text-decoration: none; }
     html.bide body.page-app .bide-menu-apps + .menu-favorites-open { margin-top: 0; font-size: .9rem; }
 html.bide body.page-app .app-container > header { justify-content: flex-start; }
@@ -470,7 +471,7 @@ html.bide body.page-menu .legal-close {
     html.bide body.page-app .bide-rail { grid-column: 1; grid-row: 2 / -1; position: sticky; top: 20px; margin-top: 20px; }
     html.bide body.page-app .app-container > header { grid-column: 2; grid-row: 2; margin: 20px 0 16px; }
     html.bide body.page-app .menu-open, html.bide body.page-app .lang-toggle { display: none; }
-    html.bide body.page-app .bide-lang { display: inline-flex; }
+    html.bide body.page-app .header-actions .bide-lang { display: inline-flex; }
     html.bide body.page-app .layout {
         grid-column: 2;
         grid-row: 3;
