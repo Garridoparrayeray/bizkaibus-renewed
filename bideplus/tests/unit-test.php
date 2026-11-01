@@ -17,6 +17,7 @@ use Engine\Bizkaibus\PassageLog;
 use Engine\Bizkaibus\RealtimeMatcher;
 use Engine\Bizkaibus\SegmentTimes;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
+use Engine\Bizkaibus\TripOffsets;
 use Engine\Metro\TripUpdatesMatcher;
 
 $aFailures = [];
@@ -460,6 +461,35 @@ $Expect('en otra red no se da ninguna fila por pasada con la parada registrada',
 [$iEta] = $MOtherNetwork->etaForStop('J_LINE', T0 + 720, $aRegistered, 5);
 $Expect('en otra red, sin GPS, la ETA es la de siempre (ahora + horario desde la próxima parada)', $iEta === T0 + 300 + 360, hms($iEta));
 Config::set('bus');
+
+/* Corrección por viaje: lo que suele apartarse cada viaje de la hora estimada sin datos del bus, por tercio del recorrido.
+ * J_LINE (línea 3414, S0 a S4, 5 paradas, sale a las 08:00) llega a S4 a las 08:07:40 según los tramos aprendidos. */
+if (class_exists(TripOffsets::class)) {
+    $Section('TripOffsets: corrección por viaje');
+    $sLineKey = TripOffsets::key('3414', 'S0', 'S4', T0, 5);
+    $Expect('el viaje se reconoce por línea, primera y última parada, salida y número de paradas', $sLineKey === '3414|S0|S4|28800|5', $sLineKey);
+    $Expect('tercios de un recorrido de 5 paradas: 0 y 1 en el primero, 2 y 3 en el segundo, 4 en el tercero', [TripOffsets::part(0, 5), TripOffsets::part(1, 5), TripOffsets::part(2, 5), TripOffsets::part(3, 5), TripOffsets::part(4, 5), TripOffsets::part(9, 5)] === [0, 0, 1, 1, 2, 2]);
+    $Trips = new TripOffsets([
+        'trips' => [$sLineKey => ['laborable' => [10, 20, 30]]],
+        'lines' => ['3414' => ['laborable.punta_manana' => 50]],
+        'global' => ['laborable.punta_manana' => 70, 'fin_semana.punta_manana' => 90],
+    ]);
+    $Expect('con datos del viaje se usa el de su tercio', $Trips->seconds($sLineKey, '3414', DATE_WEEKDAY, T0, 4, 5) === 30.0 && $Trips->seconds($sLineKey, '3414', DATE_WEEKDAY, T0, 2, 5) === 20.0);
+    $Expect('sin datos del viaje, el de su línea y franja', $Trips->seconds('3414|S0|S9|28800|9', '3414', DATE_WEEKDAY, T0, 4, 9) === 50.0);
+    $Expect('sin datos de la línea, el de la franja', $Trips->seconds('1|A|B|28800|3', '1', DATE_WEEKDAY, T0, 1, 3) === 70.0);
+    $Expect('el viaje solo tiene datos de laborable: en fin de semana va a la franja de fin de semana', $Trips->seconds($sLineKey, '3414', DATE_WEEKEND, T0, 4, 5) === 90.0);
+    $Expect('sin tabla, no se corrige nada', (new TripOffsets())->seconds($sLineKey, '3414', DATE_WEEKDAY, T0, 4, 5) === 0.0 && (new TripOffsets())->isEmpty());
+
+    $MTrip = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned, $Trips);
+    $aTrip = $MTrip->enrich([$aRowNoBus])[0];
+    $Expect('sin datos del bus, a la hora estimada se suma la corrección del viaje en S4 (tercer tercio: 30 s, 08:08:10)', $aTrip['status'] === 'estimated' && $aTrip['etaSeconds'] === T0 + 460 + 30, hms($aTrip['etaSeconds']));
+    $Expect('la hora estimada es lo aprendido más la corrección', $MTrip->learnedArrival('J_LINE', T0 + 720, '3414') === T0 + 460 && $MTrip->tripOffsetSeconds('J_LINE', 4, '3414') === 30);
+    $aRowNoSeq = $aRowNoBus;
+    unset($aRowNoSeq['stop_seq']);
+    $aRowNoSeq['stop_id'] = 'S4';
+    $Expect('sin el orden de la parada, se encuentra por parada y hora', $MTrip->enrich([$aRowNoSeq])[0]['etaSeconds'] === T0 + 460 + 30);
+    $Expect('con tramos pasados a mano y sin tabla de viajes, no se lee la del fichero', $MNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 460);
+}
 
 /* ------------------------------------------------------------------ */
 $Section('RealtimeMatcher: sin trazado (tramos entre paradas)');
