@@ -83,7 +83,9 @@ Todo está en [nueva-red.md](nueva-red.md): `php scripts/new-network.php` crea l
 
 - Sube `CACHE_VERSION` en `sw.js`, para que los móviles cojan los archivos nuevos.
 - Si es algo que la gente nota, añade una novedad:
-  - una fila nueva arriba en `BIDE_CHANGELOG` (`api/Views/bide-components.php`);
+  - una fila nueva arriba en `Changelog::ENTRIES` (`api/Services/Changelog.php`), con el número siguiente: es la
+    versión nueva de la app, y al desplegarla se avisa a todos (notificación o «1» en Ajustes, ver
+    [notificaciones](notificaciones.md));
   - `bide.changelog.N.title` y `.text` en los tres idiomas;
   - el número de novedades que espera `tests/ui-bide.mjs`.
 - Si una página nueva carga un script o una hoja de estilos, añádelo a `SHELL_FILES` en `sw.js` (la batería lo exige).

@@ -38,7 +38,7 @@ claves VAPID no se cambian nunca: las suscripciones de los móviles están hecha
 
 | Qué | Cuándo (hora UTC) | Qué hace |
 | --- | --- | --- |
-| cron-job.org → `/api/live/record` | cada minuto | apunta por dónde va cada bus, manda los avisos de llegada que tocan y, cada 5 min, las incidencias nuevas |
+| cron-job.org → `/api/live/record` | cada minuto | apunta por dónde va cada bus, manda los avisos de llegada que tocan, cada 5 min las incidencias nuevas y, cuando sale una versión nueva de la app, su aviso |
 | `rebuild-schedule.yml` | cada día a las 03:00, en cada cambio que llega a `master` y a mano | reconstruye las bases desde los GTFS, genera el mapa y los horarios sin conexión, comprueba los datos y **despliega a producción** |
 | `pace-capture.yml` | captura continua (cada trabajo dura unas 5 h 30 min y lanza el siguiente; el cron horario de respaldo es a los :17) y recalibrado a las 04:00 | captura el feed de Bizkaibus, mide la precisión de las llegadas y recalcula el ritmo (k), los tiempos por tramo y la corrección por viaje (con la base de Bizkaibus del día); las muestras van a la release `pace-data` y lo aprendido, al repositorio del algoritmo |
 | `tests.yml` | en cada cambio y en cada *pull request* | toda la batería de pruebas |
@@ -55,6 +55,8 @@ ejecuta desde septiembre.
    por su cuenta (`vercel.json`): si lo hiciera, desplegaría las bases viejas del repositorio y pisaría las del día.
 3. Para volver atrás, se revierte el cambio en `master` (el flujo vuelve a desplegar) o, en Vercel, se promueve un
    despliegue anterior.
+4. Si el cambio trae una novedad nueva (`api/Services/Changelog.php`), es una versión nueva: al minuto del despliegue el
+   cron avisa a quien tiene las notificaciones, una sola vez, y a los demás les sale el «1» rojo en Ajustes.
 
 ## Comprobar que todo va bien
 
@@ -62,7 +64,7 @@ ejecuta desde septiembre.
 | --- | --- |
 | `https://bideplus.vercel.app/api/status?red=bus` | `ok: true` y `vehicles` mayor que 0 en horario de servicio |
 | `https://bideplus.vercel.app/api/push/key` | `publicKey` no es `null` (Upstash y claves de notificación bien) |
-| El historial de cron-job.org | respuestas 200 con `recorded`, `arrivalAlerts` e `incidentAlerts` |
+| El historial de cron-job.org | respuestas 200 con `recorded`, `arrivalAlerts`, `incidentAlerts` y `updateAlerts` |
 | GitHub → Actions | la última «Rebuild schedule data» y la captura en verde |
 | Ajustes de la app | la versión es la de la última novedad, y la fecha de los horarios guardados es la de hoy |
 

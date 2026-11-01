@@ -13,9 +13,10 @@ redes que se elijan se puede guardar en el móvil.
 | Páginas (una app, una parada, una línea) | la red manda, pero si tarda más de 1,5 s y hay copia, se usa la copia | la misma |
 | Respuestas de la API que no son en directo (paradas, líneas, horarios) | la red y, si falla, la última copia | `bizkaibus-api-<versión>` |
 
-Las rutas en directo (`departures`, `live`, `vehicles`, `alerts`, `nearby`) no se guardan: una hora de llegada vieja
-engaña más que ninguna. Sin conexión, una parada o una línea que nunca se abrió se sirve con cualquier página guardada
-de su app (`appPageFallback`): la página lee la dirección y la pinta con el horario guardado.
+Las rutas en directo (`departures`, `live`, `vehicles`, `alerts`, `nearby`) y la versión de la app (`app/version`) no se
+guardan: una hora de llegada vieja engaña más que ninguna, y una versión vieja ocultaría la nueva. Sin conexión, una
+parada o una línea que nunca se abrió se sirve con cualquier página guardada de su app (`appPageFallback`): la página
+lee la dirección y la pinta con el horario guardado.
 
 **`CACHE_VERSION`** (al principio de `sw.js`) se sube en cada cambio de la parte visible: así los móviles descartan la
 carcasa vieja. La batería de limpieza comprueba que todo lo que cargan las páginas esté en `SHELL_FILES`.

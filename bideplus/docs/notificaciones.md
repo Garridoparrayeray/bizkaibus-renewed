@@ -16,11 +16,13 @@ permiso a una página suelta.
 | Claves VAPID, suscripciones válidas y la función que envía | `api/Services/Push.php` |
 | Avisos de llegada (crear, cancelar, mandar) | `api/Services/ArrivalAlerts.php` |
 | Incidencias de los favoritos (guardar, mirar, mandar) | `api/Services/IncidentAlerts.php` |
+| Aviso de versión nueva (apuntar, mandar una vez por versión) | `api/Services/UpdateAlerts.php`, `api/Services/Changelog.php` |
 | Rutas `/api/push/*` | `api/Controllers/PushController.php` |
 | Quién lo dispara: el cron de cada minuto | `api/Controllers/LiveRecordController.php` |
 | Suscripción en el navegador | `js/push.js` |
 | Casilla de la ficha del viaje y lista de Ajustes | `js/app/arrival-alerts.js`, `js/arrival-alerts-store.js`, `js/settings.js` |
 | Interruptor de incidencias | `js/incident-alerts.js` |
+| «1» de Ajustes, novedades de la versión nueva y apuntarse a su aviso | `js/app-update.js` (`/api/app/version`) |
 | Mostrar y tocar la notificación | `sw.js` (`push`, `notificationclick`) y `js/notification-open.js` |
 | Comprobación sin push (navegadores sin push) | `js/alerts-store.js` y `periodicsync` en `sw.js` |
 
@@ -40,9 +42,10 @@ llamada, además de apuntar por dónde va cada bus (ver [registro de pasos](regi
 
 - `ArrivalAlerts::process()` mira los avisos pendientes y manda los que ya tocan.
 - `IncidentAlerts::process()` trabaja una vez cada 5 minutos (una marca `bide:incident:run` que dura 4 min y medio).
+- `UpdateAlerts::process()` avisa de una versión nueva de la app (abajo). Mientras no la hay, cuesta un solo comando.
 
-La respuesta dice cuánto se hizo: `arrivalAlerts: {pending, sent, dropped}` e `incidentAlerts: {subscribers, sent,
-removed}` (o `skipped` si no le tocaba). Un fallo en las notificaciones no estropea el registro de pasos.
+La respuesta dice cuánto se hizo: `arrivalAlerts: {pending, sent, dropped}`, `incidentAlerts: {subscribers, sent,
+removed}` y `updateAlerts: {version, sent, pending}` (o `skipped` si no le tocaba). Un fallo en las notificaciones no estropea el registro de pasos.
 
 ## Avisos de llegada
 
@@ -90,18 +93,41 @@ la manera de su red (`features.alerts`):
 Si el navegador no tiene push, la app mira al abrirse y, donde se puede (Chrome instalado), en segundo plano cada 12
 horas como mucho (`periodicsync`). Esas notificaciones salen igual que las del servidor.
 
+## Versión nueva de la app
+
+La versión de la app es el número de su última novedad (`Services\Changelog::ENTRIES`, la primera fila). Cuando sube
+(se publica una novedad nueva y llega a producción):
+
+- **Con las notificaciones permitidas:** el cron manda a cada móvil apuntado una notificación, una sola vez por versión:
+  «Bide+ se ha actualizado» con los títulos de lo nuevo, en su idioma. Están apuntados los que tienen activados los
+  avisos de incidencias y los que, con el permiso ya dado, abren la app (`js/app-update.js` manda su suscripción y su
+  idioma a `POST /api/push/updates`, como mucho una vez al día). Se avisa como mucho a 300 por minuto; lo que falla
+  por el servicio de push se reintenta y una suscripción que ya no existe se borra. En el almacén:
+  `bide:update:subs` y `bide:update:sub:<id>`, los ya avisados de la versión (`bide:update:sent:<versión>`, 30 días) y la
+  última versión avisada a todos (`bide:update:done`).
+- **Sin notificaciones:** la app compara la versión de su código (la última novedad que trae `js/i18n.js`) con la del
+  servidor (`GET /api/app/version?desde=<la del móvil>&lang=<idioma>`, que nunca sale de la caché). Si va por detrás, la
+  rueda de Ajustes lleva un «1» en rojo (en la barra de pestañas, la columna del ordenador, el pie y el menú de cada
+  app) y Ajustes enseña «Nueva actualización de la app» con lo que trae cada versión, en su idioma, encima de «Vaciar
+  caché y actualizar», que también lleva el «1». Al vaciar la caché se carga el código nuevo y el «1» desaparece.
+
+Los textos en euskera e inglés de cada novedad salen de `js/i18n.js` en el servidor: el móvil con la versión vieja aún
+no los tiene.
+
 ## Al tocar una notificación
 
 - **Llegada**: abre la parada con la ficha del viaje (`/stops/<id>?red=…&viaje=…`).
 - **Incidencia**: abre la pestaña Avisos de su app (`/?red=…#avisos`).
+- **Versión nueva**: abre Ajustes en el inicio de Bide+ (`/#ajustes`), directo a «Vaciar caché y actualizar».
 
 `openFromNotification` (en `sw.js`) usa la ventana de la app que ya haya: la trae al frente y la lleva a la dirección.
 Si no hay ninguna, abre una nueva. En iPhone, con la app cerrada, el sistema abre la app por el inicio y esa ventana
 aún no se deja llevar («navigate failed», un fallo conocido de WebKit). Entonces el service worker se lo pide a la
 página por mensaje (`bide:open`) y la página va ella (`js/notification-open.js`).
 
-Cada dirección lleva `aviso=`, distinto en cada envío. La app lo apunta al abrirla (`bide-opened-alerts`, 7 días) y lo
-quita de la dirección. Así, si Android vuelve a cargar la dirección con la que se abrió la app (pasa al reabrirla), la
+Cada dirección lleva `aviso=`, distinto en cada envío. La app lo apunta al abrirla (`AlertsStore.firstOpening`,
+`bide-opened-alerts`, 7 días; en las apps lo hace `js/app/navigation.js` y en el inicio `js/bide.js`) y lo quita de la
+dirección. Así, si Android vuelve a cargar la dirección con la que se abrió la app (pasa al reabrirla), la
 ficha o la pestaña no vuelven a salir: la app se queda en su inicio.
 
 Todas las notificaciones llevan el icono de su app y, para la barra de estado de Android, la silueta de Bide+ en blanco
@@ -111,8 +137,11 @@ sin notificación hace que el sistema acabe quitando el permiso.
 ## Pruebas
 
 - `tests/push-test.php`: cifrado contra el vector del RFC 8291, firma, direcciones permitidas, avisos de una vez y de
-  todos los días, incidencias (línea base, solo lo nuevo, resumen, reintento, cada 5 minutos, baja) y las siete redes,
-  contra un Upstash falso (`tests/fixtures/fake-upstash.php`).
+  todos los días, incidencias (línea base, solo lo nuevo, resumen, reintento, cada 5 minutos, baja), las siete redes y
+  el aviso de versión nueva (una vez por versión, también a quien solo tiene incidencias, en su idioma, reintento y
+  baja), contra un Upstash falso (`tests/fixtures/fake-upstash.php`).
+- `tests/ui-bide.mjs`: con una versión más nueva en el servidor, el «1» en cada botón de Ajustes, el aviso con sus
+  novedades, ir directo a actualizar y que la notificación abre Ajustes una sola vez; al día, sin «1».
 - `tests/ui-alerts.mjs`: con Chromium, el push con la app cerrada y el service worker parado (llegada, incidencia y
   mensaje roto), qué pasa al tocarla con y sin ventana, que la lista se limpia sola y que la página no va a direcciones
   de fuera.

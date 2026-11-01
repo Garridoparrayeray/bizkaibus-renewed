@@ -46,6 +46,10 @@ no hace falta cuenta.
   cada una y, al tocarla, se abre la pestaña **Avisos** de esa app.
 - En **Avisos** están siempre las incidencias activas de tus favoritos.
 
+- **Versiones nuevas**: cuando sale una, te llega una notificación (si las tienes permitidas) y la rueda de Ajustes
+  enseña un **1** en rojo. Al tocar cualquiera de los dos llegas a Ajustes, con lo que trae la versión encima de
+  **Vaciar caché y actualizar**: púlsalo para tenerla.
+
 En iPhone, las notificaciones solo funcionan con Bide+ añadida a la pantalla de inicio (ver «Instalarla»). Si no te
 llegan, mira que las notificaciones de Bide+ estén permitidas y que el ahorro de batería no cierre el navegador.
 
@@ -66,7 +70,7 @@ llegan, mira que las notificaciones de Bide+ estén permitidas y que el ahorro d
 | **Notificaciones** | el permiso del móvil, los avisos de llegada activos (con su botón de cancelar) y el interruptor de incidencias |
 | **Horarios sin conexión** | guardar o quitar el horario de cada red, o de todas |
 | **Ubicación** | el permiso para «Cerca de mí» |
-| **La app** | vaciar la caché si algo no carga o se queda una versión vieja, y la versión que tienes |
+| **La app** | vaciar la caché si algo no carga o se queda una versión vieja, y la versión que tienes. Si hay una versión nueva, aquí ves lo que trae |
 | **Tus datos** | borrar de este móvil favoritos, idioma, avisos y horarios guardados |
 
 ## Info
