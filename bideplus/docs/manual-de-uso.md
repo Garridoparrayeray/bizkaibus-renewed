@@ -22,8 +22,8 @@ Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**
 - **Cerca de mí**: las paradas que tienes al lado, con la próxima salida (la primera vez pide permiso de ubicación).
 - **La parada** enseña sus próximas salidas, con la más cercana en grande:
   - **minutos y «EN DIRECTO»**: el bus o el tren va con datos en vivo;
-  - **«ESTIMADO»**: no hay datos del vehículo y la hora sale de lo que tardan de verdad en cada tramo; debajo, en gris,
-    la hora oficial;
+  - **«ESTIMADO»**: no hay datos del vehículo y la hora sale de lo que tardan de verdad en cada tramo y de lo que suele
+    retrasarse ese viaje; debajo, en gris, la hora oficial;
   - **«SOLO HORARIO»**: la hora del horario oficial, sin más.
 - **Ver horario completo** abre el horario de una línea por días y horas. En Bizkaibus, **Ver horario oficial** enseña
   el texto del operador: el periodo de hoy y los que vienen.

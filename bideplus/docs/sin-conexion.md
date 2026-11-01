@@ -38,7 +38,7 @@ Cada cosa se guarda una vez y los viajes la nombran por su posición, para que e
 | `patterns` | `[línea, destino, [paradas en orden]]` |
 | `timings` | segundos desde la primera parada a cada una |
 | `trips` | `[recorrido, horas, primera hora, calendario, número de viaje, salida de cabecera, estimada laborable, estimada fin de semana]` |
-| `estimates`, `estimateTrusted` | segundos estimados desde la salida a cada parada, y si se pueden usar para decir que un bus ya pasó |
+| `estimates`, `estimateTrusted` | segundos estimados desde la salida a cada parada (ya con la corrección del viaje), y si se pueden usar para decir que un bus ya pasó |
 | `stops` | `[nombre]`, o `[nombre, estación, andén]` en las redes con andenes |
 | `directionReference`, `lon` | lo que Metro necesita para repartir las salidas en dos columnas por sentido |
 
@@ -48,11 +48,16 @@ redes que salen las mismas que da la API.
 
 ### La hora estimada sin datos del bus
 
-Donde la red usa el algoritmo (Bizkaibus), el archivo lleva para cada viaje su hora estimada con los tramos aprendidos,
-para un día laborable y para uno de fin de semana. Es la misma cuenta que hace el servidor cuando no tiene la posición
-del bus: salida publicada + 1 minuto + lo que tardan de verdad los buses en cada tramo, con la franja horaria y el ritmo
-del punto medio. Comparada con el servidor en 300 paradas al azar, 282 coinciden al segundo y la diferencia máxima es
-de 6 s.
+Donde la red usa el algoritmo (Bizkaibus), el archivo lleva para cada viaje su hora estimada con lo aprendido, para un
+día laborable y para uno de fin de semana. Es la misma cuenta que hace el servidor cuando no tiene la posición del bus:
+salida publicada + 1 minuto + lo que tardan de verdad los buses en cada tramo, con la franja horaria y el ritmo del
+punto medio, + lo que suele apartarse ese viaje en ese tercio del recorrido (`engine/bizkaibus/TripOffsets.php`).
+Comparada con el servidor en 800 paradas al azar de un laborable y un sábado, la diferencia máxima es de 6 s.
+
+La corrección por viaje no ocupa sitio aparte: va sumada a cada hora estimada. Por eso hay más horas distintas que antes
+(9.196 frente a 5.339) y el archivo de Bizkaibus pasa de 1,1 a 1,5 MB (0,5 MB comprimido). A cambio, contra el paso real
+de los buses en 7 días que no se usaron para aprender, el error medio baja de 210 a 158 s y las que aciertan con ±2 min
+pasan del 47 % al 54 % (ver `algoritmo-explicado.md`, «Corrección por viaje»).
 
 Sin conexión, cada salida se enseña como con conexión y sin datos del bus:
 

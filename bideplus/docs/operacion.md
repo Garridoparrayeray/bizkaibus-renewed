@@ -28,7 +28,7 @@ no hay ninguna clave: solo sus nombres y dónde se configuran.
 | Nombre | Para qué |
 | --- | --- |
 | `ENGINE_REPO_TOKEN` | leer el repositorio del algoritmo desde las pruebas, la reconstrucción y la captura |
-| `NAP_API_KEY` | descargar los GTFS del Punto de Acceso Nacional (nap.transportes.gob.es) |
+| `NAP_API_KEY` | descargar los GTFS del Punto de Acceso Nacional (nap.transportes.gob.es), en la reconstrucción diaria y en el recalibrado |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID_BIDEPLUS` | desplegar en Vercel desde la reconstrucción diaria |
 
 Las claves no se cambian sin motivo. Al cambiar `BIDE_CRON_SECRET` hay que cambiar también la URL de cron-job.org. Las
@@ -40,7 +40,7 @@ claves VAPID no se cambian nunca: las suscripciones de los móviles están hecha
 | --- | --- | --- |
 | cron-job.org → `/api/live/record` | cada minuto | apunta por dónde va cada bus, manda los avisos de llegada que tocan y, cada 5 min, las incidencias nuevas |
 | `rebuild-schedule.yml` | cada día a las 03:00, en cada cambio que llega a `master` y a mano | reconstruye las bases desde los GTFS, genera el mapa y los horarios sin conexión, comprueba los datos y **despliega a producción** |
-| `pace-capture.yml` | captura continua (cada trabajo dura unas 5 h 30 min y lanza el siguiente; el cron horario de respaldo es a los :17) y recalibrado a las 04:00 | captura el feed de Bizkaibus, mide la precisión de las llegadas y recalcula el ritmo (k) y los tiempos por tramo; las muestras van a la release `pace-data` y lo aprendido, al repositorio del algoritmo |
+| `pace-capture.yml` | captura continua (cada trabajo dura unas 5 h 30 min y lanza el siguiente; el cron horario de respaldo es a los :17) y recalibrado a las 04:00 | captura el feed de Bizkaibus, mide la precisión de las llegadas y recalcula el ritmo (k), los tiempos por tramo y la corrección por viaje (con la base de Bizkaibus del día); las muestras van a la release `pace-data` y lo aprendido, al repositorio del algoritmo |
 | `tests.yml` | en cada cambio y en cada *pull request* | toda la batería de pruebas |
 | `check-production.yml`, `eta-historial.yml` | a mano | comprobar el sitio desplegado (SEO, 404) y recuperar el historial de precisión |
 
