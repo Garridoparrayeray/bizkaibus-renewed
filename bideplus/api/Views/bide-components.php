@@ -95,6 +95,21 @@ function bideChangelogEntry(array $aEntry): string
         . '<p data-i18n="bide.changelog.' . $iNumber . '.text">' . $sText . '</p></article>';
 }
 
+// Lo que viene: funciones en desarrollo, para que el usuario sepa hacia dónde va la app.
+function bideUpcoming(): string
+{
+    $sHtml = '<section class="bide-card bide-upcoming"><h3 data-i18n="bide.upcoming.title">Próximamente</h3>';
+    $sHtml .= '<p class="bide-upcoming-head"><strong data-i18n="bide.upcoming.planner.title">Planificador de ruta</strong><span class="bide-upcoming-badge" data-i18n="bide.upcoming.badge">En desarrollo</span></p>';
+    $sHtml .= '<p data-i18n="bide.upcoming.planner.text">Dices de dónde sales y a dónde vas, y Bide+ te propone el viaje completo mezclando todas las redes: bus, metro, tren y tranvía, con los transbordos, lo que tarda cada tramo, dónde cambiar y lo que cuesta.</p>';
+    $sHtml .= '<ul class="bide-upcoming-list">';
+    $sHtml .= '<li data-i18n="bide.upcoming.planner.1">Transbordos dentro de una misma red o entre redes, como en un mapa de rutas: cada tramo con su línea, el tiempo de espera y la parada o estación donde cambias.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.planner.2">Coste del viaje según los transportes que elijas.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.planner.3">Seguimiento del viaje en curso: por dónde vas, cuánto falta para el transbordo y la hora de llegada, actualizados con el directo.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.planner.4">Si quieres, un aviso en el móvil un rato antes de cada transbordo. Es opcional: lo activas al planificar el viaje.</li>';
+    $sHtml .= '</ul></section>';
+    return $sHtml;
+}
+
 function bideChangelog(): string
 {
     $sHtml = '<section class="bide-card bide-changelog"><h3 data-i18n="bide.changelog.title">Novedades</h3>';
@@ -281,6 +296,7 @@ function bideViews(): string
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
     $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
+    $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
     $sHtml .= '</div></section>';
