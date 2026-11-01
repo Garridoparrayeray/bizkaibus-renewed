@@ -299,6 +299,34 @@ html.bide .bide-card-link {
         width: 18px;
         height: 18px;
     }
+html.bide .bide-upcoming-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+}
+    html.bide .bide-upcoming-head > strong {
+        color: var(--bide-ink);
+        font-size: 15.2px;
+    }
+    html.bide .bide-upcoming-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--bide-tint);
+        color: var(--bide-green);
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+html.bide .bide-upcoming-list {
+    margin: 0;
+    padding: 0 0 0 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--bide-ink);
+}
 html.bide .bide-changelog-head {
     display: flex;
     flex-wrap: wrap;
