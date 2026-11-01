@@ -115,3 +115,11 @@ function networkQueryFor(slug) {
     if (slug !== BideNetworks.DEFAULT) return '?red=' + slug;
     return '';
 }
+
+// Al volver a la app o recuperar la conexión se pide ya lo que se refresca solo, por si ha vuelto el directo.
+export function onReturn(refresh) {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refresh();
+    });
+    window.addEventListener('online', refresh);
+}

@@ -80,7 +80,7 @@ Se descartó explícitamente `direction_id` de GTFS como fuente: en el feed de M
 
 ## Mapa en vivo por línea (solo Bizkaibus)
 
-Al seleccionar una línea, `GET /api/lines/{id}/live` (`RealtimeController::lineLive`) devuelve la ruta de cada patrón (paradas ordenadas, para dibujar la polyline) y los vehículos activos ahora mismo en esa línea. El marcador de cada bus se sitúa en la parada que da el feed (`StopPointRef`), que es la **próxima** parada del bus, no la última visitada. El frontend refresca esta llamada cada 25s mientras la línea esté abierta.
+Al seleccionar una línea, `GET /api/lines/{id}/live` (`RealtimeController::lineLive`) devuelve la ruta de cada patrón (paradas ordenadas, para dibujar la polyline) y los vehículos activos ahora mismo en esa línea. El marcador de cada bus se sitúa en la parada que da el feed (`StopPointRef`), que es la **próxima** parada del bus, no la última visitada. El frontend refresca esta llamada cada 25 s mientras la línea esté abierta, y al momento al volver a la app o recuperar la conexión.
 
 ## Menú lateral: incidencias
 

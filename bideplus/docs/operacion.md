@@ -79,6 +79,7 @@ ejecuta desde septiembre.
 | No le llegan a una persona | permiso quitado, ahorro de batería del móvil o, en iPhone, Bide+ sin añadir a la pantalla de inicio | que active las notificaciones de Bide+ y quite el ahorro de batería para el navegador |
 | Horarios de ayer o antiguos | falló la reconstrucción (GTFS caído o cambiado) | ver el log de «Rebuild schedule data»; se puede relanzar a mano |
 | Las llegadas de Bizkaibus salen todas «solo horario» | el feed en directo no responde | `/api/status?red=bus`; si `ok` es `false`, es del operador |
+| Bizkaibus sin directo aunque el feed responde | el operador sube el fichero cada minuto pero con posiciones viejas: las de más de 10 min no cuentan | nada: la app lo lee cada 25 s (y al volver a ella o recuperar la conexión) y vuelve sola al directo en cuanto haya posiciones nuevas |
 | Las pruebas fallan en `engine/` | `ENGINE_REPO_TOKEN` caducado | crear un token nuevo con lectura del repositorio del algoritmo y guardarlo con el mismo nombre |
 | El despliegue falla en Vercel | `VERCEL_TOKEN` caducado | crear uno nuevo en Vercel y guardarlo en GitHub |
 

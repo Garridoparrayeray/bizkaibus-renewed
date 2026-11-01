@@ -124,6 +124,8 @@ await ev("(() => { const list = BideOffline.saved(); list.bus.generated = '2000-
 check('horarios sin conexion: un horario mas nuevo se baja solo al volver la conexion', await waitTrue("BideOffline.saved().bus.generated !== '2000-01-01'", 20000));
 await goOwn('/stops/3388', 4000);
 check('con conexion: no se puede marcar si un bus paso (manda el directo)', await waitTrue("!document.getElementById('live-card').hidden") && (await ev("document.getElementById('live-offline-marks').hidden && document.querySelectorAll('#live-more-list .offline-mark').length === 0")));
+await ev("(() => { window.__departuresCalls = 0; const original = Api.stopDepartures; Api.stopDepartures = (...args) => { window.__departuresCalls++; return original(...args); }; window.dispatchEvent(new Event('online')); return true; })()");
+check('al recuperar la conexion se piden ya las salidas, por si vuelve el directo', await waitTrue('window.__departuresCalls > 0', 4000));
 await goOwn('/?red=bus');
 
 ownServer.kill();
