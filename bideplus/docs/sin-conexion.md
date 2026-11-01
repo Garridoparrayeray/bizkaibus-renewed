@@ -43,7 +43,7 @@ Cada cosa se guarda una vez y los viajes la nombran por su posición, para que e
 | `patterns` | `[línea, destino, [paradas en orden]]` |
 | `timings` | segundos desde la primera parada a cada una |
 | `trips` | `[recorrido, horas, primera hora, calendario, número de viaje, salida de cabecera, estimada laborable, estimada fin de semana y festivo]` |
-| `estimates`, `estimateTrusted` | segundos estimados desde la salida a cada parada (ya con la corrección del viaje), y si se pueden usar para decir que un bus ya pasó |
+| `estimates`, `estimateTrusted` | segundos estimados desde la salida a cada parada (ya con la corrección del viaje), y por cada parada un `1` si lo aprendido hasta ella basta para decir que un bus ya pasó (como el servidor) |
 | `stops` | `[nombre]`, o `[nombre, estación, andén]` en las redes con andenes |
 | `directionReference`, `lon` | lo que Metro necesita para repartir las salidas en dos columnas por sentido |
 

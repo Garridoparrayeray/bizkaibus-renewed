@@ -19,7 +19,7 @@ use Core\Networks;
 const OFFLINE_FORMAT = 2;
 // Como el motor sin datos del bus: la salida real de cabecera va un minuto después de la publicada.
 const ESTIMATE_ORIGIN_OFFSET_SECONDS = 60;
-// Por debajo de este reparto de tiempo aprendido, la estimación no basta para decir que un bus ya pasó.
+// Por debajo de este reparto de tiempo aprendido hasta la parada, no basta para decir que un bus ya pasó.
 const ESTIMATE_TRUSTED_SHARE = 0.8;
 const ESTIMATE_DAYS = ['laborable' => '2026-11-04', 'fin_semana' => '2026-11-07'];
 const ESTIMATE_DAY_BITS = ['laborable' => 0b0011111, 'fin_semana' => 0b1100000];
@@ -234,8 +234,8 @@ function estimateSlots(Closure $Estimator, IndexedList $Estimates, array $aCalen
     foreach (ESTIMATE_DAY_BITS as $sDayType => $iDayBits) {
         $iSlot = -1;
         if (($aCalendar[CALENDAR_WEEKDAYS] & $iDayBits) !== 0 || $bHasAddedDays) {
-            [$aEstimate, $bTrusted] = $Estimator($sLineId, $aStops, $aOffsets, $aMeters, $iFirst, $iDeparture, ESTIMATE_DAYS[$sDayType]);
-            $iSlot = $Estimates->add(implode(',', $aEstimate) . '|' . (int)$bTrusted, [$aEstimate, (int)$bTrusted]);
+            [$aEstimate, $sTrusted] = $Estimator($sLineId, $aStops, $aOffsets, $aMeters, $iFirst, $iDeparture, ESTIMATE_DAYS[$sDayType]);
+            $iSlot = $Estimates->add(implode(',', $aEstimate) . '|' . $sTrusted, [$aEstimate, $sTrusted]);
         }
         $aSlots[] = $iSlot;
     }
@@ -334,8 +334,7 @@ function offlineEstimator(array $aNetwork): \Closure|null
         };
         // Como el motor: la franja y el ritmo de cada parada son los del punto medio entre la salida y esa parada.
         $aEstimate = [0];
-        $iScheduledTotal = 0;
-        $iLearnedTotal = 0;
+        $sTrusted = '0';
         $iCount = \count($aStops);
         $sTripKey = '';
         if ($Trips !== null) {
@@ -346,23 +345,23 @@ function offlineEstimator(array $aNetwork): \Closure|null
             $sBand = $sPaceClass::bandFor($sDate, $iMid);
             $dFactor = $Pace->factor($sLineId, $sDate, $iMid);
             $dCumulative = (float)($iDeparture - $iFirst + ESTIMATE_ORIGIN_OFFSET_SECONDS);
+            $iScheduledTotal = 0;
+            $iLearnedTotal = 0;
             for ($i = 0; $i < $iTarget; $i++) {
                 [$dSeconds, $bLearned, $iScheduled] = $SegmentSeconds($i, $sBand, $dFactor);
                 $dCumulative += $dSeconds;
-                if ($iTarget === $iCount - 1) {
-                    $iScheduledTotal += $iScheduled;
-                    if ($bLearned) {
-                        $iLearnedTotal += $iScheduled;
-                    }
+                $iScheduledTotal += $iScheduled;
+                if ($bLearned) {
+                    $iLearnedTotal += $iScheduled;
                 }
             }
+            $sTrusted .= (string)(int)($iScheduledTotal > 0 && $iLearnedTotal / $iScheduledTotal >= ESTIMATE_TRUSTED_SHARE);
             $iEstimate = (int)round($dCumulative);
             if ($Trips !== null) {
                 $iEstimate += (int)round($Trips->seconds($sTripKey, $sLineId, $sDate, $iDeparture, $iTarget, $iCount));
             }
             $aEstimate[] = $iEstimate;
         }
-        $bTrusted = $iScheduledTotal > 0 && $iLearnedTotal / $iScheduledTotal >= ESTIMATE_TRUSTED_SHARE;
-        return [$aEstimate, $bTrusted];
+        return [$aEstimate, $sTrusted];
     };
 }

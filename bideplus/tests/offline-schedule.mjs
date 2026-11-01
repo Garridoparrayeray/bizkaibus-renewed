@@ -55,7 +55,7 @@ for (const { slug } of index.networks) {
 // Horas estimadas con los tramos aprendidos (las mismas reglas que el motor sin datos del bus). Viaje de ejemplo que sale
 // a las 08:00 y llega a la tercera parada a las 08:40 según el horario, pero a las 08:10 según lo aprendido.
 const T = 8 * 3600;
-const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: [1], holidays: new Set() };
+const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: ['011'], holidays: new Set() };
 const trip = [0, 0, T, 0, '1', T, 0, -1];
 const thursday = new Date(2026, 10, 5);
 const saturday = new Date(2026, 10, 7);
@@ -66,8 +66,10 @@ r = at(thursday, T + 900);
 check('sin conexión, si la estimación pasó hace menos de 10 min se deja la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
 r = at(thursday, T + 1500);
 check('sin conexión, horario 30 min más lento y estimación pasada hace 15 min: «probablemente ya pasó» con la hora oficial', r.status === 'likely_departed' && r.etaSeconds === T + 2400, JSON.stringify(r));
-r = at(thursday, T + 1500, { ...sample, estimateTrusted: [0] });
+r = at(thursday, T + 1500, { ...sample, estimateTrusted: ['000'] });
 check('sin conexión, con pocos tramos aprendidos no se dice que ya pasó', r.status === 'scheduled', JSON.stringify(r));
+r = at(thursday, T + 1500, { ...sample, estimateTrusted: ['010'] });
+check('sin conexión, lo aprendido cuenta hasta esa parada, como en el servidor', r.status === 'scheduled', JSON.stringify(r));
 r = at(saturday, T + 300);
 check('sin conexión, sin estimación para ese tipo de día sale la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
 r = at(thursday, T + 300, { timings: sample.timings });
@@ -76,7 +78,7 @@ check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.s
 // Festivo entre semana: hora estimada de fin de semana (08:15 en vez de 08:10).
 const withHoliday = BideOffline.prepare({
     lines: [], patterns: [], timings: [[0, 600, 2400]], trips: [], stops: {},
-    estimates: [[0, 300, 600], [0, 400, 900]], estimateTrusted: [1, 1],
+    estimates: [[0, 300, 600], [0, 400, 900]], estimateTrusted: ['011', '011'],
     calendars: [[31, [], ['2026-11-05']], [64, ['2026-11-05'], []], [96, ['2026-11-06'], []]],
 });
 check('festivos: son los días que añaden los calendarios de solo domingo', withHoliday.holidays.has('2026-11-05') && !withHoliday.holidays.has('2026-11-06'), [...withHoliday.holidays].join(','));
@@ -94,7 +96,7 @@ const net = BideOffline.prepare({
     patterns: [[0, 'Final', ['S1', 'S2', 'S3', 'S4']]],
     timings: [[0, 600, 2400, 2500]],
     estimates: [[0, 300, 600, 700]],
-    estimateTrusted: [1],
+    estimateTrusted: ['0111'],
     trips: [[0, 0, T, 0, '7', T, 0, -1]],
     calendars: [[127, [], []]],
     stops: { S1: ['Uno'], S2: ['Dos'], S3: ['Tres'], S4: ['Cuatro'] },

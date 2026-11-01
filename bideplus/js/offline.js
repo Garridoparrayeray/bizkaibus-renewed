@@ -324,7 +324,7 @@ const BideOffline = (() => {
         if (slot === undefined || slot < 0) return official;
         const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
         if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };
-        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot] === 1) {
+        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot][position] === '1') {
             return { status: 'likely_departed', etaSeconds: officialSeconds };
         }
         return official;
