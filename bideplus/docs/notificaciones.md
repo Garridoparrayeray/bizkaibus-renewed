@@ -101,10 +101,12 @@ La versión de la app es el número de su última novedad (`Services\Changelog::
 - **Con las notificaciones permitidas:** el cron manda a cada móvil apuntado una notificación, una sola vez por versión:
   «Bide+ se ha actualizado» con los títulos de lo nuevo, en su idioma. Están apuntados los que tienen activados los
   avisos de incidencias y los que, con el permiso ya dado, abren la app (`js/app-update.js` manda su suscripción y su
-  idioma a `POST /api/push/updates`, como mucho una vez al día). Se avisa como mucho a 300 por minuto; lo que falla
-  por el servicio de push se reintenta y una suscripción que ya no existe se borra. En el almacén:
-  `bide:update:subs` y `bide:update:sub:<id>`, los ya avisados de la versión (`bide:update:sent:<versión>`, 30 días) y la
-  última versión avisada a todos (`bide:update:done`).
+  idioma a `POST /api/push/updates`, como mucho una vez al día). Se manda por tandas de 10, apuntando cada tanda en
+  cuanto sale, con 3 segundos por vuelta y una marca (`bide:update:run`, 1 minuto) para que dos vueltas no se pisen: lo
+  que no da tiempo, en el minuto siguiente, y si la función se corta, como mucho se repite una tanda. Lo que falla por
+  el servicio de push se reintenta y una suscripción que ya no existe se borra. En el almacén: `bide:update:subs` y
+  `bide:update:sub:<id>`, los ya avisados de la versión (`bide:update:sent:<versión>`, 30 días) y la última versión
+  avisada a todos (`bide:update:done`).
 - **Sin notificaciones:** la app compara la versión de su código (la última novedad que trae `js/i18n.js`) con la del
   servidor (`GET /api/app/version?desde=<la del móvil>&lang=<idioma>`, que nunca sale de la caché). Si va por detrás, la
   rueda de Ajustes lleva un «1» en rojo (en la barra de pestañas, la columna del ordenador, el pie y el menú de cada

@@ -410,6 +410,14 @@ try {
     $Expect('versión: la vuelta siguiente no manda nada', UpdateAlerts::process($Sender) === ['skipped' => true] && count($aSent) === 3);
 
     $Again();
+    Store::pipeline([['SET', 'bide:update:run', '1']]);
+    $Expect('versión: si otra vuelta está mandando, esta no se mete', UpdateAlerts::process($Sender) === ['busy' => true] && count($aSent) === 3);
+    Store::pipeline([['DEL', 'bide:update:run']]);
+    $aSent = [];
+    $aRun = UpdateAlerts::process($Sender);
+    $Expect('versión: al acabar quita su marca y apunta la versión como avisada', $aRun['sent'] === 3 && Store::pipeline([['GET', 'bide:update:run'], ['GET', 'bide:update:done']]) === [null, (string)Changelog::version()], json_encode($aRun));
+
+    $Again();
     $iAnswer = 503;
     $aRun = UpdateAlerts::process($Sender);
     $Expect('versión: si el servicio de push falla, se queda pendiente', $aRun['sent'] === 0 && $aRun['pending'] === 3, json_encode($aRun));

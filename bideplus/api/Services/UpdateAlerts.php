@@ -12,6 +12,8 @@ use Core\Store;
  *
  * En el almacén: los apuntados (caducan a los 90 días sin abrir la app), los ya avisados de cada versión y la última
  * versión de la que se avisó a todos. Mientras esa marca coincide con la versión, cada minuto cuesta un solo comando.
+ * Se manda por tandas de 10, apuntando cada tanda en cuanto sale, con 3 segundos por vuelta y una marca que impide que
+ * dos vueltas se pisen: si la función se corta, como mucho se repite una tanda.
  */
 class UpdateAlerts
 {
@@ -19,10 +21,14 @@ class UpdateAlerts
     private const SUBSCRIBER_PREFIX = 'bide:update:sub:';
     private const SENT_PREFIX = 'bide:update:sent:';
     private const DONE_KEY = 'bide:update:done';
+    private const RUN_KEY = 'bide:update:run';
+    private const RUN_LOCK_SECONDS = 60;
     private const TTL_SECONDS = 90 * 86400;
     private const SENT_TTL_SECONDS = 30 * 86400;
     private const MAX_SUBSCRIBERS = 20000;
     private const MAX_SENDS_PER_RUN = 300;
+    private const CHUNK = 10;
+    private const TIME_BUDGET_SECONDS = 3.0;
     // Si el móvil está apagado, el aviso le llega al encenderlo durante tres días.
     private const PUSH_TTL_SECONDS = 3 * 86400;
     // La primera vez no se sabe desde qué versión vienen: se cuentan las tres últimas novedades.
@@ -58,7 +64,7 @@ class UpdateAlerts
     }
 
     // Lo llama el cron cada minuto. $Sender manda el mensaje y devuelve el código HTTP del servicio de push (en las
-    // pruebas, uno falso). Manda como mucho 300 por vuelta; lo que falte, en la siguiente.
+    // pruebas, uno falso). Lo que no da tiempo a mandar, en la vuelta siguiente.
     public static function process(callable|null $Sender = null): array
     {
         $iVersion = Changelog::version();
@@ -66,49 +72,81 @@ class UpdateAlerts
         if ($aDone === null || (int)$aDone[0] >= $iVersion) {
             return ['skipped' => true];
         }
-        $Sender = $Sender ?? Push::sender(self::PUSH_TTL_SECONDS);
-        $sSentKey = self::SENT_PREFIX . $iVersion;
-        $aSets = Store::pipeline([['SMEMBERS', self::SUBSCRIBERS_KEY], ['SMEMBERS', IncidentAlerts::SUBSCRIBERS_KEY], ['SMEMBERS', $sSentKey]]);
-        if ($aSets === null || $Sender === null) {
-            return ['version' => $iVersion, 'sent' => 0, 'pending' => null];
+        $aLock = Store::pipeline([['SET', self::RUN_KEY, (string)time(), 'NX', 'EX', self::RUN_LOCK_SECONDS]]);
+        if ($aLock === null || $aLock[0] === null) {
+            return ['busy' => true];
         }
-        $aPending = array_values(array_diff(array_unique(array_merge(self::members($aSets[0]), self::members($aSets[1]))), self::members($aSets[2])));
-        $aBatch = array_slice($aPending, 0, self::MAX_SENDS_PER_RUN);
-        $aMessages = [];
+        $aRun = [
+            'version' => $iVersion,
+            'previous' => (int)$aDone[0],
+            'sender' => $Sender ?? Push::sender(self::PUSH_TTL_SECONDS),
+            'sentKey' => self::SENT_PREFIX . $iVersion,
+            'deadline' => microtime(true) + self::TIME_BUDGET_SECONDS,
+            'messages' => [],
+            'sent' => 0,
+            'handled' => 0,
+        ];
+        $aPending = self::pending($aRun['sentKey']);
+        if ($aPending !== null && $aRun['sender'] !== null) {
+            foreach (array_chunk(array_slice($aPending, 0, self::MAX_SENDS_PER_RUN), self::CHUNK) as $aChunk) {
+                if (microtime(true) > $aRun['deadline']) {
+                    break;
+                }
+                self::sendChunk($aChunk, $aRun);
+            }
+        }
+        $aEnd = [['DEL', self::RUN_KEY]];
+        $iLeft = null;
+        if ($aPending !== null) {
+            $iLeft = count($aPending) - $aRun['handled'];
+        }
+        if ($iLeft === 0) {
+            $aEnd[] = ['SET', self::DONE_KEY, (string)$iVersion];
+        }
+        Store::pipeline($aEnd);
+        return ['version' => $iVersion, 'sent' => $aRun['sent'], 'pending' => $iLeft];
+    }
+
+    // Los apuntados (aquí o en los avisos de incidencias) a los que todavía no se ha avisado de esta versión.
+    private static function pending(string $sSentKey): array|null
+    {
+        $aSets = Store::pipeline([['SMEMBERS', self::SUBSCRIBERS_KEY], ['SMEMBERS', IncidentAlerts::SUBSCRIBERS_KEY], ['SMEMBERS', $sSentKey]]);
+        if ($aSets === null) {
+            return null;
+        }
+        return array_values(array_diff(array_unique(array_merge(self::members($aSets[0]), self::members($aSets[1]))), self::members($aSets[2])));
+    }
+
+    // Manda una tanda y la apunta. Un fallo pasajero del servicio de push (sin respuesta, 429, 5xx) se queda pendiente;
+    // una suscripción que ya no existe se borra.
+    private static function sendChunk(array $aChunk, array &$aRun): void
+    {
         $aHandled = [];
-        $iSent = 0;
-        foreach (self::records($aBatch) as $sId => $aRecord) {
+        foreach (self::records($aChunk) as $sId => $aRecord) {
+            if (microtime(true) > $aRun['deadline']) {
+                break;
+            }
             $iStatus = 0;
             if ($aRecord !== null) {
                 $sLang = Push::lang($aRecord['lang'] ?? 'es');
-                $aMessages[$sLang] ??= self::message($iVersion, (int)$aDone[0], $sLang);
-                $iStatus = (int)$Sender($aRecord['subscription'], Push::json($aMessages[$sLang]));
+                $aRun['messages'][$sLang] ??= self::message($aRun['version'], $aRun['previous'], $sLang);
+                $iStatus = (int)($aRun['sender'])($aRecord['subscription'], Push::json($aRun['messages'][$sLang]));
             }
             if ($iStatus === 404 || $iStatus === 410) {
                 self::forget($sId);
             }
-            // Un fallo pasajero del servicio de push (sin respuesta, 429, 5xx) se reintenta en la siguiente vuelta.
             if ($aRecord !== null && ($iStatus === 0 || $iStatus === 429 || $iStatus >= 500)) {
                 continue;
             }
             if ($iStatus >= 200 && $iStatus < 300) {
-                $iSent++;
+                $aRun['sent']++;
             }
             $aHandled[] = $sId;
         }
-        $aCommands = [];
         if (!empty($aHandled)) {
-            $aCommands[] = array_merge(['SADD', $sSentKey], $aHandled);
-            $aCommands[] = ['EXPIRE', $sSentKey, self::SENT_TTL_SECONDS];
+            Store::pipeline([array_merge(['SADD', $aRun['sentKey']], $aHandled), ['EXPIRE', $aRun['sentKey'], self::SENT_TTL_SECONDS]]);
+            $aRun['handled'] += count($aHandled);
         }
-        $iLeft = count($aPending) - count($aHandled);
-        if ($iLeft === 0) {
-            $aCommands[] = ['SET', self::DONE_KEY, (string)$iVersion];
-        }
-        if (!empty($aCommands)) {
-            Store::pipeline($aCommands);
-        }
-        return ['version' => $iVersion, 'sent' => $iSent, 'pending' => $iLeft];
     }
 
     // La notificación en un idioma: los títulos de lo nuevo desde la última versión avisada (o las tres últimas
