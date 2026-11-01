@@ -139,6 +139,7 @@ check('instalada · Favoritos: sin desbordar a lo ancho', await ev(noOverflow));
 
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
+check('instalada · Info: «Próximamente» con el planificador, justo antes de Novedades', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-upcoming'); return !!c && c.nextElementSibling.classList.contains('bide-changelog') && c.querySelector('h3').textContent === 'Próximamente' && c.querySelector('.bide-upcoming-badge').textContent === 'En desarrollo' && c.querySelectorAll('.bide-upcoming-list > li').length === 4; })()"));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
 check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 34"));
@@ -157,11 +158,13 @@ check('instalada · Info: el aviso legal se cierra', (await ev("document.getElem
 await ev("document.querySelector('[data-bide-lang=eu]').click(); true");
 check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
 check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
+check('idioma · EU traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Laster' && document.querySelector('.bide-upcoming-badge').textContent === 'Garatzen'"));
 check('idioma · EU traduce las preguntas frecuentes y las sugerencias', await ev("document.querySelector('.bide-faq h3').textContent === 'Ohiko galderak' && document.querySelector('.bide-feedback h3').textContent === 'Iradokizunak eta akatsak'"));
 check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=en]').click(); true");
 check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
 check('idioma · EN traduce las novedades, las preguntas y las sugerencias', await ev("document.querySelector('.bide-changelog h3').textContent === \"What's new\" && document.querySelector('.bide-faq h3').textContent === 'Frequently asked questions' && document.querySelector('.bide-feedback h3').textContent === 'Suggestions and bugs'"));
+check('idioma · EN traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Coming soon' && document.querySelector('.bide-upcoming-badge').textContent === 'In development'"));
 check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang=en]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
