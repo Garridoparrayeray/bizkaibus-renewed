@@ -36,6 +36,9 @@ Sigue el estilo que ya hay alrededor de tu cambio:
 
 - **PHP:** variables con prefijo de tipo (`$aLista`, `$sTexto`, `$iNumero`, `$dDecimal`, `$bBandera`; los objetos y las funciones guardadas en una variable en PascalCase; `$i`, `$j` y `$k` solo como contadores), `if/else` y `elseif` en lugar del operador ternario y sin comentarios innecesarios. No hay *framework*: las clases de `api/` las carga `api/autoload.php`, una por archivo y con el espacio de nombres de su carpeta.
 - **JavaScript:** vanilla, sin dependencias nuevas ni herramientas de compilación. `const` y `let` (nunca `var`), `===` y `!==`, `if/else` en lugar del operador ternario y sin `console.log` olvidados.
+- **CSS:** medidas en `px`, cada regla en su bloque con una declaración por línea y un selector por línea, y la sangría
+  en pirámide (lo que va dentro de un componente, 4 espacios más). `>` cuando el elemento es hijo directo.
+- **Comentarios:** mínimos, solo donde el código no se explica solo. Lo que cambió va en el commit, no en el código.
 - **Textos:** la interfaz está en castellano, euskera e inglés. Si añades o cambias un texto, hazlo en los tres idiomas (`bideplus/js/i18n.js`), y si dejas de usar uno, bórralo.
 - **Nada muerto:** si una función, una constante, una clase de CSS o un archivo deja de usarse, se borra.
 - **Sangría de 4 espacios**, sin tabuladores ni espacios al final de la línea.

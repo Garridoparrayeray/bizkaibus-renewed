@@ -10,14 +10,41 @@
     --bide-ease: cubic-bezier(.2, .8, .2, 1);
 }
 
-html.bide [hidden] { display: none !important; }
-.bide-tabbar, .bide-rail, .bide-menu-apps, .bide-views, .bide-install, .bide-apps-links, .detail-empty { display: none; }
-html.bide .bide-views { display: block; overflow-x: clip; }
+html.bide [hidden] {
+    display: none !important;
+}
+.bide-tabbar,
+.bide-rail,
+.bide-menu-apps,
+.bide-views,
+.bide-install,
+.bide-apps-links,
+.detail-empty {
+    display: none;
+}
+html.bide .bide-views {
+    display: block;
+    overflow-x: clip;
+}
 
 /* ===== Piezas comunes ===== */
-html.bide .bide-swatch { display: inline-block; flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--bide-green); }
-html.bide .bide-wordmark { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.02em; color: var(--bide-green); }
-    html.bide .bide-wordmark span { color: var(--bide-red); }
+html.bide .bide-swatch {
+    display: inline-block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background: var(--bide-green);
+}
+html.bide .bide-wordmark {
+    font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--bide-green);
+}
+    html.bide .bide-wordmark > span {
+        color: var(--bide-red);
+    }
 
 html.bide .bide-seg {
     display: inline-flex;
@@ -27,7 +54,7 @@ html.bide .bide-seg {
     border-radius: 14px;
     background: var(--bide-surface);
 }
-    html.bide .bide-seg button {
+    html.bide .bide-seg > button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -39,32 +66,107 @@ html.bide .bide-seg {
         background: transparent;
         color: var(--bide-green);
         font-family: inherit;
-        font-size: .85rem;
+        font-size: 13.6px;
         font-weight: 800;
         cursor: pointer;
         transition: background-color .18s ease, color .18s ease, transform .12s ease;
     }
-        html.bide .bide-seg button svg { width: 18px; height: 18px; }
-        html.bide .bide-seg button[aria-pressed="true"] { background: var(--bide-green); color: #fff; }
-    html.bide body.page-app .bide-seg button { color: var(--primary); }
-        html.bide body.page-app .bide-seg button[aria-pressed="true"] { background: var(--primary); color: #fff; }
+        html.bide .bide-seg button svg {
+            width: 18px;
+            height: 18px;
+        }
+        html.bide .bide-seg > button[aria-pressed="true"] {
+            background: var(--bide-green);
+            color: #fff;
+        }
+    html.bide body.page-app .bide-seg > button {
+        color: var(--primary);
+    }
+        html.bide body.page-app .bide-seg > button[aria-pressed="true"] {
+            background: var(--primary);
+            color: #fff;
+        }
 
-html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: scale(.95); }
-html.bide :focus-visible { outline: 3px solid var(--bide-green); outline-offset: 2px; }
-    html.bide body.page-app :focus-visible { outline-color: var(--primary); }
-    html.bide :is(.app-container > header, .app-footer, .menu-footer) :focus-visible { outline-color: #fff; }
+html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active {
+    transform: scale(.95);
+}
+html.bide :focus-visible {
+    outline: 3px solid var(--bide-green);
+    outline-offset: 2px;
+}
+    html.bide body.page-app :focus-visible {
+        outline-color: var(--primary);
+    }
+    html.bide :is(.app-container > header, .app-footer, .menu-footer) :focus-visible {
+        outline-color: #fff;
+    }
 
 /* ===== Páginas: Favoritos, Avisos, Info ===== */
-html.bide .bide-view { padding: 0 0 24px; animation: bide-slide .32s var(--bide-ease) both; }
-@keyframes bide-slide { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
-@keyframes bide-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-/* La cabecera (volver y título) se queda fija arriba y la lista pasa por debajo. Lleva el fondo de la página en la que
-   está, y un degradado debajo para que lo que sube no se corte en seco. */
-html.bide body.page-app { --bide-page-bg: var(--bg); }
-html.bide body.page-menu { --bide-page-bg: var(--paper); }
-html.bide .bide-view-head, html.bide body.page-menu .bide-view-head { position: sticky; top: 0; z-index: 6; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 12px; margin: 0 0 4px; padding: 10px 0; border: none; border-radius: 0; background: var(--bide-page-bg, var(--bide-bg)); }
-    html.bide .bide-view-head::after { content: ''; position: absolute; top: 100%; right: 0; left: 0; height: 12px; background: linear-gradient(var(--bide-page-bg, var(--bide-bg)), transparent); pointer-events: none; }
-    html.bide .bide-view-head h2 { margin: 0; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--bide-ink); outline: none; }
+html.bide .bide-view {
+    padding: 0 0 24px;
+    animation: bide-slide .32s var(--bide-ease) both;
+}
+@keyframes bide-slide {
+    from {
+        opacity: 0;
+        transform: translateX(28px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes bide-drop {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+/* Cabecera fija */
+html.bide body.page-app {
+    --bide-page-bg: var(--bg);
+}
+html.bide body.page-menu {
+    --bide-page-bg: var(--paper);
+}
+html.bide .bide-view-head,
+html.bide body.page-menu .bide-view-head {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin: 0 0 4px;
+    padding: 10px 0;
+    border: none;
+    border-radius: 0;
+    background: var(--bide-page-bg, var(--bide-bg));
+}
+    html.bide .bide-view-head::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        height: 12px;
+        background: linear-gradient(var(--bide-page-bg, var(--bide-bg)), transparent);
+        pointer-events: none;
+    }
+    html.bide .bide-view-head > h2 {
+        margin: 0;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 25.6px;
+        font-weight: 800;
+        color: var(--bide-ink);
+        outline: none;
+    }
 html.bide .bide-view-back {
     display: inline-flex;
     align-items: center;
@@ -77,9 +179,29 @@ html.bide .bide-view-back {
     color: var(--bide-ink);
     cursor: pointer;
 }
-    html.bide .bide-view-back svg { width: 20px; height: 20px; }
-html.bide .bide-fav-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
-html.bide .bide-group { display: flex; align-items: center; gap: 8px; margin: 10px 4px 2px; color: #3d4640; font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    html.bide .bide-view-back > svg {
+        width: 20px;
+        height: 20px;
+    }
+html.bide .bide-fav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+html.bide .bide-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 4px 2px;
+    color: #3d4640;
+    font-size: 12.48px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
 html.bide .bide-fav {
     display: flex;
     align-items: center;
@@ -92,12 +214,33 @@ html.bide .bide-fav {
     text-decoration: none;
     transition: background-color .15s ease, transform .12s ease;
 }
-    html.bide .bide-fav:hover { background: var(--bide-tint); }
-    html.bide .bide-fav .bide-swatch { width: 8px; height: 30px; }
-    html.bide .bide-fav-text { display: flex; flex-direction: column; min-width: 0; }
-        html.bide .bide-fav-text strong { font-size: .95rem; overflow-wrap: anywhere; }
-        html.bide .bide-fav-text span { color: var(--bide-muted); font-size: .8rem; }
-html.bide .bide-empty, html.bide .bide-note { margin: 6px 4px; color: var(--bide-muted); font-size: .9rem; line-height: 1.45; }
+    html.bide .bide-fav:hover {
+        background: var(--bide-tint);
+    }
+    html.bide .bide-fav .bide-swatch {
+        width: 8px;
+        height: 30px;
+    }
+    html.bide .bide-fav-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+        html.bide .bide-fav-text > strong {
+            font-size: 15.2px;
+            overflow-wrap: anywhere;
+        }
+        html.bide .bide-fav-text > span {
+            color: var(--bide-muted);
+            font-size: 12.8px;
+        }
+html.bide .bide-empty,
+html.bide .bide-note {
+    margin: 6px 4px;
+    color: var(--bide-muted);
+    font-size: 14.4px;
+    line-height: 1.45;
+}
 html.bide .bide-card {
     display: flex;
     flex-direction: column;
@@ -111,19 +254,73 @@ html.bide .bide-card {
     font-family: inherit;
     text-align: left;
 }
-    html.bide .bide-card h3 { margin: 0; color: var(--bide-muted); font-size: .75rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-    html.bide .bide-card p { margin: 0; font-size: .92rem; line-height: 1.5; }
-    html.bide .bide-alert strong { color: #B34A14; font-size: .95rem; }
-    html.bide .bide-alert p { color: var(--bide-muted); white-space: pre-line; }
-html.bide .bide-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
-    html.bide .bide-links a { color: var(--bide-green); font-weight: 700; text-decoration: none; }
-html.bide .bide-card-link { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; color: var(--bide-green); font-size: 1rem; font-weight: 800; cursor: pointer; }
-    html.bide .bide-card-link svg { width: 18px; height: 18px; }
-html.bide .bide-changelog-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
-    html.bide .bide-changelog-head time { color: var(--bide-muted); font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    html.bide .bide-changelog-head strong { color: var(--bide-ink); font-size: .95rem; }
-html.bide .bide-changelog-more > .bide-changelog-entry { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--bide-line); }
-html.bide .bide-changelog-more summary {
+    html.bide .bide-card > h3 {
+        margin: 0;
+        color: var(--bide-muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    html.bide .bide-card p {
+        margin: 0;
+        font-size: 14.72px;
+        line-height: 1.5;
+    }
+    html.bide .bide-alert strong {
+        color: #B34A14;
+        font-size: 15.2px;
+    }
+    html.bide .bide-alert p {
+        color: var(--bide-muted);
+        white-space: pre-line;
+    }
+html.bide .bide-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+}
+    html.bide .bide-links > a {
+        color: var(--bide-green);
+        font-weight: 700;
+        text-decoration: none;
+    }
+html.bide .bide-card-link {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    color: var(--bide-green);
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+}
+    html.bide .bide-card-link > svg {
+        width: 18px;
+        height: 18px;
+    }
+html.bide .bide-changelog-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+}
+    html.bide .bide-changelog-head > time {
+        color: var(--bide-muted);
+        font-size: 12.48px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+    }
+    html.bide .bide-changelog-head > strong {
+        color: var(--bide-ink);
+        font-size: 15.2px;
+    }
+html.bide .bide-changelog-more > .bide-changelog-entry {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--bide-line);
+}
+html.bide .bide-changelog-more > summary {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -133,21 +330,74 @@ html.bide .bide-changelog-more summary {
     list-style: none;
     cursor: pointer;
 }
-    html.bide .bide-changelog-more summary::-webkit-details-marker { display: none; }
-    html.bide .bide-changelog-more summary::after { content: ''; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .2s var(--bide-ease); }
-    html.bide .bide-changelog-more[open] summary::after { transform: translateY(2px) rotate(-135deg); }
-    html.bide .bide-changelog-close, html.bide .bide-changelog-more[open] .bide-changelog-open { display: none; }
-    html.bide .bide-changelog-more[open] .bide-changelog-close { display: inline; }
+    html.bide .bide-changelog-more > summary::-webkit-details-marker {
+        display: none;
+    }
+    html.bide .bide-changelog-more > summary::after {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: translateY(-2px) rotate(45deg);
+        transition: transform .2s var(--bide-ease);
+    }
+    html.bide .bide-changelog-more[open] summary::after {
+        transform: translateY(2px) rotate(-135deg);
+    }
+    html.bide .bide-changelog-close,
+    html.bide .bide-changelog-more[open] .bide-changelog-open {
+        display: none;
+    }
+    html.bide .bide-changelog-more[open] .bide-changelog-close {
+        display: inline;
+    }
 /* ===== Info: horarios sin conexión, preguntas frecuentes y sugerencias ===== */
-html.bide .bide-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-html.bide .bide-offline-list { margin: 4px 0 0; padding: 0; list-style: none; }
-    html.bide .bide-offline-item + .bide-offline-item { border-top: 1px solid var(--bide-line); }
-        html.bide .bide-offline-item label { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; cursor: pointer; }
-        html.bide .bide-offline-text { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; }
-            html.bide .bide-offline-text strong { font-size: .95rem; }
-            html.bide .bide-offline-detail { grid-column: 2; color: var(--bide-muted); font-size: .8rem; }
-    html.bide .bide-offline-unsupported { color: var(--bide-muted); font-size: .9rem; }
-    html.bide .bide-offline-all { padding: 4px 0 12px; }
+html.bide .bide-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+html.bide .bide-offline-list {
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+    html.bide .bide-offline-item + .bide-offline-item {
+        border-top: 1px solid var(--bide-line);
+    }
+        html.bide .bide-offline-item > label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 52px;
+            cursor: pointer;
+        }
+        html.bide .bide-offline-text {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 2px 10px;
+        }
+            html.bide .bide-offline-text > strong {
+                font-size: 15.2px;
+            }
+            html.bide .bide-offline-detail {
+                grid-column: 2;
+                color: var(--bide-muted);
+                font-size: 12.8px;
+            }
+    html.bide .bide-offline-unsupported {
+        color: var(--bide-muted);
+        font-size: 14.4px;
+    }
+    html.bide .bide-offline-all {
+        padding: 4px 0 12px;
+    }
         html.bide .bide-offline-all-button {
             width: 100%;
             padding: 12px 16px;
@@ -156,11 +406,15 @@ html.bide .bide-offline-list { margin: 4px 0 0; padding: 0; list-style: none; }
             background: var(--bide-ink);
             color: #fff;
             font: inherit;
-            font-size: .92rem;
+            font-size: 14.72px;
             font-weight: 700;
             cursor: pointer;
         }
-            html.bide .bide-offline-all-button:disabled { background: var(--bide-line); color: var(--bide-muted); cursor: default; }
+            html.bide .bide-offline-all-button:disabled {
+                background: var(--bide-line);
+                color: var(--bide-muted);
+                cursor: default;
+            }
 html.bide .bide-toggle {
     position: relative;
     flex: none;
@@ -174,33 +428,83 @@ html.bide .bide-toggle {
     cursor: pointer;
     transition: background-color .18s ease;
 }
-    html.bide .bide-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .18s var(--bide-ease); }
-    html.bide .bide-toggle:checked { background: var(--primary, var(--bide-green)); }
-        html.bide .bide-toggle:checked::after { transform: translateX(18px); }
-    html.bide .bide-toggle:disabled { cursor: progress; opacity: .6; }
-    html.bide .bide-toggle:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
-html.bide .bide-faq-item { border-top: 1px solid var(--bide-line); }
-    html.bide .bide-faq-item:first-of-type { margin-top: 4px; }
-    html.bide .bide-faq-item summary {
+    html.bide .bide-toggle::after {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+        transition: transform .18s var(--bide-ease);
+    }
+    html.bide .bide-toggle:checked {
+        background: var(--primary, var(--bide-green));
+    }
+        html.bide .bide-toggle:checked::after {
+            transform: translateX(18px);
+        }
+    html.bide .bide-toggle:disabled {
+        cursor: progress;
+        opacity: .6;
+    }
+    html.bide .bide-toggle:focus-visible {
+        outline: 3px solid var(--bide-ink);
+        outline-offset: 2px;
+    }
+html.bide .bide-faq-item {
+    border-top: 1px solid var(--bide-line);
+}
+    html.bide .bide-faq-item:first-of-type {
+        margin-top: 4px;
+    }
+    html.bide .bide-faq-item > summary {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
         min-height: 48px;
         color: var(--bide-ink);
-        font-size: .95rem;
+        font-size: 15.2px;
         font-weight: 700;
         list-style: none;
         cursor: pointer;
     }
-        html.bide .bide-faq-item summary::-webkit-details-marker { display: none; }
-        html.bide .bide-faq-item summary::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--primary, var(--bide-green)); border-bottom: 2px solid var(--primary, var(--bide-green)); transform: translateY(-2px) rotate(45deg); transition: transform .2s var(--bide-ease); }
-        html.bide .bide-faq-item[open] summary::after { transform: translateY(2px) rotate(-135deg); }
-    html.bide .bide-faq-item p { padding: 0 0 14px; color: var(--bide-muted); }
-html.bide .bide-feedback { gap: 10px; }
-    html.bide .bide-feedback-types { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; }
-    html.bide .bide-feedback-field { position: relative; display: block; }
-        html.bide .bide-feedback-field textarea {
+        html.bide .bide-faq-item > summary::-webkit-details-marker {
+            display: none;
+        }
+        html.bide .bide-faq-item > summary::after {
+            content: '';
+            flex: none;
+            width: 7px;
+            height: 7px;
+            border-right: 2px solid var(--primary, var(--bide-green));
+            border-bottom: 2px solid var(--primary, var(--bide-green));
+            transform: translateY(-2px) rotate(45deg);
+            transition: transform .2s var(--bide-ease);
+        }
+        html.bide .bide-faq-item[open] summary::after {
+            transform: translateY(2px) rotate(-135deg);
+        }
+    html.bide .bide-faq-item > p {
+        padding: 0 0 14px;
+        color: var(--bide-muted);
+    }
+html.bide .bide-feedback {
+    gap: 10px;
+}
+    html.bide .bide-feedback-types {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+    }
+    html.bide .bide-feedback-field {
+        position: relative;
+        display: block;
+    }
+        html.bide .bide-feedback-field > textarea {
             display: block;
             width: 100%;
             min-height: 120px;
@@ -210,19 +514,57 @@ html.bide .bide-feedback { gap: 10px; }
             background: var(--bide-surface);
             color: var(--bide-ink);
             font: inherit;
-            font-size: 1rem;
+            font-size: 16px;
             resize: vertical;
         }
-            html.bide .bide-feedback-field textarea:focus-visible { outline: 3px solid var(--primary, var(--bide-green)); outline-offset: 1px; }
-        html.bide .bide-feedback-count { position: absolute; right: 12px; bottom: 8px; color: var(--bide-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
-    html.bide .bide-feedback-tech { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-        html.bide .bide-feedback-tech input { flex: none; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--primary, var(--bide-green)); }
-        html.bide .bide-feedback-tech span { display: flex; flex-direction: column; gap: 2px; }
-            html.bide .bide-feedback-tech strong { font-size: .92rem; }
-            html.bide .bide-feedback-tech small { color: var(--bide-muted); font-size: .8rem; }
-    html.bide .bide-feedback-actions { display: grid; gap: 8px; }
-    html.bide .bide-feedback-status:empty { display: none; }
-    html.bide .bide-feedback-status { color: var(--bide-muted); font-size: .85rem; }
+            html.bide .bide-feedback-field > textarea:focus-visible {
+                outline: 3px solid var(--primary, var(--bide-green));
+                outline-offset: 1px;
+            }
+        html.bide .bide-feedback-count {
+            position: absolute;
+            right: 12px;
+            bottom: 8px;
+            color: var(--bide-muted);
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+        }
+    html.bide .bide-feedback-tech {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        cursor: pointer;
+    }
+        html.bide .bide-feedback-tech > input {
+            flex: none;
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0;
+            accent-color: var(--primary, var(--bide-green));
+        }
+        html.bide .bide-feedback-tech > span {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+            html.bide .bide-feedback-tech strong {
+                font-size: 14.72px;
+            }
+            html.bide .bide-feedback-tech small {
+                color: var(--bide-muted);
+                font-size: 12.8px;
+            }
+    html.bide .bide-feedback-actions {
+        display: grid;
+        gap: 8px;
+    }
+    html.bide .bide-feedback-status:empty {
+        display: none;
+    }
+    html.bide .bide-feedback-status {
+        color: var(--bide-muted);
+        font-size: 13.6px;
+    }
 html.bide .bide-button {
     min-height: 46px;
     padding: 0 16px;
@@ -231,60 +573,209 @@ html.bide .bide-button {
     background: var(--primary, var(--bide-green));
     color: #fff;
     font: inherit;
-    font-size: .92rem;
+    font-size: 14.72px;
     font-weight: 800;
     cursor: pointer;
 }
-    html.bide .bide-button.is-secondary { background: var(--bide-surface); color: var(--primary, var(--bide-green)); }
-    html.bide .bide-button:focus-visible { outline: 3px solid var(--bide-ink); outline-offset: 2px; }
+    html.bide .bide-button.is-secondary {
+        background: var(--bide-surface);
+        color: var(--primary, var(--bide-green));
+    }
+    html.bide .bide-button:focus-visible {
+        outline: 3px solid var(--bide-ink);
+        outline-offset: 2px;
+    }
 
-    html.bide .bide-button.is-danger { border-color: #b3261e; background: var(--bide-surface); color: #b3261e; }
+    html.bide .bide-button.is-danger {
+        border-color: #b3261e;
+        background: var(--bide-surface);
+        color: #b3261e;
+    }
 
-/* Ajustes: el interruptor de incidencias (igual en el menú de inicio y en las apps) y los avisos de llegada activos. */
-html.bide .bide-settings-notifications h4 { margin: 16px 0 8px; font-size: .95rem; }
-html.bide .alerts-toggle { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; color: var(--bide-ink); font-size: .92rem; font-weight: 600; line-height: 1.35; cursor: pointer; }
-    html.bide .alerts-toggle input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--primary, var(--bide-green)); }
-html.bide .alerts-note { margin: 0 0 8px; color: var(--bide-muted); font-size: .82rem; line-height: 1.4; }
-html.bide .bide-settings-arrivals { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-    html.bide .bide-settings-arrivals:empty { display: none; }
-html.bide .bide-settings-arrival { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--bide-line); border-radius: 12px; }
-    html.bide .bide-settings-arrival > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    html.bide .bide-settings-arrival span span { color: var(--bide-muted); font-size: .82rem; }
-    html.bide .bide-settings-arrival .bide-button { flex: none; min-height: 38px; }
-html.bide .bide-settings-data .bide-button { width: 100%; margin-top: 4px; }
+/* Ajustes: notificaciones */
+html.bide .bide-settings-notifications > h4 {
+    margin: 16px 0 8px;
+    font-size: 15.2px;
+}
+html.bide .alerts-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0 0 8px;
+    color: var(--bide-ink);
+    font-size: 14.72px;
+    font-weight: 600;
+    line-height: 1.35;
+    cursor: pointer;
+}
+    html.bide .alerts-toggle > input {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin: 1px 0 0;
+        accent-color: var(--primary, var(--bide-green));
+    }
+html.bide .alerts-note {
+    margin: 0 0 8px;
+    color: var(--bide-muted);
+    font-size: 13.12px;
+    line-height: 1.4;
+}
+html.bide .bide-settings-arrivals {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+    html.bide .bide-settings-arrivals:empty {
+        display: none;
+    }
+html.bide .bide-settings-arrival {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--bide-line);
+    border-radius: 12px;
+}
+    html.bide .bide-settings-arrival > span {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    html.bide .bide-settings-arrival span span {
+        color: var(--bide-muted);
+        font-size: 13.12px;
+    }
+    html.bide .bide-settings-arrival .bide-button {
+        flex: none;
+        min-height: 38px;
+    }
+html.bide .bide-settings-data .bide-button {
+    width: 100%;
+    margin-top: 4px;
+}
 
-/* Ajustes: la ubicación y la app (vaciar la caché y la versión, que va en pequeño al final). */
+/* Ajustes: ubicación y la app */
 html.bide .bide-settings-location .bide-button,
-html.bide .bide-settings-app .bide-button { width: 100%; margin-top: 4px; }
-html.bide .bide-settings-app h4 { margin: 0 0 8px; font-size: .95rem; }
-html.bide .bide-settings-app .bide-feedback-status { margin: 8px 0 0; }
-html.bide .bide-settings-version { margin: 16px 0 0; color: var(--bide-muted); font-size: .82rem; }
-    html.bide .bide-settings-version [data-settings-version] { font-variant-numeric: tabular-nums; }
-html.bide .bide-sources { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
-    html.bide .bide-sources strong { color: var(--bide-ink); }
+html.bide .bide-settings-app .bide-button {
+    width: 100%;
+    margin-top: 4px;
+}
+html.bide .bide-settings-app > h4 {
+    margin: 0 0 8px;
+    font-size: 15.2px;
+}
+html.bide .bide-settings-app .bide-feedback-status {
+    margin: 8px 0 0;
+}
+html.bide .bide-settings-version {
+    margin: 16px 0 0;
+    color: var(--bide-muted);
+    font-size: 13.12px;
+}
+    html.bide .bide-settings-version [data-settings-version] {
+        font-variant-numeric: tabular-nums;
+    }
+html.bide .bide-sources {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--bide-muted);
+    font-size: 14.08px;
+    line-height: 1.4;
+}
+    html.bide .bide-sources strong {
+        color: var(--bide-ink);
+    }
 
-/* Versión nueva (js/app-update.js): un «1» pequeño en rojo en cada botón de Ajustes y en «Vaciar caché y actualizar», y
-   encima de ese botón el aviso con lo que trae. En la barra de pestañas va sobre la rueda; en el resto, detrás del texto. */
-html.bide .bide-update-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--bide-red); color: #fff; font-size: .7rem; font-weight: 800; line-height: 1; }
-html.bide .bide-update-badge[hidden] { display: none; }
-html.bide [data-bide-tab="ajustes"] > .bide-update-badge { margin-left: 6px; }
-html.bide .bide-tab[data-bide-tab="ajustes"] { position: relative; }
-    html.bide .bide-tab[data-bide-tab="ajustes"] > .bide-update-badge { position: absolute; top: 6px; left: calc(50% + 4px); margin: 0; box-shadow: 0 0 0 2px var(--bide-surface); }
-html.bide .bide-update { margin: 0 0 16px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--bide-red) 30%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--bide-red) 6%, var(--bide-surface)); }
-html.bide .bide-update[hidden] { display: none; }
-    html.bide .bide-update-title { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; color: var(--bide-ink); }
-    html.bide .bide-update .bide-note { margin: 0 0 8px; }
-    html.bide .bide-update-notes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-        html.bide .bide-update-notes p { margin: 2px 0 0; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
-html.bide .bide-update-action { position: relative; }
-/* Al ir directo a actualizar, la tarjeta queda debajo de la cabecera fija de Ajustes, no tapada por ella. */
-html.bide .bide-settings-app { scroll-margin-top: calc(96px + env(safe-area-inset-top)); }
-    html.bide .bide-update-action > .bide-update-badge { position: absolute; top: -4px; right: -6px; box-shadow: 0 0 0 2px var(--bide-surface); }
+/* Versión nueva de la app */
+html.bide .bide-update-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: 9px;
+    background: var(--bide-red);
+    color: #fff;
+    font-size: 11.2px;
+    font-weight: 800;
+    line-height: 1;
+}
+html.bide .bide-update-badge[hidden] {
+    display: none;
+}
+html.bide [data-bide-tab="ajustes"] > .bide-update-badge {
+    margin-left: 6px;
+}
+html.bide .bide-tab[data-bide-tab="ajustes"] {
+    position: relative;
+}
+    html.bide .bide-tab[data-bide-tab="ajustes"] > .bide-update-badge {
+        position: absolute;
+        top: 6px;
+        left: calc(50% + 4px);
+        margin: 0;
+        box-shadow: 0 0 0 2px var(--bide-surface);
+    }
+html.bide .bide-update {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--bide-red) 30%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--bide-red) 6%, var(--bide-surface));
+}
+html.bide .bide-update[hidden] {
+    display: none;
+}
+    html.bide .bide-update-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 4px;
+        color: var(--bide-ink);
+    }
+    html.bide .bide-update .bide-note {
+        margin: 0 0 8px;
+    }
+    html.bide .bide-update-notes {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+        html.bide .bide-update-notes p {
+            margin: 2px 0 0;
+            color: var(--bide-muted);
+            font-size: 14.08px;
+            line-height: 1.4;
+        }
+html.bide .bide-update-action {
+    position: relative;
+}
+html.bide .bide-settings-app {
+    scroll-margin-top: calc(96px + env(safe-area-inset-top));
+}
+    html.bide .bide-update-action > .bide-update-badge {
+        position: absolute;
+        top: -4px;
+        right: -6px;
+        box-shadow: 0 0 0 2px var(--bide-surface);
+    }
 
-/* Con Ajustes, Info, Avisos o Favoritos abiertos se esconde el resto de la página, pero no el pie: en la web lleva los
-   enlaces (en las apps ya va fuera del contenido y se queda; en el inicio va dentro de main). */
+/* El pie se queda: en la web lleva los enlaces */
 html.bide.bide-view-open body.page-app .app-container > :not(.bide-views):not(.bide-rail):not(.net-banner),
-html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail):not(.menu-footer) { display: none; }
+html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail):not(.menu-footer) {
+    display: none;
+}
 
 /* ===== Aviso de instalación ===== */
 html.bide .bide-install {
@@ -302,20 +793,90 @@ html.bide .bide-install {
     color: var(--bide-ink);
     animation: bide-drop .3s var(--bide-ease) both;
 }
-    html.bide .bide-install-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--bide-line); border-radius: 11px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-weight: 800; color: var(--bide-green); }
-        html.bide .bide-install-icon span { color: var(--bide-red); }
-    html.bide .bide-install-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        html.bide .bide-install-text strong { font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1rem; }
-        html.bide .bide-install-text span { color: var(--bide-muted); font-size: .8rem; line-height: 1.35; }
-    html.bide .bide-install-accept { padding: 9px 14px; border: none; border-radius: 999px; background: var(--bide-green); color: #fff; font-family: inherit; font-size: .88rem; font-weight: 700; cursor: pointer; }
-    html.bide .bide-install-dismiss { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; border-radius: 50%; background: transparent; color: var(--bide-muted); cursor: pointer; }
-        html.bide .bide-install-dismiss svg { width: 18px; height: 18px; }
+    html.bide .bide-install-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid var(--bide-line);
+        border-radius: 11px;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-weight: 800;
+        color: var(--bide-green);
+    }
+        html.bide .bide-install-icon > span {
+            color: var(--bide-red);
+        }
+    html.bide .bide-install-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+        html.bide .bide-install-text > strong {
+            font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+            font-size: 16px;
+        }
+        html.bide .bide-install-text > span {
+            color: var(--bide-muted);
+            font-size: 12.8px;
+            line-height: 1.35;
+        }
+    html.bide .bide-install-accept {
+        padding: 9px 14px;
+        border: none;
+        border-radius: 999px;
+        background: var(--bide-green);
+        color: #fff;
+        font-family: inherit;
+        font-size: 14.08px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    html.bide .bide-install-dismiss {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--bide-muted);
+        cursor: pointer;
+    }
+        html.bide .bide-install-dismiss > svg {
+            width: 18px;
+            height: 18px;
+        }
 
 /* ===== Columna de Bide+ ===== */
-html.bide .bide-rail-brand { display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); color: var(--bide-muted); font-size: .82rem; text-decoration: none; }
-    html.bide .bide-rail-brand .bide-wordmark { font-size: 2.1rem; line-height: 1; }
-        html.bide .bide-rail-brand .bide-wordmark span { font-size: 1.3rem; vertical-align: top; }
-html.bide .bide-rail-nav { display: flex; flex-direction: column; gap: 2px; }
+html.bide .bide-rail-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 16px 18px;
+    border: 1px solid var(--bide-line);
+    border-radius: 18px;
+    background: var(--bide-surface);
+    color: var(--bide-muted);
+    font-size: 13.12px;
+    text-decoration: none;
+}
+    html.bide .bide-rail-brand .bide-wordmark {
+        font-size: 33.6px;
+        line-height: 1;
+    }
+        html.bide .bide-rail-brand .bide-wordmark > span {
+            font-size: 20.8px;
+            vertical-align: top;
+        }
+html.bide .bide-rail-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
 html.bide .bide-rail-item {
     display: flex;
     align-items: center;
@@ -327,68 +888,264 @@ html.bide .bide-rail-item {
     background: transparent;
     color: var(--bide-ink);
     font-family: inherit;
-    font-size: .92rem;
+    font-size: 14.72px;
     font-weight: 600;
     text-align: left;
     text-decoration: none;
     cursor: pointer;
     transition: background-color .15s ease, transform .12s ease;
 }
-    html.bide .bide-rail-item:hover, html.bide .bide-rail-item[aria-current="page"], html.bide .bide-rail-apps[aria-expanded="true"] { background: var(--bide-tint); color: var(--bide-green); }
-    html.bide .bide-rail-item[aria-current="page"] { font-weight: 800; }
-    html.bide .bide-rail-item > svg { width: 18px; height: 18px; flex: none; color: var(--bide-green); }
-    html.bide .bide-app-logo { flex: none; width: 22px; height: 22px; border-radius: 6px; }
-html.bide .bide-rail-apps { font-weight: 700; }
-html.bide .bide-rail-chevron { display: flex; margin-left: auto; color: var(--bide-muted); transition: transform .25s var(--bide-ease); }
-    html.bide .bide-rail-chevron svg { width: 16px; height: 16px; }
-    html.bide .bide-rail-apps[aria-expanded="true"] .bide-rail-chevron { transform: rotate(180deg); }
-html.bide .bide-rail-applist { display: flex; flex-direction: column; gap: 2px; margin-left: 14px; padding-left: 8px; border-left: 2px solid var(--bide-line); animation: bide-drop .3s var(--bide-ease) both; }
-html.bide .bide-rail-sep { height: 1px; margin: 8px 0; background: var(--bide-line); }
-html.bide .bide-rail-favorites { padding: 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
-    html.bide .bide-rail-favorites h2 { margin: 0 0 10px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1rem; font-weight: 700; color: var(--bide-ink); }
-    html.bide .bide-rail-favorites .bide-fav { padding: 9px 10px; }
-    html.bide .bide-rail-favorites .bide-empty { margin: 0; font-size: .85rem; }
+    html.bide .bide-rail-item:hover,
+    html.bide .bide-rail-item[aria-current="page"],
+    html.bide .bide-rail-apps[aria-expanded="true"] {
+        background: var(--bide-tint);
+        color: var(--bide-green);
+    }
+    html.bide .bide-rail-item[aria-current="page"] {
+        font-weight: 800;
+    }
+    html.bide .bide-rail-item > svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+        color: var(--bide-green);
+    }
+    html.bide .bide-app-logo {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+    }
+html.bide .bide-rail-apps {
+    font-weight: 700;
+}
+html.bide .bide-rail-chevron {
+    display: flex;
+    margin-left: auto;
+    color: var(--bide-muted);
+    transition: transform .25s var(--bide-ease);
+}
+    html.bide .bide-rail-chevron > svg {
+        width: 16px;
+        height: 16px;
+    }
+    html.bide .bide-rail-apps[aria-expanded="true"] .bide-rail-chevron {
+        transform: rotate(180deg);
+    }
+html.bide .bide-rail-applist {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 14px;
+    padding-left: 8px;
+    border-left: 2px solid var(--bide-line);
+    animation: bide-drop .3s var(--bide-ease) both;
+}
+html.bide .bide-rail-sep {
+    height: 1px;
+    margin: 8px 0;
+    background: var(--bide-line);
+}
+html.bide .bide-rail-favorites {
+    padding: 14px;
+    border: 1px solid var(--bide-line);
+    border-radius: 18px;
+    background: var(--bide-surface);
+}
+    html.bide .bide-rail-favorites > h2 {
+        margin: 0 0 10px;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--bide-ink);
+    }
+    html.bide .bide-rail-favorites .bide-fav {
+        padding: 9px 10px;
+    }
+    html.bide .bide-rail-favorites .bide-empty {
+        margin: 0;
+        font-size: 13.6px;
+    }
 
 /* ===== Pie de Bide+ ===== */
-html.bide .bide-apps-links, html.bide .bide-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; }
-html.bide .bide-footer-title { flex-basis: 100%; margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-html.bide .bide-footer-legal { padding: 0; border: none; background: none; font: inherit; cursor: pointer; }
+html.bide .bide-apps-links,
+html.bide .bide-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 14px;
+}
+html.bide .bide-footer-title {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 11.52px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+html.bide .bide-footer-legal {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}
 
 /* ===== Página de cada app ===== */
-html.bide body.page-app .app-footer { display: grid; gap: 12px; text-align: center; }
-    html.bide body.page-app .app-footer p { margin: 0; }
-    html.bide body.page-app .bide-footer-brand .bide-wordmark { color: #fff; font-size: 1.3rem; }
-    html.bide body.page-app .bide-footer-brand p { display: none; }
-    html.bide body.page-app .app-footer .bide-footer-title { color: #fff; }
-    html.bide.is-metro body.page-app .app-footer .bide-wordmark span { color: var(--primary-light); }
-    html.bide body.page-app .app-footer .bide-apps-links { padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .18); }
-        html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { display: inline-flex; align-items: center; min-height: 24px; margin: 0; color: #fff; font-size: .76rem; font-weight: 600; text-decoration: none; }
-        html.bide body.page-app .app-footer :is(a, button):hover { text-decoration: underline; }
-/* En el móvil, el idioma de la cabecera es el botón «EU»; el selector de Ajustes se ve siempre. */
-html.bide body.page-app .header-actions .bide-lang { display: none; }
-html.bide body.page-app .bide-menu-apps { display: flex; width: 100%; justify-content: flex-start; margin: 44px 0 10px; font-size: .9rem; text-decoration: none; }
-    html.bide body.page-app .bide-menu-apps + .menu-favorites-open { margin-top: 0; font-size: .9rem; }
-html.bide body.page-app .app-container > header { justify-content: flex-start; }
-    html.bide body.page-app .app-container > header .home-link-wrap { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); min-width: 0; }
-    html.bide body.page-app .app-container > header .header-actions { margin-left: auto; }
+html.bide body.page-app .app-footer {
+    display: grid;
+    gap: 12px;
+    text-align: center;
+}
+    html.bide body.page-app .app-footer p {
+        margin: 0;
+    }
+    html.bide body.page-app .bide-footer-brand .bide-wordmark {
+        color: #fff;
+        font-size: 20.8px;
+    }
+    html.bide body.page-app .bide-footer-brand > p {
+        display: none;
+    }
+    html.bide body.page-app .app-footer .bide-footer-title {
+        color: #fff;
+    }
+    html.bide.is-metro body.page-app .app-footer .bide-wordmark > span {
+        color: var(--primary-light);
+    }
+    html.bide body.page-app .app-footer .bide-apps-links {
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, .18);
+    }
+        html.bide body.page-app .app-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            margin: 0;
+            color: #fff;
+            font-size: 12.16px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        html.bide body.page-app .app-footer :is(a, button):hover {
+            text-decoration: underline;
+        }
+html.bide body.page-app .header-actions .bide-lang {
+    display: none;
+}
+html.bide body.page-app .bide-menu-apps {
+    display: flex;
+    width: 100%;
+    justify-content: flex-start;
+    margin: 44px 0 10px;
+    font-size: 14.4px;
+    text-decoration: none;
+}
+    html.bide body.page-app .bide-menu-apps + .menu-favorites-open {
+        margin-top: 0;
+        font-size: 14.4px;
+    }
+html.bide body.page-app .app-container > header {
+    justify-content: flex-start;
+}
+    html.bide body.page-app .app-container > header .home-link-wrap {
+        flex: 1 1 auto;
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
+    }
+    html.bide body.page-app .app-container > header .header-actions {
+        margin-left: auto;
+    }
 
 /* ===== Menú de Bide+ ===== */
-html.bide body.page-menu header { flex-wrap: wrap; align-items: center; row-gap: 14px; }
-    html.bide body.page-menu .menu-brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        html.bide body.page-menu .menu-brand p { order: 0; flex-basis: auto; }
-    html.bide body.page-menu .header-controls { display: flex; flex: 1 1 100%; flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; }
-    html.bide body.page-menu .view-toggle.bide-seg { padding: 4px; border: 1px solid var(--bide-line); border-radius: 14px; background: var(--bide-surface); box-shadow: none; }
-        html.bide body.page-menu .view-toggle.bide-seg button { width: auto; min-width: 48px; height: 34px; border-radius: 10px; box-shadow: none; }
-html.bide body.page-menu .menu-footer { display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; width: 100vw; max-width: none; margin: 24px 0 0 calc(50% - 50vw); padding: 26px 16px calc(28px + env(safe-area-inset-bottom)); background: var(--bide-green); color: #e3efe0; }
-html.bide:not(.is-standalone) body.page-menu { padding-bottom: 0; overflow-x: clip; }
-    html.bide body.page-menu .menu-footer p { margin: 0; }
-    html.bide body.page-menu .menu-footer .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; }
-    html.bide body.page-menu .menu-footer .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
-    html.bide body.page-menu .menu-footer .bide-footer-brand p { color: #e3efe0; }
-    html.bide body.page-menu .menu-footer .bide-footer-title { color: #9CCD64; }
-    html.bide body.page-menu .menu-footer .bide-footer-author { display: flex; flex-direction: column; gap: 4px; }
-    html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) { justify-content: flex-start; }
-        html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) { display: inline-flex; align-items: center; min-height: 24px; color: #fff; font-weight: 700; text-decoration: none; }
+html.bide body.page-menu header {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 14px;
+}
+    html.bide body.page-menu .menu-brand {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+    }
+        html.bide body.page-menu .menu-brand > p {
+            order: 0;
+            flex-basis: auto;
+        }
+    html.bide body.page-menu .header-controls {
+        display: flex;
+        flex: 1 1 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+    }
+    html.bide body.page-menu .view-toggle.bide-seg {
+        padding: 4px;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        box-shadow: none;
+    }
+        html.bide body.page-menu .view-toggle.bide-seg > button {
+            width: auto;
+            min-width: 48px;
+            height: 34px;
+            border-radius: 10px;
+            box-shadow: none;
+        }
+html.bide body.page-menu .menu-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    margin: 24px 0 0 calc(50% - 50vw);
+    padding: 26px 16px calc(28px + env(safe-area-inset-bottom));
+    background: var(--bide-green);
+    color: #e3efe0;
+}
+html.bide:not(.is-standalone) body.page-menu {
+    padding-bottom: 0;
+    overflow-x: clip;
+}
+    html.bide body.page-menu .menu-footer p {
+        margin: 0;
+    }
+    html.bide body.page-menu .menu-footer .bide-footer-brand {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    html.bide body.page-menu .menu-footer .bide-wordmark {
+        display: block;
+        color: #fff;
+        font-size: 22.4px;
+    }
+    html.bide body.page-menu .menu-footer .bide-footer-brand > p {
+        color: #e3efe0;
+    }
+    html.bide body.page-menu .menu-footer .bide-footer-title {
+        color: #9CCD64;
+    }
+    html.bide body.page-menu .menu-footer .bide-footer-author {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) {
+        justify-content: flex-start;
+    }
+        html.bide body.page-menu .menu-footer :is(.bide-apps-links, .bide-footer-links) :is(a, button) {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
 
 /* ===== Aviso legal en el menú ===== */
 html.bide body.page-menu .legal-panel {
@@ -405,11 +1162,27 @@ html.bide body.page-menu .legal-panel {
     font-family: inherit;
     overscroll-behavior: contain;
 }
-    html.bide body.page-menu .legal-panel::backdrop { background: rgba(10, 14, 12, .5); }
-    html.bide body.page-menu .legal-panel h3 { margin: 10px 0 16px; padding-right: 48px; font-family: 'Bricolage Grotesque', system-ui, sans-serif; font-size: 1.2rem; font-weight: 700; }
-    html.bide body.page-menu .legal-panel p { margin: 0 0 12px; font-size: .85rem; line-height: 1.55; }
-    html.bide body.page-menu .legal-panel strong { font-weight: 600; }
-    html.bide body.page-menu .legal-panel a { color: var(--bide-green); }
+    html.bide body.page-menu .legal-panel::backdrop {
+        background: rgba(10, 14, 12, .5);
+    }
+    html.bide body.page-menu .legal-panel > h3 {
+        margin: 10px 0 16px;
+        padding-right: 48px;
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 19.2px;
+        font-weight: 700;
+    }
+    html.bide body.page-menu .legal-panel > p {
+        margin: 0 0 12px;
+        font-size: 13.6px;
+        line-height: 1.55;
+    }
+    html.bide body.page-menu .legal-panel strong {
+        font-weight: 600;
+    }
+    html.bide body.page-menu .legal-panel a {
+        color: var(--bide-green);
+    }
 html.bide body.page-menu .legal-close {
     position: absolute;
     top: 16px;
@@ -426,7 +1199,11 @@ html.bide body.page-menu .legal-close {
     color: var(--bide-muted);
     cursor: pointer;
 }
-    html.bide body.page-menu .legal-close svg { width: 18px; height: 18px; stroke-width: 2.25; }
+    html.bide body.page-menu .legal-close > svg {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2.25;
+    }
 
 /* ===== App instalada en el móvil ===== */
 @media (max-width: 1023px) {
@@ -439,7 +1216,7 @@ html.bide body.page-menu .legal-close {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 0;
-        /* El margen seguro de iOS (indicador de inicio) va en la franja de la barra, no dentro de las pestañas: el color de la activa no se estira. Tope de 34 px por si iOS da un valor raro. */
+        /* Margen seguro de iOS, con tope */
         padding: 0 0 min(env(safe-area-inset-bottom), 34px);
         border-top: 1px solid var(--bide-line);
         background: var(--bide-surface);
@@ -458,33 +1235,69 @@ html.bide body.page-menu .legal-close {
         background: none;
         color: var(--bide-muted);
         font-family: inherit;
-        font-size: .72rem;
+        font-size: 11.52px;
         font-weight: 600;
         cursor: pointer;
         transition: color .15s ease, transform .12s ease;
     }
-        html.bide .bide-tab svg { width: 22px; height: 22px; }
-        /* La pestaña activa rellena todo su hueco con el color de la app en la que estás (Metro+ rojo, Bizkaibus+ verde...). En el inicio de Bide+ es verde. */
-        html.bide .bide-tab[aria-current="page"] { background: var(--primary, var(--bide-green)); color: #fff !important; font-weight: 800; transition: none; }
-    html.bide.is-standalone body { padding-bottom: calc(76px + min(env(safe-area-inset-bottom), 34px)); }
-    html.bide.is-standalone body.page-menu { padding-bottom: calc(96px + min(env(safe-area-inset-bottom), 34px)); }
-    /* iPhone con indicador de inicio: en unas páginas iOS da el margen inferior (34 px) y en otras 0, y la barra quedaba a distinta altura. Se fija en 34 px en todas. */
-    html.bide.is-ios-notch.is-standalone .bide-tabbar { padding-bottom: 34px; }
-    html.bide.is-ios-notch.is-standalone body { padding-bottom: calc(76px + 34px); }
-    html.bide.is-ios-notch.is-standalone body.page-menu { padding-bottom: calc(96px + 34px); }
-    html.bide.is-standalone body.page-app .app-footer, html.bide.is-standalone body.page-menu main > footer, html.bide.is-standalone .menu-open { display: none; }
-    html.bide.is-standalone body.page-app .header-actions .btn-lang { display: none; }
-    html.bide body.page-app .bide-views { padding: 0 2px; }
-    /* El margen de arriba va dentro de la cabecera fija, para que tape también la franja de la barra de estado. */
-    html.bide.bide-view-open .bide-view { padding-top: 10px; }
-    html.bide.bide-view-open .bide-view-head { padding-top: calc(env(safe-area-inset-top) + 10px); }
+        html.bide .bide-tab > svg {
+            width: 22px;
+            height: 22px;
+        }
+        html.bide .bide-tab[aria-current="page"] {
+            background: var(--primary, var(--bide-green));
+            color: #fff !important;
+            font-weight: 800;
+            transition: none;
+        }
+    html.bide.is-standalone body {
+        padding-bottom: calc(76px + min(env(safe-area-inset-bottom), 34px));
+    }
+    html.bide.is-standalone body.page-menu {
+        padding-bottom: calc(96px + min(env(safe-area-inset-bottom), 34px));
+    }
+    /* iPhone con indicador de inicio: siempre 34 px */
+    html.bide.is-ios-notch.is-standalone .bide-tabbar {
+        padding-bottom: 34px;
+    }
+    html.bide.is-ios-notch.is-standalone body {
+        padding-bottom: calc(76px + 34px);
+    }
+    html.bide.is-ios-notch.is-standalone body.page-menu {
+        padding-bottom: calc(96px + 34px);
+    }
+    html.bide.is-standalone body.page-app .app-footer,
+    html.bide.is-standalone body.page-menu main > footer,
+    html.bide.is-standalone .menu-open {
+        display: none;
+    }
+    html.bide.is-standalone body.page-app .header-actions .btn-lang {
+        display: none;
+    }
+    html.bide body.page-app .bide-views {
+        padding: 0 2px;
+    }
+    html.bide.bide-view-open .bide-view {
+        padding-top: 10px;
+    }
+    html.bide.bide-view-open .bide-view-head {
+        padding-top: calc(env(safe-area-inset-top) + 10px);
+    }
 }
 
 /* ===== Ordenador ===== */
 @media (min-width: 1024px) {
-    html.bide .bide-rail { display: flex; flex-direction: column; gap: 14px; }
-    html.bide .bide-view-back { display: none; }
-    html.bide .bide-install { display: none !important; }
+    html.bide .bide-rail {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    html.bide .bide-view-back {
+        display: none;
+    }
+    html.bide .bide-install {
+        display: none !important;
+    }
 
     html.bide body.page-app .app-container {
         display: grid;
@@ -494,11 +1307,30 @@ html.bide body.page-menu .legal-close {
         align-items: start;
         max-width: 1440px;
     }
-    html.bide body.page-app .net-banner, html.bide body.page-app .app-container > noscript { grid-column: 1 / -1; grid-row: 1; }
-    html.bide body.page-app .bide-rail { grid-column: 1; grid-row: 2 / -1; position: sticky; top: 20px; margin-top: 20px; }
-    html.bide body.page-app .app-container > header { grid-column: 2; grid-row: 2; margin: 20px 0 16px; }
-    html.bide body.page-app .menu-open, html.bide body.page-app .lang-toggle { display: none; }
-    html.bide body.page-app .header-actions .bide-lang { display: inline-flex; }
+    html.bide body.page-app .net-banner,
+    html.bide body.page-app .app-container > noscript {
+        grid-column: 1 / -1;
+        grid-row: 1;
+    }
+    html.bide body.page-app .bide-rail {
+        grid-column: 1;
+        grid-row: 2 / -1;
+        position: sticky;
+        top: 20px;
+        margin-top: 20px;
+    }
+    html.bide body.page-app .app-container > header {
+        grid-column: 2;
+        grid-row: 2;
+        margin: 20px 0 16px;
+    }
+    html.bide body.page-app .menu-open,
+    html.bide body.page-app .lang-toggle {
+        display: none;
+    }
+    html.bide body.page-app .header-actions .bide-lang {
+        display: inline-flex;
+    }
     html.bide body.page-app .layout {
         grid-column: 2;
         grid-row: 3;
@@ -508,29 +1340,115 @@ html.bide body.page-menu .legal-close {
         grid-template-rows: auto 1fr;
         gap: 0 24px;
     }
-    html.bide body.page-app .sidebar { grid-area: side; position: static; display: flex; flex-wrap: wrap; gap: 0 10px; }
-        html.bide body.page-app .search-form { flex: 1 1 auto; }
-        html.bide body.page-app .nearby-btn { flex: none; align-self: stretch; width: auto; height: auto; margin-top: 0; padding: 0 16px; }
-        html.bide body.page-app .favorites-panel { display: none; }
-    html.bide body.page-app .main { grid-area: main; }
-    html.bide body.page-app .detail { grid-area: detail; position: sticky; top: 20px; }
-    html.bide body.page-app .bide-views, html.bide body.page-app .attribution, html.bide body.page-app .disclaimer { grid-column: 2; }
-    html.bide body.page-app .bide-views { grid-row: 4; margin-top: 20px; }
-    html.bide body.page-app .attribution { grid-row: 5; }
-    html.bide body.page-app .disclaimer { grid-row: 6; }
-    html.bide body.page-app .detail-empty { display: none; margin: 0; padding: 64px 28px; border: 1px dashed var(--bide-line); border-radius: 18px; color: var(--bide-muted); font-weight: 500; text-align: center; }
-        html.bide body.page-app .timetable-section[hidden] + .detail-empty { display: block; }
-    html.bide body.page-app .app-footer { width: auto; margin: 24px 0 0; border-radius: 0; }
+    html.bide body.page-app .sidebar {
+        grid-area: side;
+        position: static;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 10px;
+    }
+        html.bide body.page-app .search-form {
+            flex: 1 1 auto;
+        }
+        html.bide body.page-app .nearby-btn {
+            flex: none;
+            align-self: stretch;
+            width: auto;
+            height: auto;
+            margin-top: 0;
+            padding: 0 16px;
+        }
+        html.bide body.page-app .favorites-panel {
+            display: none;
+        }
+    html.bide body.page-app .main {
+        grid-area: main;
+    }
+    html.bide body.page-app .detail {
+        grid-area: detail;
+        position: sticky;
+        top: 20px;
+    }
+    html.bide body.page-app .bide-views,
+    html.bide body.page-app .attribution,
+    html.bide body.page-app .disclaimer {
+        grid-column: 2;
+    }
+    html.bide body.page-app .bide-views {
+        grid-row: 4;
+        margin-top: 20px;
+    }
+    html.bide body.page-app .attribution {
+        grid-row: 5;
+    }
+    html.bide body.page-app .disclaimer {
+        grid-row: 6;
+    }
+    html.bide body.page-app .detail-empty {
+        display: none;
+        margin: 0;
+        padding: 64px 28px;
+        border: 1px dashed var(--bide-line);
+        border-radius: 18px;
+        color: var(--bide-muted);
+        font-weight: 500;
+        text-align: center;
+    }
+        html.bide body.page-app .timetable-section[hidden] + .detail-empty {
+            display: block;
+        }
+    html.bide body.page-app .app-footer {
+        width: auto;
+        margin: 24px 0 0;
+        border-radius: 0;
+    }
 
-    html.bide body.page-menu main { display: grid; flex: 1 0 auto; grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: repeat(4, auto) 1fr auto; column-gap: 24px; width: 100%; max-width: 1400px; align-items: start; }
-    html.bide body.page-menu .bide-rail { grid-column: 1; grid-row: 1 / span 5; position: sticky; top: 20px; }
-    html.bide body.page-menu main > :not(.bide-rail):not(.menu-footer) { grid-column: 2; }
-    html.bide body.page-menu .menu-brand { display: none; }
-    html.bide body.page-menu .header-controls { flex: 1; }
-    html.bide body.page-menu header { padding: 10px 14px; border: 1px solid var(--bide-line); border-radius: 18px; background: var(--bide-surface); }
-    html.bide:not([data-view="list"]) body.page-menu .menu-apps .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    html.bide body.page-menu { display: flex; flex-direction: column; padding-bottom: 0; overflow-x: clip; }
-    html.bide body.page-menu .menu-footer { grid-column: 1 / -1; grid-row: 6; width: 100vw; margin: 24px 0 0 calc(50% - 50vw); }
+    html.bide body.page-menu main {
+        display: grid;
+        flex: 1 0 auto;
+        grid-template-columns: 248px minmax(0, 1fr);
+        grid-template-rows: repeat(4, auto) 1fr auto;
+        column-gap: 24px;
+        width: 100%;
+        max-width: 1400px;
+        align-items: start;
+    }
+    html.bide body.page-menu .bide-rail {
+        grid-column: 1;
+        grid-row: 1 / span 5;
+        position: sticky;
+        top: 20px;
+    }
+    html.bide body.page-menu main > :not(.bide-rail):not(.menu-footer) {
+        grid-column: 2;
+    }
+    html.bide body.page-menu .menu-brand {
+        display: none;
+    }
+    html.bide body.page-menu .header-controls {
+        flex: 1;
+    }
+    html.bide body.page-menu header {
+        padding: 10px 14px;
+        border: 1px solid var(--bide-line);
+        border-radius: 18px;
+        background: var(--bide-surface);
+    }
+    html.bide:not([data-view="list"]) body.page-menu .menu-apps .tiles {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    html.bide body.page-menu {
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 0;
+        overflow-x: clip;
+    }
+    html.bide body.page-menu .menu-footer {
+        grid-column: 1 / -1;
+        grid-row: 6;
+        width: 100vw;
+        margin: 24px 0 0 calc(50% - 50vw);
+    }
     html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -539,30 +1457,95 @@ html.bide body.page-menu .legal-close {
         padding: 30px max(16px, calc((100vw - 1400px) / 2)) 26px;
         background: var(--bide-green);
         color: #e3efe0;
-        font-size: .84rem;
+        font-size: 13.44px;
         line-height: 1.4;
         text-align: left;
     }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-wordmark { display: block; color: #fff; font-size: 1.4rem; }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand { display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-author { justify-self: end; }
-            html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand p { display: block; color: #e3efe0; font-size: .84rem; line-height: 1.5; }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-title { flex-basis: auto; color: #9CCD64; }
-    html.bide body.page-app .app-footer { padding-inline: max(24px, calc((100vw - 1392px) / 2)); background: var(--primary); }
-        html.bide body.page-app .app-footer .bide-footer-title { color: #fff; }
-            html.bide body.page-app .app-footer .bide-footer-brand p { color: #fff; }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-start; gap: 7px; padding: 0; border: none; }
-        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) { margin: 0; color: #fff; font-size: .84rem; font-weight: 600; text-decoration: none; }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-wordmark {
+            display: block;
+            color: #fff;
+            font-size: 22.4px;
+        }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 420px;
+        }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-author {
+            justify-self: end;
+        }
+            html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand > p {
+                display: block;
+                color: #e3efe0;
+                font-size: 13.44px;
+                line-height: 1.5;
+            }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-title {
+            flex-basis: auto;
+            color: #9CCD64;
+        }
+    html.bide body.page-app .app-footer {
+        padding-inline: max(24px, calc((100vw - 1392px) / 2));
+        background: var(--primary);
+    }
+        html.bide body.page-app .app-footer .bide-footer-title {
+            color: #fff;
+        }
+            html.bide body.page-app .app-footer .bide-footer-brand > p {
+                color: #fff;
+            }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-author, .bide-footer-links) {
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 7px;
+            padding: 0;
+            border: none;
+        }
+        html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) {
+            margin: 0;
+            color: #fff;
+            font-size: 13.44px;
+            font-weight: 600;
+            text-decoration: none;
+        }
 
-    html.bide .bide-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; max-width: 1000px; }
-        html.bide :is(.bide-changelog, .bide-faq, .bide-feedback) { grid-column: 1 / -1; }
-    html.bide .bide-view[data-bide-view="favoritos"], html.bide .bide-view[data-bide-view="avisos"] { max-width: 880px; }
+    html.bide .bide-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 16px;
+        max-width: 1000px;
+    }
+        html.bide :is(.bide-changelog, .bide-faq, .bide-feedback) {
+            grid-column: 1 / -1;
+        }
+    html.bide .bide-view[data-bide-view="favoritos"],
+    html.bide .bide-view[data-bide-view="avisos"] {
+        max-width: 880px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    html.bide .bide-view, html.bide .bide-rail-applist, html.bide .bide-install { animation: none; }
-    html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active { transform: none; }
-    html.bide .bide-rail-chevron { transition: none; }
-    html.bide .bide-changelog-more summary::after { transition: none; }
-    html.bide .bide-faq-item summary::after, html.bide .bide-toggle, html.bide .bide-toggle::after { transition: none; }
+    html.bide .bide-view,
+    html.bide .bide-rail-applist,
+    html.bide .bide-install {
+        animation: none;
+    }
+    html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active {
+        transform: none;
+    }
+    html.bide .bide-rail-chevron {
+        transition: none;
+    }
+    html.bide .bide-changelog-more > summary::after {
+        transition: none;
+    }
+    html.bide .bide-faq-item > summary::after,
+    html.bide .bide-toggle,
+    html.bide .bide-toggle::after {
+        transition: none;
+    }
 }

@@ -1,8 +1,7 @@
-/* Tema «mi amor» (?tema=miamor y bideplusmiamor.vercel.app). Va encima de style-app.css y style-bide.css: la app es la
-   misma, solo cambian los colores (rosas), el fondo (degradado en movimiento) y las tarjetas (cristal). */
+/* Tema «mi amor» (?tema=miamor) */
 
 /* ===== Colores ===== */
-/* :root.is-miamor pesa más que html.is-<red>: el tema sale rosa en cualquier red. */
+/* Pesa más que html.is-<red>: rosa en cualquier red */
 :root.is-miamor {
     --bg: #fff0f6;
     --surface: #fffafc;
@@ -17,7 +16,6 @@
     --warn-tint: #fde7f1;
     --backdrop: rgba(60, 10, 35, .45);
     --shadow-soft: 0 10px 25px rgba(157, 23, 77, .08);
-
     --bide-green: #db2777;
     --bide-red: #ff7eb3;
     --bide-ink: #3b2530;
@@ -26,12 +24,10 @@
     --bide-tint: #fde7f1;
     --bide-surface: #fffafc;
     --bide-bg: #fff0f6;
-
     --paper: #fffafc;
     --ink: #3b2530;
     --muted: #7a5566;
     --line: #f6cfe0;
-
     --miamor-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #ffc3a0 100%);
     --miamor-glass: rgba(255, 255, 255, .55);
     --miamor-glass-border: rgba(255, 255, 255, .75);
@@ -39,8 +35,13 @@
 
 /* ===== Fondo ===== */
 @keyframes miamor-gradient {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
 }
 :root.is-miamor,
 :root.is-miamor body {
@@ -50,7 +51,6 @@
 }
 
 /* ===== Cristal ===== */
-/* Las tarjetas claras dejan ver el degradado; la de la próxima salida y la cabecera siguen siendo de color. */
 :root.is-miamor :is(.search-input, .nearby-btn, .favorites-panel, .bide-rail-brand, .detail-empty, .timetable, .platform-panel, .bide-card, .bide-seg) {
     border-color: var(--miamor-glass-border);
     background: var(--miamor-glass);
@@ -59,48 +59,79 @@
 }
 
 /* ===== Cabecera ===== */
-/* Sin el símbolo de la red: el tema es el mismo en todas. */
-:root.is-miamor .app-logomark { display: none; }
+:root.is-miamor .app-logomark {
+    display: none;
+}
 
 /* ===== Animaciones ===== */
 @keyframes miamor-card-in {
-    from { opacity: 0; transform: translateY(14px) scale(.98); }
-    to { opacity: 1; transform: none; }
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 @keyframes miamor-heart-pop {
-    0%, 100% { transform: scale(1); }
-    45% { transform: scale(1.35); }
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.35);
+    }
 }
-:root.is-miamor :is(.live-card, .timetable, .platform-panel) { animation: miamor-card-in .45s cubic-bezier(.22, 1, .36, 1); }
-:root.is-miamor .is-favorite svg { animation: miamor-heart-pop .4s ease; }
+:root.is-miamor :is(.live-card, .timetable, .platform-panel) {
+    animation: miamor-card-in .45s cubic-bezier(.22, 1, .36, 1);
+}
+:root.is-miamor .is-favorite svg {
+    animation: miamor-heart-pop .4s ease;
+}
 
 /* ===== Logotipo ===== */
-/* El logotipo de Bide+ (menú y mapa) es un SVG con sus colores puestos: se pintan con los del tema. */
-:root.is-miamor .wordmark [fill="#01573C"] { fill: var(--bide-green); }
-:root.is-miamor .wordmark [fill="#C8102E"] { fill: var(--bide-red); }
+/* El logotipo SVG, con los colores del tema */
+:root.is-miamor .wordmark [fill="#01573C"] {
+    fill: var(--bide-green);
+}
+:root.is-miamor .wordmark [fill="#C8102E"] {
+    fill: var(--bide-red);
+}
 
 /* ===== Menú ===== */
-/* Todas las fichas de las apps, del mismo rosa. */
-:root.is-miamor .tile { --c: var(--primary); }
-    /* Más claro arriba y el rosa de la app abajo, donde va el texto blanco (contraste 4,6:1). Nada más oscuro que eso. */
-    :root.is-miamor a.tile { background: linear-gradient(to bottom left, #f472b6 0%, #ec4899 40%, var(--primary) 75%); }
-    /* Sin el icono grande de fondo: con el color de cada red dejaba una mancha oscura en la esquina. */
-    :root.is-miamor .tile .mark { display: none; }
-:root.is-miamor .menu-map-link > svg:first-child { color: var(--bide-green); }
-/* La cabecera fija de Favoritos, Avisos, Ajustes e Info: cristal sobre el degradado, como las tarjetas. */
+:root.is-miamor .tile {
+    --c: var(--primary);
+}
+    /* Contraste 4,6:1 con el texto blanco */
+    :root.is-miamor a.tile {
+        background: linear-gradient(to bottom left, #f472b6 0%, #ec4899 40%, var(--primary) 75%);
+    }
+    :root.is-miamor .tile .mark {
+        display: none;
+    }
+:root.is-miamor .menu-map-link > svg:first-child {
+    color: var(--bide-green);
+}
 :root.is-miamor .bide-view-head {
     background: var(--miamor-glass);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
 }
-    :root.is-miamor .bide-view-head::after { display: none; }
+    :root.is-miamor .bide-view-head::after {
+        display: none;
+    }
 
 /* ===== Pie ===== */
-:root.is-miamor.bide body :is(.app-footer, .menu-footer) .bide-footer-title { color: #ffe0ee; }
+:root.is-miamor.bide body :is(.app-footer, .menu-footer) .bide-footer-title {
+    color: #ffe0ee;
+}
 
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
     :root.is-miamor body,
     :root.is-miamor :is(.live-card, .timetable, .platform-panel),
-    :root.is-miamor .is-favorite svg { animation: none; }
+    :root.is-miamor .is-favorite svg {
+        animation: none;
+    }
 }

@@ -1,9 +1,5 @@
 <?php
-// Batería de limpieza: que todo el código siga las pautas del proyecto (CONTRIBUTING.md) y no arrastre restos.
-// Formato, sin ternarios, nombres con prefijo de tipo en PHP, JavaScript moderno y estricto, textos completos en los
-// tres idiomas, sin código, estilos ni archivos muertos (ni comentarios que nombran archivos que ya no existen), y el
-// precache del service worker al día. El Python lo mira static-checks.py, con su propio analizador.
-// Uso: php tests/code-quality.php (también la lanza static-checks.py).
+// Batería de limpieza: las pautas de CONTRIBUTING.md y nada muerto. Uso: php tests/code-quality.php
 
 declare(strict_types=1);
 
@@ -252,6 +248,19 @@ foreach ($aSources as $sFile => $sText) {
         }
         if (preg_match('/^( *)\S/', $sLine, $aMatch) && strlen($aMatch[1]) % 4 !== 0) {
             $Report('Formato: sangría que no va de 4 en 4', $sFile . ':' . $iLine);
+        }
+    }
+}
+
+// CSS: medidas en px y una declaración por línea.
+foreach ($aCssFiles as $sFile) {
+    $sCss = preg_replace_callback('#/\*.*?\*/#s', fn($aMatch) => preg_replace('/[^\n]/', ' ', $aMatch[0]), $aSources[$sFile]);
+    foreach (explode("\n", $sCss) as $iIndex => $sLine) {
+        if (preg_match('/(?<![\w.#-])(\d+\.?\d*|\.\d+)rem\b/', $sLine)) {
+            $Report('CSS: medida en rem (va en px)', $sFile . ':' . ($iIndex + 1));
+        }
+        if (preg_match('/\{\s*\S|;\s*\S/', $sLine)) {
+            $Report('CSS: regla en una línea (una declaración por línea)', $sFile . ':' . ($iIndex + 1));
         }
     }
 }
