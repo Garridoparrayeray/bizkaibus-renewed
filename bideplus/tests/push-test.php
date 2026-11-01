@@ -2,7 +2,8 @@
 // Notificaciones push contra un Upstash falso (tests/fixtures/fake-upstash.php) y un servicio de push falso: cifrado
 // con el vector del RFC 8291, claves VAPID y direcciones permitidas; «Avísame cuando llegue» (crear, enviar una sola
 // vez, reintentar, olvidar suscripciones caducadas y cancelar) y avisos de incidencias de los favoritos (línea base,
-// solo lo nuevo, resumen, reintento, cada 5 minutos y darse de baja). Uso: php tests/push-test.php
+// solo lo nuevo, resumen, reintento, cada 5 minutos y darse de baja) y el aviso de versión nueva (una vez por versión,
+// también a quien solo tiene los avisos de incidencias, en su idioma). Uso: php tests/push-test.php
 
 declare(strict_types=1);
 
@@ -13,7 +14,9 @@ use Controllers\StopsController;
 use Core\Config;
 use Core\Store;
 use Services\ArrivalAlerts;
+use Services\Changelog;
 use Services\IncidentAlerts;
+use Services\UpdateAlerts;
 use Services\Push;
 use Services\WebPush;
 
@@ -375,6 +378,54 @@ try {
     sort($aExpected);
     $Expect('incidencias en todas las apps: Euskotren, tranvías y Lurraldebus avisan y abren su pestaña Avisos', $aNetworksSent === $aExpected && count(array_filter($aNew, fn($aMessage) => str_ends_with($aMessage['url'], '#avisos'))) === 4, json_encode($aNew, JSON_UNESCAPED_UNICODE));
     IncidentAlerts::remove($aOtherSubscriber['endpoint']);
+
+    // ===== Aviso de versión nueva =====
+
+    $iVersion = Changelog::version();
+    $Expect('versión: es la última novedad', $iVersion === Changelog::ENTRIES[0][2] && $iVersion >= 34, (string)$iVersion);
+    $aNewer = Changelog::newerThan($iVersion - 2, 'es');
+    $Expect('versión: lo que trae cada versión posterior a la del móvil, de la más nueva a la más vieja', array_column($aNewer, 'number') === [$iVersion, $iVersion - 1] && $aNewer[0]['title'] === Changelog::ENTRIES[0][3]);
+    $aBasque = Changelog::newerThan($iVersion - 1, 'eu');
+    $Expect('versión: en euskera y en inglés, con los textos de js/i18n.js', count($aBasque) === 1 && $aBasque[0]['title'] !== Changelog::ENTRIES[0][3] && Changelog::newerThan($iVersion - 1, 'en')[0]['title'] !== $aBasque[0]['title']);
+    $Expect('versión: el móvil al día no tiene nada pendiente', Changelog::newerThan($iVersion, 'es') === []);
+
+    $Device = fn(string $sName) => ['endpoint' => 'https://fcm.googleapis.com/fcm/send/' . $sName, 'keys' => $aSubscription['keys']];
+    $Expect('versión: se apunta un móvil', UpdateAlerts::save($Device('version-en'), 'en') === 'saved');
+    UpdateAlerts::save($Device('las-dos'), 'es');
+    IncidentAlerts::save($Device('las-dos'), ['bus' => ['lines' => ['3513'], 'stops' => []]], 'es');
+    IncidentAlerts::save($Device('solo-incidencias'), ['bus' => ['lines' => ['3513'], 'stops' => []]], 'eu');
+    $Again = function (): void {
+        Store::pipeline([['DEL', 'bide:update:done'], ['DEL', 'bide:update:sent:' . Changelog::version()]]);
+    };
+    $Again();
+    $aSent = [];
+    $aRun = UpdateAlerts::process($Sender);
+    $Expect('versión: avisa una vez a cada móvil, también al que solo tiene los avisos de incidencias', $aRun['sent'] === 3 && $aRun['pending'] === 0 && count($aSent) === 3, json_encode($aRun));
+    $aTitles = array_column($aSent, 'title');
+    sort($aTitles);
+    $Expect('versión: cada uno en su idioma', $aTitles === ['Bide+ eguneratu da', 'Bide+ has been updated', 'Bide+ se ha actualizado'], json_encode($aTitles, JSON_UNESCAPED_UNICODE));
+    $Expect('versión: abre Ajustes y no se vuelve a abrir si el sistema recarga la dirección', count(array_filter($aSent, fn($aMessage) => str_starts_with($aMessage['url'], '/?aviso=') && str_ends_with($aMessage['url'], '#ajustes'))) === 3);
+    $aLangOf = ['Bide+ se ha actualizado' => 'es', 'Bide+ eguneratu da' => 'eu', 'Bide+ has been updated' => 'en'];
+    $Expect('versión: cuenta lo que trae, en su idioma', count(array_filter($aSent, fn($aMessage) => str_contains($aMessage['body'], Changelog::newerThan(0, $aLangOf[$aMessage['title']])[0]['title']))) === 3);
+    $Expect('versión: la vuelta siguiente no manda nada', UpdateAlerts::process($Sender) === ['skipped' => true] && count($aSent) === 3);
+
+    $Again();
+    $iAnswer = 503;
+    $aRun = UpdateAlerts::process($Sender);
+    $Expect('versión: si el servicio de push falla, se queda pendiente', $aRun['sent'] === 0 && $aRun['pending'] === 3, json_encode($aRun));
+    $iAnswer = 201;
+    $aRun = UpdateAlerts::process($Sender);
+    $Expect('versión: y se manda en la vuelta siguiente', $aRun['sent'] === 3 && $aRun['pending'] === 0, json_encode($aRun));
+
+    $Again();
+    $iAnswer = 410;
+    UpdateAlerts::process($Sender);
+    $Expect('versión: una suscripción que ya no existe se borra', Store::pipeline([['SMEMBERS', 'bide:update:subs']])[0] === []);
+    $iAnswer = 201;
+    UpdateAlerts::save($Device('baja'), 'es');
+    $Expect('versión: darse de baja', UpdateAlerts::remove($Device('baja')['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:update:subs']])[0] === []);
+    IncidentAlerts::remove($Device('las-dos')['endpoint']);
+    IncidentAlerts::remove($Device('solo-incidencias')['endpoint']);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);

@@ -6,6 +6,7 @@ use Core\Request;
 use Core\Response;
 use Services\ArrivalAlerts;
 use Services\IncidentAlerts;
+use Services\UpdateAlerts;
 use Services\Push;
 use Services\WebPush;
 
@@ -84,6 +85,37 @@ class PushController
             return;
         }
         if (!IncidentAlerts::remove($sEndpoint)) {
+            Response::json(['status' => 'unavailable'], 503);
+            return;
+        }
+        Response::json(['status' => 'removed']);
+    }
+
+    // Apunta este móvil al aviso de versión nueva (Services\UpdateAlerts): la suscripción y el idioma.
+    public function saveUpdates(Request $Req, array $aParams): void
+    {
+        $aBody = $Req->json();
+        $aSubscription = Push::subscription($aBody['subscription'] ?? null);
+        if ($aSubscription === null) {
+            Response::error('Invalid subscription', 400);
+            return;
+        }
+        $sStatus = UpdateAlerts::save($aSubscription, Push::lang($aBody['lang'] ?? null));
+        $iStatus = 200;
+        if ($sStatus !== 'saved') {
+            $iStatus = 503;
+        }
+        Response::json(['status' => $sStatus], $iStatus);
+    }
+
+    public function removeUpdates(Request $Req, array $aParams): void
+    {
+        $sEndpoint = (string)($Req->json()['endpoint'] ?? '');
+        if (!WebPush::allowedEndpoint($sEndpoint)) {
+            Response::error('Invalid subscription', 400);
+            return;
+        }
+        if (!UpdateAlerts::remove($sEndpoint)) {
             Response::json(['status' => 'unavailable'], 503);
             return;
         }

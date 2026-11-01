@@ -173,8 +173,8 @@ $aJsonLd = [
     <script src="/js/menu.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/api.js"></script>
-    <script src="/js/bide.js"></script>
     <script src="/js/alerts-store.js"></script>
+    <script src="/js/bide.js"></script>
     <script src="/js/offline.js"></script>
     <script src="/js/bide-info.js"></script>
     <script type="module" src="/js/settings.js"></script>

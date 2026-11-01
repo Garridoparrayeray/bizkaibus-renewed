@@ -1,9 +1,10 @@
 // Ajustes de Bide+, en el menú de inicio y en cada app: idioma, notificaciones (incidencias de los favoritos y avisos
-// de llegada activos), ubicación, horarios sin conexión, la app (vaciar la caché y su versión) y borrar los datos del
-// móvil. Todo se guarda al momento, sin recargar: las peticiones al servidor van por js/api.js.
+// de llegada activos), ubicación, horarios sin conexión, la app (vaciar la caché, su versión y el aviso de versión
+// nueva, js/app-update.js) y borrar los datos del móvil. Todo se guarda al momento, sin recargar: las peticiones al servidor van por js/api.js.
 import { cancelArrivalAlert, readArrivalAlerts } from './arrival-alerts-store.js';
 import { disableLineAlerts, setUpIncidentAlerts } from './incident-alerts.js';
 import { isIos } from './push.js';
+import { forgetUpdates, setUpAppUpdate } from './app-update.js';
 
 const view = document.querySelector('[data-bide-view="ajustes"]');
 const CONFIRM_MS = 5000;
@@ -191,7 +192,9 @@ async function forgetNotifications() {
     const registration = await navigator.serviceWorker.getRegistration();
     if (!registration || !('pushManager' in registration)) return;
     const subscription = await registration.pushManager.getSubscription();
-    if (subscription) await subscription.unsubscribe();
+    if (!subscription) return;
+    await forgetUpdates(subscription.endpoint);
+    await subscription.unsubscribe();
 }
 
 async function forgetDevice() {
@@ -240,6 +243,7 @@ if (view) {
     setUpLocation();
     setUpCache();
     setUpDelete();
+    setUpAppUpdate(view);
     render();
     // Al abrir Ajustes, los permisos pueden haber cambiado en los ajustes del navegador.
     new MutationObserver(() => {

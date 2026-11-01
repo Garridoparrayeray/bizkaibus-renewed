@@ -18,8 +18,9 @@ use Core\Store;
  */
 class IncidentAlerts
 {
-    private const SUBSCRIBERS_KEY = 'bide:incident:subs';
-    private const SUBSCRIBER_PREFIX = 'bide:incident:sub:';
+    // Públicas: el aviso de versión nueva (UpdateAlerts) también llega a quien ya tiene activados estos avisos.
+    public const SUBSCRIBERS_KEY = 'bide:incident:subs';
+    public const SUBSCRIBER_PREFIX = 'bide:incident:sub:';
     private const STATE_PREFIX = 'bide:incident:state:';
     private const RUN_KEY = 'bide:incident:run';
     // El cron llama cada minuto; la marca dura 4 minutos y medio, así que se revisa cada 5.

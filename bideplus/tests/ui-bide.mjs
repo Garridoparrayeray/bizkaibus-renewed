@@ -31,9 +31,20 @@ await new Promise(r => ws.onopen = r);
 let id = 0;
 const pending = new Map();
 const problems = [];
+// Aviso de versión nueva: con fakeAppVersion, la respuesta de /api/app/version la da la prueba (Fetch.enable).
+let fakeAppVersion = null;
+const answerPaused = (requestId) => {
+    if (!fakeAppVersion) {
+        send('Fetch.continueRequest', { requestId });
+        return;
+    }
+    const body = Buffer.from(JSON.stringify(fakeAppVersion)).toString('base64');
+    send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body });
+};
 ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
+    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId); return; }
     if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
 };
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -130,7 +141,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 33"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 34"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -490,6 +501,36 @@ await go('/mapa');
 check('«mi amor»: sigue en el mapa de la red', await ev("document.documentElement.classList.contains('is-miamor')"));
 await go('/?red=bus&tema=pro');
 check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.documentElement.classList.contains('is-miamor')"));
+
+// ===== Aviso de versión nueva =====
+// El servidor dice que hay una versión más nueva que la de este código.
+fakeAppVersion = { version: 999, notes: [{ number: 999, date: '2026-12-01', title: 'Prueba de versión', text: 'Lo que trae la versión de prueba.' }] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/app/version*' }] });
+await setStandalone(true);
+await phone();
+await go('/');
+check('versión nueva · «1» rojo en la rueda de Ajustes', await waitTrue(`${shown('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')} && getComputedStyle(document.querySelector('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')).backgroundColor === 'rgb(200, 16, 46)'`));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('versión nueva · Ajustes: «Nueva actualización de la app» con lo que trae', await waitTrue(`${shown('[data-settings-update]')} && document.querySelector('[data-settings-update-notes]').textContent.includes('Prueba de versión')`));
+check('versión nueva · Ajustes: el «1» también en «Vaciar caché y actualizar»', await ev(shown('[data-settings-update-badge]')));
+check('versión nueva · Ajustes: va directo a actualizar, con el aviso entero a la vista', await waitTrue("(() => { const head = document.querySelector('[data-bide-view=ajustes] .bide-view-head').getBoundingClientRect(); const title = document.querySelector('[data-settings-update] .bide-update-title').getBoundingClientRect(); return title.top >= head.bottom && title.top < innerHeight / 2; })()"));
+check('versión nueva · sin desbordar a lo ancho', await ev(noOverflow));
+await go('/?red=metro');
+check('versión nueva · también en cada app', await waitTrue(shown('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')));
+await setStandalone(false);
+await desktop();
+await go('/');
+check('versión nueva · ordenador: «1» en Ajustes de la columna', await waitTrue(shown('.bide-rail [data-bide-tab=ajustes] .bide-update-badge')));
+// La notificación abre Ajustes una sola vez, aunque el sistema vuelva a cargar su dirección.
+await go('/?aviso=prueba-version#ajustes');
+check('versión nueva · la notificación abre Ajustes y se quita «aviso» de la dirección', await waitTrue(`${shown('[data-bide-view=ajustes]')} && !location.search.includes('aviso')`));
+await go('/?aviso=prueba-version#ajustes');
+check('versión nueva · si se vuelve a cargar su dirección, se queda en el inicio', await waitTrue("!document.documentElement.classList.contains('bide-view-open') && location.hash === ''"));
+fakeAppVersion = null;
+await send('Fetch.disable');
+await go('/');
+await sleep(1500);
+check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);

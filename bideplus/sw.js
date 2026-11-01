@@ -10,7 +10,8 @@ const OFFLINE_CACHE_NAME = 'bide-offline';
 const SLOW_NETWORK_MS = 1500;
 // El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
-const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
+// Lo que no se guarda: el directo y la versión de la app (el aviso de actualización tiene que estar al día).
+const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|app\/version)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
     '/style-networks.css',
@@ -53,6 +54,7 @@ const SHELL_FILES = [
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',
     '/js/settings.js',
+    '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/i18n.js',

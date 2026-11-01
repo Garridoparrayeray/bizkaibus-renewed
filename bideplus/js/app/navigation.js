@@ -86,7 +86,7 @@ export function startRouting() {
     let sharedTrip = launch.get('viaje');
     const alertToken = launch.get('aviso');
     if (sharedTrip || alertToken) removeLaunchParams();
-    if (alertToken && !firstOpening(alertToken)) {
+    if (alertToken && !AlertsStore.firstOpening(alertToken)) {
         // Esa notificación ya se abrió: es el sistema recargando la dirección con la que se abrió la app. Se queda en
         // el inicio, sin la parada, la ficha del viaje ni la pestaña Avisos.
         sharedTrip = null;
@@ -116,30 +116,4 @@ function removeLaunchParams() {
     url.searchParams.delete('viaje');
     url.searchParams.delete('aviso');
     history.replaceState(history.state, '', url.pathname + url.search + url.hash);
-}
-
-// Una notificación (de llegada o de incidencias) se abre una sola vez: su dirección lleva «?aviso=», distinto en cada
-// envío, y se apunta al abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió:
-// entonces ya no sale.
-const OPENED_ALERTS_KEY = 'bide-opened-alerts';
-const OPENED_ALERTS_KEEP_MS = 7 * 24 * 3600 * 1000;
-
-function firstOpening(token) {
-    let opened = {};
-    try {
-        opened = JSON.parse(localStorage.getItem(OPENED_ALERTS_KEY) || '{}') || {};
-    } catch (e) {
-        opened = {};
-    }
-    if (opened[token]) return false;
-    for (const [key, at] of Object.entries(opened)) {
-        if (Date.now() - at > OPENED_ALERTS_KEEP_MS) delete opened[key];
-    }
-    opened[token] = Date.now();
-    try {
-        localStorage.setItem(OPENED_ALERTS_KEY, JSON.stringify(opened));
-    } catch (e) {
-        // Sin almacenamiento se abre igual: la dirección ya no lleva el viaje.
-    }
-    return true;
 }

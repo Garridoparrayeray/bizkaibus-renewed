@@ -263,6 +263,24 @@ html.bide .bide-settings-version { margin: 16px 0 0; color: var(--bide-muted); f
 html.bide .bide-sources { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
     html.bide .bide-sources strong { color: var(--bide-ink); }
 
+/* Versión nueva (js/app-update.js): un «1» pequeño en rojo en cada botón de Ajustes y en «Vaciar caché y actualizar», y
+   encima de ese botón el aviso con lo que trae. En la barra de pestañas va sobre la rueda; en el resto, detrás del texto. */
+html.bide .bide-update-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--bide-red); color: #fff; font-size: .7rem; font-weight: 800; line-height: 1; }
+html.bide .bide-update-badge[hidden] { display: none; }
+html.bide [data-bide-tab="ajustes"] > .bide-update-badge { margin-left: 6px; }
+html.bide .bide-tab[data-bide-tab="ajustes"] { position: relative; }
+    html.bide .bide-tab[data-bide-tab="ajustes"] > .bide-update-badge { position: absolute; top: 6px; left: calc(50% + 4px); margin: 0; box-shadow: 0 0 0 2px var(--bide-surface); }
+html.bide .bide-update { margin: 0 0 16px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--bide-red) 30%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--bide-red) 6%, var(--bide-surface)); }
+html.bide .bide-update[hidden] { display: none; }
+    html.bide .bide-update-title { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; color: var(--bide-ink); }
+    html.bide .bide-update .bide-note { margin: 0 0 8px; }
+    html.bide .bide-update-notes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+        html.bide .bide-update-notes p { margin: 2px 0 0; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
+html.bide .bide-update-action { position: relative; }
+/* Al ir directo a actualizar, la tarjeta queda debajo de la cabecera fija de Ajustes, no tapada por ella. */
+html.bide .bide-settings-app { scroll-margin-top: calc(96px + env(safe-area-inset-top)); }
+    html.bide .bide-update-action > .bide-update-badge { position: absolute; top: -4px; right: -6px; box-shadow: 0 0 0 2px var(--bide-surface); }
+
 /* Con Ajustes, Info, Avisos o Favoritos abiertos se esconde el resto de la página, pero no el pie: en la web lleva los
    enlaces (en las apps ya va fuera del contenido y se queda; en el inicio va dentro de main). */
 html.bide.bide-view-open body.page-app .app-container > :not(.bide-views):not(.bide-rail):not(.net-banner),

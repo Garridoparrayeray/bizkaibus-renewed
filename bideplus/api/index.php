@@ -22,6 +22,7 @@ use Controllers\RealtimeController;
 use Controllers\AlertsController;
 use Controllers\LiveRecordController;
 use Controllers\PushController;
+use Controllers\AppController;
 
 $Req = new Request();
 
@@ -68,6 +69,12 @@ $Router->post('/push/arrival', [$Push, 'createArrival']);
 $Router->post('/push/arrival/{id}/cancel', [$Push, 'cancelArrival']);
 $Router->post('/push/incidents', [$Push, 'saveIncidents']);
 $Router->post('/push/incidents/remove', [$Push, 'removeIncidents']);
+$Router->post('/push/updates', [$Push, 'saveUpdates']);
+$Router->post('/push/updates/remove', [$Push, 'removeUpdates']);
+
+// La versión de la app y sus novedades, para el aviso de actualización. Sin caché: tiene que estar al día.
+$App = new AppController();
+$Router->get('/app/version', [$App, 'version']);
 
 try {
     $Router->dispatch($Req);

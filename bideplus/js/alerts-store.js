@@ -157,5 +157,31 @@ const AlertsStore = (() => {
         }
     }
 
-    return { get, set, setFavorites, checkAlerts, resetBaseline, notify };
+    // Una notificación se abre una sola vez: su dirección lleva «?aviso=», distinto en cada envío, y se apunta al
+    // abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió: entonces ya no sale.
+    // La usan las apps (js/app/navigation.js) y el inicio (js/bide.js); en el service worker no se llama.
+    const OPENED_KEY = 'bide-opened-alerts';
+    const OPENED_KEEP_MS = 7 * 24 * 3600 * 1000;
+
+    function firstOpening(token) {
+        let opened = {};
+        try {
+            opened = JSON.parse(localStorage.getItem(OPENED_KEY) || '{}') || {};
+        } catch (e) {
+            opened = {};
+        }
+        if (opened[token]) return false;
+        for (const [key, at] of Object.entries(opened)) {
+            if (Date.now() - at > OPENED_KEEP_MS) delete opened[key];
+        }
+        opened[token] = Date.now();
+        try {
+            localStorage.setItem(OPENED_KEY, JSON.stringify(opened));
+        } catch (e) {
+            // Sin almacenamiento se abre igual: la dirección ya no lleva el aviso.
+        }
+        return true;
+    }
+
+    return { get, set, setFavorites, checkAlerts, resetBaseline, notify, firstOpening };
 })();

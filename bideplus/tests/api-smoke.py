@@ -118,6 +118,12 @@ status = get('/api/status') or {}
 if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
+# La versión de la app y lo que trae cada versión, para el aviso de actualización de Ajustes.
+version = get('/api/app/version?desde=0&lang=eu') or {}
+if not isinstance(version.get('version'), int) or not version.get('notes') or not all(n.get('title') and n.get('text') for n in version['notes']):
+    fails.append(f'/api/app/version: sin versión o sin novedades {version}')
+if (get(f"/api/app/version?desde={version.get('version', 0)}") or {}).get('notes') != []:
+    fails.append('/api/app/version: con la versión al día no debería haber novedades pendientes')
 # El endpoint del cron del registro de pasos no existe sin su clave secreta.
 get('/api/live/record', 404)
 get('/api/live/record?key=adivina', 404)

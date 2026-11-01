@@ -48,6 +48,22 @@
         return title;
     }
 
+    // La pestaña que pide la dirección (#ajustes…). En el inicio, una notificación (la de versión nueva) llega con
+    // «?aviso=»: como en las apps (js/app/navigation.js), se quita y la pestaña solo se abre la primera vez.
+    function launchView() {
+        const view = location.hash.slice(1);
+        const url = new URL(location.href);
+        const token = url.searchParams.get('aviso');
+        if (!isMenu || !token) return view;
+        url.searchParams.delete('aviso');
+        if (AlertsStore.firstOpening(token)) {
+            history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+            return view;
+        }
+        history.replaceState(history.state, '', url.pathname + url.search);
+        return '';
+    }
+
     function setActiveTab(view) {
         document.querySelectorAll('[data-bide-tab]').forEach((tab) => {
             const name = tab.getAttribute('data-bide-tab');
@@ -361,7 +377,7 @@
     setUpInstallBanner();
     renderFavorites();
 
-    const initialView = location.hash.slice(1);
+    const initialView = launchView();
     if (VIEWS.includes(initialView)) {
         history.replaceState({ ...history.state, bideView: initialView }, '', location.href);
         showView(initialView, false);
