@@ -93,9 +93,15 @@ const APP_DIR = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-
 const OFFLINE_PORT = Number(process.env.OFFLINE_PORT || 8213);
 const OFFLINE_BASE = `http://localhost:${OFFLINE_PORT}`;
 const ownServer = spawn(PHP, ['-S', `localhost:${OFFLINE_PORT}`, 'dev-router.php'], { cwd: APP_DIR, stdio: 'ignore' });
+// Se lee la respuesta entera: una sin leer deja la conexión en pausa, y al apagar luego este servidor Node 22.23 se
+// cae con «assert(!this.paused)» dentro de fetch.
 for (let i = 0; i < 40; i++) {
     await sleep(500);
-    try { if ((await fetch(OFFLINE_BASE + '/')).ok) break; } catch (e) { }
+    try {
+        const response = await fetch(OFFLINE_BASE + '/');
+        await response.arrayBuffer();
+        if (response.ok) break;
+    } catch (e) { }
 }
 const goOwn = async (url, wait = 3000) => { await send('Page.navigate', { url: OFFLINE_BASE + url }); await sleep(wait); };
 const searchOwn = async q => {
