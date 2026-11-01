@@ -263,8 +263,10 @@ html.bide .bide-settings-version { margin: 16px 0 0; color: var(--bide-muted); f
 html.bide .bide-sources { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; color: var(--bide-muted); font-size: .88rem; line-height: 1.4; }
     html.bide .bide-sources strong { color: var(--bide-ink); }
 
+/* Con Ajustes, Info, Avisos o Favoritos abiertos se esconde el resto de la página, pero no el pie: en la web lleva los
+   enlaces (en las apps ya va fuera del contenido y se queda; en el inicio va dentro de main). */
 html.bide.bide-view-open body.page-app .app-container > :not(.bide-views):not(.bide-rail):not(.net-banner),
-html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail) { display: none; }
+html.bide.bide-view-open body.page-menu main > :not(.bide-views):not(.bide-rail):not(.menu-footer) { display: none; }
 
 /* ===== Aviso de instalación ===== */
 html.bide .bide-install {

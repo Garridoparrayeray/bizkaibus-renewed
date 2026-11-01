@@ -92,6 +92,12 @@ await ev("document.querySelector('.bide-install-dismiss').click()");
 await go('/');
 check('navegador · el aviso cerrado no vuelve', (await ev(shown('.bide-install'))) === false);
 await ev("localStorage.removeItem('bide_install_dismissed'); true");
+// En la web el pie lleva los enlaces: se queda también con Ajustes, Info, Avisos o Favoritos abiertos desde el inicio.
+for (const view of ['ajustes', 'info', 'avisos', 'favoritos']) {
+    await ev(`(() => { document.querySelector('[data-bide-tab=${view}]').click(); return true; })()`);
+    check(`navegador · menú: con ${view} abierto sigue el pie`, await waitTrue(`${shown(`[data-bide-view=${view}]`)} && ${shown('main > footer')}`));
+    await go('/');
+}
 
 await go('/?red=bus');
 check('navegador · app: el menú ☰ lleva a todas las apps', (await ev("document.querySelector('#side-menu .bide-menu-apps').getAttribute('href')")) === '/');
