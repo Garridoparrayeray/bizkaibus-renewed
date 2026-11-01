@@ -3,17 +3,8 @@
 declare(strict_types=1);
 
 /*
- * Horario oficial completo de cada red para usarlo sin conexión: offline-data/<red>.json y offline-data/index.json.
- * Se rehace con las bases en cada reconstrucción; el móvil solo guarda las redes que elige la persona (js/offline.js).
- *
- * Cada recorrido y cada patrón de horas de paso se guardan una vez; cada viaje solo lleva su recorrido, sus horas, su
- * hora de salida y su calendario. Un viaje pasa por una parada a «salida + desfase» de esa parada. Los calendarios son
- * los mismos que usa la API (días de la semana y excepciones), sin el de pruebas.
- *
- * Con el motor de llegadas a mano (engine/, que el workflow trae del repositorio privado), las redes que lo usan llevan
- * también la hora estimada de cada viaje con los tramos aprendidos y lo que suele apartarse ese viaje, para un día
- * laborable y para un fin de semana: sin conexión la parada enseña primero esa estimación y al lado la hora oficial,
- * como con conexión y sin datos del bus.
+ * Horario oficial de cada red para usarlo sin conexión: offline-data/<red>.json y offline-data/index.json.
+ * Con el motor (engine/), cada viaje lleva también su hora estimada en laborable y en fin de semana.
  *
  * Uso: php scripts/build-offline-data.php [--out=dir]
  */
@@ -30,11 +21,9 @@ const OFFLINE_FORMAT = 2;
 const ESTIMATE_ORIGIN_OFFSET_SECONDS = 60;
 // Por debajo de este reparto de tiempo aprendido, la estimación no basta para decir que un bus ya pasó.
 const ESTIMATE_TRUSTED_SHARE = 0.8;
-// Un día de cada tipo para elegir la franja horaria de los tramos aprendidos, y sus días en la máscara del calendario
-// (de lunes a viernes; sábado y domingo).
 const ESTIMATE_DAYS = ['laborable' => '2026-11-04', 'fin_semana' => '2026-11-07'];
 const ESTIMATE_DAY_BITS = ['laborable' => 0b0011111, 'fin_semana' => 0b1100000];
-// Cada calendario es [máscara de días de la semana, días que se añaden, días que se quitan].
+// [máscara de días de la semana, días que se añaden, días que se quitan]
 const CALENDAR_WEEKDAYS = 0;
 const CALENDAR_ADDED_DAYS = 1;
 const CALENDAR_REMOVED_DAYS = 2;
@@ -63,8 +52,6 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
 }
 file_put_contents("$sOut/index.json", json_encode(['format' => OFFLINE_FORMAT, 'networks' => $aIndex], JSON_UNESCAPED_SLASHES));
 
-// Una red entera para usarla sin conexión: sus líneas, calendarios, recorridos, patrones de horas y viajes, y las
-// paradas que usan.
 function buildOfflineNetwork(string $sSlug, array $aNetwork): array
 {
     $Pdo = new PDO('sqlite:' . $aNetwork['db_path']);
@@ -123,7 +110,7 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
     ];
 }
 
-// Una lista sin repetidos: cada valor distinto se guarda una vez y los viajes lo nombran por su posición.
+// Cada valor distinto se guarda una vez y los viajes lo nombran por su posición.
 final class IndexedList
 {
     private array $aIndex = [];
@@ -149,7 +136,6 @@ final class IndexedList
     }
 }
 
-// Las líneas por código, y la posición de cada una por su id.
 function offlineLines(PDO $Pdo): array
 {
     $aLines = [];
@@ -161,8 +147,6 @@ function offlineLines(PDO $Pdo): array
     return [$aLines, $aIndex];
 }
 
-// Los calendarios como los usa la API (días de la semana, días que se añaden y días que se quitan), sin el de pruebas,
-// y la posición de cada uno por su id.
 function offlineCalendars(PDO $Pdo): array
 {
     $aCalendars = [];
@@ -184,7 +168,6 @@ function offlineCalendars(PDO $Pdo): array
     return [$aCalendars, $aIndex];
 }
 
-// Los viajes con línea y calendario conocidos, por su id.
 function offlineJourneys(PDO $Pdo, array $aLineIndex, array $aCalendarIndex): array
 {
     $aJourneys = [];
@@ -201,9 +184,7 @@ function offlineJourneys(PDO $Pdo, array $aLineIndex, array $aCalendarIndex): ar
     return $aJourneys;
 }
 
-// Las horas de paso de cada viaje, en orden: [id, paradas, horas, metros desde la cabecera, salida de la cabecera].
-// La hora que se enseña es la de llegada a la parada, como en la API. dist_m solo lo tienen las redes con trazado; sin
-// él, los tramos sin aprender usan el ritmo.
+// [id, paradas, horas, metros desde la cabecera, salida de la cabecera]
 function journeyStopTimes(PDO $Pdo): Generator
 {
     $sMeters = 'NULL';
@@ -245,8 +226,7 @@ function journeyStopTimes(PDO $Pdo): Generator
     }
 }
 
-// Posiciones 6 y 7 de cada viaje: su hora estimada en laborable y en fin de semana, como índice en «estimates» (-1 si
-// ese tipo de día no circula).
+// Posiciones 6 y 7: índice en «estimates» en laborable y en fin de semana (-1 si no circula).
 function estimateSlots(Closure $Estimator, IndexedList $Estimates, array $aCalendar, string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, int $iDeparture): array
 {
     $aSlots = [];
@@ -262,8 +242,7 @@ function estimateSlots(Closure $Estimator, IndexedList $Estimates, array $aCalen
     return $aSlots;
 }
 
-// Las paradas que usa algún recorrido. Las estaciones con andenes (Metro, Euskotren) se abren por la estación: cada
-// andén dice a cuál pertenece y qué andén es. Devuelve también todas las paradas, para las longitudes.
+// Las estaciones con andenes (Metro, Euskotren) se abren por la estación.
 function offlineStops(PDO $Pdo, array $aUsed): array
 {
     $aAll = [];
@@ -289,8 +268,7 @@ function offlineStops(PDO $Pdo, array $aUsed): array
     return [$aStops, $aAll];
 }
 
-// Metro reparte las salidas en dos columnas según vayan hacia una estación de referencia o al revés (como
-// ServiceJourney::directionsByPattern): para eso hacen falta la referencia y la longitud de las paradas.
+// Como ServiceJourney::directionsByPattern.
 function directionLongitudes(array $aNetwork, array $aStops, array $aAll): array
 {
     if (!isset($aNetwork['direction_reference_stop_id'])) {
@@ -307,14 +285,8 @@ function directionLongitudes(array $aNetwork, array $aStops, array $aAll): array
     return [$sReference, $aLon];
 }
 
-/*
- * Calcula la hora estimada de un viaje en cada parada con lo aprendido por el motor, igual que el motor cuando no hay
- * datos del bus: salida publicada + 1 min + lo que tardan de verdad los buses en cada tramo, con la franja horaria y el
- * ritmo del punto medio hasta esa parada (un tramo sin aprender usa la proporción por largo o el ritmo de la línea), más
- * lo que suele apartarse ese viaje en ese tercio del recorrido. Devuelve los segundos desde la salida en cada parada (0
- * en la primera) y si los tramos aprendidos cubren lo bastante del recorrido para fiarse de que un bus ya pasó.
- * Null si la red no usa el motor o no está a mano.
- */
+// La hora estimada sin datos del bus, como el motor: salida + 1 min + tramos aprendidos + corrección del viaje.
+// Null si la red no usa el motor o no está a mano.
 function offlineEstimator(array $aNetwork): \Closure|null
 {
     $sEngine = $aNetwork['engine'] ?? null;

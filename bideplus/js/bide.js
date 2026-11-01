@@ -48,8 +48,6 @@
         return title;
     }
 
-    // La pestaña que pide la dirección (#ajustes…). En el inicio, una notificación (la de versión nueva) llega con
-    // «?aviso=»: como en las apps (js/app/navigation.js), se quita y la pestaña solo se abre la primera vez.
     function launchView() {
         const view = location.hash.slice(1);
         const url = new URL(location.href);

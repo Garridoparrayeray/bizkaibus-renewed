@@ -10,7 +10,7 @@ const OFFLINE_CACHE_NAME = 'bide-offline';
 const SLOW_NETWORK_MS = 1500;
 // El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
-// Lo que no se guarda: el directo y la versión de la app (el aviso de actualización tiene que estar al día).
+// Lo que nunca sale de la caché.
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|app\/version)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
@@ -235,8 +235,7 @@ function ownPath(value, fallback) {
     return fallback;
 }
 
-// Un aviso de llegada de una vez ya ha avisado: se apunta (para la app cerrada) y se dice a las ventanas abiertas, y la
-// app lo quita de su lista (js/arrival-alerts-store.js). Lo apuntado se olvida al día.
+// Avisos de llegada de una vez que ya avisaron, para que la app los quite aunque estuviera cerrada.
 const FIRED_KEY = 'arrivalFired';
 const FIRED_KEEP_MS = 24 * 3600 * 1000;
 
@@ -249,7 +248,7 @@ async function rememberFiredAlert(id) {
         fired[id] = Date.now();
         await AlertsStore.set(FIRED_KEY, fired);
     } catch (e) {
-        // Sin IndexedDB la app lo quita igual al pasar su hora.
+        // Sin IndexedDB se quita igual al pasar su hora.
     }
     const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     windows.forEach((client) => client.postMessage({ type: 'bide:arrival-fired', id }));

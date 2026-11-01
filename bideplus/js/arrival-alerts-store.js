@@ -1,9 +1,4 @@
-// Los «Avísame cuando llegue» creados desde este móvil, para enseñarlos activos y poder cancelarlos: desde la ficha del
-// viaje (js/app/arrival-alerts.js) y desde Ajustes (js/settings.js).
-// - Uno de una vez se quita en cuanto avisa: el service worker apunta su id al recibir la notificación, aunque la app
-//   esté cerrada, y si hay una ventana abierta se lo dice al momento (sw.js). Si nunca llega a avisar (el viaje se
-//   cancela), se quita media hora después de su llegada prevista y, como mucho, a las 3 horas, como en el servidor.
-// - Uno de todos los días se queda hasta que se cancela.
+// Los «Avísame cuando llegue» de este móvil. Uno de una vez se quita al avisar o, si nunca avisa, al pasar su hora.
 const STORAGE_KEY = 'bide-arrival-alerts';
 const KEEP_MS = 3 * 3600 * 1000;
 const AFTER_ARRIVAL_MS = 30 * 60 * 1000;
@@ -39,12 +34,11 @@ export async function cancelArrivalAlert(alert) {
     try {
         await Api.cancelArrivalAlert(alert.id, alert.endpoint);
     } catch (e) {
-        // Se quita igual: el servidor lo borra solo al mandarlo o al caducar.
+        // El servidor lo borra igual al caducar.
     }
     writeArrivalAlerts(readArrivalAlerts().filter((item) => item.id !== alert.id));
 }
 
-// Quita los de una vez que ya avisaron. Los de todos los días no se tocan aunque su id aparezca.
 function dropFired(ids) {
     const list = readArrivalAlerts();
     const kept = list.filter((alert) => alert.repeat === true || !ids.includes(alert.id));
@@ -56,7 +50,7 @@ async function dropFiredWhileClosed() {
     try {
         dropFired(Object.keys((await AlertsStore.get(FIRED_KEY)) || {}));
     } catch (e) {
-        // Sin IndexedDB se quitan igual al pasar su hora.
+        // Sin IndexedDB se quitan al pasar su hora.
     }
 }
 

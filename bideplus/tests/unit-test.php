@@ -462,8 +462,7 @@ $Expect('en otra red no se da ninguna fila por pasada con la parada registrada',
 $Expect('en otra red, sin GPS, la ETA es la de siempre (ahora + horario desde la próxima parada)', $iEta === T0 + 300 + 360, hms($iEta));
 Config::set('bus');
 
-/* Corrección por viaje: lo que suele apartarse cada viaje de la hora estimada sin datos del bus, por tercio del recorrido.
- * J_LINE (línea 3414, S0 a S4, 5 paradas, sale a las 08:00) llega a S4 a las 08:07:40 según los tramos aprendidos. */
+// Corrección por viaje. J_LINE (S0 a S4, sale a las 08:00) llega a S4 a las 08:07:40 con los tramos aprendidos.
 if (class_exists(TripOffsets::class)) {
     $Section('TripOffsets: corrección por viaje');
     $sLineKey = TripOffsets::key('3414', 'S0', 'S4', T0, 5);
@@ -490,8 +489,7 @@ if (class_exists(TripOffsets::class)) {
     $Expect('sin el orden de la parada, se encuentra por parada y hora', $MTrip->enrich([$aRowNoSeq])[0]['etaSeconds'] === T0 + 460 + 30);
     $Expect('con tramos pasados a mano y sin tabla de viajes, no se lee la del fichero', $MNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 460);
 
-    /* Festivo entre semana: Bizkaibus lo publica haciendo circular por excepción los calendarios de solo domingo. Ese día
-     * la capa 3 calcula como en fin de semana: con sus tramos y su corrección (40 s en S4 en vez de 30). */
+    // Festivo entre semana: tramos y corrección de fin de semana (40 s en S4 en vez de 30).
     $PdoHoliday = buildFixture(40);
     $PdoHoliday->exec("
         CREATE TABLE service_calendars (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, weekday_mask INTEGER NOT NULL);

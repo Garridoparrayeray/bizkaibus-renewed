@@ -7,8 +7,7 @@ use Core\Response;
 use Services\Changelog;
 use Services\Push;
 
-// La versión de la app (su última novedad) y lo que trae cada versión posterior a la que tiene el móvil, para el aviso
-// de actualización de Ajustes (js/app-update.js). «desde» es la versión del móvil y «lang», el idioma de los textos.
+// Versión de la app y novedades posteriores a «desde», en el idioma «lang».
 class AppController
 {
     public function version(Request $Req, array $aParams): void

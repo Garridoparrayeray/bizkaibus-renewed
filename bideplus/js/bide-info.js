@@ -203,7 +203,16 @@
     renderOffline();
     loadOfflineSizes();
     setUpFeedback();
-    if (typeof BideOffline !== 'undefined') BideOffline.refresh().catch(() => {});
+    if (typeof BideOffline !== 'undefined') {
+        const refreshOffline = () => BideOffline.refresh().then((updated) => {
+            if (updated) renderOffline();
+        }).catch(() => {});
+        refreshOffline();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') refreshOffline();
+        });
+        window.addEventListener('online', refreshOffline);
+    }
     // Al cambiar de idioma se rehace la lista con los textos nuevos.
     window.addEventListener('bide:lang', renderOffline);
 })();

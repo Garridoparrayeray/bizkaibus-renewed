@@ -1,6 +1,4 @@
-// Ajustes de Bide+, en el menú de inicio y en cada app: idioma, notificaciones (incidencias de los favoritos y avisos
-// de llegada activos), ubicación, horarios sin conexión, la app (vaciar la caché, su versión y el aviso de versión
-// nueva, js/app-update.js) y borrar los datos del móvil. Todo se guarda al momento, sin recargar: las peticiones al servidor van por js/api.js.
+// Ajustes de Bide+, en el inicio y en cada app. Todo se guarda al momento, sin recargar.
 import { cancelArrivalAlert, readArrivalAlerts } from './arrival-alerts-store.js';
 import { disableLineAlerts, setUpIncidentAlerts } from './incident-alerts.js';
 import { isIos } from './push.js';

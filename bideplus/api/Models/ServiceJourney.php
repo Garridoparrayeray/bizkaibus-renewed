@@ -14,7 +14,6 @@ class ServiceJourney
 
     private const COUNTED_PAST_SECONDS = 120;
 
-    // Máscara de días de un calendario de solo domingo (lunes = bit 0).
     private const SUNDAY_ONLY_MASK = 0b1000000;
 
     private const LAST_STOP_NAME_SUBQUERY = '(
@@ -329,8 +328,7 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
-    // Festivo entre semana: ese día circulan por excepción los calendarios de solo domingo, que es como publica Bizkaibus
-    // los festivos. Lo usa el algoritmo para calcular ese día la hora estimada como en fin de semana.
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
     public function isHoliday(string $sDate): bool
     {
         if (!$this->hasTable('service_calendars') || !$this->hasTable('service_calendar_exceptions')) {

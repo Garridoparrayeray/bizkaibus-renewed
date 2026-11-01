@@ -28,6 +28,10 @@ En Ajustes, «Horarios sin conexión» guarda el horario oficial de cada red (o 
 `scripts/build-offline-data.php` en cada reconstrucción diaria y van en `offline-data/<red>.json`, con un índice
 `offline-data/index.json` (tamaño y fecha de cada red; la app avisa si lo guardado es de otro día).
 
+Lo guardado se actualiza solo: al abrir la app, al volver a ella y al recuperar la conexión, como mucho cada 6 horas,
+`BideOffline.refresh()` mira el índice y vuelve a bajar las redes guardadas con un horario más nuevo. Si una descarga
+falla, lo intenta otra vez la próxima vez.
+
 ### Formato (`format: 2`)
 
 Cada cosa se guarda una vez y los viajes la nombran por su posición, para que el archivo sea pequeño:

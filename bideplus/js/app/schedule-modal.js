@@ -1,4 +1,4 @@
-// «Ver horario oficial»: el horario de la línea en texto, tal como lo publica el operador, por periodos.
+// «Ver horario oficial»: el horario en texto del operador, por periodos.
 import { FEATURES, el, state } from './core.js';
 import { schedulePeriods } from './schedule-periods.js';
 

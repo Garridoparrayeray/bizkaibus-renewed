@@ -118,7 +118,7 @@ status = get('/api/status') or {}
 if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
-# La versión de la app y lo que trae cada versión, para el aviso de actualización de Ajustes.
+# Aviso de versión nueva.
 version = get('/api/app/version?desde=0&lang=eu') or {}
 if not isinstance(version.get('version'), int) or not version.get('notes') or not all(n.get('title') and n.get('text') for n in version['notes']):
     fails.append(f'/api/app/version: sin versión o sin novedades {version}')

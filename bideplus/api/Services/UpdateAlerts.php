@@ -4,17 +4,7 @@ namespace Services;
 
 use Core\Store;
 
-/*
- * Aviso de versión nueva de la app. Quien tiene permitidas las notificaciones se apunta al abrir la app (su suscripción
- * push y su idioma, js/app-update.js); quien tiene activados los avisos de incidencias ya está apuntado allí. Cuando la
- * versión de la app (la última novedad, Changelog) sube, el cron de /api/live/record manda a cada uno una notificación,
- * una sola vez por versión, que abre Ajustes para vaciar la caché y actualizar.
- *
- * En el almacén: los apuntados (caducan a los 90 días sin abrir la app), los ya avisados de cada versión y la última
- * versión de la que se avisó a todos. Mientras esa marca coincide con la versión, cada minuto cuesta un solo comando.
- * Se manda por tandas de 10, apuntando cada tanda en cuanto sale, con 3 segundos por vuelta y una marca que impide que
- * dos vueltas se pisen: si la función se corta, como mucho se repite una tanda.
- */
+// Aviso de versión nueva: una notificación por versión a cada suscrito, que abre Ajustes.
 class UpdateAlerts
 {
     private const SUBSCRIBERS_KEY = 'bide:update:subs';
@@ -29,9 +19,7 @@ class UpdateAlerts
     private const MAX_SENDS_PER_RUN = 300;
     private const CHUNK = 10;
     private const TIME_BUDGET_SECONDS = 3.0;
-    // Si el móvil está apagado, el aviso le llega al encenderlo durante tres días.
     private const PUSH_TTL_SECONDS = 3 * 86400;
-    // La primera vez no se sabe desde qué versión vienen: se cuentan las tres últimas novedades.
     private const MAX_TITLES = 3;
     private const TEXTS = [
         'es' => ['title' => 'Bide+ se ha actualizado', 'body' => 'Novedades: {titles}. Toca para actualizar la app.'],
@@ -39,7 +27,7 @@ class UpdateAlerts
         'en' => ['title' => 'Bide+ has been updated', 'body' => 'What\'s new: {titles}. Tap to update the app.'],
     ];
 
-    // Apunta o actualiza a quien quiere el aviso. Estados: saved y unavailable (sin almacén o demasiados apuntados).
+    // Estados: saved y unavailable.
     public static function save(array $aSubscription, string $sLang): string
     {
         $sId = self::id($aSubscription['endpoint']);
@@ -63,8 +51,7 @@ class UpdateAlerts
         return self::forget(self::id($sEndpoint));
     }
 
-    // Lo llama el cron cada minuto. $Sender manda el mensaje y devuelve el código HTTP del servicio de push (en las
-    // pruebas, uno falso). Lo que no da tiempo a mandar, en la vuelta siguiente.
+    // Cron de cada minuto. $Sender devuelve el código HTTP del servicio de push.
     public static function process(callable|null $Sender = null): array
     {
         $iVersion = Changelog::version();
@@ -107,7 +94,6 @@ class UpdateAlerts
         return ['version' => $iVersion, 'sent' => $aRun['sent'], 'pending' => $iLeft];
     }
 
-    // Los apuntados (aquí o en los avisos de incidencias) a los que todavía no se ha avisado de esta versión.
     private static function pending(string $sSentKey): array|null
     {
         $aSets = Store::pipeline([['SMEMBERS', self::SUBSCRIBERS_KEY], ['SMEMBERS', IncidentAlerts::SUBSCRIBERS_KEY], ['SMEMBERS', $sSentKey]]);
@@ -117,8 +103,7 @@ class UpdateAlerts
         return array_values(array_diff(array_unique(array_merge(self::members($aSets[0]), self::members($aSets[1]))), self::members($aSets[2])));
     }
 
-    // Manda una tanda y la apunta. Un fallo pasajero del servicio de push (sin respuesta, 429, 5xx) se queda pendiente;
-    // una suscripción que ya no existe se borra.
+    // Sin respuesta, 429 o 5xx queda pendiente; una suscripción que ya no existe se borra.
     private static function sendChunk(array $aChunk, array &$aRun): void
     {
         $aHandled = [];
@@ -149,8 +134,6 @@ class UpdateAlerts
         }
     }
 
-    // La notificación en un idioma: los títulos de lo nuevo desde la última versión avisada (o las tres últimas
-    // novedades) y la dirección de Ajustes. «aviso» hace que, si el sistema recarga esa dirección, no se vuelva a abrir.
     public static function message(int $iVersion, int $iPrevious, string $sLang): array
     {
         $aNotes = Changelog::newerThan($iPrevious, $sLang);
@@ -167,7 +150,6 @@ class UpdateAlerts
         ];
     }
 
-    // La suscripción y el idioma de cada id: los de este aviso o, si no se apuntó aquí, los de los avisos de incidencias.
     private static function records(array $aIds): array
     {
         if (empty($aIds)) {
@@ -205,7 +187,7 @@ class UpdateAlerts
         ]) !== null;
     }
 
-    // El mismo id que en los avisos de incidencias, para que un móvil apuntado en los dos sitios cuente una vez.
+    // El mismo id que en IncidentAlerts: un móvil apuntado en los dos cuenta una vez.
     private static function id(string $sEndpoint): string
     {
         return substr(hash('sha256', $sEndpoint), 0, 32);

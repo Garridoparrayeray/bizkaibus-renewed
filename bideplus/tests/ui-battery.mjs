@@ -79,7 +79,7 @@ const apps = [
     { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
     { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
     { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
-    // La primera parada de «tolosa» tiene una sola línea, sin viajes en domingo: con «donostia» hay salidas todos los días.
+    // Una parada con salidas todos los días.
     { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'donostia', panel: 'live-card' },
 ];
 

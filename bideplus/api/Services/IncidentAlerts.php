@@ -18,7 +18,6 @@ use Core\Store;
  */
 class IncidentAlerts
 {
-    // Públicas: el aviso de versión nueva (UpdateAlerts) también llega a quien ya tiene activados estos avisos.
     public const SUBSCRIBERS_KEY = 'bide:incident:subs';
     public const SUBSCRIBER_PREFIX = 'bide:incident:sub:';
     private const STATE_PREFIX = 'bide:incident:state:';
@@ -223,8 +222,7 @@ class IncidentAlerts
         ];
     }
 
-    // Al tocarla se abre la pestaña Avisos de esa app (#avisos), con las incidencias de los favoritos. «aviso», distinto
-    // en cada envío, hace que se abra una sola vez aunque el sistema vuelva a cargar esa dirección (js/app/navigation.js).
+    // «aviso» cambia en cada envío: la app abre la notificación una sola vez.
     private static function openUrl(string $sNetwork, string $sSeed): string
     {
         $sToken = base_convert((string)time(), 10, 36) . '-' . hash('crc32b', $sSeed);

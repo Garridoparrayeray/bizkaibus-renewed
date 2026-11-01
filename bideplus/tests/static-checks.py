@@ -60,8 +60,7 @@ for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
     if not ok:
         failures.append('sintaxis JS ' + os.path.basename(f))
 
-# Python sin ternarios («x if c else y»), como el PHP y el JavaScript (tests/code-quality.php): se buscan con su analizador,
-# en los archivos y en el Python que llevan dentro los flujos de GitHub (python3 - <<'PY' … PY y python3 -c "…").
+# Python sin ternarios, también el de dentro de los flujos de GitHub.
 def python_sources():
     for f in sorted(glob.glob(ROOT + 'tests/*.py') + glob.glob(ROOT + 'scripts/**/*.py', recursive=True) + glob.glob(ROOT + '../.github/scripts/*.py')):
         yield os.path.basename(f), open(f, encoding='utf-8').read()

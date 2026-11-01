@@ -74,7 +74,6 @@ jobs:
           [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
           exit $fail
 
-      # Lo que no se ve desde fuera hasta que falla: el feed en directo de Bizkaibus y el almacén de las notificaciones.
       - name: Directo y notificaciones
         run: |
           fail=0

@@ -467,8 +467,7 @@
             .trim();
     }
 
-    // Cuánto se parece una línea a lo buscado: 0 si el código es exacto; después, código que empieza así, código que lo
-    // contiene y nombre que empieza así; el resto, 10.
+    // 0 si el código es exacto; 10 si no se parece.
     function lineScore(normCode, normName, normQuery) {
         if (normCode === normQuery) return 0;
         if (normCode.startsWith(normQuery)) return 1;
@@ -477,8 +476,6 @@
         return 10;
     }
 
-    // Líneas de todas las redes (las del índice, aunque la red esté oculta) con todas las palabras en su código, nombre
-    // o red, de la más parecida a la menos.
     function searchLines(tokens, normQuery) {
         const matches = [];
         for (const net of state.index) {
@@ -496,8 +493,7 @@
         return matches.slice(0, MAX_LINE_RESULTS);
     }
 
-    // Paradas de las redes cargadas (las de tren se cargan al empezar a buscar), primero las que empiezan así. Una por
-    // nombre y red: los dos sentidos de una calle se llaman igual.
+    // Una por nombre y red: los dos sentidos de una calle se llaman igual.
     function searchStops(tokens, normQuery) {
         const matches = [];
         for (const [slug, net] of Object.entries(state.networks)) {
@@ -521,7 +517,6 @@
         return unique.slice(0, MAX_STOP_RESULTS);
     }
 
-    // Una opción de la lista de resultados: marca (chip de línea o punto de parada), título, red y qué hacer al elegirla.
     function searchOption(id, className, mark, title, subtitle, onPick) {
         const item = el('li');
         const button = el('button', className);
@@ -571,7 +566,6 @@
             activeIndex = index;
         }
 
-        // Lo elegido queda escrito en el buscador.
         function chosen(text) {
             input.value = text;
             if (clear) clear.hidden = false;
@@ -629,8 +623,6 @@
             activeIndex = -1;
         }
 
-        // Flechas para moverse por los resultados, Intro para elegir (el primero si no hay ninguno marcado) y Escape para
-        // cerrarlos.
         function onKey(event) {
             const items = results.querySelectorAll('.map-search-item');
             if (event.key === 'ArrowDown') {

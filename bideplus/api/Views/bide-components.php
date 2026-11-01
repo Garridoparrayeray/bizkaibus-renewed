@@ -194,9 +194,7 @@ function bideVersion(): string
     return $sVersion;
 }
 
-// Ajustes: idioma, notificaciones, ubicación, horarios sin conexión, la app (vaciar la caché, su versión y, si hay una
-// versión nueva, lo que trae: js/app-update.js) y borrar los datos del móvil. Lo que cambia (permisos, avisos de llegada activos) lo rellena js/settings.js; el interruptor de
-// incidencias lo maneja js/incident-alerts.js.
+// Ajustes. Lo que cambia lo rellenan js/settings.js, js/app-update.js y js/incident-alerts.js.
 function bideSettings(string $sBack): string
 {
     $sHtml = '<section class="bide-view" data-bide-view="ajustes" hidden>';

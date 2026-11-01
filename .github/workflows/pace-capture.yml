@@ -120,8 +120,7 @@ jobs:
 
       # La captura sube los acumulados cada hora mientras tanto; las funciones de pace-data.sh reintentan y, si pillan
       # el momento del cambio, descargan la copia nueva.
-      # La corrección por viaje reconoce cada viaje de las muestras por su identificador del GTFS: con la base del día los
-      # de las muestras recientes están todos. Si no se puede reconstruir, se sigue con la del repositorio.
+      # Con la base del día están todos los viajes de las muestras recientes.
       - name: Base de Bizkaibus del día
         continue-on-error: true
         run: |
@@ -144,7 +143,7 @@ jobs:
           php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate "$RUNNER_TEMP/pace-samples.jsonl" --write
           if [ -f "$RUNNER_TEMP/segment-samples.jsonl" ]; then
             php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate-segments "$RUNNER_TEMP/segment-samples.jsonl" --write
-            # Después de los tramos: la corrección por viaje se mide contra la hora que dan los tramos recién aprendidos.
+            # Después de los tramos: se mide contra ellos.
             if [ -f bideplus/engine/bizkaibus/TripOffsets.php ]; then
               php bideplus/engine/bizkaibus/tools/realtime-backtest.php calibrate-trips "$RUNNER_TEMP/segment-samples.jsonl" --write
             fi

@@ -109,7 +109,6 @@ function config(array $aOptions): string
     $iOrder = 1 + max(array_column(Networks::all(), 'order'));
     // Título de la cabecera: el nombre en mayúsculas, sin el «+».
     $sTitle = phpString(mb_strtoupper(preg_replace('/\+$/', '', $sName)));
-    // Para escribir textos entre comillas dentro de la plantilla: {$Quote('texto')}.
     $Quote = 'phpString';
     $aPalette = palette($aOptions['color']);
     $sPalette = '';

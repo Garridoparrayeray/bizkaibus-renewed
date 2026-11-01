@@ -87,8 +87,6 @@ export function startRouting() {
     const alertToken = launch.get('aviso');
     if (sharedTrip || alertToken) removeLaunchParams();
     if (alertToken && !AlertsStore.firstOpening(alertToken)) {
-        // Esa notificación ya se abrió: es el sistema recargando la dirección con la que se abrió la app. Se queda en
-        // el inicio, sin la parada, la ficha del viaje ni la pestaña Avisos.
         sharedTrip = null;
         pathMatch = null;
         history.replaceState(null, '', '/?red=' + window.__bbNetwork);
@@ -109,8 +107,6 @@ export function startRouting() {
     if (sharedTrip) opened.then(() => openVehicleModal(sharedTrip));
 }
 
-// Un viaje compartido o de una notificación («?viaje=») se abre al cargar y se quita en el acto de la dirección: al
-// recargar ya no vuelve a salir. La pestaña que pida la notificación (#avisos) se queda: la abre js/bide.js.
 function removeLaunchParams() {
     const url = new URL(window.location.href);
     url.searchParams.delete('viaje');

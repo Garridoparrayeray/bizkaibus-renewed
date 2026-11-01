@@ -2,7 +2,6 @@
 import { FEATURES, el, state } from './core.js';
 import { readFavorites } from './favorites.js';
 
-// Una incidencia de la lista: a qué líneas afecta (si se sabe), el título y el detalle (si lo hay).
 function alertItem(lines, summary, description) {
     const item = document.createElement('li');
     const parts = [['alert-line', lines], ['alert-summary', summary], ['alert-description', description]];
@@ -16,13 +15,12 @@ function alertItem(lines, summary, description) {
     el.menuAlertsList.appendChild(item);
 }
 
-// Sin incidencias que enseñar: se dice por qué con el texto de esa clave.
 function showEmpty(key) {
     el.menuAlertsEmpty.hidden = false;
     el.menuAlertsEmpty.textContent = I18n.t(key);
 }
 
-// Renfe: las incidencias de las estaciones y líneas guardadas y de la abierta, sin repetir.
+// Renfe: estaciones y líneas guardadas y la abierta.
 async function renderStopAlerts() {
     const favorites = readFavorites();
     const stopIds = new Set(favorites.filter((favorite) => favorite.type === 'stop').map((favorite) => String(favorite.refId)));
@@ -57,7 +55,7 @@ async function renderStopAlerts() {
     for (const alert of alerts) alertItem(null, alert.summary, alert.description);
 }
 
-// Metro, Euskotren, tranvías y Lurraldebus: todas las incidencias de la red. Metro solo da el título.
+// Metro, Euskotren, tranvías y Lurraldebus: toda la red.
 async function renderNetworkAlerts() {
     showEmpty('app.loadingIncidents');
     let alerts;
@@ -79,7 +77,7 @@ async function renderNetworkAlerts() {
     }
 }
 
-// Bizkaibus: las incidencias de las líneas guardadas y de la abierta, con el código de cada línea afectada.
+// Bizkaibus: líneas guardadas y la abierta.
 async function renderLineAlerts() {
     const lineIds = new Set(readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
     if (state.currentLine) lineIds.add(String(state.currentLine.id));
@@ -106,7 +104,6 @@ async function renderLineAlerts() {
     }
 }
 
-// El código de cada línea («A3514») para decir a cuáles afecta; si no se puede saber, su id.
 async function lineCodes(lineIds) {
     const codes = {};
     for (const lineId of lineIds) {
@@ -119,7 +116,6 @@ async function lineCodes(lineIds) {
     return codes;
 }
 
-// Cada red mira sus incidencias a su manera (FEATURES.alerts): por estación, por red o por línea.
 async function openSideMenu() {
     el.sideMenu.showModal();
     el.menuAlertsList.innerHTML = '';

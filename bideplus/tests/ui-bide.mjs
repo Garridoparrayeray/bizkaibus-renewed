@@ -352,8 +352,7 @@ if (sharedTrip) {
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
 
-    // Al tocar una notificación: abre la ficha una vez. Ni al recargar ni si Android vuelve a cargar la dirección con
-    // la que se abrió la app sale otra vez.
+    // Al tocar una notificación, la ficha se abre una sola vez.
     const alertUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}&aviso=prueba-${Date.now()}`;
     await go(alertUrl, 3000);
     check('notificación: abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));

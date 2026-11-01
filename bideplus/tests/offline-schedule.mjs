@@ -73,8 +73,7 @@ check('sin conexión, sin estimación para ese tipo de día sale la hora oficial
 r = at(thursday, T + 300, { timings: sample.timings });
 check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.status === 'scheduled', JSON.stringify(r));
 
-// Festivo entre semana: Bizkaibus lo publica haciendo circular por excepción los calendarios de solo domingo, y ese día
-// la hora estimada es la de fin de semana (en el ejemplo, 08:15 en vez de 08:10).
+// Festivo entre semana: hora estimada de fin de semana (08:15 en vez de 08:10).
 const withHoliday = BideOffline.prepare({
     lines: [], patterns: [], timings: [[0, 600, 2400]], trips: [], stops: {},
     estimates: [[0, 300, 600], [0, 400, 900]], estimateTrusted: [1, 1],

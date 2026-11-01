@@ -16,9 +16,9 @@ const BideOffline = (() => {
     // 10 min o más lento que lo aprendido.
     const LIKELY_PASSED_SECONDS = 600;
     const SLOW_SCHEDULE_SECONDS = 600;
-    // Máscara de días de un calendario de solo domingo (lunes = bit 0), como en la API.
     const SUNDAY_ONLY_MASK = 0b1000000;
     const prepared = new Map();
+    let refreshing = null;
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
     const supported = () => typeof caches !== 'undefined';
@@ -77,24 +77,51 @@ const BideOffline = (() => {
         return data;
     }
 
-    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo.
-    async function refresh() {
-        const list = saved();
-        if (!supported() || !navigator.onLine || Object.keys(list).length === 0) return;
+    function checkedRecently() {
         try {
-            if (Date.now() - Number(localStorage.getItem(CHECKED_KEY) || 0) < CHECK_EVERY_MS) return;
+            return Date.now() - Number(localStorage.getItem(CHECKED_KEY) || 0) < CHECK_EVERY_MS;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function markChecked() {
+        try {
             localStorage.setItem(CHECKED_KEY, String(Date.now()));
         } catch (e) {
-            return;
+            // Sin almacenamiento se vuelve a mirar la próxima vez.
         }
+    }
+
+    async function refreshSaved() {
+        const list = saved();
+        if (!supported() || !navigator.onLine || Object.keys(list).length === 0 || checkedRecently()) return false;
         const response = await fetch('/offline-data/index.json', { cache: 'no-store' });
-        if (!response.ok) return;
+        if (!response.ok) return false;
         const index = await response.json();
+        let updated = false;
+        let failed = false;
         for (const network of index.networks || []) {
             if (list[network.slug] && list[network.slug].generated !== network.generated) {
-                await save(network.slug).catch(() => {});
+                await save(network.slug).then(() => {
+                    updated = true;
+                }).catch(() => {
+                    failed = true;
+                });
             }
         }
+        if (!failed) markChecked();
+        return updated;
+    }
+
+    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo.
+    function refresh() {
+        if (!refreshing) {
+            refreshing = refreshSaved().finally(() => {
+                refreshing = null;
+            });
+        }
+        return refreshing;
     }
 
     /*
@@ -168,8 +195,7 @@ const BideOffline = (() => {
         return { ...data, byStop, tripsByPattern, platformsByStation, holidays: holidays(data.calendars) };
     }
 
-    // Festivos entre semana: los días en que circulan por excepción los calendarios de solo domingo (así publica Bizkaibus
-    // los festivos). Esos días la hora estimada es la de fin de semana, como en el servidor (ServiceJourney::isHoliday).
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
     function holidays(calendars) {
         const days = new Set();
         for (const calendar of calendars) {
@@ -288,9 +314,7 @@ const BideOffline = (() => {
         return 0;
     }
 
-    // Hora y estado de un viaje en una parada: la estimada con los tramos aprendidos si la red la trae para ese tipo de
-    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay); un
-    // festivo entre semana usa la de fin de semana.
+    // Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
     function arrival(data, trip, position, date, officialSeconds, nowSeconds) {
         const official = { status: 'scheduled', etaSeconds: officialSeconds };
         if (!data.estimates || position === 0) return official;

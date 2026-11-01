@@ -1,5 +1,4 @@
-// Periodos del horario oficial en texto de Bizkaibus (js/app/schedule-periods.js), con los bloques tal como los publica
-// el operador: cada festivo suelto, temporadas ya pasadas y el cambio de año. Uso: node tests/schedule-periods.mjs
+// Periodos del horario oficial (js/app/schedule-periods.js). Uso: node tests/schedule-periods.mjs
 import { schedulePeriods } from '../js/app/schedule-periods.js';
 
 const block = (season, from, to, outbound) => ({

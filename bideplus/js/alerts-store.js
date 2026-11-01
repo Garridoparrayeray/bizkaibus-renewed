@@ -8,8 +8,7 @@ const AlertsStore = (() => {
     const appIcon = (network) => `/${BideNetworks.get(network).icons}/icon-192.png`;
     // El de la barra de estado de Android: la silueta de Bide+ en blanco sobre transparente.
     const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
-    // El resumen cuando hay más de tres, como lo manda el servidor (api/Services/IncidentAlerts.php). El service worker
-    // no carga el diccionario de la app: el idioma lo deja apuntado la página (js/incident-alerts.js).
+    // El service worker no tiene el diccionario de la app.
     const MORE_TEXTS = {
         es: { title: 'Más incidencias en tus favoritos', body: '{n} avisos más. Ábrelos en la app.' },
         eu: { title: 'Intzidentzia gehiago zure gogokoetan', body: 'Beste {n} abisu. Ireki aplikazioan.' },
@@ -130,7 +129,6 @@ const AlertsStore = (() => {
         await set('seen', {});
     }
 
-    // Al tocarla se abre la pestaña Avisos de esa app, una sola vez («aviso», como las del servidor).
     function openUrl(network, seed) {
         return `/?red=${network}&aviso=${Date.now().toString(36)}-${hash(seed)}#avisos`;
     }
@@ -157,9 +155,7 @@ const AlertsStore = (() => {
         }
     }
 
-    // Una notificación se abre una sola vez: su dirección lleva «?aviso=», distinto en cada envío, y se apunta al
-    // abrirla. Android, al reabrir la app, puede volver a cargar la dirección con la que se abrió: entonces ya no sale.
-    // La usan las apps (js/app/navigation.js) y el inicio (js/bide.js); en el service worker no se llama.
+    // Una notificación se abre una sola vez aunque el sistema vuelva a cargar su dirección.
     const OPENED_KEY = 'bide-opened-alerts';
     const OPENED_KEEP_MS = 7 * 24 * 3600 * 1000;
 
@@ -178,7 +174,7 @@ const AlertsStore = (() => {
         try {
             localStorage.setItem(OPENED_KEY, JSON.stringify(opened));
         } catch (e) {
-            // Sin almacenamiento se abre igual: la dirección ya no lleva el aviso.
+            // Sin almacenamiento se abre igual.
         }
         return true;
     }

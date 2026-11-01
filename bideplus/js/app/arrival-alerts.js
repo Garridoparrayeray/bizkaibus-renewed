@@ -1,7 +1,4 @@
-// «Avísame cuando llegue»: desde la ficha de un viaje abierta en una parada, el móvil avisa cuando faltan 2, 5 o 10
-// minutos, aunque la app esté cerrada (notificaciones push; en iPhone, con Bide+ en la pantalla de inicio). El
-// servidor guarda el aviso y lo manda en el momento justo (api/Services/ArrivalAlerts.php). Por defecto avisa una vez
-// y se quita; con «Avisarme todos los días», cada día que haya ese viaje hasta que se cancele.
+// «Avísame cuando llegue», desde la ficha de un viaje. Lo manda el servidor (api/Services/ArrivalAlerts.php).
 import { el, state } from './core.js';
 import { cancelArrivalAlert, readArrivalAlerts, writeArrivalAlerts } from '../arrival-alerts-store.js';
 import { isIos, pushSubscription, pushSupported, serverKey } from '../push.js';
@@ -72,14 +69,11 @@ async function createAlert(minutes) {
         return;
     }
     if (result.status === 'created') {
-        // La línea, el destino y la parada, para enseñarlo en Ajustes. Uno de una vez guarda cuándo llega el viaje,
-        // para quitarlo de la lista si por lo que sea nunca avisa.
         const alert = { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, repeat, endpoint: subscription.endpoint, created: Date.now() };
         if (typeof result.minutesLeft === 'number') alert.expectedAt = Date.now() + result.minutesLeft * 60000;
         writeArrivalAlerts([...readArrivalAlerts(), { ...alert, lineCode: result.lineCode, headsign: result.headsign, stopName: result.stopName }]);
         el.modalNotifyRepeatInput.checked = false;
         if (target.tripKey === current.tripKey) renderState();
-        // Uno de todos los días pedido cuando hoy ya llega o ya pasó: empieza la próxima vez.
         if (repeat && (result.today === 'now' || result.today === 'gone')) setStatus('app.notify.repeatLater', { min: minutes });
     } else if (result.status === 'now') {
         setStatus('app.notify.now');

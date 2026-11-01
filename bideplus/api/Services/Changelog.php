@@ -2,12 +2,7 @@
 
 namespace Services;
 
-/*
- * Las novedades de cada versión de la app, de la más nueva a la más vieja: [fecha ISO, fecha, número, título, texto],
- * en castellano. El número de la primera es la versión de la app: lo enseña Ajustes y, cuando sube, se avisa de la
- * versión nueva (UpdateAlerts y js/app-update.js). El euskera y el inglés están en js/i18n.js (bide.changelog.N.title y
- * .text); el aviso los toma de ahí, porque el móvil con la versión vieja todavía no tiene esos textos.
- */
+// Novedades, de la más nueva a la más vieja: [fecha ISO, fecha, número, título, texto]. La primera es la versión.
 final class Changelog
 {
     public const ENTRIES = [
@@ -56,8 +51,6 @@ final class Changelog
         return self::ENTRIES[0][2];
     }
 
-    // Las novedades posteriores a la versión $iVersion, de la más nueva a la más vieja, en el idioma $sLang (lo que no
-    // esté traducido, en castellano).
     public static function newerThan(int $iVersion, string $sLang): array
     {
         $aTexts = self::translations($sLang);
@@ -76,7 +69,7 @@ final class Changelog
         return array_slice($aNotes, 0, self::MAX_NOTES);
     }
 
-    // Los títulos y textos de las novedades en euskera o en inglés, sacados de su bloque de js/i18n.js.
+    // De js/i18n.js: el móvil con la versión vieja aún no tiene esos textos.
     private static function translations(string $sLang): array
     {
         static $aCache = [];

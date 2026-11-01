@@ -11,9 +11,7 @@ use Services\ArrivalAlerts;
 use Services\IncidentAlerts;
 use Services\UpdateAlerts;
 
-// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app, y de paso
-// mandar las notificaciones: los avisos de llegada a los que ya les toca, cada 5 minutos las incidencias nuevas y,
-// cuando sale una versión nueva de la app, su aviso.
+// Cron externo de cada minuto: apunta por dónde va cada bus y manda las notificaciones.
 // Sin la clave secreta (BIDE_CRON_SECRET) responde como si la ruta no existiera.
 class LiveRecordController
 {

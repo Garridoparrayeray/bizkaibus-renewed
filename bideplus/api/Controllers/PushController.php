@@ -40,7 +40,6 @@ class PushController
             Response::error('Invalid alert', 400);
             return;
         }
-        // «Todos los días»: solo si llega true; cualquier otra cosa es un aviso de una vez.
         $bRepeat = ($aBody['repeat'] ?? false) === true;
         $aResult = ArrivalAlerts::create($aSubscription, $sStopId, $sTripKey, $iMinutes, Push::lang($aBody['lang'] ?? null), $bRepeat);
         $iStatus = 200;
@@ -91,7 +90,6 @@ class PushController
         Response::json(['status' => 'removed']);
     }
 
-    // Apunta este móvil al aviso de versión nueva (Services\UpdateAlerts): la suscripción y el idioma.
     public function saveUpdates(Request $Req, array $aParams): void
     {
         $aBody = $Req->json();

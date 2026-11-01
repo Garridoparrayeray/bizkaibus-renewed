@@ -57,6 +57,7 @@ llegan, mira que las notificaciones de Bide+ estén permitidas y que el ahorro d
 
 - Lo que ya abriste se ve aunque no tengas cobertura.
 - En **Ajustes → Horarios sin conexión** puedes guardar el horario completo de una red o de todas a la vez.
+  Se actualiza solo cuando hay un horario nuevo, mientras tengas conexión.
 - Sin cobertura, la parada enseña esas salidas. En Bizkaibus, con la hora estimada arriba y la oficial debajo.
 - Abajo sale una pastilla que dice que estás sin conexión, con **Reintentar**.
 - Solo sin conexión, puedes marcar si un bus **ya pasó** (desaparece de esa parada y de las anteriores) o **no ha

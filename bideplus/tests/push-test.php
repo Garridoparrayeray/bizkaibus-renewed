@@ -1,9 +1,6 @@
 <?php
-// Notificaciones push contra un Upstash falso (tests/fixtures/fake-upstash.php) y un servicio de push falso: cifrado
-// con el vector del RFC 8291, claves VAPID y direcciones permitidas; «Avísame cuando llegue» (crear, enviar una sola
-// vez, reintentar, olvidar suscripciones caducadas y cancelar) y avisos de incidencias de los favoritos (línea base,
-// solo lo nuevo, resumen, reintento, cada 5 minutos y darse de baja) y el aviso de versión nueva (una vez por versión,
-// también a quien solo tiene los avisos de incidencias, en su idioma). Uso: php tests/push-test.php
+// Notificaciones push contra un Upstash y un servicio de push falsos (tests/fixtures/fake-upstash.php).
+// Uso: php tests/push-test.php
 
 declare(strict_types=1);
 

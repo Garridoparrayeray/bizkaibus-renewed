@@ -1,10 +1,6 @@
-// Periodos del horario oficial en texto de Bizkaibus («Ver horario oficial»).
-// El operador publica cada día festivo como un bloque suelto («Gabonak (24-31)»: uno el 24/12 y otro el 31/12) y deja
-// bloques de temporadas que ya pasaron. Aquí se juntan en una sola tarjeta los días de un mismo periodo y solo quedan
-// el de hoy y los que vienen: lo que ya terminó no sale, así que al cambiar de año desaparece lo del anterior.
+// Periodos del horario oficial de Bizkaibus: junta los días sueltos de un periodo y deja el de hoy y los que vienen.
 
-// Campos de un bloque del operador: temporada, desde, hasta, ida y vuelta. Las claves vienen en euskera y castellano:
-// se usan las de castellano.
+// Las claves vienen en euskera y castellano: se usan las de castellano.
 export function scheduleFields(block) {
     const fields = { season: '', from: '', to: '', outbound: '', returnTrip: '' };
     for (const [key, value] of Object.entries(block)) {
@@ -26,14 +22,12 @@ export function scheduleFields(block) {
     return fields;
 }
 
-// «dd/mm/aaaa» → fecha a medianoche, o null si no tiene esa forma.
 function parseDate(text) {
     const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text || '');
     if (!match) return null;
     return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
 }
 
-// Un día suelto se escribe una vez; un tramo, «desde – hasta».
 function rangeText(range) {
     if (range.fromText && range.toText && range.fromText !== range.toText) return `${range.fromText} – ${range.toText}`;
     if (range.fromText) return range.fromText;
@@ -48,8 +42,7 @@ function compareStart(first, second) {
     return first.start - second.start;
 }
 
-// Los periodos que enseñar a fecha de hoy: el vigente primero y después por fecha de inicio. Un bloque sin fechas no
-// se sabe cuándo vale, así que se enseña.
+// El vigente primero y después por fecha de inicio. Un bloque sin fechas se enseña siempre.
 export function schedulePeriods(blocks, today) {
     const groups = new Map();
     for (const block of blocks) {

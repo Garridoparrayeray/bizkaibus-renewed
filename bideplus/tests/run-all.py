@@ -57,8 +57,7 @@ if not server_up():
         server.terminate()
         sys.exit('No se pudo arrancar el servidor local en ' + BASE)
 
-# El mapa de la red y los horarios sin conexión se generan de las bases (como en la integración continua): sin ellos,
-# sus pruebas fallarían aunque el código esté bien.
+# Sin el mapa y los horarios sin conexión generados, sus pruebas fallan.
 for script, folder in (('scripts/build-network-map.php', 'map-data'), ('scripts/build-offline-data.php', 'offline-data')):
     if not os.path.exists(os.path.join(ROOT, folder, 'index.json')):
         print(f'Generando {folder} con {script}…', flush=True)

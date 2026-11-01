@@ -1,8 +1,4 @@
-// Aviso de versión nueva de la app. La versión de este código es la última novedad que trae js/i18n.js
-// (bide.changelog.N); la del servidor, /api/app/version. Si el servidor va por delante, la rueda de Ajustes lleva un «1»
-// en rojo y Ajustes enseña «Nueva actualización de la app» con lo que trae, encima de «Vaciar caché y actualizar». Quien
-// tiene permitidas las notificaciones se apunta además para que el servidor le avise de cada versión nueva
-// (api/Services/UpdateAlerts.php); la notificación abre Ajustes.
+// Aviso de versión nueva: «1» en Ajustes con sus novedades y, con permiso, notificación del servidor.
 import { pushSupported, pushSubscription, serverKey } from './push.js';
 
 const MAX_VERSION = 999;
@@ -13,7 +9,7 @@ const SUBSCRIBE_EVERY_MS = 24 * 3600 * 1000;
 let lastCheck = 0;
 let updateReady = false;
 
-// La última novedad que trae este código: la que tiene título en el diccionario.
+// La versión de este código: la última novedad con título en el diccionario.
 export function shippedVersion() {
     for (let number = MAX_VERSION; number > 0; number--) {
         const key = `bide.changelog.${number}.title`;
@@ -31,7 +27,6 @@ function badge() {
     return node;
 }
 
-// El «1» de cada botón de Ajustes: la pestaña, la columna del ordenador, el enlace del pie y el menú de cada app.
 function renderBadges() {
     document.querySelectorAll('[data-bide-tab="ajustes"]').forEach((tab) => {
         tab.querySelectorAll('.bide-update-badge').forEach((current) => current.remove());
@@ -56,7 +51,6 @@ function renderSettings(view, notes) {
     view.querySelector('[data-settings-update-notes]').replaceChildren(...notes.map(noteItem));
 }
 
-// Al abrir Ajustes con una versión pendiente (desde la rueda o desde la notificación) se va directo a actualizarla.
 function showUpdate(view) {
     if (!updateReady || view.hidden) return;
     requestAnimationFrame(() => view.querySelector('.bide-settings-app').scrollIntoView({ block: 'start' }));
@@ -88,8 +82,6 @@ function readSubscribed() {
     }
 }
 
-// Con las notificaciones ya permitidas, se apunta este móvil al aviso (una vez al día, o si cambia el idioma). Sin
-// permiso no se pide nada: queda el «1» de Ajustes.
 async function subscribeToUpdates() {
     if (!pushSupported() || Notification.permission !== 'granted') return;
     const key = await serverKey();
@@ -103,11 +95,10 @@ async function subscribeToUpdates() {
     try {
         localStorage.setItem(SUBSCRIBED_KEY, JSON.stringify({ mark, at: Date.now() }));
     } catch (e) {
-        // Sin almacenamiento se vuelve a apuntar la próxima vez: no hace daño.
+        // Sin almacenamiento se vuelve a apuntar la próxima vez.
     }
 }
 
-// Lo que se borra con «Borrar mis datos de este móvil»: el aviso de versión nueva del servidor.
 export async function forgetUpdates(endpoint) {
     await Api.removeUpdateAlerts(endpoint);
 }

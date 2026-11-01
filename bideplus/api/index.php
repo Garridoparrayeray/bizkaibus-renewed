@@ -72,7 +72,7 @@ $Router->post('/push/incidents/remove', [$Push, 'removeIncidents']);
 $Router->post('/push/updates', [$Push, 'saveUpdates']);
 $Router->post('/push/updates/remove', [$Push, 'removeUpdates']);
 
-// La versión de la app y sus novedades, para el aviso de actualización. Sin caché: tiene que estar al día.
+// Sin caché: el aviso de versión nueva tiene que estar al día.
 $App = new AppController();
 $Router->get('/app/version', [$App, 'version']);
 

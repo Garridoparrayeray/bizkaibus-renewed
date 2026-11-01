@@ -74,7 +74,6 @@ function networkLabel(array $aNetwork, string $sLang): string
     return rtrim($sName, '+ ');
 }
 
-// Una red en el mapa: sus líneas con color, recorridos y trazado, y las paradas que usan.
 function buildNetwork(string $sSlug, array $aNetwork): array
 {
     $Source = MapSource::open($aNetwork['db_path']);
@@ -89,8 +88,7 @@ function buildNetwork(string $sSlug, array $aNetwork): array
     return ['network' => $sSlug, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
 }
 
-// Lo que el mapa necesita de la base de una red, leído de una vez. Las columnas de color y los trazados solo los tienen
-// algunas redes.
+// Las columnas de color y los trazados solo los tienen algunas redes.
 final class MapSource
 {
     public function __construct(
@@ -122,14 +120,13 @@ final class MapSource
         }
         $aLines = $Pdo->query("SELECT id, code, name, $sColor, $sTextColor FROM lines ORDER BY code")->fetchAll();
 
-        // Viajes por recorrido: el más usado de cada línea va primero y es el que da el esquema.
+        // El recorrido más usado de cada línea va primero y da el esquema.
         $aPatternTrips = [];
         foreach ($Pdo->query('SELECT journey_pattern_id, COUNT(*) AS n FROM service_journeys GROUP BY journey_pattern_id') as $aRow) {
             $aPatternTrips[$aRow['journey_pattern_id']] = (int)$aRow['n'];
         }
         $bHasShapes = (bool)$Pdo->query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'shapes'")->fetchColumn();
         $aJourneyColumns = array_column($Pdo->query('PRAGMA table_info(service_journeys)')->fetchAll(), 'name');
-        // El trazado de cada recorrido es el que más usan sus viajes.
         $aPatternShape = [];
         if ($bHasShapes && \in_array('shape_id', $aJourneyColumns, true)) {
             $sSql = 'SELECT journey_pattern_id, shape_id, COUNT(*) AS n FROM service_journeys WHERE shape_id IS NOT NULL GROUP BY journey_pattern_id, shape_id ORDER BY n DESC';
@@ -161,7 +158,6 @@ final class MapSource
         return $this->aPatternTrips[$PatternId] ?? 0;
     }
 
-    // Un recorrido como lo dibuja el mapa: destino, paradas, trazado y minutos entre paradas.
     public function pattern(array $aPattern, array $aStops): array
     {
         return [
@@ -173,7 +169,7 @@ final class MapSource
     }
 }
 
-// Redes que el mapa parte en líneas propias (LINE_SPLITS): cada una es el recorrido más usado entre sus dos extremos.
+// Cada línea propia es el recorrido más usado entre sus dos extremos.
 function splitLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
 {
     $aLines = [];
@@ -199,7 +195,6 @@ function splitLines(string $sSlug, string $sThemeColor, MapSource $Source, array
     return $aLines;
 }
 
-// El recorrido con más viajes que va de un extremo al otro, en cualquier sentido.
 function busiestPatternBetween(MapSource $Source, array $aEnds): array|null
 {
     sort($aEnds);
@@ -223,7 +218,6 @@ function busiestPatternBetween(MapSource $Source, array $aEnds): array|null
     return $aBest;
 }
 
-// Las líneas del operador, cada una con sus recorridos y su color.
 function operatorLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
 {
     $aLines = [];
@@ -245,8 +239,7 @@ function operatorLines(string $sSlug, string $sThemeColor, MapSource $Source, ar
     return $aLines;
 }
 
-// De los recorridos de una línea, del más usado al menos, se quedan los que añaden paradas nuevas (ramales, sentidos
-// con paradas propias), no las repeticiones, hasta MAX_PATTERNS_PER_LINE.
+// Se quedan los recorridos que añaden paradas nuevas, hasta MAX_PATTERNS_PER_LINE.
 function coveringPatterns(MapSource $Source, array $aPatterns, array &$aStopsUsed): array
 {
     usort($aPatterns, fn($aA, $aB) => $Source->trips($aB['id']) <=> $Source->trips($aA['id']));
@@ -272,7 +265,6 @@ function coveringPatterns(MapSource $Source, array $aPatterns, array &$aStopsUse
     return $aChosen;
 }
 
-// El color de la línea: el del plano del operador (LINE_COLORS) o, si no, el del GTFS ajustado para que se vea.
 function lineColors(string $sSlug, array $aLine, string $sThemeColor): array
 {
     $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? null;
@@ -282,7 +274,6 @@ function lineColors(string $sSlug, array $aLine, string $sThemeColor): array
     return mapLineColors($aLine['color'] ?? null, $aLine['text_color'] ?? null, $sThemeColor);
 }
 
-// Las líneas que juntó mergeDirections se nombran por sus dos extremos.
 function namedByEnds(array $aLines, array $aStops): array
 {
     foreach ($aLines as &$aLine) {
@@ -296,7 +287,7 @@ function namedByEnds(array $aLines, array $aStops): array
     return $aLines;
 }
 
-// Las paradas que usa algún recorrido del mapa: nombre y coordenadas con 5 decimales (un metro).
+// Coordenadas con 5 decimales (un metro).
 function usedStops(array $aStopsUsed, array $aStops): array
 {
     $aUsed = [];
