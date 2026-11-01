@@ -23,6 +23,7 @@ STEPS = [
     ('API (todas las rutas)', [PY, 'tests/api-smoke.py']),
     ('Contrato de la API', [PY, 'tests/api-contract.py']),
     ('Horarios sin conexión', ['node', 'tests/offline-schedule.mjs']),
+    ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
 ]
 if not QUICK:
     STEPS += [
@@ -55,6 +56,12 @@ if not server_up():
     else:
         server.terminate()
         sys.exit('No se pudo arrancar el servidor local en ' + BASE)
+
+# Sin el mapa y los horarios sin conexión generados, sus pruebas fallan.
+for script, folder in (('scripts/build-network-map.php', 'map-data'), ('scripts/build-offline-data.php', 'offline-data')):
+    if not os.path.exists(os.path.join(ROOT, folder, 'index.json')):
+        print(f'Generando {folder} con {script}…', flush=True)
+        subprocess.run([PHP, script], cwd=ROOT, stdout=subprocess.DEVNULL)
 
 results = []
 try:

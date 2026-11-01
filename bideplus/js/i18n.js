@@ -1,9 +1,9 @@
 (function (global) {
     'use strict';
 
-    var STORAGE_KEY = 'bide_lang';
+    const STORAGE_KEY = 'bide_lang';
 
-    var dict = {
+    const dict = {
         es: {
             'menu.tagline': 'Movilidad en Euskadi',
             'menu.section': 'Apps de movilidad',
@@ -29,6 +29,7 @@
             'bide.settings.arrivals': 'Avisos de llegada',
             'bide.settings.arrivalsEmpty': 'No tienes avisos de llegada activos. Se crean desde la ficha de un viaje.',
             'bide.settings.before': '{min} min antes',
+            'bide.settings.daily': 'todos los días',
             'bide.settings.cancel': 'Cancelar',
             'bide.settings.data': 'Tus datos',
             'bide.settings.dataText': 'Tus favoritos, el idioma, los avisos y los horarios guardados están solo en este móvil, salvo lo justo para mandarte las notificaciones. Puedes borrarlo todo de una vez.',
@@ -52,6 +53,9 @@
             'bide.settings.cacheDone': 'Listo. La app se vuelve a cargar…',
             'bide.settings.cacheError': 'No se ha podido descargar. No se ha borrado nada: inténtalo de nuevo con buena conexión.',
             'bide.settings.cacheOffline': 'Necesitas conexión para volver a descargar la app.',
+            'bide.update.title': 'Nueva actualización de la app',
+            'bide.update.text': 'Trae estas novedades. Para tenerla, vacía la caché y actualiza.',
+            'bide.update.badge': 'Hay una actualización de la app',
             'bide.settings.version': 'Versión',
             'bide.alerts.settings': 'Avisos en el móvil, en Ajustes',
             'bide.tab.info': 'Info',
@@ -74,6 +78,14 @@
             'bide.changelog.title': 'Novedades',
             'bide.changelog.more': 'Ver todas las novedades',
             'bide.changelog.less': 'Ver menos',
+            'bide.changelog.34.title': 'Aviso de actualizaciones',
+            'bide.changelog.34.text': 'Cuando sale una versión nueva de Bide+, te llega una notificación (si las tienes permitidas) y la rueda de Ajustes enseña un 1 en rojo. En Ajustes ves lo que trae y la instalas con «Vaciar caché y actualizar». Además, en la web el pie se queda al abrir Ajustes, Info, Avisos o Favoritos.',
+            'bide.changelog.33.title': 'Hora estimada más afinada',
+            'bide.changelog.33.text': 'Cuando no hay datos del bus, la hora estimada de Bizkaibus tiene en cuenta también lo que suele retrasarse cada viaje al principio, a la mitad y al final de su recorrido, aprendido de los pasos reales de los últimos días. Acierta más: el error medio baja de 3,5 a 2,6 minutos. Vale con conexión y en los horarios guardados para usar sin conexión.',
+            'bide.changelog.32.title': 'Horario oficial al día',
+            'bide.changelog.32.text': 'En «Ver horario oficial» de Bizkaibus salen el periodo de hoy y los que vienen, con los días sueltos de un mismo periodo juntos en una sola tarjeta (por ejemplo, el 24 y el 31 de diciembre). Lo que ya terminó no sale, y al cambiar de año desaparece lo del anterior. El botón ya no lleva el año.',
+            'bide.changelog.31.title': 'Avisos que se quitan solos',
+            'bide.changelog.31.text': 'En todas las apps, un «Avísame cuando llegue» avisa una vez y desaparece de la app en cuanto llega la notificación. Si marcas «Avisarme todos los días», te avisa cada día que haya ese viaje hasta que lo canceles en la ficha o en Ajustes. Al tocar la notificación se abre la parada con el viaje, también en iPhone con la app cerrada, y al volver a abrir la app ya no te lleva otra vez a ese viaje. Las notificaciones de incidencias, al tocarlas, abren la pestaña Avisos de su app. En Android, el icono pequeño de la barra de estado es ahora el de Bide+.',
             'bide.changelog.30.title': 'Sin conexión, como con conexión',
             'bide.changelog.30.text': 'En Ajustes puedes guardar todas las redes de una vez. Sin cobertura, Bizkaibus enseña la hora estimada con lo que tardan de verdad los buses y, debajo, la oficial; y en cualquier red puedes marcar si un bus ya pasó o no. Con conexión, las horas estimadas también llevan debajo la oficial. El aviso de sin conexión es ahora una pastilla pequeña abajo. Y en Favoritos, Avisos, Ajustes e Info el título se queda fijo arriba al bajar.',
             'bide.changelog.29.title': 'Llegadas más precisas',
@@ -207,7 +219,6 @@
             'app.estimatedNoGps': 'Sin GPS del bus: llegada calculada por el algoritmo de Bide+.',
             'map.title': 'Mapa de la red',
             'map.subtitle': 'Todas las líneas, sus paradas y transbordos',
-            'map.line': 'Línea',
             'map.pickLine': 'Elige una línea',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} paradas',
@@ -219,7 +230,6 @@
             'map.openLine': 'Ver horarios de la línea',
             'map.openStop': 'Ver próximas salidas',
             'map.error': 'No se pudieron cargar las líneas. Inténtalo de nuevo más tarde.',
-            'bide.tab.map': 'Mapa',
             'app.status.likelyDeparted': 'Probablemente ya ha pasado',
             'app.officialTime': 'horario oficial {time}',
             'app.list.likelyDeparted': 'prob. ya pasó · {time}',
@@ -227,7 +237,6 @@
             'app.mark.passed': 'Ya pasó',
             'app.mark.coming': 'No ha pasado',
             'app.mark.undo': 'Mostrar los marcados como pasados ({n})',
-            'app.lang.toggle': 'Español',
             'switcher.allApps': 'Todas las apps',
             'app.offline.banner': 'Sin conexión con el servidor. Puede que veas datos guardados.',
             'app.retry': 'Reintentar',
@@ -247,14 +256,12 @@
             'app.destination': 'Destino',
             'app.state': 'Estado',
             'app.noDepartures': 'No hay salidas programadas en ese rango.',
-            'app.officialSchedule2026': 'Ver horario oficial 2026',
+            'app.officialSchedule': 'Ver horario oficial',
             'app.madeBy': 'Hecho por',
             'app.legalNotice': 'Aviso legal y privacidad',
             'app.myLinesIncidents': 'Incidencias de mis líneas',
-            'app.notifyMe': 'Avisarme de las incidencias nuevas de mis líneas favoritas',
             'app.noFavoriteIncidents': 'Guarda alguna línea en favoritos para ver aquí sus incidencias activas.',
             'app.myStopsIncidents': 'Avisos de mis paradas y líneas',
-            'app.notifyMeStops': 'Avisarme de los avisos nuevos de mis paradas y líneas favoritas',
             'app.saveStopOrLineToSeeIncidents': 'Guarda una parada o una línea en favoritos, o abre una, para ver aquí sus avisos activos.',
             'app.noneOfYourStopsHaveIncidents': 'Ninguna de tus paradas ni líneas tiene avisos activos ahora mismo.',
             'app.myFavoritesIncidents': 'Incidencias de mis favoritos',
@@ -275,7 +282,10 @@
             'app.share.follow': '{line} → {headsign}. Síguelo en directo en Bide+:',
             'app.notify.title': 'Avísame cuando llegue',
             'app.notify.saving': 'Creando el aviso…',
-            'app.notify.set': 'Te avisaré cuando falten {min} min, aunque cierres la app.',
+            'app.notify.set': 'Te avisaré una vez cuando falten {min} min, aunque cierres la app. Después el aviso se quita solo.',
+            'app.notify.repeat': 'Avisarme todos los días',
+            'app.notify.setRepeat': 'Te avisaré todos los días que haya este viaje (misma línea y hora) cuando falten {min} min. Cancélalo aquí o en Ajustes.',
+            'app.notify.repeatLater': 'Hoy ya ha pasado o está llegando: te avisaré desde la próxima vez que haya este viaje, cuando falten {min} min.',
             'app.notify.cancel': 'Cancelar el aviso',
             'app.notify.cancelled': 'Aviso cancelado.',
             'app.notify.now': 'Ya está llegando: no hace falta aviso.',
@@ -343,6 +353,7 @@
             'bide.settings.arrivals': 'Iritsiera-abisuak',
             'bide.settings.arrivalsEmpty': 'Ez duzu iritsiera-abisu aktiborik. Bidaia baten fitxatik sortzen dira.',
             'bide.settings.before': '{min} min lehenago',
+            'bide.settings.daily': 'egunero',
             'bide.settings.cancel': 'Ezeztatu',
             'bide.settings.data': 'Zure datuak',
             'bide.settings.dataText': 'Zure gogokoak, hizkuntza, abisuak eta gordetako ordutegiak mugikor honetan bakarrik daude, jakinarazpenak bidaltzeko behar dena izan ezik. Dena batera ezaba dezakezu.',
@@ -366,6 +377,9 @@
             'bide.settings.cacheDone': 'Eginda. Aplikazioa berriro kargatzen da…',
             'bide.settings.cacheError': 'Ezin izan da deskargatu. Ez da ezer ezabatu: saiatu berriro konexio onarekin.',
             'bide.settings.cacheOffline': 'Konexioa behar duzu aplikazioa berriro deskargatzeko.',
+            'bide.update.title': 'Aplikazioaren eguneratze berria',
+            'bide.update.text': 'Berritasun hauek dakartza. Izateko, hustu cachea eta eguneratu.',
+            'bide.update.badge': 'Aplikazioaren eguneratze bat dago',
             'bide.settings.version': 'Bertsioa',
             'bide.alerts.settings': 'Mugikorreko abisuak, Ezarpenetan',
             'bide.tab.info': 'Info',
@@ -388,6 +402,14 @@
             'bide.changelog.title': 'Berritasunak',
             'bide.changelog.more': 'Berritasun guztiak ikusi',
             'bide.changelog.less': 'Gutxiago ikusi',
+            'bide.changelog.34.title': 'Eguneratzeen abisua',
+            'bide.changelog.34.text': 'Bide+-en bertsio berri bat ateratzen denean, jakinarazpen bat jasotzen duzu (baimenduta badituzu) eta Ezarpenen gurpilak 1 gorri bat erakusten du. Ezarpenetan zer dakarren ikusten duzu, eta «Hustu cachea eta eguneratu» sakatuta instalatzen duzu. Gainera, webean orri-oina ez da desagertzen Ezarpenak, Info, Abisuak edo Gogokoak irekitzean.',
+            'bide.changelog.33.title': 'Ordu kalkulatu zehatzagoa',
+            'bide.changelog.33.text': 'Autobusaren daturik ez dagoenean, Bizkaibusen ordu kalkulatuak kontuan hartzen du bidaia bakoitzak ibilbidearen hasieran, erdian eta amaieran izan ohi duen atzerapena ere, azken egunetako benetako igaroaldietatik ikasita. Gehiago asmatzen du: batez besteko errorea 3,5 minututik 2,6ra jaisten da. Konexioarekin eta konexiorik gabe erabiltzeko gordetako ordutegietan balio du.',
+            'bide.changelog.32.title': 'Ordutegi ofiziala egunean',
+            'bide.changelog.32.text': 'Bizkaibuseko «Ordutegi ofiziala ikusi» atalean gaurko aldia eta datozenak agertzen dira, aldi bereko egun solteak txartel bakarrean bilduta (adibidez, abenduaren 24a eta 31). Amaitu dena ez da agertzen, eta urtez aldatzean aurrekoa desagertzen da. Botoiak ez du urterik jada.',
+            'bide.changelog.31.title': 'Beren kabuz kentzen diren abisuak',
+            'bide.changelog.31.text': 'Aplikazio guztietan, «Abisatu iristen denean» batek behin abisatzen du eta aplikaziotik desagertzen da jakinarazpena iristen denean. «Egunero abisatu» markatzen baduzu, bidaia hori dagoen egun guztietan abisatuko dizu, fitxan edo Ezarpenetan ezeztatu arte. Jakinarazpena ukitzean geltokia irekitzen da bidaiarekin, baita iPhonen aplikazioa itxita dagoenean ere, eta aplikazioa berriro irekitzean ez zaitu berriro bidaia horretara eramaten. Intzidentzien jakinarazpenek, ukitzean, beren aplikazioko Abisuak fitxa irekitzen dute. Androiden, egoera-barrako ikono txikia Bide+-ena da orain.',
             'bide.changelog.30.title': 'Konexiorik gabe, konexioarekin bezala',
             'bide.changelog.30.text': 'Ezarpenetan sare guztiak batera gorde ditzakezu. Estaldurarik gabe, Bizkaibusek autobusek benetan behar dutenarekin kalkulatutako ordua erakusten du eta, azpian, ofiziala; eta edozein saretan autobus bat pasatu den ala ez marka dezakezu. Konexioarekin ere, kalkulatutako orduek ofiziala dute azpian. Konexiorik gabeko abisua orain behealdeko pilula txiki bat da. Eta Gogokoak, Abisuak, Ezarpenak eta Info orrietan izenburua goian finko geratzen da behera egitean.',
             'bide.changelog.29.title': 'Iritsiera zehatzagoak',
@@ -521,7 +543,6 @@
             'app.estimatedNoGps': 'Autobusaren GPSrik gabe: Bide+-en algoritmoak kalkulatutako iritsiera.',
             'map.title': 'Sarearen mapa',
             'map.subtitle': 'Linea guztiak, haien geltokiak eta aldaketak',
-            'map.line': 'Linea',
             'map.pickLine': 'Aukeratu linea bat',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} geltoki',
@@ -533,7 +554,6 @@
             'map.openLine': 'Linearen ordutegiak ikusi',
             'map.openStop': 'Hurrengo irteerak ikusi',
             'map.error': 'Ezin izan dira lineak kargatu. Saiatu berriro geroago.',
-            'bide.tab.map': 'Mapa',
             'app.status.likelyDeparted': 'Seguruenik pasatu da jada',
             'app.officialTime': 'ordutegi ofiziala {time}',
             'app.list.likelyDeparted': 'seguruenik pasatu da · {time}',
@@ -541,7 +561,6 @@
             'app.mark.passed': 'Pasatu da',
             'app.mark.coming': 'Ez da pasatu',
             'app.mark.undo': 'Erakutsi pasatutzat markatutakoak ({n})',
-            'app.lang.toggle': 'Gaztelania',
             'switcher.allApps': 'Aplikazio guztiak',
             'app.offline.banner': 'Ez dago konexiorik zerbitzariarekin. Baliteke gordetako datuak ikustea.',
             'app.retry': 'Berriz saiatu',
@@ -561,14 +580,12 @@
             'app.destination': 'Helmuga',
             'app.state': 'Egoera',
             'app.noDepartures': 'Ez dago irteerarik programatuta tarte horretan.',
-            'app.officialSchedule2026': '2026ko ordutegi ofiziala ikusi',
+            'app.officialSchedule': 'Ordutegi ofiziala ikusi',
             'app.madeBy': 'Egilea:',
             'app.legalNotice': 'Lege oharra eta pribatutasuna',
             'app.myLinesIncidents': 'Nire lineen intzidentziak',
-            'app.notifyMe': 'Jakinarazi nire gogoko lineen intzidentzia berriak',
             'app.noFavoriteIncidents': 'Gorde linea bat gogokoetan hemen bere intzidentzia aktiboak ikusteko.',
             'app.myStopsIncidents': 'Nire geldialdi eta lineen intzidentziak',
-            'app.notifyMeStops': 'Jakinarazi nire gogoko geldialdi eta lineen intzidentzia berriak',
             'app.saveStopOrLineToSeeIncidents': 'Gorde geldialdi edo linea bat gogokoetan, edo ireki bat, hemen bere intzidentzia aktiboak ikusteko.',
             'app.noneOfYourStopsHaveIncidents': 'Zure geldialdi edo linea batek ere ez du intzidentzia aktiborik orain.',
             'app.myFavoritesIncidents': 'Nire gogokoen intzidentziak',
@@ -589,7 +606,10 @@
             'app.share.follow': '{line} → {headsign}. Jarraitu zuzenean Bide+-en:',
             'app.notify.title': 'Abisatu iristen denean',
             'app.notify.saving': 'Abisua sortzen…',
-            'app.notify.set': '{min} min falta direnean abisatuko dizut, aplikazioa itxita egon arren.',
+            'app.notify.set': '{min} min falta direnean behin abisatuko dizut, aplikazioa itxita egon arren. Gero abisua bera kenduko da.',
+            'app.notify.repeat': 'Egunero abisatu',
+            'app.notify.setRepeat': 'Bidaia hau dagoen egun guztietan (lerro eta ordu bera) abisatuko dizut, {min} min falta direnean. Hemen edo Ezarpenetan ezezta dezakezu.',
+            'app.notify.repeatLater': 'Gaur dagoeneko pasatu da edo iristen ari da: bidaia hau berriro dagoenetik abisatuko dizut, {min} min falta direnean.',
             'app.notify.cancel': 'Ezeztatu abisua',
             'app.notify.cancelled': 'Abisua ezeztatu da.',
             'app.notify.now': 'Iristen ari da: ez da abisurik behar.',
@@ -657,6 +677,7 @@
             'bide.settings.arrivals': 'Arrival alerts',
             'bide.settings.arrivalsEmpty': 'You have no active arrival alerts. Create one from a trip\'s card.',
             'bide.settings.before': '{min} min before',
+            'bide.settings.daily': 'every day',
             'bide.settings.cancel': 'Cancel',
             'bide.settings.data': 'Your data',
             'bide.settings.dataText': 'Your favourites, language, alerts and saved timetables stay on this phone only, except what is needed to send you notifications. You can delete it all at once.',
@@ -680,6 +701,9 @@
             'bide.settings.cacheDone': 'Done. The app is reloading…',
             'bide.settings.cacheError': 'Couldn\'t download it. Nothing was deleted: try again with a good connection.',
             'bide.settings.cacheOffline': 'You need a connection to download the app again.',
+            'bide.update.title': 'New app update',
+            'bide.update.text': 'It brings these changes. To get it, clear the cache and update.',
+            'bide.update.badge': 'An app update is available',
             'bide.settings.version': 'Version',
             'bide.alerts.settings': 'Phone alerts, in Settings',
             'bide.tab.info': 'Info',
@@ -702,6 +726,14 @@
             'bide.changelog.title': 'What\'s new',
             'bide.changelog.more': 'See everything new',
             'bide.changelog.less': 'See less',
+            'bide.changelog.34.title': 'Update notices',
+            'bide.changelog.34.text': 'When a new version of Bide+ comes out, you get a notification (if you allow them) and the Settings cog shows a red 1. In Settings you see what it brings and install it with «Clear cache and update». Also, on the web the footer stays when you open Settings, Info, Alerts or Favourites.',
+            'bide.changelog.33.title': 'Sharper estimated times',
+            'bide.changelog.33.text': 'When there is no data from the bus, the Bizkaibus estimated time also takes into account how late each trip usually runs at the start, middle and end of its route, learned from real passages over the last few days. It is more accurate: the average error drops from 3.5 to 2.6 minutes. It works online and in the timetables saved for offline use.',
+            'bide.changelog.32.title': 'Official timetable, up to date',
+            'bide.changelog.32.text': 'In Bizkaibus «See the official timetable» you get today\'s period and the upcoming ones, with the single days of the same period together on one card (for example, 24 and 31 December). What has already ended is not shown, and when the year changes last year\'s go away. The button no longer carries the year.',
+            'bide.changelog.31.title': 'Alerts that clear themselves',
+            'bide.changelog.31.text': 'In every app, a «Notify me when it arrives» alert notifies you once and disappears from the app as soon as the notification arrives. If you tick «Notify me every day», it notifies you every day that journey runs until you cancel it on the trip card or in Settings. Tapping the notification opens the stop with the journey, also on iPhone with the app closed, and reopening the app no longer takes you back to that journey. Disruption notifications open the Alerts tab of their app when you tap them. On Android, the small status-bar icon is now the Bide+ one.',
             'bide.changelog.30.title': 'Offline, like online',
             'bide.changelog.30.text': 'In Settings you can save every network at once. With no signal, Bizkaibus shows the estimated time from how long buses really take and, underneath, the official one; and on any network you can mark whether a bus has already gone. Online, estimated times also show the official one underneath. The offline notice is now a small pill at the bottom. And in Favourites, Alerts, Settings and Info the title stays fixed at the top as you scroll.',
             'bide.changelog.29.title': 'More accurate arrivals',
@@ -835,7 +867,6 @@
             'app.estimatedNoGps': 'No GPS from the bus: arrival worked out by the Bide+ algorithm.',
             'map.title': 'Network map',
             'map.subtitle': 'Every line, its stops and transfers',
-            'map.line': 'Line',
             'map.pickLine': 'Pick a line',
             'map.buses': '{n} bus',
             'map.stopsCount': '{n} stops',
@@ -847,7 +878,6 @@
             'map.openLine': 'See line timetable',
             'map.openStop': 'See next departures',
             'map.error': 'The lines couldn\'t be loaded. Please try again later.',
-            'bide.tab.map': 'Map',
             'app.status.likelyDeparted': 'Probably already gone',
             'app.officialTime': 'official time {time}',
             'app.list.likelyDeparted': 'prob. gone · {time}',
@@ -855,7 +885,6 @@
             'app.mark.passed': 'Already gone',
             'app.mark.coming': 'Not gone yet',
             'app.mark.undo': 'Show the ones marked as gone ({n})',
-            'app.lang.toggle': 'English',
             'switcher.allApps': 'All the apps',
             'app.offline.banner': 'Can\'t reach the server. You may be seeing saved data.',
             'app.retry': 'Retry',
@@ -875,14 +904,12 @@
             'app.destination': 'Destination',
             'app.state': 'Status',
             'app.noDepartures': 'There are no scheduled departures in that range.',
-            'app.officialSchedule2026': 'See official 2026 timetable',
+            'app.officialSchedule': 'See the official timetable',
             'app.madeBy': 'Made by',
             'app.legalNotice': 'Legal notice and privacy',
             'app.myLinesIncidents': 'Disruptions on my lines',
-            'app.notifyMe': 'Notify me of new disruptions on my favourite lines',
             'app.noFavoriteIncidents': 'Save a line to your favourites to see its active disruptions here.',
             'app.myStopsIncidents': 'Alerts for my stops and lines',
-            'app.notifyMeStops': 'Notify me of new alerts for my favourite stops and lines',
             'app.saveStopOrLineToSeeIncidents': 'Save a stop or a line to your favourites, or open one, to see its active alerts here.',
             'app.noneOfYourStopsHaveIncidents': 'None of your stops or lines have active alerts right now.',
             'app.myFavoritesIncidents': 'Disruptions on my favourites',
@@ -903,7 +930,10 @@
             'app.share.follow': '{line} → {headsign}. Follow it live on Bide+:',
             'app.notify.title': 'Notify me when it arrives',
             'app.notify.saving': 'Creating the alert…',
-            'app.notify.set': 'I\'ll notify you when it\'s {min} min away, even with the app closed.',
+            'app.notify.set': 'I\'ll notify you once when it\'s {min} min away, even with the app closed. Then the alert goes away on its own.',
+            'app.notify.repeat': 'Notify me every day',
+            'app.notify.setRepeat': 'I\'ll notify you every day this journey runs (same line and time), when it\'s {min} min away. Cancel it here or in Settings.',
+            'app.notify.repeatLater': 'It has already passed or is arriving today: I\'ll notify you from the next time this journey runs, when it\'s {min} min away.',
             'app.notify.cancel': 'Cancel the alert',
             'app.notify.cancelled': 'Alert cancelled.',
             'app.notify.now': 'It\'s arriving now: no alert needed.',
@@ -949,13 +979,13 @@
     };
 
     // Orden del botón de la cabecera: castellano → euskera → inglés → castellano.
-    var LANGS = ['es', 'eu', 'en'];
-    var chosenLang = null;
+    const LANGS = ['es', 'eu', 'en'];
+    let chosenLang = null;
 
     function getLang() {
         if (chosenLang) return chosenLang;
         try {
-            var stored = localStorage.getItem(STORAGE_KEY);
+            const stored = localStorage.getItem(STORAGE_KEY);
             if (LANGS.indexOf(stored) !== -1) return stored;
         } catch (e) { /* private mode / storage blocked */ }
         return browserLang();
@@ -963,7 +993,7 @@
 
     // Sin idioma elegido, quien tiene el móvil en inglés (turistas) ve Bide+ en inglés; el resto, en castellano.
     function browserLang() {
-        var preferred = '';
+        let preferred = '';
         if (global.navigator) preferred = (global.navigator.languages && global.navigator.languages[0]) || global.navigator.language || '';
         if (preferred.toLowerCase().indexOf('en') === 0) return 'en';
         return 'es';
@@ -982,9 +1012,9 @@
     }
 
     function t(key, vars) {
-        var lang = getLang();
-        var table = dict[lang] || dict.es;
-        var text = table[key];
+        const lang = getLang();
+        const table = dict[lang] || dict.es;
+        let text = table[key];
         if (text === undefined) text = dict.es[key];
         if (text === undefined) return key;
         if (vars) {
@@ -1002,9 +1032,9 @@
         });
         root.querySelectorAll('[data-i18n-attr]').forEach(function (el) {
             el.getAttribute('data-i18n-attr').split(',').forEach(function (pair) {
-                var parts = pair.split(':');
-                var attr = parts[0];
-                var key = parts[1];
+                const parts = pair.split(':');
+                const attr = parts[0];
+                const key = parts[1];
                 el.setAttribute(attr, t(key));
             });
         });

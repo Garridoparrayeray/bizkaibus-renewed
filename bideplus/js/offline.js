@@ -16,7 +16,9 @@ const BideOffline = (() => {
     // 10 min o más lento que lo aprendido.
     const LIKELY_PASSED_SECONDS = 600;
     const SLOW_SCHEDULE_SECONDS = 600;
+    const SUNDAY_ONLY_MASK = 0b1000000;
     const prepared = new Map();
+    let refreshing = null;
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
     const supported = () => typeof caches !== 'undefined';
@@ -75,24 +77,51 @@ const BideOffline = (() => {
         return data;
     }
 
-    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo.
-    async function refresh() {
-        const list = saved();
-        if (!supported() || !navigator.onLine || Object.keys(list).length === 0) return;
+    function checkedRecently() {
         try {
-            if (Date.now() - Number(localStorage.getItem(CHECKED_KEY) || 0) < CHECK_EVERY_MS) return;
+            return Date.now() - Number(localStorage.getItem(CHECKED_KEY) || 0) < CHECK_EVERY_MS;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function markChecked() {
+        try {
             localStorage.setItem(CHECKED_KEY, String(Date.now()));
         } catch (e) {
-            return;
+            // Sin almacenamiento se vuelve a mirar la próxima vez.
         }
+    }
+
+    async function refreshSaved() {
+        const list = saved();
+        if (!supported() || !navigator.onLine || Object.keys(list).length === 0 || checkedRecently()) return false;
         const response = await fetch('/offline-data/index.json', { cache: 'no-store' });
-        if (!response.ok) return;
+        if (!response.ok) return false;
         const index = await response.json();
+        let updated = false;
+        let failed = false;
         for (const network of index.networks || []) {
             if (list[network.slug] && list[network.slug].generated !== network.generated) {
-                await save(network.slug).catch(() => {});
+                await save(network.slug).then(() => {
+                    updated = true;
+                }).catch(() => {
+                    failed = true;
+                });
             }
         }
+        if (!failed) markChecked();
+        return updated;
+    }
+
+    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo.
+    function refresh() {
+        if (!refreshing) {
+            refreshing = refreshSaved().finally(() => {
+                refreshing = null;
+            });
+        }
+        return refreshing;
     }
 
     /*
@@ -163,7 +192,17 @@ const BideOffline = (() => {
             if (!platformsByStation.has(stop[1])) platformsByStation.set(stop[1], []);
             platformsByStation.get(stop[1]).push({ id: stopId, label: stop[2] || '' });
         }
-        return { ...data, byStop, tripsByPattern, platformsByStation };
+        return { ...data, byStop, tripsByPattern, platformsByStation, holidays: holidays(data.calendars) };
+    }
+
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
+    function holidays(calendars) {
+        const days = new Set();
+        for (const calendar of calendars) {
+            if (calendar[0] !== SUNDAY_ONLY_MASK) continue;
+            for (const day of calendar[1]) days.add(day);
+        }
+        return days;
     }
 
     function isoDate(date) {
@@ -275,18 +314,17 @@ const BideOffline = (() => {
         return 0;
     }
 
-    // Hora y estado de un viaje en una parada: la estimada con los tramos aprendidos si la red la trae para ese tipo de
-    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
+    // Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
     function arrival(data, trip, position, date, officialSeconds, nowSeconds) {
         const official = { status: 'scheduled', etaSeconds: officialSeconds };
         if (!data.estimates || position === 0) return official;
         let slot = trip[6];
         const weekday = date.getDay();
-        if (weekday === 0 || weekday === 6) slot = trip[7];
+        if (weekday === 0 || weekday === 6 || data.holidays.has(isoDate(date))) slot = trip[7];
         if (slot === undefined || slot < 0) return official;
         const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
         if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };
-        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot] === 1) {
+        if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot][position] === '1') {
             return { status: 'likely_departed', etaSeconds: officialSeconds };
         }
         return official;

@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, state } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, onReturn, state } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -284,6 +284,7 @@ export function setUpVehicleModal() {
     el.modalClose.addEventListener('click', () => el.modal.close());
     el.modalShare.addEventListener('click', shareTrip);
     el.modal.addEventListener('close', stopModalFollow);
+    onReturn(refreshVehicleModal);
     el.modalAlertsToggle.addEventListener('click', loadModalAlerts);
     el.modal.addEventListener('click', (e) => {
         if (e.target === el.modal) el.modal.close();

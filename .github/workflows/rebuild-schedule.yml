@@ -74,10 +74,14 @@ jobs:
           left = None
           try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
           except ValueError: pass
+          remaining = ''
+          if left is not None: remaining = f' (quedan {left} días)'
+          audit_line = '- Sin línea de auditoría de calendarios (revisar el log del build)'
+          if audit: audit_line = f'- {audit}'
           lines = ['### Horario de Bizkaibus publicado',
-                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + (f' (quedan {left} días)' if left is not None else ''),
+                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + remaining,
                    f'- {journeys:,} viajes en la base'.replace(',', '.'),
-                   f'- {audit}' if audit else '- Sin línea de auditoría de calendarios (revisar el log del build)']
+                   audit_line]
           open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
           if left is not None and left <= 10:
               print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')

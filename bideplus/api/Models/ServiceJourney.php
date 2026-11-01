@@ -14,6 +14,8 @@ class ServiceJourney
 
     private const COUNTED_PAST_SECONDS = 120;
 
+    private const SUNDAY_ONLY_MASK = 0b1000000;
+
     private const LAST_STOP_NAME_SUBQUERY = '(
         SELECT s2.name FROM passing_times pt2
         JOIN stops s2 ON s2.id = pt2.stop_id
@@ -324,6 +326,23 @@ class ServiceJourney
         ');
         $Stmt->execute([$sServiceJourneyId]);
         return $Stmt->fetchAll();
+    }
+
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
+    public function isHoliday(string $sDate): bool
+    {
+        if (!$this->hasTable('service_calendars') || !$this->hasTable('service_calendar_exceptions')) {
+            return false;
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT 1
+            FROM service_calendar_exceptions sce
+            JOIN service_calendars sc ON sc.id = sce.calendar_id
+            WHERE sce.date = ? AND sce.available = 1 AND sc.weekday_mask = ?
+            LIMIT 1
+        ');
+        $Stmt->execute([$sDate, self::SUNDAY_ONLY_MASK]);
+        return $Stmt->fetchColumn() !== false;
     }
 
     private function hasTable(string $sTable): bool

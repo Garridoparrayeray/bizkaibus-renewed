@@ -186,7 +186,13 @@ async function restoreAlerts() {
     runForegroundAlertCheck();
 }
 
+function rememberLang() {
+    AlertsStore.set('lang', I18n.getLang()).catch(() => {});
+}
+
 export function setUpIncidentAlerts() {
+    rememberLang();
+    window.addEventListener('bide:lang', rememberLang);
     alertsToggle = document.getElementById('alerts-toggle');
     alertsNote = document.getElementById('alerts-note');
     if (!alertsToggle) return;

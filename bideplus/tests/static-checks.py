@@ -1,3 +1,4 @@
+import ast
 import glob
 import json
 import os
@@ -5,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import textwrap
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')).replace('\\', '/') + '/'
 PHP = os.environ.get('PHP_PATH') or shutil.which('php') or 'C:/xampp/php/php.exe'
@@ -57,6 +59,27 @@ for f in glob.glob(ROOT + 'js/*.js') + APP_JS + [ROOT + 'sw.js']:
     print('js', os.path.basename(f), js_result)
     if not ok:
         failures.append('sintaxis JS ' + os.path.basename(f))
+
+# Python sin ternarios, también el de dentro de los flujos de GitHub.
+def python_sources():
+    for f in sorted(glob.glob(ROOT + 'tests/*.py') + glob.glob(ROOT + 'scripts/**/*.py', recursive=True) + glob.glob(ROOT + '../.github/scripts/*.py')):
+        yield os.path.basename(f), open(f, encoding='utf-8').read()
+    for f in sorted(glob.glob(ROOT + '../.github/workflows/*.yml')):
+        text = open(f, encoding='utf-8').read()
+        for block in re.finditer(r"python3? - <<'(\w+)'[^\n]*\n(.*?)\n\s*\1\n", text, re.S):
+            yield os.path.basename(f), textwrap.dedent(block.group(2))
+        for inline in re.finditer(r'python3? -c "((?:[^"\\]|\\.)*)"', text):
+            yield os.path.basename(f), inline.group(1)
+
+
+python_ternaries = []
+for name, source in python_sources():
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.IfExp):
+            python_ternaries.append(name + ':' + str(node.lineno))
+print('Python sin ternarios (también el de los flujos de GitHub):', python_ternaries or 'ninguno')
+if python_ternaries:
+    failures.append('ternarios en Python (' + ', '.join(python_ternaries) + ')')
 
 sw = open(ROOT + 'sw.js', encoding='utf-8').read()
 # Solo las líneas que son una ruta entera: los iconos de cada red se generan desde js/networks.js.
@@ -160,11 +183,11 @@ print('HTML con datos sin escapar:', unescaped or 'ninguno')
 if unescaped:
     failures.append('HTML sin escapar')
 
-for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php'), ('notificaciones push (llegadas e incidencias)', 'push-test.php')):
+for label, script in (('unitarias (llegadas, k, SIRI, claves)', 'unit-test.php'), ('construcción de horarios (calendarios fusionados)', 'build-test.php'), ('integridad de las bases de datos', 'data-integrity.php'), ('registro de pasos (almacén y cron)', 'store-test.php'), ('notificaciones push (llegadas e incidencias)', 'push-test.php'), ('calidad del código (batería de limpieza)', 'code-quality.php')):
     r = subprocess.run([PHP, ROOT + 'tests/' + script], capture_output=True, text=True)
     script_result = 'OK'
     if r.returncode != 0:
-        script_result = '\n'.join(l for l in r.stdout.splitlines() if l.startswith('MAL') or 'RESULTADO' in l) + r.stderr[-300:]
+        script_result = '\n'.join(l for l in r.stdout.splitlines() if l.startswith(('MAL', '      ')) or 'RESULTADO' in l) + r.stderr[-300:]
     print(label + ':', script_result)
     if r.returncode != 0:
         failures.append(label)

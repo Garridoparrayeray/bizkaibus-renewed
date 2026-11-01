@@ -79,7 +79,8 @@ const apps = [
     { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
     { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
     { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
-    { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'tolosa', panel: 'live-card' },
+    // Una parada con salidas todos los días.
+    { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'donostia', panel: 'live-card' },
 ];
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
@@ -179,8 +180,22 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
             await sleep(6000);
             const open = (await ev("document.getElementById('schedule-modal').open")) === true;
             const blocks = await ev("document.querySelectorAll('#schedule-modal-content .schedule-block').length");
-            if (open && blocks > 0) check(`${tag} horario oficial en texto`, true, `${blocks} bloques`);
-            else skip(`${tag} horario oficial en texto`, 'feed externo sin datos o sin internet');
+            if (open && blocks > 0) {
+                check(`${tag} horario oficial en texto`, true, `${blocks} bloques`);
+                // Solo el periodo de hoy y los que vienen: ninguna fecha ya pasada y nada de años anteriores.
+                const stale = await ev(`(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const ends = [...document.querySelectorAll('#schedule-modal-content .schedule-dates')].map((node) => {
+                        const dates = [...node.textContent.matchAll(/(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})/g)].map((m) => new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])));
+                        return dates[dates.length - 1];
+                    });
+                    return ends.filter((end) => end && end < today).length;
+                })()`);
+                check(`${tag} horario oficial sin periodos ya pasados`, stale === 0, `${stale} periodos terminados`);
+            } else {
+                skip(`${tag} horario oficial en texto`, 'feed externo sin datos o sin internet');
+            }
             await ev("document.getElementById('schedule-modal-close').click()");
         }
         await ev("document.getElementById('legal-open').click()");

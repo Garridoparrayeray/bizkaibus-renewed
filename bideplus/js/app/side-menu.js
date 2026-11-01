@@ -2,26 +2,44 @@
 import { FEATURES, el, state } from './core.js';
 import { readFavorites } from './favorites.js';
 
-async function renderRenfeAlerts() {
+function alertItem(lines, summary, description) {
+    const item = document.createElement('li');
+    const parts = [['alert-line', lines], ['alert-summary', summary], ['alert-description', description]];
+    for (const [className, text] of parts) {
+        if (text === null) continue;
+        const span = document.createElement('span');
+        span.className = className;
+        span.textContent = text;
+        item.append(span);
+    }
+    el.menuAlertsList.appendChild(item);
+}
+
+function showEmpty(key) {
+    el.menuAlertsEmpty.hidden = false;
+    el.menuAlertsEmpty.textContent = I18n.t(key);
+}
+
+// Renfe: estaciones y líneas guardadas y la abierta.
+async function renderStopAlerts() {
     const favorites = readFavorites();
     const stopIds = new Set(favorites.filter((favorite) => favorite.type === 'stop').map((favorite) => String(favorite.refId)));
     const lineIds = new Set(favorites.filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
     if (state.currentStop) stopIds.add(String(state.currentStop.id));
     if (state.currentLine) lineIds.add(String(state.currentLine.id));
 
-    el.menuAlertsEmpty.textContent = I18n.t('app.saveStopOrLineToSeeIncidents');
+    showEmpty('app.saveStopOrLineToSeeIncidents');
     if (stopIds.size === 0 && lineIds.size === 0) return;
 
-    el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
+    showEmpty('app.loadingIncidents');
     const fetched = [];
     try {
         for (const stopId of stopIds) fetched.push(...(await Api.alerts(null, stopId)).alerts);
         for (const lineId of lineIds) fetched.push(...(await Api.alerts(lineId)).alerts);
     } catch (e) {
-        el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
+        showEmpty('app.incidentsLoadFailed');
         return;
     }
-
     const seen = new Set();
     const alerts = fetched.filter((alert) => {
         const key = `${alert.summary}|${alert.description}`;
@@ -29,122 +47,85 @@ async function renderRenfeAlerts() {
         seen.add(key);
         return true;
     });
-    el.menuAlertsEmpty.hidden = alerts.length > 0;
     if (alerts.length === 0) {
-        el.menuAlertsEmpty.textContent = I18n.t('app.noneOfYourStopsHaveIncidents');
+        showEmpty('app.noneOfYourStopsHaveIncidents');
         return;
     }
-    for (const alert of alerts) {
-        const li = document.createElement('li');
-        const summarySpan = document.createElement('span');
-        summarySpan.className = 'alert-summary';
-        summarySpan.textContent = alert.summary;
-        const descSpan = document.createElement('span');
-        descSpan.className = 'alert-description';
-        descSpan.textContent = alert.description;
-        li.append(summarySpan, descSpan);
-        el.menuAlertsList.appendChild(li);
+    el.menuAlertsEmpty.hidden = true;
+    for (const alert of alerts) alertItem(null, alert.summary, alert.description);
+}
+
+// Metro, Euskotren, tranvías y Lurraldebus: toda la red.
+async function renderNetworkAlerts() {
+    showEmpty('app.loadingIncidents');
+    let alerts;
+    try {
+        alerts = (await Api.alerts()).alerts;
+    } catch (e) {
+        showEmpty('app.incidentsLoadFailed');
+        return;
     }
+    if (alerts.length === 0) {
+        showEmpty('app.noActiveIncidentsNow');
+        return;
+    }
+    el.menuAlertsEmpty.hidden = true;
+    for (const alert of alerts) {
+        let description = null;
+        if (FEATURES.alerts_detail && alert.description) description = alert.description;
+        alertItem(null, alert.summary || alert.title || '', description);
+    }
+}
+
+// Bizkaibus: líneas guardadas y la abierta.
+async function renderLineAlerts() {
+    const lineIds = new Set(readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
+    if (state.currentLine) lineIds.add(String(state.currentLine.id));
+    showEmpty('app.saveLineToSeeIncidents');
+    if (lineIds.size === 0) return;
+
+    let alerts;
+    try {
+        alerts = (await Api.alerts()).alerts;
+    } catch (e) {
+        showEmpty('app.incidentsLoadFailed');
+        return;
+    }
+    const matching = alerts.filter((alert) => alert.lineRefs.some((ref) => lineIds.has(String(ref))));
+    if (matching.length === 0) {
+        showEmpty('app.noneOfYourLinesHaveIncidents');
+        return;
+    }
+    el.menuAlertsEmpty.hidden = true;
+    const codes = await lineCodes(lineIds);
+    for (const alert of matching) {
+        const affected = alert.lineRefs.filter((ref) => lineIds.has(String(ref))).map((ref) => codes[ref] || ref);
+        alertItem(affected.join(', '), alert.summary, alert.description);
+    }
+}
+
+async function lineCodes(lineIds) {
+    const codes = {};
+    for (const lineId of lineIds) {
+        try {
+            codes[lineId] = (await Api.line(lineId)).code;
+        } catch (e) {
+            codes[lineId] = `#${lineId}`;
+        }
+    }
+    return codes;
 }
 
 async function openSideMenu() {
     el.sideMenu.showModal();
-
     el.menuAlertsList.innerHTML = '';
     el.menuAlertsEmpty.hidden = false;
-
     if (FEATURES.alerts === 'stops') {
-        await renderRenfeAlerts();
-        return;
-    }
-
-    if (FEATURES.alerts === 'network') {
-        el.menuAlertsEmpty.textContent = I18n.t('app.loadingIncidents');
-        let metroAlerts;
-        try {
-            metroAlerts = (await Api.alerts()).alerts;
-        } catch (e) {
-            el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
-            return;
-        }
-        el.menuAlertsEmpty.hidden = metroAlerts.length > 0;
-        if (metroAlerts.length === 0) {
-            el.menuAlertsEmpty.textContent = I18n.t('app.noActiveIncidentsNow');
-            return;
-        }
-        for (const alert of metroAlerts) {
-            const li = document.createElement('li');
-            const summarySpan = document.createElement('span');
-            summarySpan.className = 'alert-summary';
-            summarySpan.textContent = alert.summary || alert.title || '';
-            li.append(summarySpan);
-            if (FEATURES.alerts_detail && alert.description) {
-                const descSpan = document.createElement('span');
-                descSpan.className = 'alert-description';
-                descSpan.textContent = alert.description;
-                li.append(descSpan);
-            }
-            el.menuAlertsList.appendChild(li);
-        }
-        return;
-    }
-
-    const favoriteLines = readFavorites().filter((f) => f.type === 'line');
-    const relevantLineIds = new Set(favoriteLines.map((f) => String(f.refId)));
-    if (state.currentLine) {
-        relevantLineIds.add(String(state.currentLine.id));
-    }
-
-    el.menuAlertsEmpty.textContent = I18n.t('app.saveLineToSeeIncidents');
-
-    if (relevantLineIds.size === 0) {
-        return;
-    }
-
-    let allAlerts;
-    try {
-        allAlerts = (await Api.alerts()).alerts;
-    } catch (e) {
-        el.menuAlertsEmpty.textContent = I18n.t('app.incidentsLoadFailed');
-        return;
-    }
-
-    const matching = allAlerts.filter((alert) => alert.lineRefs.some((ref) => relevantLineIds.has(String(ref))));
-
-    el.menuAlertsEmpty.hidden = matching.length > 0;
-    if (matching.length === 0) {
-        el.menuAlertsEmpty.textContent = I18n.t('app.noneOfYourLinesHaveIncidents');
-        return;
-    }
-
-    const lineLabels = {};
-    for (const lineId of relevantLineIds) {
-        try {
-            const line = await Api.line(lineId);
-            lineLabels[lineId] = line.code;
-        } catch (e) {
-            lineLabels[lineId] = `#${lineId}`;
-        }
-    }
-
-    for (const alert of matching) {
-        const affectedLabels = alert.lineRefs.filter((ref) => relevantLineIds.has(String(ref))).map((ref) => lineLabels[ref] || ref);
-        const li = document.createElement('li');
-
-        const lineSpan = document.createElement('span');
-        lineSpan.className = 'alert-line';
-        lineSpan.textContent = affectedLabels.join(', ');
-
-        const summarySpan = document.createElement('span');
-        summarySpan.className = 'alert-summary';
-        summarySpan.textContent = alert.summary;
-
-        const descSpan = document.createElement('span');
-        descSpan.className = 'alert-description';
-        descSpan.textContent = alert.description;
-
-        li.append(lineSpan, summarySpan, descSpan);
-        el.menuAlertsList.appendChild(li);
+        await renderStopAlerts();
+    } else if (FEATURES.alerts === 'network') {
+        await renderNetworkAlerts();
+    } else {
+        await renderLineAlerts();
     }
 }
 

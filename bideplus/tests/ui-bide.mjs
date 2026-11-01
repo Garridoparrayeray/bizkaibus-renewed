@@ -31,9 +31,20 @@ await new Promise(r => ws.onopen = r);
 let id = 0;
 const pending = new Map();
 const problems = [];
+// Aviso de versión nueva: con fakeAppVersion, la respuesta de /api/app/version la da la prueba (Fetch.enable).
+let fakeAppVersion = null;
+const answerPaused = (requestId) => {
+    if (!fakeAppVersion) {
+        send('Fetch.continueRequest', { requestId });
+        return;
+    }
+    const body = Buffer.from(JSON.stringify(fakeAppVersion)).toString('base64');
+    send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body });
+};
 ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
+    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId); return; }
     if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
 };
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -92,6 +103,12 @@ await ev("document.querySelector('.bide-install-dismiss').click()");
 await go('/');
 check('navegador · el aviso cerrado no vuelve', (await ev(shown('.bide-install'))) === false);
 await ev("localStorage.removeItem('bide_install_dismissed'); true");
+// En la web el pie lleva los enlaces: se queda también con Ajustes, Info, Avisos o Favoritos abiertos desde el inicio.
+for (const view of ['ajustes', 'info', 'avisos', 'favoritos']) {
+    await ev(`(() => { document.querySelector('[data-bide-tab=${view}]').click(); return true; })()`);
+    check(`navegador · menú: con ${view} abierto sigue el pie`, await waitTrue(`${shown(`[data-bide-view=${view}]`)} && ${shown('main > footer')}`));
+    await go('/');
+}
 
 await go('/?red=bus');
 check('navegador · app: el menú ☰ lleva a todas las apps', (await ev("document.querySelector('#side-menu .bide-menu-apps').getAttribute('href')")) === '/');
@@ -124,7 +141,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); t
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 30"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 34"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -157,8 +174,12 @@ check('instalada · Ajustes: idioma, notificaciones, sin conexión y datos', awa
 check('instalada · Ajustes: horarios sin conexión, una fila por red', await ev("document.querySelectorAll('[data-bide-view=ajustes] .bide-offline-item input[type=checkbox]').length === BideNetworks.slugs.length"));
 check('instalada · Ajustes: el estado del permiso, con su texto', await ev("(() => { const p = document.querySelector('[data-settings-permission]').textContent; return p.length > 10 && p.indexOf('bide.') === -1; })()"));
 check('instalada · Ajustes: el aviso de llegada activo, con línea y parada', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('A3514 → GERNIKA') && document.querySelector('[data-settings-arrivals-empty]').hidden"));
+check('instalada · Ajustes: uno de una vez no dice «todos los días»', await ev("!(document.querySelector('[data-settings-arrivals]').textContent || '').includes('todos los días')"));
 await ev("document.querySelector('[data-settings-arrivals] button').click(); true");
 check('instalada · Ajustes: cancelar el aviso lo quita', await waitTrue("document.querySelectorAll('[data-settings-arrivals] li').length === 0 && !document.querySelector('[data-settings-arrivals-empty]').hidden && JSON.parse(localStorage.getItem('bide-arrival-alerts')).length === 0"));
+await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234568', tripKey: 'x', stopId: '4255', minutes: 5, repeat: true, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now() - 86400000, lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); return true; })()`);
+check('instalada · Ajustes: uno de todos los días lo dice y no caduca a las 3 horas', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('5 min antes · todos los días')"));
+await ev("localStorage.removeItem('bide-arrival-alerts'); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); true");
 await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]').click(); true");
 check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
 await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
@@ -330,6 +351,19 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+
+    // Al tocar una notificación, la ficha se abre una sola vez.
+    const alertUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}&aviso=prueba-${Date.now()}`;
+    await go(alertUrl, 3000);
+    check('notificación: abre la ficha del viaje', await waitTrue("document.getElementById('vehicle-modal').open"));
+    check('notificación: la dirección queda sin ?viaje ni ?aviso', await ev("!location.search.includes('viaje') && !location.search.includes('aviso')"), await ev('location.search'));
+    await send('Page.reload');
+    await sleep(3000);
+    check('notificación: al recargar no vuelve a salir la ficha', await ev("!document.getElementById('vehicle-modal').open"));
+    await go(alertUrl, 3000);
+    check('notificación: si se vuelve a cargar su dirección, se queda en el inicio, sin la parada ni la ficha', await ev("!document.getElementById('vehicle-modal').open && location.pathname === '/' && !location.search.includes('viaje') && document.getElementById('live-card').hidden"), await ev("location.pathname + location.search"));
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    check('compartir: el mismo enlace compartido se puede abrir más veces', await waitTrue("document.getElementById('vehicle-modal').open"));
 } else {
     results.push('SKIP compartir: ahora no hay viajes en las paradas de prueba');
 }
@@ -363,9 +397,43 @@ if (sharedTrip) {
     check('avisos: la ficha ofrece 2, 5 y 10 min', await waitTrue("!document.getElementById('modal-notify').hidden && document.querySelectorAll('[data-notify-minutes]').length === 3"));
     await ev("document.querySelector('[data-notify-minutes=\"5\"]').click(); true");
     check('avisos: al elegir 5 min queda activo', await waitTrue("document.getElementById('modal-notify-status').textContent.includes('5 min') && !document.getElementById('modal-notify-cancel').hidden && document.getElementById('modal-notify-options').hidden"));
-    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
+    check('avisos: pide al servidor el viaje, la parada y los minutos', await ev(`(() => { const body = JSON.parse((window.__alertCalls[0] || {}).body || '{}'); return body.minutes === 5 && body.repeat === false && body.tripKey === ${JSON.stringify(sharedTrip.tripKey)} && String(body.stopId) === ${JSON.stringify(sharedStop.stop)} && body.subscription.endpoint.startsWith('https://fcm.googleapis.com/'); })()`));
+    check('avisos: por defecto avisa una vez y se quita', await ev("document.getElementById('modal-notify-status').textContent.includes('una vez') && document.getElementById('modal-notify-repeat').hidden"));
     await ev("document.getElementById('modal-notify-cancel').click(); true");
     check('avisos: se puede cancelar', await waitTrue("window.__alertCalls.some((call) => call.path.includes('/cancel')) && !document.getElementById('modal-notify-options').hidden"));
+    check('avisos: se ofrece «Avisarme todos los días», sin marcar', await ev("!document.getElementById('modal-notify-repeat').hidden && document.getElementById('modal-notify-repeat-input').checked === false"));
+    await ev("document.getElementById('modal-notify-repeat-input').click(); document.querySelector('[data-notify-minutes=\"10\"]').click(); true");
+    check('avisos: todos los días se pide al servidor y se explica', await waitTrue("window.__alertCalls.filter((call) => !call.path.includes('/cancel')).length === 2 && JSON.parse(window.__alertCalls.filter((call) => !call.path.includes('/cancel'))[1].body).repeat === true && document.getElementById('modal-notify-status').textContent.includes('todos los días')"), await ev("document.getElementById('modal-notify-status').textContent"));
+    check('avisos: todos los días queda guardado como tal', await ev("JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').some((alert) => alert.repeat === true && alert.minutes === 10)"));
+    await ev("document.getElementById('modal-notify-cancel').click(); true");
+
+    // En todas las apps: la ficha de un viaje de cada red ofrece el aviso, también el de todos los días.
+    const sampleStops = {
+        bus: ['331', '277', '298'],
+        metro: ['7'],
+        euskotren: ['ES:Euskotren:StopPlace:2581:', 'ES:Euskotren:StopPlace:2590:'],
+        'tranvia-bilbao': ['ES:Euskotren:StopPlace:1471:', 'ES:Euskotren:StopPlace:1475:'],
+        'tranvia-vitoria': ['ES:Euskotren:StopPlace:1560:', 'ES:Euskotren:StopPlace:1568:'],
+        renfe: ['13200'],
+        lurraldebus: ['1700', '1704', '1701'],
+    };
+    for (const [red, stops] of Object.entries(sampleStops)) {
+        let sample = null;
+        for (const stop of stops) {
+            const data = await (await fetch(`${BASE}/api/stops/${encodeURIComponent(stop)}/departures?limit=8&red=${red}`)).json();
+            const trip = (data.departures || []).find((d) => d.tripKey && d.etaMinutes > 3);
+            if (trip) {
+                sample = { stop, trip };
+                break;
+            }
+        }
+        if (!sample) {
+            results.push(`SKIP avisos en todas las apps: ${red} no tiene viajes ahora`);
+            continue;
+        }
+        await go(`/stops/${encodeURIComponent(sample.stop)}?red=${red}&viaje=${encodeURIComponent(sample.trip.tripKey)}`, 3000);
+        check(`avisos en todas las apps: ${red} lo ofrece en la ficha del viaje`, await waitTrue("document.getElementById('vehicle-modal').open && !document.getElementById('modal-notify').hidden && !document.getElementById('modal-notify-options').hidden && !document.getElementById('modal-notify-repeat').hidden"));
+    }
     await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakePush.identifier });
     await ev("localStorage.removeItem('bide-arrival-alerts'); true");
 } else {
@@ -432,6 +500,36 @@ await go('/mapa');
 check('«mi amor»: sigue en el mapa de la red', await ev("document.documentElement.classList.contains('is-miamor')"));
 await go('/?red=bus&tema=pro');
 check('«mi amor»: ?tema=pro vuelve al tema normal', await ev("!document.documentElement.classList.contains('is-miamor')"));
+
+// ===== Aviso de versión nueva =====
+// El servidor dice que hay una versión más nueva que la de este código.
+fakeAppVersion = { version: 999, notes: [{ number: 999, date: '2026-12-01', title: 'Prueba de versión', text: 'Lo que trae la versión de prueba.' }] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/app/version*' }] });
+await setStandalone(true);
+await phone();
+await go('/');
+check('versión nueva · «1» rojo en la rueda de Ajustes', await waitTrue(`${shown('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')} && getComputedStyle(document.querySelector('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')).backgroundColor === 'rgb(200, 16, 46)'`));
+await ev("document.querySelector('.bide-tabbar [data-bide-tab=ajustes]').click(); true");
+check('versión nueva · Ajustes: «Nueva actualización de la app» con lo que trae', await waitTrue(`${shown('[data-settings-update]')} && document.querySelector('[data-settings-update-notes]').textContent.includes('Prueba de versión')`));
+check('versión nueva · Ajustes: el «1» también en «Vaciar caché y actualizar»', await ev(shown('[data-settings-update-badge]')));
+check('versión nueva · Ajustes: va directo a actualizar, con el aviso entero a la vista', await waitTrue("(() => { const head = document.querySelector('[data-bide-view=ajustes] .bide-view-head').getBoundingClientRect(); const title = document.querySelector('[data-settings-update] .bide-update-title').getBoundingClientRect(); return title.top >= head.bottom && title.top < innerHeight / 2; })()"));
+check('versión nueva · sin desbordar a lo ancho', await ev(noOverflow));
+await go('/?red=metro');
+check('versión nueva · también en cada app', await waitTrue(shown('.bide-tabbar [data-bide-tab=ajustes] .bide-update-badge')));
+await setStandalone(false);
+await desktop();
+await go('/');
+check('versión nueva · ordenador: «1» en Ajustes de la columna', await waitTrue(shown('.bide-rail [data-bide-tab=ajustes] .bide-update-badge')));
+// La notificación abre Ajustes una sola vez, aunque el sistema vuelva a cargar su dirección.
+await go('/?aviso=prueba-version#ajustes');
+check('versión nueva · la notificación abre Ajustes y se quita «aviso» de la dirección', await waitTrue(`${shown('[data-bide-view=ajustes]')} && !location.search.includes('aviso')`));
+await go('/?aviso=prueba-version#ajustes');
+check('versión nueva · si se vuelve a cargar su dirección, se queda en el inicio', await waitTrue("!document.documentElement.classList.contains('bide-view-open') && location.hash === ''"));
+fakeAppVersion = null;
+await send('Fetch.disable');
+await go('/');
+await sleep(1500);
+check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);

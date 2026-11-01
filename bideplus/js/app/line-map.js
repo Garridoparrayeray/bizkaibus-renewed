@@ -1,5 +1,5 @@
 // Mapa de la línea abierta en «Consultar horarios»: su recorrido y los vehículos en ruta, que se refrescan solos.
-import { FEATURES, NETWORK_SLUG, el, state } from './core.js';
+import { FEATURES, NETWORK_SLUG, el, onReturn, state } from './core.js';
 import { escapeHtml } from './ui.js';
 
 const mapState = {
@@ -126,4 +126,7 @@ export function setUpLineMap() {
         el.lineMap.hidden = true;
         el.lineMapEmpty.hidden = true;
     }
+    onReturn(() => {
+        if (mapState.refreshTimer && state.currentLine) loadLineMap(state.currentLine.id);
+    });
 }

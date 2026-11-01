@@ -93,9 +93,14 @@ const APP_DIR = resolve(new URL('..', import.meta.url).pathname.replace(/^\/([A-
 const OFFLINE_PORT = Number(process.env.OFFLINE_PORT || 8213);
 const OFFLINE_BASE = `http://localhost:${OFFLINE_PORT}`;
 const ownServer = spawn(PHP, ['-S', `localhost:${OFFLINE_PORT}`, 'dev-router.php'], { cwd: APP_DIR, stdio: 'ignore' });
+// Sin leer la respuesta, Node 22.23 se cae al apagar este servidor.
 for (let i = 0; i < 40; i++) {
     await sleep(500);
-    try { if ((await fetch(OFFLINE_BASE + '/')).ok) break; } catch (e) { }
+    try {
+        const response = await fetch(OFFLINE_BASE + '/');
+        await response.arrayBuffer();
+        if (response.ok) break;
+    } catch (e) { }
 }
 const goOwn = async (url, wait = 3000) => { await send('Page.navigate', { url: OFFLINE_BASE + url }); await sleep(wait); };
 const searchOwn = async q => {
@@ -115,8 +120,12 @@ await ev("document.querySelector('[data-bide-tab=ajustes]').click()");
 await sleep(800);
 await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Bizkaibus')).querySelector('input'); input.click(); return true; })()");
 check('horarios sin conexion: Bizkaibus se guarda desde Ajustes', await waitTrue("!!BideOffline.saved().bus"));
+await ev("(() => { const list = BideOffline.saved(); list.bus.generated = '2000-01-01'; localStorage.setItem('bide-offline-networks', JSON.stringify(list)); localStorage.removeItem('bide-offline-checked'); window.dispatchEvent(new Event('online')); return true; })()");
+check('horarios sin conexion: un horario mas nuevo se baja solo al volver la conexion', await waitTrue("BideOffline.saved().bus.generated !== '2000-01-01'", 20000));
 await goOwn('/stops/3388', 4000);
 check('con conexion: no se puede marcar si un bus paso (manda el directo)', await waitTrue("!document.getElementById('live-card').hidden") && (await ev("document.getElementById('live-offline-marks').hidden && document.querySelectorAll('#live-more-list .offline-mark').length === 0")));
+await ev("(() => { window.__departuresCalls = 0; const original = Api.stopDepartures; Api.stopDepartures = (...args) => { window.__departuresCalls++; return original(...args); }; window.dispatchEvent(new Event('online')); return true; })()");
+check('al recuperar la conexion se piden ya las salidas, por si vuelve el directo', await waitTrue('window.__departuresCalls > 0', 4000));
 await goOwn('/?red=bus');
 
 ownServer.kill();

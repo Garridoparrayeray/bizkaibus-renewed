@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 function resolveZipPath(string $sSource, ?string $sFallbackSource = null): string
 {
-    $attemptDownload = function(string $url) {
+    $AttemptDownload = function(string $sUrl) {
         $sTmp = tempnam(sys_get_temp_dir(), 'bbgtfs') . '.zip';
-        $Ch = curl_init($url);
+        $Ch = curl_init($sUrl);
         $Fp = fopen($sTmp, 'wb');
 
         $aCurlOptions = [
@@ -19,16 +19,16 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
         ];
 
         $sNapKey = getenv('NAP_API_KEY');
-        if ($sNapKey && str_contains(strtolower($url), 'nap.transportes.gob.es')) {
+        if ($sNapKey && str_contains(strtolower($sUrl), 'nap.transportes.gob.es')) {
             $aCurlOptions[CURLOPT_HTTPHEADER] = ['ApiKey: ' . $sNapKey];
         }
 
         curl_setopt_array($Ch, $aCurlOptions);
         $bOk = curl_exec($Ch);
 
-        $error = null;
+        $sError = null;
         if ($bOk === false) {
-            $error = curl_error($Ch);
+            $sError = curl_error($Ch);
         }
 
         curl_close($Ch);
@@ -38,26 +38,26 @@ function resolveZipPath(string $sSource, ?string $sFallbackSource = null): strin
             return $sTmp;
         } else {
             unlink($sTmp);
-            return $error;
+            return $sError;
         }
     };
 
     if (preg_match('#^(https?|ftp)://#i', $sSource)) {
         echo "  -> Downloading from primary source: $sSource\n";
-        $result = $attemptDownload($sSource);
-        if (is_string($result) && file_exists($result)) {
-            return $result;
+        $sResult = $AttemptDownload($sSource);
+        if (is_string($sResult) && file_exists($sResult)) {
+            return $sResult;
         }
 
-        fwrite(STDERR, "  -> Primary download failed: $result\n");
+        fwrite(STDERR, "  -> Primary download failed: $sResult\n");
 
         if ($sFallbackSource && preg_match('#^(https?|ftp)://#i', $sFallbackSource)) {
             echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
-            $fallbackResult = $attemptDownload($sFallbackSource);
-            if (is_string($fallbackResult) && file_exists($fallbackResult)) {
-                return $fallbackResult;
+            $sFallbackResult = $AttemptDownload($sFallbackSource);
+            if (is_string($sFallbackResult) && file_exists($sFallbackResult)) {
+                return $sFallbackResult;
             }
-            fwrite(STDERR, "  -> Fallback download failed: $fallbackResult\n");
+            fwrite(STDERR, "  -> Fallback download failed: $sFallbackResult\n");
         }
 
         exit(1);

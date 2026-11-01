@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v44';
+const CACHE_VERSION = 'v50';
 const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
@@ -10,7 +10,8 @@ const OFFLINE_CACHE_NAME = 'bide-offline';
 const SLOW_NETWORK_MS = 1500;
 // El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
-const LIVE_API = /\/(departures|live|vehicles|alerts|nearby)(\/|\?|$)/;
+// Lo que nunca sale de la caché.
+const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|app\/version)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
     '/style-networks.css',
@@ -41,6 +42,7 @@ const SHELL_FILES = [
     '/js/app/timetable.js',
     '/js/app/line-map.js',
     '/js/app/schedule-modal.js',
+    '/js/app/schedule-periods.js',
     '/js/app/vehicle-modal.js',
     '/js/app/favorites.js',
     '/js/app/side-menu.js',
@@ -52,6 +54,7 @@ const SHELL_FILES = [
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',
     '/js/settings.js',
+    '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/i18n.js',
@@ -232,6 +235,25 @@ function ownPath(value, fallback) {
     return fallback;
 }
 
+// Avisos de llegada de una vez que ya avisaron, para que la app los quite aunque estuviera cerrada.
+const FIRED_KEY = 'arrivalFired';
+const FIRED_KEEP_MS = 24 * 3600 * 1000;
+
+async function rememberFiredAlert(id) {
+    try {
+        const fired = (await AlertsStore.get(FIRED_KEY)) || {};
+        for (const [key, at] of Object.entries(fired)) {
+            if (Date.now() - at > FIRED_KEEP_MS) delete fired[key];
+        }
+        fired[id] = Date.now();
+        await AlertsStore.set(FIRED_KEY, fired);
+    } catch (e) {
+        // Sin IndexedDB se quita igual al pasar su hora.
+    }
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    windows.forEach((client) => client.postMessage({ type: 'bide:arrival-fired', id }));
+}
+
 // Siempre se enseña algo, aunque el mensaje llegue roto: en iPhone, un push sin notificación hace que el sistema
 // acabe quitando el permiso.
 self.addEventListener('push', (event) => {
@@ -241,7 +263,7 @@ self.addEventListener('push', (event) => {
     } catch (e) {
         data = {};
     }
-    event.waitUntil(self.registration.showNotification(data.title || 'Bide+', {
+    const work = [self.registration.showNotification(data.title || 'Bide+', {
         body: data.body || '',
         icon: ownPath(data.icon, '/icons-bide-rojo/icon-192.png'),
         badge: BADGE_ICON,
@@ -249,7 +271,9 @@ self.addEventListener('push', (event) => {
         renotify: true,
         vibrate: [200, 100, 200],
         data: { url: ownPath(data.url, '/') },
-    }));
+    })];
+    if (typeof data.alertId === 'string' && data.repeat !== true) work.push(rememberFiredAlert(data.alertId));
+    event.waitUntil(Promise.all(work));
 });
 
 // Al tocar una notificación se abre su dirección: en la ventana de la app que ya haya o, si no hay, en una nueva. En

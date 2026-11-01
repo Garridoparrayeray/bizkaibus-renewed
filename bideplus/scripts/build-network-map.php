@@ -76,164 +76,226 @@ function networkLabel(array $aNetwork, string $sLang): string
 
 function buildNetwork(string $sSlug, array $aNetwork): array
 {
-    $Pdo = new PDO('sqlite:' . $aNetwork['db_path']);
-    $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $Pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-
-    $aLineColumns = array_column($Pdo->query('PRAGMA table_info(lines)')->fetchAll(), 'name');
-    $sColorSelect = 'NULL AS color';
-    if (\in_array('color', $aLineColumns, true)) {
-        $sColorSelect = 'color';
-    }
-    $sTextColorSelect = 'NULL AS text_color';
-    if (\in_array('text_color', $aLineColumns, true)) {
-        $sTextColorSelect = 'text_color';
-    }
-    $bHasShapes = (bool)$Pdo->query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'shapes'")->fetchColumn();
-    $aJourneyColumns = array_column($Pdo->query('PRAGMA table_info(service_journeys)')->fetchAll(), 'name');
-    $bHasShapeIds = $bHasShapes && \in_array('shape_id', $aJourneyColumns, true);
-
-    $aLines = $Pdo->query("SELECT id, code, name, $sColorSelect, $sTextColorSelect FROM lines ORDER BY code")->fetchAll();
-
-    // Viajes por recorrido: el más usado de cada línea va primero y es el que da el esquema.
-    $aPatternTrips = [];
-    foreach ($Pdo->query('SELECT journey_pattern_id, COUNT(*) AS n FROM service_journeys GROUP BY journey_pattern_id') as $aRow) {
-        $aPatternTrips[$aRow['journey_pattern_id']] = (int)$aRow['n'];
-    }
-    $aPatternShape = [];
-    if ($bHasShapeIds) {
-        $sSql = 'SELECT journey_pattern_id, shape_id, COUNT(*) AS n FROM service_journeys WHERE shape_id IS NOT NULL GROUP BY journey_pattern_id, shape_id ORDER BY n DESC';
-        foreach ($Pdo->query($sSql) as $aRow) {
-            $aPatternShape[$aRow['journey_pattern_id']] ??= $aRow['shape_id'];
-        }
-    }
-
-    $aPatternsByLine = [];
-    foreach ($Pdo->query('SELECT id, line_id, headsign FROM journey_patterns') as $aRow) {
-        $aPatternsByLine[$aRow['line_id']][] = $aRow;
-    }
-    $aPatternStops = [];
-    foreach ($Pdo->query('SELECT journey_pattern_id, stop_id FROM journey_pattern_stops ORDER BY journey_pattern_id, seq_order') as $aRow) {
-        $aPatternStops[$aRow['journey_pattern_id']][] = (string)$aRow['stop_id'];
-    }
-    $aStopsAll = [];
-    foreach ($Pdo->query('SELECT id, name, lat, lon FROM stops') as $aRow) {
-        $aStopsAll[(string)$aRow['id']] = $aRow;
-    }
-    $ShapeStmt = null;
-    if ($bHasShapes) {
-        $ShapeStmt = $Pdo->prepare('SELECT points FROM shapes WHERE id = ?');
-    }
-
+    $Source = MapSource::open($aNetwork['db_path']);
+    $sThemeColor = $aNetwork['brand']['theme_color'] ?? '#555555';
     $aStopsUsed = [];
-    $aOutLines = [];
     if (isset(LINE_SPLITS[$sSlug])) {
-        foreach (LINE_SPLITS[$sSlug] as $aSplit) {
-            $aBest = null;
-            foreach ($aPatternsByLine as $aPatterns) {
-                foreach ($aPatterns as $aPattern) {
-                    $aStops = $aPatternStops[$aPattern['id']] ?? [];
-                    if (\count($aStops) < 2 || !isset($aStopsAll[$aStops[0]], $aStopsAll[end($aStops)])) {
-                        continue;
-                    }
-                    $aEnds = [$aStopsAll[$aStops[0]]['name'], $aStopsAll[end($aStops)]['name']];
-                    sort($aEnds);
-                    $aWanted = $aSplit['ends'];
-                    sort($aWanted);
-                    if ($aEnds === $aWanted && ($aBest === null || ($aPatternTrips[$aPattern['id']] ?? 0) > ($aPatternTrips[$aBest['id']] ?? 0))) {
-                        $aBest = $aPattern;
-                    }
-                }
-            }
-            if ($aBest === null) {
-                fwrite(STDERR, "  $sSlug: no hay recorrido {$aSplit['ends'][0]} - {$aSplit['ends'][1]} para {$aSplit['code']}\n");
-                continue;
-            }
-            $aStops = $aPatternStops[$aBest['id']];
-            foreach ($aStops as $sId) {
-                $aStopsUsed[$sId] = true;
-            }
-            $aOutLines[] = [
-                'id' => $aSplit['code'],
-                'code' => $aSplit['code'],
-                'name' => $aSplit['name'],
-                'color' => LINE_COLORS[$sSlug][$aSplit['code']] ?? ($aNetwork['brand']['theme_color'] ?? '#555555'),
-                'textColor' => null,
-                'patterns' => [[
-                    'headsign' => $aBest['headsign'],
-                    'stops' => $aStops,
-                    'path' => patternPath($aBest['id'], $aStops, $aStopsAll, $aPatternShape, $ShapeStmt),
-                    'mins' => patternMinutes($Pdo, $aBest['id'], \count($aStops)),
-                ]],
-            ];
-        }
-        $aLines = [];
+        $aLines = splitLines($sSlug, $sThemeColor, $Source, $aStopsUsed);
+    } else {
+        $aLines = operatorLines($sSlug, $sThemeColor, $Source, $aStopsUsed);
     }
-    foreach ($aLines as $aLine) {
-        $aPatterns = $aPatternsByLine[$aLine['id']] ?? [];
-        usort($aPatterns, fn($aA, $aB) => ($aPatternTrips[$aB['id']] ?? 0) <=> ($aPatternTrips[$aA['id']] ?? 0));
+    $aLines = namedByEnds(mergeDirections($aLines), $Source->aStops);
+    return ['network' => $sSlug, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
+}
 
-        // Se quedan los recorridos que añaden paradas nuevas (ramales, sentidos con paradas propias), no las repeticiones.
-        $aCovered = [];
-        $aChosen = [];
-        foreach ($aPatterns as $aPattern) {
-            $aStops = array_values(array_filter($aPatternStops[$aPattern['id']] ?? [], fn($sId) => isset($aStopsAll[$sId])));
-            if (\count($aStops) < 2) {
-                continue;
-            }
-            $aNew = array_diff($aStops, array_keys($aCovered));
-            if (!empty($aChosen) && \count($aNew) === 0) {
-                continue;
-            }
-            foreach ($aStops as $sId) {
-                $aCovered[$sId] = true;
-                $aStopsUsed[$sId] = true;
-            }
-            $aChosen[] = [
-                'headsign' => $aPattern['headsign'],
-                'stops' => $aStops,
-                'path' => patternPath($aPattern['id'], $aStops, $aStopsAll, $aPatternShape, $ShapeStmt),
-                'mins' => patternMinutes($Pdo, $aPattern['id'], \count($aStops)),
-            ];
-            if (\count($aChosen) >= MAX_PATTERNS_PER_LINE) {
-                break;
+// Las columnas de color y los trazados solo los tienen algunas redes.
+final class MapSource
+{
+    public function __construct(
+        public readonly PDO $Pdo,
+        public readonly array $aLines,
+        public readonly array $aPatternsByLine,
+        public readonly array $aPatternStops,
+        public readonly array $aPatternTrips,
+        public readonly array $aPatternShape,
+        public readonly array $aStops,
+        public readonly PDOStatement|null $ShapeStatement,
+    ) {
+    }
+
+    public static function open(string $sPath): self
+    {
+        $Pdo = new PDO('sqlite:' . $sPath);
+        $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $Pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+        $aLineColumns = array_column($Pdo->query('PRAGMA table_info(lines)')->fetchAll(), 'name');
+        $sColor = 'NULL AS color';
+        if (\in_array('color', $aLineColumns, true)) {
+            $sColor = 'color';
+        }
+        $sTextColor = 'NULL AS text_color';
+        if (\in_array('text_color', $aLineColumns, true)) {
+            $sTextColor = 'text_color';
+        }
+        $aLines = $Pdo->query("SELECT id, code, name, $sColor, $sTextColor FROM lines ORDER BY code")->fetchAll();
+
+        // El recorrido más usado de cada línea va primero y da el esquema.
+        $aPatternTrips = [];
+        foreach ($Pdo->query('SELECT journey_pattern_id, COUNT(*) AS n FROM service_journeys GROUP BY journey_pattern_id') as $aRow) {
+            $aPatternTrips[$aRow['journey_pattern_id']] = (int)$aRow['n'];
+        }
+        $bHasShapes = (bool)$Pdo->query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'shapes'")->fetchColumn();
+        $aJourneyColumns = array_column($Pdo->query('PRAGMA table_info(service_journeys)')->fetchAll(), 'name');
+        $aPatternShape = [];
+        if ($bHasShapes && \in_array('shape_id', $aJourneyColumns, true)) {
+            $sSql = 'SELECT journey_pattern_id, shape_id, COUNT(*) AS n FROM service_journeys WHERE shape_id IS NOT NULL GROUP BY journey_pattern_id, shape_id ORDER BY n DESC';
+            foreach ($Pdo->query($sSql) as $aRow) {
+                $aPatternShape[$aRow['journey_pattern_id']] ??= $aRow['shape_id'];
             }
         }
-        if (empty($aChosen)) {
+        $aPatternsByLine = [];
+        foreach ($Pdo->query('SELECT id, line_id, headsign FROM journey_patterns') as $aRow) {
+            $aPatternsByLine[$aRow['line_id']][] = $aRow;
+        }
+        $aPatternStops = [];
+        foreach ($Pdo->query('SELECT journey_pattern_id, stop_id FROM journey_pattern_stops ORDER BY journey_pattern_id, seq_order') as $aRow) {
+            $aPatternStops[$aRow['journey_pattern_id']][] = (string)$aRow['stop_id'];
+        }
+        $aStops = [];
+        foreach ($Pdo->query('SELECT id, name, lat, lon FROM stops') as $aRow) {
+            $aStops[(string)$aRow['id']] = $aRow;
+        }
+        $ShapeStatement = null;
+        if ($bHasShapes) {
+            $ShapeStatement = $Pdo->prepare('SELECT points FROM shapes WHERE id = ?');
+        }
+        return new self($Pdo, $aLines, $aPatternsByLine, $aPatternStops, $aPatternTrips, $aPatternShape, $aStops, $ShapeStatement);
+    }
+
+    public function trips(string|int $PatternId): int
+    {
+        return $this->aPatternTrips[$PatternId] ?? 0;
+    }
+
+    public function pattern(array $aPattern, array $aStops): array
+    {
+        return [
+            'headsign' => $aPattern['headsign'],
+            'stops' => $aStops,
+            'path' => patternPath($aPattern['id'], $aStops, $this->aStops, $this->aPatternShape, $this->ShapeStatement),
+            'mins' => patternMinutes($this->Pdo, $aPattern['id'], \count($aStops)),
+        ];
+    }
+}
+
+// Cada línea propia es el recorrido más usado entre sus dos extremos.
+function splitLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
+{
+    $aLines = [];
+    foreach (LINE_SPLITS[$sSlug] as $aSplit) {
+        $aBest = busiestPatternBetween($Source, $aSplit['ends']);
+        if ($aBest === null) {
+            fwrite(STDERR, "  $sSlug: no hay recorrido {$aSplit['ends'][0]} - {$aSplit['ends'][1]} para {$aSplit['code']}\n");
             continue;
         }
-        $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? null;
-        $sTextColor = null;
-        if ($sColor === null) {
-            [$sColor, $sTextColor] = mapLineColors($aLine['color'] ?? null, $aLine['text_color'] ?? null, $aNetwork['brand']['theme_color'] ?? '#555555');
+        $aStops = $Source->aPatternStops[$aBest['id']];
+        foreach ($aStops as $sId) {
+            $aStopsUsed[$sId] = true;
         }
-        $aOutLines[] = [
+        $aLines[] = [
+            'id' => $aSplit['code'],
+            'code' => $aSplit['code'],
+            'name' => $aSplit['name'],
+            'color' => LINE_COLORS[$sSlug][$aSplit['code']] ?? $sThemeColor,
+            'textColor' => null,
+            'patterns' => [$Source->pattern($aBest, $aStops)],
+        ];
+    }
+    return $aLines;
+}
+
+function busiestPatternBetween(MapSource $Source, array $aEnds): array|null
+{
+    sort($aEnds);
+    $aBest = null;
+    foreach ($Source->aPatternsByLine as $aPatterns) {
+        foreach ($aPatterns as $aPattern) {
+            $aStops = $Source->aPatternStops[$aPattern['id']] ?? [];
+            if (\count($aStops) < 2 || !isset($Source->aStops[$aStops[0]], $Source->aStops[end($aStops)])) {
+                continue;
+            }
+            $aPatternEnds = [$Source->aStops[$aStops[0]]['name'], $Source->aStops[end($aStops)]['name']];
+            sort($aPatternEnds);
+            if ($aPatternEnds !== $aEnds) {
+                continue;
+            }
+            if ($aBest === null || $Source->trips($aPattern['id']) > $Source->trips($aBest['id'])) {
+                $aBest = $aPattern;
+            }
+        }
+    }
+    return $aBest;
+}
+
+function operatorLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
+{
+    $aLines = [];
+    foreach ($Source->aLines as $aLine) {
+        $aPatterns = coveringPatterns($Source, $Source->aPatternsByLine[$aLine['id']] ?? [], $aStopsUsed);
+        if (empty($aPatterns)) {
+            continue;
+        }
+        [$sColor, $sTextColor] = lineColors($sSlug, $aLine, $sThemeColor);
+        $aLines[] = [
             'id' => (string)$aLine['id'],
             'code' => $aLine['code'],
             'name' => $aLine['name'],
             'color' => $sColor,
             'textColor' => $sTextColor,
-            'patterns' => $aChosen,
+            'patterns' => $aPatterns,
         ];
     }
+    return $aLines;
+}
 
-    $aOutLines = mergeDirections($aOutLines);
-    foreach ($aOutLines as &$aOutLine) {
-        if (isset($aOutLine['ends'])) {
-            $aOutLine['name'] = lineNameForEnds($aOutLine['names'], $aStopsAll[$aOutLine['ends'][0]]['name'], $aStopsAll[$aOutLine['ends'][1]]['name']);
-            unset($aOutLine['ends']);
+// Se quedan los recorridos que añaden paradas nuevas, hasta MAX_PATTERNS_PER_LINE.
+function coveringPatterns(MapSource $Source, array $aPatterns, array &$aStopsUsed): array
+{
+    usort($aPatterns, fn($aA, $aB) => $Source->trips($aB['id']) <=> $Source->trips($aA['id']));
+    $aCovered = [];
+    $aChosen = [];
+    foreach ($aPatterns as $aPattern) {
+        $aStops = array_values(array_filter($Source->aPatternStops[$aPattern['id']] ?? [], fn($sId) => isset($Source->aStops[$sId])));
+        if (\count($aStops) < 2) {
+            continue;
         }
-        unset($aOutLine['names']);
+        if (!empty($aChosen) && \count(array_diff($aStops, array_keys($aCovered))) === 0) {
+            continue;
+        }
+        foreach ($aStops as $sId) {
+            $aCovered[$sId] = true;
+            $aStopsUsed[$sId] = true;
+        }
+        $aChosen[] = $Source->pattern($aPattern, $aStops);
+        if (\count($aChosen) >= MAX_PATTERNS_PER_LINE) {
+            break;
+        }
     }
-    unset($aOutLine);
+    return $aChosen;
+}
 
-    $aOutStops = [];
+function lineColors(string $sSlug, array $aLine, string $sThemeColor): array
+{
+    $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? null;
+    if ($sColor !== null) {
+        return [$sColor, null];
+    }
+    return mapLineColors($aLine['color'] ?? null, $aLine['text_color'] ?? null, $sThemeColor);
+}
+
+function namedByEnds(array $aLines, array $aStops): array
+{
+    foreach ($aLines as &$aLine) {
+        if (isset($aLine['ends'])) {
+            $aLine['name'] = lineNameForEnds($aLine['names'], $aStops[$aLine['ends'][0]]['name'], $aStops[$aLine['ends'][1]]['name']);
+            unset($aLine['ends']);
+        }
+        unset($aLine['names']);
+    }
+    unset($aLine);
+    return $aLines;
+}
+
+// Coordenadas con 5 decimales (un metro).
+function usedStops(array $aStopsUsed, array $aStops): array
+{
+    $aUsed = [];
     foreach (array_keys($aStopsUsed) as $sId) {
-        $aStop = $aStopsAll[$sId];
-        $aOutStops[$sId] = [$aStop['name'], round((float)$aStop['lat'], 5), round((float)$aStop['lon'], 5)];
+        $aStop = $aStops[$sId];
+        $aUsed[$sId] = [$aStop['name'], round((float)$aStop['lat'], 5), round((float)$aStop['lon'], 5)];
     }
-
-    return ['network' => $sSlug, 'lines' => $aOutLines, 'stops' => $aOutStops];
+    return $aUsed;
 }
 
 // Algunos operadores publican cada sentido como una línea aparte (Renfe: «Abando -Santurtzi» y «Santurtzi -Abando»). En el

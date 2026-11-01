@@ -1,12 +1,12 @@
 (function () {
     'use strict';
 
-    var LAST_APP_KEY = 'bide_last_app';
-    var VIEW_KEY = 'bide_menu_view';
-    var LAUNCH_MS = 380;
-    var tiles = document.querySelectorAll('a.tile[data-app]');
-    var viewButtons = document.querySelectorAll('[data-view-btn]');
-    var main = document.querySelector('main');
+    const LAST_APP_KEY = 'bide_last_app';
+    const VIEW_KEY = 'bide_menu_view';
+    const LAUNCH_MS = 380;
+    const tiles = document.querySelectorAll('a.tile[data-app]');
+    const viewButtons = document.querySelectorAll('[data-view-btn]');
+    const main = document.querySelector('main');
 
     function readStorage(key) {
         try {
@@ -41,7 +41,7 @@
             return;
         }
         if (document.startViewTransition) {
-            var transition = document.startViewTransition(function () {
+            const transition = document.startViewTransition(function () {
                 applyView(view);
             });
             transition.ready.catch(function () {});
@@ -55,15 +55,15 @@
         }, 120);
     }
 
-    var lastApp = readStorage(LAST_APP_KEY);
+    const lastApp = readStorage(LAST_APP_KEY);
     tiles.forEach(function (tile) {
-        var app = tile.getAttribute('data-app');
+        const app = tile.getAttribute('data-app');
         if (app === lastApp) {
             tile.classList.add('is-last');
         }
         tile.addEventListener('click', function (event) {
             writeStorage(LAST_APP_KEY, app);
-            var modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+            const modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
             if (modified || prefersReducedMotion() || tile.classList.contains('is-launching')) return;
             event.preventDefault();
             tile.classList.add('is-launching');
@@ -77,7 +77,7 @@
     applyView(document.documentElement.getAttribute('data-view') || 'tiles');
     viewButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-            var view = button.getAttribute('data-view-btn');
+            const view = button.getAttribute('data-view-btn');
             changeView(view);
             writeStorage(VIEW_KEY, view);
         });

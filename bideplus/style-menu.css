@@ -8,8 +8,12 @@
 }
 
 /* ===== Base ===== */
-* { box-sizing: border-box; }
-html { background: var(--paper); }
+* {
+    box-sizing: border-box;
+}
+html {
+    background: var(--paper);
+}
 body {
     margin: 0;
     min-height: 100vh;
@@ -37,33 +41,40 @@ main {
         gap: 10px 16px;
         padding: 6px 4px 0;
     }
-        header h1 { margin: 0; line-height: 0; }
-        header .wordmark { height: 44px; width: auto; display: block; }
+        header h1 {
+            margin: 0;
+            line-height: 0;
+        }
+        header .wordmark {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
         header p {
             order: 3;
             flex-basis: 100%;
             margin: 0;
             color: var(--muted);
-            font-size: 0.95rem;
+            font-size: 15.2px;
             line-height: 1.25;
         }
     h2 {
         margin: 0 0 10px 4px;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 0.98rem;
+        font-size: 15.68px;
         font-weight: 700;
         color: var(--muted);
         letter-spacing: -0.005em;
     }
     footer {
         color: var(--muted);
-        font-size: 0.82rem;
+        font-size: 13.12px;
         padding: 6px 4px 0;
         max-width: 60ch;
     }
 
 /* ===== Colores por app ===== */
-/* El verde de Bizkaibus en una ficha grande se ve casi negro: uno algo más claro, con el brillo de las demás fichas. */
+/* Verde de Bizkaibus más claro en la ficha grande */
 
 /* ===== Fichas de las apps ===== */
 .tiles {
@@ -74,7 +85,9 @@ main {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
 }
-    .tiles li { display: flex; }
+    .tiles > li {
+        display: flex;
+    }
 
 .tile {
     position: relative;
@@ -117,10 +130,17 @@ main {
         pointer-events: none;
     }
 @keyframes launch-shine {
-    to { transform: translateX(100%); }
+    to {
+        transform: translateX(100%);
+    }
 }
-    a.tile:active { transform: scale(.98); }
-    a.tile:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+    a.tile:active {
+        transform: scale(.98);
+    }
+    a.tile:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 3px;
+    }
     .tile .appicon {
         display: block;
         width: 56px;
@@ -149,11 +169,13 @@ main {
         height: 22px;
         opacity: .85;
     }
-    .tile .txt { display: block; }
+    .tile .txt {
+        display: block;
+    }
         .tile strong {
             display: block;
             font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-            font-size: 1.4rem;
+            font-size: 22.4px;
             font-weight: 800;
             letter-spacing: -0.02em;
             line-height: 1.1;
@@ -161,7 +183,7 @@ main {
         .tile .txt span {
             display: block;
             margin-top: 4px;
-            font-size: 0.86rem;
+            font-size: 13.76px;
             line-height: 1.3;
             opacity: .88;
         }
@@ -174,14 +196,10 @@ main {
             font-weight: inherit;
             opacity: 1;
         }
-        /* Como el nombre de un elemento en la tabla periódica: pequeño,
-           justo bajo "Tranvía+". En ficha (fondo de color) va en blanco
-           translúcido; en lista (fondo blanco) se recolorea más abajo,
-           con más especificidad que la regla genérica de "[data-view=list]
-           .tile .txt span" para poder ganarle. */
+        /* Ciudad bajo el nombre (Tranvía+ Bilbao) */
         .tile .txt .tile-city {
             margin-top: -2px;
-            font-size: .8rem;
+            font-size: 12.8px;
             line-height: 1.2;
             font-weight: 700;
             letter-spacing: 1.5px;
@@ -213,14 +231,19 @@ main {
     color: var(--ink);
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
     font-weight: 700;
-    font-size: 0.86rem;
+    font-size: 13.76px;
     text-align: center;
     cursor: pointer;
 }
-    .lang-toggle:hover { background: #FAF9F6; }
-    .lang-toggle:focus-visible { outline: 3px solid var(--green); outline-offset: -3px; }
+    .lang-toggle:hover {
+        background: #FAF9F6;
+    }
+    .lang-toggle:focus-visible {
+        outline: 3px solid var(--green);
+        outline-offset: -3px;
+    }
 
-    .view-toggle button {
+    .view-toggle > button {
         width: 44px;
         height: 44px;
         border: 0;
@@ -230,20 +253,42 @@ main {
         place-items: center;
         cursor: pointer;
     }
-        .view-toggle button svg { width: 22px; height: 22px; }
-        .view-toggle button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-        .view-toggle button:focus-visible { outline: 3px solid var(--green); outline-offset: -3px; }
+        .view-toggle button svg {
+            width: 22px;
+            height: 22px;
+        }
+        .view-toggle > button[aria-pressed="true"] {
+            background: var(--ink);
+            color: #fff;
+        }
+        .view-toggle > button:focus-visible {
+            outline: 3px solid var(--green);
+            outline-offset: -3px;
+        }
 
 /* ===== Vista en lista (accesible, iconos pequeños) ===== */
-.tile .chev, .tile .txt .last { display: none; }
+.tile .chev,
+.tile .txt .last {
+    display: none;
+}
 
-[data-view="list"] main { max-width: 640px; }
-[data-view="list"] .tile { --wipe: var(--c); }
+[data-view="list"] main {
+    max-width: 640px;
+}
+[data-view="list"] .tile {
+    --wipe: var(--c);
+}
     [data-view="list"] .tile.is-launching .txt strong,
     [data-view="list"] .tile.is-launching .txt span,
-    [data-view="list"] .tile.is-launching .chev { color: #fff; transition: color .18s ease .12s; }
+    [data-view="list"] .tile.is-launching .chev {
+        color: #fff;
+        transition: color .18s ease .12s;
+    }
     [data-view="list"] .tiles,
-    [data-view="list"] .menu-apps .tiles { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    [data-view="list"] .menu-apps .tiles {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+    }
     [data-view="list"] .tile {
         flex-direction: row;
         align-items: center;
@@ -256,25 +301,49 @@ main {
         background: var(--paper);
         color: var(--ink);
     }
-        [data-view="list"] a.tile:hover { border-color: #C9C5BB; background: #FAF9F6; }
+        [data-view="list"] a.tile:hover {
+            border-color: #C9C5BB;
+            background: #FAF9F6;
+        }
         [data-view="list"] .tile .mark,
-        [data-view="list"] .tile .go { display: none; }
+        [data-view="list"] .tile .go {
+            display: none;
+        }
         [data-view="list"] .tile .appicon {
             flex: none;
             border-radius: 14px;
         }
-        [data-view="list"] .tile .txt { flex: 1; min-width: 0; order: 1; }
-            [data-view="list"] .tile .txt span { color: var(--muted); opacity: 1; font-size: 0.92rem; }
-            [data-view="list"] .tile .txt .tile-mark { color: inherit; font-size: 1em; opacity: 1; }
-            [data-view="list"] .tile .txt .tile-city { color: var(--c); opacity: .8; font-size: .8rem; text-align: left; }
+        [data-view="list"] .tile .txt {
+            flex: 1;
+            min-width: 0;
+            order: 1;
+        }
+            [data-view="list"] .tile .txt span {
+                color: var(--muted);
+                opacity: 1;
+                font-size: 14.72px;
+            }
+            [data-view="list"] .tile .txt .tile-mark {
+                color: inherit;
+                font-size: 1em;
+                opacity: 1;
+            }
+            [data-view="list"] .tile .txt .tile-city {
+                color: var(--c);
+                opacity: .8;
+                font-size: 12.8px;
+                text-align: left;
+            }
             [data-view="list"] .tile.is-last .txt .last {
                 display: block;
                 margin-top: 4px;
                 color: var(--green);
-                font-size: 0.78rem;
+                font-size: 12.48px;
                 font-weight: 600;
             }
-            [data-view="list"] .tile.is-launching.is-last .txt .last { color: #fff; }
+            [data-view="list"] .tile.is-launching.is-last .txt .last {
+                color: #fff;
+            }
         [data-view="list"] .tile .chev {
             display: block;
             order: 2;
@@ -295,12 +364,16 @@ main {
     .notfound h1 {
         margin: 0;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: clamp(2rem, 7vw, 3.2rem);
+        font-size: clamp(32px, 7vw, 51.2px);
         font-weight: 800;
         letter-spacing: -0.025em;
         line-height: 1.05;
     }
-    .notfound p { margin: 0; color: var(--muted); max-width: 44ch; }
+    .notfound p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 44ch;
+    }
     .notfound .back {
         margin-top: 6px;
         padding: 12px 22px;
@@ -310,7 +383,10 @@ main {
         font-weight: 600;
         text-decoration: none;
     }
-        .notfound .back:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+        .notfound .back:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
+        }
     .notfound ul {
         list-style: none;
         margin: 8px 0 0;
@@ -319,20 +395,37 @@ main {
         flex-wrap: wrap;
         gap: 8px 18px;
     }
-        .notfound ul a { color: var(--ink); font-weight: 600; }
+        .notfound ul a {
+            color: var(--ink);
+            font-weight: 600;
+        }
 
 /* ===== Escritorio ===== */
 @media (min-width: 720px) {
-    body { padding-top: 48px; }
-    main { gap: 30px; }
-        header .wordmark { height: 56px; }
-        .menu-apps .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .tile { min-height: 200px; }
+    body {
+        padding-top: 48px;
+    }
+    main {
+        gap: 30px;
+    }
+        header .wordmark {
+            height: 56px;
+        }
+        .menu-apps .tiles {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    .tile {
+        min-height: 200px;
+    }
 }
 
 /* ===== Animación al cambiar de vista ===== */
-main { transition: opacity .12s ease; }
-    main.is-switching { opacity: 0; }
+main {
+    transition: opacity .12s ease;
+}
+    main.is-switching {
+        opacity: 0;
+    }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -342,13 +435,23 @@ main { transition: opacity .12s ease; }
 
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
-    .tile { transition: none; }
-    main { transition: none; }
-    .tile.is-launching::before { transition: none; }
-    .tile.is-launching::after { animation: none; }
+    .tile {
+        transition: none;
+    }
+    main {
+        transition: none;
+    }
+    .tile.is-launching::before {
+        transition: none;
+    }
+    .tile.is-launching::after {
+        animation: none;
+    }
     ::view-transition-group(*),
     ::view-transition-old(*),
-    ::view-transition-new(*) { animation: none; }
+    ::view-transition-new(*) {
+        animation: none;
+    }
 }
 
 /* ===== Mapa de la red ===== */
@@ -364,8 +467,28 @@ main { transition: opacity .12s ease; }
     color: var(--ink);
     text-decoration: none;
 }
-    .menu-map-link > svg:first-child { flex: none; width: 28px; height: 28px; color: var(--green); }
-    .menu-map-link > svg:last-child { flex: none; width: 20px; height: 20px; margin-left: auto; color: var(--muted); }
-    .menu-map-link span { display: flex; flex-direction: column; gap: 2px; }
-    .menu-map-link strong { font-size: 1.02rem; }
-    .menu-map-link span span { color: var(--muted); font-size: .88rem; }
+    .menu-map-link > svg:first-child {
+        flex: none;
+        width: 28px;
+        height: 28px;
+        color: var(--green);
+    }
+    .menu-map-link > svg:last-child {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin-left: auto;
+        color: var(--muted);
+    }
+    .menu-map-link span {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .menu-map-link strong {
+        font-size: 16.32px;
+    }
+    .menu-map-link span span {
+        color: var(--muted);
+        font-size: 14.08px;
+    }

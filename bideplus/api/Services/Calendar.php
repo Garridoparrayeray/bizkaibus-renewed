@@ -27,6 +27,15 @@ class Calendar
         return 1 << ($iIso - 1);
     }
 
+    // «HH:MM» → segundos desde medianoche. Lo que no tenga esa forma cuenta como 0.
+    public static function hmToSeconds(string $sHm): int
+    {
+        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $sHm, $aMatch)) {
+            return 0;
+        }
+        return ((int)$aMatch[1]) * 3600 + ((int)$aMatch[2]) * 60;
+    }
+
     public static function secondsToHm(int $iSeconds): string
     {
         $iH = intdiv($iSeconds, 3600) % 24;

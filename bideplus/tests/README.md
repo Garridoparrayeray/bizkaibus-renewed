@@ -3,7 +3,7 @@
 Puerta de regresión: todo tiene que salir en verde antes de commitear. Lo más cómodo es un solo comando, que arranca el servidor local si no está en marcha:
 
 ```
-python tests/run-all.py            # todo, con navegador (unos 6 min)
+python tests/run-all.py            # todo, con navegador (unos 10 min); si faltan, genera antes map-data y offline-data
 python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unitarias, datos, API y contrato
 ```
 
@@ -15,17 +15,19 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 
 | Script | Qué comprueba |
 |---|---|
-| `static-checks.py` | Sintaxis de PHP y JS, ids que usan los módulos de `js/app/` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php` y `data-integrity.php` |
+| `static-checks.py` | Sintaxis de PHP y JS, ids que usan los módulos de `js/app/` frente a `api/Views/app.php`, ids del CSS, archivos del precache del service worker, y lanza `geocache-test.php`, `unit-test.php`, `build-test.php`, `data-integrity.php`, `store-test.php`, `push-test.php` y `code-quality.php` |
+| `code-quality.php` | Batería de limpieza: que todo el código siga las pautas de `CONTRIBUTING.md`. Formato (sin tabuladores, sin espacios al final, salto final, sangría de 4 en 4), sin operador ternario en PHP ni en JavaScript, variables de PHP con prefijo de tipo, `elseif`, JavaScript con `const`/`let` y `===`, CSS en `px` y con una declaración por línea, sin restos de depuración, textos completos en castellano, euskera e inglés (sin claves repetidas, de más ni sin usar), sin funciones, constantes, clases de CSS ni archivos muertos, y el precache del service worker con todo lo que cargan las páginas. Con `engine/` presente cuenta también lo que usa el algoritmo. La lanza `static-checks.py` |
 | `build-test.php` | Funciones de `scripts/build-database.php`: al fusionar viajes iguales con calendarios distintos, una fecha solo queda anulada si ninguno de esos calendarios circula ese día. La lanza `static-checks.py` |
-| `unit-test.php` | Lógica sin servidor ni red, sobre una base de datos en memoria: `engine/`, parseo SIRI-VM, GTFS-Realtime de Metro Bilbao (con un feed real en `fixtures/`), registro de redes (`api/Networks`), `TripKey` y `Calendar`. La lanza `static-checks.py` |
+| `unit-test.php` | Lógica sin servidor ni red, sobre una base de datos en memoria: `engine/` (también la corrección por viaje, si el motor la trae), parseo SIRI-VM, GTFS-Realtime de Metro Bilbao (con un feed real en `fixtures/`), registro de redes (`api/Networks`), `TripKey` y `Calendar`. La lanza `static-checks.py` |
 | `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
 | `api-smoke.py` | Todas las rutas de la API en las tres redes (búsqueda, paradas, salidas, líneas, horarios, trenes, alertas, línea en vivo, 404) |
 | `api-contract.py` | Forma del JSON de cada ruta en las seis redes: campos que usan los módulos de `js/app/`, tipos, horas `HH:MM` y estados conocidos (`scheduled`, `live`, `departed`, `finished`). Añadir campos está permitido; quitar o renombrar uno rompe la prueba |
+| `schedule-periods.mjs` | «Ver horario oficial» de Bizkaibus: con los bloques tal como los publica el operador, sale el periodo de hoy primero y luego los que vienen, los días sueltos de un mismo periodo juntos, nada ya terminado ni de años anteriores, y al cambiar de año desaparece lo del anterior |
 | `offline-schedule.mjs` | Horarios sin conexión: las salidas que calcula `js/offline.js` con `offline-data/<red>.json` (de `scripts/build-offline-data.php`) son las del horario que da la API, en varias paradas de cada red |
 | `ui-battery.mjs` | Navegador headless en móvil y ordenador: cargar, buscar, ficha, favoritos, menú, horario completo, modal del tren, aviso legal, selector de app, enlaces directos, menú Bide+, tema «mi amor» y 404 reales. Falla si hay errores de consola o de red |
 | `ui-offline.mjs` | Que las cuatro páginas solo piden recursos propios (tipografías y Leaflet ya no vienen de Google ni unpkg), que las tipografías y el mapa cargan, y que con el servidor caído la app arranca desde el service worker y avisa de la falta de conexión |
 | `ui-alerts.mjs` | Avisos de incidencias por línea favorita: línea base sin notificar, aviso nuevo una sola vez, tope de 3 notificaciones más un resumen, fallos de la API, interruptor del menú (permiso concedido y denegado) y notificación real del service worker con sincronización periódica |
-| `ui-bide.mjs` | Bide+ como una sola app: en el navegador del móvil (pie, ☰, aviso «Instala Bide+»), instalada (4 pestañas, sin pie ni ☰, páginas de Favoritos de todas las apps, Avisos e Info, aviso legal, «atrás»), selector ES/EU, en ordenador (columna lateral, «Todas las apps» plegable, banda con idioma, pie con las apps, hueco del detalle) y que el tema «mi amor» no cambia |
+| `ui-bide.mjs` | Bide+ como una sola app: en el navegador del móvil (pie, también con Ajustes, Info, Avisos o Favoritos abiertos, ☰, aviso «Instala Bide+»), instalada (4 pestañas, sin pie ni ☰, páginas de Favoritos de todas las apps, Avisos e Info, aviso legal, «atrás»), selector ES/EU, en ordenador (columna lateral, «Todas las apps» plegable, banda con idioma, pie con las apps, hueco del detalle), el aviso de versión nueva («1» en Ajustes, novedades e ir directo a actualizar) y que el tema «mi amor» no cambia |
 | `ui-nearby.mjs` | Botón «Cerca de mí» con la ubicación simulada en Bizkaibus, Metro y Euskotren (parada más cercana, distancia, próxima salida, abrir ficha), ubicación fuera de la zona y permiso denegado |
 
 Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (bus,metro,euskotren,tranvia-bilbao,tranvia-vitoria,renfe), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
@@ -41,4 +43,5 @@ El navegador de pruebas usa un perfil temporal propio y se cierra por PID: no to
 - **Una ruta o un campo nuevo en la API:** añádelo al esquema de `api-contract.py` y una llamada en `api-smoke.py`.
 - **Un operador nuevo (por ejemplo Lurraldebus):** añade su base a `data-integrity.php`, su búsqueda y su ubicación a `api-smoke.py` y `api-contract.py`, y su app a `ui-battery.mjs`.
 - **Cambios en `engine/`:** además de `unit-test.php`, mide con `php engine/bizkaibus/tools/realtime-backtest.php analyze` antes y después.
+- **Antes de cada commit:** `php tests/code-quality.php` tarda medio segundo y dice exactamente qué línea no sigue las pautas.
 - Si una prueba falla con tu cambio, arregla el código, no la prueba, salvo que el comportamiento haya cambiado a propósito (y entonces dilo en la *pull request*).

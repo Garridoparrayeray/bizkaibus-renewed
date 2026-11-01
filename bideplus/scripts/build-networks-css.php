@@ -1,8 +1,6 @@
 <?php
 
-// Genera style-networks.css con los colores de cada red de api/Networks: la ficha del menú (tile_color), el cuadradito
-// de Bide+ (swatch_color) y la paleta de la app (palette, variables CSS sobre html.is-<red>). Así una red nueva solo
-// toca su archivo de configuración. Las páginas lo cargan después de style-bide.css y antes de style-miamor.css.
+// Genera style-networks.css con los colores de cada red de api/Networks.
 // Uso: php scripts/build-networks-css.php [--output=ruta]
 
 declare(strict_types=1);
@@ -23,14 +21,23 @@ function cssValue(string $sValue): string
     return $sValue;
 }
 
+function cssRule(string $sSelector, array $aDeclarations): string
+{
+    $sRule = $sSelector . " {\n";
+    foreach ($aDeclarations as $sProperty => $sValue) {
+        $sRule .= '    ' . $sProperty . ': ' . cssValue($sValue) . ";\n";
+    }
+    return $sRule . '}';
+}
+
 $aTiles = [];
 $aSwatches = [];
 $aPalettes = [];
 foreach (Networks::all() as $sSlug => $aNetwork) {
     $aBrand = $aNetwork['brand'];
-    $aTiles[] = '.tile--' . $sSlug . ' { --c: ' . cssValue($aBrand['tile_color'] ?? $aBrand['theme_color']) . '; }';
+    $aTiles[] = cssRule('.tile--' . $sSlug, ['--c' => $aBrand['tile_color'] ?? $aBrand['theme_color']]);
     if (isset($aBrand['swatch_color'])) {
-        $aSwatches[] = 'html.bide .bide-swatch--' . $sSlug . ' { background: ' . cssValue($aBrand['swatch_color']) . '; }';
+        $aSwatches[] = cssRule('html.bide .bide-swatch--' . $sSlug, ['background' => $aBrand['swatch_color']]);
     }
     if (!empty($aBrand['palette'])) {
         $aVars = [];
@@ -38,16 +45,16 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
             if (!preg_match('/^[a-z][a-z-]*$/', $sName)) {
                 throw new InvalidArgumentException('Variable no válida: ' . $sName);
             }
-            $aVars[] = '    --' . $sName . ': ' . cssValue($sValue) . ';';
+            $aVars['--' . $sName] = $sValue;
         }
-        $aPalettes[] = 'html.is-' . $sSlug . " {\n" . implode("\n", $aVars) . "\n}";
+        $aPalettes[] = cssRule('html.is-' . $sSlug, $aVars);
     }
 }
 
-$sCss = "/* Generado por scripts/build-networks-css.php desde api/Networks: no lo edites a mano. */\n\n"
-    . "/* Ficha de cada red en el menú de inicio. */\n" . implode("\n", $aTiles) . "\n\n"
-    . "/* Cuadradito de cada red en las listas de Bide+ (favoritos, avisos). */\n" . implode("\n", $aSwatches) . "\n\n"
-    . "/* Paleta de la app de cada red (la red por defecto usa la de style-app.css). */\n" . implode("\n", $aPalettes) . "\n";
+$sCss = "/* Generado por scripts/build-networks-css.php: no lo edites a mano. */\n\n"
+    . "/* ===== Ficha de cada red en el inicio ===== */\n" . implode("\n", $aTiles) . "\n\n"
+    . "/* ===== Cuadradito de cada red en Bide+ ===== */\n" . implode("\n", $aSwatches) . "\n\n"
+    . "/* ===== Paleta de la app de cada red ===== */\n" . implode("\n", $aPalettes) . "\n";
 
 file_put_contents($sOutput, $sCss);
 echo 'style-networks.css: ' . count($aTiles) . " redes\n";

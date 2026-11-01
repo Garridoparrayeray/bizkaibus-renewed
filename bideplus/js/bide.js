@@ -23,7 +23,7 @@
     function createNode(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
-        if (text != null) node.textContent = text;
+        if (text !== null && text !== undefined) node.textContent = text;
         return node;
     }
 
@@ -46,6 +46,20 @@
         const title = createNode(tag, 'bide-group');
         title.append(createNode('span', 'bide-swatch bide-swatch--' + app), document.createTextNode(APPS[app].name));
         return title;
+    }
+
+    function launchView() {
+        const view = location.hash.slice(1);
+        const url = new URL(location.href);
+        const token = url.searchParams.get('aviso');
+        if (!isMenu || !token) return view;
+        url.searchParams.delete('aviso');
+        if (AlertsStore.firstOpening(token)) {
+            history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+            return view;
+        }
+        history.replaceState(history.state, '', url.pathname + url.search);
+        return '';
     }
 
     function setActiveTab(view) {
@@ -361,7 +375,7 @@
     setUpInstallBanner();
     renderFavorites();
 
-    const initialView = location.hash.slice(1);
+    const initialView = launchView();
     if (VIEWS.includes(initialView)) {
         history.replaceState({ ...history.state, bideView: initialView }, '', location.href);
         showView(initialView, false);

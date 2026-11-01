@@ -10,6 +10,7 @@ Thumbs.db
 __pycache__/
 
 # El algoritmo vive en un repositorio privado (Garridoparrayeray/bideplus-engine); los workflows lo colocan aqui.
-engine/
+# Sin barra final: tambien vale si en local es un enlace a otra carpeta.
+/engine
 map-data/
 offline-data/

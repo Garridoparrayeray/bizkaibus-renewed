@@ -18,8 +18,8 @@ use Core\Store;
  */
 class IncidentAlerts
 {
-    private const SUBSCRIBERS_KEY = 'bide:incident:subs';
-    private const SUBSCRIBER_PREFIX = 'bide:incident:sub:';
+    public const SUBSCRIBERS_KEY = 'bide:incident:subs';
+    public const SUBSCRIBER_PREFIX = 'bide:incident:sub:';
     private const STATE_PREFIX = 'bide:incident:state:';
     private const RUN_KEY = 'bide:incident:run';
     // El cron llama cada minuto; la marca dura 4 minutos y medio, así que se revisa cada 5.
@@ -216,10 +216,17 @@ class IncidentAlerts
         return [
             'title' => Networks::text($aNetwork, 'name', $sLang) . ' · ' . $aAlert['title'],
             'body' => mb_substr($aAlert['body'], 0, self::BODY_LENGTH),
-            'url' => '/?red=' . $sNetwork,
+            'url' => self::openUrl($sNetwork, $aAlert['key']),
             'tag' => $aAlert['key'],
             'icon' => '/' . $aNetwork['brand']['icons'] . '/icon-192.png',
         ];
+    }
+
+    // «aviso» cambia en cada envío: la app abre la notificación una sola vez.
+    private static function openUrl(string $sNetwork, string $sSeed): string
+    {
+        $sToken = base_convert((string)time(), 10, 36) . '-' . hash('crc32b', $sSeed);
+        return '/?red=' . $sNetwork . '&aviso=' . $sToken . '#avisos';
     }
 
     // Incidencias que este suscriptor no ha visto. Una fuente (línea, parada o red) que se mira por primera vez solo
@@ -330,7 +337,7 @@ class IncidentAlerts
             $aMessages[] = [[
                 'title' => $aTexts['moreTitle'],
                 'body' => strtr($aTexts['moreBody'], ['{n}' => (string)count($aRest)]),
-                'url' => '/?red=' . $aRest[0]['network'],
+                'url' => self::openUrl($aRest[0]['network'], 'bide-more-alerts'),
                 'tag' => 'bide-more-alerts',
             ], $aRest];
         }

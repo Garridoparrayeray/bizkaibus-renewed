@@ -30,7 +30,7 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
         }
         $aOut[] = ['result' => $iNew];
     } elseif ($sName === 'HMGET') {
-        $aOut[] = ['result' => array_map(fn($f) => $aData[$sKey][$f] ?? null, $aCmd)];
+        $aOut[] = ['result' => array_map(fn($sWanted) => $aData[$sKey][$sWanted] ?? null, $aCmd)];
     } elseif ($sName === 'HSCAN') {
         // Sin paginar de verdad: devuelve todo lo que encaja con MATCH en una sola página (cursor 0).
         $sPattern = '*';

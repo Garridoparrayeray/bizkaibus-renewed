@@ -122,7 +122,7 @@ Para que la app sea **solo** de una ciudad:
    - `bide.info.aboutText` (Sobre Bide+);
    - `menu.footer` y `bide.footer.text` (pie);
    - las preguntas frecuentes `bide.faq.*` (la versión en castellano está también en `api/Views/bide-components.php`, `BIDE_FAQ`);
-   - las novedades: `BIDE_CHANGELOG` en `bide-components.php` y `bide.changelog.*`.
+   - las novedades: `Changelog::ENTRIES` en `api/Services/Changelog.php` y `bide.changelog.*`.
 4. **Aviso legal** (`api/Views/legal.php`): el autor, el contacto y la lista de apps salen solos de la configuración; revisa los párrafos de licencia, responsable y analíticas.
 5. **Marca**:
    - el logotipo «BIDE+» está en `icons-bide-rojo/` y en las cabeceras;

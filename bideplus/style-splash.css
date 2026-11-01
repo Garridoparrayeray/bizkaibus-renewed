@@ -11,7 +11,11 @@
     pointer-events: none;
     transition: opacity .3s ease, visibility 0s linear .3s;
 }
-    .splash .wordmark { height: 72px; width: auto; display: block; }
+    .splash .wordmark {
+        height: 72px;
+        width: auto;
+        display: block;
+    }
     .is-loading .splash {
         opacity: 1;
         visibility: visible;
@@ -25,12 +29,20 @@
     }
 
 @keyframes plus-spin {
-    0% { transform: rotate(0deg) scale(1); }
-    60% { transform: rotate(360deg) scale(1.15); }
-    100% { transform: rotate(360deg) scale(1); }
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    60% {
+        transform: rotate(360deg) scale(1.15);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
 }
 
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
-    .is-loading .splash { display: none; }
+    .is-loading .splash {
+        display: none;
+    }
 }

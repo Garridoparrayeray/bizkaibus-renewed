@@ -81,8 +81,16 @@ export function startRouting() {
         }
     });
 
-    const pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
-    const sharedTrip = new URLSearchParams(window.location.search).get('viaje');
+    let pathMatch = window.location.pathname.match(/^\/(stops|lines)\/([^/]+)/);
+    const launch = new URLSearchParams(window.location.search);
+    let sharedTrip = launch.get('viaje');
+    const alertToken = launch.get('aviso');
+    if (sharedTrip || alertToken) removeLaunchParams();
+    if (alertToken && !AlertsStore.firstOpening(alertToken)) {
+        sharedTrip = null;
+        pathMatch = null;
+        history.replaceState(null, '', '/?red=' + window.__bbNetwork);
+    }
     let opened = Promise.resolve();
     if (pathMatch) {
         // El id llega codificado (Euskotren usa «ES:Euskotren:StopPlace:2577:»): sin descodificar, la API no encuentra la parada.
@@ -96,13 +104,12 @@ export function startRouting() {
             opened = selectLine(pathId);
         }
     }
-    if (sharedTrip) opened.then(() => openSharedTrip(sharedTrip));
+    if (sharedTrip) opened.then(() => openVehicleModal(sharedTrip));
 }
 
-// Un viaje compartido («?viaje=») se abre una vez y se quita de la dirección.
-async function openSharedTrip(tripKey) {
-    await openVehicleModal(tripKey);
+function removeLaunchParams() {
     const url = new URL(window.location.href);
     url.searchParams.delete('viaje');
-    history.replaceState(history.state, '', url.pathname + url.search);
+    url.searchParams.delete('aviso');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
 }

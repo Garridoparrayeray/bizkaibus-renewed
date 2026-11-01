@@ -9,9 +9,9 @@ use Core\Response;
 use Core\Store;
 use Services\ArrivalAlerts;
 use Services\IncidentAlerts;
+use Services\UpdateAlerts;
 
-// Lo llama un cron externo cada minuto para apuntar por dónde va cada bus, aunque nadie use la app, y de paso
-// mandar las notificaciones: los avisos de llegada a los que ya les toca y, cada 5 minutos, las incidencias nuevas.
+// Cron externo de cada minuto: apunta por dónde va cada bus y manda las notificaciones.
 // Sin la clave secreta (BIDE_CRON_SECRET) responde como si la ruta no existiera.
 class LiveRecordController
 {
@@ -29,6 +29,7 @@ class LiveRecordController
         $aNotifications = [
             'arrivalAlerts' => self::safely('avisos de llegada', fn() => ArrivalAlerts::process()),
             'incidentAlerts' => self::safely('avisos de incidencias', fn() => IncidentAlerts::process()),
+            'updateAlerts' => self::safely('aviso de versión nueva', fn() => UpdateAlerts::process()),
         ];
         if ($iRecorded === null && Config::hasLive('vehicle-monitoring')) {
             Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed'] + $aNotifications, 502);

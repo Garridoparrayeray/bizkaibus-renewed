@@ -71,6 +71,38 @@ día tapado como si no lo conociéramos; luego se compara la predicción con lo 
 se prueba con datos que el sistema **no** ha visto al aprender. Con eso se sabe en qué porcentaje de casos se acierta
 dentro de 1 minuto, dentro de 2, etc. Y cada día el sistema se recalibra solo con lo nuevo.
 
+## Lo que ha cambiado en las últimas versiones
+
+- **Tres formas de decir la hora, y se dice cuál es.** Con la posición del bus, la llegada sale **en directo**. Si el bus
+  no manda posición pero se sabe por qué parada pasó, o si no se sabe nada de él, la hora se calcula igual, sumando lo
+  que tardan de verdad los tramos desde su salida, y sale como **«ESTIMADO»**, con la hora oficial debajo en gris para
+  comparar. Solo si tampoco hay tramos aprendidos sale **«SOLO HORARIO»**.
+- **Un bus que ya pasó no vuelve a salir.** Un proceso apunta cada minuto por qué parada va cada bus, aunque nadie esté
+  mirando la app. Si un bus va muy adelantado y deja de mandar posición (llega a cabecera y se apaga), la app sabe que
+  ya pasó por tu parada y no lo enseña con su hora de papel. Si no hay registro pero el cálculo dice que pasó hace más
+  de 10 minutos y el horario va claramente más lento, sale al final y en gris como «probablemente ya pasó».
+- **También sin conexión.** Los horarios que se guardan en el móvil llevan la hora estimada de cada viaje, calculada como
+  en el servidor: sin cobertura se ve lo mismo que con cobertura cuando no hay datos del bus.
+- **Cada viaje, con su costumbre.** La hora estimada sin datos del bus llegaba de media 2 minutos antes que el bus: sumar
+  lo típico de cada tramo se queda corto, y hay viajes que salen tarde casi siempre. Ahora se aprende, de los pasos
+  reales de los últimos días, cuánto suele apartarse cada viaje (el de las 8:10 de tal línea) al principio, a la mitad
+  y al final de su recorrido, y se suma. Probado con días que no se usaron para aprender, el error medio baja de 3,5 a
+  2,6 minutos, y las que aciertan con menos de 2 minutos de error pasan del 47 % al 54 %. Vale con conexión, para los
+  buses que aún no han salido, y sin conexión.
+- **Los festivos, como fin de semana.** El horario ya cambia solo: cada día circulan los viajes de su calendario
+  (laborable, sábado, domingo, festivo, verano…). Lo aprendido distingue laborable y fin de semana, y un festivo entre
+  semana cuenta como fin de semana; se sabe que es festivo porque ese día circulan los viajes de domingo. Se probó
+  separar también viernes, sábado y domingo, y usar solo los últimos días: no mejora. La temporada del año (verano,
+  vacaciones) todavía no se puede medir, porque las muestras son de octubre; lo aprendido se recalcula cada día con los
+  últimos 120 días, así que se va adaptando.
+- **Cuánto acierta, medido en serio.** En 2,37 millones de llegadas de 17 días, comparadas con el paso real del bus, la
+  hora que enseña Bide+ acierta con menos de 2 minutos de error en el 96 % de los casos cuando faltan menos de 3 minutos,
+  y en el 67 % cuando faltan entre 10 y 20. El horario oficial acierta así en el 24 % y el 25 %.
+- **Comparado con métodos más complicados.** Se probaron, con los mismos días y las mismas reglas, un filtro de Kalman y
+  una red neuronal que además usan lo que está pasando ese día. Mejoran un poco (entre un 4 y un 7 %), pero el método
+  sencillo ya se queda con casi toda la mejora sobre el horario. De momento no se cambia: antes hay que medir la mejora
+  sobre la llegada completa que ve la gente, no solo sobre la suma de tramos.
+
 ---
 
 # Parte B · Versión formal (máster / doctorado)
@@ -214,14 +246,130 @@ baja de 65 854 a 63 204 minutos.
 - **Cobertura**: la precisión alta exige haber observado el tramo/franja; la cascada de respaldo cubre el arranque en frío
   a costa de precisión.
 
-## 7. Mapa de ficheros (para seguir el código)
+## 7. Cambios recientes y resultados
+
+### Capas y estados
+
+La predicción se organiza en tres capas con reglas explícitas para abstenerse (memoria técnica, capítulo 6):
+
+1. **Posición proyectada** sobre el recorrido (§1-3): estado `live`.
+2. **Última parada registrada**, cuando el vehículo no tiene posición fina: `ETA = ref + mitad_del_tramo_en_curso +
+   remaining(next, T)`. Sale como `estimated`.
+3. **Horario corregido** sin datos del vehículo: salida publicada de cabecera + 60 s + `remaining(0, T)` con la franja y
+   el ritmo del punto medio entre la salida y la parada, + `Δ_v` (la corrección del viaje, abajo). Sale como `estimated`
+   si hay tramos aprendidos; si no, como `scheduled` («solo horario»).
+
+Un viaje que el **registro de pasos** (`PassageLog`, en Upstash, escrito cada minuto por un cron externo) ya vio pasar
+por la parada sale como `departed` y no se enseña. Sin registro, la capa 3 decide con la hora corregida `C`:
+
+- `C` aún no ha llegado: `estimated`.
+- `C` pasó hace más de 10 min, el horario va al menos 10 min por detrás de `C` y los tramos aprendidos cubren al menos
+  el 80 % del tiempo programado hasta la parada: `likely_departed`, al final de la lista y en gris.
+- En otro caso (pasó hace menos de 10 min, o con poco aprendido): `scheduled`. No se arriesga a esconder un bus que
+  quizá aún no ha llegado.
+
+Las constantes son `SCHEDULE_ORIGIN_OFFSET_SECONDS = 60`, `WRONG_SCHEDULE_PASSED_SECONDS = 600`,
+`WRONG_SCHEDULE_GAP_SECONDS = 600` y `WRONG_SCHEDULE_LEARNED_SHARE = 0.8` (`engine/bizkaibus/RealtimeMatcher.php`).
+
+Los horarios sin conexión llevan la capa 3 precalculada, con la corrección del viaje, para un laborable y un fin de
+semana (`scripts/build-offline-data.php`); un festivo usa la de fin de semana. Contra el servidor, en 1.200 paradas al
+azar de un laborable, un sábado y un festivo, la diferencia máxima es de 6 s.
+
+### Corrección por viaje (`Δ_v`)
+
+La capa 3 sin corregir llegaba de media 131 s antes que el bus: la suma de medianas de tramos con colas a la derecha
+queda por debajo de la media del recorrido, y algunos viajes salen tarde de cabecera de forma sistemática. Con las
+muestras de tramo se reconstruye el paso real `R` de cada viaje por cada parada y se calcula el residuo
+`e = R − C₀`, con `C₀` la capa 3 sin corregir (`RealtimeMatcher::learnedArrival`), recortado a ±900 s. Después, de lo más
+general a lo más fino:
+
+```
+g(b)        = media de e en la franja b (tipo de día + hora de salida)
+l(línea,b)  = (Σ e + 20 · g(b)) / (n + 20)
+Δ(v,d,p)    = (Σ_días ē_día + 1 · l(línea,b)) / (días + 1)
+```
+
+donde `v` es el viaje (línea, primera y última parada, salida y número de paradas: no cambian aunque el operador renueve
+los identificadores), `d` el tipo de día, `p` el tercio del recorrido de la parada y `ē_día` la media del residuo de ese
+viaje y tercio ese día. En la predicción, `Δ_v` es `Δ(v,d,p)` si existe; si no, `l(línea,b)`; si no, `g(b)`.
+
+**Tipo de día.** `d` es laborable o fin de semana. Un festivo entre semana (el GTFS hace circular ese día, por excepción,
+los calendarios de solo domingo: `ServiceJourney::isHoliday`) cuenta como fin de semana para toda la capa 3, tramos y
+corrección, que es como se aprendieron juntos. Las variantes medidas (mismo protocolo; el festivo, el 12 oct., dejándolo
+fuera al aprender):
+
+| Tipo de día de `Δ_v` | 7 días de prueba | Festivo 12 oct. |
+| --- | --- | --- |
+| Sin corrección (tramos de laborable el festivo) | 210 s | 172 s |
+| Laborable / fin de semana por día de la semana (primera versión) | 158 s | 196 s |
+| **Laborable / fin de semana; el festivo, fin de semana** | **158 s** | **162 s** |
+| Laborable / sábado / domingo y festivo | 159 s | 156 s |
+| Lunes-jueves / viernes / sábado / domingo | 160 s | — |
+| Solo los 14 últimos días | 163 s | — |
+
+La primera versión empeoraba el festivo: le aplicaba el retraso de un laborable con tráfico de domingo. Separar sábado y
+domingo acierta algo más el festivo pero un poco menos el resto, con la mitad de datos por grupo; se puede volver a
+probar con más días. La temporada no se puede medir con muestras de un solo mes.
+
+Protocolo por días: aprender con los 20 días anteriores y probar en los 7 últimos (26 oct.-1 nov. 2026, 87 333 pasos).
+
+| Hora sin datos del bus | Error medio | ±60 s | ±120 s | ±300 s | Sesgo |
+| --- | --- | --- | --- | --- | --- |
+| Horario publicado | 438 s | 13,1 % | 24,4 % | 49,8 % | −263 s |
+| Capa 3 sin corregir | 210 s | 27,0 % | 46,6 % | 76,3 % | +131 s |
+| Capa 3 + corrección de la línea | 178 s | 25,6 % | 47,3 % | 83,0 % | — |
+| **Capa 3 + corrección por viaje y tercio** | **158 s** | **30,3 %** | **53,9 %** | **86,1 %** | **+17 s** |
+
+Con un solo valor por viaje sale 164 s; por quintos, 159 s; por parada, 161 s. Los tiempos por tramo se aprendieron con
+todos los días, también los de prueba, así que la ventaja de la capa 3 sin corregir está inflada y la mejora real es
+algo mayor. La tabla (`engine/bizkaibus/data/trip-offsets.json`, unos 290 KB) se recalcula cada noche después de los
+tramos y solo se guarda si mejora en los días de prueba. En los horarios sin conexión no ocupa sitio aparte: va sumada a
+cada hora estimada (el fichero de Bizkaibus pasa de 1,1 a 1,5 MB, 0,5 MB comprimido).
+
+### Precisión de punta a punta
+
+En 2,37 millones de predicciones de 17 días contrastadas con el paso real, la llegada mostrada cae dentro de ±2 min en
+el 96 % de los casos a menos de 3 min y en el 67 % entre 10 y 20 min, frente al 24 % y al 25 % del horario publicado. La
+captura guarda desde octubre la precisión de cada bloque en histogramas (`eta-eval.jsonl`, release `pace-data`), así
+que la serie se puede seguir día a día.
+
+### Comparación con otros métodos
+
+Protocolo por días (§5), mismos siete días de prueba (25-31 oct. 2026) y mismos recorridos encadenados. Los rivales usan
+además lo que pasa ese día (lo terminado al menos 60 s antes del instante de predicción).
+
+| Método | Error medio 4–8 min | 8–12 min | 12–20 min | ±120 s a 12–20 min |
+| --- | --- | --- | --- | --- |
+| Horario | 153,9 s | 233,5 s | 329,7 s | 24,0 % |
+| **Método actual** (medianas contraídas, `κ = 5`) | 42,0 s | 61,7 s | 88,2 s | 74,1 % |
+| Buses previos en el tramo | 41,6 s | 60,7 s | 86,5 s | 75,0 % |
+| Kalman por tramo | 41,7 s | 60,7 s | 86,4 s | 75,0 % |
+| Kalman del ritmo del propio autobús | 40,4 s | 59,3 s | 84,6 s | 76,0 % |
+| Red neuronal (28 variables, 32 y 16 neuronas) | 39,5 s | 57,5 s | 81,7 s | 77,4 % |
+
+El método actual se queda con casi toda la mejora sobre el horario. La red neuronal mejora entre un 6 y un 7 % todos
+los días en los tres horizontes, y el Kalman del propio autobús algo más de la mitad de eso con dos parámetros. Las
+diferencias son reales (intervalos de confianza del 95 % por *bootstrap* que no incluyen el cero), pero se midieron
+sobre sumas de tramos. Antes de adoptar el filtro hay que medirlo sobre la llegada completa que ve el usuario, con la
+misma regla de siempre: solo entra lo que mejora la medida. Los detalles (rejilla de parámetros, semillas, ideas
+descartadas) están en la memoria técnica del repositorio del algoritmo (`engine/docs/tesis/`).
+
+### Recalibrado
+
+Los tiempos por tramo, el ritmo de cada línea y la corrección por viaje se recalculan cada día a las 04:00 UTC
+(`pace-capture.yml`) con todo lo capturado y la base de Bizkaibus del día; el 31 de octubre se recalibraron con la regla
+de contracción y las muestras nuevas de ese día.
+
+## 8. Mapa de ficheros (para seguir el código)
 
 | Pieza | Fichero |
 | --- | --- |
 | Localización y emparejamiento GPS↔horario | `engine/bizkaibus/RealtimeMatcher.php` |
 | ETA por encadenado de tramos (`expectedSeconds`) | `engine/bizkaibus/RealtimeMatcher.php` |
-| Tiempos por tramo + respaldo por longitud | `engine/bizkaibus/SegmentTimes.php`, `data/segment-times.json` |
-| Factores de ritmo por línea/franja | `engine/bizkaibus/PaceFactors.php`, `data/pace-factors.json` |
-| Registro de pasos (aprendizaje y directo) | `engine/bizkaibus/PassageLog.php` |
-| Calibración (aprende la regla de encogimiento) | `engine/bizkaibus/tools/realtime-backtest.php` |
+| Tiempos por tramo + respaldo por longitud | `engine/bizkaibus/SegmentTimes.php`, `engine/bizkaibus/data/segment-times.json` |
+| Factores de ritmo por línea/franja | `engine/bizkaibus/PaceFactors.php`, `engine/bizkaibus/data/pace-factors.json` |
+| Corrección por viaje de la capa 3 | `engine/bizkaibus/TripOffsets.php`, `engine/bizkaibus/data/trip-offsets.json` |
+| Registro de pasos (aprendizaje y directo) | `engine/bizkaibus/PassageLog.php`, `api/Core/Live.php`, `api/Core/Store.php` |
+| Hora estimada sin conexión (capa 3 precalculada) | `scripts/build-offline-data.php`, `js/offline.js` |
+| Calibración (aprende la regla de encogimiento y la corrección por viaje) | `engine/bizkaibus/tools/realtime-backtest.php` |
 | Evaluación por días encadenada | `engine/bizkaibus/tools/eval-segments.py` |

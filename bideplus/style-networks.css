@@ -1,23 +1,49 @@
-/* Generado por scripts/build-networks-css.php desde api/Networks: no lo edites a mano. */
+/* Generado por scripts/build-networks-css.php: no lo edites a mano. */
 
-/* Ficha de cada red en el menú de inicio. */
-.tile--bus { --c: #0B6E4C; }
-.tile--metro { --c: #C8102E; }
-.tile--euskotren { --c: #003F8C; }
-.tile--renfe { --c: #74349A; }
-.tile--lurraldebus { --c: #0062A8; }
-.tile--tranvia-bilbao { --c: #4EB848; }
-.tile--tranvia-vitoria { --c: #60AE27; }
+/* ===== Ficha de cada red en el inicio ===== */
+.tile--bus {
+    --c: #0B6E4C;
+}
+.tile--metro {
+    --c: #C8102E;
+}
+.tile--euskotren {
+    --c: #003F8C;
+}
+.tile--renfe {
+    --c: #74349A;
+}
+.tile--lurraldebus {
+    --c: #0062A8;
+}
+.tile--tranvia-bilbao {
+    --c: #4EB848;
+}
+.tile--tranvia-vitoria {
+    --c: #60AE27;
+}
 
-/* Cuadradito de cada red en las listas de Bide+ (favoritos, avisos). */
-html.bide .bide-swatch--metro { background: #C8102E; }
-html.bide .bide-swatch--euskotren { background: #003F8C; }
-html.bide .bide-swatch--renfe { background: #74349A; }
-html.bide .bide-swatch--lurraldebus { background: #0062A8; }
-html.bide .bide-swatch--tranvia-bilbao { background: #2f7a2a; }
-html.bide .bide-swatch--tranvia-vitoria { background: #3f7f1c; }
+/* ===== Cuadradito de cada red en Bide+ ===== */
+html.bide .bide-swatch--metro {
+    background: #C8102E;
+}
+html.bide .bide-swatch--euskotren {
+    background: #003F8C;
+}
+html.bide .bide-swatch--renfe {
+    background: #74349A;
+}
+html.bide .bide-swatch--lurraldebus {
+    background: #0062A8;
+}
+html.bide .bide-swatch--tranvia-bilbao {
+    background: #2f7a2a;
+}
+html.bide .bide-swatch--tranvia-vitoria {
+    background: #3f7f1c;
+}
 
-/* Paleta de la app de cada red (la red por defecto usa la de style-app.css). */
+/* ===== Paleta de la app de cada red ===== */
 html.is-metro {
     --bg: #f6f4f4;
     --border: #e3ddde;
