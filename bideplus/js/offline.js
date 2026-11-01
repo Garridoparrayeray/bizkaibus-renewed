@@ -16,6 +16,8 @@ const BideOffline = (() => {
     // 10 min o más lento que lo aprendido.
     const LIKELY_PASSED_SECONDS = 600;
     const SLOW_SCHEDULE_SECONDS = 600;
+    // Máscara de días de un calendario de solo domingo (lunes = bit 0), como en la API.
+    const SUNDAY_ONLY_MASK = 0b1000000;
     const prepared = new Map();
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
@@ -163,7 +165,18 @@ const BideOffline = (() => {
             if (!platformsByStation.has(stop[1])) platformsByStation.set(stop[1], []);
             platformsByStation.get(stop[1]).push({ id: stopId, label: stop[2] || '' });
         }
-        return { ...data, byStop, tripsByPattern, platformsByStation };
+        return { ...data, byStop, tripsByPattern, platformsByStation, holidays: holidays(data.calendars) };
+    }
+
+    // Festivos entre semana: los días en que circulan por excepción los calendarios de solo domingo (así publica Bizkaibus
+    // los festivos). Esos días la hora estimada es la de fin de semana, como en el servidor (ServiceJourney::isHoliday).
+    function holidays(calendars) {
+        const days = new Set();
+        for (const calendar of calendars) {
+            if (calendar[0] !== SUNDAY_ONLY_MASK) continue;
+            for (const day of calendar[1]) days.add(day);
+        }
+        return days;
     }
 
     function isoDate(date) {
@@ -276,13 +289,14 @@ const BideOffline = (() => {
     }
 
     // Hora y estado de un viaje en una parada: la estimada con los tramos aprendidos si la red la trae para ese tipo de
-    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay).
+    // día, y si no, la oficial. Posiciones 6 y 7 del viaje: estimación en laborable y en fin de semana (-1 si no hay); un
+    // festivo entre semana usa la de fin de semana.
     function arrival(data, trip, position, date, officialSeconds, nowSeconds) {
         const official = { status: 'scheduled', etaSeconds: officialSeconds };
         if (!data.estimates || position === 0) return official;
         let slot = trip[6];
         const weekday = date.getDay();
-        if (weekday === 0 || weekday === 6) slot = trip[7];
+        if (weekday === 0 || weekday === 6 || data.holidays.has(isoDate(date))) slot = trip[7];
         if (slot === undefined || slot < 0) return official;
         const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
         if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };

@@ -489,6 +489,26 @@ if (class_exists(TripOffsets::class)) {
     $aRowNoSeq['stop_id'] = 'S4';
     $Expect('sin el orden de la parada, se encuentra por parada y hora', $MTrip->enrich([$aRowNoSeq])[0]['etaSeconds'] === T0 + 460 + 30);
     $Expect('con tramos pasados a mano y sin tabla de viajes, no se lee la del fichero', $MNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 460);
+
+    /* Festivo entre semana: Bizkaibus lo publica haciendo circular por excepción los calendarios de solo domingo. Ese día
+     * la capa 3 calcula como en fin de semana: con sus tramos y su corrección (40 s en S4 en vez de 30). */
+    $PdoHoliday = buildFixture(40);
+    $PdoHoliday->exec("
+        CREATE TABLE service_calendars (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, weekday_mask INTEGER NOT NULL);
+        CREATE TABLE service_calendar_exceptions (calendar_id TEXT NOT NULL, date TEXT NOT NULL, available INTEGER NOT NULL);
+        INSERT INTO service_calendars VALUES ('C_DOM', '2026-01-01', '2026-12-31', 64), ('C_LAB', '2026-01-01', '2026-12-31', 31);
+        INSERT INTO service_calendar_exceptions VALUES ('C_DOM', '" . DATE_WEEKDAY . "', 1), ('C_LAB', '" . DATE_WEEKDAY . "', 0), ('C_LAB', '2026-10-03', 1);
+    ");
+    $HolidayJourneys = new ServiceJourney($PdoHoliday);
+    $Expect('festivo: el día que circulan por excepción los calendarios de solo domingo', $HolidayJourneys->isHoliday(DATE_WEEKDAY) && !$HolidayJourneys->isHoliday('2026-10-02') && !$HolidayJourneys->isHoliday('2026-10-03'));
+    $Expect('festivo: sin calendarios en la base, ningún día lo es', !(new ServiceJourney(buildFixture(40)))->isHoliday(DATE_WEEKDAY));
+    $Expect('festivo: la capa 3 calcula con el domingo de esa semana', TripOffsets::serviceDate(DATE_WEEKDAY, true) === DATE_WEEKEND && TripOffsets::serviceDate(DATE_WEEKDAY, false) === DATE_WEEKDAY);
+    $TripsBoth = new TripOffsets(['trips' => [$sLineKey => ['laborable' => [10, 20, 30], 'fin_semana' => [10, 20, 40]]]]);
+    $MHoliday = new RealtimeMatcher([], $HolidayJourneys, T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned, $TripsBoth);
+    $aHoliday = $MHoliday->enrich([$aRowNoBus])[0];
+    $Expect('festivo entre semana: la hora estimada lleva la corrección de fin de semana (08:08:20)', $MHoliday->serviceDate() === DATE_WEEKEND && $aHoliday['etaSeconds'] === T0 + 460 + 40, hms($aHoliday['etaSeconds']));
+    $MWorkday = new RealtimeMatcher([], $HolidayJourneys, T0 - 600, new PaceFactors(), '2026-10-02', $SegLearned, $TripsBoth);
+    $Expect('el día siguiente, laborable, la de laborable (08:08:10)', $MWorkday->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 460 + 30);
 }
 
 /* ------------------------------------------------------------------ */

@@ -55,7 +55,7 @@ for (const { slug } of index.networks) {
 // Horas estimadas con los tramos aprendidos (las mismas reglas que el motor sin datos del bus). Viaje de ejemplo que sale
 // a las 08:00 y llega a la tercera parada a las 08:40 según el horario, pero a las 08:10 según lo aprendido.
 const T = 8 * 3600;
-const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: [1] };
+const sample = { timings: [[0, 600, 2400]], estimates: [[0, 300, 600]], estimateTrusted: [1], holidays: new Set() };
 const trip = [0, 0, T, 0, '1', T, 0, -1];
 const thursday = new Date(2026, 10, 5);
 const saturday = new Date(2026, 10, 7);
@@ -72,6 +72,20 @@ r = at(saturday, T + 300);
 check('sin conexión, sin estimación para ese tipo de día sale la hora oficial', r.status === 'scheduled' && r.etaSeconds === T + 2400, JSON.stringify(r));
 r = at(thursday, T + 300, { timings: sample.timings });
 check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.status === 'scheduled', JSON.stringify(r));
+
+// Festivo entre semana: Bizkaibus lo publica haciendo circular por excepción los calendarios de solo domingo, y ese día
+// la hora estimada es la de fin de semana (en el ejemplo, 08:15 en vez de 08:10).
+const withHoliday = BideOffline.prepare({
+    lines: [], patterns: [], timings: [[0, 600, 2400]], trips: [], stops: {},
+    estimates: [[0, 300, 600], [0, 400, 900]], estimateTrusted: [1, 1],
+    calendars: [[31, [], ['2026-11-05']], [64, ['2026-11-05'], []], [96, ['2026-11-06'], []]],
+});
+check('festivos: son los días que añaden los calendarios de solo domingo', withHoliday.holidays.has('2026-11-05') && !withHoliday.holidays.has('2026-11-06'), [...withHoliday.holidays].join(','));
+const bothDays = [0, 0, T, 0, '1', T, 0, 1];
+r = BideOffline.arrival(withHoliday, bothDays, 2, thursday, T + 2400, T + 300);
+check('festivos: un jueves festivo usa la hora estimada de fin de semana', r.status === 'estimated' && r.etaSeconds === T + 900, JSON.stringify(r));
+r = BideOffline.arrival(withHoliday, bothDays, 2, new Date(2026, 10, 12), T + 2400, T + 300);
+check('festivos: el jueves siguiente, la de laborable', r.status === 'estimated' && r.etaSeconds === T + 600, JSON.stringify(r));
 
 // Marcas sin conexión («ya pasó» / «no ha pasado»), guardadas en el móvil.
 const store = new Map();
