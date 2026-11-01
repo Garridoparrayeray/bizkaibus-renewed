@@ -89,6 +89,12 @@ dentro de 1 minuto, dentro de 2, etc. Y cada día el sistema se recalibra solo c
   y al final de su recorrido, y se suma. Probado con días que no se usaron para aprender, el error medio baja de 3,5 a
   2,6 minutos, y las que aciertan con menos de 2 minutos de error pasan del 47 % al 54 %. Vale con conexión, para los
   buses que aún no han salido, y sin conexión.
+- **Los festivos, como fin de semana.** El horario ya cambia solo: cada día circulan los viajes de su calendario
+  (laborable, sábado, domingo, festivo, verano…). Lo aprendido distingue laborable y fin de semana, y un festivo entre
+  semana cuenta como fin de semana; se sabe que es festivo porque ese día circulan los viajes de domingo. Se probó
+  separar también viernes, sábado y domingo, y usar solo los últimos días: no mejora. La temporada del año (verano,
+  vacaciones) todavía no se puede medir, porque las muestras son de octubre; lo aprendido se recalcula cada día con los
+  últimos 120 días, así que se va adaptando.
 - **Cuánto acierta, medido en serio.** En 2,37 millones de llegadas de 17 días, comparadas con el paso real del bus, la
   hora que enseña Bide+ acierta con menos de 2 minutos de error en el 96 % de los casos cuando faltan menos de 3 minutos,
   y en el 67 % cuando faltan entre 10 y 20. El horario oficial acierta así en el 24 % y el 25 %.
@@ -266,8 +272,8 @@ Las constantes son `SCHEDULE_ORIGIN_OFFSET_SECONDS = 60`, `WRONG_SCHEDULE_PASSED
 `WRONG_SCHEDULE_GAP_SECONDS = 600` y `WRONG_SCHEDULE_LEARNED_SHARE = 0.8` (`engine/bizkaibus/RealtimeMatcher.php`).
 
 Los horarios sin conexión llevan la capa 3 precalculada, con la corrección del viaje, para un laborable y un fin de
-semana (`scripts/build-offline-data.php`). Contra el servidor, en 800 paradas al azar de un laborable y un sábado, la
-diferencia máxima es de 6 s.
+semana (`scripts/build-offline-data.php`); un festivo usa la de fin de semana. Contra el servidor, en 1.200 paradas al
+azar de un laborable, un sábado y un festivo, la diferencia máxima es de 6 s.
 
 ### Corrección por viaje (`Δ_v`)
 
@@ -286,6 +292,24 @@ l(línea,b)  = (Σ e + 20 · g(b)) / (n + 20)
 donde `v` es el viaje (línea, primera y última parada, salida y número de paradas: no cambian aunque el operador renueve
 los identificadores), `d` el tipo de día, `p` el tercio del recorrido de la parada y `ē_día` la media del residuo de ese
 viaje y tercio ese día. En la predicción, `Δ_v` es `Δ(v,d,p)` si existe; si no, `l(línea,b)`; si no, `g(b)`.
+
+**Tipo de día.** `d` es laborable o fin de semana. Un festivo entre semana (el GTFS hace circular ese día, por excepción,
+los calendarios de solo domingo: `ServiceJourney::isHoliday`) cuenta como fin de semana para toda la capa 3, tramos y
+corrección, que es como se aprendieron juntos. Las variantes medidas (mismo protocolo; el festivo, el 12 oct., dejándolo
+fuera al aprender):
+
+| Tipo de día de `Δ_v` | 7 días de prueba | Festivo 12 oct. |
+| --- | --- | --- |
+| Sin corrección (tramos de laborable el festivo) | 210 s | 172 s |
+| Laborable / fin de semana por día de la semana (primera versión) | 158 s | 196 s |
+| **Laborable / fin de semana; el festivo, fin de semana** | **158 s** | **162 s** |
+| Laborable / sábado / domingo y festivo | 159 s | 156 s |
+| Lunes-jueves / viernes / sábado / domingo | 160 s | — |
+| Solo los 14 últimos días | 163 s | — |
+
+La primera versión empeoraba el festivo: le aplicaba el retraso de un laborable con tráfico de domingo. Separar sábado y
+domingo acierta algo más el festivo pero un poco menos el resto, con la mitad de datos por grupo; se puede volver a
+probar con más días. La temporada no se puede medir con muestras de un solo mes.
 
 Protocolo por días: aprender con los 20 días anteriores y probar en los 7 últimos (26 oct.-1 nov. 2026, 87 333 pasos).
 
