@@ -176,6 +176,17 @@ print('caché de estáticos en el CDN sin caché en el navegador:', cache_ok)
 if not cache_ok:
     failures.append('caché de estáticos (vercel.json)')
 
+# «Apoya Bide+»: sin dirección de Ko-fi no sale; con ella, un enlace escapado que se abre aparte.
+donate_php = "<?php require '%sapi/autoload.php'; require '%sapi/Views/bide-components.php'; echo json_encode([bideDonate(''), bideDonate('https://ko-fi.com/bide\"+')]);" % (ROOT, ROOT)
+donate_run = subprocess.run([PHP], input=donate_php, capture_output=True, text=True)
+donate_ok = False
+if donate_run.returncode == 0:
+    donate_empty, donate_card = json.loads(donate_run.stdout)
+    donate_ok = donate_empty == '' and 'href="https://ko-fi.com/bide&quot;+"' in donate_card and 'target="_blank" rel="noopener noreferrer"' in donate_card and 'data-i18n="bide.donate.button"' in donate_card
+print('tarjeta «Apoya Bide+» (Ko-fi):', donate_ok)
+if not donate_ok:
+    failures.append('tarjeta de donaciones')
+
 # El servidor en París, cerca de quien usa la app y del feed de Bizkaibus.
 print('región del servidor:', vercel.get('regions'))
 if vercel.get('regions') != ['cdg1']:

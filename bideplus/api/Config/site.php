@@ -17,5 +17,7 @@ return [
     'source_url' => 'https://github.com/Garridoparrayeray/bizkaibus-renewed',
     // Adonde llegan las sugerencias y los errores del formulario de Info.
     'contact_email' => 'garridoparrayeraytx@gmail.com',
+    // La página de Ko-fi de «Apoya Bide+» en Info. Vacía, la tarjeta no sale.
+    'donate_url' => '',
     'gsc_verification' => 'd7akLe3xucjSHfxtm75cUFm5NyeE8X2NEX3f8knOGYU',
 ];

@@ -139,6 +139,7 @@ check('instalada · Favoritos: sin desbordar a lo ancho', await ev(noOverflow));
 
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=info]').click(); true");
 check('instalada · Info: se abre como página', await waitTrue(shown('[data-bide-view=info]')));
+check('instalada · Info: sin enlace de Ko-fi no sale «Apoya Bide+»', await ev("!document.querySelector('[data-bide-view=info] .bide-donate')"));
 check('instalada · Info: «Próximamente» con el planificador, justo antes de Novedades', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-upcoming'); return !!c && c.nextElementSibling.classList.contains('bide-changelog') && c.querySelector('h3').textContent === 'Próximamente' && c.querySelector('.bide-upcoming-badge').textContent === 'En desarrollo' && c.querySelectorAll('.bide-upcoming-list > li').length === 4; })()"));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");

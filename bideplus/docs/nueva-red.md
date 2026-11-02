@@ -117,7 +117,8 @@ Para que la app sea **solo** de una ciudad:
    - `name`, `url` y `locale`;
    - `default_network`, la red que se abre en «/» y que no lleva `?red=` en sus direcciones;
    - `author`, `author_links`, `source_url` y `contact_email` (sugerencias y errores, y firma de las notificaciones);
-   - `gsc_verification`, la verificación de Google Search Console (o vacío).
+   - `gsc_verification`, la verificación de Google Search Console (o vacío);
+   - `donate_url`, la página de Ko-fi de la tarjeta «Apoya Bide+» de Info (o vacío, y la tarjeta no sale).
 3. **Textos de Bide+** en `js/i18n.js` (castellano, euskera e inglés):
    - `bide.info.aboutText` (Sobre Bide+);
    - `menu.footer` y `bide.footer.text` (pie);

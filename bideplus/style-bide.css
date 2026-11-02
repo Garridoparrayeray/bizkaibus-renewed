@@ -319,6 +319,12 @@ html.bide .bide-upcoming-head {
         text-transform: uppercase;
         letter-spacing: .04em;
     }
+html.bide .bide-donate > .bide-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
 html.bide .bide-upcoming-list {
     margin: 0;
     padding: 0 0 0 18px;
