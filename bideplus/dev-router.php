@@ -15,7 +15,7 @@ if ($sUri === '' || preg_match('/[\x00-\x1f]/', $sUri)) {
 
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
-    if (empty($aRoute['headers'])) {
+    if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri)) {
         continue;
     }
     foreach ($aRoute['headers'] as $sName => $sValue) {
