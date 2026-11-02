@@ -64,10 +64,10 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `features.trip_detail` | `vehicle`: ficha del vehículo en directo; `stops`: lista de paradas del viaje. |
 | `features.alerts` | Cómo se piden las incidencias: `lines` (por línea favorita), `stops` (por estación, como Renfe) o `network` (todas las de la red). |
 | `features.alerts_detail` | Las incidencias del menú lateral enseñan también su texto largo. |
-| `live` | Fuentes en directo: `['vehicle-monitoring']` (SIRI con el algoritmo), `['trip-updates']` (GTFS-RT) o `[]` (horario oficial). |
+| `live` | Fuentes en directo: `['vehicle-monitoring']` (SIRI con el algoritmo), `['trip-updates']` (GTFS-RT), y además `'vehicle-positions'` si el operador publica dónde está cada tren (los trenes en el mapa de la línea), o `[]` (horario oficial). |
 | `engine` | Con `vehicle-monitoring`: el motor de `engine/` que se usa (`bizkaibus`, `lurraldebus`). |
 | `siri` | Direcciones de los feeds SIRI: `vehicle_monitoring_url`, `alerts_url` (o `alerts_urls`, varias) y tiempos de caché. |
-| `gtfs_rt` | Dirección del feed GTFS-Realtime y su tolerancia al emparejar viajes. |
+| `gtfs_rt` | Direcciones de los feeds GTFS-Realtime (`trip_updates_url` y, con `vehicle-positions`, `vehicle_positions_url`) y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
 | `direction_reference_stop_id` | Una parada central: cada salida se marca «hacia» o «desde» ella (los dos sentidos de Metro). |
 | `hidden_line_codes` | Líneas que no se enseñan aunque estén en el GTFS. |
 | `gtfs.source`, `gtfs.fallback_source` | De dónde se descarga el GTFS (y de dónde, si falla). `gtfs.sources`: varios GTFS que se juntan (Lurraldebus). |

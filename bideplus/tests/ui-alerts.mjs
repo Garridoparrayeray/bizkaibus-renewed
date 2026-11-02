@@ -293,6 +293,27 @@ await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).th
 await sleep(1500);
 check('la pagina no va a direcciones de fuera', (await ev('location.host')) === new URL(BASE).host);
 
+// Con Avisos abierto, las incidencias se renuevan solas (cada 5 minutos y al volver a la app) sin volver a «Cargando…».
+await go('/?red=bus');
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/alerts*' }] });
+await ev(`localStorage.setItem(BideNetworks.get('bus').favoritesKey, JSON.stringify([{ type: 'line', refId: '3513' }])); true`);
+mock.bus = [A];
+await go(`/?red=bus&aviso=avisos-${Date.now().toString(36)}#avisos`, 3500);
+check('Avisos: enseña las incidencias de los favoritos', await waitTrue(`document.querySelector('[data-bide-alerts]').textContent.includes('${A.description}')`));
+mock.bus = [A, B];
+await ev(`(() => {
+    const list = document.querySelector('[data-bide-alerts]');
+    window.__bideLoading = false;
+    new MutationObserver(() => { if (list.textContent.includes(I18n.t('app.loadingIncidents'))) window.__bideLoading = true; }).observe(list, { childList: true, subtree: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    return true;
+})()`);
+check('Avisos: al volver a la app se renuevan solas', await waitTrue(`document.querySelector('[data-bide-alerts]').textContent.includes('${B.description}')`));
+check('Avisos: al renovarse no vuelve a salir «Cargando…»', await ev('window.__bideLoading === false'));
+mock.bus = null;
+await send('Fetch.disable');
+await ev(`localStorage.removeItem(BideNetworks.get('bus').favoritesKey); true`);
+
 // Incidencias por push: con la app cerrada salen igual que las de llegada, y al tocarlas se abre la pestaña Avisos de
 // esa app una sola vez.
 if (registrationId) {

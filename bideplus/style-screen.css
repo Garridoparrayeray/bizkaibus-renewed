@@ -87,6 +87,10 @@
             padding: 1.6vh 0;
             border-bottom: 1px solid var(--screen-line);
         }
+            .screen-row.is-cancelled > .screen-time {
+                color: var(--screen-muted);
+                text-decoration: line-through;
+            }
             .screen-line {
                 min-width: 3.2em;
                 padding: .25em .5em;

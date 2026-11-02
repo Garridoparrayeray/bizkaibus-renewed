@@ -33,18 +33,25 @@ const pending = new Map();
 const problems = [];
 // Aviso de versión nueva: con fakeAppVersion, la respuesta de /api/app/version la da la prueba (Fetch.enable).
 let fakeAppVersion = null;
-const answerPaused = (requestId) => {
-    if (!fakeAppVersion) {
+// Salidas de una parada con un tren cancelado (Renfe): con fakeDepartures, la respuesta de /departures la da la prueba.
+let fakeDepartures = null;
+// Trenes en el mapa de una línea: con fakeLineLive, la respuesta de /lines/{id}/live la da la prueba.
+let fakeLineLive = null;
+const answerPaused = (requestId, url) => {
+    let fake = fakeAppVersion;
+    if (url.includes('/departures')) fake = fakeDepartures;
+    if (/\/lines\/[^/]+\/live/.test(url)) fake = fakeLineLive;
+    if (!fake) {
         send('Fetch.continueRequest', { requestId });
         return;
     }
-    const body = Buffer.from(JSON.stringify(fakeAppVersion)).toString('base64');
+    const body = Buffer.from(JSON.stringify(fake)).toString('base64');
     send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body });
 };
 ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
-    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId); return; }
+    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId, m.params.request.url); return; }
     if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
 };
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -143,7 +150,7 @@ check('instalada · Info: «Apoya Bide+» tras «Hecho por», con el enlace a Ko
 check('instalada · Info: «Próximamente» con el planificador, justo antes de Novedades', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-upcoming'); return !!c && c.nextElementSibling.classList.contains('bide-changelog') && c.querySelector('h3').textContent === 'Próximamente' && c.querySelector('.bide-upcoming-badge').textContent === 'En desarrollo' && c.querySelectorAll('.bide-upcoming-list > li').length === 4; })()"));
 check('instalada · Info: novedades plegadas, solo la última', await ev("(() => { const c = document.querySelector('[data-bide-view=info] .bide-changelog'); const d = c && c.querySelector('details'); return !!d && !d.open && c.querySelectorAll(':scope > .bide-changelog-entry').length === 1; })()"));
 await ev("document.querySelector('[data-bide-view=info] .bide-changelog summary').click(); true");
-check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')].filter(e => e.getBoundingClientRect().height > 0).length === 34"));
+check('instalada · Info: «ver todas» despliega el historial completo', await waitTrue("document.querySelector('[data-bide-view=info] .bide-changelog details').open && (() => { const all = [...document.querySelectorAll('[data-bide-view=info] .bide-changelog-entry')]; return all.length >= 36 && all.every(e => e.getBoundingClientRect().height > 0); })()"));
 check('instalada · Info: novedades sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Info: preguntas frecuentes plegadas', await ev("(() => { const items = document.querySelectorAll('[data-bide-view=info] .bide-faq-item'); return items.length >= 6 && [...items].every(i => !i.open); })()"));
 await ev("(() => { const t = document.querySelector('[data-feedback-text]'); t.value = 'Prueba'; t.dispatchEvent(new Event('input')); document.querySelector('[data-feedback-type=error]').click(); return true; })()");
@@ -548,6 +555,45 @@ await send('Fetch.disable');
 await go('/');
 await sleep(1500);
 check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
+
+// ===== Renfe: un tren cancelado no es la salida grande y en la lista dice «cancelado» con su hora =====
+await setStandalone(false);
+await phone();
+const nowSeconds = Math.floor(Date.now() / 1000);
+const renfeDeparture = (headsign, time, minutes, status, delay) => ({ lineId: '60T0001C1', lineCode: 'C1', lineName: 'Abando-Santurtzi', headsign, tripKey: `60T0001C1-${time.replace(':', '')}-1`, scheduledTime: time, etaMinutes: minutes, etaAt: nowSeconds + minutes * 60, status, delayMinutes: delay, direction: null, platformId: null });
+fakeDepartures = { stop: { id: '13200', name: 'Bilbao-Abando' }, platforms: [], directionLabels: null, attribution: 'Datos: Renfe Cercanías', departures: [
+    renfeDeparture('Santurtzi', '20:10', 3, 'cancelled', 0),
+    renfeDeparture('Muskiz', '20:12', 9, 'live', 4),
+    renfeDeparture('Santurtzi', '20:30', 25, 'cancelled', 0),
+] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/departures*' }] });
+await go('/stops/13200?red=renfe');
+check('Renfe · la salida grande es el tren que viene, no el cancelado', await waitTrue("document.getElementById('live-line').textContent.includes('Muskiz') && document.getElementById('live-delay').textContent.includes('4')"));
+check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...document.querySelectorAll('#live-more-list li.is-cancelled')].some((li) => li.textContent.includes(I18n.t('app.list.cancelled', { time: '20:10' })))"));
+await go('/pantalla/13200?red=renfe', 2500);
+check('Renfe · en la pantalla, el cancelado lleva su hora tachada y «Cancelado», no los minutos', await waitTrue("[...document.querySelectorAll('.screen-row.is-cancelled')].some((li) => li.querySelector('.screen-time').textContent === '20:10' && li.querySelector('.screen-detail').textContent.includes(I18n.t('app.status.cancelled')) && getComputedStyle(li.querySelector('.screen-time')).textDecorationLine === 'line-through')"));
+fakeDepartures = null;
+await send('Fetch.disable');
+
+// ===== Renfe y Metro: los trenes en el mapa de la línea, con su posición GPS; sin posiciones, no se dice «no circula» =====
+const mapStops = [{ id: 13200, name: 'Bilbao-Abando', lat: 43.2601, lon: -2.9286 }, { id: 13206, name: 'Ametzola', lat: 43.2545, lon: -2.9437 }];
+fakeLineLive = { line: { id: '60T0001C1', code: 'C1', name: 'Abando -Santurtzi' }, patterns: [{ id: 'p1', headsign: '', stops: mapStops }], tracked: true, vehicles: [
+    { vehicleRef: '26175', delayMinutes: 2, headsign: 'Santurtzi', stopStatus: 'at', position: { lat: 43.2548, lon: -2.9430 }, currentStop: mapStops[1] },
+] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/live*' }] });
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa Renfe · el tren sale con el icono de tren', await waitTrue("document.querySelectorAll('#line-map .bus-marker').length === 1 && document.querySelector('#line-map .bus-marker').innerHTML.includes('y=\"7\"')"));
+check('mapa Renfe · y no se dice que no circula nada', await ev("document.getElementById('line-map-empty').hidden"));
+await ev("document.querySelector('#line-map .bus-marker').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
+check('mapa Renfe · al tocarlo: destino, «En Ametzola» y su retraso', await waitTrue("(() => { const t = document.querySelector('#line-map .leaflet-popup-content')?.textContent || ''; return t.includes('Santurtzi') && t.includes(I18n.t('app.map.at', { stop: 'Ametzola' })) && t.includes(I18n.t('app.delay.late', { min: 2 })); })()"));
+fakeLineLive = { ...fakeLineLive, vehicles: [] };
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa Renfe · sin trenes ahora, «No hay trenes…» (no «autobuses»)', await waitTrue("!document.getElementById('line-map-empty').hidden && document.getElementById('line-map-empty').textContent === I18n.t('app.noLiveTrains')"));
+fakeLineLive = { ...fakeLineLive, tracked: false };
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa sin posiciones (Euskotren, tranvías) · no dice que no circula nada', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length > 0") && await ev("document.getElementById('line-map-empty').hidden"));
+fakeLineLive = null;
+await send('Fetch.disable');
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);

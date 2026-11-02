@@ -122,6 +122,8 @@ try {
             $sDescription = 'Horarios, recorrido y paradas de la línea ' . $aRecord['code'] . ' (' . $aRecord['name'] . ') de ' . $sAppName . '.';
             if (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-monitoring')) {
                 $sDescription .= ' Mapa con los autobuses en tiempo real.';
+            } elseif (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-positions')) {
+                $sDescription .= ' Mapa con los trenes en tiempo real.';
             }
             $aRelated = (new LineModel(Database::connection()))->stopsByName($aRecord['id']);
             $sBreadcrumbName = 'Línea ' . $aRecord['code'];

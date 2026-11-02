@@ -35,7 +35,7 @@ Cada red se describe en `api/Networks/<red>.php`:
 | `texts` | nombre, textos del menú y de la app, en castellano (`es`), euskera (`eu`) e inglés (`en`) |
 | `seo`, `attribution` | título y descripción de la página, atribución de los datos |
 | `features` | andenes, mapa de la línea, horario en texto, tipo de avisos (`lines`, `stops`, `network`)… |
-| `live` | fuentes en directo: `vehicle-monitoring` (SIRI-VM), `trip-updates` (GTFS-RT) o ninguna (`[]`, horario oficial) |
+| `live` | fuentes en directo: `vehicle-monitoring` (SIRI-VM), `trip-updates` y `vehicle-positions` (GTFS-RT) o ninguna (`[]`, horario oficial) |
 | `siri`, `gtfs_rt`, `metro_alerts`, `renfe_alerts` | URLs de los feeds |
 | `gtfs` | origen del GTFS, operador, lector de paradas y si su reconstrucción diaria es obligatoria |
 
@@ -93,6 +93,12 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 - Posición de buses (SIRI-VM, «Posición GPS» de Open Data Bizkaia): `https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml` (GPS y hora del dato, ~1 actualización por minuto, ~250 vehículos). Es la única fuente: el feed de trip-updates no trae GPS, ni hora válida, ni retraso. Si no responde, la app usa el último dato guardado y, sin él, el horario oficial.
 
 **Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Aunque el horario estático sale del mismo CTB, un mismo `trip_id` del tiempo real no es el mismo tren del horario (se comprobó: los números se reutilizan entre calendarios), así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
+
+**Euskotren y tranvías de Bilbao y Vitoria** — Euskotren publica en Open Data Euskadi un único feed GTFS-Realtime para los tres (`gtfsrt_euskotren_trip_updates.pb`, se renueva cada 1-2 minutos). Se lee igual que el de Metro, con `TripUpdatesMatcher` y las mismas reglas; `GtfsRealtimeClient` guarda cada feed por su dirección, así que las tres apps lo descargan una sola vez cada 30 s.
+
+**Renfe Cercanías** — Renfe publica un feed GTFS-Realtime de toda España (`gtfsrt.renfe.com/trip_updates.pb`): el retraso de cada tren en circulación y los trenes cancelados. Sus `trip_id` son los del GTFS que publica Renfe cada día (el de los horarios), así que `TripDelayMatcher` empareja por viaje, sin buscar por hora: suma el retraso del tren a las paradas que le quedan, quita las que ya ha pasado y marca «Cancelado» los que no salen. Menos de un minuto cuenta como «en hora». Cada tren cancelado es además una incidencia (`CancelledTrains`) en las estaciones por las que aún tenía que pasar, así que sale en Avisos y en las notificaciones de incidencias.
+
+**Trenes en el mapa de la línea (Renfe y Metro)** — los dos publican la posición de cada tren (GTFS-Realtime, *Vehicle Positions*: `gtfsrt.renfe.com/vehicle_positions.pb` y `metro-bilbao-vehicle-positions.pb`). `TrainPositions` decide qué trenes van en el mapa de cada línea: en Renfe, por su viaje (el del horario), que da también su destino y, con el feed de retrasos, su retraso; en Metro, los que van hacia una estación de la línea, con el destino de su previsión. Metro sitúa cada tren en la estación y no dice si está parado o en marcha; Renfe da el GPS y si está en la estación, llegando o de camino. Euskotren y los tranvías no publican posiciones: su mapa enseña solo el recorrido, sin decir que no circula nada (`tracked: false`). El fichero de avisos de Renfe (`alerts.json`) a veces deja de renovarse: si tiene más de 2 días, sus avisos no se enseñan.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 

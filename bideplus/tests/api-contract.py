@@ -19,7 +19,7 @@ checked = 0
 ID = (int, str)
 NUM = (int, float)
 HM = re.compile(r'^\d{2}:\d{2}$')
-STATUS = {'scheduled', 'estimated', 'likely_departed', 'live', 'departed', 'finished'}
+STATUS = {'scheduled', 'estimated', 'likely_departed', 'live', 'departed', 'finished', 'cancelled'}
 
 
 def opt(*schema):
@@ -56,7 +56,9 @@ SCHEMAS = {
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'live': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}],
-             'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': opt(int), 'headsign': opt(str), 'currentStop': STOP_REF}]},
+             'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': opt(int), 'headsign': opt(str), 'currentStop': STOP_REF,
+                           'position': opt({'lat': NUM, 'lon': NUM}), 'stopStatus': opt(str)}],
+             'tracked': bool},
     'alerts': {'alerts': ['alert']},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
