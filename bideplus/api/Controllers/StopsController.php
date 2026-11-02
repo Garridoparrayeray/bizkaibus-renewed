@@ -11,9 +11,7 @@ use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Services\GtfsRealtimeClient;
 use Core\Live;
-use Engine\Metro\TripUpdatesMatcher;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
 // (/api/stops/{id}/departures) y las paradas de un viaje (/api/trips/{tripKey}).
@@ -124,7 +122,7 @@ class StopsController
         $aConfig = Config::current();
         $JourneyModel = new ServiceJourney($Pdo);
         $Matcher = Live::matcher($JourneyModel);
-        $TripMatcher = self::tripMatcher($JourneyModel);
+        $TripMatcher = Live::tripMatcher($JourneyModel);
         $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
         $aOut = ['stop' => ['id' => $aStop['id'], 'name' => $aStop['name']]];
 
@@ -163,20 +161,9 @@ class StopsController
         return $aRows;
     }
 
-    // En las redes con GTFS-Realtime (Metro), el emparejador de su feed; si no, null.
-    private static function tripMatcher(ServiceJourney $JourneyModel): TripUpdatesMatcher|null
-    {
-        if (!Config::hasLive('trip-updates')) {
-            return null;
-        }
-        $aConfig = Config::current();
-        $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
-        return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds']);
-    }
-
-    // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en Metro, las horas del feed (sin los
-    // trenes que ya han salido).
-    private static function withLive(object $Matcher, TripUpdatesMatcher|null $TripMatcher, string $sStopId, array $aRows): array
+    // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en los trenes y tranvías, las horas del
+    // feed del operador (sin los que ya han salido).
+    private static function withLive(object $Matcher, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
         $aRows = $Matcher->enrich($aRows);
         if ($TripMatcher === null) {

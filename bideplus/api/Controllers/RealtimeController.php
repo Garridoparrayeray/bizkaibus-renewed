@@ -12,7 +12,6 @@ use Core\TripKey;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
-use Services\GtfsRealtimeClient;
 use Core\Live;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 use Engine\Metro\TripUpdatesMatcher;
@@ -314,7 +313,9 @@ class RealtimeController
     {
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $aPredicted = self::predictedSeconds($JourneyModel, $aJourney, $aStops, $sPreferredStopId, $iNow);
+        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $TripMatcher = Live::tripMatcher($JourneyModel, $iMidnight);
+        $aPredicted = self::predictedSeconds($JourneyModel, $TripMatcher, $aJourney, $aStops, $sPreferredStopId, $iNow, $iMidnight);
         $iFirstPredictedOrder = null;
         foreach ($aStops as $aStop) {
             if (isset($aPredicted[(string)$aStop['stop_id']])) {
@@ -342,17 +343,19 @@ class RealtimeController
         if (abs($iDelaySeconds) >= 60) {
             $iDelayMinutes = (int)round($iDelaySeconds / 60);
         }
-        return self::sheet($aJourney, self::tripStatus($bLive, $aStops, $iNow), null, $iDelayMinutes, $aStopsOut, ['feedTimes' => true]);
+        $sStatus = self::tripStatus($bLive, $aStops, $iNow);
+        // Renfe publica los trenes cancelados: la ficha lo dice en vez de enseñar el horario como si fuera a pasar.
+        if ($TripMatcher !== null && method_exists($TripMatcher, 'isCancelled') && $TripMatcher->isCancelled((string)$aJourney['id'])) {
+            $sStatus = 'cancelled';
+        }
+        return self::sheet($aJourney, $sStatus, null, $iDelayMinutes, $aStopsOut, ['feedTimes' => true]);
     }
 
     // Hora prevista por el feed en cada parada que le queda al tren (segundos desde medianoche), o [] si no se encuentra.
-    private static function predictedSeconds(ServiceJourney $JourneyModel, array $aJourney, array $aStops, string|null $sPreferredStopId, int $iNow): array
+    private static function predictedSeconds(ServiceJourney $JourneyModel, object|null $TripMatcher, array $aJourney, array $aStops, string|null $sPreferredStopId, int $iNow, int $iMidnight): array
     {
-        $aConfig = Config::current();
-        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
         $sAnchorStopId = self::anchorStopId($aStops, $sPreferredStopId, $iNow);
-        $TripMatcher = new TripUpdatesMatcher((new GtfsRealtimeClient($aConfig))->fetchTripUpdates(), $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
-        if ($sAnchorStopId === null || !$TripMatcher->hasData()) {
+        if ($sAnchorStopId === null || $TripMatcher === null || !$TripMatcher->hasData()) {
             return [];
         }
         $aRows = $JourneyModel->upcomingAtStop($sAnchorStopId, 40, 3 * 3600);

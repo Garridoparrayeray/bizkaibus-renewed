@@ -78,7 +78,7 @@ la manera de su red (`features.alerts`):
 | Red | Qué mira |
 | --- | --- |
 | Bizkaibus | cada línea guardada |
-| Renfe | cada estación y cada línea guardadas |
+| Renfe | cada estación y cada línea guardadas, también los trenes cancelados que aún tenían que pasar por ellas |
 | Metro, Euskotren, tranvías y Lurraldebus | toda la red, si hay algún favorito suyo |
 
 - La primera vez que mira una fuente **solo apunta** lo que ya hay: no avisa de lo viejo. Un favorito nuevo empieza

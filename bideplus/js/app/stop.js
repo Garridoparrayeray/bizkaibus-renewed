@@ -199,8 +199,9 @@ function renderStopLines(lines) {
 }
 
 function renderLiveCard(departures) {
-    // La tarjeta grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus), salvo que no haya otro.
-    const coming = (d) => d.status !== 'likely_departed';
+    // La tarjeta grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus) ni un tren cancelado,
+    // salvo que no haya otro.
+    const coming = (d) => d.status !== 'likely_departed' && d.status !== 'cancelled';
     const favoriteIndex = departures.findIndex((d) => coming(d) && state.favoriteKeys.has(favoriteKey('line', d.lineId)));
     let heroIndex = Math.max(0, departures.findIndex(coming));
     if (favoriteIndex !== -1) heroIndex = favoriteIndex;
@@ -258,6 +259,10 @@ function renderLiveCard(departures) {
         if (other.status === 'likely_departed') {
             when.textContent = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
             li.className = 'is-likely-past';
+        }
+        if (other.status === 'cancelled') {
+            when.textContent = I18n.t('app.list.cancelled', { time: other.scheduledTime });
+            li.className = 'is-cancelled';
         }
         button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span>`;
         button.appendChild(when);

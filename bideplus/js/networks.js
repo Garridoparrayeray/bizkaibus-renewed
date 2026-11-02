@@ -157,7 +157,7 @@
             ""
         ],
         "favoritesKey": "renfe_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": false,
             "headsign_from_last_stop": true,
@@ -175,7 +175,7 @@
                 "switcher": "Horarios de Cercanías en Bilbao y Donostia",
                 "subtitle": "Horarios de Cercanías",
                 "liveEmpty": "Busca una parada para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.",
                 "attribution": "Datos: Renfe Cercanías"
             },
             "eu": {
@@ -192,7 +192,7 @@
                 "switcher": "Commuter train timetables in Bilbao and Donostia",
                 "subtitle": "Commuter train timetables",
                 "liveEmpty": "Search for a stop to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
                 "attribution": "Data: Renfe Cercanías"
             }
         }

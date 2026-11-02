@@ -40,6 +40,7 @@ function minutesLeft(item) {
 }
 
 function timeText(item) {
+    if (item.status === 'cancelled') return item.scheduledTime;
     const minutes = minutesLeft(item);
     if (minutes <= 0) return I18n.t('screen.now');
     if (minutes < 60) return minutes + ' min';
@@ -62,6 +63,7 @@ function row(item) {
     if (detail) destination.appendChild(createNode('small', 'screen-detail', detail));
     const time = createNode('span', 'screen-time', timeText(item));
     if (item.status === 'live') time.classList.add('is-live');
+    if (item.status === 'cancelled') li.classList.add('is-cancelled');
     li.append(createNode('span', 'screen-line', item.lineCode), destination, time);
     return li;
 }

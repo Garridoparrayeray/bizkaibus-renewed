@@ -33,18 +33,22 @@ const pending = new Map();
 const problems = [];
 // Aviso de versión nueva: con fakeAppVersion, la respuesta de /api/app/version la da la prueba (Fetch.enable).
 let fakeAppVersion = null;
-const answerPaused = (requestId) => {
-    if (!fakeAppVersion) {
+// Salidas de una parada con un tren cancelado (Renfe): con fakeDepartures, la respuesta de /departures la da la prueba.
+let fakeDepartures = null;
+const answerPaused = (requestId, url) => {
+    let fake = fakeAppVersion;
+    if (url.includes('/departures')) fake = fakeDepartures;
+    if (!fake) {
         send('Fetch.continueRequest', { requestId });
         return;
     }
-    const body = Buffer.from(JSON.stringify(fakeAppVersion)).toString('base64');
+    const body = Buffer.from(JSON.stringify(fake)).toString('base64');
     send('Fetch.fulfillRequest', { requestId, responseCode: 200, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }], body });
 };
 ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
-    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId); return; }
+    if (m.method === 'Fetch.requestPaused') { answerPaused(m.params.requestId, m.params.request.url); return; }
     if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
 };
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -548,6 +552,25 @@ await send('Fetch.disable');
 await go('/');
 await sleep(1500);
 check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
+
+// ===== Renfe: un tren cancelado no es la salida grande y en la lista dice «cancelado» con su hora =====
+await setStandalone(false);
+await phone();
+const nowSeconds = Math.floor(Date.now() / 1000);
+const renfeDeparture = (headsign, time, minutes, status, delay) => ({ lineId: '60T0001C1', lineCode: 'C1', lineName: 'Abando-Santurtzi', headsign, tripKey: `60T0001C1-${time.replace(':', '')}-1`, scheduledTime: time, etaMinutes: minutes, etaAt: nowSeconds + minutes * 60, status, delayMinutes: delay, direction: null, platformId: null });
+fakeDepartures = { stop: { id: '13200', name: 'Bilbao-Abando' }, platforms: [], directionLabels: null, attribution: 'Datos: Renfe Cercanías', departures: [
+    renfeDeparture('Santurtzi', '20:10', 3, 'cancelled', 0),
+    renfeDeparture('Muskiz', '20:12', 9, 'live', 4),
+    renfeDeparture('Santurtzi', '20:30', 25, 'cancelled', 0),
+] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/departures*' }] });
+await go('/stops/13200?red=renfe');
+check('Renfe · la salida grande es el tren que viene, no el cancelado', await waitTrue("document.getElementById('live-line').textContent.includes('Muskiz') && document.getElementById('live-delay').textContent.includes('4')"));
+check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...document.querySelectorAll('#live-more-list li.is-cancelled')].some((li) => li.textContent.includes(I18n.t('app.list.cancelled', { time: '20:10' })))"));
+await go('/pantalla/13200?red=renfe', 2500);
+check('Renfe · en la pantalla, el cancelado lleva su hora tachada y «Cancelado», no los minutos', await waitTrue("[...document.querySelectorAll('.screen-row.is-cancelled')].some((li) => li.querySelector('.screen-time').textContent === '20:10' && li.querySelector('.screen-detail').textContent.includes(I18n.t('app.status.cancelled')) && getComputedStyle(li.querySelector('.screen-time')).textDecorationLine === 'line-through')"));
+fakeDepartures = null;
+await send('Fetch.disable');
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
 await setStandalone(false);

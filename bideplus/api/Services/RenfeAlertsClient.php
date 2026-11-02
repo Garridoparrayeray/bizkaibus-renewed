@@ -5,9 +5,11 @@ namespace Services;
 use Core\Cache;
 use Core\Database;
 use Core\Http;
+use Core\Live;
+use Models\ServiceJourney;
 
-// Avisos de Renfe Cercanías Bilbao: el feed de Renfe trae texto libre y aquí se reparten por línea y por
-// estación, buscando los nombres de las estaciones en el texto.
+// Avisos de Renfe Cercanías: el feed de Renfe trae texto libre y aquí se reparten por línea y por estación, buscando
+// los nombres de las estaciones en el texto. Los trenes cancelados del directo también salen como avisos.
 class RenfeAlertsClient
 {
     private const SUMMARY_MAX_LENGTH = 70;
@@ -28,7 +30,7 @@ class RenfeAlertsClient
         $aStops = $Pdo->query('SELECT id, name FROM stops')->fetchAll(\PDO::FETCH_KEY_PAIR);
 
         $aAll = Cache::remember('renfe_alerts', $aCfg['cache_ttl_seconds'], function () use ($aCfg, $aStops) {
-            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']), $aStops);
+            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']), $aStops, $aCfg['max_age_seconds'] ?? null);
         });
 
         $aOwnLines = array_flip($Pdo->query('SELECT id FROM lines')->fetchAll(\PDO::FETCH_COLUMN));
@@ -47,7 +49,17 @@ class RenfeAlertsClient
             }
             $aAlerts[] = $aAlert;
         }
-        return $aAlerts;
+        return array_merge($aAlerts, self::cancellations($Pdo));
+    }
+
+    private static function cancellations(\PDO $Pdo): array
+    {
+        $JourneyModel = new ServiceJourney($Pdo);
+        $Matcher = Live::tripMatcher($JourneyModel);
+        if (!$Matcher instanceof TripDelayMatcher) {
+            return [];
+        }
+        return CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
     }
 
     public function alertsByLine(): array
@@ -99,10 +111,13 @@ class RenfeAlertsClient
         ];
     }
 
-    private static function parse(string $sJson, array $aStops): array
+    public static function parse(string $sJson, array $aStops, int|null $iMaxAgeSeconds = null): array
     {
         $aFeed = json_decode($sJson, true);
         if (!isset($aFeed['entity']) || !\is_array($aFeed['entity'])) {
+            return [];
+        }
+        if ($iMaxAgeSeconds !== null && time() - (int)($aFeed['header']['timestamp'] ?? 0) > $iMaxAgeSeconds) {
             return [];
         }
 

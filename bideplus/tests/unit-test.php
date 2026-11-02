@@ -10,8 +10,11 @@ use Core\Config;
 use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\CancelledTrains;
 use Services\ScheduleRange;
 use Services\GtfsRealtimeClient;
+use Services\RenfeAlertsClient;
+use Services\TripDelayMatcher;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
 use Engine\Bizkaibus\RealtimeMatcher;
@@ -315,8 +318,8 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     $Expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));
 }
 $aLiveNetworks = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live'])));
-$Expect('en directo: Bizkaibus, Metro, Euskotren y los dos tranvías; el resto, horario oficial', $aLiveNetworks === ['bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'], implode(', ', $aLiveNetworks));
-$aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['match_tolerance_seconds'], $aNet['gtfs_rt']['max_age_seconds']))));
+$Expect('en directo: todas menos Lurraldebus, que no publica nada', $aLiveNetworks === ['bus', 'metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria'], implode(', ', $aLiveNetworks));
+$aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['max_age_seconds']) || (($aNet['gtfs_rt']['matching'] ?? 'stops') === 'stops' && !isset($aNet['gtfs_rt']['match_tolerance_seconds'])))));
 $Expect('las redes con horas previstas (GTFS-Realtime) tienen su feed configurado', $aWithoutFeed === [], implode(', ', $aWithoutFeed));
 $Expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
@@ -865,6 +868,72 @@ $Expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en schedul
 $Expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Controllers\RealtimeController::tripStatus(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $Expect('ficha del viaje: sin paradas sale scheduled', Controllers\RealtimeController::tripStatus(false, [], 8 * 3600) === 'scheduled');
 
+$Section('GTFS-Realtime de Renfe: retraso de cada tren y cancelados (Renfe+)');
+
+$sRenfeFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
+    . pbField(2, pbField(1, 'u1') . pbField(3, pbField(1, pbField(1, 'R1')) . pbField(2, pbStopTime('A', 6000)) . pbField(5, 180)))
+    . pbField(2, pbField(1, 'u2') . pbField(3, pbField(1, pbField(1, 'R2') . pbField(4, 3))))
+    . pbField(2, pbField(1, 'u3') . pbField(3, pbField(1, pbField(1, 'R3')) . pbField(2, pbStopTime('A', 6000)) . pbField(5, -120)));
+$aRenfeTrips = GtfsRealtimeClient::parseTripUpdates($sRenfeFeed)['trips'];
+$Expect('lee el retraso de cada tren, también negativo', $aRenfeTrips[0]['delay'] === 180 && $aRenfeTrips[2]['delay'] === -120, json_encode($aRenfeTrips));
+$Expect('un tren cancelado se lee aunque no traiga paradas', $aRenfeTrips[1] === ['tripId' => 'R2', 'stops' => [], 'canceled' => true], json_encode($aRenfeTrips[1]));
+$Expect('los viajes de Metro, sin retraso ni cancelación, salen como antes', !isset($aSynthetic['trips'][0]['delay']) && !isset($aSynthetic['trips'][0]['canceled']));
+
+$PdoRenfe = new PDO('sqlite::memory:');
+$PdoRenfe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoRenfe->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoRenfe->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT)');
+$PdoRenfe->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER)');
+$PdoRenfe->exec('CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT)');
+$PdoRenfe->exec("INSERT INTO stops VALUES ('A', 'Abando'), ('B', 'Ametzola'), ('C', 'Zabalburu')");
+foreach (['J1', 'J2', 'J3', 'J4'] as $iIndex => $sJourney) {
+    foreach (['A', 'B', 'C'] as $iSeq => $sStop) {
+        $iArrival = T0 + $iIndex * 600 + $iSeq * 120;
+        $PdoRenfe->exec("INSERT INTO passing_times VALUES ('$sJourney', $iSeq, '$sStop', $iArrival, $iArrival)");
+    }
+}
+$PdoRenfe->exec("INSERT INTO trip_aliases VALUES ('6005L1C1', 'J1'), ('6006M1C1', 'J1'), ('6005L2C1', 'J2'), ('6005L3C1', 'J3'), ('6005L4C1', 'J4')");
+$PdoRenfe->exec('CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT)');
+$PdoRenfe->exec('CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, line_id TEXT)');
+$PdoRenfe->exec('CREATE TABLE service_journeys (id TEXT PRIMARY KEY, journey_pattern_id TEXT)');
+$PdoRenfe->exec("INSERT INTO lines VALUES ('C1-ida', 'C1')");
+$PdoRenfe->exec("INSERT INTO journey_patterns VALUES ('P1', 'C1-ida')");
+$PdoRenfe->exec("INSERT INTO service_journeys VALUES ('J1', 'P1'), ('J2', 'P1'), ('J3', 'P1'), ('J4', 'P1')");
+$RenfeRow = fn(string $sJourney, int $iIndex) => ['service_journey_id' => $sJourney, 'trip_number' => $sJourney, 'stop_seq' => 1, 'arrival_seconds' => T0 + $iIndex * 600 + 120, 'status' => 'scheduled', 'etaSeconds' => T0 + $iIndex * 600 + 120, 'delaySeconds' => 0];
+$aRenfeRows = [$RenfeRow('J1', 0), $RenfeRow('J2', 1), $RenfeRow('J3', 2), $RenfeRow('J4', 3)];
+$aRenfeLive = [
+    ['tripId' => '6005L1C1', 'stops' => [['A', 0]], 'delay' => 240],
+    ['tripId' => '6005L2C1', 'stops' => [['C', 0]], 'delay' => 60],
+    ['tripId' => '6005L3C1', 'stops' => [], 'canceled' => true],
+    ['tripId' => 'de-otro-nucleo', 'stops' => [['X', 0]], 'delay' => 600],
+];
+$MRenfe = new TripDelayMatcher($aRenfeLive, new ServiceJourney($PdoRenfe), 0);
+$aRenfeOut = array_column($MRenfe->enrich('B', $aRenfeRows), null, 'service_journey_id');
+$Expect('el tren que va hacia Abando lleva su retraso a Ametzola: 4 min', $aRenfeOut['J1']['status'] === 'live' && $aRenfeOut['J1']['etaSeconds'] === T0 + 120 + 240 && $aRenfeOut['J1']['delaySeconds'] === 240, json_encode($aRenfeOut['J1'] ?? null));
+$Expect('el que ya va hacia Zabalburu ha pasado por Ametzola y no sale', !isset($aRenfeOut['J2']));
+$Expect('el cancelado sale como cancelado, a su hora', $aRenfeOut['J3']['status'] === 'cancelled' && $aRenfeOut['J3']['etaSeconds'] === T0 + 1200 + 120);
+$Expect('el que no está en el directo sigue con el horario', $aRenfeOut['J4']['status'] === 'scheduled');
+$Expect('isCancelled: el cancelado sí, los demás no', $MRenfe->isCancelled('J3') && !$MRenfe->isCancelled('J1') && !$MRenfe->isCancelled('J4'));
+$Expect('liveTrip: las paradas que le quedan, desde la siguiente, con el retraso', $MRenfe->liveTrip('B', [], 'J1') === [['A', T0 + 240], ['B', T0 + 120 + 240], ['C', T0 + 240 + 240]], json_encode($MRenfe->liveTrip('B', [], 'J1')));
+$Expect('liveTrip: un cancelado o sin directo no tiene horas en directo', $MRenfe->liveTrip('B', [], 'J3') === null && $MRenfe->liveTrip('B', [], 'J4') === null);
+$aLate = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', 0]], 'delay' => 45]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
+$Expect('menos de un minuto de retraso cuenta como en hora, pero la hora prevista lo lleva', $aLate[0]['delaySeconds'] === 0 && $aLate[0]['etaSeconds'] === T0 + 120 + 45);
+$Expect('sin directo, las salidas no cambian y hasData es falso', !(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->hasData() && (new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->enrich('B', $aRenfeRows) === $aRenfeRows);
+
+$aCancelAlerts = CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 60);
+$Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y destino', count($aCancelAlerts) === 1 && $aCancelAlerts[0]['summary'] === 'C1 · tren de las 08:20 cancelado' && $aCancelAlerts[0]['description'] === 'Renfe ha cancelado el tren de las 08:20 de Abando a Zabalburu.' && $aCancelAlerts[0]['lineRefs'] === ['C1-ida'], json_encode($aCancelAlerts));
+$Expect('la incidencia sale en las estaciones por las que aún tenía que pasar', $aCancelAlerts[0]['stopRefs'] === ['B', 'C'] && $aCancelAlerts[0]['scope'] === 'stop', json_encode($aCancelAlerts[0]['stopRefs'] ?? null));
+$Expect('pasada la hora de su última estación, ya no sale', CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 241) === []);
+$Expect('sin cancelados no hay incidencias', CancelledTrains::alerts(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0), new ServiceJourney($PdoRenfe), T0) === []);
+
+$AlertsFeed = fn(int $iGenerated) => json_encode(['header' => ['timestamp' => (string)$iGenerated], 'entity' => [['alert' => [
+    'informedEntity' => [['stopId' => 'A']],
+    'descriptionText' => ['translation' => [['language' => 'es', 'text' => 'ABANDO: Ascensor fuera de servicio.']]],
+]]]]);
+$Expect('avisos de Renfe recientes: salen', count(RenfeAlertsClient::parse($AlertsFeed(time() - 600), ['A' => 'Abando'], 2 * 86400)) === 1);
+$Expect('avisos de Renfe de hace días (el fichero dejó de actualizarse): no salen', RenfeAlertsClient::parse($AlertsFeed(time() - 26 * 86400), ['A' => 'Abando'], 2 * 86400) === []);
+
+/* ------------------------------------------------------------------ */
 $Section('Registro de pasos (buses que ya pasaron aunque hayan salido del directo)');
 $aVmPass = ['3414|808' => [
     ['tripRef' => 'trp_A', 'order' => 4, 'recordedSeconds' => T0 + 500, 'locationSeconds' => T0 + 490],

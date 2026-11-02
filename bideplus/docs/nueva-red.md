@@ -67,7 +67,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `live` | Fuentes en directo: `['vehicle-monitoring']` (SIRI con el algoritmo), `['trip-updates']` (GTFS-RT) o `[]` (horario oficial). |
 | `engine` | Con `vehicle-monitoring`: el motor de `engine/` que se usa (`bizkaibus`, `lurraldebus`). |
 | `siri` | Direcciones de los feeds SIRI: `vehicle_monitoring_url`, `alerts_url` (o `alerts_urls`, varias) y tiempos de caché. |
-| `gtfs_rt` | Dirección del feed GTFS-Realtime y su tolerancia al emparejar viajes. |
+| `gtfs_rt` | Dirección del feed GTFS-Realtime y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
 | `direction_reference_stop_id` | Una parada central: cada salida se marca «hacia» o «desde» ella (los dos sentidos de Metro). |
 | `hidden_line_codes` | Líneas que no se enseñan aunque estén en el GTFS. |
 | `gtfs.source`, `gtfs.fallback_source` | De dónde se descarga el GTFS (y de dónde, si falla). `gtfs.sources`: varios GTFS que se juntan (Lurraldebus). |

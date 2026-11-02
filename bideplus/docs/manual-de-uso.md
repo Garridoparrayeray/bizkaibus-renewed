@@ -11,7 +11,7 @@ móvil y del ordenador, y se puede instalar como una app más.
 | **Metro+** | horarios y tiempo real de Metro Bilbao, por andén, e incidencias de la red |
 | **Euskotren+** | horarios y tiempo real por andén e incidencias |
 | **Tranvía Bilbao+** y **Tranvía Vitoria+** | horarios y tiempo real por andén e incidencias |
-| **Renfe Cercanías+** | horarios de Bilbao y Donostia/Irun e incidencias por estación y línea |
+| **Renfe Cercanías+** | horarios y retrasos en directo de Bilbao y Donostia/Irun, trenes cancelados e incidencias por estación y línea |
 | **Lurraldebus+** | horarios e incidencias de los autobuses de Gipuzkoa |
 
 Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**.
@@ -45,6 +45,8 @@ no hace falta cuenta.
 - **Incidencias**: en Ajustes, activa los avisos de incidencias nuevas de tus favoritos. Te llega una notificación por
   cada una y, al tocarla, se abre la pestaña **Avisos** de esa app.
 - En **Avisos** están siempre las incidencias activas de tus favoritos.
+- En Renfe, un tren cancelado sale en la lista de salidas como «cancelado» y, hasta su hora, también como incidencia en
+  las estaciones por las que tenía que pasar.
 
 - **Versiones nuevas**: cuando sale una, te llega una notificación (si las tienes permitidas) y la rueda de Ajustes
   enseña un **1** en rojo. Al tocar cualquiera de los dos llegas a Ajustes, con lo que trae la versión encima de

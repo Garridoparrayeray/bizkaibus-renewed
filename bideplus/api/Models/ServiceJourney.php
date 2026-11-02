@@ -370,6 +370,23 @@ class ServiceJourney
         return $aSequences;
     }
 
+    public function lineOfJourney(string $sServiceJourneyId): array|null
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT l.id, l.code
+            FROM service_journeys sj
+            JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+            JOIN lines l ON l.id = jp.line_id
+            WHERE sj.id = ?
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        $aLine = $Stmt->fetch();
+        if ($aLine === false) {
+            return null;
+        }
+        return $aLine;
+    }
+
     public function stopsForJourney(string $sServiceJourneyId): array
     {
         $Stmt = $this->Pdo->prepare('

@@ -16,6 +16,7 @@ export function liveBadgeText(status, etaMinutes) {
     if (status === 'departed') return I18n.t('app.badge.leaving');
     if (status === 'estimated') return I18n.t('app.badge.estimated');
     if (status === 'likely_departed') return I18n.t('app.badge.likelyDeparted');
+    if (status === 'cancelled') return I18n.t('app.badge.cancelled');
     if (status !== 'live') return I18n.t('app.badge.scheduled');
     if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
     if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
@@ -34,6 +35,7 @@ export function statusLabel(status, delayMinutes) {
     if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
     if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
     if (status === 'likely_departed') return { text: I18n.t('app.status.likelyDeparted'), className: 'status-muted' };
+    if (status === 'cancelled') return { text: I18n.t('app.status.cancelled'), className: 'status-warn' };
     return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
 }
 

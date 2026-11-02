@@ -36,7 +36,7 @@ return [
             'switcher' => 'Horarios de Cercanías en Bilbao y Donostia',
             'subtitle' => 'Horarios de Cercanías',
             'liveEmpty' => 'Busca una parada para ver el próximo tren.',
-            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.',
+            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
         ],
         'eu' => [
             'name' => 'Renfe Aldiriak+',
@@ -52,7 +52,7 @@ return [
             'switcher' => 'Commuter train timetables in Bilbao and Donostia',
             'subtitle' => 'Commuter train timetables',
             'liveEmpty' => 'Search for a stop to see the next train.',
-            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
             'attribution' => 'Data: Renfe Cercanías',
         ],
     ],
@@ -74,13 +74,24 @@ return [
         'alerts_detail' => true,
     ],
 
-    // Sin datos en directo fiables: se muestra el horario oficial.
-    'live' => [],
+    'live' => ['trip-updates'],
 
+    // Directo de Renfe (GTFS-Realtime, cada minuto): el retraso de cada tren y los cancelados. Sus viajes son los del
+    // horario, así que se empareja por viaje.
+    'gtfs_rt' => [
+        'trip_updates_url' => 'https://gtfsrt.renfe.com/trip_updates.pb',
+        'matching' => 'trip',
+        'cache_ttl_seconds' => 30,
+        'http_timeout_seconds' => 8,
+        'max_age_seconds' => 300,
+    ],
+
+    // Renfe a veces deja de actualizar el fichero de avisos: si tiene más de 2 días, sus avisos no salen.
     'renfe_alerts' => [
         'url' => 'https://gtfsrt.renfe.com/alerts.json',
         'cache_ttl_seconds' => 120,
         'http_timeout_seconds' => 8,
+        'max_age_seconds' => 2 * 86400,
     ],
 
     // El horario lo publica Renfe a diario, con los mismos viajes que su directo. La copia del NAP llega con semanas de

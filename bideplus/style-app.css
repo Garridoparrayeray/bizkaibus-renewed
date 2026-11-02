@@ -753,6 +753,9 @@ header p {
     .live-more-list li.is-likely-past {
         opacity: .55;
     }
+    .live-more-list li.is-cancelled {
+        opacity: .7;
+    }
     .live-more-list .live-more-when {
         display: flex;
         flex-direction: column;

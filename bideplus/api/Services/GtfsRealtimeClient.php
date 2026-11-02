@@ -15,6 +15,7 @@ class GtfsRealtimeClient
     private const WIRE_FIXED32 = 5;
 
     private const SKIPPED = 1;
+    private const CANCELED = 3;
 
     public function __construct(private array $aConfig)
     {
@@ -67,15 +68,20 @@ class GtfsRealtimeClient
         return null;
     }
 
+    // Renfe trae además el retraso del tren («delay») y los cancelados, que pueden no llevar ninguna parada.
     private static function parseTripUpdate(string $sTripUpdate): array|null
     {
         $sTripId = '';
         $aStops = [];
+        $iDelay = null;
+        $bCanceled = false;
         foreach (self::fields($sTripUpdate) as [$iField, $Value]) {
             if ($iField === 1) {
                 foreach (self::fields($Value) as [$iTripField, $TripValue]) {
                     if ($iTripField === 1) {
                         $sTripId = $TripValue;
+                    } elseif ($iTripField === 4 && $TripValue === self::CANCELED) {
+                        $bCanceled = true;
                     }
                 }
             } elseif ($iField === 2) {
@@ -83,12 +89,21 @@ class GtfsRealtimeClient
                 if ($aStop !== null) {
                     $aStops[] = $aStop;
                 }
+            } elseif ($iField === 5) {
+                $iDelay = $Value;
             }
         }
-        if (empty($aStops)) {
+        if (empty($aStops) && !$bCanceled && $iDelay === null) {
             return null;
         }
-        return ['tripId' => $sTripId, 'stops' => $aStops];
+        $aTrip = ['tripId' => $sTripId, 'stops' => $aStops];
+        if ($iDelay !== null) {
+            $aTrip['delay'] = $iDelay;
+        }
+        if ($bCanceled) {
+            $aTrip['canceled'] = true;
+        }
+        return $aTrip;
     }
 
     private static function parseStopTimeUpdate(string $sUpdate): array|null
