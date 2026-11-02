@@ -1,7 +1,12 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v56';
-const CACHE_NAME = 'bizkaibus-shell-' + CACHE_VERSION;
+const CACHE_VERSION = 'v57';
+// Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
+// cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
+const SHELL_HASH = '';
+let shellCacheName = 'bizkaibus-shell-' + CACHE_VERSION;
+if (SHELL_HASH) shellCacheName += '-' + SHELL_HASH;
+const CACHE_NAME = shellCacheName;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
 const OFFLINE_CACHE_NAME = 'bide-offline';
@@ -82,6 +87,7 @@ const SHELL_FILES = [
     // Los iconos de cada red salen de su configuración (js/networks.js): una red nueva no hay que añadirla aquí.
     ...BideNetworks.slugs.flatMap((slug) => ['/' + BideNetworks.get(slug).icons + '/icon-192.png', '/' + BideNetworks.get(slug).icons + '/icon-512.png']),
 ];
+const SHELL_PATHS = new Set(SHELL_FILES.filter((file) => file !== '/'));
 
 // La app entera, recién bajada (sin la caché HTTP). Falla si se corta la conexión: así no se guarda a medias.
 function downloadShell() {
@@ -135,6 +141,7 @@ self.addEventListener('fetch', (event) => {
                             const clone = response.clone();
                             caches.open(API_CACHE_NAME).then((cache) => cache.put(event.request, clone));
                         }
+                        if (serverFailed(response)) return caches.match(event.request).then((hit) => hit || response);
                         return response;
                     })
                     .catch(() => caches.match(event.request))
@@ -147,13 +154,33 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(networkFirst(event.request, SLOW_NETWORK_MS));
         return;
     }
+    // Los ficheros de la app con huella no se vuelven a pedir: si cambia alguno, cambia la huella y llega la versión nueva entera.
+    if (SHELL_HASH && !url.search && SHELL_PATHS.has(url.pathname)) {
+        event.respondWith(cacheFirst(event.request));
+        return;
+    }
     // Hojas de estilo, scripts, tipografías e imágenes: salen de la caché al instante y se actualizan en segundo plano.
     event.respondWith(staleWhileRevalidate(event));
 });
 
+// Servidor caído, saturado o sin cuota: mejor lo guardado que una página de error.
+function serverFailed(response) {
+    return response.status >= 500 || response.status === 402 || response.status === 429;
+}
+
 function saveInCache(request, response) {
     if (!response.ok) return Promise.resolve();
     return caches.open(CACHE_NAME).then((cache) => cache.put(request, response));
+}
+
+function cacheFirst(request) {
+    return caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+            saveInCache(request, response.clone());
+            return response;
+        });
+    });
 }
 
 function staleWhileRevalidate(event) {
@@ -185,15 +212,20 @@ function networkFirst(request, timeoutMs) {
                 if (hit) settle(hit);
             });
         }, timeoutMs);
+        const savedPage = () => caches.match(request).then((hit) => hit || appPageFallback(request));
         fetch(request)
             .then((response) => {
                 clearTimeout(timer);
+                if (serverFailed(response)) {
+                    savedPage().then((hit) => settle(hit || response));
+                    return;
+                }
                 saveInCache(request, response.clone());
                 settle(response);
             })
             .catch(() => {
                 clearTimeout(timer);
-                caches.match(request).then((hit) => hit || appPageFallback(request)).then((hit) => settle(hit || Response.error()));
+                savedPage().then((hit) => settle(hit || Response.error()));
             });
     });
 }

@@ -89,6 +89,13 @@ print('archivos del precache que no existen:', missing_files or 'ninguno')
 if missing_files:
     failures.append('precache con archivos inexistentes')
 
+# La huella de sw.js la pone el despliegue a producción, antes de subir a Vercel (scripts/stamp-sw.php).
+deploy_flow = open(ROOT + '../.github/workflows/rebuild-schedule.yml', encoding='utf-8').read()
+stamp_before_deploy = 'scripts/stamp-sw.php' in deploy_flow and deploy_flow.index('scripts/stamp-sw.php') < deploy_flow.index('vercel deploy')
+print('huella de sw.js antes de desplegar:', stamp_before_deploy)
+if not stamp_before_deploy:
+    failures.append('el despliegue no pone la huella de sw.js')
+
 geo = subprocess.run([PHP, ROOT + 'tests/geocache-test.php'], capture_output=True, text=True)
 geo_result = 'OK'
 if geo.returncode != 0:

@@ -9,17 +9,27 @@ redes que se elijan se puede guardar en el móvil.
 
 | Qué | Estrategia | Caché |
 | --- | --- | --- |
-| La «carcasa»: estilos, scripts, tipografías, iconos (`SHELL_FILES`) | se guardan al instalar; después, de la caché al instante y se renuevan en segundo plano | `bizkaibus-shell-<versión>` |
-| Páginas (una app, una parada, una línea) | la red manda, pero si tarda más de 1,5 s y hay copia, se usa la copia | la misma |
-| Respuestas de la API que no son en directo (paradas, líneas, horarios) | la red y, si falla, la última copia | `bizkaibus-api-<versión>` |
+| La «carcasa»: estilos, scripts, tipografías, iconos (`SHELL_FILES`) | se guardan al instalar; en producción, después salen siempre de la caché y no se vuelven a pedir; en local y en las vistas previas, de la caché al instante y se renuevan en segundo plano | `bizkaibus-shell-<versión>-<huella>` |
+| Páginas (una app, una parada, una línea) | la red manda, pero si tarda más de 1,5 s, falla o el servidor responde con error (5xx, 402 o 429) y hay copia, se usa la copia | la misma |
+| Respuestas de la API que no son en directo (paradas, líneas, horarios) | la red y, si falla o responde con error, la última copia | `bizkaibus-api-<versión>` |
 
 Las rutas en directo (`departures`, `live`, `vehicles`, `alerts`, `nearby`) y la versión de la app (`app/version`) no se
 guardan: una hora de llegada vieja engaña más que ninguna, y una versión vieja ocultaría la nueva. Sin conexión, una
 parada o una línea que nunca se abrió se sirve con cualquier página guardada de su app (`appPageFallback`): la página
 lee la dirección y la pinta con el horario guardado.
 
-**`CACHE_VERSION`** (al principio de `sw.js`) se sube en cada cambio de la parte visible: así los móviles descartan la
-carcasa vieja. La batería de limpieza comprueba que todo lo que cargan las páginas esté en `SHELL_FILES`.
+**`SHELL_HASH`** (al principio de `sw.js`) es la huella de los ficheros de la app. En el repositorio va vacía; el
+despliegue a producción la pone justo antes de subir (`scripts/stamp-sw.php`, en `rebuild-schedule.yml`). Si cambia
+cualquier fichero, cambia la huella, y con ella `sw.js`: el móvil baja la carcasa nueva entera y la página se recarga
+sola. Si no cambia nada, `sw.js` queda igual y nadie vuelve a bajar nada. Sin huella (local, vistas previas o si el paso
+fallara), la carcasa se renueva en segundo plano, como antes.
+
+**`CACHE_VERSION`** se sube en los cambios de `sw.js` y, si hace falta, para forzar que todos los móviles descarten la
+carcasa. La batería de limpieza comprueba que todo lo que cargan las páginas esté en `SHELL_FILES`, y la de
+construcción, que la huella cubre todos esos ficheros.
+
+En Ajustes, «Vaciar caché y actualizar» baja la carcasa entera en el momento, sin esperar a una versión nueva: sirve
+si algo se quedó a medias (una descarga cortada, poco espacio). No toca los horarios sin conexión ni las notificaciones.
 
 ## El horario completo en el móvil
 

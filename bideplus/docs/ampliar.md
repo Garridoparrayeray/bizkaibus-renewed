@@ -81,7 +81,8 @@ Todo está en [nueva-red.md](nueva-red.md): `php scripts/new-network.php` crea l
 
 ## Un cambio visible
 
-- Sube `CACHE_VERSION` en `sw.js`, para que los móviles cojan los archivos nuevos.
+- Los móviles cogen los archivos nuevos solos: el despliegue pone en `sw.js` la huella de los ficheros de la app
+  (ver [sin conexión](sin-conexion.md)). `CACHE_VERSION` solo se sube si cambia el propio `sw.js`.
 - Si es algo que la gente nota, añade una novedad:
   - una fila nueva arriba en `Changelog::ENTRIES` (`api/Services/Changelog.php`), con el número siguiente: es la
     versión nueva de la app, y al desplegarla se avisa a todos (notificación o «1» en Ajustes, ver
