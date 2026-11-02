@@ -12,6 +12,8 @@ use Core\TripKey;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\GtfsRealtimeClient;
+use Services\TrainPositions;
 use Core\Live;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 use Engine\Metro\TripUpdatesMatcher;
@@ -91,11 +93,28 @@ class RealtimeController
             Response::error('Line not found', 404);
             return;
         }
+        $aPatterns = $LineModel->patternsWithStops($sLineId);
+        $bTrains = Config::hasLive('vehicle-positions');
+        if ($bTrains) {
+            $aVehicles = self::trainsOnLine($Pdo, $sLineId, $aPatterns);
+        } else {
+            $aVehicles = self::vehiclesOnLine($Pdo, $sLineId);
+        }
         Response::json([
             'line' => $aLine,
-            'patterns' => $LineModel->patternsWithStops($sLineId),
-            'vehicles' => self::vehiclesOnLine($Pdo, $sLineId),
+            'patterns' => $aPatterns,
+            'vehicles' => $aVehicles,
+            // Sin posiciones de la red (Euskotren, tranvías), el mapa no dice que no circula nada.
+            'tracked' => $bTrains || Config::hasLive('vehicle-monitoring'),
         ]);
+    }
+
+    private static function trainsOnLine(\PDO $Pdo, string $sLineId, array $aPatterns): array
+    {
+        $aConfig = Config::current();
+        $Client = new GtfsRealtimeClient($aConfig);
+        $bByTrip = ($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip';
+        return TrainPositions::onLine($Pdo, $sLineId, $aPatterns, $Client->fetchVehiclePositions(), $Client->fetchTripUpdates(), $bByTrip);
     }
 
     private static function vehiclesOnLine(\PDO $Pdo, string $sLineId): array
@@ -137,6 +156,8 @@ class RealtimeController
                     'vehicleRef' => $aEntry['vehicleRef'],
                     'delayMinutes' => $Matcher->displayDelayMinutes($iDelaySeconds),
                     'headsign' => $sHeadsign,
+                    'stopStatus' => null,
+                    'position' => null,
                     'currentStop' => [
                         'id' => Ids::forOutput($aStop['id']),
                         'name' => $aStop['name'],

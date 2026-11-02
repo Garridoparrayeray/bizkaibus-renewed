@@ -74,12 +74,13 @@ return [
         'alerts_detail' => true,
     ],
 
-    'live' => ['trip-updates'],
+    'live' => ['trip-updates', 'vehicle-positions'],
 
-    // Directo de Renfe (GTFS-Realtime, cada minuto): el retraso de cada tren y los cancelados. Sus viajes son los del
-    // horario, así que se empareja por viaje.
+    // Directo de Renfe (GTFS-Realtime, cada minuto): el retraso de cada tren, los cancelados y dónde va cada tren. Sus
+    // viajes son los del horario, así que se empareja por viaje.
     'gtfs_rt' => [
         'trip_updates_url' => 'https://gtfsrt.renfe.com/trip_updates.pb',
+        'vehicle_positions_url' => 'https://gtfsrt.renfe.com/vehicle_positions.pb',
         'matching' => 'trip',
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,

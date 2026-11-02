@@ -35,7 +35,7 @@ Cada red se describe en `api/Networks/<red>.php`:
 | `texts` | nombre, textos del menú y de la app, en castellano (`es`), euskera (`eu`) e inglés (`en`) |
 | `seo`, `attribution` | título y descripción de la página, atribución de los datos |
 | `features` | andenes, mapa de la línea, horario en texto, tipo de avisos (`lines`, `stops`, `network`)… |
-| `live` | fuentes en directo: `vehicle-monitoring` (SIRI-VM), `trip-updates` (GTFS-RT) o ninguna (`[]`, horario oficial) |
+| `live` | fuentes en directo: `vehicle-monitoring` (SIRI-VM), `trip-updates` y `vehicle-positions` (GTFS-RT) o ninguna (`[]`, horario oficial) |
 | `siri`, `gtfs_rt`, `metro_alerts`, `renfe_alerts` | URLs de los feeds |
 | `gtfs` | origen del GTFS, operador, lector de paradas y si su reconstrucción diaria es obligatoria |
 
@@ -96,7 +96,9 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 
 **Euskotren y tranvías de Bilbao y Vitoria** — Euskotren publica en Open Data Euskadi un único feed GTFS-Realtime para los tres (`gtfsrt_euskotren_trip_updates.pb`, se renueva cada 1-2 minutos). Se lee igual que el de Metro, con `TripUpdatesMatcher` y las mismas reglas; `GtfsRealtimeClient` guarda cada feed por su dirección, así que las tres apps lo descargan una sola vez cada 30 s.
 
-**Renfe Cercanías** — Renfe publica un feed GTFS-Realtime de toda España (`gtfsrt.renfe.com/trip_updates.pb`): el retraso de cada tren en circulación y los trenes cancelados. Sus `trip_id` son los del GTFS que publica Renfe cada día (el de los horarios), así que `TripDelayMatcher` empareja por viaje, sin buscar por hora: suma el retraso del tren a las paradas que le quedan, quita las que ya ha pasado y marca «Cancelado» los que no salen. Menos de un minuto cuenta como «en hora». Cada tren cancelado es además una incidencia (`CancelledTrains`) en las estaciones por las que aún tenía que pasar, así que sale en Avisos y en las notificaciones de incidencias. El fichero de avisos de Renfe (`alerts.json`) a veces deja de renovarse: si tiene más de 2 días, sus avisos no se enseñan.
+**Renfe Cercanías** — Renfe publica un feed GTFS-Realtime de toda España (`gtfsrt.renfe.com/trip_updates.pb`): el retraso de cada tren en circulación y los trenes cancelados. Sus `trip_id` son los del GTFS que publica Renfe cada día (el de los horarios), así que `TripDelayMatcher` empareja por viaje, sin buscar por hora: suma el retraso del tren a las paradas que le quedan, quita las que ya ha pasado y marca «Cancelado» los que no salen. Menos de un minuto cuenta como «en hora». Cada tren cancelado es además una incidencia (`CancelledTrains`) en las estaciones por las que aún tenía que pasar, así que sale en Avisos y en las notificaciones de incidencias.
+
+**Trenes en el mapa de la línea (Renfe y Metro)** — los dos publican la posición de cada tren (GTFS-Realtime, *Vehicle Positions*: `gtfsrt.renfe.com/vehicle_positions.pb` y `metro-bilbao-vehicle-positions.pb`). `TrainPositions` decide qué trenes van en el mapa de cada línea: en Renfe, por su viaje (el del horario), que da también su destino y, con el feed de retrasos, su retraso; en Metro, los que van hacia una estación de la línea, con el destino de su previsión. Metro sitúa cada tren en la estación y no dice si está parado o en marcha; Renfe da el GPS y si está en la estación, llegando o de camino. Euskotren y los tranvías no publican posiciones: su mapa enseña solo el recorrido, sin decir que no circula nada (`tracked: false`). El fichero de avisos de Renfe (`alerts.json`) a veces deja de renovarse: si tiene más de 2 días, sus avisos no se enseñan.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 

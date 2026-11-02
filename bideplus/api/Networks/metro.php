@@ -73,7 +73,7 @@ return [
         'alerts_detail' => false,
     ],
 
-    'live' => ['trip-updates'],
+    'live' => ['trip-updates', 'vehicle-positions'],
 
     'metro_alerts' => [
         'url' => 'https://cms.metrobilbao.eus/es/get/open_data/json/avisos/es',
@@ -90,6 +90,7 @@ return [
 
     'gtfs_rt' => [
         'trip_updates_url' => 'https://ctb-gtfs-rt.s3.eu-south-2.amazonaws.com/metro-bilbao-trip-updates.pb',
+        'vehicle_positions_url' => 'https://ctb-gtfs-rt.s3.eu-south-2.amazonaws.com/metro-bilbao-vehicle-positions.pb',
         'cache_ttl_seconds' => 15,
         'http_timeout_seconds' => 6,
         'max_age_seconds' => 300,

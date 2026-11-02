@@ -14,6 +14,7 @@ use Services\CancelledTrains;
 use Services\ScheduleRange;
 use Services\GtfsRealtimeClient;
 use Services\RenfeAlertsClient;
+use Services\TrainPositions;
 use Services\TripDelayMatcher;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
@@ -299,7 +300,9 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
             $aProblems[] = 'vehicle-monitoring sin motor (engine/<engine>/Live.php)';
         } elseif ($sSource === 'trip-updates' && empty($aNet['gtfs_rt']['trip_updates_url'])) {
             $aProblems[] = 'trip-updates sin gtfs_rt.trip_updates_url';
-        } elseif (!in_array($sSource, ['vehicle-monitoring', 'trip-updates'], true)) {
+        } elseif ($sSource === 'vehicle-positions' && empty($aNet['gtfs_rt']['vehicle_positions_url'])) {
+            $aProblems[] = 'vehicle-positions sin gtfs_rt.vehicle_positions_url';
+        } elseif (!in_array($sSource, ['vehicle-monitoring', 'trip-updates', 'vehicle-positions'], true)) {
             $aProblems[] = 'fuente en directo desconocida ' . $sSource;
         }
     }
@@ -689,6 +692,11 @@ function pbField(int $iField, int|string $Value): string
     return pbVarint(($iField << 3) | 2) . pbVarint(strlen($Value)) . $Value;
 }
 
+function pbFloat(int $iField, float $dValue): string
+{
+    return pbVarint(($iField << 3) | 5) . pack('g', $dValue);
+}
+
 function pbStopTime(string $sStopId, int|null $iArrival, int|null $iDeparture = null, int $iRelationship = 0): string
 {
     $sOut = '';
@@ -932,6 +940,48 @@ $AlertsFeed = fn(int $iGenerated) => json_encode(['header' => ['timestamp' => (s
 ]]]]);
 $Expect('avisos de Renfe recientes: salen', count(RenfeAlertsClient::parse($AlertsFeed(time() - 600), ['A' => 'Abando'], 2 * 86400)) === 1);
 $Expect('avisos de Renfe de hace días (el fichero dejó de actualizarse): no salen', RenfeAlertsClient::parse($AlertsFeed(time() - 26 * 86400), ['A' => 'Abando'], 2 * 86400) === []);
+
+/* ------------------------------------------------------------------ */
+$Section('Trenes en el mapa de la línea (posiciones GPS de Renfe y Metro)');
+
+$sVpFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
+    . pbField(2, pbField(1, 'v1') . pbField(4, pbField(1, pbField(1, 'R1')) . pbField(2, pbFloat(1, 43.25) . pbFloat(2, -2.94)) . pbField(4, 1) . pbField(7, 'B') . pbField(8, pbField(1, '26175') . pbField(2, 'C1-26175'))))
+    . pbField(2, pbField(1, 'v2') . pbField(4, pbField(1, pbField(1, '892031')) . pbField(2, pbFloat(1, 43.2543) . pbFloat(2, -2.9133)) . pbField(7, '5.0')))
+    . pbField(2, pbField(1, 'v3') . pbField(4, pbField(1, pbField(1, 'sin-gps')) . pbField(7, 'B')));
+$aVp = GtfsRealtimeClient::parseVehiclePositions($sVpFeed);
+$aVp1 = $aVp['vehicles'][0] ?? [];
+$Expect('posiciones: viaje, GPS, estación, si está parado en ella y número del tren', count($aVp['vehicles']) === 2 && $aVp1['tripId'] === 'R1' && abs($aVp1['lat'] - 43.25) < 0.0001 && abs($aVp1['lon'] + 2.94) < 0.0001 && $aVp1['stopStatus'] === 'at' && $aVp1['stopId'] === 'B' && $aVp1['vehicleId'] === '26175', json_encode($aVp));
+$Expect('si no dice si está parado (Metro), no se inventa; «5.0» es la estación 5; sin GPS no sale', $aVp['vehicles'][1]['stopStatus'] === null && $aVp['vehicles'][1]['stopId'] === '5' && $aVp['generatedAt'] === 5000);
+
+$PdoMap = new PDO('sqlite::memory:');
+$PdoMap->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoMap->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoMap->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT, lat REAL, lon REAL)');
+$PdoMap->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER)');
+$PdoMap->exec('CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT)');
+$PdoMap->exec('CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT)');
+$PdoMap->exec('CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, line_id TEXT)');
+$PdoMap->exec('CREATE TABLE service_journeys (id TEXT PRIMARY KEY, journey_pattern_id TEXT)');
+$PdoMap->exec("INSERT INTO stops VALUES ('A', 'Abando', 43.26, -2.93), ('B', 'Ametzola', 43.25, -2.94), ('C', 'Santurtzi', 43.33, -3.03), ('5', 'Santutxu', 43.254, -2.913), ('6', 'Basauri', 43.236, -2.886)");
+foreach ([['J1', ['A', 'B', 'C']], ['J2', ['C', 'B', 'A']]] as [$sJourney, $aJourneyStops]) {
+    foreach ($aJourneyStops as $iSeq => $sStop) {
+        $PdoMap->exec("INSERT INTO passing_times VALUES ('$sJourney', $iSeq, '$sStop', " . (T0 + $iSeq * 120) . ', ' . (T0 + $iSeq * 120) . ')');
+    }
+}
+$PdoMap->exec("INSERT INTO trip_aliases VALUES ('R1', 'J1'), ('R2', 'J2')");
+$PdoMap->exec("INSERT INTO lines VALUES ('C1-ida', 'C1'), ('C1-vuelta', 'C1')");
+$PdoMap->exec("INSERT INTO journey_patterns VALUES ('P1', 'C1-ida'), ('P2', 'C1-vuelta')");
+$PdoMap->exec("INSERT INTO service_journeys VALUES ('J1', 'P1'), ('J2', 'P2')");
+$Train = fn(string $sTrip, string $sStop, string|null $sStatus) => ['tripId' => $sTrip, 'lat' => 43.25, 'lon' => -2.94, 'stopId' => $sStop, 'stopStatus' => $sStatus, 'vehicleId' => 'T-' . $sTrip];
+$aRenfeTrains = [$Train('R1', 'B', 'at'), $Train('R2', 'A', 'towards'), $Train('de-otro-nucleo', 'B', 'at')];
+$aOnC1 = TrainPositions::onLine($PdoMap, 'C1-ida', [], $aRenfeTrains, [['tripId' => 'R1', 'stops' => [['B', 0]], 'delay' => 180]], true);
+$Expect('Renfe: en el mapa de la línea, solo sus trenes (el de vuelta y los de otros núcleos, no)', count($aOnC1) === 1 && $aOnC1[0]['vehicleRef'] === 'T-R1', json_encode($aOnC1));
+$Expect('Renfe: destino, retraso, estación y posición GPS de cada tren', ($aOnC1[0]['headsign'] ?? null) === 'Santurtzi' && $aOnC1[0]['delayMinutes'] === 3 && $aOnC1[0]['stopStatus'] === 'at' && $aOnC1[0]['currentStop']['name'] === 'Ametzola' && $aOnC1[0]['position'] === ['lat' => 43.25, 'lon' => -2.94], json_encode($aOnC1[0] ?? null));
+$aOnReturn = TrainPositions::onLine($PdoMap, 'C1-vuelta', [], $aRenfeTrains, [], true);
+$Expect('Renfe: sin su retraso en el directo, el tren sale sin retraso', count($aOnReturn) === 1 && $aOnReturn[0]['headsign'] === 'Abando' && $aOnReturn[0]['delayMinutes'] === null && $aOnReturn[0]['stopStatus'] === 'towards');
+$aMetroPatterns = [['id' => 'P9', 'stops' => [['id' => 5], ['id' => 6]]]];
+$aOnMetro = TrainPositions::onLine($PdoMap, 'MB', $aMetroPatterns, [$Train('m1', '5', null), $Train('m2', 'C', null)], [['tripId' => 'm1', 'stops' => [['5', 0], ['6', 0]]]], false);
+$Expect('Metro: los trenes que van hacia una estación de la línea, con su destino (la última de su previsión)', count($aOnMetro) === 1 && $aOnMetro[0]['headsign'] === 'Basauri' && $aOnMetro[0]['currentStop']['name'] === 'Santutxu' && $aOnMetro[0]['stopStatus'] === null && $aOnMetro[0]['delayMinutes'] === null, json_encode($aOnMetro));
 
 /* ------------------------------------------------------------------ */
 $Section('Registro de pasos (buses que ya pasaron aunque hayan salido del directo)');

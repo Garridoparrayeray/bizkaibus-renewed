@@ -35,9 +35,12 @@ const problems = [];
 let fakeAppVersion = null;
 // Salidas de una parada con un tren cancelado (Renfe): con fakeDepartures, la respuesta de /departures la da la prueba.
 let fakeDepartures = null;
+// Trenes en el mapa de una línea: con fakeLineLive, la respuesta de /lines/{id}/live la da la prueba.
+let fakeLineLive = null;
 const answerPaused = (requestId, url) => {
     let fake = fakeAppVersion;
     if (url.includes('/departures')) fake = fakeDepartures;
+    if (/\/lines\/[^/]+\/live/.test(url)) fake = fakeLineLive;
     if (!fake) {
         send('Fetch.continueRequest', { requestId });
         return;
@@ -570,6 +573,26 @@ check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...docume
 await go('/pantalla/13200?red=renfe', 2500);
 check('Renfe · en la pantalla, el cancelado lleva su hora tachada y «Cancelado», no los minutos', await waitTrue("[...document.querySelectorAll('.screen-row.is-cancelled')].some((li) => li.querySelector('.screen-time').textContent === '20:10' && li.querySelector('.screen-detail').textContent.includes(I18n.t('app.status.cancelled')) && getComputedStyle(li.querySelector('.screen-time')).textDecorationLine === 'line-through')"));
 fakeDepartures = null;
+await send('Fetch.disable');
+
+// ===== Renfe y Metro: los trenes en el mapa de la línea, con su posición GPS; sin posiciones, no se dice «no circula» =====
+const mapStops = [{ id: 13200, name: 'Bilbao-Abando', lat: 43.2601, lon: -2.9286 }, { id: 13206, name: 'Ametzola', lat: 43.2545, lon: -2.9437 }];
+fakeLineLive = { line: { id: '60T0001C1', code: 'C1', name: 'Abando -Santurtzi' }, patterns: [{ id: 'p1', headsign: '', stops: mapStops }], tracked: true, vehicles: [
+    { vehicleRef: '26175', delayMinutes: 2, headsign: 'Santurtzi', stopStatus: 'at', position: { lat: 43.2548, lon: -2.9430 }, currentStop: mapStops[1] },
+] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/live*' }] });
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa Renfe · el tren sale con el icono de tren', await waitTrue("document.querySelectorAll('#line-map .bus-marker').length === 1 && document.querySelector('#line-map .bus-marker').innerHTML.includes('y=\"7\"')"));
+check('mapa Renfe · y no se dice que no circula nada', await ev("document.getElementById('line-map-empty').hidden"));
+await ev("document.querySelector('#line-map .bus-marker').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
+check('mapa Renfe · al tocarlo: destino, «En Ametzola» y su retraso', await waitTrue("(() => { const t = document.querySelector('#line-map .leaflet-popup-content')?.textContent || ''; return t.includes('Santurtzi') && t.includes(I18n.t('app.map.at', { stop: 'Ametzola' })) && t.includes(I18n.t('app.delay.late', { min: 2 })); })()"));
+fakeLineLive = { ...fakeLineLive, vehicles: [] };
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa Renfe · sin trenes ahora, «No hay trenes…» (no «autobuses»)', await waitTrue("!document.getElementById('line-map-empty').hidden && document.getElementById('line-map-empty').textContent === I18n.t('app.noLiveTrains')"));
+fakeLineLive = { ...fakeLineLive, tracked: false };
+await go('/lines/60T0001C1?red=renfe', 3000);
+check('mapa sin posiciones (Euskotren, tranvías) · no dice que no circula nada', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length > 0") && await ev("document.getElementById('line-map-empty').hidden"));
+fakeLineLive = null;
 await send('Fetch.disable');
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====
