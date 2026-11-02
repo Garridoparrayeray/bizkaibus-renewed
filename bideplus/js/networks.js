@@ -108,30 +108,30 @@
             ""
         ],
         "favoritesKey": "euskotren_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": true,
             "headsign_from_last_stop": false,
             "stop_hints": false,
             "line_map": true,
             "schedule_text": false,
-            "trip_detail": "stops",
+            "trip_detail": "vehicle",
             "alerts": "network",
             "alerts_detail": true
         },
         "texts": {
             "es": {
                 "name": "Euskotren+",
-                "tile": "Tren con horarios oficiales",
+                "tile": "Horarios y tiempo real",
                 "switcher": "Horarios de Euskotren",
                 "subtitle": "Horarios de Euskotren",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.",
                 "attribution": "Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Euskotren+",
-                "tile": "Trena, ordutegi ofizialekin",
+                "tile": "Ordutegiak eta zuzenekoa",
                 "switcher": "Euskotrenen ordutegiak",
                 "subtitle": "Euskotrenen ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
@@ -139,11 +139,11 @@
             },
             "en": {
                 "name": "Euskotren+",
-                "tile": "Trains with official timetables",
+                "tile": "Timetables and real time",
                 "switcher": "Euskotren timetables",
                 "subtitle": "Euskotren timetables",
                 "liveEmpty": "Search for a station to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
                 "attribution": "Data: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             }
         }
@@ -255,33 +255,33 @@
             "BILBAO"
         ],
         "favoritesKey": "tranviabilbao_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": true,
             "headsign_from_last_stop": false,
             "stop_hints": false,
             "line_map": true,
             "schedule_text": false,
-            "trip_detail": "stops",
+            "trip_detail": "vehicle",
             "alerts": "network",
             "alerts_detail": true
         },
         "texts": {
             "es": {
                 "name": "Tranvía Bilbao+",
-                "tile": "Horarios del tranvía",
+                "tile": "Horarios y tiempo real",
                 "tile_title": "Tranvía",
                 "tile_city": "Bilbao",
                 "switcher": "Horarios del tranvía de Bilbao",
                 "subtitle": "Horarios del tranvía",
                 "liveEmpty": "Busca una parada para ver el próximo tranvía.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.",
                 "attribution": "Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Tranbia Bilbo+",
                 "tile_title": "Tranbia",
-                "tile": "Tranbiaren ordutegiak",
+                "tile": "Ordutegiak eta zuzenekoa",
                 "tile_city": "Bilbo",
                 "switcher": "Bilboko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
@@ -289,11 +289,11 @@
                 "attribution": "Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
-                "tile": "Tram timetables",
+                "tile": "Timetables and real time",
                 "switcher": "Bilbao tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
                 "attribution": "Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
@@ -307,33 +307,33 @@
             "VITORIA"
         ],
         "favoritesKey": "tranviavitoria_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": true,
             "headsign_from_last_stop": false,
             "stop_hints": false,
             "line_map": true,
             "schedule_text": false,
-            "trip_detail": "stops",
+            "trip_detail": "vehicle",
             "alerts": "network",
             "alerts_detail": true
         },
         "texts": {
             "es": {
                 "name": "Tranvía Vitoria+",
-                "tile": "Horarios del tranvía",
+                "tile": "Horarios y tiempo real",
                 "tile_title": "Tranvía",
                 "tile_city": "Vitoria",
                 "switcher": "Horarios del tranvía de Vitoria-Gasteiz",
                 "subtitle": "Horarios del tranvía",
                 "liveEmpty": "Busca una parada para ver el próximo tranvía.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.",
                 "attribution": "Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Tranbia Gasteiz+",
                 "tile_title": "Tranbia",
-                "tile": "Tranbiaren ordutegiak",
+                "tile": "Ordutegiak eta zuzenekoa",
                 "tile_city": "Gasteiz",
                 "switcher": "Gasteizko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
@@ -341,11 +341,11 @@
                 "attribution": "Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
-                "tile": "Tram timetables",
+                "tile": "Timetables and real time",
                 "switcher": "Vitoria-Gasteiz tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
                 "attribution": "Data: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             }
         }

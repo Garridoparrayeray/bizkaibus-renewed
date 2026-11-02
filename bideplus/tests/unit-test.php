@@ -314,7 +314,10 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     }
     $Expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));
 }
-$Expect('solo Bizkaibus y Metro tienen datos en directo; el resto, horario oficial', array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live']))) === ['bus', 'metro']);
+$aLiveNetworks = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live'])));
+$Expect('en directo: Bizkaibus, Metro, Euskotren y los dos tranvías; el resto, horario oficial', $aLiveNetworks === ['bus', 'metro', 'euskotren', 'tranvia-bilbao', 'tranvia-vitoria'], implode(', ', $aLiveNetworks));
+$aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['match_tolerance_seconds'], $aNet['gtfs_rt']['max_age_seconds']))));
+$Expect('las redes con horas previstas (GTFS-Realtime) tienen su feed configurado', $aWithoutFeed === [], implode(', ', $aWithoutFeed));
 $Expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
 $Section('RealtimeMatcher: capa 2, parada registrada sin GPS utilizable');

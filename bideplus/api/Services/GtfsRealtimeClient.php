@@ -5,8 +5,8 @@ namespace Services;
 use Core\Cache;
 use Core\Http;
 
-// Lee el feed GTFS-Realtime (protobuf, sin librerías) de Metro Bilbao: la hora prevista de cada tren en
-// cada parada.
+// Lee un feed GTFS-Realtime (protobuf, sin librerías): la hora prevista de cada tren en cada parada (Metro Bilbao,
+// Euskotren y los tranvías).
 class GtfsRealtimeClient
 {
     private const WIRE_VARINT = 0;
@@ -23,8 +23,9 @@ class GtfsRealtimeClient
     public function fetchTripUpdates(): array
     {
         $aGtfsRt = $this->aConfig['gtfs_rt'];
-        $sNetwork = $this->aConfig['network'];
-        $aFeed = Cache::remember('gtfs_rt_trip_updates_' . $sNetwork, $aGtfsRt['cache_ttl_seconds'], function () use ($aGtfsRt) {
+        // Por dirección: Euskotren y los dos tranvías leen el mismo fichero y lo bajan una sola vez.
+        $sCacheKey = 'gtfs_rt_trip_updates_' . substr(md5($aGtfsRt['trip_updates_url']), 0, 12);
+        $aFeed = Cache::remember($sCacheKey, $aGtfsRt['cache_ttl_seconds'], function () use ($aGtfsRt) {
             $sBody = Http::get($aGtfsRt['trip_updates_url'], $aGtfsRt['http_timeout_seconds']);
             return self::parseTripUpdates($sBody);
         });

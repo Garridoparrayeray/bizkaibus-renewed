@@ -32,18 +32,18 @@ return [
     'texts' => [
         'es' => [
             'name' => 'Tranvía Bilbao+',
-            'tile' => 'Horarios del tranvía',
+            'tile' => 'Horarios y tiempo real',
             'tile_title' => 'Tranvía',
             'tile_city' => 'Bilbao',
             'switcher' => 'Horarios del tranvía de Bilbao',
             'subtitle' => 'Horarios del tranvía',
             'liveEmpty' => 'Busca una parada para ver el próximo tranvía.',
-            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.',
+            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
             'name' => 'Tranbia Bilbo+',
             'tile_title' => 'Tranbia',
-            'tile' => 'Tranbiaren ordutegiak',
+            'tile' => 'Ordutegiak eta zuzenekoa',
             'tile_city' => 'Bilbo',
             'switcher' => 'Bilboko tranbiaren ordutegiak',
             'subtitle' => 'Tranbiaren ordutegiak',
@@ -51,11 +51,11 @@ return [
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
-            'tile' => 'Tram timetables',
+            'tile' => 'Timetables and real time',
             'switcher' => 'Bilbao tram timetables',
             'subtitle' => 'Tram timetables',
             'liveEmpty' => 'Search for a stop to see the next tram.',
-            'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
@@ -72,13 +72,21 @@ return [
         'stop_hints' => false,
         'line_map' => true,
         'schedule_text' => false,
-        'trip_detail' => 'stops',
+        'trip_detail' => 'vehicle',
         'alerts' => 'network',
         'alerts_detail' => true,
     ],
 
-    // Sin datos en directo fiables: se muestra el horario oficial.
-    'live' => [],
+    'live' => ['trip-updates'],
+
+    // Previsión de Euskotren (GTFS-Realtime, cada 1-2 min): trenes y los dos tranvías van en el mismo fichero.
+    'gtfs_rt' => [
+        'trip_updates_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/gtfsrt_euskotren_trip_updates.pb',
+        'cache_ttl_seconds' => 30,
+        'http_timeout_seconds' => 8,
+        'max_age_seconds' => 300,
+        'match_tolerance_seconds' => 600,
+    ],
 
     'siri' => [
         'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/siri_euskotren_situation_exchange.xml',
