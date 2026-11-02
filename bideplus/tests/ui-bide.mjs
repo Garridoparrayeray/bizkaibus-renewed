@@ -166,6 +166,7 @@ await ev("document.querySelector('[data-bide-lang=en]').click(); true");
 check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
 check('idioma · EN traduce las novedades, las preguntas y las sugerencias', await ev("document.querySelector('.bide-changelog h3').textContent === \"What's new\" && document.querySelector('.bide-faq h3').textContent === 'Frequently asked questions' && document.querySelector('.bide-feedback h3').textContent === 'Suggestions and bugs'"));
 check('idioma · EN traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Coming soon' && document.querySelector('.bide-upcoming-badge').textContent === 'In development'"));
+check('idioma · EN: el tranvía se llama como en castellano', await ev("document.querySelector('.tile--tranvia-bilbao .txt strong').textContent === 'Tranvía+' && [...document.querySelectorAll('.bide-apps-links a')].some((a) => a.textContent === 'Tranvía Bilbao+')"));
 check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang=en]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));

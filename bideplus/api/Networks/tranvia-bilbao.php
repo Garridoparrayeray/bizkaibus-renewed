@@ -51,15 +51,12 @@ return [
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
-            'name' => 'Bilbao Tram+',
             'tile' => 'Tram timetables',
-            'tile_title' => 'Tram',
-            'tile_city' => 'Bilbao',
             'switcher' => 'Bilbao tram timetables',
             'subtitle' => 'Tram timetables',
             'liveEmpty' => 'Search for a stop to see the next tram.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
-            'attribution' => 'Data: Euskotren (Bilbao tram) / Open Data Euskadi (CC-BY 4.0)',
+            'attribution' => 'Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
 
