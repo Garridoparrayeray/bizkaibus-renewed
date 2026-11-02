@@ -9,6 +9,8 @@
     const VIEWS = ['favoritos', 'avisos', 'ajustes', 'info'];
     const INSTALL_DISMISS_KEY = 'bide_install_dismissed';
     const INSTALL_DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
+    // Con Avisos abierto, las incidencias se renuevan solas (el CDN guarda cada consulta un minuto).
+    const ALERTS_REFRESH_MS = 5 * 60 * 1000;
     const desktop = window.matchMedia('(min-width: 1024px)');
     const isMenu = !window.__bbNetwork;
     const labelCache = new Map();
@@ -206,9 +208,9 @@
         return alerts;
     }
 
-    async function renderAlerts() {
+    async function renderAlerts(quiet = false) {
         const list = document.querySelector('[data-bide-alerts]');
-        list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
+        if (!quiet) list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
         const groups = [];
         for (const app of Object.keys(APPS)) {
             const alerts = await fetchAlerts(app);
@@ -371,6 +373,12 @@
     window.addEventListener('storage', renderFavorites);
     window.addEventListener('bide:favorites', renderFavorites);
     window.addEventListener('bide:lang', onLangChange);
+    const refreshOpenAlerts = () => {
+        if (currentView === 'avisos' && document.visibilityState === 'visible') renderAlerts(true);
+    };
+    setInterval(refreshOpenAlerts, ALERTS_REFRESH_MS);
+    document.addEventListener('visibilitychange', refreshOpenAlerts);
+    window.addEventListener('online', refreshOpenAlerts);
     syncLangSwitch();
     setUpInstallBanner();
     renderFavorites();
