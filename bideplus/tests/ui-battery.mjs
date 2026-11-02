@@ -74,7 +74,7 @@ const search = async (q, wait = 3200) => {
 
 // Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
 const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
-const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].q, panel: samples[key].panel }));
+const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].q, panel: samples[key].panel, beyond: samples[key].beyondPublished }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
 let sizeFilter = null;
@@ -138,7 +138,8 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         let noteDetail = '';
         if (noteToday) noteDetail = `publicado hasta ${publishedUntil}`;
         check(`${tag} aviso de fecha sin publicar oculto hoy`, noteToday === '' || (publishedUntil !== '' && publishedUntil < localToday), noteDetail);
-        await ev("(()=>{const d=document.getElementById('filter-date');d.value='2027-06-01';d.dispatchEvent(new Event('change',{bubbles:true}));})()");
+        // El primer día que el horario de esta red ya no cubre (Bilbobus publica hasta junio de 2027).
+        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.beyond}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);

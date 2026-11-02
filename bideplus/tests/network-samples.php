@@ -1,7 +1,8 @@
 <?php
 // Una muestra de cada red para las pruebas de API y de interfaz, sacada del registro (api/Networks) y de su base de
-// datos: la parada con más pasos (o su estación), una búsqueda que la encuentra y dónde está. Una red nueva entra
-// sola. Uso: php tests/network-samples.php (JSON por red: suffix, q, stopId, name, lat, lon, panel, live).
+// datos: la parada con más pasos (o su estación), una búsqueda que la encuentra, dónde está y el primer día que el
+// horario ya no cubre. Una red nueva entra sola. Uso: php tests/network-samples.php (JSON por red: suffix, q,
+// stopId, name, lat, lon, panel, live, beyondPublished).
 
 declare(strict_types=1);
 
@@ -9,6 +10,7 @@ require __DIR__ . '/../api/autoload.php';
 
 use Core\Networks;
 use Models\Search;
+use Services\ScheduleRange;
 
 $aSamples = [];
 foreach (Networks::all() as $sSlug => $aNetwork) {
@@ -48,7 +50,17 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'lon' => (float)$aStop['lon'],
         'panel' => $sPanel,
         'live' => !empty($aNetwork['live']),
+        'beyondPublished' => dayAfter(ScheduleRange::forDatabase($Pdo)['to']),
     ];
+}
+
+// El día siguiente al último que cubre el horario (o uno lejano si el GTFS no lo dice).
+function dayAfter(string|null $sDate): string
+{
+    if ($sDate === null) {
+        return '2099-01-01';
+    }
+    return (new DateTime($sDate))->modify('+1 day')->format('Y-m-d');
 }
 
 // La palabra más larga del nombre, sin tildes ni mayúsculas: lo que escribiría alguien en el buscador.
