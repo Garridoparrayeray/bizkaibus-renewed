@@ -1,7 +1,7 @@
 <?php
 // Imita la API HTTPS de Upstash Redis (solo /pipeline) para tests/store-test.php y tests/push-test.php:
 // hashes (HSET, HMGET, HSCAN), textos (SET con NX y EX, GET, MGET, DEL), conjuntos (SADD, SREM, SMEMBERS, SCARD,
-// SISMEMBER) y EXPIRE.
+// SISMEMBER), EXPIRE y EXPIREAT.
 $sFile = getenv('FAKE_UPSTASH_FILE');
 if (($_SERVER['HTTP_AUTHORIZATION'] ?? '') !== 'Bearer token-de-prueba') {
     http_response_code(401);
@@ -49,6 +49,12 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
         $aOut[] = ['result' => ['0', $aPairs]];
     } elseif ($sName === 'EXPIRE') {
         $aOut[] = ['result' => (int)isset($aData[$sKey])];
+    } elseif ($sName === 'EXPIREAT') {
+        // La hora de caducidad se apunta como «expireat:<clave>» para que las pruebas la lean con GET.
+        $aOut[] = ['result' => (int)isset($aData[$sKey])];
+        if (isset($aData[$sKey])) {
+            $aData['expireat:' . $sKey] = ['__str' => (string)$aCmd[0]];
+        }
     } elseif ($sName === 'SET') {
         $aFlags = array_map('strtoupper', array_map('strval', array_slice($aCmd, 1)));
         if (in_array('NX', $aFlags, true) && isset($aData[$sKey])) {

@@ -55,8 +55,16 @@ class UpdateAlerts
     public static function process(callable|null $Sender = null): array
     {
         $iVersion = Changelog::version();
+        // Una versión ya avisada no se vuelve a avisar: este servidor lo apunta y deja de preguntar al almacén.
+        if (self::doneHere() >= $iVersion) {
+            return ['skipped' => true];
+        }
         $aDone = Store::pipeline([['GET', self::DONE_KEY]]);
-        if ($aDone === null || (int)$aDone[0] >= $iVersion) {
+        if ($aDone === null) {
+            return ['skipped' => true];
+        }
+        if ((int)$aDone[0] >= $iVersion) {
+            self::rememberDone((int)$aDone[0]);
             return ['skipped' => true];
         }
         $aLock = Store::pipeline([['SET', self::RUN_KEY, (string)time(), 'NX', 'EX', self::RUN_LOCK_SECONDS]]);
@@ -90,8 +98,30 @@ class UpdateAlerts
         if ($iLeft === 0) {
             $aEnd[] = ['SET', self::DONE_KEY, (string)$iVersion];
         }
-        Store::pipeline($aEnd);
+        $aEnded = Store::pipeline($aEnd);
+        if ($iLeft === 0 && $aEnded !== null && ($aEnded[1] ?? null) === 'OK') {
+            self::rememberDone($iVersion);
+        }
         return ['version' => $iVersion, 'sent' => $aRun['sent'], 'pending' => $iLeft];
+    }
+
+    private static function doneHere(): int
+    {
+        $sDone = @file_get_contents(self::doneMarker());
+        if ($sDone === false) {
+            return 0;
+        }
+        return (int)$sDone;
+    }
+
+    private static function rememberDone(int $iVersion): void
+    {
+        @file_put_contents(self::doneMarker(), (string)$iVersion, LOCK_EX);
+    }
+
+    public static function doneMarker(): string
+    {
+        return sys_get_temp_dir() . '/bizkaibusplus_update_done';
     }
 
     private static function pending(string $sSentKey): array|null

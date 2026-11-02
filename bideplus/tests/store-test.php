@@ -64,7 +64,16 @@ try {
     $Journeys = new ServiceJourney($Pdo);
 
     $aVm = ['3514|909' => [['tripRef' => 'trp_A3514_909_LIN_51300_x', 'order' => 5, 'recordedSeconds' => 52860]]];
+    $sExpiryMarker = PassageLog::expiryMarker('bus', '2026-10-29');
+    @unlink($sExpiryMarker);
     $Expect('el cron apunta los buses del directo', PassageLog::record($aVm, 'bus', '2026-10-29') === 1);
+    $iDayEnd = (new DateTimeImmutable('2026-10-30', new DateTimeZone('Europe/Madrid')))->getTimestamp();
+    $aExpiry = Store::pipeline([['GET', 'expireat:bide:bus:pass:2026-10-29'], ['GET', 'expireat:bide:bus:stops:2026-10-29']]);
+    $Expect('el registro del día caduca 36 h después de acabar el día, y su historial a los 3 días', $aExpiry === [(string)($iDayEnd + 36 * 3600), (string)($iDayEnd + 3 * 86400)], json_encode($aExpiry));
+    Store::pipeline([['DEL', 'expireat:bide:bus:pass:2026-10-29']]);
+    PassageLog::record($aVm, 'bus', '2026-10-29');
+    $Expect('la caducidad se pone una vez por servidor y día, no en cada minuto', Store::pipeline([['GET', 'expireat:bide:bus:pass:2026-10-29']]) === [null]);
+    @unlink($sExpiryMarker);
     $aPassages = PassageLog::forJourneys($Journeys, ['J1', 'J2'], 'bus', '2026-10-29');
     $Expect('al consultar la parada se recupera por el alias del viaje', $aPassages === ['J1' => ['order' => 5, 'seconds' => 52860]], json_encode($aPassages));
     $Expect('otro día no mezcla', PassageLog::forJourneys($Journeys, ['J1'], 'bus', '2026-10-30') === []);
