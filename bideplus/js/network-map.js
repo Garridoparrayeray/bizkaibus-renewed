@@ -307,6 +307,18 @@
         return wrap;
     }
 
+    // Arriba lo que tardan de verdad los buses y debajo, en pequeño, el horario oficial. Sin datos, solo el oficial.
+    function minutesBadge(pattern, segment) {
+        const official = pattern.mins[segment];
+        const learned = pattern.minsLearned && pattern.minsLearned[segment];
+        const badge = el('span', 'map-min', `${official}'`);
+        if (!Number.isFinite(learned)) return badge;
+        badge.textContent = `${learned}'`;
+        badge.classList.add('has-official');
+        badge.appendChild(el('small', 'map-min-official', `${t('map.officialShort')}: ${official}'`));
+        return badge;
+    }
+
     function selectLine(slug, line, patternIndex = 0) {
         state.selectedLine = { slug, line };
         const select = document.getElementById('map-line');
@@ -349,13 +361,14 @@
         drawSelection({ network, line, pattern });
         const list = el('ol', 'map-schematic');
         list.style.setProperty('--line-color', line.color);
+        if (pattern.minsLearned) list.classList.add('has-learned');
         pattern.stops.forEach((stopId, index) => {
             const stop = network.data.stops[stopId];
             if (!stop) return;
             const item = el('li');
             // Minutos desde la parada anterior, en la barra entre las dos.
             if (index > 0 && pattern.mins && Number.isFinite(pattern.mins[index - 1])) {
-                item.appendChild(el('span', 'map-min', `${pattern.mins[index - 1]}'`));
+                item.appendChild(minutesBadge(pattern, index - 1));
             }
             if (index === 0 || index === pattern.stops.length - 1) item.classList.add('is-end');
             const button = el('button', 'map-stop');
@@ -371,7 +384,7 @@
             list.appendChild(item);
         });
         body.appendChild(list);
-        if (network.data.minsLearned) body.appendChild(el('p', 'map-note', t('map.minsLearned')));
+        if (network.data.hasLearnedMins) body.appendChild(el('p', 'map-note', t('map.minsLearned')));
 
         const link = el('a', 'map-action', t('map.openLine'));
         // L1 y L2 de Metro son una sola línea («MB») en sus datos.

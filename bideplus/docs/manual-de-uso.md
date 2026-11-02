@@ -96,7 +96,7 @@ actualizan solas. Pensada para una tele o una tablet en un portal, un bar o una 
 ## Mapa de la red
 
 Desde **Apps → Mapa de la red** (o `/mapa`): todas las líneas de las siete redes. Puedes encender cada red por separado,
-buscar una línea o una parada, y ver el esquema de cada línea con los minutos entre paradas (en Bizkaibus, lo que tardan de verdad los buses, aprendido del directo; en las demás redes, los del horario) y los transbordos.
+buscar una línea o una parada, y ver el esquema de cada línea con los minutos entre paradas y los transbordos. En Bizkaibus, arriba sale lo que tardan de verdad los buses (aprendido del directo) y debajo, en pequeño, «HO:» con el horario oficial; donde no hay datos, y en las demás redes, solo el horario oficial.
 
 ## Tema «mi amor»
 
