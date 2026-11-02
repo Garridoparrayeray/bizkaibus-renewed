@@ -158,7 +158,7 @@ Para que la app sea **solo** de una ciudad:
 ## 8. El directo y el algoritmo
 
 - **Autobuses con GPS (SIRI Vehicle Monitoring)**: el algoritmo de `engine/<motor>/` empareja cada bus con su viaje del horario y calcula la llegada a cada parada con lo que tarda de verdad cada tramo. Cómo funciona y cuánto acierta: `docs/algoritmo.html`, en el repositorio `bideplus-engine`. Para una red nueva con SIRI se parte de un motor que ya existe, como se hizo con Lurraldebus a partir del de Bizkaibus: hay que adaptar cómo se reconoce cada viaje en el feed, y la captura (`pace-capture.yml`) para que aprenda sus tiempos por tramo.
-- **Horas previstas (GTFS-Realtime)**: con `matching => 'trip'`, `Services/TripDelayMatcher.php` usa el viaje del horario que trae cada vehículo y su retraso (también si solo lo da por parada, como Tuvisa o Dbus); con `'stops'`, `engine/metro/TripUpdatesMatcher.php` lo empareja por paradas y hora. Sirve para cualquier operador que publique Trip Updates.
+- **Horas previstas (GTFS-Realtime)**: con `matching => 'trip'`, `Services/TripDelayMatcher.php` usa el viaje del horario que trae cada vehículo y su retraso (también si solo lo da por parada, como Tuvisa o Dbus); con `'stops'`, `Services/TripUpdatesMatcher.php` lo empareja por paradas y hora. Los dos viven en la app: no aprenden nada. Sirve para cualquier operador que publique Trip Updates.
 - **Posiciones (GTFS-Realtime)**: `Services/VehiclePositions.php` pone cada vehículo en el mapa de su línea.
 - **Incidencias (GTFS-Realtime)**: `GtfsRealtimeClient::fetchAlerts` lee `gtfs_rt.alerts_url` y da las vigentes.
 - **Sin directo**: el horario oficial, marcado «Solo horario».

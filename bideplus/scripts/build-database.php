@@ -11,6 +11,12 @@ const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 require_once __DIR__ . '/../api/Core/Networks.php';
 require_once __DIR__ . '/../api/Models/Search.php';
 
+use Build\Calendars;
+use Build\Download;
+use Build\Geocode;
+use Build\Gtfs;
+use Build\Journeys;
+use Build\Schema;
 use Models\Search;
 require_once __DIR__ . '/build/geocode.php';
 require_once __DIR__ . '/build/download.php';
@@ -61,12 +67,12 @@ function main(array $aArgv): void
         echo "Merging " . count($aGtfs['sources']) . " GTFS exports (" . implode(', ', array_keys($aGtfs['sources'])) . ")\n";
         $aPaths = [];
         foreach ($aGtfs['sources'] as $sKey => $sUrl) {
-            $aPaths[$sKey] = resolveZipPath($sUrl);
+            $aPaths[$sKey] = Download::resolveZipPath($sUrl);
         }
-        $sZipPath = mergeGtfsZips($aPaths);
+        $sZipPath = Download::mergeGtfsZips($aPaths);
     } else {
         echo "Reading GTFS export from: $sSource\n";
-        $sZipPath = resolveZipPath($sSource, $sFallbackSource);
+        $sZipPath = Download::resolveZipPath($sSource, $sFallbackSource);
     }
     $Zip = new ZipArchive();
     if ($Zip->open($sZipPath) !== true) {
@@ -75,11 +81,11 @@ function main(array $aArgv): void
     }
 
     echo "Parsing routes.txt...\n";
-    $aRoutes = loadRoutes($Zip, $sAgencyId, $aGtfs['route_id_prefixes'] ?? null);
+    $aRoutes = Gtfs::loadRoutes($Zip, $sAgencyId, $aGtfs['route_id_prefixes'] ?? null);
     echo '  ' . count($aRoutes) . " routes\n";
 
     echo "Parsing stops.txt...\n";
-    $aStopLoaders = ['bus' => 'loadStopsBus', 'metro' => 'loadStopsMetro', 'euskotren' => 'loadStopsEuskotren', 'renfe' => 'loadStopsRenfe', 'generic' => 'loadStopsMetro'];
+    $aStopLoaders = ['bus' => [Gtfs::class, 'loadStopsBus'], 'metro' => [Gtfs::class, 'loadStopsMetro'], 'euskotren' => [Gtfs::class, 'loadStopsEuskotren'], 'renfe' => [Gtfs::class, 'loadStopsRenfe'], 'generic' => [Gtfs::class, 'loadStopsMetro']];
     if (!isset($aStopLoaders[$aGtfs['stops']])) {
         fwrite(STDERR, "Unknown gtfs.stops=\"{$aGtfs['stops']}\" (expected " . implode('|', array_keys($aStopLoaders)) . ")\n");
         exit(1);
@@ -88,24 +94,24 @@ function main(array $aArgv): void
     echo '  ' . count($aStops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";
-    $aStops = geocodeStops($aStops, $bSkipGeocode);
+    $aStops = Geocode::geocodeStops($aStops, $bSkipGeocode);
 
     echo "Parsing calendar.txt / calendar_dates.txt...\n";
-    $aCalendars = loadCalendars($Zip, $bMergeCalendars);
+    $aCalendars = Calendars::loadCalendars($Zip, $bMergeCalendars);
     echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
-    $aTrips = loadTrips($Zip, $aGtfs['headsign_pattern'] ?? null);
+    $aTrips = Gtfs::loadTrips($Zip, $aGtfs['headsign_pattern'] ?? null);
     echo '  ' . count($aTrips) . " trips\n";
 
-    $aFeedInfo = loadFeedInfo($Zip);
+    $aFeedInfo = Gtfs::loadFeedInfo($Zip);
     if (isset($aFeedInfo['feed_version'])) {
         echo "  feed_version: {$aFeedInfo['feed_version']} (start: {$aFeedInfo['feed_start_date']}, end: {$aFeedInfo['feed_end_date']})\n";
     }
 
     $sFeedEndIso = '';
     if (!empty($aFeedInfo['feed_end_date'])) {
-        $sFeedEndIso = gtfsDateToIso($aFeedInfo['feed_end_date']);
+        $sFeedEndIso = Gtfs::gtfsDateToIso($aFeedInfo['feed_end_date']);
     }
     if ($sFeedEndIso !== '' && $sFeedEndIso < date('Y-m-d')) {
         fwrite(STDERR, "ERROR: el GTFS terminó el $sFeedEndIso, hoy es " . date('Y-m-d') . ". Build abortado.\n");
@@ -120,13 +126,13 @@ function main(array $aArgv): void
     $Pdo->exec('PRAGMA journal_mode = DELETE');
     $Pdo->exec('PRAGMA synchronous = OFF');
 
-    createSchema($Pdo);
+    Schema::createSchema($Pdo);
 
     $Pdo->beginTransaction();
 
-    insertStops($Pdo, $aStops);
-    insertCalendars($Pdo, $aCalendars);
-    insertMeta($Pdo, $aFeedInfo);
+    Schema::insertStops($Pdo, $aStops);
+    Schema::insertCalendars($Pdo, $aCalendars);
+    Schema::insertMeta($Pdo, $aFeedInfo);
 
     $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized, color, text_color) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($aRoutes as $iRouteId => $aRoute) {
@@ -137,19 +143,19 @@ function main(array $aArgv): void
     $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
     $aWindow = [];
     if (!empty($aGtfs['feed_window'])) {
-        $aWindow = publishedWindow($aFeedInfo, $aCalendars);
+        $aWindow = Calendars::publishedWindow($aFeedInfo, $aCalendars);
     }
-    processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
+    Journeys::processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
 
     $Pdo->commit();
 
-    $iPruned = pruneUnservedStops($Pdo);
+    $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
         echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";
     }
 
     echo "Building indexes...\n";
-    createIndexes($Pdo);
+    Schema::createIndexes($Pdo);
 
     $Zip->close();
 

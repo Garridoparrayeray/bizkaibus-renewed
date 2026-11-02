@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -72,16 +72,9 @@ const search = async (q, wait = 3200) => {
     await sleep(wait);
 };
 
-const apps = [
-    { key: 'bus', url: '/?red=bus', q: 'moyua', panel: 'live-card' },
-    { key: 'metro', url: '/?red=metro', q: 'abando', panel: 'platform-panel' },
-    { key: 'euskotren', url: '/?red=euskotren', q: 'amara', panel: 'platform-panel' },
-    { key: 'tranvia-bilbao', url: '/?red=tranvia-bilbao', q: 'atxuri', panel: 'platform-panel' },
-    { key: 'tranvia-vitoria', url: '/?red=tranvia-vitoria', q: 'abetxuko', panel: 'platform-panel' },
-    { key: 'renfe', url: '/?red=renfe', q: 'abando', panel: 'live-card' },
-    // Una parada con salidas todos los días.
-    { key: 'lurraldebus', url: '/?red=lurraldebus', q: 'donostia', panel: 'live-card' },
-];
+// Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
+const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
+const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].q, panel: samples[key].panel }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
 let sizeFilter = null;

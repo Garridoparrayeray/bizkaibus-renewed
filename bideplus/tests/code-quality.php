@@ -11,7 +11,7 @@ const INDENTED_EXTENSIONS = ['php', 'js', 'mjs', 'css'];
 require_once __DIR__ . '/../api/Core/Networks.php';
 // Las redes salen del registro (api/Networks): una red nueva no toca esta batería.
 define('NETWORK_SLUGS', \Core\Networks::slugs());
-const ENGINE_NAMES = ['bizkaibus', 'lurraldebus', 'metro'];
+define('ENGINE_NAMES', array_values(array_unique(array_filter(array_column(\Core\Networks::all(), 'engine')))));
 // Forma del PHP: niveles de sangría, líneas y columnas de un comentario, y desde cuántos tokens cuenta un cuerpo
 // repetido.
 const MAX_DEPTH = 6;

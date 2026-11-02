@@ -2,7 +2,6 @@
 
 namespace Services;
 
-use Engine\Metro\DepartedRows;
 use Models\ServiceJourney;
 
 // Directo por viaje (GTFS-Realtime de Renfe, Tuvisa y Dbus): cada vehículo trae su viaje del horario, el retraso y la

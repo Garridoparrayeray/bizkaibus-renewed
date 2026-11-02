@@ -2,13 +2,14 @@
 
 namespace Core;
 
-use Engine\Metro\TripUpdatesMatcher;
 use Models\ServiceJourney;
 use Services\GtfsRealtimeClient;
+use Services\ScheduleOnlyMatcher;
 use Services\TripDelayMatcher;
+use Services\TripUpdatesMatcher;
 
-// Elige el motor de llegadas de la red activa (clave «engine» de su ficha). Sin motor o sin directo,
-// devuelve uno sin datos en vivo: el horario oficial pasa tal cual.
+// Elige el motor de llegadas de la red activa (clave «engine» de su ficha). Sin motor, sin directo o sin engine/ a
+// mano (el algoritmo es un repositorio aparte), devuelve uno sin datos en vivo: el horario oficial pasa tal cual.
 class Live
 {
     private static function engineClass(string $sName): string|null
@@ -17,7 +18,11 @@ class Live
         if ($sEngine === null || !Config::hasLive('vehicle-monitoring')) {
             return null;
         }
-        return 'Engine\\' . ucfirst($sEngine) . '\\' . $sName;
+        $sClass = 'Engine\\' . ucfirst($sEngine) . '\\' . $sName;
+        if (!class_exists($sClass)) {
+            return null;
+        }
+        return $sClass;
     }
 
     public static function vehicles(): array
@@ -69,7 +74,7 @@ class Live
     {
         $sClass = self::engineClass('Live');
         if ($sClass === null) {
-            return new \Engine\Bizkaibus\RealtimeMatcher([], $JourneyModel);
+            return new ScheduleOnlyMatcher();
         }
         return $sClass::matcher($aVehicles ?? self::vehicles(), $JourneyModel);
     }
