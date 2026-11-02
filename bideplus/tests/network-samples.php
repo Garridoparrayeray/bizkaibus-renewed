@@ -1,8 +1,8 @@
 <?php
 // Una muestra de cada red para las pruebas de API y de interfaz, sacada del registro (api/Networks) y de su base de
 // datos: la parada con más pasos de viajes que circulan hoy (o su estación), una búsqueda que la encuentra, dónde
-// está y el primer día que el horario ya no cubre. Una red nueva entra sola. Uso: php tests/network-samples.php (JSON por red: suffix, q,
-// stopId, name, lat, lon, panel, live, beyondPublished).
+// está y el primer día que el horario ya no cubre. Una red nueva entra sola.
+// Uso: php tests/network-samples.php (JSON por red: suffix, q, stopId, name, lat, lon, panel, live, beyondPublished).
 
 declare(strict_types=1);
 
