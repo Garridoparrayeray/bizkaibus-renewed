@@ -1,5 +1,5 @@
 // Horario de una línea con los filtros de fecha y hora.
-import { FEATURES, NETWORK, el, networkQuery, state } from './core.js';
+import { FEATURES, el, networkQuery, state } from './core.js';
 import { toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { loadLineMap, startLineMapRefresh } from './line-map.js';
 import { statusLabel } from './ui.js';
@@ -75,8 +75,13 @@ export async function loadTimetable() {
     } else if (data.beforePublished) {
         timetableNote.textContent = I18n.t('app.timetable.before', { date: fmtDate(data.publishedFrom) });
     }
-    const sourceLabel = NETWORK.attribution;
-    el.attribution.textContent = `${sourceLabel} · Horario base publicado: ${data.scheduleSourcePublished}`;
+    state.schedulePublished = data.scheduleSourcePublished;
+    renderSchedulePublished();
+}
+
+export function renderSchedulePublished() {
+    if (!state.schedulePublished) return;
+    el.schedulePublished.textContent = ' · ' + I18n.t('app.timetable.published', { date: state.schedulePublished });
 }
 
 export function renderTimetableRows(entries) {

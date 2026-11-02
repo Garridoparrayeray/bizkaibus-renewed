@@ -42,11 +42,13 @@ return [
         ],
         'eu' => [
             'name' => 'Tranbia Bilbo+',
+            'tile_title' => 'Tranbia',
             'tile' => 'Tranbiaren ordutegiak',
             'tile_city' => 'Bilbo',
             'switcher' => 'Bilboko tranbiaren ordutegiak',
             'subtitle' => 'Tranbiaren ordutegiak',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo tranbia ikusteko.',
+            'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Bilbao Tram+',
@@ -57,6 +59,7 @@ return [
             'subtitle' => 'Tram timetables',
             'liveEmpty' => 'Search for a stop to see the next tram.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'attribution' => 'Data: Euskotren (Bilbao tram) / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
 

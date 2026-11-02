@@ -34,6 +34,7 @@ return [
             'switcher' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'subtitle' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'attribution' => 'Datuak: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Bizkaibus+',
@@ -42,6 +43,7 @@ return [
             'subtitle' => 'Bizkaibus timetables and real time',
             'liveEmpty' => 'Search for a stop to see the next bus.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia.',
+            'attribution' => 'Data: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
         ],
     ],
 

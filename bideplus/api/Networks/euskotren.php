@@ -43,6 +43,7 @@ return [
             'switcher' => 'Euskotrenen ordutegiak',
             'subtitle' => 'Euskotrenen ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+            'attribution' => 'Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Euskotren+',
@@ -51,6 +52,7 @@ return [
             'subtitle' => 'Euskotren timetables',
             'liveEmpty' => 'Search for a station to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'attribution' => 'Data: Euskotren / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
 

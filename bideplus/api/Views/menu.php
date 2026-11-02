@@ -144,7 +144,7 @@ $aJsonLd = [
                         <img class="appicon" src="<?= $sIcon ?>" alt="" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
 <?php if (!empty($aNetwork['texts']['es']['tile_city'])): ?>
-                        <span class="txt"><strong><?= htmlspecialchars($aNetwork['texts']['es']['tile_title']) ?><span class="tile-mark">+</span></strong><span class="tile-city" data-i18n="net.<?= $sSlug ?>.tile_city"><?= htmlspecialchars($aNetwork['texts']['es']['tile_city']) ?></span><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+                        <span class="txt"><strong><span data-i18n="net.<?= $sSlug ?>.tile_title"><?= htmlspecialchars($aNetwork['texts']['es']['tile_title']) ?></span><span>+</span></strong><span class="tile-city" data-i18n="net.<?= $sSlug ?>.tile_city"><?= htmlspecialchars($aNetwork['texts']['es']['tile_city']) ?></span><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
 <?php else: ?>
                         <span class="txt"><strong data-i18n="net.<?= $sSlug ?>.name"><?= htmlspecialchars($sName) ?></strong><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
 <?php endif; ?>

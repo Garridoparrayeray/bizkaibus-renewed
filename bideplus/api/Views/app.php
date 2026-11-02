@@ -253,7 +253,7 @@ use Core\Networks;
 
 <?= bideViews() ?>
 
-        <p id="attribution" class="attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></p>
+        <p class="attribution"><span data-i18n="net.<?= $sNetworkSlug ?>.attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></span><span id="schedule-published"></span></p>
         <p id="disclaimer" class="disclaimer" data-i18n="net.<?= htmlspecialchars($sNetworkSlug) ?>.disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
     </main>
 

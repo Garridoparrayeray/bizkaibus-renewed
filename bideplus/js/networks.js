@@ -21,7 +21,6 @@
             "alerts": "lines",
             "alerts_detail": true
         },
-        "attribution": "Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)",
         "texts": {
             "es": {
                 "name": "Bizkaibus+",
@@ -29,14 +28,16 @@
                 "switcher": "Horarios y tiempo real de Bizkaibus",
                 "subtitle": "Horarios y tiempo real de Bizkaibus",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Bizkaibus ni con la Diputación Foral de Bizkaia.",
+                "attribution": "Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Bizkaibus+",
                 "tile": "Ordutegiak eta zuzenekoa",
                 "switcher": "Bizkaibusen ordutegiak eta zuzenekoa",
                 "subtitle": "Bizkaibusen ordutegiak eta zuzenekoa",
-                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko."
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
             },
             "en": {
                 "name": "Bizkaibus+",
@@ -44,7 +45,8 @@
                 "switcher": "Bizkaibus timetables and real time",
                 "subtitle": "Bizkaibus timetables and real time",
                 "liveEmpty": "Search for a stop to see the next bus.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia."
+                "disclaimer": "An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia.",
+                "attribution": "Data: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
             }
         }
     },
@@ -68,7 +70,6 @@
             "alerts": "network",
             "alerts_detail": false
         },
-        "attribution": "Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real",
         "texts": {
             "es": {
                 "name": "Metro+",
@@ -76,14 +77,16 @@
                 "switcher": "Horarios de Metro Bilbao",
                 "subtitle": "Horarios de Metro Bilbao",
                 "liveEmpty": "Busca una estación para ver el próximo metro.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.",
+                "attribution": "Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real"
             },
             "eu": {
                 "name": "Metro+",
                 "tile": "Bilboko Metroa",
                 "switcher": "Bilboko Metroaren ordutegiak",
                 "subtitle": "Bilboko Metroaren ordutegiak",
-                "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko."
+                "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko.",
+                "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala"
             },
             "en": {
                 "name": "Metro+",
@@ -91,7 +94,8 @@
                 "switcher": "Metro Bilbao timetables",
                 "subtitle": "Metro Bilbao timetables",
                 "liveEmpty": "Search for a station to see the next metro.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator's forecast."
+                "disclaimer": "An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator's forecast.",
+                "attribution": "Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time"
             }
         }
     },
@@ -115,7 +119,6 @@
             "alerts": "network",
             "alerts_detail": true
         },
-        "attribution": "Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)",
         "texts": {
             "es": {
                 "name": "Euskotren+",
@@ -123,14 +126,16 @@
                 "switcher": "Horarios de Euskotren",
                 "subtitle": "Horarios de Euskotren",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "attribution": "Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Euskotren+",
                 "tile": "Trena, ordutegi ofizialekin",
                 "switcher": "Euskotrenen ordutegiak",
                 "subtitle": "Euskotrenen ordutegiak",
-                "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko."
+                "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
+                "attribution": "Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
                 "name": "Euskotren+",
@@ -138,7 +143,8 @@
                 "switcher": "Euskotren timetables",
                 "subtitle": "Euskotren timetables",
                 "liveEmpty": "Search for a station to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "attribution": "Data: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     },
@@ -162,7 +168,6 @@
             "alerts": "stops",
             "alerts_detail": true
         },
-        "attribution": "Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)",
         "texts": {
             "es": {
                 "name": "Renfe Cercanías+",
@@ -170,14 +175,16 @@
                 "switcher": "Horarios de Cercanías en Bilbao y Donostia",
                 "subtitle": "Horarios de Cercanías",
                 "liveEmpty": "Busca una parada para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "attribution": "Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)"
             },
             "eu": {
                 "name": "Renfe Aldiriak+",
                 "tile": "Bilbo eta Donostiako aldiriak",
                 "switcher": "Bilbo eta Donostiako Aldirien ordutegiak",
                 "subtitle": "Aldirien ordutegiak",
-                "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko."
+                "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
+                "attribution": "Datuak: Renfe Aldiriak / NAP (Garraioaren Sarbide Puntu Nazionala)"
             },
             "en": {
                 "name": "Renfe Cercanías+",
@@ -185,7 +192,8 @@
                 "switcher": "Commuter train timetables in Bilbao and Donostia",
                 "subtitle": "Commuter train timetables",
                 "liveEmpty": "Search for a stop to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
+                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "attribution": "Data: Renfe Cercanías / NAP (Spain's National Access Point for transport data)"
             }
         }
     },
@@ -209,7 +217,6 @@
             "alerts": "network",
             "alerts_detail": true
         },
-        "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)",
         "texts": {
             "es": {
                 "name": "Lurraldebus+",
@@ -217,14 +224,16 @@
                 "switcher": "Horarios de Lurraldebus en Gipuzkoa",
                 "subtitle": "Horarios de Lurraldebus",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)"
             },
             "eu": {
                 "name": "Lurraldebus+",
                 "tile": "Gipuzkoako autobusak",
                 "switcher": "Lurraldebusen ordutegiak Gipuzkoan",
                 "subtitle": "Lurraldebusen ordutegiak",
-                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko."
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)"
             },
             "en": {
                 "name": "Lurraldebus+",
@@ -232,7 +241,8 @@
                 "switcher": "Lurraldebus timetables in Gipuzkoa",
                 "subtitle": "Lurraldebus timetables",
                 "liveEmpty": "Search for a stop to see the next bus.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
+                "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "attribution": "Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)"
             }
         }
     },
@@ -256,7 +266,6 @@
             "alerts": "network",
             "alerts_detail": true
         },
-        "attribution": "Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)",
         "texts": {
             "es": {
                 "name": "Tranvía Bilbao+",
@@ -266,15 +275,18 @@
                 "switcher": "Horarios del tranvía de Bilbao",
                 "subtitle": "Horarios del tranvía",
                 "liveEmpty": "Busca una parada para ver el próximo tranvía.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "attribution": "Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Tranbia Bilbo+",
+                "tile_title": "Tranbia",
                 "tile": "Tranbiaren ordutegiak",
                 "tile_city": "Bilbo",
                 "switcher": "Bilboko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
-                "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko."
+                "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
+                "attribution": "Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
                 "name": "Bilbao Tram+",
@@ -284,7 +296,8 @@
                 "switcher": "Bilbao tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "attribution": "Data: Euskotren (Bilbao tram) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     },
@@ -308,7 +321,6 @@
             "alerts": "network",
             "alerts_detail": true
         },
-        "attribution": "Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)",
         "texts": {
             "es": {
                 "name": "Tranvía Vitoria+",
@@ -318,15 +330,18 @@
                 "switcher": "Horarios del tranvía de Vitoria-Gasteiz",
                 "subtitle": "Horarios del tranvía",
                 "liveEmpty": "Busca una parada para ver el próximo tranvía.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador."
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
+                "attribution": "Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Tranbia Gasteiz+",
+                "tile_title": "Tranbia",
                 "tile": "Tranbiaren ordutegiak",
                 "tile_city": "Gasteiz",
                 "switcher": "Gasteizko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
-                "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko."
+                "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
+                "attribution": "Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
                 "name": "Vitoria Tram+",
@@ -336,7 +351,8 @@
                 "switcher": "Vitoria-Gasteiz tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes."
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
+                "attribution": "Data: Euskotren (Vitoria-Gasteiz tram) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     }

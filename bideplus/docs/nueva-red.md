@@ -41,7 +41,7 @@ El script:
 Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 
 - **Textos** (`texts`): el euskera y el inglés salen de una plantilla; corrígelos. `disclaimer` es el aviso de que el proyecto no es oficial.
-- **`attribution`**: la frase de atribución que pide la licencia de los datos (por ejemplo, «Datos: Getxoko Udala (CC-BY 4.0)»). Sale bajo cada pantalla y en Info › Fuentes de datos.
+- **`attribution`**: la frase de atribución que pide la licencia de los datos (por ejemplo, «Datos: Getxoko Udala (CC-BY 4.0)»). Sale bajo cada pantalla y en Info › Fuentes de datos. En euskera e inglés va traducida en `texts.eu.attribution` y `texts.en.attribution`.
 - **Colores** (`brand`): `tile_color` (ficha del menú), `swatch_color` (cuadradito en Favoritos y Avisos) y `palette` (los colores de la app). Si los cambias, ejecuta `php scripts/build-networks-css.php`.
 
 ### Todas las claves
@@ -54,7 +54,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `brand.title` | Título de la cabecera en dos partes: `['TRANVÍA', 'VITORIA']`. |
 | `brand.logomark` | El logotipo de la cabecera (una imagen o un SVG). |
 | `brand.tile_color`, `brand.swatch_color`, `brand.palette` | Colores; ver arriba. Sin paleta, la app usa la de Bizkaibus (verde). |
-| `texts.<idioma>` | `name`, `tile`, `switcher`, `subtitle`, `liveEmpty`, `disclaimer`; opcionales `tile_title` y `tile_city` (ficha en dos líneas). Si falta un texto en euskera o inglés, sale el castellano. |
+| `texts.<idioma>` | `name`, `tile`, `switcher`, `subtitle`, `liveEmpty`, `disclaimer`; opcionales `tile_title` y `tile_city` (ficha en dos líneas; también el título y la ciudad de la cabecera de la app, en mayúsculas). Si falta un texto en euskera o inglés, sale el castellano. |
 | `seo` | Título y descripción para Google. |
 | `features.platforms` | Estaciones con andenes: las salidas se separan por andén (Metro, Euskotren). |
 | `features.headsign_from_last_stop` | El destino de cada viaje es su última parada, no el rótulo del GTFS. |

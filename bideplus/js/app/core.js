@@ -23,6 +23,7 @@ export const state = {
     departuresTickTimer: null,
     lastDepartures: null,
     lastTimetableEntries: null,
+    schedulePublished: null,
     departuresSignature: '',
 };
 
@@ -84,7 +85,7 @@ export const el = {
     filterHourFrom: document.getElementById('filter-hour-from'),
     filterHourTo: document.getElementById('filter-hour-to'),
     scheduleTextToggle: document.getElementById('schedule-text-toggle'),
-    attribution: document.getElementById('attribution'),
+    schedulePublished: document.getElementById('schedule-published'),
     disclaimer: document.getElementById('disclaimer'),
     lineMap: document.getElementById('line-map'),
     scheduleModal: document.getElementById('schedule-modal'),

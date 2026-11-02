@@ -14,6 +14,8 @@ $sOutput = $aOptions['output'] ?? __DIR__ . '/../js/networks.js';
 
 $aOut = [];
 foreach (Networks::all() as $sSlug => $aNetwork) {
+    $aTexts = $aNetwork['texts'];
+    $aTexts['es']['attribution'] ??= $aNetwork['attribution'];
     $aOut[$sSlug] = [
         'kind' => $aNetwork['kind'],
         'icons' => $aNetwork['brand']['icons'],
@@ -22,8 +24,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'favoritesKey' => $aNetwork['db'] . '_favorites',
         'live' => !empty($aNetwork['live']),
         'features' => $aNetwork['features'],
-        'attribution' => $aNetwork['attribution'],
-        'texts' => $aNetwork['texts'],
+        'texts' => $aTexts,
     ];
 }
 
