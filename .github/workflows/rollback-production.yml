@@ -1,0 +1,38 @@
+name: Rollback production
+
+# Vuelve al despliegue de producción anterior en Vercel (plan Hobby: solo uno atrás). Se lanza a mano desde cualquier
+# rama; sirve cuando un despliegue sale mal y no se puede esperar al siguiente.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Volver al despliegue anterior
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          TEAM=""
+          case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
+          PREVIOUS="$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&target=production&state=READY&limit=5$TEAM" | python3 -c 'import json,sys; d=json.load(sys.stdin)["deployments"]; print(d[1]["url"] if len(d) > 1 else "")')"
+          if [ -z "$PREVIOUS" ]; then
+            echo "::error::No hay un despliegue anterior al que volver"
+            exit 1
+          fi
+          echo "Volviendo a https://$PREVIOUS"
+          vercel rollback "https://$PREVIOUS" --token="$VERCEL_TOKEN" --timeout 5m
+          for i in $(seq 1 12); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' https://bideplus.vercel.app/api/lines)
+            echo "producción /api/lines -> $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::error::Producción sigue sin responder tras el rollback"
+          exit 1
