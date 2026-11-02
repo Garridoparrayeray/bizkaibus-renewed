@@ -941,6 +941,11 @@ $Expect('la incidencia sale en las estaciones por las que aún tenía que pasar'
 $Expect('pasada la hora de su última estación, no sale', CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 241) === []);
 $Expect('sin cancelados no hay incidencias', CancelledTrains::alerts(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0), new ServiceJourney($PdoRenfe), T0) === []);
 
+$aRepeated = array_fill(0, 70, ['title' => 'ASCENSOR AVERIADO', 'description' => 'EXTERIOR:SANTUTXU', 'severity' => 'normal']);
+$aRepeated[] = ['summary' => 'Desvío', 'description' => '', 'lineRefs' => ['A1']];
+$aRepeated[] = ['summary' => 'Desvío', 'description' => '', 'lineRefs' => ['A2']];
+$Expect('el mismo aviso repetido (SIRI de Metro) sale una vez; con otras líneas, no es el mismo', \Controllers\AlertsController::withoutRepeats($aRepeated) === [$aRepeated[0], $aRepeated[70], $aRepeated[71]]);
+
 $AlertsFeed = fn(int $iGenerated) => json_encode(['header' => ['timestamp' => (string)$iGenerated], 'entity' => [['alert' => [
     'informedEntity' => [['stopId' => 'A']],
     'descriptionText' => ['translation' => [['language' => 'es', 'text' => 'ABANDO: Ascensor fuera de servicio.']]],
