@@ -35,7 +35,9 @@ jobs:
           # El secreto puede llevar un salto de línea al final: fuera.
           TOKEN="$(printf '%s' "$ENGINE_REPO_TOKEN" | tr -d '\r\n')"
           REF=main
-          if curl -fs -o /dev/null -H "Authorization: Bearer $TOKEN" "https://api.github.com/repos/Garridoparrayeray/bideplus-engine/branches/$BRANCH"; then
+          # Por su nombre exacto: GitHub redirige la antigua «master» a «main» y respondería que existe.
+          FOUND="$(curl -s -H "Authorization: Bearer $TOKEN" "https://api.github.com/repos/Garridoparrayeray/bideplus-engine/branches/$BRANCH" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("name", ""))' 2>/dev/null || true)"
+          if [ "$FOUND" = "$BRANCH" ]; then
             REF="$BRANCH"
           fi
           echo "ref=$REF" >> "$GITHUB_OUTPUT"

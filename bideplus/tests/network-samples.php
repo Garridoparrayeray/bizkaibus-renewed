@@ -1,8 +1,8 @@
 <?php
 // Una muestra de cada red para las pruebas de API y de interfaz, sacada del registro (api/Networks) y de su base de
-// datos: la parada con más pasos (o su estación), una búsqueda que la encuentra, dónde está y el primer día que el
-// horario ya no cubre. Una red nueva entra sola. Uso: php tests/network-samples.php (JSON por red: suffix, q,
-// stopId, name, lat, lon, panel, live, beyondPublished).
+// datos: la parada con más pasos de viajes que circulan hoy (o su estación), una búsqueda que la encuentra, dónde
+// está y el primer día que el horario ya no cubre. Una red nueva entra sola.
+// Uso: php tests/network-samples.php (JSON por red: suffix, q, stopId, name, lat, lon, panel, live, beyondPublished).
 
 declare(strict_types=1);
 
@@ -10,6 +10,7 @@ require __DIR__ . '/../api/autoload.php';
 
 use Core\Networks;
 use Models\Search;
+use Services\Calendar;
 use Services\ScheduleRange;
 
 $aSamples = [];
@@ -19,14 +20,27 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     }
     $Pdo = new PDO('sqlite:' . $aNetwork['db_path']);
     $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $aBusiest = $Pdo->query('
+    // Solo viajes que circulan hoy (calendario y excepciones), como el horario de la app: un domingo, la parada con
+    // más pasos de la semana puede no tener ninguno.
+    $Today = Calendar::todayMadrid();
+    $Busiest = $Pdo->prepare('
         SELECT COALESCE(s.station_id, s.id) AS id, COUNT(*) AS n
         FROM passing_times pt
         JOIN stops s ON s.id = pt.stop_id
+        JOIN service_journeys sj ON sj.id = pt.service_journey_id
+        JOIN service_calendars sc ON sc.id = sj.calendar_id
+        WHERE sc.id != \'PRUEBA\'
+          AND (
+              (sc.weekday_mask & :weekdayBit) != 0
+              OR EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = :date AND e.available = 1)
+          )
+          AND NOT EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = :date2 AND e.available = 0)
         GROUP BY COALESCE(s.station_id, s.id)
         ORDER BY n DESC, id
         LIMIT 1
-    ')->fetch(PDO::FETCH_ASSOC);
+    ');
+    $Busiest->execute(['weekdayBit' => Calendar::weekdayBitFor($Today), 'date' => $Today->format('Y-m-d'), 'date2' => $Today->format('Y-m-d')]);
+    $aBusiest = $Busiest->fetch(PDO::FETCH_ASSOC);
     if ($aBusiest === false) {
         continue;
     }
