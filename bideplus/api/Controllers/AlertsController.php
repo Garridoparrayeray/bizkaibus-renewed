@@ -5,12 +5,13 @@ namespace Controllers;
 use Core\Config;
 use Core\Request;
 use Core\Response;
+use Services\GtfsRealtimeClient;
 use Services\MetroAlertsClient;
 use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
 // Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=). Las fuentes son los clientes de
-// Services (Metro, Renfe y SIRI).
+// Services (Metro, Renfe, GTFS-Realtime y SIRI).
 class AlertsController
 {
     public function index(Request $Req): void
@@ -63,6 +64,10 @@ class AlertsController
             return $aAlerts;
         }
 
+        if (isset($aConfig['gtfs_rt']['alerts_url'])) {
+            return self::gtfsRtAlerts((new GtfsRealtimeClient($aConfig))->fetchAlerts(), $sLine);
+        }
+
         if (isset($aConfig['renfe_alerts'])) {
             $Client = new RenfeAlertsClient($aConfig);
         } elseif (isset($aConfig['siri'])) {
@@ -78,5 +83,23 @@ class AlertsController
             return $Client->alertsByLine()[$sLine] ?? [];
         }
         return $Client->fetchAlerts();
+    }
+
+    // Con ?line=, solo las que nombran esa línea.
+    private static function gtfsRtAlerts(array $aAlerts, string|null $sLine): array
+    {
+        $aOut = [];
+        foreach ($aAlerts as $aAlert) {
+            if ($sLine !== null && !in_array($sLine, $aAlert['lineRefs'], true)) {
+                continue;
+            }
+            $aOut[] = [
+                'summary' => $aAlert['summary'],
+                'description' => $aAlert['description'],
+                'lineRefs' => $aAlert['lineRefs'],
+                'stopRefs' => $aAlert['stopRefs'],
+            ];
+        }
+        return $aOut;
     }
 }

@@ -8,8 +8,9 @@ Esta guía explica, paso a paso, cómo añadir una red de transporte a Bide+ o c
 | --- | --- | --- |
 | **GTFS** (un ZIP con paradas, líneas y horarios) | Sí | Horarios, paradas, buscador, mapa de la red y horarios sin conexión. Casi todos los operadores lo publican; en España, en el [Punto de Acceso Nacional](https://nap.transportes.gob.es/) (NAP). |
 | **Directo de vehículos** (SIRI Vehicle Monitoring) | No | Llegadas en tiempo real con la posición de cada autobús. Usa el algoritmo de `engine/` (repositorio privado `bideplus-engine`). |
-| **Horas previstas** (GTFS-Realtime Trip Updates) | No | Llegadas en tiempo real cuando el operador ya publica la hora prevista de cada vehículo (como Metro Bilbao). |
-| **Incidencias** (SIRI Situation Exchange) | No | La pestaña Avisos y las notificaciones de incidencias. |
+| **Horas previstas o retrasos** (GTFS-Realtime Trip Updates) | No | Llegadas en tiempo real cuando el operador ya publica la hora prevista o el retraso de cada vehículo (Metro Bilbao, Euskotren, Renfe, Tuvisa, Dbus). |
+| **Posiciones** (GTFS-Realtime Vehicle Positions) | No | Los vehículos en el mapa de la línea (Renfe, Metro, Tuvisa, Dbus). |
+| **Incidencias** (GTFS-Realtime Service Alerts o SIRI Situation Exchange) | No | La pestaña Avisos y las notificaciones de incidencias. |
 
 Sin directo, la app enseña el horario oficial y lo marca como «Solo horario».
 
@@ -18,8 +19,13 @@ Sin directo, la app enseña el horario oficial y lo marca como «Solo horario».
 ```bash
 cd bideplus
 php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 \
-    --gtfs=https://…/gtfs.zip --kind=bus --city=Getxo --operator="Getxoko Udala"
+    --gtfs=https://…/gtfs.zip --kind=bus --city=Getxo --operator="Getxoko Udala" \
+    --trip-updates=https://…/trip_updates.pb --vehicle-positions=https://…/vehicle_positions.pb \
+    --alerts=https://…/alerts.pb
 ```
+
+Con los feeds GTFS-Realtime la red sale ya en directo (retrasos, vehículos en el mapa e incidencias); sin ellos, con el
+horario oficial. No hace falta escribir código: todo lo de la red está en su archivo de configuración.
 
 El script:
 
@@ -35,6 +41,8 @@ El script:
 | `--gtfs` | La dirección del ZIP del GTFS. |
 | `--kind` | `bus`, `metro`, `tram` o `train`. Cambia los textos («el próximo autobús») y el tipo de parada en Google. |
 | `--city`, `--operator` | Para los textos: «Horarios del autobús de Getxo», «sin relación con Getxoko Udala». |
+| `--trip-updates`, `--vehicle-positions`, `--alerts` | Opcionales: las direcciones de los feeds GTFS-Realtime del operador (horas previstas o retrasos, posiciones e incidencias). |
+| `--matching` | Cómo se empareja el directo con el horario: `trip` (por defecto; el feed usa los viajes del horario, como Renfe, Tuvisa o Dbus) o `stops` (por paradas y hora, como Metro). |
 
 ## 2. Revisar la configuración
 
@@ -67,15 +75,16 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `live` | Fuentes en directo: `['vehicle-monitoring']` (SIRI con el algoritmo), `['trip-updates']` (GTFS-RT), y además `'vehicle-positions'` si el operador publica dónde está cada tren (los trenes en el mapa de la línea), o `[]` (horario oficial). |
 | `engine` | Con `vehicle-monitoring`: el motor de `engine/` que se usa (`bizkaibus`, `lurraldebus`). |
 | `siri` | Direcciones de los feeds SIRI: `vehicle_monitoring_url`, `alerts_url` (o `alerts_urls`, varias) y tiempos de caché. |
-| `gtfs_rt` | Direcciones de los feeds GTFS-Realtime (`trip_updates_url` y, con `vehicle-positions`, `vehicle_positions_url`) y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
+| `gtfs_rt` | Direcciones de los feeds GTFS-Realtime (`trip_updates_url`; con `vehicle-positions`, `vehicle_positions_url`; y `alerts_url` para las incidencias) y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
 | `direction_reference_stop_id` | Una parada central: cada salida se marca «hacia» o «desde» ella (los dos sentidos de Metro). |
 | `hidden_line_codes` | Líneas que no se enseñan aunque estén en el GTFS. |
 | `gtfs.source`, `gtfs.fallback_source` | De dónde se descarga el GTFS (y de dónde, si falla). `gtfs.sources`: varios GTFS que se juntan (Lurraldebus). |
 | `gtfs.agency_id`, `gtfs.route_id_prefixes` | Para quedarse con un operador o unas líneas de un GTFS que trae más. |
 | `gtfs.stops` | Cómo se leen las paradas: `generic` (cualquier GTFS), o los ajustes de `bus`, `metro`, `euskotren` y `renfe`. |
 | `gtfs.skip_geocode` | No buscar el barrio de cada parada en OpenStreetMap. |
+| `gtfs.headsign_pattern` | Si el rótulo del GTFS lleva más cosas que el destino: una expresión regular cuyo primer grupo es el destino (Bilbobus: `/\(([^)]+)\)\s*$/` para «PT-Semana / (PLAZA BIRIBILA)»). El rótulo que no encaja, y cualquier viaje sin rótulo, va hacia su última parada. |
 | `gtfs.required` | Si su reconstrucción diaria falla, se para el despliegue (para las redes principales). |
-| `gtfs.feed_window` | Cada viaje con las fechas exactas del periodo publicado (el de `feed_info.txt` o, si no lo trae, el que cubren sus calendarios) y una comprobación contra el GTFS. Para GTFS con servicios de días sueltos (Bizkaibus, Renfe). |
+| `gtfs.feed_window` | Cada viaje con las fechas exactas del periodo publicado (el de `feed_info.txt` o, si no lo trae, el que cubren sus calendarios) y una comprobación contra el GTFS: si no cuadra, se reconstruye con fechas literales. Para GTFS con servicios de días sueltos (Bizkaibus, Renfe, Euskotren); las redes nuevas lo llevan. |
 | `gtfs.merge_calendars` | Ajuste para GTFS con calendarios raros (Metro); normalmente no hace falta. |
 
 ## 3. Iconos
@@ -148,7 +157,9 @@ Para que la app sea **solo** de una ciudad:
 ## 8. El directo y el algoritmo
 
 - **Autobuses con GPS (SIRI Vehicle Monitoring)**: el algoritmo de `engine/<motor>/` empareja cada bus con su viaje del horario y calcula la llegada a cada parada con lo que tarda de verdad cada tramo. Cómo funciona y cuánto acierta: `docs/algoritmo.html`, en el repositorio `bideplus-engine`. Para una red nueva con SIRI se parte de un motor que ya existe, como se hizo con Lurraldebus a partir del de Bizkaibus: hay que adaptar cómo se reconoce cada viaje en el feed, y la captura (`pace-capture.yml`) para que aprenda sus tiempos por tramo.
-- **Horas previstas (GTFS-Realtime)**: `engine/metro/TripUpdatesMatcher.php` empareja el feed con el horario. Sirve para cualquier operador que publique Trip Updates.
+- **Horas previstas (GTFS-Realtime)**: con `matching => 'trip'`, `Services/TripDelayMatcher.php` usa el viaje del horario que trae cada vehículo y su retraso (también si solo lo da por parada, como Tuvisa o Dbus); con `'stops'`, `engine/metro/TripUpdatesMatcher.php` lo empareja por paradas y hora. Sirve para cualquier operador que publique Trip Updates.
+- **Posiciones (GTFS-Realtime)**: `Services/VehiclePositions.php` pone cada vehículo en el mapa de su línea.
+- **Incidencias (GTFS-Realtime)**: `GtfsRealtimeClient::fetchAlerts` lee `gtfs_rt.alerts_url` y da las vigentes.
 - **Sin directo**: el horario oficial, marcado «Solo horario».
 
 ## Lista de comprobación

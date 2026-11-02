@@ -92,7 +92,7 @@ function main(array $aArgv): void
     echo '  ' . count($aCalendars) . " service calendars\n";
 
     echo "Parsing trips.txt...\n";
-    $aTrips = loadTrips($Zip);
+    $aTrips = loadTrips($Zip, $aGtfs['headsign_pattern'] ?? null);
     echo '  ' . count($aTrips) . " trips\n";
 
     $aFeedInfo = loadFeedInfo($Zip);

@@ -13,7 +13,7 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\GtfsRealtimeClient;
-use Services\TrainPositions;
+use Services\VehiclePositions;
 use Core\Live;
 use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 use Engine\Metro\TripUpdatesMatcher;
@@ -96,7 +96,7 @@ class RealtimeController
         $aPatterns = $LineModel->patternsWithStops($sLineId);
         $bTrains = Config::hasLive('vehicle-positions');
         if ($bTrains) {
-            $aVehicles = self::trainsOnLine($Pdo, $sLineId, $aPatterns);
+            $aVehicles = self::positionsOnLine($Pdo, $sLineId, $aPatterns);
         } else {
             $aVehicles = self::vehiclesOnLine($Pdo, $sLineId);
         }
@@ -109,12 +109,12 @@ class RealtimeController
         ]);
     }
 
-    private static function trainsOnLine(\PDO $Pdo, string $sLineId, array $aPatterns): array
+    private static function positionsOnLine(\PDO $Pdo, string $sLineId, array $aPatterns): array
     {
         $aConfig = Config::current();
         $Client = new GtfsRealtimeClient($aConfig);
         $bByTrip = ($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip';
-        return TrainPositions::onLine($Pdo, $sLineId, $aPatterns, $Client->fetchVehiclePositions(), $Client->fetchTripUpdates(), $bByTrip);
+        return VehiclePositions::onLine($Pdo, $sLineId, $aPatterns, $Client->fetchVehiclePositions(), $Client->fetchTripUpdates(), $bByTrip);
     }
 
     private static function vehiclesOnLine(\PDO $Pdo, string $sLineId): array

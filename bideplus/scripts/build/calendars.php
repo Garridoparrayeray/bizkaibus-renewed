@@ -14,7 +14,8 @@ function loadCalendars(ZipArchive $Zip, bool $bLiteralDates = false): array
     $aRanges = [];
     $aBaseWeekdayMask = [];
     $aWeekdayColumns = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    foreach (readCsv($Zip, 'calendar.txt') as $aRow) {
+    // Sin calendar.txt (Tuvisa), cada servicio está en calendar_dates.txt, fecha a fecha.
+    foreach (readCsv($Zip, 'calendar.txt', false) as $aRow) {
         $aRanges[$aRow['service_id']] = [
             'from' => gtfsDateToIso($aRow['start_date']),
             'to' => gtfsDateToIso($aRow['end_date']),

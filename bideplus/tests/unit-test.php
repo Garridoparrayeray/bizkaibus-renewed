@@ -14,7 +14,7 @@ use Services\CancelledTrains;
 use Services\ScheduleRange;
 use Services\GtfsRealtimeClient;
 use Services\RenfeAlertsClient;
-use Services\TrainPositions;
+use Services\VehiclePositions;
 use Services\TripDelayMatcher;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
@@ -321,7 +321,7 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     $Expect("red $sSlug: configuración completa", $aProblems === [], implode('; ', $aProblems));
 }
 $aLiveNetworks = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => !empty($aNet['live'])));
-$Expect('en directo: todas menos Lurraldebus, que no publica nada', $aLiveNetworks === ['bus', 'metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria'], implode(', ', $aLiveNetworks));
+$Expect('en directo: todas menos las que no publican nada (Lurraldebus, Bilbobus y Álavabus)', $aLiveNetworks === ['bus', 'metro', 'euskotren', 'renfe', 'tranvia-bilbao', 'tranvia-vitoria', 'tuvisa', 'dbus'], implode(', ', $aLiveNetworks));
 $aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['max_age_seconds']) || (($aNet['gtfs_rt']['matching'] ?? 'stops') === 'stops' && !isset($aNet['gtfs_rt']['match_tolerance_seconds'])))));
 $Expect('las redes con horas previstas (GTFS-Realtime) tienen su feed configurado', $aWithoutFeed === [], implode(', ', $aWithoutFeed));
 $Expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
@@ -986,14 +986,38 @@ $PdoMap->exec("INSERT INTO journey_patterns VALUES ('P1', 'C1-ida'), ('P2', 'C1-
 $PdoMap->exec("INSERT INTO service_journeys VALUES ('J1', 'P1'), ('J2', 'P2')");
 $Train = fn(string $sTrip, string $sStop, string|null $sStatus) => ['tripId' => $sTrip, 'lat' => 43.25, 'lon' => -2.94, 'stopId' => $sStop, 'stopStatus' => $sStatus, 'vehicleId' => 'T-' . $sTrip];
 $aRenfeTrains = [$Train('R1', 'B', 'at'), $Train('R2', 'A', 'towards'), $Train('de-otro-nucleo', 'B', 'at')];
-$aOnC1 = TrainPositions::onLine($PdoMap, 'C1-ida', [], $aRenfeTrains, [['tripId' => 'R1', 'stops' => [['B', 0]], 'delay' => 180]], true);
+$aOnC1 = VehiclePositions::onLine($PdoMap, 'C1-ida', [], $aRenfeTrains, [['tripId' => 'R1', 'stops' => [['B', 0]], 'delay' => 180]], true);
 $Expect('Renfe: en el mapa de la línea, solo sus trenes (el de vuelta y los de otros núcleos, no)', count($aOnC1) === 1 && $aOnC1[0]['vehicleRef'] === 'T-R1', json_encode($aOnC1));
 $Expect('Renfe: destino, retraso, estación y posición GPS de cada tren', ($aOnC1[0]['headsign'] ?? null) === 'Santurtzi' && $aOnC1[0]['delayMinutes'] === 3 && $aOnC1[0]['stopStatus'] === 'at' && $aOnC1[0]['currentStop']['name'] === 'Ametzola' && $aOnC1[0]['position'] === ['lat' => 43.25, 'lon' => -2.94], json_encode($aOnC1[0] ?? null));
-$aOnReturn = TrainPositions::onLine($PdoMap, 'C1-vuelta', [], $aRenfeTrains, [], true);
+$aOnReturn = VehiclePositions::onLine($PdoMap, 'C1-vuelta', [], $aRenfeTrains, [], true);
 $Expect('Renfe: sin su retraso en el directo, el tren sale sin retraso', count($aOnReturn) === 1 && $aOnReturn[0]['headsign'] === 'Abando' && $aOnReturn[0]['delayMinutes'] === null && $aOnReturn[0]['stopStatus'] === 'towards');
 $aMetroPatterns = [['id' => 'P9', 'stops' => [['id' => 5], ['id' => 6]]]];
-$aOnMetro = TrainPositions::onLine($PdoMap, 'MB', $aMetroPatterns, [$Train('m1', '5', null), $Train('m2', 'C', null)], [['tripId' => 'm1', 'stops' => [['5', 0], ['6', 0]]]], false);
+$aOnMetro = VehiclePositions::onLine($PdoMap, 'MB', $aMetroPatterns, [$Train('m1', '5', null), $Train('m2', 'C', null)], [['tripId' => 'm1', 'stops' => [['5', 0], ['6', 0]]]], false);
 $Expect('Metro: los trenes que van hacia una estación de la línea, con su destino (la última de su previsión)', count($aOnMetro) === 1 && $aOnMetro[0]['headsign'] === 'Basauri' && $aOnMetro[0]['currentStop']['name'] === 'Santutxu' && $aOnMetro[0]['stopStatus'] === null && $aOnMetro[0]['delayMinutes'] === null, json_encode($aOnMetro));
+
+/* ------------------------------------------------------------------ */
+$Section('Directo por viaje con retraso por parada (Tuvisa, Dbus) e incidencias GTFS-Realtime');
+
+$PbDelayStop = fn(string $sStopId, int $iDelay) => pbField(2, pbField(4, $sStopId) . pbField(2, pbField(1, $iDelay)));
+$sDelayFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
+    . pbField(2, pbField(1, 't1') . pbField(3, pbField(1, pbField(1, 'R1')) . $PbDelayStop('B', 90) . $PbDelayStop('C', 150)))
+    . pbField(2, pbField(1, 't2') . pbField(3, pbField(1, pbField(1, 'R2')) . pbField(2, pbField(4, 'A'))));
+$aDelayTrips = GtfsRealtimeClient::parseTripUpdates($sDelayFeed)['trips'];
+$Expect('parada solo con retraso: el de la primera vale para el viaje y es la parada a la que va', ($aDelayTrips[0] ?? null) === ['tripId' => 'R1', 'stops' => [], 'delay' => 90, 'nextStopId' => 'B'], json_encode($aDelayTrips));
+$Expect('una parada sin hora ni retraso no cuenta', count($aDelayTrips) === 1);
+$aDelayOut = (new TripDelayMatcher($aDelayTrips, new ServiceJourney($PdoMap), 0))->enrich('C', [$RenfeRow('J1', 0)]);
+$Expect('el retraso de la parada se suma en las que le quedan al autobús', $aDelayOut[0]['status'] === 'live' && $aDelayOut[0]['delaySeconds'] === 90 && $aDelayOut[0]['etaSeconds'] === T0 + 120 + 90, json_encode($aDelayOut));
+$aRowAtA = ['stop_seq' => 0, 'arrival_seconds' => T0, 'etaSeconds' => T0] + $RenfeRow('J1', 0);
+$Expect('con la parada siguiente después de la nuestra, ya ha pasado y no sale', (new TripDelayMatcher($aDelayTrips, new ServiceJourney($PdoMap), 0))->enrich('A', [$aRowAtA]) === []);
+
+$PbText = fn(string $sText, string $sLanguage) => pbField(1, pbField(1, $sText) . pbField(2, $sLanguage));
+$sAlertsPb = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
+    . pbField(2, pbField(1, 'a1') . pbField(5, pbField(1, pbField(1, 1000)) . pbField(5, pbField(5, '1325')) . pbField(10, $PbText('Geltokia mugituta', 'eu') . $PbText('Parada trasladada', 'es-ES')) . pbField(11, $PbText('Por obras', 'es-ES'))))
+    . pbField(2, pbField(1, 'a2') . pbField(5, pbField(1, pbField(1, 1000) . pbField(2, 2000)) . pbField(5, pbField(2, 'L3')) . pbField(10, $PbText('Desvío', 'es'))))
+    . pbField(2, pbField(1, 'a3') . pbField(5, pbField(10, $PbText('', 'es'))));
+$aParsedAlerts = GtfsRealtimeClient::parseAlerts($sAlertsPb)['alerts'];
+$Expect('incidencias: el titular y el texto en castellano, y la parada o la línea a la que afectan', count($aParsedAlerts) === 2 && $aParsedAlerts[0]['summary'] === 'Parada trasladada' && $aParsedAlerts[0]['description'] === 'Por obras' && $aParsedAlerts[0]['stopRefs'] === ['1325'] && $aParsedAlerts[1]['lineRefs'] === ['L3'], json_encode($aParsedAlerts));
+$Expect('solo las vigentes: la que ya acabó no sale', array_column(GtfsRealtimeClient::activeAlerts($aParsedAlerts, 3000), 'summary') === ['Parada trasladada'] && count(GtfsRealtimeClient::activeAlerts($aParsedAlerts, 1500)) === 2);
 
 /* ------------------------------------------------------------------ */
 $Section('Registro de pasos (buses que ya pasaron aunque hayan salido del directo)');

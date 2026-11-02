@@ -50,6 +50,14 @@ function tidyRouteName(string $sName, string $sCode): string
     return implode(' - ', array_filter($aParts, fn($sPart) => $sPart !== ''));
 }
 
+// La cabecera de un CSV, sin espacios ni la marca BOM que algunos ficheros llevan al principio.
+function readCsvHeader($Stream): array
+{
+    $aHeader = array_map('trim', fgetcsv($Stream, 0, ',', '"', '\\'));
+    $aHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', $aHeader[0]);
+    return $aHeader;
+}
+
 function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Generator
 {
     $Stream = $Zip->getStream($sName);
@@ -59,9 +67,7 @@ function readCsv(ZipArchive $Zip, string $sName, bool $bRequired = true): Genera
         }
         return;
     }
-    $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
-    $aHeader = array_map('trim', $aHeader);
-    $aHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', $aHeader[0]);
+    $aHeader = readCsvHeader($Stream);
     while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
         if ($aRow === null || $aRow === [null]) {
             continue;
@@ -250,7 +256,17 @@ function loadStopsEuskotren(ZipArchive $Zip): array
     return $aStops;
 }
 
-function loadTrips(ZipArchive $Zip): array
+function headsignByPattern(string $sPattern, string $sHeadsign): string
+{
+    if (preg_match($sPattern, $sHeadsign, $aMatch)) {
+        return trim($aMatch[1]);
+    }
+    return '';
+}
+
+// Con $sHeadsignPattern, el destino es su primer grupo (Bilbobus pone «PT-Semana / (PLAZA BIRIBILA)»); el rótulo que no
+// encaja se deja vacío y el viaje va hacia su última parada.
+function loadTrips(ZipArchive $Zip, string|null $sHeadsignPattern = null): array
 {
     $aTrips = [];
     foreach (readCsv($Zip, 'trips.txt') as $aRow) {
@@ -262,6 +278,9 @@ function loadTrips(ZipArchive $Zip): array
         $sHeadsign = '';
         if (isset($aRow['trip_headsign'])) {
             $sHeadsign = $aRow['trip_headsign'];
+        }
+        if ($sHeadsignPattern !== null) {
+            $sHeadsign = headsignByPattern($sHeadsignPattern, $sHeadsign);
         }
         $sShapeId = null;
         if (isset($aRow['shape_id']) && $aRow['shape_id'] !== '') {
@@ -290,8 +309,7 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
         fwrite(STDERR, "Could not open stop_times.txt stream\n");
         exit(1);
     }
-    $aHeader = fgetcsv($Stream, 0, ',', '"', '\\');
-    $aHeader = array_map('trim', $aHeader);
+    $aHeader = readCsvHeader($Stream);
 
     $aByTrip = [];
 
@@ -329,9 +347,29 @@ function streamStopTimesByTrip(ZipArchive $Zip): Generator
     fclose($Stream);
 
     foreach ($aByTrip as $sTripId => $aBuffer) {
-        yield $sTripId => $aBuffer;
+        yield $sTripId => withoutDayJumps($aBuffer);
         unset($aByTrip[$sTripId]);
     }
+}
+
+// Una hora que salta más de 12 horas sobre la parada anterior es la del día siguiente mal escrita: Bilbobus pone
+// «24:23» en la última parada de un búho que sale a las 00:00. Se le quitan las 24 horas.
+function withoutDayJumps(array $aBuffer): array
+{
+    usort($aBuffer, fn($aA, $aB) => $aA['seqOrder'] <=> $aB['seqOrder']);
+    $iPrevious = null;
+    foreach ($aBuffer as &$aRow) {
+        foreach (['arrival', 'departure'] as $sKey) {
+            if ($aRow[$sKey] !== null && $iPrevious !== null && $aRow[$sKey] - $iPrevious > 12 * 3600) {
+                $aRow[$sKey] -= 86400;
+            }
+        }
+        if ($aRow['departure'] !== null) {
+            $iPrevious = $aRow['departure'];
+        }
+    }
+    unset($aRow);
+    return $aBuffer;
 }
 
 function timeToSeconds(string $sHms): int

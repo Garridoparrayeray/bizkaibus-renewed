@@ -4,9 +4,9 @@ namespace Services;
 
 use Models\ServiceJourney;
 
-// Directo de Renfe (GTFS-Realtime): cada tren trae su viaje del horario, el retraso y la estación a la que va. Se
-// empareja por el viaje, el retraso vale para las estaciones que le quedan, los que ya pasaron por la parada no salen y
-// los cancelados se marcan.
+// Directo por viaje (GTFS-Realtime de Renfe, Tuvisa y Dbus): cada vehículo trae su viaje del horario, el retraso y la
+// parada a la que va. Se empareja por el viaje, el retraso vale para las paradas que le quedan, los que ya pasaron por la
+// parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
     private const ON_TIME_SECONDS = 60;
@@ -30,7 +30,7 @@ class TripDelayMatcher
             if ($sJourneyId === null) {
                 continue;
             }
-            $sNextStopId = null;
+            $sNextStopId = $aTrip['nextStopId'] ?? null;
             if (!empty($aTrip['stops'])) {
                 $sNextStopId = (string)$aTrip['stops'][0][0];
             }

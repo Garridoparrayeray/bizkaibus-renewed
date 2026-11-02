@@ -164,6 +164,50 @@ $aSpan = publishedWindow([], $aSpanCalendars);
 $Expect('sin feed_info, el periodo publicado va del primer al último día de los calendarios', ($aSpan[0] ?? null) === '2026-11-02' && end($aSpan) === '2026-12-01' && count($aSpan) === 30);
 $Expect('con feed_info, el periodo es el suyo', publishedWindow(['feed_start_date' => '20261102', 'feed_end_date' => '20261104'], $aSpanCalendars) === ['2026-11-02', '2026-11-03', '2026-11-04']);
 
+/*
+ * GTFS de otros operadores: cabeceras con BOM (Álavabus), sin calendar.txt (Tuvisa) y rótulos con el destino entre
+ * paréntesis (Bilbobus). Un viaje sin rótulo va hacia su última parada.
+ */
+$Stream = fopen('php://memory', 'r+');
+fwrite($Stream, "\xEF\xBB\xBFtrip_id,arrival_time\n1,08:00:00\n");
+rewind($Stream);
+$Expect('la cabecera de un CSV con BOM se lee sin él', readCsvHeader($Stream) === ['trip_id', 'arrival_time']);
+fclose($Stream);
+
+$sZipPath = tempnam(sys_get_temp_dir(), 'bide-gtfs-');
+$Zip = new ZipArchive();
+$Zip->open($sZipPath, ZipArchive::OVERWRITE);
+$Zip->addFromString('calendar_dates.txt', "service_id,date,exception_type\nLAB,20261102,1\nLAB,20261103,1\n");
+$Zip->close();
+$Zip->open($sZipPath);
+$aDatesOnly = loadCalendars($Zip);
+$Zip->close();
+unlink($sZipPath);
+$Expect('sin calendar.txt, cada servicio sale de calendar_dates.txt', isset($aDatesOnly['LAB']) && $aDatesOnly['LAB']['activeDateCount'] === 2);
+
+$sBilbobusPattern = '/\(([^)]+)\)\s*$/';
+$Expect('rótulo con patrón: el destino es su primer grupo', headsignByPattern($sBilbobusPattern, 'PT-Semana / (PLAZA BIRIBILA)') === 'PLAZA BIRIBILA');
+$Expect('rótulo que no encaja en el patrón: vacío, para usar la última parada', headsignByPattern($sBilbobusPattern, 'PT-Semana/Incorporación') === '');
+
+$aNightBus = withoutDayJumps([
+    ['seqOrder' => 2, 'stopId' => 'B', 'arrival' => 1330, 'departure' => 1330, 'distance' => null],
+    ['seqOrder' => 1, 'stopId' => 'A', 'arrival' => 0, 'departure' => 0, 'distance' => null],
+    ['seqOrder' => 3, 'stopId' => 'C', 'arrival' => 87790, 'departure' => 87790, 'distance' => null],
+]);
+$Expect('una hora escrita como del día siguiente («24:23» tras «00:22») se corrige', array_column($aNightBus, 'arrival') === [0, 1330, 1390]);
+$aLateNight = withoutDayJumps([
+    ['seqOrder' => 1, 'stopId' => 'A', 'arrival' => 85800, 'departure' => 85800, 'distance' => null],
+    ['seqOrder' => 2, 'stopId' => 'B', 'arrival' => 87000, 'departure' => 87000, 'distance' => null],
+]);
+$Expect('un viaje que de verdad pasa la medianoche no cambia', array_column($aLateNight, 'arrival') === [85800, 87000]);
+
+$PdoStops = new PDO('sqlite::memory:');
+$PdoStops->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT)');
+$PdoStops->exec("INSERT INTO stops VALUES ('9', 'Atxuri')");
+$LastStopName = $PdoStops->prepare('SELECT name FROM stops WHERE id = ?');
+$Expect('un viaje sin rótulo va hacia su última parada', patternHeadsign('', '9', $LastStopName) === 'Atxuri');
+$Expect('un viaje con rótulo lo conserva', patternHeadsign('Miribilla', '9', $LastStopName) === 'Miribilla');
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

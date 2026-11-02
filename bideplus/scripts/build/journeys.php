@@ -266,6 +266,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     echo "  Pass 2/2: inserting merged journeys + passing_times...\n";
 
     $InsertPattern = $Pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
+    $LastStopName = $Pdo->prepare('SELECT name FROM stops WHERE id = ?');
     $InsertPatternStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
     $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds, shape_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
     $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds, dist_m) VALUES (?, ?, ?, ?, ?, ?)');
@@ -288,7 +289,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
         if (!isset($aSeenPatterns[$sPatternKey])) {
             $aSeenPatterns[$sPatternKey] = true;
-            $InsertPattern->execute([$sPatternKey, $aGroup['routeId'], $aGroup['headsign']]);
+            $InsertPattern->execute([$sPatternKey, $aGroup['routeId'], patternHeadsign($aGroup['headsign'], (string)end($aBuffer)['stopId'], $LastStopName)]);
             foreach ($aBuffer as $aRow) {
                 $InsertPatternStop->execute([$sPatternKey, $aRow['seqOrder'], $aRow['stopId']]);
             }
@@ -358,6 +359,16 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
     if ($iSkippedDuplicateTrip > 0) {
         fwrite(STDERR, "  WARNING: $iSkippedDuplicateTrip duplicate/non-contiguous trip_id groups skipped\n");
     }
+}
+
+// Un viaje sin rótulo va hacia su última parada.
+function patternHeadsign(string $sHeadsign, string $sLastStopId, PDOStatement $LastStopName): string
+{
+    if ($sHeadsign !== '') {
+        return $sHeadsign;
+    }
+    $LastStopName->execute([$sLastStopId]);
+    return (string)$LastStopName->fetchColumn();
 }
 
 function insertShapes(PDO $Pdo, ZipArchive $Zip, array $aUsedShapeIds): int

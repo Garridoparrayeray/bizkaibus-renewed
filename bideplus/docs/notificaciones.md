@@ -49,8 +49,8 @@ removed}` y `updateAlerts: {version, sent, pending}` (o `skipped` si no le tocab
 
 ## Avisos de llegada
 
-Desde la ficha de un viaje abierta en una parada se elige 2, 5 o 10 minutos (`ArrivalAlerts::MINUTES`), en las siete
-apps. El servidor busca ese viaje en las salidas de esa parada (`StopsController::departuresData`, las mismas cuentas
+Desde la ficha de un viaje abierta en una parada se elige 2, 5 o 10 minutos (`ArrivalAlerts::MINUTES`), en todas
+las apps. El servidor busca ese viaje en las salidas de esa parada (`StopsController::departuresData`, las mismas cuentas
 que la app) y guarda el aviso.
 
 - **De una vez** (por defecto): se guarda 3 horas. Al llegar el momento se manda y se borra. Si el viaje pasa sin
@@ -140,7 +140,7 @@ sin notificación hace que el sistema acabe quitando el permiso.
 ## Pruebas
 
 - `tests/push-test.php`: cifrado contra el vector del RFC 8291, firma, direcciones permitidas, avisos de una vez y de
-  todos los días, incidencias (línea base, solo lo nuevo, resumen, reintento, cada 5 minutos, baja), las siete redes y
+  todos los días, incidencias (línea base, solo lo nuevo, resumen, reintento, cada 5 minutos, baja), todas las redes y
   el aviso de versión nueva (una vez por versión, también a quien solo tiene incidencias, en su idioma, reintento y
   baja), contra un Upstash falso (`tests/fixtures/fake-upstash.php`).
 - `tests/ui-bide.mjs`: con una versión más nueva en el servidor, el «1» en cada botón de Ajustes, el aviso con sus
@@ -148,5 +148,5 @@ sin notificación hace que el sistema acabe quitando el permiso.
 - `tests/ui-alerts.mjs`: con Chromium, el push con la app cerrada y el service worker parado (llegada, incidencia y
   mensaje roto), qué pasa al tocarla con y sin ventana, que la lista se limpia sola y que la página no va a direcciones
   de fuera.
-- `tests/ui-bide.mjs`: la casilla de la ficha en las siete apps, Ajustes y que la ficha de una notificación no vuelve a
+- `tests/ui-bide.mjs`: la casilla de la ficha en todas las apps, Ajustes y que la ficha de una notificación no vuelve a
   salir al recargar.

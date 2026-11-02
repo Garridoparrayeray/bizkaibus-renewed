@@ -8,7 +8,9 @@ const ROOT = __DIR__ . '/../';
 const SKIPPED_PATHS = '#^(lib|data|offline-data|map-data|screenshots|engine)/|^scripts/geocache\.json$|^sitemap\.xml$#';
 const TEXT_EXTENSIONS = ['php', 'js', 'mjs', 'css', 'py', 'md', 'html', 'yml', 'yaml'];
 const INDENTED_EXTENSIONS = ['php', 'js', 'mjs', 'css'];
-const NETWORK_SLUGS = ['bus', 'metro', 'euskotren', 'renfe', 'lurraldebus', 'tranvia-bilbao', 'tranvia-vitoria'];
+require_once __DIR__ . '/../api/Core/Networks.php';
+// Las redes salen del registro (api/Networks): una red nueva no toca esta batería.
+define('NETWORK_SLUGS', \Core\Networks::slugs());
 // Variables de PHP que no son nuestras o son contadores de bucle.
 const PHP_ALLOWED_NAMES = ['this', '_SERVER', '_GET', '_POST', '_ENV', '_COOKIE', '_FILES', '_REQUEST', 'GLOBALS', 'argv', 'argc', 'http_response_header', 'i', 'j', 'k'];
 // El mapa de la red necesita internet (mosaicos y datos del mapa): sus piezas no van en el precache.

@@ -58,8 +58,8 @@ Cada cosa se guarda una vez y los viajes la nombran por su posición, para que e
 | `directionReference`, `lon` | lo que Metro necesita para repartir las salidas en dos columnas por sentido |
 
 `js/offline.js` calcula con eso las salidas de una parada con la misma forma que las de la API (`departures`), así que
-el resto de la app no distingue si vienen del servidor o del móvil. `tests/offline-schedule.mjs` comprueba en las siete
-redes que salen las mismas que da la API.
+el resto de la app no distingue si vienen del servidor o del móvil. `tests/offline-schedule.mjs` comprueba en todas
+las redes que salen las mismas que da la API.
 
 ### La hora estimada sin datos del bus
 
@@ -97,7 +97,7 @@ directo.
 
 ## Pruebas
 
-- `tests/offline-schedule.mjs`: las salidas guardadas son las de la API en las siete redes, y los casos de estimación y
+- `tests/offline-schedule.mjs`: las salidas guardadas son las de la API en todas las redes, y los casos de estimación y
   de marcas.
 - `tests/ui-offline.mjs`: que las páginas solo piden recursos propios y que con el servidor caído la app arranca desde
   el service worker, enseña la estimación y deja marcar y deshacer.

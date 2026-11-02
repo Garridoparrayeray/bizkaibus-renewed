@@ -349,6 +349,202 @@
                 "attribution": "Data: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
+    },
+    "bilbobus": {
+        "kind": "bus",
+        "icons": "icons-bilbobus",
+        "themeColor": "#C0362C",
+        "title": [
+            "BILBOBUS",
+            "BILBAO"
+        ],
+        "favoritesKey": "bilbobus_favorites",
+        "live": false,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": true,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "stops",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Bilbobus+",
+                "tile": "Autobuses de Bilbao",
+                "switcher": "Horarios de Bilbobus en Bilbao",
+                "subtitle": "Horarios de Bilbobus",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Bilbobus ni con el Ayuntamiento de Bilbao. Horario programado oficial: no refleja retrasos ni cancelaciones.",
+                "attribution": "Datos: Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)"
+            },
+            "eu": {
+                "name": "Bilbobus+",
+                "tile": "Bilboko autobusak",
+                "switcher": "Bilbobusen ordutegiak Bilbon",
+                "subtitle": "Bilbobusen ordutegiak",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Bilbobus / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0)"
+            },
+            "en": {
+                "name": "Bilbobus+",
+                "tile": "Bilbao buses",
+                "switcher": "Bilbobus timetables in Bilbao",
+                "subtitle": "Bilbobus timetables",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Bilbobus or with Bilbao City Council. Official scheduled timetable: it does not reflect delays or cancellations.",
+                "attribution": "Data: Bilbobus / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0)"
+            }
+        }
+    },
+    "tuvisa": {
+        "kind": "bus",
+        "icons": "icons-tuvisa",
+        "themeColor": "#00796B",
+        "title": [
+            "TUVISA",
+            "VITORIA-GASTEIZ"
+        ],
+        "favoritesKey": "tuvisa_favorites",
+        "live": true,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": true,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Tuvisa+",
+                "tile": "Autobuses de Vitoria-Gasteiz",
+                "switcher": "Horarios y tiempo real de Tuvisa en Vitoria-Gasteiz",
+                "subtitle": "Horarios y tiempo real de Tuvisa",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Tuvisa ni con el Ayuntamiento de Vitoria-Gasteiz. Los tiempos en directo son una previsión del operador.",
+                "attribution": "Datos: Tuvisa / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)"
+            },
+            "eu": {
+                "name": "Tuvisa+",
+                "tile": "Gasteizko autobusak",
+                "switcher": "Tuvisaren ordutegiak eta denbora erreala Gasteizen",
+                "subtitle": "Tuvisaren ordutegiak eta denbora erreala",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
+            },
+            "en": {
+                "name": "Tuvisa+",
+                "tile": "Vitoria-Gasteiz buses",
+                "switcher": "Tuvisa timetables and real time in Vitoria-Gasteiz",
+                "subtitle": "Tuvisa timetables and real time",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Tuvisa or with Vitoria-Gasteiz City Council. Live times are the operator's forecast.",
+                "attribution": "Data: Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
+            }
+        }
+    },
+    "dbus": {
+        "kind": "bus",
+        "icons": "icons-dbus",
+        "themeColor": "#1565C0",
+        "title": [
+            "DBUS",
+            "DONOSTIA"
+        ],
+        "favoritesKey": "dbus_favorites",
+        "live": true,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": true,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Dbus+",
+                "tile": "Autobuses de Donostia",
+                "switcher": "Horarios y tiempo real de Dbus en Donostia",
+                "subtitle": "Horarios y tiempo real de Dbus",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Dbus ni con el Ayuntamiento de Donostia / San Sebastián. Los tiempos en directo son una previsión del operador.",
+                "attribution": "Datos: Dbus / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)"
+            },
+            "eu": {
+                "name": "Dbus+",
+                "tile": "Donostiako autobusak",
+                "switcher": "Dbusen ordutegiak eta denbora erreala Donostian",
+                "subtitle": "Dbusen ordutegiak eta denbora erreala",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
+            },
+            "en": {
+                "name": "Dbus+",
+                "tile": "Donostia buses",
+                "switcher": "Dbus timetables and real time in Donostia",
+                "subtitle": "Dbus timetables and real time",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Dbus or with Donostia / San Sebastián City Council. Live times are the operator's forecast.",
+                "attribution": "Data: Dbus / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
+            }
+        }
+    },
+    "alavabus": {
+        "kind": "bus",
+        "icons": "icons-alavabus",
+        "themeColor": "#B45309",
+        "title": [
+            "ÁLAVABUS",
+            "ARABA"
+        ],
+        "favoritesKey": "alavabus_favorites",
+        "live": false,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": true,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "stops",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Álavabus+",
+                "tile": "Autobuses de Álava",
+                "switcher": "Horarios de Álavabus en Álava",
+                "subtitle": "Horarios de Álavabus",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Álavabus ni con la Diputación Foral de Álava. Horario programado oficial: no refleja retrasos ni cancelaciones.",
+                "attribution": "Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "eu": {
+                "name": "Álavabus+",
+                "tile": "Arabako autobusak",
+                "switcher": "Álavabusen ordutegiak Araban",
+                "subtitle": "Álavabusen ordutegiak",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "attribution": "Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "en": {
+                "name": "Álavabus+",
+                "tile": "Álava buses",
+                "switcher": "Álavabus timetables in Álava",
+                "subtitle": "Álavabus timetables",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Álavabus or with the Provincial Council of Álava. Official scheduled timetable: it does not reflect delays or cancellations.",
+                "attribution": "Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            }
+        }
     }
 };
     const order = Object.keys(networks);
