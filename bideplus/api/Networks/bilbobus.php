@@ -1,7 +1,7 @@
 <?php
 
-// Bilbobus, los autobuses urbanos de Bilbao. Horario del GTFS que publica el Consorcio de Transportes de Bizkaia; su
-// directo llega vacío, así que va con el horario oficial.
+// Bilbobus, los autobuses urbanos de Bilbao. Horario y directo (SIRI Vehicle Monitoring) del Consorcio de Transportes
+// de Bizkaia, con el motor de Bizkaibus (engine/bilbobus). El feed llega vacío a ratos: entonces, horario oficial.
 return [
     'slug' => 'bilbobus',
     'order' => 8,
@@ -70,12 +70,21 @@ return [
         'stop_hints' => true,
         'line_map' => true,
         'schedule_text' => false,
-        'trip_detail' => 'stops',
+        'trip_detail' => 'vehicle',
         'alerts' => 'network',
         'alerts_detail' => true,
     ],
 
-    'live' => [],
+    'live' => ['vehicle-monitoring'],
+    'engine' => 'bilbobus',
+
+    // El feed del CTB y la copia de Open Data Euskadi. Avisos: el CTB no publica ninguno para Bilbobus.
+    'siri' => [
+        'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bilbobus-vehicle-positions.xml',
+        'vehicle_monitoring_fallback_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/siri_bilbobus_vehicle_monitoring.xml',
+        'cache_ttl_seconds' => 25,
+        'http_timeout_seconds' => 8,
+    ],
 
     'gtfs' => [
         'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bilbobus.zip',

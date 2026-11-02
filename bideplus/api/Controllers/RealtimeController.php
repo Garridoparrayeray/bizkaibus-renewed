@@ -43,8 +43,7 @@ class RealtimeController
             'line' => $aLine,
             'patterns' => $aPatterns,
             'vehicles' => LineVehicles::onLine($Pdo, $sLineId, $aPatterns),
-            // Sin posiciones de la red (Euskotren, tranvías), el mapa no dice que no circula nada.
-            'tracked' => Config::hasLive('vehicle-positions') || Config::hasLive('vehicle-monitoring'),
+            'tracked' => LineVehicles::tracked(),
         ]);
     }
 

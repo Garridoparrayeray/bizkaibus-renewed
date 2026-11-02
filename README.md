@@ -23,7 +23,7 @@ Es una aplicación web instalable (PWA) en castellano, euskera e inglés, que fu
 
 - Los horarios salen del GTFS oficial de cada operador y se reconstruyen cada día.
 - En Bizkaibus, el tiempo de llegada se calcula situando el GPS de cada bus sobre el trazado real de su ruta y sumando lo que tardan de verdad los buses en cada tramo. En 2,37 millones de llegadas de 17 días, acierta con menos de 2 minutos de error en el 96 % de los casos cuando faltan menos de 3 minutos (el horario oficial, en el 24 %). El método está explicado, sin matemáticas y en versión formal, en [bideplus/docs/algoritmo-explicado.md](bideplus/docs/algoritmo-explicado.md).
-- Metro Bilbao, Euskotren, los tranvías, Tuvisa y Dbus llevan el tiempo real que publica el operador; Renfe, el retraso de cada tren y los cancelados. Lurraldebus, Bilbobus y Álavabus muestran el horario programado: no reflejan retrasos ni cancelaciones, salvo los avisos de incidencias que publique el propio operador.
+- Metro Bilbao, Euskotren, los tranvías, Tuvisa y Dbus llevan el tiempo real que publica el operador; Renfe, el retraso de cada tren y los cancelados. Lurraldebus y Bilbobus tienen el mismo algoritmo que Bizkaibus preparado sobre los feeds de sus operadores, que de momento llegan vacíos; mientras tanto, y siempre en Álavabus, se muestra el horario programado: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el propio operador.
 - Los datos de cada operador mantienen sus propias licencias y se citan en la aplicación.
 
 ## Ejecutarla en local

@@ -102,7 +102,7 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 
 **Tuvisa y Dbus** — publican en Open Data Euskadi (Moveuskadi) su GTFS-Realtime con los viajes del horario, así que se emparejan por viaje como Renfe. En vez de un retraso por viaje dan el de cada parada, sin hora: `GtfsRealtimeClient` toma el de la primera parada como retraso del autobús y esa parada como la siguiente. Sus posiciones van al mapa de la línea (`VehiclePositions`) y las incidencias de Tuvisa (*Service Alerts*, `gtfs_rt.alerts_url`) salen en Avisos con su texto en castellano; solo las vigentes. Sus horarios usan `gtfs.feed_window`: cada viaje con las fechas exactas del periodo publicado (Dbus junta en el GTFS los servicios de Navidad con los de diario y, sin fechas, salían viajes de más).
 
-**Bilbobus y Álavabus** — solo horario: el directo de Bilbobus llega vacío y Álavabus no publica. Los rótulos de Bilbobus llevan delante el tipo de horario («PT-Semana / (PLAZA BIRIBILA)»); `gtfs.headsign_pattern` se queda con el destino y, si no lo hay, el viaje va hacia su última parada.
+**Bilbobus y Álavabus** — Bilbobus lleva el algoritmo de Bizkaibus (`engine/bilbobus`) sobre el SIRI del CTB, que llega vacío a ratos; Álavabus no publica directo, solo horario. Los rótulos de Bilbobus llevan delante el tipo de horario («PT-Semana / (PLAZA BIRIBILA)»); `gtfs.headsign_pattern` se queda con el destino y, si no lo hay, el viaje va hacia su última parada.
 
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 
@@ -171,4 +171,4 @@ Ambas aplicaciones son proyectos independientes, sin relación con Bizkaibus, Me
 
 ## El algoritmo
 
-La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, Lurraldebus y Metro) y su documentación no están en este repositorio: viven en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.
+La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, y de Lurraldebus y Bilbobus, que heredan de ella) y su documentación no están en este repositorio: viven en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.

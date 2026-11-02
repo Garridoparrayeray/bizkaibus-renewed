@@ -210,7 +210,7 @@
             ""
         ],
         "favoritesKey": "lurraldebus_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": false,
             "headsign_from_last_stop": false,
@@ -372,14 +372,14 @@
             "BILBAO"
         ],
         "favoritesKey": "bilbobus_favorites",
-        "live": false,
+        "live": true,
         "features": {
             "platforms": false,
             "headsign_from_last_stop": false,
             "stop_hints": true,
             "line_map": true,
             "schedule_text": false,
-            "trip_detail": "stops",
+            "trip_detail": "vehicle",
             "alerts": "network",
             "alerts_detail": true
         },

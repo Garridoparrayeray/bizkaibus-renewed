@@ -73,7 +73,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `features.alerts` | Cómo se piden las incidencias: `lines` (por línea favorita), `stops` (por estación, como Renfe) o `network` (todas las de la red). |
 | `features.alerts_detail` | Las incidencias del menú lateral enseñan también su texto largo. |
 | `live` | Fuentes en directo: `['vehicle-monitoring']` (SIRI con el algoritmo), `['trip-updates']` (GTFS-RT), y además `'vehicle-positions'` si el operador publica dónde está cada tren (los trenes en el mapa de la línea), o `[]` (horario oficial). |
-| `engine` | Con `vehicle-monitoring`: el motor de `engine/` que se usa (`bizkaibus`, `lurraldebus`). |
+| `engine` | Con `vehicle-monitoring`: el motor de `engine/` que se usa (`bizkaibus`, `lurraldebus`, `bilbobus`; los dos últimos heredan del primero). |
 | `siri` | Direcciones de los feeds SIRI: `vehicle_monitoring_url`, `alerts_url` (o `alerts_urls`, varias) y tiempos de caché. |
 | `gtfs_rt` | Direcciones de los feeds GTFS-Realtime (`trip_updates_url`; con `vehicle-positions`, `vehicle_positions_url`; y `alerts_url` para las incidencias) y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
 | `direction_reference_stop_id` | Una parada central: cada salida se marca «hacia» o «desde» ella (los dos sentidos de Metro). |

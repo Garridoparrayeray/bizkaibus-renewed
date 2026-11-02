@@ -31,6 +31,9 @@ class SiriAlertsClient
                 return $aAlerts;
             });
         }
+        if (empty($aCfg['alerts_url'])) {
+            return [];
+        }
         $aUrls = array_filter([$aCfg['alerts_url'], $aCfg['alerts_fallback_url'] ?? null]);
         return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
             return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
