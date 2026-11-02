@@ -173,7 +173,7 @@ class RealtimeController
     }
 
     // Lo común a las dos fichas. $aExtra va tras el vehículo (en Metro, feedTimes: las horas son las del feed).
-    private static function sheet(array $aJourney, string $sStatus, string|null $sVehicleRef, int $iDelayMinutes, array $aStops, array $aExtra = []): array
+    private static function sheet(array $aJourney, string $sStatus, string|null $sVehicleRef, int|null $iDelayMinutes, array $aStops, array $aExtra = []): array
     {
         return [
             'lineCode' => $aJourney['line_code'],

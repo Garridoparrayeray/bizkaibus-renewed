@@ -36,7 +36,8 @@ $Router->get('/search', [$Search, 'search'], 3600);
 $Stops = new StopsController();
 $Router->get('/nearby', [$Stops, 'nearby']);
 $Router->get('/stops/{id}', [$Stops, 'show'], 3600);
-$Router->get('/stops/{id}/departures', [$Stops, 'departures'], 10);
+// Lo que va en directo, 20 s en el CDN: el feed ya se guarda 25 s en el servidor y la app cuenta los minutos con su reloj.
+$Router->get('/stops/{id}/departures', [$Stops, 'departures'], 20);
 $Router->get('/trips/{tripKey}', [$Stops, 'tripStops'], 60);
 
 $Lines = new LinesController();
@@ -54,8 +55,8 @@ if (Config::feature('schedule_text')) {
 }
 
 $Realtime = new RealtimeController();
-$Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
-$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
+$Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 20);
+$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 20);
 $Router->get('/status', [$Realtime, 'status'], 30);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);
@@ -72,9 +73,9 @@ $Router->post('/push/incidents/remove', [$Push, 'removeIncidents']);
 $Router->post('/push/updates', [$Push, 'saveUpdates']);
 $Router->post('/push/updates/remove', [$Push, 'removeUpdates']);
 
-// Sin caché: el aviso de versión nueva tiene que estar al día.
+// La versión solo cambia al desplegar, y cada despliegue vacía la caché de Vercel: el aviso sigue llegando al momento.
 $App = new AppController();
-$Router->get('/app/version', [$App, 'version']);
+$Router->get('/app/version', [$App, 'version'], 600);
 
 try {
     $Router->dispatch($Req);
