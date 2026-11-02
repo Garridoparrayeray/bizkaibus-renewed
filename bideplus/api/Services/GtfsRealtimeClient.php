@@ -64,23 +64,38 @@ class GtfsRealtimeClient
         $aVehicles = [];
         foreach (self::fields($sBody) as [$iField, $Value]) {
             if ($iField === 1) {
-                foreach (self::fields($Value) as [$iHeaderField, $HeaderValue]) {
-                    if ($iHeaderField === 3) {
-                        $iGeneratedAt = $HeaderValue;
-                    }
-                }
+                $iGeneratedAt = self::headerTimestamp($Value);
             } elseif ($iField === 2) {
-                foreach (self::fields($Value) as [$iEntityField, $EntityValue]) {
-                    if ($iEntityField === 4) {
-                        $aVehicle = self::parseVehicle($EntityValue);
-                        if ($aVehicle !== null) {
-                            $aVehicles[] = $aVehicle;
-                        }
-                    }
+                $aVehicle = self::entityField($Value, 4, [self::class, 'parseVehicle']);
+                if ($aVehicle !== null) {
+                    $aVehicles[] = $aVehicle;
                 }
             }
         }
         return ['generatedAt' => $iGeneratedAt, 'vehicles' => $aVehicles];
+    }
+
+    // La hora del feed (campo 3 de la cabecera), o 0 si no viene.
+    private static function headerTimestamp(string $sHeader): int
+    {
+        foreach (self::fields($sHeader) as [$iField, $Value]) {
+            if ($iField === 3) {
+                return (int)$Value;
+            }
+        }
+        return 0;
+    }
+
+    // Lo que trae una entidad en el campo pedido (3, trip update; 4, vehículo; 5, incidencia), ya parseado, o null si
+    // no lo lleva.
+    private static function entityField(string $sEntity, int $iWanted, callable $Parser): array|null
+    {
+        foreach (self::fields($sEntity) as [$iField, $Value]) {
+            if ($iField === $iWanted) {
+                return $Parser($Value);
+            }
+        }
+        return null;
     }
 
     // Un tren: su viaje, dónde está (GPS), la estación en la que está, a la que llega o hacia la que va (null si no lo
@@ -140,19 +155,11 @@ class GtfsRealtimeClient
         $aAlerts = [];
         foreach (self::fields($sBody) as [$iField, $Value]) {
             if ($iField === 1) {
-                foreach (self::fields($Value) as [$iHeaderField, $HeaderValue]) {
-                    if ($iHeaderField === 3) {
-                        $iGeneratedAt = $HeaderValue;
-                    }
-                }
+                $iGeneratedAt = self::headerTimestamp($Value);
             } elseif ($iField === 2) {
-                foreach (self::fields($Value) as [$iEntityField, $EntityValue]) {
-                    if ($iEntityField === 5) {
-                        $aAlert = self::parseAlert($EntityValue);
-                        if ($aAlert !== null) {
-                            $aAlerts[] = $aAlert;
-                        }
-                    }
+                $aAlert = self::entityField($Value, 5, [self::class, 'parseAlert']);
+                if ($aAlert !== null) {
+                    $aAlerts[] = $aAlert;
                 }
             }
         }
@@ -267,29 +274,15 @@ class GtfsRealtimeClient
         $aTrips = [];
         foreach (self::fields($sBody) as [$iField, $Value]) {
             if ($iField === 1) {
-                foreach (self::fields($Value) as [$iHeaderField, $HeaderValue]) {
-                    if ($iHeaderField === 3) {
-                        $iGeneratedAt = $HeaderValue;
-                    }
-                }
+                $iGeneratedAt = self::headerTimestamp($Value);
             } elseif ($iField === 2) {
-                $aTrip = self::parseEntity($Value);
+                $aTrip = self::entityField($Value, 3, [self::class, 'parseTripUpdate']);
                 if ($aTrip !== null) {
                     $aTrips[] = $aTrip;
                 }
             }
         }
         return ['generatedAt' => $iGeneratedAt, 'trips' => $aTrips];
-    }
-
-    private static function parseEntity(string $sEntity): array|null
-    {
-        foreach (self::fields($sEntity) as [$iField, $Value]) {
-            if ($iField === 3) {
-                return self::parseTripUpdate($Value);
-            }
-        }
-        return null;
     }
 
     // Renfe trae además el retraso del tren («delay») y los cancelados, que pueden no llevar ninguna parada. Tuvisa y

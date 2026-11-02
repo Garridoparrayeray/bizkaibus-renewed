@@ -11,6 +11,13 @@ const INDENTED_EXTENSIONS = ['php', 'js', 'mjs', 'css'];
 require_once __DIR__ . '/../api/Core/Networks.php';
 // Las redes salen del registro (api/Networks): una red nueva no toca esta batería.
 define('NETWORK_SLUGS', \Core\Networks::slugs());
+const ENGINE_NAMES = ['bizkaibus', 'lurraldebus', 'metro'];
+// Forma del PHP: niveles de sangría, líneas y columnas de un comentario, y desde cuántos tokens cuenta un cuerpo
+// repetido.
+const MAX_DEPTH = 6;
+const MAX_COMMENT_LINES = 3;
+const MAX_COMMENT_WIDTH = 120;
+const MIN_BODY_TOKENS = 40;
 // Variables de PHP que no son nuestras o son contadores de bucle.
 const PHP_ALLOWED_NAMES = ['this', '_SERVER', '_GET', '_POST', '_ENV', '_COOKIE', '_FILES', '_REQUEST', 'GLOBALS', 'argv', 'argc', 'http_response_header', 'i', 'j', 'k'];
 // El mapa de la red necesita internet (mosaicos y datos del mapa): sus piezas no van en el precache.
@@ -47,14 +54,17 @@ $IsTest = fn(string $sFile): bool => str_starts_with($sFile, 'tests/');
 
 // El algoritmo (repositorio privado en engine/) usa métodos de los modelos: si está, cuenta como uso.
 $sEngine = '';
+$aEngineFiles = [];
 $bEngine = is_dir(ROOT . 'engine');
 if ($bEngine) {
     $It = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(ROOT . 'engine', FilesystemIterator::SKIP_DOTS));
     foreach ($It as $File) {
         if ($File->getExtension() === 'php') {
+            $aEngineFiles[] = substr($File->getPathname(), strlen(ROOT . 'engine/'));
             $sEngine .= file_get_contents($File->getPathname()) . "\n";
         }
     }
+    sort($aEngineFiles);
 }
 
 // ===== JavaScript sin cadenas, comentarios ni expresiones regulares =====
@@ -590,10 +600,292 @@ foreach ($aNeeded as $sPath => $sFrom) {
     }
 }
 
+// ===== 7. Forma del PHP: bloques con llaves, pirámide y comentarios cortos =====
+
+// Los tokens que cuentan (sin espacios ni comentarios), cada uno con su línea: [tipo, texto, línea]. Las llaves de
+// bloque llevan tipo null; las de las cadenas («{$a}») y las de ->{'x'} llevan T_CURLY_OPEN, para no confundirlas.
+function phpTokens(string $sCode): array
+{
+    $aOut = [];
+    $aBraces = [];
+    $iLine = 1;
+    foreach (token_get_all($sCode) as $Token) {
+        if (is_array($Token)) {
+            $iLine = $Token[2];
+            if (in_array($Token[0], [T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES], true)) {
+                $aBraces[] = T_CURLY_OPEN;
+            }
+            if (!in_array($Token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+                $aOut[] = [$Token[0], $Token[1], $iLine];
+            }
+            $iLine += substr_count($Token[1], "\n");
+            continue;
+        }
+        $iType = null;
+        if ($Token === '{') {
+            $iType = null;
+            if (in_array(end($aOut)[0] ?? null, [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON], true)) {
+                $iType = T_CURLY_OPEN;
+            }
+            $aBraces[] = $iType;
+        } elseif ($Token === '}') {
+            $iType = array_pop($aBraces);
+        }
+        $aOut[] = [$iType, $Token, $iLine];
+    }
+    return $aOut;
+}
+
+// Índice del «)» que cierra el «(» que hay en $iOpen.
+function closingParen(array $aTokens, int $iOpen): int
+{
+    $iDepth = 0;
+    for ($i = $iOpen; $i < count($aTokens); $i++) {
+        if ($aTokens[$i][1] === '(') {
+            $iDepth++;
+        } elseif ($aTokens[$i][1] === ')') {
+            $iDepth--;
+            if ($iDepth === 0) {
+                return $i;
+            }
+        }
+    }
+    return count($aTokens) - 1;
+}
+
+// Las líneas de un archivo PHP que son texto, no código: cadenas de varias líneas, heredoc y HTML de las plantillas.
+function phpFreeLines(string $sCode): array
+{
+    $aFree = [];
+    foreach (token_get_all($sCode) as $Token) {
+        if (!is_array($Token)) {
+            continue;
+        }
+        if (in_array($Token[0], [T_CONSTANT_ENCAPSED_STRING, T_INLINE_HTML, T_ENCAPSED_AND_WHITESPACE, T_START_HEREDOC], true)) {
+            for ($iLine = $Token[2] + 1; $iLine <= $Token[2] + substr_count($Token[1], "\n"); $iLine++) {
+                $aFree[$iLine] = true;
+            }
+        }
+        if ($Token[0] === T_END_HEREDOC) {
+            $aFree[$Token[2]] = true;
+        }
+    }
+    return $aFree;
+}
+
+// Con engine/ presente, también sus clases (no sus herramientas de calibración, el laboratorio ni la tesis).
+$aAllPhp = [];
+foreach ($aPhpFiles as $sFile) {
+    $aAllPhp[$sFile] = $aSources[$sFile];
+}
+if ($bEngine) {
+    foreach ($aEngineFiles as $sPath) {
+        if (!preg_match('#^(lab|docs)/|/tools/#', $sPath)) {
+            $aAllPhp['engine/' . $sPath] = file_get_contents(ROOT . 'engine/' . $sPath);
+        }
+    }
+}
+foreach ($aAllPhp as $sFile => $sCode) {
+    $bView = str_starts_with($sFile, 'api/Views/');
+    $aTokens = phpTokens($sCode);
+    foreach ($aTokens as $iIndex => [$iType, $sText, $iLine]) {
+        $aNext = $aTokens[$iIndex + 1] ?? null;
+        $aPrevious = $aTokens[$iIndex - 1] ?? null;
+        $sWhere = $sFile . ':' . $iLine;
+        // «{» cierra su línea: lo de dentro va en las siguientes. Se admite el cuerpo vacío «{}».
+        if ($sText === '{' && $iType === null && $aNext !== null && $aNext[2] === $iLine && $aNext[1] !== '}') {
+            $Report('Forma: código detrás de «{» en la misma línea (el cuerpo va en las líneas siguientes)', $sWhere);
+        }
+        // «}» abre su línea: nada delante.
+        if ($sText === '}' && $iType === null && $aPrevious !== null && $aPrevious[2] === $iLine && $aPrevious[1] !== '{') {
+            $Report('Forma: código delante de «}» en la misma línea (la llave cierra sola)', $sWhere);
+        }
+        // if, elseif, for, foreach, while y else siempre con llaves. En las plantillas vale la sintaxis con «:».
+        $bControl = in_array($iType, [T_IF, T_ELSEIF, T_FOR, T_FOREACH, T_WHILE], true) && ($aNext[1] ?? '') === '(';
+        if ($iType === T_WHILE && ($aPrevious[1] ?? '') === '}') {
+            $bControl = false;
+        }
+        if ($bControl) {
+            $aAfter = $aTokens[closingParen($aTokens, $iIndex + 1) + 1] ?? null;
+            if ($aAfter !== null && $aAfter[1] !== '{' && !($bView && $aAfter[1] === ':')) {
+                $Report('Forma: bloque sin llaves (if, for, foreach, while y else van siempre con { })', $sWhere);
+            }
+        }
+        if ($iType === T_ELSE && $aNext !== null && $aNext[1] !== '{' && $aNext[0] !== T_IF && !($bView && $aNext[1] === ':')) {
+            $Report('Forma: bloque sin llaves (if, for, foreach, while y else van siempre con { })', $sWhere);
+        }
+    }
+
+    // Pirámide: como mucho MAX_DEPTH niveles de sangría. Más hondo, se saca una función. Las plantillas llevan HTML.
+    if (!$bView) {
+        $aFree = phpFreeLines($sCode);
+        foreach (explode("\n", $sCode) as $iIndex => $sLine) {
+            if (isset($aFree[$iIndex + 1]) || preg_match('/^\s*(\*|\/\/)/', $sLine)) {
+                continue;
+            }
+            if (preg_match('/^( *)\S/', $sLine, $aMatch) && strlen($aMatch[1]) > MAX_DEPTH * 4) {
+                $Report('Forma: más de ' . MAX_DEPTH . ' niveles de sangría (saca una función)', $sFile . ':' . ($iIndex + 1));
+            }
+        }
+    }
+
+    // Comentarios cortos: hasta MAX_COMMENT_LINES líneas seguidas y de MAX_COMMENT_WIDTH columnas. La cabecera del
+    // archivo (antes de la primera clase o función) no cuenta: explica qué es y cómo se usa.
+    $bHeader = true;
+    $iRun = 0;
+    $iRunStart = 0;
+    $iLine = 1;
+    foreach (token_get_all($sCode) as $Token) {
+        if (!is_array($Token)) {
+            $iRun = 0;
+            continue;
+        }
+        $iLine = $Token[2];
+        if (in_array($Token[0], [T_CLASS, T_FUNCTION, T_FN, T_VARIABLE, T_CONST, T_IF, T_FOREACH, T_RETURN, T_ECHO, T_REQUIRE, T_REQUIRE_ONCE], true)) {
+            $bHeader = false;
+        }
+        if (!in_array($Token[0], [T_COMMENT, T_DOC_COMMENT, T_WHITESPACE], true)) {
+            $iRun = 0;
+            continue;
+        }
+        if ($Token[0] === T_WHITESPACE) {
+            if (substr_count($Token[1], "\n") > 1) {
+                $iRun = 0;
+            }
+            continue;
+        }
+        if ($iRun === 0) {
+            $iRunStart = $iLine;
+        }
+        $iRun += substr_count(rtrim($Token[1]), "\n") + 1;
+        foreach (explode("\n", $Token[1]) as $sCommentLine) {
+            if (mb_strlen(rtrim($sCommentLine)) > MAX_COMMENT_WIDTH) {
+                $Report('Forma: comentario de más de ' . MAX_COMMENT_WIDTH . ' columnas', $sFile . ':' . $iLine);
+                break;
+            }
+        }
+        if ($iRun === MAX_COMMENT_LINES + 1 && !$bHeader) {
+            $Report('Forma: comentario de más de ' . MAX_COMMENT_LINES . ' líneas (corto, o al commit)', $sFile . ':' . $iRunStart);
+        }
+    }
+}
+
+// ===== 8. Funciones repetidas =====
+
+// Dos funciones con el mismo cuerpo son una sola. Se comparan los cuerpos sin espacios ni comentarios, y solo los que
+// tienen algo que repetir (MIN_BODY_TOKENS tokens o más). Con engine/ presente, también los del algoritmo.
+$aPhpBodies = [];
+foreach ($aAllPhp as $sFile => $sCode) {
+    if ($sFile === 'tests/code-quality.php') {
+        continue;
+    }
+    $aTokens = phpTokens($sCode);
+    foreach ($aTokens as $iIndex => [$iType, $sText, $iLine]) {
+        if ($iType !== T_FUNCTION || ($aTokens[$iIndex + 1][0] ?? null) !== T_STRING) {
+            continue;
+        }
+        $sName = $aTokens[$iIndex + 1][1];
+        $iOpen = $iIndex + 2;
+        while ($iOpen < count($aTokens) && $aTokens[$iOpen][1] !== '{' && $aTokens[$iOpen][1] !== ';') {
+            $iOpen++;
+        }
+        if (($aTokens[$iOpen][1] ?? '') !== '{') {
+            continue;
+        }
+        $iDepth = 0;
+        $aBody = [];
+        for ($i = $iOpen; $i < count($aTokens); $i++) {
+            if ($aTokens[$i][1] === '{' && $aTokens[$i][0] === null) {
+                $iDepth++;
+            } elseif ($aTokens[$i][1] === '}' && $aTokens[$i][0] === null) {
+                $iDepth--;
+            }
+            $aBody[] = $aTokens[$i][1];
+            if ($iDepth === 0) {
+                break;
+            }
+        }
+        if (count($aBody) < MIN_BODY_TOKENS) {
+            continue;
+        }
+        $sKey = md5(implode(' ', $aBody));
+        if (isset($aPhpBodies[$sKey])) {
+            $Report('Funciones repetidas: el mismo cuerpo en dos sitios (deja una y llama a esa)', $sFile . ':' . $iLine . ' ' . $sName . ' = ' . $aPhpBodies[$sKey]);
+        } else {
+            $aPhpBodies[$sKey] = $sFile . ':' . $iLine . ' ' . $sName;
+        }
+    }
+}
+
+// ===== 9. Redes replicables: una red nueva es su ficha en api/Networks y sus iconos =====
+
+$aNetworkFiles = $FilesWith(['php']);
+$aOrders = [];
+foreach ($aNetworkFiles as $sFile) {
+    if (!str_starts_with($sFile, 'api/Networks/')) {
+        continue;
+    }
+    $aNetwork = require ROOT . $sFile;
+    $sSlug = basename($sFile, '.php');
+    if (($aNetwork['slug'] ?? null) !== $sSlug) {
+        $Report('Redes: el slug no coincide con el nombre del archivo', $sFile);
+    }
+    foreach (['order', 'db', 'kind', 'brand', 'texts', 'seo', 'attribution', 'features', 'gtfs'] as $sKey) {
+        if (!isset($aNetwork[$sKey])) {
+            $Report('Redes: falta una clave de la ficha', $sFile . ' ' . $sKey);
+        }
+    }
+    $iOrder = $aNetwork['order'] ?? 0;
+    if (isset($aOrders[$iOrder])) {
+        $Report('Redes: dos redes con el mismo order', $sFile . ' y ' . $aOrders[$iOrder]);
+    }
+    $aOrders[$iOrder] = $sFile;
+    // Los tres idiomas con las mismas claves: lo que falte sale en castellano sin avisar. La atribución en castellano
+    // es la clave attribution de la ficha.
+    $aLangKeys = [];
+    foreach (['es', 'eu', 'en'] as $sLang) {
+        $aLangKeys[$sLang] = array_keys($aNetwork['texts'][$sLang] ?? []);
+    }
+    $aLangKeys['es'][] = 'attribution';
+    $aAll = array_unique(array_merge($aLangKeys['es'], $aLangKeys['eu'], $aLangKeys['en']));
+    foreach (['es', 'eu', 'en'] as $sLang) {
+        foreach (array_diff($aAll, $aLangKeys[$sLang]) as $sKey) {
+            $Report('Redes: texto que falta en un idioma', $sFile . ' ' . $sLang . '.' . $sKey);
+        }
+    }
+    foreach (['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'] as $sIcon) {
+        if (!is_file(ROOT . ($aNetwork['brand']['icons'] ?? '-') . '/' . $sIcon)) {
+            $Report('Redes: falta un icono', $sFile . ' ' . ($aNetwork['brand']['icons'] ?? '?') . '/' . $sIcon);
+        }
+    }
+    if (in_array('vehicle-monitoring', $aNetwork['live'] ?? [], true) && empty($aNetwork['engine'])) {
+        $Report('Redes: vehicle-monitoring sin motor (clave engine)', $sFile);
+    }
+}
+
+// Ninguna red ni motor se nombra en el código: lo que distingue a una red va en su ficha (features, live, engine).
+foreach (array_merge($aPhpFiles, $aJsFiles) as $sFile) {
+    if ($IsTest($sFile) || str_starts_with($sFile, 'api/Networks/') || in_array($sFile, ['js/networks.js', 'js/i18n.js', 'api/Core/Live.php', 'scripts/new-network.php'], true)) {
+        continue;
+    }
+    $sCode = $aSources[$sFile];
+    if (pathinfo($sFile, PATHINFO_EXTENSION) !== 'php') {
+        $sCode = scanJs($sCode, true)[0];
+    }
+    foreach (explode("\n", $sCode) as $iIndex => $sLine) {
+        if (preg_match('/(network|slug|red|engine)[\'\]]*\s*[!=]==?\s*[\'"](' . implode('|', NETWORK_SLUGS) . '|' . implode('|', ENGINE_NAMES) . ')[\'"]/i', $sLine)) {
+            $Report('Redes: una red o un motor nombrado en el código (va a su ficha en api/Networks)', $sFile . ':' . ($iIndex + 1));
+        }
+        if (preg_match('/\[\s*[\'"](' . implode('|', ENGINE_NAMES) . ')[\'"]\s*,|^\s*[\'"](' . implode('|', NETWORK_SLUGS) . ')[\'"]\s*=>/', $sLine)) {
+            $Report('Redes: una red o un motor nombrado en el código (va a su ficha en api/Networks)', $sFile . ':' . ($iIndex + 1));
+        }
+    }
+}
+
 // ===== Resultado =====
 
 if (empty($aProblems)) {
-    echo "OK  formato, PHP, JavaScript, textos, código muerto y precache\n";
+    echo "OK  formato, PHP, JavaScript, textos, código muerto, precache, forma, funciones repetidas y redes\n";
 }
 foreach ($aProblems as $sRule => $aWhere) {
     echo 'MAL ' . $sRule . ' (' . count($aWhere) . ")\n";

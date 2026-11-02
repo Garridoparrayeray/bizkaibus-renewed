@@ -54,7 +54,8 @@ class LiveRecordController
     }
 
     // Pasos por parada de una línea en un día: /api/live/history?line=3514&date=2026-10-29&key=… (misma clave que el cron).
-    // Cada viaje lleva «orden de la parada en el recorrido → segundos desde medianoche» del último momento en que se vio yendo hacia ella.
+    // Cada viaje lleva «orden de la parada en el recorrido → segundos desde medianoche» del último momento en que se
+    // vio yendo hacia ella.
     public function history(Request $Req, array $aParams): void
     {
         if (!self::authorized($Req)) {
@@ -81,7 +82,8 @@ class LiveRecordController
         if ($sSecret === null) {
             return false;
         }
-        // Vale la clave en la URL (?key=) o en la cabecera «Authorization: Bearer …»: una cabecera mal puesta no anula una URL buena.
+        // Vale la clave en la URL (?key=) o en la cabecera «Authorization: Bearer …»: una cabecera mal puesta no anula
+        // una URL buena.
         $aGiven = [trim((string)($Req->query('key') ?? ''))];
         $sHeader = trim($Req->header('Authorization') ?? '');
         if (str_starts_with($sHeader, 'Bearer ')) {

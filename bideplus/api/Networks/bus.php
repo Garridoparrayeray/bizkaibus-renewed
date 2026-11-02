@@ -34,6 +34,7 @@ return [
             'switcher' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'subtitle' => 'Bizkaibusen ordutegiak eta zuzenekoa',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Bizkaibusekin eta Bizkaiko Foru Aldundiarekin loturarik gabea.',
             'attribution' => 'Datuak: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
         ],
         'en' => [
@@ -70,7 +71,8 @@ return [
 
     'siri' => [
         'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-vehicle-positions.xml',
-        // Solo Open Data Euskadi: trae GPS, hora del dato y retraso. El feed del CTB (bizkaibus-trip-updates.xml) no trae ninguno de los tres y daba «En hora» a todos los buses.
+        // Avisos solo de Open Data Euskadi: trae GPS, hora del dato y retraso. El feed del CTB
+        // (bizkaibus-trip-updates.xml) no trae ninguno de los tres y daba «En hora» a todos los buses.
         'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bizkaibus/siri_bizkaibus_situation_exchange.xml',
         'alerts_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bizkaibus-service-alerts.xml',
         'cache_ttl_seconds' => 25,

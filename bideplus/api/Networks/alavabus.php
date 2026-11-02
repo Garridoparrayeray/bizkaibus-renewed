@@ -44,6 +44,7 @@ return [
             'switcher' => 'Álavabusen ordutegiak Araban',
             'subtitle' => 'Álavabusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.',
             'attribution' => 'Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [

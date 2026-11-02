@@ -4,7 +4,6 @@ namespace Controllers;
 
 use Core\Config;
 use Core\Database;
-use Core\Http;
 use Core\Ids;
 use Core\Request;
 use Core\Response;
@@ -15,7 +14,6 @@ use Services\Calendar;
 use Services\GtfsRealtimeClient;
 use Services\VehiclePositions;
 use Core\Live;
-use Engine\Bizkaibus\SiriVehicleMonitoringClient;
 use Engine\Metro\TripUpdatesMatcher;
 
 // Directo: los autobuses o trenes de una línea en el mapa (/api/lines/{id}/live), la ficha de un viaje
@@ -41,24 +39,20 @@ class RealtimeController
         return 'scheduled';
     }
 
-    /*
-     * Diagnóstico de la fuente de los buses en directo: pide a Open Data Euskadi desde el servidor (como lo hace la app)
-     * y cuenta qué trae. Sirve para ver si el feed responde desde el despliegue y si trae GPS, hora del dato y retraso.
-     */
+    // Diagnóstico del feed de vehículos en directo: lo pide el servidor como lo hace la app y cuenta qué trae (buses,
+    // GPS, hora del dato y retraso). Sirve para ver si la fuente responde desde el despliegue.
     public function status(Request $Req, array $aParams): void
     {
         $aConfig = Config::current();
-        if (($aConfig['engine'] ?? null) !== 'bizkaibus' || !Config::hasLive('vehicle-monitoring')) {
-            Response::error('This network has no SIRI feed', 404);
+        if (!Config::hasLive('vehicle-monitoring')) {
+            Response::error('This network has no vehicle feed', 404);
             return;
         }
-        $sUrl = $aConfig['siri']['vehicle_monitoring_url'];
+        $sUrl = $aConfig['siri']['vehicle_monitoring_url'] ?? reset($aConfig['siri']['vehicle_monitoring_urls']);
         $dStart = microtime(true);
         $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
         try {
-            $sBody = Http::get($sUrl, $aConfig['siri']['http_timeout_seconds']);
-            $aOut['bytes'] = \strlen($sBody);
-            $aOut += self::feedCounts(SiriVehicleMonitoringClient::parse($sBody));
+            $aOut += self::feedCounts(Live::vehicles());
             $aOut['ok'] = $aOut['vehicles'] > 0;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
@@ -264,7 +258,7 @@ class RealtimeController
 
         // Sin GPS (solo la última parada registrada) es una estimación, como en la tarjeta de la parada: ni «en
         // directo» ni adelanto o retraso.
-        if ($sStatus === 'live' && $aPosition === null && \in_array(Config::current()['engine'] ?? null, ['bizkaibus', 'lurraldebus'], true)) {
+        if ($sStatus === 'live' && $aPosition === null && Config::hasLive('vehicle-monitoring')) {
             $sStatus = 'estimated';
             $iDelayMinutes = 0;
             $sVehicleRef = null;

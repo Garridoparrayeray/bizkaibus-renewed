@@ -164,10 +164,8 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
             continue;
         }
         if (!empty($aCal['excludedDates'])) {
-            // No reutilizar un calendario real que ya tiene sus propias
-            // excepciones: si lo compartimos con otro grupo fusionado,
-            // esas fechas excluidas se le pegarian tambien sin que le
-            // correspondan.
+            // Un calendario real con sus propias excepciones no se comparte: al otro grupo se le pegarían esas
+            // fechas excluidas sin corresponderle.
             continue;
         }
         if (!isset($aMaskToCalendarId[$aCal['weekdayMask']])) {
@@ -198,11 +196,8 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
         if (empty($aExcludedDates) && (!$bExactWindow || empty($aIncludedDates)) && isset($aMaskToCalendarId[$iMask])) {
             $sCalendarId = $aMaskToCalendarId[$iMask];
         } else {
-            // Un mismo dia de la semana puede tener grupos con distintas
-            // fechas excluidas (p.ej. dos servicios de lunes a viernes,
-            // solo uno de ellos anulado en un festivo concreto): la firma
-            // incluye las fechas excluidas para no fusionarlos y perder
-            // esa excepcion.
+            // Un mismo día de la semana puede tener grupos con distintas fechas excluidas (dos servicios de lunes a
+            // viernes, solo uno anulado en un festivo): la firma lleva las fechas excluidas para no fusionarlos.
             $sSignature = $iMask . '|' . implode(',', $aExcludedDates);
             if ($bExactWindow) {
                 $sSignature .= '|' . implode(',', $aIncludedDates);

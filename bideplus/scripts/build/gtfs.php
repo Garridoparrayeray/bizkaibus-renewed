@@ -1,27 +1,8 @@
 <?php
-// Lectura de los archivos del GTFS: líneas, paradas, viajes, horas de paso e información del feed. Lo usa build-database.php.
+// Lectura de los archivos del GTFS: líneas, paradas, viajes, horas de paso e información del feed. Lo usa
+// build-database.php.
 
 declare(strict_types=1);
-
-function normalize(string $sText): string
-{
-    $aMap = [
-        'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a',
-        'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
-        'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
-        'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o',
-        'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
-        'ñ' => 'n', 'ç' => 'c',
-        'Á' => 'a', 'À' => 'a', 'Ä' => 'a', 'Â' => 'a',
-        'É' => 'e', 'È' => 'e', 'Ë' => 'e', 'Ê' => 'e',
-        'Í' => 'i', 'Ì' => 'i', 'Ï' => 'i', 'Î' => 'i',
-        'Ó' => 'o', 'Ò' => 'o', 'Ö' => 'o', 'Ô' => 'o',
-        'Ú' => 'u', 'Ù' => 'u', 'Ü' => 'u', 'Û' => 'u',
-        'Ñ' => 'n', 'Ç' => 'c',
-    ];
-    $sLower = mb_strtolower(strtr($sText, $aMap), 'UTF-8');
-    return trim(preg_replace('/\s+/', ' ', $sLower));
-}
 
 // «Azkoitia(altzibar» -> «Azkoitia (Altzibar)»: espacio antes del paréntesis, paréntesis cerrado y mayúscula
 // inicial en cada palabra que empieza en minúscula (también tras «-» y «(»).

@@ -9,6 +9,9 @@ date_default_timezone_set('Europe/Madrid');
 const MIN_OCCURRENCES_FOR_WEEKLY_PATTERN = 2;
 
 require_once __DIR__ . '/../api/Core/Networks.php';
+require_once __DIR__ . '/../api/Models/Search.php';
+
+use Models\Search;
 require_once __DIR__ . '/build/geocode.php';
 require_once __DIR__ . '/build/download.php';
 require_once __DIR__ . '/build/gtfs.php';
@@ -127,7 +130,7 @@ function main(array $aArgv): void
 
     $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized, color, text_color) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($aRoutes as $iRouteId => $aRoute) {
-        $InsertLine->execute([$iRouteId, $aRoute['code'], $aRoute['name'], normalize($aRoute['name']), $aRoute['color'] ?? null, $aRoute['textColor'] ?? null]);
+        $InsertLine->execute([$iRouteId, $aRoute['code'], $aRoute['name'], Search::normalize($aRoute['name']), $aRoute['color'] ?? null, $aRoute['textColor'] ?? null]);
     }
 
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";

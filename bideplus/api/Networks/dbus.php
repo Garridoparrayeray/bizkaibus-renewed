@@ -44,6 +44,7 @@ return [
             'switcher' => 'Dbusen ordutegiak eta denbora erreala Donostian',
             'subtitle' => 'Dbusen ordutegiak eta denbora erreala',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Dbusekin eta Donostiako Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)',
         ],
         'en' => [

@@ -191,11 +191,9 @@ class ServiceJourney
         return $aVariants[0];
     }
 
-    /*
-     * Un mismo número de viaje y primera salida puede existir en varios calendarios (L-J y V, por ejemplo) con horas
-     * distintas. Salen primero los que circulan hoy, que son los que el directo puede estar siguiendo; sin esto, la ficha
-     * del viaje podía quedarse con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
-     */
+    // Un mismo número de viaje y primera salida puede existir en varios calendarios (L-J y V) con horas distintas.
+    // Salen primero los que circulan hoy, que son los que el directo puede estar siguiendo; si no, la ficha del viaje
+    // podía quedarse con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
     public function variantsByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array
     {
         $sToday = Calendar::todayMadrid()->format('Y-m-d');

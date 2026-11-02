@@ -44,6 +44,7 @@ return [
             'switcher' => 'Bilbobusen ordutegiak Bilbon',
             'subtitle' => 'Bilbobusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Bilbobusekin eta Bilboko Udalarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.',
             'attribution' => 'Datuak: Bilbobus / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0)',
         ],
         'en' => [

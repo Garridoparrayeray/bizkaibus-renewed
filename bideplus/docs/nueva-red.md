@@ -62,7 +62,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `brand.title` | Título de la cabecera en dos partes: `['TRANVÍA', 'VITORIA']`. |
 | `brand.logomark` | El logotipo de la cabecera (una imagen o un SVG). |
 | `brand.tile_color`, `brand.swatch_color`, `brand.palette` | Colores; ver arriba. Sin paleta, la app usa la de Bizkaibus (verde). |
-| `texts.<idioma>` | `name`, `tile`, `switcher`, `subtitle`, `liveEmpty`, `disclaimer`; opcionales `tile_title` y `tile_city` (ficha en dos líneas; también el título y la ciudad de la cabecera de la app, en mayúsculas). Si falta un texto en euskera o inglés, sale el castellano. |
+| `texts.<idioma>` | `name`, `tile`, `switcher`, `subtitle`, `liveEmpty`, `disclaimer`; opcionales `tile_title` y `tile_city` (ficha en dos líneas; también el título y la ciudad de la cabecera de la app, en mayúsculas). Los tres idiomas llevan las mismas claves (lo comprueba `tests/code-quality.php`); `attribution` en castellano es la clave `attribution` de la ficha. |
 | `seo` | Título y descripción para Google. |
 | `features.platforms` | Estaciones con andenes: las salidas se separan por andén (Metro, Euskotren). |
 | `features.headsign_from_last_stop` | El destino de cada viaje es su última parada, no el rótulo del GTFS. |
@@ -78,6 +78,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `gtfs_rt` | Direcciones de los feeds GTFS-Realtime (`trip_updates_url`; con `vehicle-positions`, `vehicle_positions_url`; y `alerts_url` para las incidencias) y cómo se empareja: `matching => 'stops'` (por defecto, por paradas y hora, con `match_tolerance_seconds`) o `'trip'` (por `trip_id`, cuando el feed usa los mismos que el horario, como Renfe). |
 | `direction_reference_stop_id` | Una parada central: cada salida se marca «hacia» o «desde» ella (los dos sentidos de Metro). |
 | `hidden_line_codes` | Líneas que no se enseñan aunque estén en el GTFS. |
+| `map` | El mapa de la red (`/mapa`), opcional: `label` (nombre en el mapa, si no es el de la app sin el «+»), `colors` (color de cada línea en el plano del operador, por código, cuando el GTFS no los trae bien) y `splits` (redes que publican varias líneas como una sola: para cada línea del mapa, su `code`, `name`, los nombres de sus dos extremos en `ends` y la línea de la app a la que enlaza en `line`; Metro Bilbao separa «MB» en L1 y L2). |
 | `gtfs.source`, `gtfs.fallback_source` | De dónde se descarga el GTFS (y de dónde, si falla). `gtfs.sources`: varios GTFS que se juntan (Lurraldebus). |
 | `gtfs.agency_id`, `gtfs.route_id_prefixes` | Para quedarse con un operador o unas líneas de un GTFS que trae más. |
 | `gtfs.stops` | Cómo se leen las paradas: `generic` (cualquier GTFS), o los ajustes de `bus`, `metro`, `euskotren` y `renfe`. |

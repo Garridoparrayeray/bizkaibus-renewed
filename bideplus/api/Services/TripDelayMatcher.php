@@ -2,16 +2,17 @@
 
 namespace Services;
 
+use Engine\Metro\DepartedRows;
 use Models\ServiceJourney;
 
 // Directo por viaje (GTFS-Realtime de Renfe, Tuvisa y Dbus): cada vehículo trae su viaje del horario, el retraso y la
-// parada a la que va. Se empareja por el viaje, el retraso vale para las paradas que le quedan, los que ya pasaron por la
-// parada no salen y los cancelados se marcan.
+// parada a la que va. Se empareja por el viaje, el retraso vale para las paradas que le quedan, los que ya pasaron por
+// la parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
+    use DepartedRows;
+
     private const ON_TIME_SECONDS = 60;
-    private const LIVE_DEPARTED_AFTER_SECONDS = 45;
-    private const SCHEDULED_DEPARTED_AFTER_SECONDS = 60;
 
     // id del viaje del horario => ['delay' => segundos, 'nextStopId' => string|null, 'canceled' => bool]
     private array $aByJourney = [];
@@ -90,17 +91,6 @@ class TripDelayMatcher
             usort($aOut, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
         }
         return $aOut;
-    }
-
-    public function withoutDeparted(array $aRows, int $iNowSeconds): array
-    {
-        return array_values(array_filter($aRows, function ($aRow) use ($iNowSeconds) {
-            $iGrace = self::SCHEDULED_DEPARTED_AFTER_SECONDS;
-            if (($aRow['status'] ?? 'scheduled') === 'live') {
-                $iGrace = self::LIVE_DEPARTED_AFTER_SECONDS;
-            }
-            return (int)$aRow['etaSeconds'] - $iNowSeconds >= -$iGrace;
-        }));
     }
 
     // Hora prevista (marca de tiempo) en cada estación que le queda al tren: desde la siguiente y las que aún no ha

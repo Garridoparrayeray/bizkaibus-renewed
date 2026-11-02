@@ -37,6 +37,7 @@
                 "switcher": "Bizkaibusen ordutegiak eta zuzenekoa",
                 "subtitle": "Bizkaibusen ordutegiak eta zuzenekoa",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Bizkaibusekin eta Bizkaiko Foru Aldundiarekin loturarik gabea.",
                 "attribution": "Datuak: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
             },
             "en": {
@@ -86,6 +87,7 @@
                 "switcher": "Bilboko Metroaren ordutegiak",
                 "subtitle": "Bilboko Metroaren ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala"
             },
             "en": {
@@ -135,6 +137,7 @@
                 "switcher": "Euskotrenen ordutegiak",
                 "subtitle": "Euskotrenen ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
@@ -184,6 +187,7 @@
                 "switcher": "Bilbo eta Donostiako Aldirien ordutegiak",
                 "subtitle": "Aldirien ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.",
                 "attribution": "Datuak: Renfe Aldiriak"
             },
             "en": {
@@ -233,6 +237,7 @@
                 "switcher": "Lurraldebusen ordutegiak Gipuzkoan",
                 "subtitle": "Lurraldebusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Lurraldebusekin eta Gipuzkoako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen, operadoreak argitaratutako gorabehera-abisuak izan ezik.",
                 "attribution": "Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)"
             },
             "en": {
@@ -286,10 +291,14 @@
                 "switcher": "Bilboko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
+                "name": "Bilbao Tram+",
                 "tile": "Timetables and real time",
+                "tile_title": "Tram",
+                "tile_city": "Bilbao",
                 "switcher": "Bilbao tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
@@ -338,10 +347,14 @@
                 "switcher": "Gasteizko tranbiaren ordutegiak",
                 "subtitle": "Tranbiaren ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
+                "name": "Vitoria Tram+",
                 "tile": "Timetables and real time",
+                "tile_title": "Tram",
+                "tile_city": "Vitoria",
                 "switcher": "Vitoria-Gasteiz tram timetables",
                 "subtitle": "Tram timetables",
                 "liveEmpty": "Search for a stop to see the next tram.",
@@ -386,6 +399,7 @@
                 "switcher": "Bilbobusen ordutegiak Bilbon",
                 "subtitle": "Bilbobusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Bilbobusekin eta Bilboko Udalarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.",
                 "attribution": "Datuak: Bilbobus / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0)"
             },
             "en": {
@@ -435,6 +449,7 @@
                 "switcher": "Tuvisaren ordutegiak eta denbora erreala Gasteizen",
                 "subtitle": "Tuvisaren ordutegiak eta denbora erreala",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Tuvisarekin eta Vitoria-Gasteizko Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
             },
             "en": {
@@ -484,6 +499,7 @@
                 "switcher": "Dbusen ordutegiak eta denbora erreala Donostian",
                 "subtitle": "Dbusen ordutegiak eta denbora erreala",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Dbusekin eta Donostiako Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
             },
             "en": {
@@ -533,6 +549,7 @@
                 "switcher": "Álavabusen ordutegiak Araban",
                 "subtitle": "Álavabusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.",
                 "attribution": "Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
             },
             "en": {

@@ -224,7 +224,7 @@ $Expect('una próxima parada que no existe en el viaje descarta el GPS', matcher
 $aWindow = live(500, 0, 5, $iGps);
 $Expect('fuera de la ventana (3 tramos atrás) no se proyecta aunque esté sobre la ruta', matcher($aWindow, $iGps)->positionFor('J_LINE', $aWindow) === null);
 
-/* Bizkaibus: sin GPS utilizable (no lo manda o está fuera de la ruta) se muestra el horario oficial, sin estimar nada. */
+// Bizkaibus: sin GPS utilizable (no lo manda o está fuera de la ruta) se muestra el horario oficial, sin estimar nada.
 $aNoGps = live(1500, 0, 3, $iGps);
 $aNoGps['lat'] = null;
 $aNoGps['lon'] = null;
@@ -244,7 +244,8 @@ $aOffRouteNoClock['locationSeconds'] = null;
 $Expect('Bizkaibus con GPS fuera de la ruta y sin hora del dato: horario oficial', !matcher($aOffRouteNoClock, $iGps + 30)->isLive('J_LINE', $aOffRouteNoClock) && matcher($aOffRouteNoClock, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'scheduled');
 $Expect('Bizkaibus con GPS en ruta: en directo', matcher($aLive, $iGps + 30)->enrich([$aRowOfficial])[0]['status'] === 'live');
 
-/* Si el cálculo con GPS falla por lo que sea (base de datos rota, dato imposible), la salida cae al horario oficial en vez de romper la parada. */
+// Si el cálculo con GPS falla por lo que sea (base de datos rota, dato imposible), la salida cae al horario oficial en
+// vez de romper la parada.
 $PdoBroken = new PDO('sqlite::memory:');
 $PdoBroken->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $PdoBroken->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -391,8 +392,8 @@ $Expect('tramos de 3 min sí se estiman', $MLong->isLive('J_LINE', $aLongSegment
 $aBigGap = array_merge($aRegistered, ['order' => 5, 'recordedSeconds' => T0 + 600]);
 $Expect('con tramo hasta la próxima parada de 3 min (orden 5) se estima', matcher($aBigGap, T0 + 620)->isLive('J_LINE', $aBigGap));
 
-/* Capa 3: sin ningún dato del bus (ni GPS ni registro de pasos), la hora se estima con los tiempos aprendidos (salida de cabecera + lo que tardan
- * los buses) y sale marcada como estimada («estimated»): la app enseña al lado la hora oficial. */
+// Capa 3: sin ningún dato del bus (ni GPS ni registro de pasos), la hora se estima con los tiempos aprendidos (salida
+// de cabecera + lo que tardan los buses) y sale como estimada («estimated»): la app enseña al lado la hora oficial.
 $SegLearned = new SegmentTimes(['segments' => [
     'S0>S1' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
     'S1>S2' => ['n' => 5, 'all' => 100, 'laborable.punta_manana' => 100],
@@ -406,9 +407,9 @@ $Expect('sin datos del bus, la llegada es la salida de cabecera + tiempos aprend
 $MNoBusLate = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 + 500, new PaceFactors(), DATE_WEEKDAY, $SegLearned);
 $aNoBusLate = $MNoBusLate->enrich([$aRowNoBus])[0];
 $Expect('si lo estimado ya queda en el pasado, se deja el horario publicado (no se esconde ni se deja en 0 min)', $aNoBusLate['status'] === 'scheduled' && $aNoBusLate['etaSeconds'] === T0 + 720);
-/* Horario publicado mucho más lento que lo que tardan los buses (A3514 por San Juan, Amorebieta: 59 min en horario, 28 de verdad).
- * J_SLOW hace el mismo recorrido con 15 min por tramo: con los tiempos aprendidos el bus ya pasó. No se esconde (es una estimación): sale como
- * «probablemente ya pasó» con su hora oficial, y la app lo pone al final y en gris. */
+// Horario mucho más lento que los buses (A3514 por San Juan, Amorebieta: 59 min en horario, 28 de verdad). J_SLOW
+// hace el mismo recorrido con 15 min por tramo: con los tiempos aprendidos el bus ya pasó. No se esconde (es una
+// estimación): sale como «probablemente ya pasó» con su hora oficial, y la app lo pone al final y en gris.
 $PdoSlow = buildFixture(40);
 $PdoSlow->exec("INSERT INTO service_journeys VALUES ('J_SLOW', '3414', 'P1', '808', 'C1', " . T0 . ", 'SH_LINE')");
 for ($i = 0; $i < 5; $i++) {
@@ -425,7 +426,8 @@ $aSlowUnlearned = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 30
 $Expect('si casi ningún tramo tiene tiempo aprendido, no se esconde el viaje', $aSlowUnlearned['status'] === 'scheduled' && $aSlowUnlearned['etaSeconds'] === T0 + 3600, json_encode([$aSlowUnlearned['status'], hms($aSlowUnlearned['etaSeconds'])]));
 $MNoLearned = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $Expect('sin tiempos aprendidos, se deja el horario publicado', $MNoLearned->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 720);
-/* Tramos sin tiempo aprendido: la proporción tiempo real / horario depende del largo del tramo (en la fixture, 1000 m por tramo y 180 s de horario). */
+// Tramos sin tiempo aprendido: la proporción tiempo real / horario depende del largo del tramo (en la fixture, 1000 m
+// por tramo y 180 s de horario).
 $SegOne = ['S0>S1' => ['n' => 5, 'all' => 100]];
 $MNoRatio = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => $SegOne]));
 $Expect('sin proporciones por largo, un tramo sin aprender usa k x horario (08:11:40)', $MNoRatio->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 60 + 100 + 3 * 180, (string)$MNoRatio->enrich([$aRowNoBus])[0]['etaSeconds']);
@@ -453,7 +455,8 @@ $Expect('GPS y parada registrada discrepan más de 6 min: la salida sale con el 
 $aAgreeOut = matcher($aGpsPassed, $iGps + 30)->enrich([$aRowTarget]);
 $Expect('GPS y parada registrada que cuadran: sigue en vivo', $aAgreeOut[0]['status'] === 'live', $aAgreeOut[0]['status']);
 
-/* Un viaje del feed que no es el que hace el bus (50 min de diferencia con el horario): la llegada estimada sigue valiendo, el retraso no se afirma. */
+// Un viaje del feed que no es el que hace el bus (50 min de diferencia con el horario): la llegada estimada sigue
+// valiendo, el retraso no se afirma.
 $iFarGps = T0 + 3300;
 $aFar = live(1500, 0, 3, $iFarGps);
 $MFarDelay = matcher($aFar, $iFarGps + 30);
@@ -780,7 +783,8 @@ $Expect('con el feed activo, un tren en vivo que pasó hace 30 s se mantiene y h
 $Expect('con el feed activo, un tren sin datos en vivo pasado hace 90 s ya ha salido', !in_array(910, $aKept, true));
 $Expect('hasData: con trenes en el feed, sí; con el feed vacío, no', $MDeparted->hasData() && !(new TripUpdatesMatcher([], new ServiceJourney($PdoRt), 600, 0))->hasData());
 
-/* El feed del CTB publica a veces mal el id de una parada (Urduliz, 29, sale como Gobela, 20): ese tren no se descarta, se corrige. */
+// El feed del CTB publica a veces mal el id de una parada (Urduliz, 29, sale como Gobela, 20): ese tren no se
+// descarta, se corrige.
 $aFeedBadId = [['tripId' => 'e', 'stops' => [['2', T0 + 150], ['3', T0 + 250], ['1', T0 + 350]]]];
 $MBadId = new TripUpdatesMatcher($aFeedBadId, new ServiceJourney($PdoRt), 600, 0);
 $aAtFour = $MBadId->enrich('4', [$ScheduledRow('up1', 'UP', T0 + 340)]);
@@ -792,12 +796,13 @@ $Expect('liveTrip devuelve las paradas con el id corregido', $MBadId->liveTrip('
 $aTwoBad = [['tripId' => 'f', 'stops' => [['2', T0 + 150], ['1', T0 + 250], ['1', T0 + 350]]]];
 $Expect('un tren con dos ids que no encajan no se asocia', (new TripUpdatesMatcher($aTwoBad, new ServiceJourney($PdoRt), 600, 0))->enrich('2', [$ScheduledRow('up1', 'UP', T0 + 150)])[0]['status'] === 'scheduled');
 
-/* Id mal publicado con una posición mayor que las siguientes: tren de bajada (4,3,2,1) con el «3» publicado como «1». */
+// Id mal publicado con una posición mayor que las siguientes: tren de bajada (4,3,2,1) con el «3» publicado como «1».
 $aFeedBadDown = [['tripId' => 'g', 'stops' => [['4', T0 + 100], ['1', T0 + 200], ['2', T0 + 300]]]];
 $aDownFixed = (new TripUpdatesMatcher($aFeedBadDown, new ServiceJourney($PdoRt), 600, 0))->enrich('3', [$ScheduledRow('down1', 'DOWN', T0 + 205)]);
 $Expect('un id mal publicado más adelante en el patrón que las paradas siguientes también se corrige (3 publicada como 1)', $aDownFixed[0]['status'] === 'live' && $aDownFixed[0]['etaSeconds'] === T0 + 200, json_encode([$aDownFixed[0]['status'], $aDownFixed[0]['etaSeconds']]));
 
-/* Con dos correcciones posibles (a, e, c: el «e» puede ser un «b» mal publicado o el «c» una «f»), gana la que deja la parada pegada a sus dos vecinas. */
+// Con dos correcciones posibles (a, e, c: el «e» puede ser un «b» mal publicado o el «c» una «f»), gana la que deja
+// la parada pegada a sus dos vecinas.
 $aFeedAmbiguous = [['tripId' => 'i', 'stops' => [['a', T0 + 100], ['e', T0 + 200], ['c', T0 + 300]]]];
 $aAmbiguous = (new TripUpdatesMatcher($aFeedAmbiguous, new ServiceJourney($PdoRt), 600, 0))->enrich('b', [$ScheduledRow('long1', 'LONG', T0 + 205)]);
 $Expect('si hay varias correcciones posibles gana la que deja la parada pegada a sus dos vecinas (e era b)', $aAmbiguous[0]['status'] === 'live' && $aAmbiguous[0]['etaSeconds'] === T0 + 200, json_encode([$aAmbiguous[0]['status'], $aAmbiguous[0]['etaSeconds']]));
@@ -848,9 +853,15 @@ $MakeRange = function (array $aMeta, array $aCalendars, array $aExceptions): PDO
     $P->exec('CREATE TABLE meta (key TEXT, value TEXT)');
     $P->exec('CREATE TABLE service_calendars (from_date TEXT, to_date TEXT)');
     $P->exec('CREATE TABLE service_calendar_exceptions (date TEXT, available INTEGER)');
-    foreach ($aMeta as $k => $sValue) { $P->prepare('INSERT INTO meta VALUES (?, ?)')->execute([$k, $sValue]); }
-    foreach ($aCalendars as $aC) { $P->prepare('INSERT INTO service_calendars VALUES (?, ?)')->execute($aC); }
-    foreach ($aExceptions as $aE) { $P->prepare('INSERT INTO service_calendar_exceptions VALUES (?, ?)')->execute($aE); }
+    foreach ($aMeta as $k => $sValue) {
+        $P->prepare('INSERT INTO meta VALUES (?, ?)')->execute([$k, $sValue]);
+    }
+    foreach ($aCalendars as $aC) {
+        $P->prepare('INSERT INTO service_calendars VALUES (?, ?)')->execute($aC);
+    }
+    foreach ($aExceptions as $aE) {
+        $P->prepare('INSERT INTO service_calendar_exceptions VALUES (?, ?)')->execute($aE);
+    }
     return $P;
 };
 $Expect('rango: usa feed_start_date y feed_end_date si el operador los da', ScheduleRange::forDatabase($MakeRange(['feed_start_date' => '2026-10-28', 'feed_end_date' => '2026-11-28'], [['2026-01-01', '2026-12-31']], [])) === ['from' => '2026-10-28', 'to' => '2026-11-28']);

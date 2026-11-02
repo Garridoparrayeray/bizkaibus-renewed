@@ -6,11 +6,12 @@ require __DIR__ . '/autoload.php';
 
 // Sin parse_url: confunde «/lines/tolosaldea:4/…» con un host y un puerto.
 $sPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#');
-// bideplusmiamor.vercel.app: el tema «mi amor» en todas las páginas (lo pone js/theme.js); aquí solo cambia la vista previa.
+// bideplusmiamor.vercel.app: el tema «mi amor» en todas las páginas (lo pone js/theme.js); aquí solo cambia la vista
+// previa.
 $bMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
 
-// Estas páginas solo cambian con la dirección (y ?red) y al desplegar, que vacía la caché de Vercel: el CDN las sirve sin
-// ejecutar PHP. Solo las que salen bien, y no las del dominio «mi amor», que tienen otra vista previa.
+// Estas páginas solo cambian con la dirección (y ?red) y al desplegar, que vacía la caché de Vercel: el CDN las sirve
+// sin ejecutar PHP. Solo las que salen bien, y no las del dominio «mi amor», que tienen otra vista previa.
 header_register_callback(function () use ($bMiamorDomain) {
     if (http_response_code() !== 200 || $bMiamorDomain) {
         return;

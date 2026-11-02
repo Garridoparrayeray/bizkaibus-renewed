@@ -35,10 +35,8 @@ $Expect('si ningún calendario fusionado circula ese día, el día sigue anulado
 $Expect('una fecha incluida a mano en otro calendario también cuenta como que circula', excludedDatesForGroup($Group(['finde_anulado', 'especial']), $aSignatures) === []);
 $Expect('signatureRunsOn: lunes en L-V sí, domingo no', signatureRunsOn($aSignatures['laborable'], '2026-10-05') && !signatureRunsOn($aSignatures['laborable'], '2026-10-04'));
 
-/*
- * Bizkaibus publica el mismo viaje (línea, número, paradas y salida) con horas de paso distintas
- * según el día: el de laborable tarda más que el de festivo. Solo se fusionan si las horas coinciden.
- */
+// Bizkaibus publica el mismo viaje (línea, número, paradas y salida) con horas de paso distintas según el día: el de
+// laborable tarda más que el de festivo. Solo se fusionan si las horas coinciden.
 $StopTimes = fn(array $aArrivals) => array_map(fn($iArrival) => ['arrival' => $iArrival, 'departure' => $iArrival + 2], $aArrivals);
 $aLaborable = $StopTimes([52200, 53880, 54060]);
 $aFestivo = $StopTimes([52200, 53160, 53280]);
@@ -68,11 +66,8 @@ $Expect('Metro: sus fechas quedan tal cual (8, 13 y 15 de octubre)', $aLiteral['
 $Expect('Metro: el calendario Lun-Jue conserva su máscara y sus días anulados', $aLiteral['base']['weekdayMask'] === 15 && $aLiteral['base']['excludedDates'] === ['2026-10-08', '2026-10-13', '2026-10-15']);
 $Expect('loadCalendars sin modo literal sigue deduciendo el patrón semanal (lo usan otras redes; en Bizkaibus los viajes usan el calendario exacto)', $aInferred['sustituto']['weekdayMask'] === 8);
 
-/*
- * Bizkaibus: el calendario de cada viaje es exacto dentro del periodo publicado. Antes, dos fechas de un mismo día de la
- * semana bastaban para deducir «todos esos días» de todo el periodo, y el viaje se mostraba también en festivos y en
- * semanas en las que no circula.
- */
+// Bizkaibus: el calendario de cada viaje es exacto dentro del periodo publicado. Antes, dos fechas de un mismo día de
+// la semana bastaban para deducir «todos esos días», y el viaje salía también en festivos y semanas en las que no va.
 $aWindow = datesBetween('2026-10-14', '2026-12-14');
 $Expect('datesBetween: 62 fechas del 14 oct al 14 dic, ambas incluidas', count($aWindow) === 62 && $aWindow[0] === '2026-10-14' && $aWindow[61] === '2026-12-14');
 $Runs = fn(array $aDates) => exactServiceDates(['mask' => 0, 'from' => '', 'to' => '', 'available' => $aDates, 'excluded' => []], $aWindow);
@@ -110,10 +105,8 @@ $aUnion = $Runs($aMonThu) + $Runs($aFridays);
 [$iMask, $aInc, $aExc] = exactCalendarForWindow($aUnion, $aWindow);
 $Expect('variantes L-J y V fusionadas: lunes a viernes menos el 8 de diciembre', $iMask === 31 && $aExc === ['2026-12-08'] && $aInc === []);
 
-/*
- * Huella de sw.js (scripts/stamp-sw.php, la pone el despliegue): la misma si no cambia nada, otra si cambia un fichero,
- * y cubre todo lo que el service worker guarda para no volver a pedirlo.
- */
+// Huella de sw.js (scripts/stamp-sw.php, la pone el despliegue): la misma si no cambia nada, otra si cambia un
+// fichero, y cubre todo lo que el service worker guarda para no volver a pedirlo.
 $sStampScript = __DIR__ . '/../scripts/stamp-sw.php';
 $Stamp = function (string $sRoot, string $sArgs = '') use ($sStampScript): string {
     return (string)shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($sStampScript) . ' --root=' . escapeshellarg($sRoot) . ' ' . $sArgs . ' 2>&1');
@@ -164,10 +157,8 @@ $aSpan = publishedWindow([], $aSpanCalendars);
 $Expect('sin feed_info, el periodo publicado va del primer al último día de los calendarios', ($aSpan[0] ?? null) === '2026-11-02' && end($aSpan) === '2026-12-01' && count($aSpan) === 30);
 $Expect('con feed_info, el periodo es el suyo', publishedWindow(['feed_start_date' => '20261102', 'feed_end_date' => '20261104'], $aSpanCalendars) === ['2026-11-02', '2026-11-03', '2026-11-04']);
 
-/*
- * GTFS de otros operadores: cabeceras con BOM (Álavabus), sin calendar.txt (Tuvisa) y rótulos con el destino entre
- * paréntesis (Bilbobus). Un viaje sin rótulo va hacia su última parada.
- */
+// GTFS de otros operadores: cabeceras con BOM (Álavabus), sin calendar.txt (Tuvisa) y rótulos con el destino entre
+// paréntesis (Bilbobus). Un viaje sin rótulo va hacia su última parada.
 $Stream = fopen('php://memory', 'r+');
 fwrite($Stream, "\xEF\xBB\xBFtrip_id,arrival_time\n1,08:00:00\n");
 rewind($Stream);

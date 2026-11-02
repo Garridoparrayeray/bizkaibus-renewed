@@ -29,7 +29,8 @@ class Live
         return $sClass::vehicles(Config::current());
     }
 
-    // Apunta por dónde va cada vehículo del directo (lo llama un cron cada minuto). Null si la red no tiene registro o falló.
+    // Apunta por dónde va cada vehículo del directo (lo llama un cron cada minuto). Null si la red no tiene registro
+    // o falló.
     public static function record(): int|null
     {
         $sClass = self::engineClass('Live');

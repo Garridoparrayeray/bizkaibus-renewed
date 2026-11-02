@@ -128,7 +128,8 @@ class ArrivalAlerts
     }
 
     // Lo llama el cron cada minuto: manda los avisos a los que ya les toca y olvida los caducados o ya pasados.
-    // $Sender recibe la suscripción y el mensaje y devuelve el código HTTP del servicio de push (en las pruebas, uno falso).
+    // $Sender recibe la suscripción y el mensaje y devuelve el código HTTP del servicio de push (en las pruebas, uno
+    // falso).
     public static function process(callable|null $Sender = null): array
     {
         $aCounts = ['pending' => 0, 'sent' => 0, 'dropped' => 0];

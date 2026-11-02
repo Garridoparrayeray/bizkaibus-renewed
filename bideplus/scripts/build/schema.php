@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use Models\Search;
+
 function createSchema(PDO $Pdo): void
 {
     $Pdo->exec('
@@ -165,7 +167,7 @@ function insertStops(PDO $Pdo, array $aStops): void
             $sPlatformLabel = $aStop['platformLabel'];
         }
         $Stmt->execute([
-            $iId, $aStop['name'], normalize($aStop['name']), $sArea, normalize($sArea),
+            $iId, $aStop['name'], Search::normalize($aStop['name']), $sArea, Search::normalize($sArea),
             $aStop['lat'], $aStop['lon'], $sStationId, $sPlatformLabel,
         ]);
     }

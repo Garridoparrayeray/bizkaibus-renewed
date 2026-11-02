@@ -95,7 +95,8 @@ use Core\Networks;
                 </button>
 
                 <nav id="network-switcher" class="network-switcher" aria-label="Cambiar red de transporte">
-                    <?php foreach (Networks::all() as $sOtherSlug => $aOther): if ($sOtherSlug === $sNetworkSlug) continue; ?>
+<?php foreach (Networks::all() as $sOtherSlug => $aOther): ?>
+<?php if ($sOtherSlug !== $sNetworkSlug): ?>
                     <a class="net-card" id="net-card-<?= $sOtherSlug ?>" href="/?red=<?= $sOtherSlug ?>">
                         <span class="net-card-logomark" aria-hidden="true"><?= $aOther['brand']['card_logomark'] ?></span>
                         <span class="net-card-text">
@@ -103,6 +104,7 @@ use Core\Networks;
                             <span data-i18n="net.<?= $sOtherSlug ?>.switcher"><?= htmlspecialchars(Networks::text($aOther, 'switcher')) ?></span>
                         </span>
                     </a>
+<?php endif; ?>
 <?php endforeach; ?>
                     <a class="net-card" id="net-card-menu" href="/">
                         <span class="net-card-logomark" aria-hidden="true">

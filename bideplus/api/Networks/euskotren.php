@@ -43,6 +43,7 @@ return [
             'switcher' => 'Euskotrenen ordutegiak',
             'subtitle' => 'Euskotrenen ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
@@ -88,6 +89,11 @@ return [
         'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/siri_euskotren_situation_exchange.xml',
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 8,
+    ],
+
+    // Mapa de la red: los colores del plano del operador (el GTFS trae el mismo para todas las líneas).
+    'map' => [
+        'colors' => ['E1' => '#0057A6', 'E2' => '#B5BD00', 'E3' => '#4FB3E8', 'E3a' => '#4FB3E8', 'E4' => '#1B3F8B', 'L3' => '#E5007E'],
     ],
 
     'gtfs' => [

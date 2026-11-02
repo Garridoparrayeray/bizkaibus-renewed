@@ -142,10 +142,12 @@ function config(array $aOptions): string
     [$sEs, $sEu, $sEn] = VEHICLE[$aOptions['kind']];
     $bLive = !empty($aOptions['trip-updates']);
     $sDisclaimerEs = 'Horario programado oficial: no refleja retrasos ni cancelaciones.';
+    $sDisclaimerEu = 'Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.';
     $sDisclaimerEn = 'Official scheduled timetable: it does not reflect delays or cancellations.';
     $sTripDetail = 'stops';
     if ($bLive) {
         $sDisclaimerEs = 'Los tiempos en directo son una previsión del operador.';
+        $sDisclaimerEu = 'Zuzeneko denborak operadorearen aurreikuspena dira.';
         $sDisclaimerEn = 'Live times are the operator\'s forecast.';
         $sTripDetail = 'vehicle';
     }
@@ -203,6 +205,7 @@ $sPalette        ],
             'switcher' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
             'subtitle' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
             'liveEmpty' => {$Quote('Bilatu geraleku bat hurrengo ' . $sEu . ' ikusteko.')},
+            'disclaimer' => {$Quote('Proiektu independentea eta ez-ofiziala, ' . $sOperator . ' erakundearekin loturarik gabea. ' . $sDisclaimerEu)},
             'attribution' => {$Quote('Datuak: ' . $sOperator . ' (GTFS)')},
         ],
         'en' => [
