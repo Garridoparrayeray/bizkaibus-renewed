@@ -40,7 +40,8 @@ for (const { slug } of index.networks) {
         const response = await fetch(`${BASE}/api/stops/${encodeURIComponent(stopId)}/departures?limit=20&red=${slug}`);
         if (!response.ok) continue;
         const api = await response.json();
-        const offline = BideOffline.departures(data, stopId, new Date(), 40);
+        // Los que probablemente ya pasaron van al final, detrás de los de mañana: con un tope corto se quedan fuera.
+        const offline = BideOffline.departures(data, stopId, new Date(), 1000);
         const offlineKeys = new Set(offline.departures.map(key));
         // Lo que la API da desde dentro de 2 minutos: lo que ya pasa en este momento depende del directo.
         const expected = api.departures.filter((d) => COMPARED.has(d.status) && d.etaMinutes >= 2 && d.status !== 'live').map(key);
