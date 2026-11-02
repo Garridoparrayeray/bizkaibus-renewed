@@ -36,8 +36,7 @@ $Router->get('/search', [$Search, 'search'], 3600);
 $Stops = new StopsController();
 $Router->get('/nearby', [$Stops, 'nearby']);
 $Router->get('/stops/{id}', [$Stops, 'show'], 3600);
-// Lo que va en directo, 20 s en el CDN: el feed ya se guarda 25 s en el servidor y la app cuenta los minutos con su reloj.
-$Router->get('/stops/{id}/departures', [$Stops, 'departures'], 20);
+$Router->get('/stops/{id}/departures', [$Stops, 'departures'], 10);
 $Router->get('/trips/{tripKey}', [$Stops, 'tripStops'], 60);
 
 $Lines = new LinesController();
@@ -55,8 +54,8 @@ if (Config::feature('schedule_text')) {
 }
 
 $Realtime = new RealtimeController();
-$Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 20);
-$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 20);
+$Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
+$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], 10);
 $Router->get('/status', [$Realtime, 'status'], 30);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);

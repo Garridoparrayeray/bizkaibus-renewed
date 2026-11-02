@@ -110,6 +110,51 @@ $aUnion = $Runs($aMonThu) + $Runs($aFridays);
 [$iMask, $aInc, $aExc] = exactCalendarForWindow($aUnion, $aWindow);
 $Expect('variantes L-J y V fusionadas: lunes a viernes menos el 8 de diciembre', $iMask === 31 && $aExc === ['2026-12-08'] && $aInc === []);
 
+/*
+ * Huella de sw.js (scripts/stamp-sw.php, la pone el despliegue): la misma si no cambia nada, otra si cambia un fichero,
+ * y cubre todo lo que el service worker guarda para no volver a pedirlo.
+ */
+$sStampScript = __DIR__ . '/../scripts/stamp-sw.php';
+$Stamp = function (string $sRoot, string $sArgs = '') use ($sStampScript): string {
+    return (string)shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($sStampScript) . ' --root=' . escapeshellarg($sRoot) . ' ' . $sArgs . ' 2>&1');
+};
+$ReadHash = function (string $sRoot): string {
+    preg_match("/^const SHELL_HASH = '([0-9a-f]*)';$/m", (string)file_get_contents($sRoot . '/sw.js'), $aMatch);
+    return $aMatch[1] ?? 'sin línea';
+};
+$sWorker = (string)file_get_contents(__DIR__ . '/../sw.js');
+$Expect('sw.js va al repositorio sin huella (la pone el despliegue)', preg_match("/^const SHELL_HASH = '';$/m", $sWorker) === 1);
+
+$sStampDir = sys_get_temp_dir() . '/bide-stamp-' . getmypid();
+mkdir($sStampDir . '/js', 0777, true);
+copy(__DIR__ . '/../sw.js', $sStampDir . '/sw.js');
+file_put_contents($sStampDir . '/js/a.js', 'uno');
+file_put_contents($sStampDir . '/style-a.css', 'a {}');
+$Stamp($sStampDir);
+$sFirstHash = $ReadHash($sStampDir);
+$Stamp($sStampDir);
+$Expect('huella: 12 caracteres y la misma si no cambia nada', \strlen($sFirstHash) === 12 && $ReadHash($sStampDir) === $sFirstHash);
+file_put_contents($sStampDir . '/js/a.js', 'dos');
+$Stamp($sStampDir);
+$Expect('huella: cambia si cambia un fichero de la app', $ReadHash($sStampDir) !== $sFirstHash);
+array_map('unlink', [$sStampDir . '/sw.js', $sStampDir . '/js/a.js', $sStampDir . '/style-a.css']);
+rmdir($sStampDir . '/js');
+rmdir($sStampDir);
+
+$aStamped = array_flip(array_filter(explode("\n", $Stamp(__DIR__ . '/..', '--list'))));
+preg_match('/SHELL_FILES = \[(.*?)\];/s', $sWorker, $aShell);
+preg_match_all("/^\s*'\/([^']+)',$/m", $aShell[1] ?? '', $aShellPaths);
+foreach (Core\Networks::all() as $aNetwork) {
+    $aShellPaths[1][] = $aNetwork['brand']['icons'] . '/icon-192.png';
+    $aShellPaths[1][] = $aNetwork['brand']['icons'] . '/icon-512.png';
+}
+$aUncovered = array_values(array_filter($aShellPaths[1], fn($sPath) => !isset($aStamped[$sPath])));
+$sCoverage = 'huella: cubre todo lo que guarda el service worker (' . \count($aShellPaths[1]) . ' ficheros)';
+if ($aUncovered !== []) {
+    $sCoverage .= ': faltan ' . implode(', ', $aUncovered);
+}
+$Expect($sCoverage, \count($aShellPaths[1]) > 50 && $aUncovered === []);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

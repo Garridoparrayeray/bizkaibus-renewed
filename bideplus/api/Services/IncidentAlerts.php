@@ -101,11 +101,16 @@ class IncidentAlerts
     // los dos son falsos.
     public static function process(callable|null $Sender = null, callable|null $Fetcher = null): array
     {
-        // Cada comando del almacén cuenta: la lista de suscriptores solo se pide cuando toca revisar.
+        // Cada comando del almacén cuenta: la lista de suscriptores solo se pide cuando toca revisar, y el servidor que
+        // acaba de revisar no pregunta por la marca hasta que caduca.
+        if (self::ranHereRecently()) {
+            return ['skipped' => true];
+        }
         $aRunMark = Store::pipeline([['SET', self::RUN_KEY, (string)time(), 'NX', 'EX', self::RUN_EVERY_SECONDS]]);
         if ($aRunMark === null || $aRunMark[0] === null) {
             return ['skipped' => true];
         }
+        @touch(self::runMarker());
         $aRun = [
             'counts' => ['subscribers' => 0, 'sent' => 0, 'removed' => 0],
             'sender' => $Sender ?? Push::sender(self::PUSH_TTL_SECONDS),
@@ -127,6 +132,17 @@ class IncidentAlerts
         }
         Config::set($sNetwork);
         return $aRun['counts'];
+    }
+
+    private static function ranHereRecently(): bool
+    {
+        $sMarker = self::runMarker();
+        return is_file($sMarker) && time() - filemtime($sMarker) < self::RUN_EVERY_SECONDS;
+    }
+
+    public static function runMarker(): string
+    {
+        return sys_get_temp_dir() . '/bizkaibusplus_incident_run';
     }
 
     private static function defaultFetcher(): callable

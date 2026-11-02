@@ -34,8 +34,8 @@ Claves que usa la app (todas empiezan por `bide:`):
 
 | Clave | Qué guarda | Dura |
 | --- | --- | --- |
-| `bide:bus:pass:<fecha>` | por viaje, la parada por la que iba y la hora | 36 h |
-| `bide:bus:stops:<fecha>` | por viaje y parada, la última hora en que se vio yendo hacia ella (el historial) | 3 días |
+| `bide:bus:pass:<fecha>` | por viaje, la parada por la que iba y la hora | hasta 36 h después de acabar el día |
+| `bide:bus:stops:<fecha>` | por viaje y parada, la última hora en que se vio yendo hacia ella (el historial) | hasta 3 días después de acabar el día |
 | `bide:vapid` | las claves que firman las notificaciones | siempre |
 | `bide:arrival:*` | avisos de llegada pendientes ([notificaciones](notificaciones.md)) | 3 h o 2 meses |
 | `bide:incident:*` | suscriptores de incidencias y lo ya avisado | 90 días sin abrir la app |
@@ -48,6 +48,12 @@ dirección (`?key=`) o en la cabecera `Authorization: Bearer`. Sin la clave, la 
 
 1. Apunta por dónde va cada bus del directo (`recorded`: cuántos).
 2. Manda los avisos de llegada que tocan y, cada 5 minutos, las incidencias nuevas ([notificaciones](notificaciones.md)).
+
+Cada comando de Upstash cuenta para su cuota, así que el cron solo pide lo necesario. La caducidad de las dos claves del
+día es una hora fija (`EXPIREAT`, contada desde el final del día) y cada servidor la pone una vez al día. El servidor que
+acaba de revisar las incidencias no vuelve a preguntar por su marca hasta que caduca, y una versión ya avisada se apunta
+en el propio servidor para no volver a preguntarla. Con el directo en marcha quedan unos 3 comandos por minuto: los dos
+`HSET` del registro y el `SMEMBERS` de los avisos de llegada.
 
 Un cron de GitHub no sirve para esto: los trabajos programados de GitHub se retrasan y no garantizan cada minuto.
 

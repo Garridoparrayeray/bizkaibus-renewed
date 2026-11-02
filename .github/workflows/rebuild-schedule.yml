@@ -157,6 +157,13 @@ jobs:
             echo "geocache.json unchanged, nothing to commit"
           fi
 
+      # La huella de los ficheros de la app en sw.js: con ella el móvil no los vuelve a pedir en cada apertura y baja
+      # la versión nueva entera en cuanto cambia alguno. Va después del commit de geocache para no subirla al
+      # repositorio. Si fallara, sw.js se queda sin huella y la app funciona como hasta ahora: no frena el despliegue.
+      - name: Stamp the app files fingerprint in sw.js
+        continue-on-error: true
+        run: php bideplus/scripts/stamp-sw.php
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 

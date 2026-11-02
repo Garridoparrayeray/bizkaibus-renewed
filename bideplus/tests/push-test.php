@@ -289,6 +289,7 @@ try {
     $Run = function () use (&$Sender, &$Fetcher): array {
         // La marca de «ya se revisó hace menos de 5 minutos» se quita para poder probar varias vueltas seguidas.
         Store::pipeline([['DEL', 'bide:incident:run']]);
+        @unlink(IncidentAlerts::runMarker());
         return IncidentAlerts::process($Sender, $Fetcher);
     };
     $aSubscriber = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/incidencias', 'keys' => $aSubscription['keys']];
@@ -299,6 +300,8 @@ try {
     sort($aAsked);
     $Expect('incidencias: mira cada línea en Bizkaibus, toda la red en Metro y la estación en Renfe', $aAsked === ['bus|3513', 'bus|3514', 'metro|*', 'renfe|stop:13400'], json_encode($aAsked));
     $Expect('incidencias: dentro de 5 minutos no se vuelve a mirar', IncidentAlerts::process($Sender, $Fetcher) === ['skipped' => true]);
+    Store::pipeline([['DEL', 'bide:incident:run']]);
+    $Expect('incidencias: el servidor que acaba de mirar no pregunta al almacén hasta que toca', IncidentAlerts::process($Sender, $Fetcher) === ['skipped' => true]);
 
     $aFeeds['bus|3514'] = [['summary' => 'Huelga', 'description' => '  Servicios mínimos el día 5  ']];
     $Run();
@@ -393,6 +396,7 @@ try {
     IncidentAlerts::save($Device('solo-incidencias'), ['bus' => ['lines' => ['3513'], 'stops' => []]], 'eu');
     $Again = function (): void {
         Store::pipeline([['DEL', 'bide:update:done'], ['DEL', 'bide:update:sent:' . Changelog::version()]]);
+        @unlink(UpdateAlerts::doneMarker());
     };
     $Again();
     $aSent = [];
@@ -405,6 +409,8 @@ try {
     $aLangOf = ['Bide+ se ha actualizado' => 'es', 'Bide+ eguneratu da' => 'eu', 'Bide+ has been updated' => 'en'];
     $Expect('versión: cuenta lo que trae, en su idioma', count(array_filter($aSent, fn($aMessage) => str_contains($aMessage['body'], Changelog::newerThan(0, $aLangOf[$aMessage['title']])[0]['title']))) === 3);
     $Expect('versión: la vuelta siguiente no manda nada', UpdateAlerts::process($Sender) === ['skipped' => true] && count($aSent) === 3);
+    Store::pipeline([['DEL', 'bide:update:done']]);
+    $Expect('versión: avisada una vez, este servidor ya no pregunta al almacén', UpdateAlerts::process($Sender) === ['skipped' => true] && count($aSent) === 3);
 
     $Again();
     Store::pipeline([['SET', 'bide:update:run', '1']]);

@@ -28,6 +28,13 @@
       "continue": true
     },
     {
+      "src": "^/(?!api/|data/|scripts/|tests/|engine/|sw[.]js$)[^?]*[.](?:css|js|woff2|png|webp|svg|ico|jpe?g|json)$",
+      "headers": {
+        "Cache-Control": "public, max-age=0, s-maxage=86400"
+      },
+      "continue": true
+    },
+    {
       "src": "^/(data|scripts|tests|engine)(/.*)?$",
       "dest": "/api/index.php"
     },
