@@ -76,14 +76,15 @@ class TripDelayMatcher
                 $aOut[] = ['status' => 'cancelled', 'etaSeconds' => (int)$aRow['arrival_seconds'], 'delaySeconds' => 0] + $aRow;
                 continue;
             }
-            if ($this->passed((string)$aRow['service_journey_id'], (int)$aRow['stop_seq'], $aLive['nextStopId'])) {
+            $iEtaSeconds = (int)$aRow['arrival_seconds'] + $aLive['delay'];
+            if ($this->passed((string)$aRow['service_journey_id'], (int)$aRow['stop_seq'], $aLive['nextStopId'], $iEtaSeconds)) {
                 continue;
             }
             $iDelay = $aLive['delay'];
             if (abs($iDelay) < self::ON_TIME_SECONDS) {
                 $iDelay = 0;
             }
-            $aOut[] = ['status' => 'live', 'etaSeconds' => (int)$aRow['arrival_seconds'] + $aLive['delay'], 'delaySeconds' => $iDelay] + $aRow;
+            $aOut[] = ['status' => 'live', 'etaSeconds' => $iEtaSeconds, 'delaySeconds' => $iDelay] + $aRow;
         }
         if ($this->hasData() && !empty($aOut)) {
             usort($aOut, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
@@ -102,7 +103,8 @@ class TripDelayMatcher
         }));
     }
 
-    // Hora prevista (marca de tiempo) en cada estación que le queda al tren, desde la siguiente; null si no va en directo.
+    // Hora prevista (marca de tiempo) en cada estación que le queda al tren: desde la siguiente y las que aún no ha
+    // alcanzado por la hora (la de origen, si aún no ha salido). Null si no va en directo.
     public function liveTrip(string $sStopId, array $aRows, string $sServiceJourneyId): array|null
     {
         $aLive = $this->aByJourney[$sServiceJourneyId] ?? null;
@@ -115,21 +117,28 @@ class TripDelayMatcher
         }
         $aStops = [];
         foreach ($this->stops($sServiceJourneyId) as $aStop) {
-            if ((int)$aStop['seq_order'] >= $iFromOrder) {
-                $aStops[] = [(string)$aStop['stop_id'], $this->iMidnight + (int)$aStop['arrival_seconds'] + $aLive['delay']];
+            $iEtaSeconds = (int)$aStop['arrival_seconds'] + $aLive['delay'];
+            if ((int)$aStop['seq_order'] >= $iFromOrder || $iEtaSeconds > $this->nowSeconds()) {
+                $aStops[] = [(string)$aStop['stop_id'], $this->iMidnight + $iEtaSeconds];
             }
         }
         return $aStops;
     }
 
-    // Ya pasó por la parada si la estación a la que va está después en su recorrido.
-    private function passed(string $sServiceJourneyId, int $iStopOrder, string|null $sNextStopId): bool
+    // Ya pasó por la parada si la estación a la que va está después en su recorrido y su hora prevista en la parada ya ha
+    // llegado: Renfe da a los trenes que esperan en la estación de origen la segunda como siguiente.
+    private function passed(string $sServiceJourneyId, int $iStopOrder, string|null $sNextStopId, int $iEtaSeconds): bool
     {
-        if ($sNextStopId === null) {
+        if ($sNextStopId === null || $iEtaSeconds > $this->nowSeconds()) {
             return false;
         }
         $iNextOrder = $this->orderOf($sServiceJourneyId, $sNextStopId);
         return $iNextOrder !== null && $iNextOrder > $iStopOrder;
+    }
+
+    private function nowSeconds(): int
+    {
+        return time() - $this->iMidnight;
     }
 
     private function orderOf(string $sServiceJourneyId, string $sStopId): int|null

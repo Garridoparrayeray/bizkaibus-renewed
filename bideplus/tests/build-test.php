@@ -155,6 +155,15 @@ if ($aUncovered !== []) {
 }
 $Expect($sCoverage, \count($aShellPaths[1]) > 50 && $aUncovered === []);
 
+// Sin feed_info.txt (Renfe), el periodo publicado es el que cubren los calendarios: del primer día al último.
+$aSpanCalendars = [
+    'L' => ['exact' => ['from' => '2026-11-02', 'to' => '2026-11-30', 'available' => []]],
+    'X' => ['exact' => ['from' => '', 'to' => '', 'available' => ['2026-12-01']]],
+];
+$aSpan = publishedWindow([], $aSpanCalendars);
+$Expect('sin feed_info, el periodo publicado va del primer al último día de los calendarios', ($aSpan[0] ?? null) === '2026-11-02' && end($aSpan) === '2026-12-01' && count($aSpan) === 30);
+$Expect('con feed_info, el periodo es el suyo', publishedWindow(['feed_start_date' => '20261102', 'feed_end_date' => '20261104'], $aSpanCalendars) === ['2026-11-02', '2026-11-03', '2026-11-04']);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

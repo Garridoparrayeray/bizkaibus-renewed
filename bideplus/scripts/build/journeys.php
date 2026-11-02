@@ -328,7 +328,7 @@ function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRout
 
     if ($bExactWindow) {
         $aAudit = auditExactCalendars($Pdo, $aRepresentatives, $aWindow);
-        printf("  Auditoría de calendarios (Bizkaibus, periodo publicado %s a %s): %d viajes comprobados, %d con diferencias contra el GTFS (%d fechas de más, %d que faltan)\n",
+        printf("  Auditoría de calendarios (periodo publicado %s a %s): %d viajes comprobados, %d con diferencias contra el GTFS (%d fechas de más, %d que faltan)\n",
             $aWindow[0], $aWindow[count($aWindow) - 1], $aAudit['checked'], $aAudit['differences'], $aAudit['extra'], $aAudit['missing']);
         foreach ($aAudit['examples'] as $sExample) {
             fwrite(STDERR, "  AVISO calendario: $sExample\n");

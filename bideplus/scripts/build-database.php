@@ -133,8 +133,8 @@ function main(array $aArgv): void
     echo "Processing stop_times.txt (the big one, ~1.1M rows, two bounded-memory passes)...\n";
     $aTotals = ['patterns' => 0, 'journeys' => 0, 'passingTimes' => 0, 'tripAliases' => 0, 'shapes' => 0];
     $aWindow = [];
-    if (!empty($aGtfs['feed_window']) && !empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
-        $aWindow = datesBetween(gtfsDateToIso($aFeedInfo['feed_start_date']), gtfsDateToIso($aFeedInfo['feed_end_date']));
+    if (!empty($aGtfs['feed_window'])) {
+        $aWindow = publishedWindow($aFeedInfo, $aCalendars);
     }
     processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
 
