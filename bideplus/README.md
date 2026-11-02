@@ -94,6 +94,8 @@ Botón de menú (☰) en la cabecera → `GET /api/alerts`. En Bizkaibus, filtra
 
 **Metro Bilbao** — el tiempo real llega del feed GTFS-Realtime del Consorcio de Transportes de Bizkaia (`metro-bilbao-trip-updates.pb`, [data.ctb.eus](https://data.ctb.eus/dataset/metro-bilbao-online), CC-BY 4.0): la hora prevista de cada tren en las estaciones que le quedan. `GtfsRealtimeClient` lo descarga y decodifica (sin librerías) con 15 s de caché y lo descarta si tiene más de 5 minutos. Aunque el horario estático sale del mismo CTB, un mismo `trip_id` del tiempo real no es el mismo tren del horario (se comprobó: los números se reutilizan entre calendarios), así que `TripUpdatesMatcher` asocia cada previsión a un tren del horario en esa estación: mismo orden de estaciones que su patrón y la menor diferencia de hora, como mucho 10 minutos. Una diferencia de menos de un minuto cuenta como «en hora». Sin previsión, la salida queda como horario programado.
 
+**Euskotren y tranvías de Bilbao y Vitoria** — Euskotren publica en Open Data Euskadi un único feed GTFS-Realtime para los tres (`gtfsrt_euskotren_trip_updates.pb`, se renueva cada 1-2 minutos). Se lee igual que el de Metro, con `TripUpdatesMatcher` y las mismas reglas; `GtfsRealtimeClient` guarda cada feed por su dirección, así que las tres apps lo descargan una sola vez cada 30 s.
+
 Ambos feeds de bus se piden en cada consulta relevante con caché corta (~25s) en el directorio temporal, para no saturar el origen.
 
 ## Fuente estática: GTFS
