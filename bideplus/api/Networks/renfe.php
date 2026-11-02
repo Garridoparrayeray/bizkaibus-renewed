@@ -44,6 +44,7 @@ return [
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak',
             'subtitle' => 'Aldirien ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+            'attribution' => 'Datuak: Renfe Aldiriak / NAP (Garraioaren Sarbide Puntu Nazionala)',
         ],
         'en' => [
             'name' => 'Renfe Cercanías+',
@@ -52,6 +53,7 @@ return [
             'subtitle' => 'Commuter train timetables',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'attribution' => 'Data: Renfe Cercanías / NAP (Spain\'s National Access Point for transport data)',
         ],
     ],
 

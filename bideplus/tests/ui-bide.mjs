@@ -159,6 +159,7 @@ await ev("document.querySelector('[data-bide-lang=eu]').click(); true");
 check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
 check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
 check('idioma · EU traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Laster' && document.querySelector('.bide-upcoming-badge').textContent === 'Garatzen'"));
+check('idioma · EU: el tranvía es «Tranbia» en su ficha, en los enlaces de las apps y en las fuentes', await ev("document.querySelector('.tile--tranvia-bilbao .txt strong').textContent === 'Tranbia+' && [...document.querySelectorAll('.bide-apps-links a')].some((a) => a.textContent === 'Tranbia Bilbo+') && [...document.querySelectorAll('.bide-sources li')].some((li) => li.textContent.includes('Datuak: Euskotren (Bilboko tranbia)'))"));
 check('idioma · EU traduce las preguntas frecuentes y las sugerencias', await ev("document.querySelector('.bide-faq h3').textContent === 'Ohiko galderak' && document.querySelector('.bide-feedback h3').textContent === 'Iradokizunak eta akatsak'"));
 check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=en]').click(); true");
@@ -168,6 +169,12 @@ check('idioma · EN traduce «Próximamente»', await ev("document.querySelector
 check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang=en]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=es]').click(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
+await ev("I18n.setLang('eu'); true");
+await go('/?red=tranvia-bilbao');
+check('idioma · EU: la app del tranvía dice «Tranbia» en la cabecera, la pestaña y las fuentes', await ev("document.getElementById('app-title').textContent === 'TRANBIA+' && document.getElementById('app-title-city').textContent === 'BILBO' && document.title.startsWith('Tranbia Bilbo+') && document.querySelector('.attribution').textContent.startsWith('Datuak: Euskotren (Bilboko tranbia)')"));
+await ev("I18n.setLang('es'); true");
+check('idioma · al volver a castellano, la cabecera y la pestaña vuelven a «Tranvía»', await waitTrue("document.getElementById('app-title').textContent === 'TRANVÍA+' && document.getElementById('app-title-city').textContent === 'BILBAO' && document.title.startsWith('Tranvía Bilbao+') && document.querySelector('.attribution').textContent.startsWith('Datos:')"));
+await go('/');
 
 // ===== Ajustes =====
 await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234567', tripKey: 'x', stopId: '4255', minutes: 5, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now(), lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); return true; })()`);

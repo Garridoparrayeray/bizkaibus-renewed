@@ -263,7 +263,7 @@ function bideSources(): string
 {
     $sHtml = '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><ul class="bide-sources">';
     foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
-        $sHtml .= '<li><strong data-i18n="net.' . $sSlug . '.name">' . htmlspecialchars(\Core\Networks::text($aNetwork, 'name')) . '</strong> ' . htmlspecialchars($aNetwork['attribution']) . '</li>';
+        $sHtml .= '<li><strong data-i18n="net.' . $sSlug . '.name">' . htmlspecialchars(\Core\Networks::text($aNetwork, 'name')) . '</strong> <span data-i18n="net.' . $sSlug . '.attribution">' . htmlspecialchars($aNetwork['attribution']) . '</span></li>';
     }
     return $sHtml . '</ul></section>';
 }
@@ -318,7 +318,7 @@ function bideAppsLinks(): string
 {
     $sHtml = '<nav class="bide-apps-links" data-i18n-attr="aria-label:bide.appsOfBide" aria-label="Apps de Bide+"><p class="bide-footer-title" data-i18n="bide.appsOfBide">Apps de Bide+</p>';
     foreach (bideApps() as [$sApp, $sName]) {
-        $sHtml .= '<a href="/?red=' . $sApp . '">' . $sName . '</a>';
+        $sHtml .= '<a href="/?red=' . $sApp . '" data-i18n="net.' . $sApp . '.name">' . $sName . '</a>';
     }
     return $sHtml . '</nav>';
 }

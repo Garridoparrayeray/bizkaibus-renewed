@@ -44,6 +44,7 @@ return [
             'switcher' => 'Lurraldebusen ordutegiak Gipuzkoan',
             'subtitle' => 'Lurraldebusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)',
         ],
         'en' => [
             'name' => 'Lurraldebus+',
@@ -52,6 +53,7 @@ return [
             'subtitle' => 'Lurraldebus timetables',
             'liveEmpty' => 'Search for a stop to see the next bus.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
+            'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)',
         ],
     ],
 

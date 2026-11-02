@@ -43,6 +43,7 @@ return [
             'switcher' => 'Bilboko Metroaren ordutegiak',
             'subtitle' => 'Bilboko Metroaren ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
+            'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala',
         ],
         'en' => [
             'name' => 'Metro+',
@@ -51,6 +52,7 @@ return [
             'subtitle' => 'Metro Bilbao timetables',
             'liveEmpty' => 'Search for a station to see the next metro.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator\'s forecast.',
+            'attribution' => 'Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time',
         ],
     ],
 

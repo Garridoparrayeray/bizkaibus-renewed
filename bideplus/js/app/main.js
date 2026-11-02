@@ -5,7 +5,7 @@ import { setUpLineMap } from './line-map.js';
 import { renderDepartures, setUpConnectionBanner, setUpStop } from './stop.js';
 import { setUpNetworkMenu, startRouting } from './navigation.js';
 import { setUpSearch } from './search.js';
-import { renderTimetableRows, setUpTimetable } from './timetable.js';
+import { renderSchedulePublished, renderTimetableRows, setUpTimetable } from './timetable.js';
 import { setUpScheduleModal } from './schedule-modal.js';
 import { modalState, renderModalHeader, renderModalStops, setUpVehicleModal } from './vehicle-modal.js';
 import { setUpSideMenu } from './side-menu.js';
@@ -30,6 +30,7 @@ function refreshLanguageDependentViews() {
         renderModalStops(modalState.data);
     }
     if (state.lastTimetableEntries && !el.timetableSection.hidden) renderTimetableRows(state.lastTimetableEntries);
+    renderSchedulePublished();
 }
 
 function setUpLanguage() {
