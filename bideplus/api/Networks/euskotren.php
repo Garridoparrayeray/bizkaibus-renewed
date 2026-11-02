@@ -96,6 +96,8 @@ return [
         'agency_id' => 'ES:Euskotren:Operator:EUS_Tren:',
         'stops' => 'euskotren',
         'skip_geocode' => false,
+        // Hay servicios de días sueltos: cada viaje lleva las fechas exactas del periodo publicado.
+        'feed_window' => true,
         'required' => true,
     ],
 ];
