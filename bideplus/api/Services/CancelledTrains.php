@@ -10,36 +10,46 @@ class CancelledTrains
 {
     public static function alerts(TripDelayMatcher $Matcher, ServiceJourney $JourneyModel, int $iNowSeconds): array
     {
-        $aAlerts = [];
+        $aCancelled = [];
         foreach ($Matcher->cancelledJourneyIds() as $sJourneyId) {
             $aStops = $JourneyModel->stopsForJourney($sJourneyId);
             $aLine = $JourneyModel->lineOfJourney($sJourneyId);
             if (empty($aStops) || $aLine === null) {
                 continue;
             }
-            $aAhead = [];
-            foreach ($aStops as $aStop) {
-                if ((int)$aStop['arrival_seconds'] >= $iNowSeconds) {
-                    $aAhead[] = (string)$aStop['stop_id'];
-                }
+            $aAhead = self::stopsAhead($aStops, $iNowSeconds);
+            if (!empty($aAhead)) {
+                $aCancelled[] = ['departure' => (int)$aStops[0]['departure_seconds'], 'alert' => self::alert($aLine, $aStops, $aAhead)];
             }
-            if (empty($aAhead)) {
-                continue;
-            }
-            $aFirst = $aStops[0];
-            $aLast = end($aStops);
-            $sTime = Calendar::secondsToHm((int)$aFirst['departure_seconds']);
-            $aAlerts[(int)$aFirst['departure_seconds'] . '|' . $sJourneyId] = [
-                'summary' => $aLine['code'] . ' · tren de las ' . $sTime . ' cancelado',
-                'description' => 'Renfe ha cancelado el tren de las ' . $sTime . ' de ' . $aFirst['name'] . ' a ' . $aLast['name'] . '.',
-                'startTime' => null,
-                'endTime' => null,
-                'lineRefs' => [(string)$aLine['id']],
-                'stopRefs' => $aAhead,
-                'scope' => 'stop',
-            ];
         }
-        ksort($aAlerts, SORT_NATURAL);
-        return array_values($aAlerts);
+        usort($aCancelled, fn($aA, $aB) => $aA['departure'] <=> $aB['departure']);
+        return array_column($aCancelled, 'alert');
+    }
+
+    private static function stopsAhead(array $aStops, int $iNowSeconds): array
+    {
+        $aAhead = [];
+        foreach ($aStops as $aStop) {
+            if ((int)$aStop['arrival_seconds'] >= $iNowSeconds) {
+                $aAhead[] = (string)$aStop['stop_id'];
+            }
+        }
+        return $aAhead;
+    }
+
+    private static function alert(array $aLine, array $aStops, array $aAhead): array
+    {
+        $sTime = Calendar::secondsToHm((int)$aStops[0]['departure_seconds']);
+        $sFrom = $aStops[0]['name'];
+        $sTo = end($aStops)['name'];
+        return [
+            'summary' => $aLine['code'] . ' · tren de las ' . $sTime . ' cancelado',
+            'description' => 'Renfe ha cancelado el tren de las ' . $sTime . ' de ' . $sFrom . ' a ' . $sTo . '.',
+            'startTime' => null,
+            'endTime' => null,
+            'lineRefs' => [(string)$aLine['id']],
+            'stopRefs' => $aAhead,
+            'scope' => 'stop',
+        ];
     }
 }

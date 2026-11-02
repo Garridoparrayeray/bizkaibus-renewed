@@ -885,7 +885,7 @@ $sRenfeFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
 $aRenfeTrips = GtfsRealtimeClient::parseTripUpdates($sRenfeFeed)['trips'];
 $Expect('lee el retraso de cada tren, también negativo', $aRenfeTrips[0]['delay'] === 180 && $aRenfeTrips[2]['delay'] === -120, json_encode($aRenfeTrips));
 $Expect('un tren cancelado se lee aunque no traiga paradas', $aRenfeTrips[1] === ['tripId' => 'R2', 'stops' => [], 'canceled' => true], json_encode($aRenfeTrips[1]));
-$Expect('los viajes de Metro, sin retraso ni cancelación, salen como antes', !isset($aSynthetic['trips'][0]['delay']) && !isset($aSynthetic['trips'][0]['canceled']));
+$Expect('los viajes de Metro no llevan retraso ni cancelación', !isset($aSynthetic['trips'][0]['delay']) && !isset($aSynthetic['trips'][0]['canceled']));
 
 $PdoRenfe = new PDO('sqlite::memory:');
 $PdoRenfe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -931,7 +931,7 @@ $Expect('sin directo, las salidas no cambian y hasData es falso', !(new TripDela
 $aCancelAlerts = CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 60);
 $Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y destino', count($aCancelAlerts) === 1 && $aCancelAlerts[0]['summary'] === 'C1 · tren de las 08:20 cancelado' && $aCancelAlerts[0]['description'] === 'Renfe ha cancelado el tren de las 08:20 de Abando a Zabalburu.' && $aCancelAlerts[0]['lineRefs'] === ['C1-ida'], json_encode($aCancelAlerts));
 $Expect('la incidencia sale en las estaciones por las que aún tenía que pasar', $aCancelAlerts[0]['stopRefs'] === ['B', 'C'] && $aCancelAlerts[0]['scope'] === 'stop', json_encode($aCancelAlerts[0]['stopRefs'] ?? null));
-$Expect('pasada la hora de su última estación, ya no sale', CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 241) === []);
+$Expect('pasada la hora de su última estación, no sale', CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 241) === []);
 $Expect('sin cancelados no hay incidencias', CancelledTrains::alerts(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0), new ServiceJourney($PdoRenfe), T0) === []);
 
 $AlertsFeed = fn(int $iGenerated) => json_encode(['header' => ['timestamp' => (string)$iGenerated], 'entity' => [['alert' => [

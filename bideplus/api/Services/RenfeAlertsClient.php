@@ -17,6 +17,8 @@ class RenfeAlertsClient
     private const GENERIC_SUMMARY = 'Aviso de Renfe';
 
     private array $aConfig;
+    // Los cancelados, una vez por petición: el cron de notificaciones pide los avisos de cada estación guardada.
+    private static array|null $aCancellations = null;
 
     public function __construct(array $aConfig)
     {
@@ -54,12 +56,16 @@ class RenfeAlertsClient
 
     private static function cancellations(\PDO $Pdo): array
     {
+        if (self::$aCancellations !== null) {
+            return self::$aCancellations;
+        }
+        self::$aCancellations = [];
         $JourneyModel = new ServiceJourney($Pdo);
         $Matcher = Live::tripMatcher($JourneyModel);
-        if (!$Matcher instanceof TripDelayMatcher) {
-            return [];
+        if ($Matcher instanceof TripDelayMatcher) {
+            self::$aCancellations = CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
         }
-        return CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
+        return self::$aCancellations;
     }
 
     public function alertsByLine(): array

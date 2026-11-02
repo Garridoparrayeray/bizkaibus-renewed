@@ -104,6 +104,22 @@ class Stop
         return 2 * 6371000 * asin(min(1, sqrt($dA)));
     }
 
+    // Varias paradas de una vez, por su id.
+    public function findMany(array $aStopIds): array
+    {
+        $aIds = array_values(array_unique(array_map('strval', $aStopIds)));
+        if (empty($aIds)) {
+            return [];
+        }
+        $Stmt = $this->Pdo->prepare('SELECT id, name, lat, lon FROM stops WHERE id IN (' . implode(',', array_fill(0, count($aIds), '?')) . ')');
+        $Stmt->execute($aIds);
+        $aStops = [];
+        foreach ($Stmt->fetchAll() as $aStop) {
+            $aStops[(string)$aStop['id']] = $aStop;
+        }
+        return $aStops;
+    }
+
     public function headsignsForMany(array $aStopIds, int $iLimitPerStop = 2): array
     {
         if (empty($aStopIds)) {
