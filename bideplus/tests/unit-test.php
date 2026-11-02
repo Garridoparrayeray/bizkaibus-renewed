@@ -924,6 +924,13 @@ $Expect('el que no está en el directo sigue con el horario', $aRenfeOut['J4']['
 $Expect('isCancelled: el cancelado sí, los demás no', $MRenfe->isCancelled('J3') && !$MRenfe->isCancelled('J1') && !$MRenfe->isCancelled('J4'));
 $Expect('liveTrip: las paradas que le quedan, desde la siguiente, con el retraso', $MRenfe->liveTrip('B', [], 'J1') === [['A', T0 + 240], ['B', T0 + 120 + 240], ['C', T0 + 240 + 240]], json_encode($MRenfe->liveTrip('B', [], 'J1')));
 $Expect('liveTrip: un cancelado o sin directo no tiene horas en directo', $MRenfe->liveTrip('B', [], 'J3') === null && $MRenfe->liveTrip('B', [], 'J4') === null);
+$aWaiting = [['tripId' => '6005L1C1', 'stops' => [['B', 0]], 'delay' => 0]];
+$aRowAtOrigin = ['stop_seq' => 0, 'arrival_seconds' => T0, 'etaSeconds' => T0] + $RenfeRow('J1', 0);
+$MBeforeDeparture = new TripDelayMatcher($aWaiting, new ServiceJourney($PdoRenfe), time() - (T0 - 300));
+$aAtOrigin = $MBeforeDeparture->enrich('A', [$aRowAtOrigin]);
+$Expect('un tren que espera en el origen (Renfe le da la segunda estación como siguiente) sale en directo', count($aAtOrigin) === 1 && $aAtOrigin[0]['status'] === 'live', json_encode($aAtOrigin));
+$Expect('su ficha empieza en la estación de origen', ($MBeforeDeparture->liveTrip('A', [], 'J1')[0][0] ?? null) === 'A');
+$Expect('ya salido del origen, no sale en la estación de origen', (new TripDelayMatcher($aWaiting, new ServiceJourney($PdoRenfe), time() - (T0 + 60)))->enrich('A', [$aRowAtOrigin]) === []);
 $aLate = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', 0]], 'delay' => 45]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
 $Expect('menos de un minuto de retraso cuenta como en hora, pero la hora prevista lo lleva', $aLate[0]['delaySeconds'] === 0 && $aLate[0]['etaSeconds'] === T0 + 120 + 45);
 $Expect('sin directo, las salidas no cambian y hasData es falso', !(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->hasData() && (new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->enrich('B', $aRenfeRows) === $aRenfeRows);
@@ -933,6 +940,11 @@ $Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y d
 $Expect('la incidencia sale en las estaciones por las que aún tenía que pasar', $aCancelAlerts[0]['stopRefs'] === ['B', 'C'] && $aCancelAlerts[0]['scope'] === 'stop', json_encode($aCancelAlerts[0]['stopRefs'] ?? null));
 $Expect('pasada la hora de su última estación, no sale', CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 241) === []);
 $Expect('sin cancelados no hay incidencias', CancelledTrains::alerts(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0), new ServiceJourney($PdoRenfe), T0) === []);
+
+$aRepeated = array_fill(0, 70, ['title' => 'ASCENSOR AVERIADO', 'description' => 'EXTERIOR:SANTUTXU', 'severity' => 'normal']);
+$aRepeated[] = ['summary' => 'Desvío', 'description' => '', 'lineRefs' => ['A1']];
+$aRepeated[] = ['summary' => 'Desvío', 'description' => '', 'lineRefs' => ['A2']];
+$Expect('el mismo aviso repetido (SIRI de Metro) sale una vez; con otras líneas, no es el mismo', \Controllers\AlertsController::withoutRepeats($aRepeated) === [$aRepeated[0], $aRepeated[70], $aRepeated[71]]);
 
 $AlertsFeed = fn(int $iGenerated) => json_encode(['header' => ['timestamp' => (string)$iGenerated], 'entity' => [['alert' => [
     'informedEntity' => [['stopId' => 'A']],

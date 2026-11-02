@@ -75,7 +75,8 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `gtfs.stops` | Cómo se leen las paradas: `generic` (cualquier GTFS), o los ajustes de `bus`, `metro`, `euskotren` y `renfe`. |
 | `gtfs.skip_geocode` | No buscar el barrio de cada parada en OpenStreetMap. |
 | `gtfs.required` | Si su reconstrucción diaria falla, se para el despliegue (para las redes principales). |
-| `gtfs.feed_window`, `gtfs.merge_calendars` | Ajustes para GTFS con calendarios raros; normalmente no hacen falta. |
+| `gtfs.feed_window` | Cada viaje con las fechas exactas del periodo publicado (el de `feed_info.txt` o, si no lo trae, el que cubren sus calendarios) y una comprobación contra el GTFS. Para GTFS con servicios de días sueltos (Bizkaibus, Renfe). |
+| `gtfs.merge_calendars` | Ajuste para GTFS con calendarios raros (Metro); normalmente no hace falta. |
 
 ## 3. Iconos
 

@@ -104,6 +104,8 @@ return [
         'route_id_prefixes' => ['60T', '61T'],
         'stops' => 'renfe',
         'skip_geocode' => false,
+        // Hay trenes de días sueltos (obras, festivos): cada viaje lleva las fechas exactas del periodo publicado.
+        'feed_window' => true,
         'required' => false,
     ],
 ];

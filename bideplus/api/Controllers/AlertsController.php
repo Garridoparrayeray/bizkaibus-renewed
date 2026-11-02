@@ -22,6 +22,31 @@ class AlertsController
     // También los usan las notificaciones de incidencias (Services\IncidentAlerts).
     public function alerts(string|null $sLine, string|null $sStop): array
     {
+        return self::withoutRepeats($this->sourceAlerts($sLine, $sStop));
+    }
+
+    // Cada aviso una vez: el SIRI de Metro repite el mismo decenas de veces, sin nada que los distinga.
+    public static function withoutRepeats(array $aAlerts): array
+    {
+        $aSeen = [];
+        $aOut = [];
+        foreach ($aAlerts as $aAlert) {
+            $sKey = json_encode([
+                $aAlert['summary'] ?? $aAlert['title'] ?? '',
+                $aAlert['description'] ?? '',
+                $aAlert['lineRefs'] ?? [],
+                $aAlert['stopRefs'] ?? [],
+            ]);
+            if (!isset($aSeen[$sKey])) {
+                $aSeen[$sKey] = true;
+                $aOut[] = $aAlert;
+            }
+        }
+        return $aOut;
+    }
+
+    private function sourceAlerts(string|null $sLine, string|null $sStop): array
+    {
         $aConfig = Config::current();
 
         if (isset($aConfig['metro_alerts'])) {

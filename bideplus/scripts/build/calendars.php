@@ -97,6 +97,28 @@ function loadCalendars(ZipArchive $Zip, bool $bLiteralDates = false): array
     return $aCalendars;
 }
 
+// El periodo que publica el operador, día a día: el de feed_info.txt o, si no lo trae (Renfe), el que cubren sus
+// calendarios, del primer día al último.
+function publishedWindow(array $aFeedInfo, array $aCalendars): array
+{
+    if (!empty($aFeedInfo['feed_start_date']) && !empty($aFeedInfo['feed_end_date'])) {
+        return datesBetween(gtfsDateToIso($aFeedInfo['feed_start_date']), gtfsDateToIso($aFeedInfo['feed_end_date']));
+    }
+    $aDates = [];
+    foreach ($aCalendars as $aCalendar) {
+        foreach ([$aCalendar['exact']['from'], $aCalendar['exact']['to']] as $sDate) {
+            if ($sDate !== '') {
+                $aDates[] = $sDate;
+            }
+        }
+        array_push($aDates, ...$aCalendar['exact']['available']);
+    }
+    if (empty($aDates)) {
+        return [];
+    }
+    return datesBetween(min($aDates), max($aDates));
+}
+
 /*
  * Fechas en las que un servicio circula de verdad según el GTFS, dentro del periodo publicado: las fechas añadidas
  * (calendar_dates, tipo 1) más los días de calendar.txt dentro de su rango, menos las anuladas (tipo 2).
