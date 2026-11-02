@@ -52,9 +52,9 @@ return [
             'attribution' => 'Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
-            'name' => 'Vitoria Tram+',
+            'name' => 'Tranvía Vitoria+',
             'tile' => 'Timetables and real time',
-            'tile_title' => 'Tram',
+            'tile_title' => 'Tranvía',
             'tile_city' => 'Vitoria',
             'switcher' => 'Vitoria-Gasteiz tram timetables',
             'subtitle' => 'Tram timetables',

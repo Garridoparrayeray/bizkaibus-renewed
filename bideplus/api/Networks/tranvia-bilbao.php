@@ -52,9 +52,9 @@ return [
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
-            'name' => 'Bilbao Tram+',
+            'name' => 'Tranvía Bilbao+',
             'tile' => 'Timetables and real time',
-            'tile_title' => 'Tram',
+            'tile_title' => 'Tranvía',
             'tile_city' => 'Bilbao',
             'switcher' => 'Bilbao tram timetables',
             'subtitle' => 'Tram timetables',
