@@ -369,6 +369,12 @@ body.page-map {
         letter-spacing: .06em;
         text-transform: uppercase;
     }
+    .map-note {
+        margin: 12px 0 0;
+        color: var(--bide-muted);
+        font-size: 13px;
+        line-height: 1.4;
+    }
     .map-action {
         display: block;
         margin-top: 16px;
@@ -502,6 +508,17 @@ body.page-map {
         font-weight: 700;
         text-align: center;
     }
+    .map-min.has-official {
+        padding: 2px 4px;
+        line-height: 1.1;
+    }
+        .map-min > .map-min-official {
+            display: block;
+            font-size: 9.6px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: .85;
+        }
     .map-stop {
         display: flex;
         align-items: center;
@@ -518,6 +535,9 @@ body.page-map {
         text-align: left;
         cursor: pointer;
     }
+        .map-schematic.has-learned > li > .map-stop {
+            min-height: 48px;
+        }
         .map-stop:hover {
             background: var(--bide-bg);
         }
