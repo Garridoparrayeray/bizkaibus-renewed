@@ -115,10 +115,7 @@ setInterval(tickClock, CLOCK_MS);
 body.addEventListener('click', goFullscreen);
 if (body.dataset.stopFound === '1') {
     load();
-    // En segundo plano no pide nada: al volver a verse lo pide en el momento (abajo).
-    setInterval(() => {
-        if (document.visibilityState === 'visible') load();
-    }, REFRESH_MS);
+    setInterval(load, REFRESH_MS);
     setInterval(render, TICK_MS);
     keepAwake();
     document.addEventListener('visibilitychange', () => {

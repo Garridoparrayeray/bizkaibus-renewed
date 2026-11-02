@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, onReturn, state, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, onReturn, state } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -156,7 +156,7 @@ export async function openVehicleModal(tripKey) {
     showArrivalAlerts(tripKey);
 
     el.modal.showModal();
-    modalState.refreshTimer = setInterval(whenVisible(refreshVehicleModal), MODAL_REFRESH_MS);
+    modalState.refreshTimer = setInterval(refreshVehicleModal, MODAL_REFRESH_MS);
     modalState.tickTimer = setInterval(tickVehicleModal, MODAL_TICK_MS);
 }
 

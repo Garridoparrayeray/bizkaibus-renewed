@@ -1,5 +1,5 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, el, networkQuery, state, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, el, networkQuery, state } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
@@ -104,7 +104,7 @@ export async function selectStop(stopId) {
 
 function startDeparturesRefresh() {
     stopDeparturesRefresh();
-    state.departuresRefreshTimer = setInterval(whenVisible(loadDepartures), DEPARTURES_REFRESH_MS);
+    state.departuresRefreshTimer = setInterval(loadDepartures, DEPARTURES_REFRESH_MS);
     state.departuresTickTimer = setInterval(tickDepartures, DEPARTURES_TICK_MS);
 }
 
