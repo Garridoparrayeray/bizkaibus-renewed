@@ -44,7 +44,7 @@ return [
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak',
             'subtitle' => 'Aldirien ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
-            'attribution' => 'Datuak: Renfe Aldiriak / NAP (Garraioaren Sarbide Puntu Nazionala)',
+            'attribution' => 'Datuak: Renfe Aldiriak',
         ],
         'en' => [
             'name' => 'Renfe Cercanías+',
@@ -53,7 +53,7 @@ return [
             'subtitle' => 'Commuter train timetables',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
-            'attribution' => 'Data: Renfe Cercanías / NAP (Spain\'s National Access Point for transport data)',
+            'attribution' => 'Data: Renfe Cercanías',
         ],
     ],
 
@@ -61,7 +61,7 @@ return [
         'title' => 'Renfe Cercanías+ · Horarios de Cercanías en Bilbao y Donostia',
         'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada.',
     ],
-    'attribution' => 'Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)',
+    'attribution' => 'Datos: Renfe Cercanías',
 
     'features' => [
         'platforms' => false,
@@ -83,9 +83,11 @@ return [
         'http_timeout_seconds' => 8,
     ],
 
+    // El horario lo publica Renfe a diario, con los mismos viajes que su directo. La copia del NAP llega con semanas de
+    // retraso y solo queda de reserva.
     'gtfs' => [
-        'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1130',
-        'fallback_source' => null,
+        'source' => 'https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip',
+        'fallback_source' => 'https://nap.transportes.gob.es/api/Fichero/download/1130',
         'agency_id' => null,
         'route_id_prefixes' => ['60T', '61T'],
         'stops' => 'renfe',
