@@ -6,6 +6,7 @@ no cambia sin querer. Se pueden añadir campos nuevos; quitar o cambiar de tipo 
 import datetime
 import json
 import os
+import subprocess
 import re
 import sys
 import urllib.error
@@ -13,6 +14,8 @@ import urllib.parse
 import urllib.request
 
 BASE = os.environ.get('BASE_URL', 'http://localhost:8011').rstrip('/')
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHP = os.environ.get('PHP_PATH', 'php')
 fails = []
 checked = 0
 
@@ -155,15 +158,8 @@ def get(path, schema, where, expect=200):
     return data
 
 
-NETS = {
-    'bus': ('moyua', '', (43.26347, -2.93506)),
-    'metro': ('aba', 'red=metro', (43.32595, -3.00961)),
-    'euskotren': ('ama', 'red=euskotren', (43.313179, -1.981685)),
-    'tranvia-bilbao': ('atxuri', 'red=tranvia-bilbao', (43.254113, -2.921513)),
-    'tranvia-vitoria': ('abetxuko', 'red=tranvia-vitoria', (42.876277, -2.679599)),
-    'renfe': ('abando', 'red=renfe', (43.2601304, -2.9285592)),
-    'lurraldebus': ('tolosa', 'red=lurraldebus', (43.31619, -1.97738)),
-}
+# Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
+NETS = json.loads(subprocess.check_output([PHP, os.path.join(ROOT, 'tests/network-samples.php')], text=True))
 
 
 def net(path, suffix):
@@ -188,7 +184,8 @@ except Exception:
     madrid_hour = (datetime.datetime.now(datetime.timezone.utc).hour + 1) % 24
 # Las próximas salidas miran 4 h por delante: de noche una red pequeña puede no tener ninguna.
 quiet_hours = madrid_hour < 8 or madrid_hour >= 21
-for name, (q, s, (lat, lon)) in NETS.items():
+for name, cfg in NETS.items():
+    q, s, lat, lon = cfg['q'], cfg['suffix'], cfg['lat'], cfg['lon']
     before = len(fails)
     departures_seen = 0
     entries_seen = 0

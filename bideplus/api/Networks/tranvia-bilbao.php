@@ -48,10 +48,14 @@ return [
             'switcher' => 'Bilboko tranbiaren ordutegiak',
             'subtitle' => 'Tranbiaren ordutegiak',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo tranbia ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
+            'name' => 'Tranvía Bilbao+',
             'tile' => 'Timetables and real time',
+            'tile_title' => 'Tranvía',
+            'tile_city' => 'Bilbao',
             'switcher' => 'Bilbao tram timetables',
             'subtitle' => 'Tram timetables',
             'liveEmpty' => 'Search for a stop to see the next tram.',
@@ -92,6 +96,11 @@ return [
         'alerts_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/siri_euskotren_situation_exchange.xml',
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 8,
+    ],
+
+    // Mapa de la red: el color del plano del operador.
+    'map' => [
+        'colors' => ['A' => '#78BE20', 'TR' => '#78BE20'],
     ],
 
     'gtfs' => [

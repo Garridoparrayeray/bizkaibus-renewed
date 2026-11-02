@@ -1,6 +1,6 @@
 <?php
-// Registro de pasos contra un Upstash falso (tests/fixtures/fake-upstash.php): escribir, leer, clave mala, almacén caído
-// y la clave secreta del endpoint del cron. Uso: php tests/store-test.php
+// Registro de pasos contra un Upstash falso (tests/fixtures/fake-upstash.php): escribir, leer, clave mala, almacén
+// caído y la clave secreta del endpoint del cron. Uso: php tests/store-test.php
 
 declare(strict_types=1);
 

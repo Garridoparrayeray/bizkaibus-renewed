@@ -1,12 +1,16 @@
 import datetime
 import json
+import unicodedata
 import os
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 
 BASE = os.environ.get('BASE_URL', 'http://localhost:8011').rstrip('/')
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PHP = os.environ.get('PHP_PATH', 'php')
 fails = []
 count = 0
 
@@ -32,15 +36,12 @@ def get(path, expect=200):
     return data
 
 
-NETS = {
-    'bus': {'q': 'moyua', 'suffix': ''},
-    'metro': {'q': 'aba', 'suffix': 'red=metro'},
-    'euskotren': {'q': 'ama', 'suffix': 'red=euskotren'},
-    'tranvia-bilbao': {'q': 'atxuri', 'suffix': 'red=tranvia-bilbao'},
-    'tranvia-vitoria': {'q': 'abetxuko', 'suffix': 'red=tranvia-vitoria'},
-    'renfe': {'q': 'abando', 'suffix': 'red=renfe'},
-    'lurraldebus': {'q': 'tolosa', 'suffix': 'red=lurraldebus'},
-}
+# Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
+NETS = json.loads(subprocess.check_output([PHP, os.path.join(ROOT, 'tests/network-samples.php')], text=True))
+
+
+def plain(text):
+    return ''.join(c for c in unicodedata.normalize('NFD', text.lower()) if unicodedata.category(c) != 'Mn')
 
 
 def with_net(path, suffix):
@@ -88,23 +89,15 @@ for name, cfg in NETS.items():
     get(with_net('/api/nope', s), expect=404)
     print(name, 'ok')
 
-NEARBY = {
-    'bus': (43.26347, -2.93506, 'MOYUA'),
-    'metro': (43.32595, -3.00961, 'Areeta'),
-    'euskotren': (43.313179, -1.981685, 'Amara'),
-    'tranvia-bilbao': (43.254113, -2.921513, 'Atxuri'),
-    'tranvia-vitoria': (42.876277, -2.679599, 'Abetxuko'),
-    'renfe': (43.2601304, -2.9285592, 'Abando'),
-    'lurraldebus': (43.31619, -1.97738, 'Donostia'),
-}
-for name, (lat, lon, fragment) in NEARBY.items():
-    s = NETS[name]['suffix']
+for name, cfg in NETS.items():
+    s = cfg['suffix']
+    lat, lon, fragment = cfg['lat'], cfg['lon'], cfg['q']
     res = get(with_net(f'/api/nearby?lat={lat}&lon={lon}&limit=5', s)) or {}
     stops = res.get('stops', [])
     if not stops:
         fails.append(f'{name}: nearby no devuelve paradas')
         continue
-    if fragment.lower() not in stops[0]['name'].lower():
+    if fragment not in plain(stops[0]['name']):
         fails.append(f"{name}: la parada mas cercana deberia contener {fragment}, es {stops[0]['name']}")
     distances = [x['distanceM'] for x in stops]
     if distances != sorted(distances):
@@ -115,7 +108,7 @@ for name, (lat, lon, fragment) in NEARBY.items():
             fails.append(f'{name}: proxima salida invalida {nxt}')
     print(name, 'nearby ok', distances)
 status = get('/api/status') or {}
-if status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
+if 'bus' in NETS and status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
 get('/api/status?red=metro', 404)
 # Aviso de versión nueva.

@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-/*
- * Integridad de las bases de datos que genera scripts/build-database.php.
- * Protege de un ETL roto o de un GTFS raro del operador antes de que llegue a producción.
- */
+// Integridad de las bases de datos que genera scripts/build-database.php: protege de un ETL roto o de un GTFS raro
+// del operador antes de que llegue a producción.
 
 require __DIR__ . '/../api/Core/Networks.php';
 $aDatabases = array_values(array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all()));

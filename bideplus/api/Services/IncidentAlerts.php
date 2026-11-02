@@ -266,21 +266,7 @@ class IncidentAlerts
                 }
                 $bBaselined = isset($aState['base'][$sCacheKey]);
                 foreach ($aCache[$sCacheKey] as $aAlert) {
-                    if (isset($aState['seen'][$aAlert['key']])) {
-                        // Una incidencia que sigue activa se renueva cada día, para no olvidarla al recortar lo visto.
-                        if (time() - $aState['seen'][$aAlert['key']] > self::SEEN_REFRESH_SECONDS) {
-                            $aState['seen'][$aAlert['key']] = time();
-                        }
-                        continue;
-                    }
-                    if (isset($aFresh[$aAlert['key']])) {
-                        continue;
-                    }
-                    if ($bBaselined) {
-                        $aFresh[$aAlert['key']] = $aAlert + ['network' => $sNetwork];
-                    } else {
-                        $aState['seen'][$aAlert['key']] = time();
-                    }
+                    self::collectFresh($aAlert, $sNetwork, $bBaselined, $aState, $aFresh);
                 }
                 if (!$bBaselined) {
                     $aState['base'][$sCacheKey] = true;
@@ -290,6 +276,27 @@ class IncidentAlerts
         // Un favorito que se quita y se vuelve a poner empieza de nuevo sin avisar de lo que ya había.
         $aState['base'] = array_intersect_key($aState['base'], $aCurrent);
         return array_values($aFresh);
+    }
+
+    // Una incidencia es nueva si no se había visto y la fuente ya tenía línea base; la primera vez, solo se apunta.
+    // Una incidencia que sigue activa se renueva cada día, para no olvidarla al recortar lo visto.
+    private static function collectFresh(array $aAlert, string $sNetwork, bool $bBaselined, array &$aState, array &$aFresh): void
+    {
+        $sKey = $aAlert['key'];
+        if (isset($aState['seen'][$sKey])) {
+            if (time() - $aState['seen'][$sKey] > self::SEEN_REFRESH_SECONDS) {
+                $aState['seen'][$sKey] = time();
+            }
+            return;
+        }
+        if (isset($aFresh[$sKey])) {
+            return;
+        }
+        if ($bBaselined) {
+            $aFresh[$sKey] = $aAlert + ['network' => $sNetwork];
+        } else {
+            $aState['seen'][$sKey] = time();
+        }
     }
 
     // Igual que la app: en Bizkaibus, por línea; en Renfe, por estación y por línea; en el resto, toda la red.

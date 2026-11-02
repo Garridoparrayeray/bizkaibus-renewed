@@ -8,6 +8,8 @@ putenv('GEOCODE_MAX_RETRIES=1');
 
 require __DIR__ . '/../scripts/build-database.php';
 
+use Build\Geocode;
+
 $aFailures = [];
 $Expect = function (string $sName, bool $bOk) use (&$aFailures): void {
     $sLabel = 'OK  ';
@@ -49,7 +51,7 @@ $Lookup = function (float $dLat, float $dLon) use (&$aCalls): ?string {
 };
 
 ob_start();
-$aResult = geocodeStops($aStops, false, $Lookup);
+$aResult = Geocode::geocodeStops($aStops, false, $Lookup);
 ob_end_clean();
 $aCache = json_decode(file_get_contents($sCachePath), true);
 
@@ -65,11 +67,11 @@ $Expect('una respuesta vacia legitima ("") sí se guarda', array_key_exists('43.
 
 $aCalls = [];
 ob_start();
-geocodeStops($aStops, false, $Lookup);
+Geocode::geocodeStops($aStops, false, $Lookup);
 ob_end_clean();
 $Expect('la segunda ejecucion sigue avanzando con el resto de celdas', count($aCalls) > 0);
 
-$aSkipped = geocodeStops($aStops, true, $Lookup);
+$aSkipped = Geocode::geocodeStops($aStops, true, $Lookup);
 $Expect('con skip (Metro) no se consulta nada y la zona queda vacia', $aSkipped[1]['area'] === '');
 
 @unlink($sCachePath);

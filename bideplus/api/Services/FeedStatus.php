@@ -1,0 +1,45 @@
+<?php
+
+namespace Services;
+
+use Core\Config;
+use Core\Live;
+
+// Diagnóstico del feed de vehículos en directo (/api/status): lo pide el servidor como lo hace la app y cuenta qué
+// trae (vehículos, GPS, hora del dato y retraso). Sirve para ver si la fuente responde desde el despliegue.
+class FeedStatus
+{
+    // Null si la red no tiene vehículos en directo.
+    public static function report(): array|null
+    {
+        $aConfig = Config::current();
+        if (!Config::hasLive('vehicle-monitoring')) {
+            return null;
+        }
+        $sUrl = $aConfig['siri']['vehicle_monitoring_url'] ?? reset($aConfig['siri']['vehicle_monitoring_urls']);
+        $dStart = microtime(true);
+        $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($sUrl, PHP_URL_HOST), 'ok' => false];
+        try {
+            $aOut += self::counts(Live::vehicles());
+            $aOut['ok'] = $aOut['vehicles'] > 0;
+        } catch (\Throwable $Ex) {
+            $aOut['error'] = 'La fuente no respondió';
+        }
+        $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
+        return $aOut;
+    }
+
+    private static function counts(array $aMap): array
+    {
+        $aCounts = ['vehicles' => 0, 'withGps' => 0, 'withTime' => 0, 'withDelay' => 0];
+        foreach ($aMap as $aEntries) {
+            foreach ($aEntries as $aEntry) {
+                $aCounts['vehicles']++;
+                $aCounts['withGps'] += (int)($aEntry['lat'] !== null);
+                $aCounts['withTime'] += (int)($aEntry['recordedSeconds'] !== null);
+                $aCounts['withDelay'] += (int)($aEntry['delaySeconds'] !== 0);
+            }
+        }
+        return $aCounts;
+    }
+}

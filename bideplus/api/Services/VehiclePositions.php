@@ -6,10 +6,11 @@ use Core\Ids;
 use Models\ServiceJourney;
 use Models\Stop;
 
-// Trenes en el mapa de la línea, con la posición GPS que publica el operador (GTFS-Realtime). Renfe dice el viaje de
-// cada tren, que es el del horario, y de ahí su línea, su destino y su retraso. En Metro, un tren es de la línea si va
-// hacia una de sus estaciones, y su destino es la última estación de su previsión.
-class TrainPositions
+// Vehículos en el mapa de la línea, con la posición GPS que publica el operador (GTFS-Realtime). Si la red empareja por
+// viaje (Renfe, Tuvisa, Dbus), el viaje de cada vehículo es el del horario y de ahí salen su línea, su destino y su
+// retraso. Si no (Metro), un tren es de la línea si va hacia una de sus estaciones, y su destino es la última estación
+// de su previsión.
+class VehiclePositions
 {
     private const ON_TIME_SECONDS = 60;
 
@@ -45,7 +46,7 @@ class TrainPositions
         return $aOut;
     }
 
-    // Metro: los trenes que van hacia una estación de la línea.
+    // Sin emparejar por viaje (Metro): los trenes que van hacia una estación de la línea.
     private static function headsignsByStops(Stop $StopModel, array $aPatterns, array $aVehicles, array $aTripsById): array
     {
         $aLineStops = [];

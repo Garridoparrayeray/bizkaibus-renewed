@@ -387,10 +387,8 @@
         if (network.data.hasLearnedMins) body.appendChild(el('p', 'map-note', t('map.minsLearned')));
 
         const link = el('a', 'map-action', t('map.openLine'));
-        // L1 y L2 de Metro son una sola línea («MB») en sus datos.
-        let lineId = line.id;
-        if (slug === 'metro') lineId = 'MB';
-        link.href = `/lines/${encodeURIComponent(lineId)}?red=${slug}`;
+        // Una línea del mapa que el operador publica dentro de otra (L1 y L2 de Metro son «MB») enlaza a esa.
+        link.href = `/lines/${encodeURIComponent(line.appLine || line.id)}?red=${slug}`;
         body.appendChild(link);
 
         openPanel();

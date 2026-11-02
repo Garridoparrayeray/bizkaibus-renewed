@@ -7,6 +7,9 @@
 // Uso:
 //   php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 --gtfs=https://…/gtfs.zip
 //                               [--kind=bus|metro|tram|train] [--city=Getxo] [--operator="Getxo Udala"]
+//                               [--trip-updates=https://…pb] [--vehicle-positions=https://…pb] [--alerts=https://…pb]
+//                               [--matching=trip|stops]
+// Con los feeds GTFS-Realtime del operador, la red sale ya en directo: retrasos, vehículos en el mapa e incidencias.
 
 declare(strict_types=1);
 
@@ -16,6 +19,9 @@ use Core\Networks;
 
 const ROOT = __DIR__ . '/..';
 const KINDS = ['bus', 'metro', 'tram', 'train'];
+const MATCHINGS = ['trip', 'stops'];
+// Opción del script => clave de gtfs_rt.
+const GTFS_RT_FEEDS = ['trip-updates' => 'trip_updates_url', 'vehicle-positions' => 'vehicle_positions_url', 'alerts' => 'alerts_url'];
 const VEHICLE = [
     'bus' => ['autobús', 'autobusa', 'bus'],
     'metro' => ['metro', 'metroa', 'metro'],
@@ -31,13 +37,13 @@ function fail(string $sMessage): never
 
 function options(): array
 {
-    $aOptions = getopt('', ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'operator:']);
+    $aOptions = getopt('', ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'operator:', 'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:']);
     foreach (['slug', 'name', 'color', 'gtfs'] as $sRequired) {
         if (empty($aOptions[$sRequired])) {
             fail("Falta --$sRequired. Uso: php scripts/new-network.php --slug=getxo --name=\"Getxo Bus+\" --color=#E30613 --gtfs=https://…/gtfs.zip");
         }
     }
-    $aOptions += ['kind' => 'bus', 'city' => '', 'operator' => ''];
+    $aOptions += ['kind' => 'bus', 'city' => '', 'operator' => '', 'matching' => 'trip'];
     if (!preg_match('/^[a-z][a-z0-9-]{1,30}$/', $aOptions['slug'])) {
         fail('--slug: minúsculas, números y guiones (por ejemplo, getxo o tranvia-vitoria).');
     }
@@ -52,6 +58,14 @@ function options(): array
     }
     if (!preg_match('#^https?://#', $aOptions['gtfs'])) {
         fail('--gtfs: la dirección del ZIP del GTFS (https://…).');
+    }
+    foreach (array_keys(GTFS_RT_FEEDS) as $sFeed) {
+        if (isset($aOptions[$sFeed]) && !preg_match('#^https?://#', $aOptions[$sFeed])) {
+            fail("--$sFeed: la dirección del feed GTFS-Realtime (https://…).");
+        }
+    }
+    if (!in_array($aOptions['matching'], MATCHINGS, true)) {
+        fail('--matching: trip (el feed usa los viajes del horario) o stops (se empareja por paradas y hora).');
     }
     return $aOptions;
 }
@@ -85,6 +99,32 @@ function palette(string $sColor): array
     ];
 }
 
+// Las fuentes en directo y el bloque gtfs_rt, según los feeds que se pasen.
+function liveConfig(array $aOptions): string
+{
+    $aLive = [];
+    $sUrls = '';
+    foreach (GTFS_RT_FEEDS as $sOption => $sKey) {
+        if (empty($aOptions[$sOption])) {
+            continue;
+        }
+        $sUrls .= "        '$sKey' => " . phpString($aOptions[$sOption]) . ",\n";
+        if ($sOption !== 'alerts') {
+            $aLive[] = "'" . $sOption . "'";
+        }
+    }
+    if ($sUrls === '') {
+        return "    // Sin datos en directo: el horario oficial. Para el directo, ver docs/nueva-red.md.\n    'live' => [],\n";
+    }
+    $sMatching = "        'matching' => '{$aOptions['matching']}',\n";
+    if ($aOptions['matching'] === 'stops') {
+        $sMatching .= "        'match_tolerance_seconds' => 600,\n";
+    }
+    return "    'live' => [" . implode(', ', $aLive) . "],\n\n"
+        . "    'gtfs_rt' => [\n" . $sUrls . $sMatching
+        . "        'cache_ttl_seconds' => 30,\n        'http_timeout_seconds' => 8,\n        'max_age_seconds' => 300,\n    ],\n";
+}
+
 function phpString(string $sValue): string
 {
     return "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], $sValue) . "'";
@@ -100,6 +140,18 @@ function config(array $aOptions): string
         $sOperator = 'el operador';
     }
     [$sEs, $sEu, $sEn] = VEHICLE[$aOptions['kind']];
+    $bLive = !empty($aOptions['trip-updates']);
+    $sDisclaimerEs = 'Horario programado oficial: no refleja retrasos ni cancelaciones.';
+    $sDisclaimerEu = 'Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.';
+    $sDisclaimerEn = 'Official scheduled timetable: it does not reflect delays or cancellations.';
+    $sTripDetail = 'stops';
+    if ($bLive) {
+        $sDisclaimerEs = 'Los tiempos en directo son una previsión del operador.';
+        $sDisclaimerEu = 'Zuzeneko denborak operadorearen aurreikuspena dira.';
+        $sDisclaimerEn = 'Live times are the operator\'s forecast.';
+        $sTripDetail = 'vehicle';
+    }
+    $sLiveConfig = liveConfig($aOptions);
     $sWhere = '';
     $sWhereEn = '';
     if ($sCity !== '') {
@@ -145,7 +197,7 @@ $sPalette        ],
             'switcher' => {$Quote('Horarios del ' . $sEs . $sWhere)},
             'subtitle' => {$Quote('Horarios del ' . $sEs . $sWhere)},
             'liveEmpty' => {$Quote('Busca una parada para ver el próximo ' . $sEs . '.')},
-            'disclaimer' => {$Quote('Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. Horario programado oficial: no refleja retrasos ni cancelaciones.')},
+            'disclaimer' => {$Quote('Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. ' . $sDisclaimerEs)},
         ],
         'eu' => [
             'name' => {$Quote($sName)},
@@ -153,6 +205,7 @@ $sPalette        ],
             'switcher' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
             'subtitle' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
             'liveEmpty' => {$Quote('Bilatu geraleku bat hurrengo ' . $sEu . ' ikusteko.')},
+            'disclaimer' => {$Quote('Proiektu independentea eta ez-ofiziala, ' . $sOperator . ' erakundearekin loturarik gabea. ' . $sDisclaimerEu)},
             'attribution' => {$Quote('Datuak: ' . $sOperator . ' (GTFS)')},
         ],
         'en' => [
@@ -161,7 +214,7 @@ $sPalette        ],
             'switcher' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
             'subtitle' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
             'liveEmpty' => {$Quote('Search for a stop to see the next ' . $sEn . '.')},
-            'disclaimer' => {$Quote('An independent, unofficial project, not affiliated with ' . $sOperator . '. Official scheduled timetable: it does not reflect delays or cancellations.')},
+            'disclaimer' => {$Quote('An independent, unofficial project, not affiliated with ' . $sOperator . '. ' . $sDisclaimerEn)},
             'attribution' => {$Quote('Data: ' . $sOperator . ' (GTFS)')},
         ],
     ],
@@ -178,20 +231,20 @@ $sPalette        ],
         'stop_hints' => false,
         'line_map' => true,
         'schedule_text' => false,
-        'trip_detail' => 'stops',
+        'trip_detail' => '$sTripDetail',
         'alerts' => 'network',
         'alerts_detail' => true,
     ],
 
-    // Sin datos en directo: el horario oficial. Para el directo, ver docs/nueva-red.md.
-    'live' => [],
-
+$sLiveConfig
     'gtfs' => [
         'source' => {$Quote($aOptions['gtfs'])},
         'fallback_source' => null,
         'agency_id' => null,
         'stops' => 'generic',
         'skip_geocode' => false,
+        // Cada viaje, con las fechas exactas del periodo que publica el operador (y una comprobación contra el GTFS).
+        'feed_window' => true,
         'required' => false,
     ],
 ];

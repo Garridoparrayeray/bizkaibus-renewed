@@ -44,6 +44,7 @@ return [
             'switcher' => 'Lurraldebusen ordutegiak Gipuzkoan',
             'subtitle' => 'Lurraldebusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Lurraldebusekin eta Gipuzkoako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen, operadoreak argitaratutako gorabehera-abisuak izan ezik.',
             'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)',
         ],
         'en' => [
@@ -74,9 +75,9 @@ return [
         'alerts_detail' => true,
     ],
 
-    // Motor propio en engine/lurraldebus. Los feeds en directo de los operadores llegan vacíos (27/10/2026):
-    // se activa con 'live' => ['vehicle-monitoring'] cuando traigan buses.
-    'live' => [],
+    // Motor propio en engine/lurraldebus, que hereda el de Bizkaibus. Los feeds de los operadores llegan vacíos
+    // (2/11/2026): mientras tanto la app enseña el horario oficial y el mapa no dice que siga a nadie.
+    'live' => ['vehicle-monitoring'],
     'engine' => 'lurraldebus',
 
     'siri' => [

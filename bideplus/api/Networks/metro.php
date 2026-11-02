@@ -43,6 +43,7 @@ return [
             'switcher' => 'Bilboko Metroaren ordutegiak',
             'subtitle' => 'Bilboko Metroaren ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala',
         ],
         'en' => [
@@ -98,6 +99,17 @@ return [
     ],
 
     'direction_reference_stop_id' => 7,
+
+    // Mapa de la red: Metro Bilbao publica L1 y L2 como una sola línea («MB»); cada una es el recorrido entre sus
+    // extremos, con los colores de su plano.
+    'map' => [
+        'label' => 'Metro Bilbao',
+        'splits' => [
+            ['code' => 'L1', 'name' => 'Etxebarri - Plentzia', 'ends' => ['Etxebarri', 'Plentzia'], 'line' => 'MB'],
+            ['code' => 'L2', 'name' => 'Basauri - Kabiezes', 'ends' => ['Basauri', 'Kabiezes'], 'line' => 'MB'],
+        ],
+        'colors' => ['L1' => '#F26722', 'L2' => '#1D1D1B'],
+    ],
 
     'gtfs' => [
         'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip',

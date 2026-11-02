@@ -25,11 +25,27 @@ jobs:
       - uses: actions/checkout@v4
 
       # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      # Si allí hay una rama con el mismo nombre que esta (centro-de-pruebas), se prueba con ella; si no, con main.
+      - name: Rama del algoritmo
+        id: engine
+        env:
+          ENGINE_REPO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          # El secreto puede llevar un salto de línea al final: fuera.
+          TOKEN="$(printf '%s' "$ENGINE_REPO_TOKEN" | tr -d '\r\n')"
+          REF=main
+          if curl -fs -o /dev/null -H "Authorization: Bearer $TOKEN" "https://api.github.com/repos/Garridoparrayeray/bideplus-engine/branches/$BRANCH"; then
+            REF="$BRANCH"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Algoritmo: rama $REF"
       - name: Traer el algoritmo (repositorio privado)
         uses: actions/checkout@v4
         with:
           repository: Garridoparrayeray/bideplus-engine
           token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          ref: ${{ steps.engine.outputs.ref }}
           path: bideplus/engine
 
       - name: Set up PHP

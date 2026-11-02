@@ -1,7 +1,7 @@
 <?php
 
 // Datos del mapa de la red (map/): un JSON por red con sus líneas (color, recorridos y paradas en orden) y un índice.
-// Sale de las bases ya construidas, así que se rehace con ellas en cada reconstrucción diaria y no hay que tocarlo a mano.
+// Sale de las bases ya construidas: se rehace con ellas en cada reconstrucción diaria, sin tocarlo a mano.
 //
 // Uso: php scripts/build-network-map.php [--out=map-data]
 
@@ -11,23 +11,6 @@ use Core\Networks;
 
 const SIMPLIFY_METERS = 2.0;
 const MAX_PATTERNS_PER_LINE = 6;
-
-// Redes que publican varias líneas como una sola (Metro Bilbao: «MB» para L1 y L2). Cada línea del mapa sale del recorrido
-// que va de un extremo al otro (en cualquier sentido), con su trazado.
-const LINE_SPLITS = [
-    'metro' => [
-        ['code' => 'L1', 'name' => 'Etxebarri - Plentzia', 'ends' => ['Etxebarri', 'Plentzia']],
-        ['code' => 'L2', 'name' => 'Basauri - Kabiezes', 'ends' => ['Basauri', 'Kabiezes']],
-    ],
-];
-
-// Colores de línea de los planos de cada operador. Mandan sobre los del GTFS porque algunos operadores publican el mismo
-// color para todas sus líneas (Euskotren); las líneas que no están aquí usan el del GTFS y, si no hay, el de la red.
-const LINE_COLORS = [
-    'metro' => ['L1' => '#F26722', 'L2' => '#1D1D1B'],
-    'euskotren' => ['E1' => '#0057A6', 'E2' => '#B5BD00', 'E3' => '#4FB3E8', 'E3a' => '#4FB3E8', 'E4' => '#1B3F8B', 'L3' => '#E5007E'],
-    'tranvia-bilbao' => ['A' => '#78BE20', 'TR' => '#78BE20'],
-];
 
 // Por encima de esta luminancia un trazo se pierde sobre el mapa (el verde claro de Bizkaibus es 0,52).
 const MAX_LINE_LUMINANCE = 0.5;
@@ -64,11 +47,11 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
 }
 file_put_contents("$sOut/index.json", json_encode(['generated' => date('c'), 'networks' => $aIndex], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-// Nombre de la red en el mapa: el del operador, sin el «+» de la app («Metro+» → «Metro»).
+// Nombre de la red en el mapa: el de su ficha (map.label) o el de la app sin el «+» («Euskotren+» → «Euskotren»).
 function networkLabel(array $aNetwork, string $sLang): string
 {
-    if ($aNetwork['slug'] === 'metro') {
-        return 'Metro Bilbao';
+    if (isset($aNetwork['map']['label'])) {
+        return $aNetwork['map']['label'];
     }
     $sName = $aNetwork['texts'][$sLang]['name'] ?? $aNetwork['texts']['es']['name'] ?? $aNetwork['slug'];
     return rtrim($sName, '+ ');
@@ -80,10 +63,10 @@ function buildNetwork(string $sSlug, array $aNetwork): array
     $Source = MapSource::open($aNetwork['db_path'], $Segments);
     $sThemeColor = $aNetwork['brand']['theme_color'] ?? '#555555';
     $aStopsUsed = [];
-    if (isset(LINE_SPLITS[$sSlug])) {
-        $aLines = splitLines($sSlug, $sThemeColor, $Source, $aStopsUsed);
+    if (isset($aNetwork['map']['splits'])) {
+        $aLines = splitLines($aNetwork, $sThemeColor, $Source, $aStopsUsed);
     } else {
-        $aLines = operatorLines($sSlug, $sThemeColor, $Source, $aStopsUsed);
+        $aLines = operatorLines($aNetwork, $sThemeColor, $Source, $aStopsUsed);
     }
     $aLines = namedByEnds(mergeDirections($aLines), $Source->aStops);
     return ['network' => $sSlug, 'hasLearnedMins' => $Segments !== null, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
@@ -194,11 +177,13 @@ final class MapSource
     }
 }
 
-// Cada línea propia es el recorrido más usado entre sus dos extremos.
-function splitLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
+// Redes que publican varias líneas como una sola (map.splits de su ficha): cada línea del mapa es el recorrido más
+// usado entre sus dos extremos, con su trazado, y enlaza a la línea de la app (map.splits.*.line).
+function splitLines(array $aNetwork, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
 {
+    $sSlug = $aNetwork['slug'];
     $aLines = [];
-    foreach (LINE_SPLITS[$sSlug] as $aSplit) {
+    foreach ($aNetwork['map']['splits'] as $aSplit) {
         $aBest = busiestPatternBetween($Source, $aSplit['ends']);
         if ($aBest === null) {
             fwrite(STDERR, "  $sSlug: no hay recorrido {$aSplit['ends'][0]} - {$aSplit['ends'][1]} para {$aSplit['code']}\n");
@@ -212,7 +197,8 @@ function splitLines(string $sSlug, string $sThemeColor, MapSource $Source, array
             'id' => $aSplit['code'],
             'code' => $aSplit['code'],
             'name' => $aSplit['name'],
-            'color' => LINE_COLORS[$sSlug][$aSplit['code']] ?? $sThemeColor,
+            'appLine' => $aSplit['line'],
+            'color' => $aNetwork['map']['colors'][$aSplit['code']] ?? $sThemeColor,
             'textColor' => null,
             'patterns' => [$Source->pattern($aBest, $aStops)],
         ];
@@ -243,15 +229,16 @@ function busiestPatternBetween(MapSource $Source, array $aEnds): array|null
     return $aBest;
 }
 
-function operatorLines(string $sSlug, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
+function operatorLines(array $aNetwork, string $sThemeColor, MapSource $Source, array &$aStopsUsed): array
 {
+    $sSlug = $aNetwork['slug'];
     $aLines = [];
     foreach ($Source->aLines as $aLine) {
         $aPatterns = coveringPatterns($Source, $Source->aPatternsByLine[$aLine['id']] ?? [], $aStopsUsed);
         if (empty($aPatterns)) {
             continue;
         }
-        [$sColor, $sTextColor] = lineColors($sSlug, $aLine, $sThemeColor);
+        [$sColor, $sTextColor] = lineColors($aNetwork, $aLine, $sThemeColor);
         $aLines[] = [
             'id' => (string)$aLine['id'],
             'code' => $aLine['code'],
@@ -290,9 +277,11 @@ function coveringPatterns(MapSource $Source, array $aPatterns, array &$aStopsUse
     return $aChosen;
 }
 
-function lineColors(string $sSlug, array $aLine, string $sThemeColor): array
+// Los colores del plano del operador (map.colors de su ficha) mandan sobre los del GTFS: algunos operadores publican
+// el mismo color para todas sus líneas (Euskotren). Sin color propio, el del GTFS y, si no hay, el de la red.
+function lineColors(array $aNetwork, array $aLine, string $sThemeColor): array
 {
-    $sColor = LINE_COLORS[$sSlug][$aLine['code']] ?? null;
+    $sColor = $aNetwork['map']['colors'][$aLine['code']] ?? null;
     if ($sColor !== null) {
         return [$sColor, null];
     }
@@ -323,12 +312,8 @@ function usedStops(array $aStopsUsed, array $aStops): array
     return $aUsed;
 }
 
-// Algunos operadores publican cada sentido como una línea aparte (Renfe: «Abando -Santurtzi» y «Santurtzi -Abando»). En el
-// mapa van juntas: mismo código, mismo color y mismo núcleo (las tres primeras letras del id: 60T Bilbao, 61T Donostia).
-/*
- * Color del trazo de una línea con los colores del GTFS. Un color muy claro (el blanco de Lurraldebus, el verde claro de
- * Bizkaibus) no se ve sobre el mapa: entonces va el color del texto de la línea si es oscuro, y si no el de la red.
- */
+// Color del trazo de una línea con los colores del GTFS. Un color muy claro (el blanco de Lurraldebus, el verde claro
+// de Bizkaibus) no se ve sobre el mapa: entonces va el color del texto de la línea si es oscuro, y si no el de la red.
 function mapLineColors(string|null $sColor, string|null $sTextColor, string $sNetworkColor): array
 {
     if ($sColor === null) {

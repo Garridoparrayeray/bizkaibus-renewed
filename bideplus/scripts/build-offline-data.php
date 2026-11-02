@@ -311,7 +311,8 @@ function offlineEstimator(array $aNetwork): \Closure|null
     if (class_exists($sTripsClass)) {
         $Trips = $sTripsClass::fromFile();
     }
-    // $iFirst es la llegada a la cabecera (de ella cuentan las horas del fichero) y $iDeparture su salida (de ella cuenta el motor).
+    // $iFirst es la llegada a la cabecera (de ella cuentan las horas del fichero) y $iDeparture su salida (de ella
+    // cuenta el motor).
     return function (string $sLineId, array $aStops, array $aOffsets, array $aMeters, int $iFirst, int $iDeparture, string $sDate) use ($Segments, $Pace, $sPaceClass, $Trips, $sTripsClass): array {
         // Lo que tarda cada tramo en cada franja, con lo aprendido o, si no hay, la proporción por largo o el ritmo.
         $aSegmentCache = [];

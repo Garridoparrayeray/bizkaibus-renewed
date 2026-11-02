@@ -4,7 +4,7 @@ Qué hay que leer según para qué la necesites.
 
 ## Para usar la app
 
-- [Manual de uso](manual-de-uso.md): las siete apps, buscar, paradas y líneas, favoritos, avisos de llegada e
+- [Manual de uso](manual-de-uso.md): las apps, buscar, paradas y líneas, favoritos, avisos de llegada e
   incidencias, sin conexión, Ajustes, instalarla en Android y en iPhone, pantalla de parada y mapa de la red.
 
 ## Para mantenerla en marcha (guía personal)

@@ -3,7 +3,7 @@
 Bide+ junta en una sola app los horarios y las llegadas del transporte público de Euskadi. Funciona en el navegador del
 móvil y del ordenador, y se puede instalar como una app más.
 
-## Las siete apps
+## Las apps
 
 | App | Qué enseña |
 | --- | --- |
@@ -13,6 +13,10 @@ móvil y del ordenador, y se puede instalar como una app más.
 | **Tranvía Bilbao+** y **Tranvía Vitoria+** | horarios y tiempo real por andén e incidencias |
 | **Renfe Cercanías+** | horarios y retrasos en directo de Bilbao y Donostia/Irun, trenes cancelados, los trenes en el mapa de la línea con su GPS e incidencias por estación y línea |
 | **Lurraldebus+** | horarios e incidencias de los autobuses de Gipuzkoa |
+| **Bilbobus+** | horarios de los autobuses urbanos de Bilbao |
+| **Tuvisa+** | horarios y tiempo real de los autobuses de Vitoria-Gasteiz, los autobuses en el mapa e incidencias |
+| **Dbus+** | horarios y tiempo real de los autobuses de Donostia y los autobuses en el mapa |
+| **Álavabus+** | horarios de los autobuses interurbanos de Álava |
 
 Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**.
 
@@ -97,7 +101,7 @@ actualizan solas. Pensada para una tele o una tablet en un portal, un bar o una 
 
 ## Mapa de la red
 
-Desde **Apps → Mapa de la red** (o `/mapa`): todas las líneas de las siete redes. Puedes encender cada red por separado,
+Desde **Apps → Mapa de la red** (o `/mapa`): todas las líneas de todas las redes. Puedes encender cada red por separado,
 buscar una línea o una parada, y ver el esquema de cada línea con los minutos entre paradas y los transbordos. En Bizkaibus, arriba sale lo que tardan de verdad los buses (aprendido del directo) y debajo, en pequeño, «HO:» con el horario oficial; donde no hay datos, y en las demás redes, solo el horario oficial.
 
 ## Tema «mi amor»

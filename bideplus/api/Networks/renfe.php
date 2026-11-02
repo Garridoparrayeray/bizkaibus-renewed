@@ -44,6 +44,7 @@ return [
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak',
             'subtitle' => 'Aldirien ordutegiak',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.',
             'attribution' => 'Datuak: Renfe Aldiriak',
         ],
         'en' => [

@@ -13,7 +13,8 @@ class Store
         return self::credentials() !== null;
     }
 
-    // Ejecuta varios comandos en una sola llamada. Devuelve el resultado de cada uno (null si ese falló), o null si no hay almacén.
+    // Ejecuta varios comandos en una sola llamada. Devuelve el resultado de cada uno (null si ese falló), o null si no
+    // hay almacén.
     public static function pipeline(array $aCommands, int $iTimeoutMs = 800): array|null
     {
         $aCredentials = self::credentials();

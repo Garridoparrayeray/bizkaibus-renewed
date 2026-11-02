@@ -45,7 +45,7 @@ Hay que tocar:
 2. El método del controlador recibe `Request $Req, array $aParams` y responde con `Response::json(...)` o
    `Response::error('texto', código)`.
 3. Lo que sea consulta va en `api/Models/` y lo que llame a fuera en `api/Services/`.
-4. Añade su forma a `tests/api-contract.py` y una llamada a `tests/api-smoke.py`.
+4. Añade su forma a `tests/api-contract.py` y una llamada a `tests/api-smoke.py` (las dos recorren todas las redes con la muestra de `tests/network-samples.php`).
 5. Si la app la usa, añádela a `js/api.js`. Si es de datos en directo, el service worker no debe guardarla (`LIVE_API`
    en `sw.js`).
 

@@ -22,6 +22,18 @@
 .tile--tranvia-vitoria {
     --c: #60AE27;
 }
+.tile--bilbobus {
+    --c: #C0362C;
+}
+.tile--tuvisa {
+    --c: #00796B;
+}
+.tile--dbus {
+    --c: #1565C0;
+}
+.tile--alavabus {
+    --c: #B45309;
+}
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
@@ -41,6 +53,18 @@ html.bide .bide-swatch--tranvia-bilbao {
 }
 html.bide .bide-swatch--tranvia-vitoria {
     background: #3f7f1c;
+}
+html.bide .bide-swatch--bilbobus {
+    background: #C0362C;
+}
+html.bide .bide-swatch--tuvisa {
+    background: #00796B;
+}
+html.bide .bide-swatch--dbus {
+    background: #1565C0;
+}
+html.bide .bide-swatch--alavabus {
+    background: #B45309;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -109,4 +133,48 @@ html.is-tranvia-vitoria {
     --text: #1e2a19;
     --text-secondary: #5e6b58;
     --backdrop: rgba(12, 20, 10, .5);
+}
+html.is-bilbobus {
+    --bg: #f3efef;
+    --border: #ded6d5;
+    --primary: #C0362C;
+    --primary-light: #e3a5a0;
+    --primary-dark: #77211b;
+    --primary-tint: #faefee;
+    --text: #281f1f;
+    --text-secondary: #685d5c;
+    --backdrop: rgba(19, 5, 4, .5);
+}
+html.is-tuvisa {
+    --bg: #eef1f1;
+    --border: #d3dad9;
+    --primary: #00796B;
+    --primary-light: #8cc3bc;
+    --primary-dark: #004b42;
+    --primary-tint: #ebf4f3;
+    --text: #1c2323;
+    --text-secondary: #586261;
+    --backdrop: rgba(0, 12, 11, .5);
+}
+html.is-dbus {
+    --bg: #eef1f3;
+    --border: #d4d9de;
+    --primary: #1565C0;
+    --primary-light: #96bae3;
+    --primary-dark: #0d3f77;
+    --primary-tint: #ecf3fa;
+    --text: #1d2228;
+    --text-secondary: #5a6068;
+    --backdrop: rgba(2, 10, 19, .5);
+}
+html.is-alavabus {
+    --bg: #f3f0ee;
+    --border: #ddd8d3;
+    --primary: #B45309;
+    --primary-light: #ddb290;
+    --primary-dark: #703306;
+    --primary-tint: #f9f1eb;
+    --text: #27211d;
+    --text-secondary: #675f59;
+    --backdrop: rgba(18, 8, 1, .5);
 }
