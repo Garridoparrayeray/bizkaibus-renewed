@@ -173,6 +173,29 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
         run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
 
+      # Si lo recién desplegado no responde (por ejemplo, el lanzador de Vercel con vercel-php, noviembre de 2026),
+      # se vuelve al despliegue anterior en vez de dejar la app caída.
+      - name: Comprobar producción y volver atrás si no responde
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          for i in $(seq 1 6); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' https://bideplus.vercel.app/api/lines)
+            echo "producción /api/lines -> $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::warning::Producción no responde con el despliegue nuevo: se vuelve al anterior"
+          TEAM=""
+          case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
+          PREVIOUS="$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&target=production&state=READY&limit=5$TEAM" | python3 -c 'import json,sys; d=json.load(sys.stdin)["deployments"]; print(d[1]["url"] if len(d) > 1 else "")')"
+          [ -n "$PREVIOUS" ] || { echo "::error::No hay un despliegue anterior"; exit 1; }
+          vercel rollback "https://$PREVIOUS" --token="$VERCEL_TOKEN" --timeout 5m
+          echo "::error::Despliegue nuevo roto; producción vuelve a https://$PREVIOUS"
+          exit 1
+
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
