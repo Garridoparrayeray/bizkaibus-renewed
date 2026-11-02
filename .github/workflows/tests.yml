@@ -32,8 +32,10 @@ jobs:
           ENGINE_REPO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
         run: |
           BRANCH="${{ github.head_ref || github.ref_name }}"
+          # El secreto puede llevar un salto de línea al final: fuera.
+          TOKEN="$(printf '%s' "$ENGINE_REPO_TOKEN" | tr -d '\r\n')"
           REF=main
-          if git ls-remote --exit-code --heads "https://x-access-token:${ENGINE_REPO_TOKEN}@github.com/Garridoparrayeray/bideplus-engine" "$BRANCH" > /dev/null; then
+          if curl -fs -o /dev/null -H "Authorization: Bearer $TOKEN" "https://api.github.com/repos/Garridoparrayeray/bideplus-engine/branches/$BRANCH"; then
             REF="$BRANCH"
           fi
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
