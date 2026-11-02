@@ -72,9 +72,9 @@ $Router->post('/push/incidents/remove', [$Push, 'removeIncidents']);
 $Router->post('/push/updates', [$Push, 'saveUpdates']);
 $Router->post('/push/updates/remove', [$Push, 'removeUpdates']);
 
-// Sin caché: el aviso de versión nueva tiene que estar al día.
+// La versión solo cambia al desplegar, y cada despliegue vacía la caché de Vercel: el aviso sigue llegando al momento.
 $App = new AppController();
-$Router->get('/app/version', [$App, 'version']);
+$Router->get('/app/version', [$App, 'version'], 600);
 
 try {
     $Router->dispatch($Req);

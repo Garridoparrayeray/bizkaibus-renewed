@@ -108,7 +108,8 @@ La versión de la app es el número de su última novedad (`Services\Changelog::
   `bide:update:sub:<id>`, los ya avisados de la versión (`bide:update:sent:<versión>`, 30 días) y la última versión
   avisada a todos (`bide:update:done`).
 - **Sin notificaciones:** la app compara la versión de su código (la última novedad que trae `js/i18n.js`) con la del
-  servidor (`GET /api/app/version?desde=<la del móvil>&lang=<idioma>`, que nunca sale de la caché). Si va por detrás, la
+  servidor (`GET /api/app/version?desde=<la del móvil>&lang=<idioma>`, que el móvil no guarda; Vercel la guarda 10
+  minutos, pero cada despliegue vacía esa caché, así que la versión nueva se ve al momento). Si va por detrás, la
   rueda de Ajustes lleva un «1» en rojo (en la barra de pestañas, la columna del ordenador, el pie y el menú de cada
   app) y Ajustes enseña «Nueva actualización de la app» con lo que trae cada versión, en su idioma, encima de «Vaciar
   caché y actualizar», que también lleva el «1». Al vaciar la caché se carga el código nuevo y el «1» desaparece.

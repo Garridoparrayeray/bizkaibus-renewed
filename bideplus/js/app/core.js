@@ -124,3 +124,10 @@ export function onReturn(refresh) {
     });
     window.addEventListener('online', refresh);
 }
+
+// Lo que se refresca solo no pide nada con la app en segundo plano: al volver, onReturn lo pide en el momento.
+export function whenVisible(refresh) {
+    return () => {
+        if (document.visibilityState === 'visible') refresh();
+    };
+}
