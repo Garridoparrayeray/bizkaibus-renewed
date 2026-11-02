@@ -160,6 +160,17 @@ function bideAuthorLinks(): string
     return $sHtml . '<a href="' . htmlspecialchars($aSite['source_url']) . '" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>';
 }
 
+// Donaciones: solo un enlace a Ko-fi. Su botón incrustado cargaría scripts de fuera, que la CSP bloquea.
+function bideDonate(string $sUrl): string
+{
+    if ($sUrl === '') {
+        return '';
+    }
+    return '<section class="bide-card bide-donate"><h3 data-i18n="bide.donate.title">Apoya Bide+</h3>'
+        . '<p data-i18n="bide.donate.text">Bide+ es gratis y sin anuncios. Si te ayuda, puedes invitarme a un café para mantener el servidor.</p>'
+        . '<a class="bide-button" href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer" data-i18n="bide.donate.button">Invitar a un café en Ko-fi</a></section>';
+}
+
 // Pie del menú y de las apps: Ajustes e Info (en el navegador del móvil no hay barra de pestañas), el autor y el aviso
 // legal, que cada página abre a su manera.
 function bideFooterAuthor(string $sLegalButton): string
@@ -296,6 +307,7 @@ function bideViews(): string
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
     $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
+    $sHtml .= bideDonate(bideSite()['donate_url'] ?? '');
     $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
