@@ -7,7 +7,7 @@ no hay ninguna clave: solo sus nombres y dónde se configuran.
 
 | Servicio | Para qué | Dónde se configura |
 | --- | --- | --- |
-| **Vercel** (proyecto `bizkaibus-renewed`, carpeta raíz `bideplus`) | sirve la app y la API: `bideplus.vercel.app` y `bideplusmiamor.vercel.app` (tema «mi amor») | Project Settings → Environment Variables y Domains |
+| **Vercel** (proyecto `bizkaibus-renewed`, carpeta raíz `bideplus`) | sirve la app y la API: `bideplus.vercel.app` y `bideplusmiamor.vercel.app` (tema «mi amor»). El servidor corre en París (`regions: ["cdg1"]` en `vercel.json`) | Project Settings → Environment Variables y Domains |
 | **Upstash Redis** (conectado desde Vercel → Storage) | almacén compartido: registro de pasos, avisos de llegada, incidencias y claves de las notificaciones | panel de Upstash: uso, límites y explorador de datos |
 | **cron-job.org** | llama cada minuto a `/api/live/record`: apunta los pasos y manda las notificaciones | la tarea de cron-job.org (URL con `?key=` y frecuencia) |
 | **GitHub Actions** | pruebas, reconstrucción diaria y despliegue, captura del ritmo de los buses | Settings → Secrets and variables → Actions |

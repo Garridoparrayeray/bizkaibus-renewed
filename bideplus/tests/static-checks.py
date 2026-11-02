@@ -176,6 +176,11 @@ print('caché de estáticos en el CDN sin caché en el navegador:', cache_ok)
 if not cache_ok:
     failures.append('caché de estáticos (vercel.json)')
 
+# El servidor en París, cerca de quien usa la app y del feed de Bizkaibus.
+print('región del servidor:', vercel.get('regions'))
+if vercel.get('regions') != ['cdg1']:
+    failures.append('región del servidor (vercel.json)')
+
 inline = []
 for f in [ROOT + 'api/Views/app.php', ROOT + 'api/Views/menu.php'] + glob.glob(ROOT + '*.html'):
     text = open(f, encoding='utf-8').read()
