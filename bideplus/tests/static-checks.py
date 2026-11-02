@@ -160,6 +160,15 @@ print('cabeceras de seguridad que faltan:', missing_headers or 'ninguna', '| CSP
 if missing_headers or weak_csp:
     failures.append('cabeceras de seguridad')
 
+# Caché de los estáticos: solo en el CDN (s-maxage, que se vacía en cada despliegue). Con max-age en el navegador, una versión nueva
+# podría servir ficheros viejos, porque sus direcciones no llevan versión.
+static_cache = [r for r in vercel.get('routes', []) if (r.get('headers') or {}).get('Cache-Control')]
+bad_cache = [r['src'] for r in static_cache if not re.search(r'max-age=0\b', r['headers']['Cache-Control']) or 's-maxage=' not in r['headers']['Cache-Control'] or 'sw[.]js' not in r['src']]
+cache_ok = bool(static_cache) and not bad_cache
+print('caché de estáticos en el CDN sin caché en el navegador:', cache_ok)
+if not cache_ok:
+    failures.append('caché de estáticos (vercel.json)')
+
 inline = []
 for f in [ROOT + 'api/Views/app.php', ROOT + 'api/Views/menu.php'] + glob.glob(ROOT + '*.html'):
     text = open(f, encoding='utf-8').read()
