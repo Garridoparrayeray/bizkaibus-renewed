@@ -312,6 +312,10 @@ check('mapa: el panel se cierra', await ev("document.getElementById('map-panel')
 check('mapa: el selector tiene las líneas de todas las redes', await ev("document.querySelectorAll('#map-line optgroup').length === document.querySelectorAll('[data-map-network]').length && document.querySelectorAll('#map-line option').length > 100"));
 await ev("(() => { const s = document.getElementById('map-line'); s.value = 'metro|L2'; s.dispatchEvent(new Event('change')); })()");
 check('mapa: elegir una línea en el selector abre su esquema con minutos entre paradas', await waitTrue("!document.getElementById('map-panel').hidden && /Kabiezes/.test(document.getElementById('map-panel-body').textContent) && document.querySelectorAll('.map-schematic .map-min').length > 10"));
+check('mapa: en Metro los minutos son los del horario, sin nota', await ev("!document.querySelector('#map-panel-body .map-note')"));
+await ev("document.getElementById('map-panel-close').click()");
+await ev("window.BideMap.selectLine('bus', '3514')");
+check('mapa: en Bizkaibus los minutos son los que tardan de verdad los buses, y lo dice', await waitTrue("!document.getElementById('map-panel').hidden && document.querySelectorAll('.map-min').length > 5 && (document.querySelector('#map-panel-body .map-note') || {}).textContent === I18n.t('map.minsLearned')", 15000));
 await ev("document.getElementById('map-panel-close').click()");
 check('mapa: el buscador filtra lineas', await ev("(() => { const inp = document.getElementById('map-search-input'); inp.value = 'L2'; inp.dispatchEvent(new Event('input')); return document.querySelectorAll('.map-search-item').length > 0; })()"));
 await ev("document.querySelector('.map-search-item').click()");

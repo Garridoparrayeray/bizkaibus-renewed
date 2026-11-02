@@ -369,6 +369,12 @@ body.page-map {
         letter-spacing: .06em;
         text-transform: uppercase;
     }
+    .map-note {
+        margin: 12px 0 0;
+        color: var(--bide-muted);
+        font-size: 13px;
+        line-height: 1.4;
+    }
     .map-action {
         display: block;
         margin-top: 16px;

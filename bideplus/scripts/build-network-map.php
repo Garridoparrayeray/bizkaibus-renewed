@@ -5,7 +5,7 @@
 //
 // Uso: php scripts/build-network-map.php [--out=map-data]
 
-require __DIR__ . '/../api/Core/Networks.php';
+require_once __DIR__ . '/../api/autoload.php';
 
 use Core\Networks;
 
@@ -76,7 +76,8 @@ function networkLabel(array $aNetwork, string $sLang): string
 
 function buildNetwork(string $sSlug, array $aNetwork): array
 {
-    $Source = MapSource::open($aNetwork['db_path']);
+    $Segments = learnedSegments($aNetwork);
+    $Source = MapSource::open($aNetwork['db_path'], $Segments);
     $sThemeColor = $aNetwork['brand']['theme_color'] ?? '#555555';
     $aStopsUsed = [];
     if (isset(LINE_SPLITS[$sSlug])) {
@@ -85,7 +86,25 @@ function buildNetwork(string $sSlug, array $aNetwork): array
         $aLines = operatorLines($sSlug, $sThemeColor, $Source, $aStopsUsed);
     }
     $aLines = namedByEnds(mergeDirections($aLines), $Source->aStops);
-    return ['network' => $sSlug, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
+    return ['network' => $sSlug, 'minsLearned' => $Segments !== null, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
+}
+
+// Lo que tarda de verdad cada tramo, aprendido por el motor, si la red lo usa y está a mano (engine/).
+function learnedSegments(array $aNetwork): object|null
+{
+    $sEngine = $aNetwork['engine'] ?? null;
+    if ($sEngine === null) {
+        return null;
+    }
+    $sClass = 'Engine\\' . ucfirst($sEngine) . '\\SegmentTimes';
+    if (!class_exists($sClass)) {
+        return null;
+    }
+    $Segments = $sClass::fromFile();
+    if ($Segments->isEmpty()) {
+        return null;
+    }
+    return $Segments;
 }
 
 // Las columnas de color y los trazados solo los tienen algunas redes.
@@ -100,10 +119,12 @@ final class MapSource
         public readonly array $aPatternShape,
         public readonly array $aStops,
         public readonly PDOStatement|null $ShapeStatement,
+        public readonly object|null $Segments,
+        public readonly bool $bHasMeters,
     ) {
     }
 
-    public static function open(string $sPath): self
+    public static function open(string $sPath, object|null $Segments): self
     {
         $Pdo = new PDO('sqlite:' . $sPath);
         $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -150,7 +171,8 @@ final class MapSource
         if ($bHasShapes) {
             $ShapeStatement = $Pdo->prepare('SELECT points FROM shapes WHERE id = ?');
         }
-        return new self($Pdo, $aLines, $aPatternsByLine, $aPatternStops, $aPatternTrips, $aPatternShape, $aStops, $ShapeStatement);
+        $bHasMeters = \in_array('dist_m', array_column($Pdo->query('PRAGMA table_info(passing_times)')->fetchAll(), 'name'), true);
+        return new self($Pdo, $aLines, $aPatternsByLine, $aPatternStops, $aPatternTrips, $aPatternShape, $aStops, $ShapeStatement, $Segments, $bHasMeters);
     }
 
     public function trips(string|int $PatternId): int
@@ -164,7 +186,7 @@ final class MapSource
             'headsign' => $aPattern['headsign'],
             'stops' => $aStops,
             'path' => patternPath($aPattern['id'], $aStops, $this->aStops, $this->aPatternShape, $this->ShapeStatement),
-            'mins' => patternMinutes($this->Pdo, $aPattern['id'], \count($aStops)),
+            'mins' => patternMinutes($this->Pdo, $aPattern['id'], $aStops, $this->Segments, $this->bHasMeters),
         ];
     }
 }
@@ -411,37 +433,51 @@ function sideScore(string $sSide, string $sStop): float
     return $dScore;
 }
 
-// Minutos entre cada parada y la siguiente (mediana de hasta 40 viajes del recorrido). Null si los pasos no cuadran con
-// las paradas del recorrido.
-function patternMinutes(PDO $Pdo, string $sPatternId, int $iStops): array|null
+// Minutos entre cada parada y la siguiente, como el motor sin datos del bus: lo aprendido en ese tramo (todo el día) o, si
+// no, el horario corregido por el largo del tramo. Sin motor, la mediana de hasta 40 viajes del horario. Null si los pasos
+// no cuadran con las paradas del recorrido.
+function patternMinutes(PDO $Pdo, string $sPatternId, array $aStops, object|null $Segments, bool $bHasMeters): array|null
 {
-    $Stmt = $Pdo->prepare('
-        SELECT pt.service_journey_id, pt.arrival_seconds, pt.departure_seconds
+    $iStops = \count($aStops);
+    $sMeters = 'NULL';
+    if ($bHasMeters) {
+        $sMeters = 'pt.dist_m';
+    }
+    $Stmt = $Pdo->prepare("
+        SELECT pt.service_journey_id, pt.arrival_seconds, pt.departure_seconds, $sMeters AS dist_m
         FROM passing_times pt
         WHERE pt.service_journey_id IN (SELECT id FROM service_journeys WHERE journey_pattern_id = ? LIMIT 40)
         ORDER BY pt.service_journey_id, pt.seq_order
-    ');
+    ");
     $Stmt->execute([$sPatternId]);
     $aByJourney = [];
     foreach ($Stmt->fetchAll() as $aRow) {
         $aByJourney[$aRow['service_journey_id']][] = $aRow;
     }
     $aGaps = array_fill(0, max(0, $iStops - 1), []);
+    $aMeters = array_fill(0, max(0, $iStops - 1), null);
     foreach ($aByJourney as $aTimes) {
         if (\count($aTimes) !== $iStops) {
             continue;
         }
         for ($i = 1; $i < $iStops; $i++) {
             $aGaps[$i - 1][] = (int)$aTimes[$i]['arrival_seconds'] - (int)$aTimes[$i - 1]['departure_seconds'];
+            if ($aTimes[$i]['dist_m'] !== null && $aTimes[$i - 1]['dist_m'] !== null) {
+                $aMeters[$i - 1] = (float)$aTimes[$i]['dist_m'] - (float)$aTimes[$i - 1]['dist_m'];
+            }
         }
     }
     if (empty($aGaps) || empty($aGaps[0])) {
         return null;
     }
     $aOut = [];
-    foreach ($aGaps as $aValues) {
+    foreach ($aGaps as $iIndex => $aValues) {
         sort($aValues);
-        $aOut[] = (int)round($aValues[intdiv(\count($aValues), 2)] / 60);
+        $dScheduled = (float)$aValues[intdiv(\count($aValues), 2)];
+        $dSeconds = $Segments?->seconds($aStops[$iIndex], $aStops[$iIndex + 1], 'all')
+            ?? $Segments?->fallbackSeconds($dScheduled, $aMeters[$iIndex], 'all')
+            ?? $dScheduled;
+        $aOut[] = (int)round($dSeconds / 60);
     }
     return $aOut;
 }

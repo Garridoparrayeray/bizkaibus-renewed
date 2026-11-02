@@ -371,6 +371,7 @@
             list.appendChild(item);
         });
         body.appendChild(list);
+        if (network.data.minsLearned) body.appendChild(el('p', 'map-note', t('map.minsLearned')));
 
         const link = el('a', 'map-action', t('map.openLine'));
         // L1 y L2 de Metro son una sola línea («MB») en sus datos.
