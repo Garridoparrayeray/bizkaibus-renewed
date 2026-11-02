@@ -6,9 +6,16 @@ namespace Services;
 // Engine\Bizkaibus\RealtimeMatcher, con el horario oficial tal cual y ningún vehículo.
 class ScheduleOnlyMatcher
 {
+    // Cada salida con los campos del horario oficial, como da el motor a las que no tienen vehículo.
     public function enrich(array $aRows): array
     {
-        return $aRows;
+        return array_map(fn(array $aRow) => $aRow + [
+            'status' => 'scheduled',
+            'delaySeconds' => 0,
+            'etaSeconds' => (int)$aRow['arrival_seconds'],
+            'vehicleRef' => null,
+            'currentStopId' => null,
+        ], $aRows);
     }
 
     public function isLive(string|null $sServiceJourneyId, array|null $aLive): bool
