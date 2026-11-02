@@ -176,7 +176,7 @@
                 "subtitle": "Horarios de Cercanías",
                 "liveEmpty": "Busca una parada para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
-                "attribution": "Datos: Renfe Cercanías / NAP (Punto de Acceso Nacional de Transporte)"
+                "attribution": "Datos: Renfe Cercanías"
             },
             "eu": {
                 "name": "Renfe Aldiriak+",
@@ -184,7 +184,7 @@
                 "switcher": "Bilbo eta Donostiako Aldirien ordutegiak",
                 "subtitle": "Aldirien ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
-                "attribution": "Datuak: Renfe Aldiriak / NAP (Garraioaren Sarbide Puntu Nazionala)"
+                "attribution": "Datuak: Renfe Aldiriak"
             },
             "en": {
                 "name": "Renfe Cercanías+",
@@ -193,7 +193,7 @@
                 "subtitle": "Commuter train timetables",
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
-                "attribution": "Data: Renfe Cercanías / NAP (Spain's National Access Point for transport data)"
+                "attribution": "Data: Renfe Cercanías"
             }
         }
     },
