@@ -51,15 +51,12 @@ return [
             'attribution' => 'Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
-            'name' => 'Vitoria Tram+',
             'tile' => 'Tram timetables',
-            'tile_title' => 'Tram',
-            'tile_city' => 'Vitoria',
             'switcher' => 'Vitoria-Gasteiz tram timetables',
             'subtitle' => 'Tram timetables',
             'liveEmpty' => 'Search for a stop to see the next tram.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
-            'attribution' => 'Data: Euskotren (Vitoria-Gasteiz tram) / Open Data Euskadi (CC-BY 4.0)',
+            'attribution' => 'Data: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
 
