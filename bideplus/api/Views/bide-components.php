@@ -101,15 +101,19 @@ function bideMenuButton(): string
 
 function bideMenuSheet(): string
 {
+    // Como el ☰ de dentro de cada app: un panel a la derecha con los botones uno debajo de otro.
+    $aItems = [
+        ['favoritos', 'favoritos', 'app.favorites.title', 'Tus favoritos'],
+        ['avisos', 'avisos', 'bide.alerts.title', 'Avisos de tus favoritos'],
+        ['ajustes', 'ajustes', 'bide.tab.settings', 'Ajustes'],
+        ['info', 'info', 'bide.tab.info', 'Info'],
+    ];
     $sHtml = '<dialog id="bide-menu-sheet" class="bide-menu-sheet" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
     $sHtml .= '<button type="button" class="bide-menu-sheet-close" data-bide-menu-close data-i18n-attr="aria-label:bide.menu.close" aria-label="Cerrar menú">' . BIDE_ICONS['close'] . '</button>';
-    $sHtml .= '<nav class="bide-menu-sheet-nav">';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="favoritos">' . BIDE_ICONS['favoritos'] . '<span data-i18n="app.favorites.title">Tus favoritos</span></button>';
-    $sHtml .= '<a class="bide-rail-item" href="/mapa">' . BIDE_ICONS['mapa'] . '<span data-i18n="map.title">Mapa de la red</span></a>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
-    return $sHtml . '</nav></dialog>';
+    foreach ($aItems as [$sTab, $sIcon, $sKey, $sLabel]) {
+        $sHtml .= '<button type="button" class="bide-menu-pill" data-bide-tab="' . $sTab . '">' . BIDE_ICONS[$sIcon] . '<span data-i18n="' . $sKey . '">' . $sLabel . '</span></button>';
+    }
+    return $sHtml . '</dialog>';
 }
 
 function bideChangelogEntry(array $aEntry): string
