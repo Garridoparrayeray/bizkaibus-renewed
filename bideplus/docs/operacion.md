@@ -7,7 +7,7 @@ no hay ninguna clave: solo sus nombres y dónde se configuran.
 
 | Servicio | Para qué | Dónde se configura |
 | --- | --- | --- |
-| **Vercel** (proyecto `bizkaibus-renewed`, carpeta raíz `bideplus`) | sirve la app y la API: `bideplus.vercel.app` y `bideplusmiamor.vercel.app` (tema «mi amor»). El servidor corre en París (`regions: ["cdg1"]` en `vercel.json`) | Project Settings → Environment Variables y Domains |
+| **Vercel** (proyecto `bizkaibus-renewed`, carpeta raíz `bideplus`) | sirve la app y la API: `www.bideplus.eus` (dominio propio; `bideplus.eus` y `bideplus.vercel.app` redirigen a él) y `bideplusmiamor.vercel.app` (tema «mi amor»). El servidor corre en París (`regions: ["cdg1"]` en `vercel.json`) | Project Settings → Environment Variables y Domains |
 | **Upstash Redis** (conectado desde Vercel → Storage) | almacén compartido: registro de pasos, avisos de llegada, incidencias y claves de las notificaciones | panel de Upstash: uso, límites y explorador de datos |
 | **cron-job.org** | llama cada minuto a `/api/live/record`: apunta los pasos y manda las notificaciones | la tarea de cron-job.org (URL con `?key=` y frecuencia) |
 | **GitHub Actions** | pruebas, reconstrucción diaria y despliegue, captura del ritmo de los buses | Settings → Secrets and variables → Actions |
@@ -90,8 +90,8 @@ función; cada red nueva suma su base).
 
 | Qué mirar | Bien si… |
 | --- | --- |
-| `https://bideplus.vercel.app/api/status?red=bus` | `ok: true` y `vehicles` mayor que 0 en horario de servicio |
-| `https://bideplus.vercel.app/api/push/key` | `publicKey` no es `null` (Upstash y claves de notificación bien) |
+| `https://www.bideplus.eus/api/status?red=bus` | `ok: true` y `vehicles` mayor que 0 en horario de servicio |
+| `https://www.bideplus.eus/api/push/key` | `publicKey` no es `null` (Upstash y claves de notificación bien) |
 | El historial de cron-job.org | respuestas 200 con `recorded`, `arrivalAlerts`, `incidentAlerts` y `updateAlerts` |
 | GitHub → Actions | la última «Rebuild schedule data» y la captura en verde |
 | Ajustes de la app | la versión es la de la última novedad, y la fecha de los horarios guardados es la de hoy |

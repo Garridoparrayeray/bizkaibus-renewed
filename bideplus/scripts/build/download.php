@@ -142,7 +142,7 @@ class Download
         }
         if ($aFeedStart && $aFeedEnd) {
             $Out->addFromString('feed_info.txt', "feed_publisher_name,feed_publisher_url,feed_lang,feed_start_date,feed_end_date,feed_version\n"
-                . 'Bide+,https://bideplus.vercel.app,es,' . min($aFeedStart) . ',' . max($aFeedEnd) . ',' . date('YmdHis') . "\n");
+                . 'Bide+,' . (require __DIR__ . '/../../api/Config/site.php')['url'] . ',es,' . min($aFeedStart) . ',' . max($aFeedEnd) . ',' . date('YmdHis') . "\n");
         }
         $Out->close();
         foreach ($aRows as $sFile => $aFileRows) {

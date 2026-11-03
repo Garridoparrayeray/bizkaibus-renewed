@@ -2,7 +2,7 @@
 
 ## Versiones con soporte
 
-Solo se mantiene la versión que está en producción, que es la rama `master` desplegada en <https://bideplus.vercel.app>. Los fallos de seguridad se corrigen allí y no en versiones anteriores.
+Solo se mantiene la versión que está en producción, que es la rama `master` desplegada en <https://www.bideplus.eus>. Los fallos de seguridad se corrigen allí y no en versiones anteriores.
 
 ## Cómo informar de una vulnerabilidad
 

@@ -1,7 +1,9 @@
 <?php
 
 return [
-    'url' => 'https://bideplus.vercel.app',
+    // La dirección de la app: la canónica, el sitemap, las vistas previas y las comprobaciones de producción salen de
+    // aquí. bideplus.vercel.app y bideplus.eus redirigen a ella.
+    'url' => 'https://www.bideplus.eus',
     'name' => 'Bide+',
     'locale' => 'es_ES',
     // La red que se abre en «/» y cuyas direcciones no llevan ?red= (una de api/Networks).

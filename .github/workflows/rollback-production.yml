@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Solo para leer la dirección de la app (bideplus/api/Config/site.php) al comprobar que responde.
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: bideplus/api/Config
+
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
@@ -28,8 +33,9 @@ jobs:
           fi
           echo "Volviendo a https://$PREVIOUS"
           vercel rollback "https://$PREVIOUS" --token="$VERCEL_TOKEN" --timeout 5m
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
           for i in $(seq 1 12); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' https://bideplus.vercel.app/api/lines)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO/api/lines")
             echo "producción /api/lines -> $CODE"
             [ "$CODE" = "200" ] && exit 0
             sleep 10

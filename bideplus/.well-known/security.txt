@@ -3,4 +3,4 @@ Contact: https://www.yeraygarrido.dev/
 Expires: 2027-10-01T00:00:00.000Z
 Policy: https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/SECURITY.md
 Preferred-Languages: es, eu, en
-Canonical: https://bideplus.vercel.app/.well-known/security.txt
+Canonical: https://www.bideplus.eus/.well-known/security.txt

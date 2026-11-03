@@ -57,7 +57,7 @@ $sAppName = Networks::text($aNetwork, 'name');
     </main>
     <footer class="screen-footer">
         <span class="screen-status" data-screen-status></span>
-        <span class="screen-brand" data-i18n="screen.footer">Horarios y tiempo real en bideplus.vercel.app</span>
+        <span class="screen-brand" data-i18n="screen.footer">Horarios y tiempo real en bideplus.eus</span>
     </footer>
 </body>
 </html>
