@@ -329,6 +329,8 @@ class Journeys
         echo "\n";
 
         $aTotals['shapes'] = self::insertShapes($Pdo, $Zip, $aUsedShapeIds);
+        $aAligned = Shapes::align($Pdo);
+        printf("  Trazados del GTFS: %d estaban al revés; %d viajes con las paradas medidas de nuevo sobre su trazado\n", $aAligned['reversed'], $aAligned['remeasured']);
 
         if ($bExactWindow) {
             $aAudit = Calendars::auditExactCalendars($Pdo, $aRepresentatives, $aWindow);
