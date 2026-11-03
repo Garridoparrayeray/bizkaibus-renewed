@@ -59,6 +59,7 @@ const SHELL_FILES = [
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',
     '/js/settings.js',
+    '/js/location-pref.js',
     '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',
