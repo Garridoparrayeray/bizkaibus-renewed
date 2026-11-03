@@ -137,6 +137,17 @@ print('style-networks.css:', css_result)
 if stale_css:
     failures.append('style-networks.css desactualizado')
 
+# 404.html: un enlace a cada app, generado por scripts/build-404.php desde api/Networks.
+fresh_404 = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check-404.html')
+r = subprocess.run([PHP, ROOT + 'scripts/build-404.php', '--output=' + fresh_404], capture_output=True, text=True)
+stale_404 = r.returncode != 0 or open(fresh_404, encoding='utf-8').read() != open(ROOT + '404.html', encoding='utf-8').read()
+notfound_result = 'al día (' + r.stdout.strip() + ')'
+if stale_404:
+    notfound_result = 'desactualizado, ejecuta php scripts/build-404.php'
+print('404.html:', notfound_result)
+if stale_404:
+    failures.append('404.html desactualizado')
+
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
 for slug, net in registry.items():

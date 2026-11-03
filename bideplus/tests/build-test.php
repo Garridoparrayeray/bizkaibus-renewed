@@ -247,6 +247,10 @@ $aFirst = $FirstPoint($Pdo);
 $Expect('un trazado dibujado al revés se pone del derecho: empieza en la primera parada', $aTotals['reversed'] === 1 && abs($aFirst[0] - 43.2) < 1e-6 && $aFirst[2] == 0);
 $Expect('con el trazado del derecho, cada parada cae a sus metros', $Distances($Pdo) === [0, 1000, 2000, 3000]);
 
+$Pdo = $ShapeFixture(false, [null, null, null, null]);
+$aTotals = Shapes::align($Pdo);
+$Expect('un viaje sin metros en el GTFS se queda sin ellos, como antes', $aTotals['remeasured'] === 0 && (int)$Pdo->query('SELECT COUNT(*) FROM passing_times WHERE dist_m IS NOT NULL')->fetchColumn() === 0);
+
 $Pdo = $ShapeFixture(false, [0, 700, 1500, 2600]);
 $aTotals = Shapes::align($Pdo);
 $Expect('unos metros del GTFS que no caen sobre la parada se miden de nuevo sobre el trazado', $aTotals['remeasured'] === 1 && $Distances($Pdo) === [0, 1000, 2000, 3000]);

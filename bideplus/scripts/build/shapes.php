@@ -21,8 +21,9 @@ class Shapes
 
     public static function align(PDO $Pdo): array
     {
-        // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera.
-        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_align_passing_times ON passing_times (service_journey_id, seq_order)');
+        // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera. Es el
+        // mismo índice que crea después (Schema::createIndexes), así que se queda y no hay que quitarlo.
+        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_passing_times_journey ON passing_times (service_journey_id, seq_order)');
         $aJourneysByShape = [];
         $Rows = $Pdo->query('SELECT id, shape_id FROM service_journeys WHERE shape_id IS NOT NULL');
         foreach ($Rows as $aRow) {
@@ -56,7 +57,9 @@ class Shapes
                 $aTotals['reversed']++;
             }
             foreach ($aStopsByJourney as $sJourneyId => $aStops) {
-                if (!$bReversed && self::stopsMatch($aPoints, $aStops)) {
+                // Sin metros en el GTFS (Lurraldebus, Bilbobus…) se quedan sin ellos, como antes: el motor sitúa al bus
+                // con la recta entre paradas, y medirlos ahora cambiaría eso sin haberlo medido.
+                if (self::withoutDistances($aStops) || (!$bReversed && self::stopsMatch($aPoints, $aStops))) {
                     continue;
                 }
                 foreach (self::stopDistances($aPoints, $aStops) as $iSeq => $dMeters) {
@@ -65,8 +68,6 @@ class Shapes
                 $aTotals['remeasured']++;
             }
         }
-        $Rows = $LoadShape = $LoadStops = $SaveShape = $SaveDistance = null;
-        $Pdo->exec('DROP INDEX idx_align_passing_times');
         return $aTotals;
     }
 
@@ -105,14 +106,25 @@ class Shapes
         return $aFlipped;
     }
 
+    public static function withoutDistances(array $aStops): bool
+    {
+        foreach ($aStops as $aStop) {
+            if ($aStop['dist_m'] !== null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Cada parada, a sus metros del GTFS sobre el trazado, cae junto a ella.
     public static function stopsMatch(array $aPoints, array $aStops): bool
     {
+        $bSorted = self::isSorted($aPoints);
         foreach ($aStops as $aStop) {
             if ($aStop['dist_m'] === null) {
                 return false;
             }
-            $aOnShape = self::pointAt($aPoints, (float)$aStop['dist_m']);
+            $aOnShape = self::pointAt($aPoints, (float)$aStop['dist_m'], $bSorted);
             if (self::meters(self::coordinates($aStop), $aOnShape) > self::MAX_STOP_OFFSET_METERS) {
                 return false;
             }
@@ -127,26 +139,30 @@ class Shapes
         $aDistances = [];
         $dPrevious = 0.0;
         $aPreviousStop = null;
+        $bSorted = self::isSorted($aPoints);
         foreach ($aStops as $aStop) {
             $aHere = self::coordinates($aStop);
             $dLimit = INF;
             if ($aPreviousStop !== null) {
                 $dLimit = $dPrevious + self::ROAD_VS_STRAIGHT_RATIO * self::meters($aPreviousStop, $aHere) + self::SEARCH_SLACK_METERS;
             }
-            $dPrevious = self::nearestAlong($aPoints, $aHere, $dPrevious, $dLimit);
+            $dPrevious = self::nearestAlong($aPoints, $aHere, $dPrevious, $dLimit, $bSorted);
             $aDistances[(int)$aStop['seq_order']] = $dPrevious;
             $aPreviousStop = $aHere;
         }
         return $aDistances;
     }
 
-    private static function nearestAlong(array $aPoints, array $aStop, float $dFrom, float $dTo): float
+    private static function nearestAlong(array $aPoints, array $aStop, float $dFrom, float $dTo, bool $bSorted): float
     {
         $dBest = null;
         $dBestAlong = $dFrom;
-        for ($i = 0; $i < \count($aPoints) - 1; $i++) {
+        for ($i = self::firstSegmentFrom($aPoints, $dFrom, $bSorted); $i < \count($aPoints) - 1; $i++) {
             $aA = $aPoints[$i];
             $aB = $aPoints[$i + 1];
+            if ($bSorted && (float)$aA[2] > $dTo) {
+                break;
+            }
             if ((float)$aB[2] < $dFrom || (float)$aA[2] > $dTo) {
                 continue;
             }
@@ -159,10 +175,10 @@ class Shapes
         return $dBestAlong;
     }
 
-    private static function pointAt(array $aPoints, float $dAlong): array
+    private static function pointAt(array $aPoints, float $dAlong, bool $bSorted): array
     {
         $iLast = \count($aPoints) - 1;
-        for ($i = 0; $i < $iLast; $i++) {
+        for ($i = self::firstSegmentFrom($aPoints, $dAlong, $bSorted); $i < $iLast; $i++) {
             $aA = $aPoints[$i];
             $aB = $aPoints[$i + 1];
             if ((float)$aB[2] < $dAlong && $i < $iLast - 1) {
@@ -175,6 +191,36 @@ class Shapes
             return [(float)$aA[0] + $dFraction * ((float)$aB[0] - (float)$aA[0]), (float)$aA[1] + $dFraction * ((float)$aB[1] - (float)$aA[1])];
         }
         return [(float)$aPoints[0][0], (float)$aPoints[0][1]];
+    }
+
+    // El primer tramo del trazado que llega a $dAlong metros; con los metros desordenados, el primero de todos.
+    private static function firstSegmentFrom(array $aPoints, float $dAlong, bool $bSorted): int
+    {
+        if (!$bSorted) {
+            return 0;
+        }
+        $iLow = 0;
+        $iHigh = \count($aPoints) - 2;
+        while ($iLow < $iHigh) {
+            $iMiddle = intdiv($iLow + $iHigh, 2);
+            if ((float)$aPoints[$iMiddle + 1][2] < $dAlong) {
+                $iLow = $iMiddle + 1;
+            } else {
+                $iHigh = $iMiddle;
+            }
+        }
+        return max(0, $iLow);
+    }
+
+    // Los metros del trazado crecen de un punto al siguiente (los del GTFS suelen; si no, se recorre entero).
+    private static function isSorted(array $aPoints): bool
+    {
+        for ($i = 1; $i < \count($aPoints); $i++) {
+            if ((float)$aPoints[$i][2] < (float)$aPoints[$i - 1][2]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static function projection(array $aStop, array $aA, array $aB): array
