@@ -76,6 +76,9 @@ return [
     ],
 
     'live' => ['trip-updates', 'vehicle-positions'],
+    // El workflow «Ritmo de los buses» guarda este directo para que el motor aprenda de él (engine/renfe). La app todavía
+    // no lo usa: primero se mide si acierta más que el retraso del feed.
+    'capture' => 'gtfs-rt',
 
     // Directo de Renfe (GTFS-Realtime, cada minuto): el retraso de cada tren, los cancelados y dónde va cada tren. Sus
     // viajes son los del horario, así que se empareja por viaje.
