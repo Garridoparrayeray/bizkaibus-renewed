@@ -11,9 +11,13 @@
 #     repositorio del algoritmo, para poder recalcularlo todo más adelante (los acumulados descartan lo antiguo).
 # Los bloques no cruzan la medianoche: el horario de cada captura es el de su día.
 #
+# Con TIPO=gtfs-rt (Renfe) solo se guarda y archiva el directo GTFS-Realtime de la red, recortado a sus trenes
+# (engine/<red>/tools/capture.php): ni muestras ni medida, hasta que el motor aprenda de él.
+#
 # Variables:
 #   RED            red de api/Networks con motor (bus por defecto); cada una tiene su release de acumulados
 #                  (pace-data para bus, pace-data-<red> para las demás) y su archivo de capturas
+#   TIPO           siri (por defecto: motor con SIRI Vehicle Monitoring) o gtfs-rt (solo guardar el directo)
 #   MINUTOS        minutos de captura en total (330 por defecto: el trabajo tiene un límite de 6 horas)
 #   BLOQUE         minutos por bloque; vacío, hasta la siguiente hora en punto (para probar, 2 o 3)
 #   INTERVALO      segundos entre lecturas del feed (20 por defecto; el feed cambia cada 55 s más o menos)
@@ -28,6 +32,7 @@
 set -uo pipefail
 
 RED=${RED:-bus}
+TIPO=${TIPO:-siri}
 RELEASE_RED=pace-data
 PREFIJO_ARCHIVO=capturas
 if [ "$RED" != bus ]; then
@@ -73,9 +78,14 @@ dia_de() {
   echo "${sNombre:7:8}"
 }
 
-# Número de capturas guardadas en un bloque.
+# Número de capturas guardadas en un bloque (vm_*.xml del SIRI; tu_*.pb y vp_*.pb del GTFS-Realtime).
 capturas_de() {
-  find "$1/capturas" -name 'vm_*.xml' | wc -l
+  find "$1/capturas" \( -name 'vm_*.xml' -o -name '*.pb' \) | wc -l
+}
+
+# Solo guardar: sin acumulados, muestras ni medida.
+solo_guardar() {
+  [ "$TIPO" = gtfs-rt ]
 }
 
 # Hora unix en que debe acabar el bloque que empieza ahora: la siguiente hora en punto (o BLOQUE minutos), sin pasar del
@@ -100,14 +110,22 @@ iniciar_bloque() {
   BLOQUE_ACTUAL="$TRABAJO/bloque-$(sello "$(date +%s)")"
   mkdir -p "$BLOQUE_ACTUAL/capturas"
   echo "$(date +%H:%M:%S) captura $(basename "$BLOQUE_ACTUAL") hasta las $(TZ=Europe/Madrid date -d "@$iFin" +%H:%M)"
-  php "$MOTOR/realtime-backtest.php" capture "$BLOQUE_ACTUAL/capturas" 0 "$INTERVALO" --hasta="$iFin" --red="$RED" \
-    >"$BLOQUE_ACTUAL/captura.log" 2>&1 &
+  if solo_guardar; then
+    php "bideplus/engine/$RED/tools/capture.php" "$BLOQUE_ACTUAL/capturas" --hasta="$iFin" --intervalo="$INTERVALO" \
+      --red="$RED" >"$BLOQUE_ACTUAL/captura.log" 2>&1 &
+  else
+    php "$MOTOR/realtime-backtest.php" capture "$BLOQUE_ACTUAL/capturas" 0 "$INTERVALO" --hasta="$iFin" --red="$RED" \
+      >"$BLOQUE_ACTUAL/captura.log" 2>&1 &
+  fi
   PID_CAPTURA=$!
 }
 
 descargar_acumulados() {
   mkdir -p "$ACUM"
   local sNombre iEstado
+  if solo_guardar; then
+    return 0
+  fi
   if [ "$SUBIR" != 1 ]; then
     for sNombre in "${ACUMULADOS[@]}"; do
       touch "$ACUM/$sNombre"
@@ -134,7 +152,7 @@ descargar_acumulados() {
 }
 
 subir_acumulados() {
-  if [ "$SUBIR" != 1 ]; then
+  if [ "$SUBIR" != 1 ] || solo_guardar; then
     return 0
   fi
   local sNombre
@@ -153,6 +171,9 @@ subir_acumulados() {
 # nuevas, para el archivo.
 procesar_muestras() {
   local sBloque=$1
+  if solo_guardar; then
+    return 0
+  fi
   timeout 900 php "$MOTOR/realtime-backtest.php" samples "$sBloque/capturas" "$ACUM/pace-samples.jsonl" \
     --nuevas="$sBloque/muestras-ritmo.jsonl" --red="$RED" || aviso "Fallan las muestras de ritmo de $(basename "$sBloque")"
   timeout 900 php "$MOTOR/realtime-backtest.php" segment-samples "$sBloque/capturas" "$ACUM/segment-samples.jsonl" \
@@ -187,7 +208,7 @@ archivar() {
   if ! GH_TOKEN=$ARCHIVO_TOKEN gh release view "$sEtiqueta" --repo "$ARCHIVO_REPO" >/dev/null 2>&1; then
     GH_TOKEN=$ARCHIVO_TOKEN gh release create "$sEtiqueta" --repo "$ARCHIVO_REPO" --prerelease \
       --title "Capturas del feed de $RED (${sNombre:0:4}-${sNombre:4:2})" \
-      --notes "Copias del feed SIRI de la red $RED en bloques de una hora (hora de Madrid), con las muestras que se sacaron de cada bloque. Las genera el workflow Ritmo de los buses; no es una versión." \
+      --notes "Copias del feed en directo ($TIPO) de la red $RED en bloques de una hora (hora de Madrid), con las muestras que se sacaron de cada bloque. Las genera el workflow Ritmo de los buses; no es una versión." \
       >/dev/null 2>&1
   fi
   if GH_TOKEN=$ARCHIVO_TOKEN reintentar 3 gh release upload "$sEtiqueta" --repo "$ARCHIVO_REPO" "$sTar" --clobber; then
@@ -203,6 +224,9 @@ archivar() {
 evaluar() {
   local sBloque=$1 sSiguiente=$2 sNombre sModo
   local aSeguimiento=()
+  if solo_guardar; then
+    return 0
+  fi
   sNombre=$(basename "$sBloque")
   if [ -n "$sSiguiente" ] && [ "$(dia_de "$sBloque")" = "$(dia_de "$sSiguiente")" ]; then
     aSeguimiento=(--seguimiento="$sSiguiente/capturas")
