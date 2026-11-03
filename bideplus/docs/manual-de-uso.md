@@ -17,6 +17,7 @@ móvil y del ordenador, y se puede instalar como una app más.
 | **Tuvisa+** | horarios y tiempo real de los autobuses de Vitoria-Gasteiz, los autobuses en el mapa e incidencias |
 | **Dbus+** | horarios y tiempo real de los autobuses de Donostia y los autobuses en el mapa |
 | **Álavabus+** | horarios de los autobuses interurbanos de Álava |
+| **La Unión+** | horarios de los autobuses de La Unión entre Bizkaia y Vitoria-Gasteiz (Bilbao, las dos márgenes, Leioa, Algorta y el aeropuerto de Loiu) |
 
 Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**.
 

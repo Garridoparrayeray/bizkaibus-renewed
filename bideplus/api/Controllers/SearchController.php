@@ -40,7 +40,8 @@ class SearchController
 
     private function addDirectionHints(Stop $StopModel, array $aStops): array
     {
-        $aHeadsigns = $StopModel->headsignsForMany(array_column($aStops, 'id'));
+        $bFromLastStop = (bool)Config::feature('headsign_from_last_stop');
+        $aHeadsigns = $StopModel->headsignsForMany(array_column($aStops, 'id'), 2, $bFromLastStop);
         foreach ($aStops as &$aStop) {
             // Sin recorridos que salgan de ella, la parada solo es final de línea.
             $aStop['hint'] = 'final de línea';

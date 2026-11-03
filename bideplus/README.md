@@ -4,7 +4,7 @@ Apps de horarios de transporte de Euskadi (Bizkaibus, Metro Bilbao, Euskotren, R
 
 ## Arquitectura
 
-- **`api/Networks/`** — una ficha por red (`bus.php`, `metro.php`, `euskotren.php`, `renfe.php`, `lurraldebus.php`, `tranvia-bilbao.php`, `tranvia-vitoria.php`, `bilbobus.php`, `tuvisa.php`, `dbus.php`, `alavabus.php`). Es el núcleo común: todo lo demás lee de aquí; una red nueva no lleva código propio.
+- **`api/Networks/`** — una ficha por red (`bus.php`, `metro.php`, `euskotren.php`, `renfe.php`, `lurraldebus.php`, `tranvia-bilbao.php`, `tranvia-vitoria.php`, `bilbobus.php`, `tuvisa.php`, `dbus.php`, `alavabus.php`, `launion.php`). Es el núcleo común: todo lo demás lee de aquí; una red nueva no lleva código propio.
 - **`data/<red>.sqlite`** — paradas, líneas, patrones de ruta y horarios, precompilados por red desde su GTFS oficial (`scripts/build-database.php --network=<red>`). Se reconstruyen a diario (`.github/workflows/rebuild-schedule.yml`).
 - **`api/`** — API REST en PHP nativo, sin framework:
   - `index.php` — punto de entrada de la API (Vercel enruta `/api/*` aquí vía `vercel.json`)
