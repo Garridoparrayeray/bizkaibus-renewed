@@ -581,6 +581,10 @@ foreach ($aSources as $sFile => $sText) {
     }
 }
 foreach ($aJsFiles as $sFile) {
+    // Las herramientas (scripts/, tests/) se lanzan con node, no las carga ninguna página.
+    if (str_starts_with($sFile, 'scripts/') || str_starts_with($sFile, 'tests/')) {
+        continue;
+    }
     preg_match_all('/^import\s[^\'"]*[\'"](\.{1,2}\/[^\'"]+)[\'"]/m', $aSources[$sFile], $aMatches);
     foreach ($aMatches[1] as $sImport) {
         $aParts = [];

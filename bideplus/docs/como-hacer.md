@@ -100,7 +100,7 @@ las pruebas: `CHROME_PATH`). En la ficha, `logomark` con `glyph.png` y `card_log
 ## Imagen para compartir y cartel de parada
 
 ```bash
-node scripts/render-images.mjs        # las dos; «og» o «cartel» para solo una
+node scripts/render-images.mjs        # todo; «og», «cartel» o «apps» para solo una parte
 ```
 
 - `icons-bide-rojo/og-image.png` (1200 × 630): la imagen que sale al compartir un enlace de Bide+, con todas las apps
@@ -110,6 +110,10 @@ node scripts/render-images.mjs        # las dos; «og» o «cartel» para solo u
   desde aquí el horario de esta parada», en castellano y euskera, con el hueco del centro para pegar el QR de cada
   parada (la dirección de la parada es `https://www.bideplus.eus/stops/<número>`; en otra red, con `?red=<red>`).
   `carteles/` está fuera de `bideplus/`, así que no se publica en la web.
+- `carteles/apps/cartel-<red>.png` y `.pdf`: un cartel A5 por app, con su color, su icono y el QR que la abre
+  (`https://www.bideplus.eus/?red=<red>`). Bizkaibus, Metro y Renfe llevan su propio mensaje y lo que ofrecen
+  (`FEATURED` en el script); las demás, uno según el tipo de transporte y el subtítulo de su ficha. El QR lo dibuja
+  `scripts/qr.mjs`, sin dependencias; antes de imprimir muchos, escanea uno.
 
 ## Cambiar los colores de una red
 
