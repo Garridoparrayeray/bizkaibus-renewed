@@ -296,6 +296,8 @@ function makeIcons(string $sSlug, string $sName, string $sColor): void
     file_put_contents($sDir . '/glyph.svg', $sSvg . '<g fill="#000000">' . $sMark . '</g></svg>' . "\n");
     passthru('node ' . escapeshellarg(__DIR__ . '/render-icons.mjs') . ' ' . escapeshellarg($sSlug), $iStatus);
     if ($iStatus === 0) {
+        // La imagen para compartir lleva todas las apps: con la nueva, se vuelve a dibujar.
+        passthru('node ' . escapeshellarg(__DIR__ . '/render-images.mjs') . ' og');
         return;
     }
     fwrite(STDERR, "Sin navegador para dibujar el icono: van los de Bide+ (node scripts/render-icons.mjs $sSlug más tarde).\n");

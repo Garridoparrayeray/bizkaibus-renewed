@@ -97,6 +97,20 @@ node scripts/render-icons.mjs <red>
 Saca `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `icon-maskable-512.png` y `glyph.png` (con el navegador de
 las pruebas: `CHROME_PATH`). En la ficha, `logomark` con `glyph.png` y `card_logomark` con `icon-192.png`.
 
+## Imagen para compartir y cartel de parada
+
+```bash
+node scripts/render-images.mjs        # las dos; «og» o «cartel» para solo una
+```
+
+- `icons-bide-rojo/og-image.png` (1200 × 630): la imagen que sale al compartir un enlace de Bide+, con todas las apps
+  del registro en el orden del menú. `scripts/new-network.php` la vuelve a dibujar al añadir una red; si cambias el
+  nombre o el icono de una, ejecútalo a mano.
+- `carteles/cartel-parada-a5.png` (A5 a 300 ppp) y `cartel-parada-a5.pdf`: el cartel «¿Cansado de perder el bus? Mira
+  desde aquí el horario de esta parada», en castellano y euskera, con el hueco del centro para pegar el QR de cada
+  parada (la dirección de la parada es `https://www.bideplus.eus/stops/<número>`; en otra red, con `?red=<red>`).
+  `carteles/` está fuera de `bideplus/`, así que no se publica en la web.
+
 ## Cambiar los colores de una red
 
 En su ficha, `tile_color`, `swatch_color`, `theme_color` y `palette`. Después:
