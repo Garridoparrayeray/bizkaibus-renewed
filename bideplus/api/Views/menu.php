@@ -94,7 +94,7 @@ $aJsonLd = [
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
-    <link rel="stylesheet" href="/style-splash.css">
+    <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/menu-view.js"></script>
     <script src="/js/theme.js"></script>
@@ -102,10 +102,10 @@ $aJsonLd = [
     <script src="/js/notification-open.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
-    <link rel="stylesheet" href="/style-menu.css">
-    <link rel="stylesheet" href="/style-bide.css">
-    <link rel="stylesheet" href="/style-networks.css">
-    <link rel="stylesheet" href="/style-miamor.css">
+    <link rel="stylesheet" href="/css/style-menu.css">
+    <link rel="stylesheet" href="/css/style-bide.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
+    <link rel="stylesheet" href="/css/style-miamor.css">
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-menu">
@@ -162,15 +162,15 @@ $aJsonLd = [
 
 <?= bideInstallBanner() ?>
 
-        <footer class="menu-footer">
-            <div class="bide-footer-brand">
-                <span class="bide-wordmark">BIDE<span>+</span></span>
-                <p data-i18n="menu.footer">Datos abiertos del operador de cada red (las fuentes y sus licencias, en Info). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
-            </div>
-            <?= bideAppsLinks() ?>
-            <?= bideFooterAuthor('<button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
-        </footer>
     </main>
+    <footer class="menu-footer">
+        <div class="bide-footer-brand">
+            <span class="bide-wordmark">BIDE<span>+</span></span>
+            <p data-i18n="menu.footer">Datos abiertos del operador de cada red (las fuentes y sus licencias, en Info). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+        </div>
+        <?= bideAppsLinks() ?>
+        <?= bideFooterAuthor('<button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
+    </footer>
 <?= bideTabbar() ?>
 <?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>

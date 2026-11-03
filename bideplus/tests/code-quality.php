@@ -21,7 +21,7 @@ const MIN_BODY_TOKENS = 40;
 // Variables de PHP que no son nuestras o son contadores de bucle.
 const PHP_ALLOWED_NAMES = ['this', '_SERVER', '_GET', '_POST', '_ENV', '_COOKIE', '_FILES', '_REQUEST', 'GLOBALS', 'argv', 'argc', 'http_response_header', 'i', 'j', 'k'];
 // El mapa de la red necesita internet (mosaicos y datos del mapa): sus piezas no van en el precache.
-const PRECACHE_EXCEPTIONS = ['/js/network-map.js', '/style-map.css'];
+const PRECACHE_EXCEPTIONS = ['/js/network-map.js', '/css/style-map.css'];
 
 $aProblems = [];
 $Report = function (string $sRule, string $sWhere) use (&$aProblems): void {

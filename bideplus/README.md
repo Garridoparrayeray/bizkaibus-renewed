@@ -39,18 +39,18 @@ Cada red se describe en `api/Networks/<red>.php`:
 | `siri`, `gtfs_rt`, `metro_alerts`, `renfe_alerts` | URLs de los feeds |
 | `gtfs` | origen del GTFS, operador, lector de paradas y si su reconstrucción diaria es obligatoria |
 
-De ahí salen la API, la página de cada app, el menú, la barra lateral, el sitemap, la reconstrucción diaria, el comprobador de producción, `js/networks.js` y `style-networks.css`.
+De ahí salen la API, la página de cada app, el menú, la barra lateral, el sitemap, la reconstrucción diaria, el comprobador de producción, `js/networks.js` y `css/style-networks.css`.
 
 ### Añadir una red
 
-`php scripts/new-network.php --slug=<red> --name="<Nombre>+" --color=#RRGGBB --gtfs=<url del GTFS>` crea la ficha de la red con sus textos y colores, unos iconos provisionales y regenera `js/networks.js` y `style-networks.css` (los colores de cada red salen de su ficha). Después: iconos de verdad, `php scripts/build-database.php --network=<red>` y `php scripts/build-sitemap.php`. La guía completa, también para montar una versión propia para un ayuntamiento, está en [docs/nueva-red.md](docs/nueva-red.md).
+`php scripts/new-network.php --slug=<red> --name="<Nombre>+" --color=#RRGGBB --gtfs=<url del GTFS>` crea la ficha de la red con sus textos y colores, unos iconos provisionales y regenera `js/networks.js` y `css/style-networks.css` (los colores de cada red salen de su ficha). Después: iconos de verdad, `php scripts/build-database.php --network=<red>` y `php scripts/build-sitemap.php`. La guía completa, también para montar una versión propia para un ayuntamiento, está en [docs/nueva-red.md](docs/nueva-red.md).
 
 ## Tres temas visuales
 
 `api/Views/app-page.php` resuelve el título y las meta de Open Graph en servidor a partir de `?red=`, antes de que el HTML llegue al cliente — necesario porque los bots que generan la vista previa al compartir un enlace (WhatsApp, Telegram...) no ejecutan JavaScript. El resto de la personalización (tema, textos, iconos, manifest) se resuelve en el navegador: un script inline al principio de `<head>` (antes de cualquier `<link>` de estilos, para evitar parpadeo del tema equivocado) escribe (`document.write`) el `<title>`, `<link rel="manifest">`, `theme-color`, iconos y hoja de estilos correctos según `?red=` y `?tema=miamor`, antes de que el navegador empiece a pintar. No se usa `localStorage` para decidir el tema — cada carga de `/` sin el parámetro es siempre el tema normal, sin excepción.
 
-- **`style-app.css`** — hoja única de Bizkaibus+, Metro+ y Euskotren+. Los colores de cada app son variables (`html.is-metro`, `html.is-euskotren`); cualquier cambio de diseño se hace una sola vez.
-- **`style-miamor.css`** — el tema "mi amor": la misma app que la normal (`style-app.css` y el formato de Bide+) con sus rosas, el degradado de fondo y las tarjetas de cristal. Es el proyecto original, hecho para mi mujer por sus quejas sobre lo poco user-friendly que le parecía la app oficial de Bizkaibus. Sale igual en todas las redes y se activa con `?tema=miamor` o desde bideplusmiamor.vercel.app.
+- **`css/style-app.css`** — hoja única de Bizkaibus+, Metro+ y Euskotren+. Los colores de cada app son variables (`html.is-metro`, `html.is-euskotren`); cualquier cambio de diseño se hace una sola vez.
+- **`css/style-miamor.css`** — el tema "mi amor": la misma app que la normal (`css/style-app.css` y el formato de Bide+) con sus rosas, el degradado de fondo y las tarjetas de cristal. Es el proyecto original, hecho para mi mujer por sus quejas sobre lo poco user-friendly que le parecía la app oficial de Bizkaibus. Sale igual en todas las redes y se activa con `?tema=miamor` o desde bideplusmiamor.vercel.app.
 - **`manifest.json`**, **`manifest-metro.json`**, **`manifest-miamor.json`** — mismo contenido salvo tema, iconos y `theme_color`. El icono de instalación con el tema mi amor activo es siempre el corazón, en cualquiera de las dos redes.
 
 ## El modelo de calendario, y por qué cada operador lo rompe distinto

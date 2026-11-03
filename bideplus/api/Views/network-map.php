@@ -41,10 +41,10 @@ $aJsonLd = [
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
-    <link rel="stylesheet" href="/style-bide.css">
-    <link rel="stylesheet" href="/style-map.css">
-    <link rel="stylesheet" href="/style-networks.css">
-    <link rel="stylesheet" href="/style-miamor.css">
+    <link rel="stylesheet" href="/css/style-bide.css">
+    <link rel="stylesheet" href="/css/style-map.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
+    <link rel="stylesheet" href="/css/style-miamor.css">
     <script src="/js/theme.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>

@@ -38,7 +38,7 @@ use Core\Networks;
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
-    <link rel="stylesheet" href="/style-splash.css">
+    <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
@@ -48,9 +48,9 @@ use Core\Networks;
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
     <script src="/js/notification-open.js"></script>
-    <link rel="stylesheet" href="/style-bide.css">
-    <link rel="stylesheet" href="/style-networks.css">
-    <link rel="stylesheet" href="/style-miamor.css">
+    <link rel="stylesheet" href="/css/style-bide.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
+    <link rel="stylesheet" href="/css/style-miamor.css">
 </head>
 <body class="page-app">
     <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>

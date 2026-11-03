@@ -22,7 +22,7 @@
     let themeColor = network.themeColor;
     let touchIcon = network.icons + '/apple-touch-icon.png';
     let icon = network.icons + '/icon-192.png';
-    const stylesheets = '<link rel="stylesheet" href="style-app.css">';
+    const stylesheets = '<link rel="stylesheet" href="/css/style-app.css">';
 
     if (isMiamor) {
         manifest = 'manifest-miamor.json';
