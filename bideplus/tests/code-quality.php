@@ -66,6 +66,20 @@ if ($bEngine) {
     }
     sort($aEngineFiles);
 }
+// Las mismas pautas valen para el algoritmo: su formato y su PHP también se miran (sin el laboratorio ni los datos).
+$aEngineSources = [];
+if ($bEngine) {
+    $aEngineListed = [];
+    exec('git -C ' . escapeshellarg(ROOT . 'engine') . ' ls-files --cached --others --exclude-standard', $aEngineListed);
+    foreach ($aEngineListed as $sPath) {
+        $bText = in_array(pathinfo($sPath, PATHINFO_EXTENSION), TEXT_EXTENSIONS, true);
+        if ($bText && !preg_match('#^lab/|(^|/)data/#', $sPath) && is_file(ROOT . 'engine/' . $sPath)) {
+            $aEngineSources['engine/' . $sPath] = file_get_contents(ROOT . 'engine/' . $sPath);
+        }
+    }
+}
+$aCheckedSources = $aSources + $aEngineSources;
+$aCheckedPhp = array_merge($aPhpFiles, array_keys(array_filter($aEngineSources, fn($sCode, $sFile) => str_ends_with($sFile, '.php'), ARRAY_FILTER_USE_BOTH)));
 
 // ===== JavaScript sin cadenas, comentarios ni expresiones regulares =====
 
@@ -206,7 +220,7 @@ foreach ($aJsFiles as $sFile) {
 
 // ===== 1. Formato =====
 
-foreach ($aSources as $sFile => $sText) {
+foreach ($aCheckedSources as $sFile => $sText) {
     if (str_contains($sText, "\r")) {
         $Report('Formato: saltos de línea de Windows (CRLF)', $sFile);
     }
@@ -225,7 +239,7 @@ foreach ($aSources as $sFile => $sText) {
 
 // Sangría de 4 en 4. No cuentan el texto de las cadenas de varias líneas, el HTML de las plantillas PHP ni los
 // comentarios de bloque.
-foreach ($aSources as $sFile => $sText) {
+foreach ($aCheckedSources as $sFile => $sText) {
     $sExtension = pathinfo($sFile, PATHINFO_EXTENSION);
     if (!in_array($sExtension, INDENTED_EXTENSIONS, true)) {
         continue;
@@ -243,7 +257,7 @@ foreach ($aSources as $sFile => $sText) {
             }
         }
     } elseif ($sExtension !== 'css') {
-        $aFree = $aJsCode[$sFile][1];
+        $aFree = ($aJsCode[$sFile] ?? scanJs($sText))[1];
     }
     $bComment = false;
     foreach (explode("\n", $sText) as $iIndex => $sLine) {
@@ -279,9 +293,9 @@ foreach ($aCssFiles as $sFile) {
 
 // ===== 2. PHP =====
 
-foreach ($aPhpFiles as $sFile) {
+foreach ($aCheckedPhp as $sFile) {
     $aTokens = [];
-    foreach (token_get_all($aSources[$sFile]) as $Token) {
+    foreach (token_get_all($aCheckedSources[$sFile]) as $Token) {
         if (!is_array($Token) || !in_array($Token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
             $aTokens[] = $Token;
         }
@@ -321,11 +335,11 @@ foreach ($aPhpFiles as $sFile) {
                 $Report('PHP: una función guardada en una variable va en PascalCase ($Sender = function…)', $sFile . ':' . $iLine . ' ' . $Token[1]);
             }
         }
-        if (is_array($Token) && $Token[0] === T_STRING && in_array(strtolower($Token[1]), ['var_dump', 'print_r', 'var_export', 'dd'], true) && !$IsTest($sFile) && !str_starts_with($sFile, 'scripts/')) {
+        if (is_array($Token) && $Token[0] === T_STRING && in_array(strtolower($Token[1]), ['var_dump', 'print_r', 'var_export', 'dd'], true) && !preg_match('#^(tests|scripts)/|^engine/.*/tools/#', $sFile)) {
             $Report('PHP: restos de depuración', $sFile . ':' . $iLine . ' ' . $Token[1]);
         }
     }
-    if (preg_match('/\?>\s*$/', $aSources[$sFile]) && !str_starts_with($sFile, 'api/Views/')) {
+    if (preg_match('/\?>\s*$/', $aCheckedSources[$sFile]) && !str_starts_with($sFile, 'api/Views/')) {
         $Report('PHP: «?>» al final de un archivo de solo PHP', $sFile);
     }
     // Cada clase de api/ en su archivo, con el espacio de nombres de su carpeta (lo que espera api/autoload.php).
@@ -677,14 +691,14 @@ function phpFreeLines(string $sCode): array
     return $aFree;
 }
 
-// Con engine/ presente, también sus clases (no sus herramientas de calibración, el laboratorio ni la tesis).
+// Con engine/ presente, también sus clases y sus herramientas (no el laboratorio ni la tesis).
 $aAllPhp = [];
 foreach ($aPhpFiles as $sFile) {
     $aAllPhp[$sFile] = $aSources[$sFile];
 }
 if ($bEngine) {
     foreach ($aEngineFiles as $sPath) {
-        if (!preg_match('#^(lab|docs)/|/tools/#', $sPath)) {
+        if (!preg_match('#^(lab|docs)/#', $sPath)) {
             $aAllPhp['engine/' . $sPath] = file_get_contents(ROOT . 'engine/' . $sPath);
         }
     }

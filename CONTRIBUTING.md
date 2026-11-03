@@ -43,7 +43,7 @@ Sigue el estilo que ya hay alrededor de tu cambio:
 - **Nada muerto:** si una función, una constante, una clase de CSS o un archivo deja de usarse, se borra.
 - **Sangría de 4 espacios**, sin tabuladores ni espacios al final de la línea.
 
-Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code-quality.php` (desde `bideplus`). También va dentro de `run-all.py` y de la integración continua.
+Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code-quality.php` (desde `bideplus`). Con el algoritmo en `engine/`, mira también su código y sus herramientas (no su laboratorio ni sus datos). También va dentro de `run-all.py` y de la integración continua.
 - Lo visible tiene que funcionar en móvil y en ordenador, y respetar el foco de teclado y la preferencia de movimiento reducido.
 
 ## Datos y archivos generados
