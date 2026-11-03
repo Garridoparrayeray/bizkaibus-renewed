@@ -63,7 +63,7 @@ function posterPage() {
         <p class="eu">Autobusa galtzeaz nekatuta? Begiratu hemendik geltoki honetako ordutegia</p>
         <div class="qr">QR</div>
         <p class="scan">Escanéalo con la cámara del móvil<br>Eskaneatu mugikorraren kamerarekin</p>
-        <footer>www.bideplus.eus<small>Horarios y tiempo real · Ordutegiak eta denbora erreala</small></footer>
+        <footer>www.bideplus.eus<small>Horarios y tiempo real · Ordutegiak eta denbora errealean</small></footer>
     </main></body></html>`;
 }
 

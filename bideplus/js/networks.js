@@ -84,11 +84,11 @@
             "eu": {
                 "name": "Metro+",
                 "tile": "Bilboko Metroa",
-                "switcher": "Bilboko Metroaren ordutegiak eta denbora erreala",
-                "subtitle": "Bilboko Metroaren ordutegiak eta denbora erreala",
+                "switcher": "Bilboko Metroaren ordutegiak eta denbora errealean",
+                "subtitle": "Bilboko Metroaren ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
-                "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala"
+                "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean"
             },
             "en": {
                 "name": "Metro+",
@@ -134,8 +134,8 @@
             "eu": {
                 "name": "Euskotren+",
                 "tile": "Ordutegiak eta zuzenekoa",
-                "switcher": "Euskotrenen ordutegiak eta denbora erreala",
-                "subtitle": "Euskotrenen ordutegiak eta denbora erreala",
+                "switcher": "Euskotrenen ordutegiak eta denbora errealean",
+                "subtitle": "Euskotrenen ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)"
@@ -184,8 +184,8 @@
             "eu": {
                 "name": "Renfe Aldiriak+",
                 "tile": "Bilbo eta Donostiako aldiriak",
-                "switcher": "Bilbo eta Donostiako Aldirien ordutegiak eta denbora erreala",
-                "subtitle": "Aldirien ordutegiak eta denbora erreala",
+                "switcher": "Bilbo eta Donostiako Aldirien ordutegiak eta denbora errealean",
+                "subtitle": "Aldirien ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.",
                 "attribution": "Datuak: Renfe Aldiriak"
@@ -288,8 +288,8 @@
                 "tile_title": "Tranbia",
                 "tile": "Ordutegiak eta zuzenekoa",
                 "tile_city": "Bilbo",
-                "switcher": "Bilboko tranbiaren ordutegiak eta denbora erreala",
-                "subtitle": "Tranbiaren ordutegiak eta denbora erreala",
+                "switcher": "Bilboko tranbiaren ordutegiak eta denbora errealean",
+                "subtitle": "Tranbiaren ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)"
@@ -344,8 +344,8 @@
                 "tile_title": "Tranbia",
                 "tile": "Ordutegiak eta zuzenekoa",
                 "tile_city": "Gasteiz",
-                "switcher": "Gasteizko tranbiaren ordutegiak eta denbora erreala",
-                "subtitle": "Tranbiaren ordutegiak eta denbora erreala",
+                "switcher": "Gasteizko tranbiaren ordutegiak eta denbora errealean",
+                "subtitle": "Tranbiaren ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo tranbia ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)"
@@ -446,8 +446,8 @@
             "eu": {
                 "name": "Tuvisa+",
                 "tile": "Gasteizko autobusak",
-                "switcher": "Tuvisaren ordutegiak eta denbora erreala Gasteizen",
-                "subtitle": "Tuvisaren ordutegiak eta denbora erreala",
+                "switcher": "Tuvisaren ordutegiak eta denbora errealean Gasteizen",
+                "subtitle": "Tuvisaren ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Tuvisarekin eta Vitoria-Gasteizko Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
@@ -496,8 +496,8 @@
             "eu": {
                 "name": "Dbus+",
                 "tile": "Donostiako autobusak",
-                "switcher": "Dbusen ordutegiak eta denbora erreala Donostian",
-                "subtitle": "Dbusen ordutegiak eta denbora erreala",
+                "switcher": "Dbusen ordutegiak eta denbora errealean Donostian",
+                "subtitle": "Dbusen ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Dbusekin eta Donostiako Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
@@ -546,8 +546,8 @@
             "eu": {
                 "name": "Álavabus+",
                 "tile": "Arabako autobusak",
-                "switcher": "Álavabusen ordutegiak eta denbora erreala Araban",
-                "subtitle": "Álavabusen ordutegiak eta denbora erreala",
+                "switcher": "Álavabusen ordutegiak eta denbora errealean Araban",
+                "subtitle": "Álavabusen ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"

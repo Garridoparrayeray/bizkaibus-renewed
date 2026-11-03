@@ -40,11 +40,11 @@ return [
         'eu' => [
             'name' => 'Metro+',
             'tile' => 'Bilboko Metroa',
-            'switcher' => 'Bilboko Metroaren ordutegiak eta denbora erreala',
-            'subtitle' => 'Bilboko Metroaren ordutegiak eta denbora erreala',
+            'switcher' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
+            'subtitle' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
-            'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala',
+            'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean',
         ],
         'en' => [
             'name' => 'Metro+',

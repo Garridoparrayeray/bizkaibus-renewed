@@ -40,8 +40,8 @@ return [
         'eu' => [
             'name' => 'Euskotren+',
             'tile' => 'Ordutegiak eta zuzenekoa',
-            'switcher' => 'Euskotrenen ordutegiak eta denbora erreala',
-            'subtitle' => 'Euskotrenen ordutegiak eta denbora erreala',
+            'switcher' => 'Euskotrenen ordutegiak eta denbora errealean',
+            'subtitle' => 'Euskotrenen ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)',

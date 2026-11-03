@@ -43,8 +43,8 @@ return [
         'eu' => [
             'name' => 'Álavabus+',
             'tile' => 'Arabako autobusak',
-            'switcher' => 'Álavabusen ordutegiak eta denbora erreala Araban',
-            'subtitle' => 'Álavabusen ordutegiak eta denbora erreala',
+            'switcher' => 'Álavabusen ordutegiak eta denbora errealean Araban',
+            'subtitle' => 'Álavabusen ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
