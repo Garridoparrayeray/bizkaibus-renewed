@@ -229,13 +229,13 @@ function bideSettings(string $sBack): string
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="bide.settings.title">Ajustes</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
 
-    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.settings.lang">Idioma</h3>' . bideLangSwitch() . '</section>';
+    $sHtml .= '<section class="bide-card bide-settings-lang"><h3 data-i18n="bide.settings.lang">Idioma</h3>' . bideLangSwitch() . '</section>';
 
     $sHtml .= '<section class="bide-card bide-settings-notifications"><h3 data-i18n="bide.settings.notifications">Notificaciones</h3>';
     $sHtml .= '<label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMeFavorites">Avisarme de las incidencias nuevas de mis favoritos</span></label>';
     $sHtml .= '<p id="alerts-note" class="alerts-note" role="status" hidden></p>';
     $sHtml .= '<p class="bide-note" data-settings-permission></p>';
-    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-notify-off data-i18n="bide.settings.notifyOff" hidden>Desactivar las notificaciones</button>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-notify-off data-new-since="2026-11-03" data-i18n="bide.settings.notifyOff" hidden>Desactivar las notificaciones</button>';
     $sHtml .= '<p class="bide-feedback-status" data-settings-notify-status role="status"></p>';
     $sHtml .= '<h4 data-i18n="bide.settings.arrivals">Avisos de llegada</h4>';
     $sHtml .= '<ul class="bide-settings-arrivals" data-settings-arrivals></ul>';
@@ -246,7 +246,7 @@ function bideSettings(string $sBack): string
     $sHtml .= '<p data-i18n="bide.settings.locationText">Para «Cerca de mí»: ver las paradas que tienes al lado.</p>';
     $sHtml .= '<p class="bide-note" data-settings-location role="status"></p>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-ask data-i18n="bide.settings.locationAsk" hidden>Permitir la ubicación</button>';
-    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-new-since="2026-11-03" data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
     $sHtml .= '</section>';
 
     $sHtml .= bideOffline();
@@ -277,7 +277,7 @@ function bideSettings(string $sBack): string
 // Fuentes de datos: la atribución de cada red (api/Networks, campo attribution), que es la que pide cada licencia.
 function bideSources(): string
 {
-    $sHtml = '<section class="bide-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><ul class="bide-sources">';
+    $sHtml = '<section class="bide-card bide-sources-card"><h3 data-i18n="bide.info.sources">Fuentes de datos</h3><ul class="bide-sources">';
     foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
         $sHtml .= '<li><strong data-i18n="net.' . $sSlug . '.name">' . htmlspecialchars(\Core\Networks::text($aNetwork, 'name')) . '</strong> <span data-i18n="net.' . $sSlug . '.attribution">' . htmlspecialchars($aNetwork['attribution']) . '</span></li>';
     }
@@ -307,11 +307,11 @@ function bideViews(): string
     $sHtml .= '<section class="bide-view" data-bide-view="info" hidden>';
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
-    $sHtml .= '<section class="bide-card"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
+    $sHtml .= '<section class="bide-card bide-about"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
     $sHtml .= bideFaq();
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
-    $sHtml .= '<section class="bide-card"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
+    $sHtml .= '<section class="bide-card bide-author"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
     $sHtml .= bideDonate(bideSite()['donate_url'] ?? '');
     $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
