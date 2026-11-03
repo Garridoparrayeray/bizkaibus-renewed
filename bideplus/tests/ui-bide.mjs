@@ -164,7 +164,8 @@ await ev("document.getElementById('legal-close').click(); true");
 check('instalada · Info: el aviso legal se cierra', (await ev("document.getElementById('legal-panel').open")) === false);
 
 await ev("document.querySelector('[data-bide-lang=eu]').click(); true");
-check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
+check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('.bide-tabbar [data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
+check('idioma · EU traduce el menú ☰', await ev("document.querySelector('#bide-menu-sheet [data-bide-tab=ajustes] span').textContent === 'Ezarpenak' && document.querySelector('.bide-menu-button').getAttribute('aria-label') === 'Menua ireki'"));
 check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
 check('idioma · EU traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Laster' && document.querySelector('.bide-upcoming-badge').textContent === 'Garatzen'"));
 check('idioma · EU traduce «Apoya Bide+»', await ev("document.querySelector('.bide-donate h3').textContent === 'Lagundu Bide+' && document.querySelector('.bide-donate a').textContent === 'Kafe bat ordaindu Ko-fi-n'"));
@@ -172,7 +173,7 @@ check('idioma · EU: el tranvía es «Tranbia» en su ficha, en los enlaces de l
 check('idioma · EU traduce las preguntas frecuentes y las sugerencias', await ev("document.querySelector('.bide-faq h3').textContent === 'Ohiko galderak' && document.querySelector('.bide-feedback h3').textContent === 'Iradokizunak eta akatsak'"));
 check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
 await ev("document.querySelector('[data-bide-lang=en]').click(); true");
-check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
+check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('.bide-tabbar [data-bide-tab=favoritos] span').textContent === 'Favourites'"));
 check('idioma · EN traduce las novedades, las preguntas y las sugerencias', await ev("document.querySelector('.bide-changelog h3').textContent === \"What's new\" && document.querySelector('.bide-faq h3').textContent === 'Frequently asked questions' && document.querySelector('.bide-feedback h3').textContent === 'Suggestions and bugs'"));
 check('idioma · EN traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Coming soon' && document.querySelector('.bide-upcoming-badge').textContent === 'In development'"));
 check('idioma · EN traduce «Apoya Bide+»', await ev("document.querySelector('.bide-donate h3').textContent === 'Support Bide+' && document.querySelector('.bide-donate a').textContent === 'Buy me a coffee on Ko-fi'"));
