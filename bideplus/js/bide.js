@@ -325,6 +325,8 @@
         else if (lang) selectLang(lang.getAttribute('data-bide-lang'));
         else if (e.target.closest('[data-bide-close]')) closeView();
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();
+        else if (e.target.closest('[data-bide-menu-open]')) document.getElementById('bide-menu-sheet').showModal();
+        else if (e.target.closest('[data-bide-menu-close]') || e.target.id === 'bide-menu-sheet') dialog.close();
     });
 
     const closedByHistory = new Set();

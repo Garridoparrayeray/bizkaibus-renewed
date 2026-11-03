@@ -1076,9 +1076,20 @@ html.bide body.page-app .bide-menu-apps {
     text-decoration: none;
 }
     html.bide body.page-app .bide-menu-apps + .menu-favorites-open {
-        margin-top: 0;
+        margin: 0 0 10px;
         font-size: 14.4px;
     }
+    /* Ajustes e Info, debajo y del mismo ancho que las de arriba. */
+    html.bide body.page-app .side-menu > .pill[data-bide-tab] {
+        display: flex;
+        width: 100%;
+        justify-content: flex-start;
+        margin: 0 0 10px;
+        font-size: 14.4px;
+    }
+        html.bide body.page-app .side-menu > .pill[data-bide-tab="info"] {
+            margin-bottom: 24px;
+        }
 html.bide body.page-app .app-container > header {
     justify-content: flex-start;
 }
@@ -1654,3 +1665,72 @@ html.bide .is-new::after {
     text-transform: uppercase;
     vertical-align: middle;
 }
+
+/* El ☰ del inicio y su menú: solo en el móvil y la tablet desde el navegador (en el ordenador está la columna; en la
+   app instalada, la barra de abajo). */
+html.bide .bide-menu-button {
+    display: none;
+}
+@media (max-width: 1023px) {
+    html.bide:not(.is-standalone) .bide-menu-button {
+        display: inline-grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid var(--bide-line);
+        border-radius: 14px;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        cursor: pointer;
+    }
+        html.bide .bide-menu-button > svg {
+            width: 22px;
+            height: 22px;
+        }
+}
+html.bide dialog.bide-menu-sheet {
+    width: min(320px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: 16px 16px auto auto;
+    padding: 12px;
+    border: 1px solid var(--bide-line);
+    border-radius: 20px;
+    background: var(--bide-surface);
+    color: var(--bide-ink);
+    box-shadow: 0 18px 48px rgba(15, 23, 20, .18);
+}
+    html.bide dialog.bide-menu-sheet::backdrop {
+        background: rgba(15, 23, 20, .35);
+    }
+    html.bide .bide-menu-sheet-close {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        margin: 0 0 4px auto;
+        padding: 0;
+        border: 1px solid var(--bide-line);
+        border-radius: 50%;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        cursor: pointer;
+    }
+        html.bide .bide-menu-sheet-close > svg {
+            width: 20px;
+            height: 20px;
+        }
+    html.bide .bide-menu-sheet-nav {
+        display: grid;
+        gap: 2px;
+    }
+        html.bide .bide-menu-sheet-nav > .bide-rail-item {
+            width: 100%;
+            min-height: 48px;
+            font-size: 16px;
+        }
+            html.bide .bide-menu-sheet-nav > .bide-rail-item > svg {
+                width: 22px;
+                height: 22px;
+                flex: none;
+            }
