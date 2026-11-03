@@ -163,6 +163,7 @@ use Core\Networks;
                         <span id="live-badge" class="badge">Solo horario</span>
                         <span class="header-actions">
                             <a id="live-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la parada" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
+                            <button id="live-share" class="btn-icon" type="button" aria-label="Compartir la parada" title="Compartir la parada" data-i18n-attr="aria-label:app.share.stopButton,title:app.share.stopButton"><?= BIDE_ICONS['share'] ?></button>
                             <button id="live-favorite" class="btn-icon" type="button" aria-label="Guardar parada en favoritos"></button>
                             <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar">
                                 <?= BIDE_ICONS['close'] ?>
@@ -193,6 +194,7 @@ use Core\Networks;
                         <h3 id="platform-panel-stop" class="platform-panel-stop"></h3>
                         <span class="header-actions">
                             <a id="platform-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la estación" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
+                            <button id="platform-share" class="btn-icon" type="button" aria-label="Compartir la parada" title="Compartir la parada" data-i18n-attr="aria-label:app.share.stopButton,title:app.share.stopButton"><?= BIDE_ICONS['share'] ?></button>
                             <button id="platform-favorite" class="btn-icon" type="button" aria-label="Guardar estación en favoritos"></button>
                             <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar">
                                 <?= BIDE_ICONS['close'] ?>
@@ -291,7 +293,10 @@ use Core\Networks;
         <h3 id="modal-line" class="modal-line"></h3>
         <p id="modal-headsign" class="modal-headsign"></p>
         <p id="modal-vehicle" class="modal-vehicle"></p>
-        <button id="modal-share" class="modal-share" type="button" data-i18n="app.share.button">Compartir este viaje</button>
+        <div class="modal-share-row">
+            <button id="modal-share-stop" class="modal-share" type="button" data-new-since="2026-11-03" data-i18n="app.share.stopButton">Compartir la parada</button>
+            <button id="modal-share" class="modal-share" type="button" data-i18n="app.share.button">Compartir este viaje</button>
+        </div>
         <section id="modal-notify" class="modal-notify" hidden>
             <p class="modal-notify-title" data-i18n="app.notify.title">Avísame cuando llegue</p>
             <label id="modal-notify-repeat" class="modal-notify-repeat"><input id="modal-notify-repeat-input" type="checkbox"><span data-i18n="app.notify.repeat">Avisarme todos los días</span></label>

@@ -126,6 +126,19 @@ publicar, el cron avisa una vez a cada móvil y Ajustes enseña el «1» rojo.
 | Recalibrar el motor | el mismo, marcando «Recalibrar en vez de capturar» |
 | Volver al despliegue anterior | Actions → «Rollback production» |
 
+## Ver las capturas
+
+| Qué | Dónde | Cada cuánto cambia |
+| --- | --- | --- |
+| La captura en marcha | GitHub → Actions → «Ritmo de los buses (k)» → el trabajo `capture (<red>, …)` que está corriendo → paso «Capturar y medir sin parar» | dice cada bloque que empieza, que se archiva y su medida, en directo |
+| Lo que trae el feed ahora | `https://bideplus.vercel.app/api/status?red=<red>` (vehículos SIRI) o la app | en cada consulta |
+| Las copias en bruto | releases `capturas-AAAA-MM` (Bizkaibus) y `capturas-<red>-AAAA-MM` (las demás) del repositorio del algoritmo: un `vm-<día>-<hora>.tar.xz` por hora | cada hora |
+| Las muestras acumuladas | release `pace-data` (Bizkaibus) o `pace-data-<red>` del repositorio de la app: `pace-samples.jsonl`, `segment-samples.jsonl`, `coverage-samples.jsonl`, `eta-eval.jsonl` | cada hora (se sustituyen) |
+| Lo aprendido | `engine/<motor>/data/` del repositorio del algoritmo (`pace-factors.json`, `segment-times.json`, `trip-offsets.json`) | cada noche (04:00 UTC), con un commit «recalibra…» |
+
+Para bajar un bloque desde la terminal: `gh api` con la lista de la release y `-H "Accept: application/octet-stream"`
+(ver `renfe/README.md` del repositorio del algoritmo).
+
 ## Comprobar que una red funciona
 
 ```bash

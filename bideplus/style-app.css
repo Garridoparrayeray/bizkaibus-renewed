@@ -1238,6 +1238,14 @@ dialog {
     color: var(--text-secondary);
     font-size: 13.6px;
 }
+.modal-share-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 8px;
+}
+    .modal-share-row > [hidden] {
+        display: none;
+    }
 .modal-alerts-toggle,
 .modal-share {
     display: block;
@@ -1714,4 +1722,11 @@ dialog {
     html.bide.is-standalone .net-banner {
         bottom: calc(70px + min(env(safe-area-inset-bottom), 34px));
     }
+}
+
+/* Compartir: un momento en el color de la red cuando el enlace se ha copiado */
+.btn-icon.is-copied,
+.modal-share.is-copied {
+    background: var(--primary);
+    color: #fff;
 }

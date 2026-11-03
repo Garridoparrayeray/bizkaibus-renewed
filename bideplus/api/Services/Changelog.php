@@ -6,6 +6,7 @@ namespace Services;
 final class Changelog
 {
     public const ENTRIES = [
+        ['2026-11-03', '03/11/2026', 42, 'Comparte una parada', 'Ahora puedes compartir una parada, además del viaje: el enlace abre sus próximas salidas en directo. Está en el icono de compartir de cada parada o estación, y en la ficha de un viaje, junto a «Compartir este viaje».'],
         ['2026-11-03', '03/11/2026', 41, 'Horario oficial en todas las apps', 'En todas las apps, «Ver horario oficial» de cada línea enseña su horario por periodos: de lunes a viernes, sábados, domingos y festivos y los días especiales, con las salidas de cada sentido y el de hoy marcado. Se actualiza solo cada día con el horario del operador.'],
         ['2026-11-03', '03/11/2026', 40, 'Álavabus en directo y tus permisos', 'Álavabus+ enseña los próximos autobuses en tiempo real, con el retraso de cada uno y dónde va en el mapa. En Ajustes puedes desactivar las notificaciones y dejar de usar tu ubicación cuando quieras, y te dice cómo quitar también el permiso del navegador. Lurraldebus+ suma el autobús urbano de Tolosa. Los iconos de Bilbobus+, Álavabus+, Dbus+ y Tuvisa+ siguen siendo provisionales.'],
         ['2026-11-03', '03/11/2026', 39, 'La Unión+ entre Bilbao y Vitoria', 'Llega La Unión+, con los autobuses de Autobuses La Unión entre Bizkaia y Vitoria-Gasteiz: Bilbao, Margen Izquierda y Derecha, Leioa, Algorta y el aeropuerto de Loiu. Con el horario oficial, el recorrido de cada línea en el mapa y la lista de paradas de cada viaje.'],

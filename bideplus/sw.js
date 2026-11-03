@@ -49,6 +49,7 @@ const SHELL_FILES = [
     '/js/app/schedule-modal.js',
     '/js/app/schedule-periods.js',
     '/js/app/vehicle-modal.js',
+    '/js/app/share.js',
     '/js/app/favorites.js',
     '/js/app/side-menu.js',
     '/js/app/alerts.js',

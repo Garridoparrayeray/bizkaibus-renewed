@@ -383,6 +383,13 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+    // Dos opciones en la ficha: el viaje y la parada (el enlace abre sus próximas salidas, sin el viaje).
+    check('compartir: la ficha ofrece también compartir la parada', await ev("!document.getElementById('modal-share-stop').hidden"));
+    await ev("window.__shared = ''; document.getElementById('modal-share-stop').click(); true");
+    check('compartir la parada: su nombre y el enlace a la parada, sin el viaje', await waitTrue(`(window.__shared || '').includes('/stops/${sharedStop.stop}') && !(window.__shared || '').includes('viaje=')`, 3000), await ev('window.__shared'));
+    await ev("document.getElementById('vehicle-modal').close(); true");
+    await ev("window.__shared = ''; const b = [document.getElementById('live-share'), document.getElementById('platform-share')].find(x => x && x.offsetParent !== null); b && b.click(); true");
+    check('compartir la parada: también desde la ficha de la parada', await waitTrue(`(window.__shared || '').includes('/stops/${sharedStop.stop}') && !(window.__shared || '').includes('viaje=')`, 3000), await ev('window.__shared'));
 
     // Al tocar una notificación, la ficha se abre una sola vez.
     const alertUrl = `/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}&aviso=prueba-${Date.now()}`;

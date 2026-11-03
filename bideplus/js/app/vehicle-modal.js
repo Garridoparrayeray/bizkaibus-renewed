@@ -3,6 +3,7 @@ import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, onReturn, state, whenVisible
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
+import { shareLink } from './share.js';
 
 /*
  * El recorrido abierto sigue el reloj: se vuelve a pedir cada 15 s (el ritmo del feed) y, entre peticiones, los
@@ -16,7 +17,6 @@ export const DEPARTED_GRACE_MS = 45 * 1000;
 export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
 // Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
 const shareState = { tripKey: null, data: null };
-const SHARE_DONE_MS = 2500;
 
 function freshModalStops(data) {
     const now = Date.now();
@@ -141,6 +141,7 @@ export async function openVehicleModal(tripKey) {
     modalState.data = data;
     shareState.tripKey = tripKey;
     shareState.data = data;
+    showShareOptions();
     el.modalVehicle.hidden = false;
     renderModalHeader(data);
 
@@ -169,6 +170,7 @@ async function openTripStopsModal(tripKey) {
     }
     shareState.tripKey = tripKey;
     shareState.data = data;
+    showShareOptions();
 
     el.modalBadge.textContent = I18n.t('app.status.scheduled');
     el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
@@ -255,29 +257,14 @@ function shareText() {
     return I18n.t('app.share.follow', vars);
 }
 
-function showShareDone() {
-    el.modalShare.textContent = I18n.t('app.share.copied');
-    setTimeout(() => { el.modalShare.textContent = I18n.t('app.share.button'); }, SHARE_DONE_MS);
+function shareTrip() {
+    if (!shareState.tripKey || !shareState.data) return;
+    shareLink(shareUrl(), shareText(), el.modalShare);
 }
 
-async function shareTrip() {
-    if (!shareState.tripKey || !shareState.data) return;
-    const url = shareUrl();
-    const text = shareText();
-    if (navigator.share) {
-        try {
-            await navigator.share({ title: 'Bide+', text, url });
-            return;
-        } catch (e) {
-            if (e.name === 'AbortError') return;
-        }
-    }
-    try {
-        await navigator.clipboard.writeText(text + ' ' + url);
-        showShareDone();
-    } catch (e) {
-        window.prompt(I18n.t('app.share.prompt'), url);
-    }
+// «Compartir la parada» solo tiene sentido con una parada abierta (la ficha también se abre desde el mapa de la línea).
+function showShareOptions() {
+    el.modalShareStop.hidden = !state.currentStop;
 }
 
 export function setUpVehicleModal() {
