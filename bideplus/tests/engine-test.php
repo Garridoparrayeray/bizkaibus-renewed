@@ -95,6 +95,12 @@ $Expect('esperando en la primera parada, la llegada sale de su hora de salida y 
 $aFirstRow = ['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0, 'stop_seq' => 1];
 $aFirstOut = $MWaiting->enrich([$aFirstRow])[0];
 $Expect('en la primera parada sale «en directo» a su hora, no como ya pasado', $aFirstOut['status'] === 'live' && $aFirstOut['etaSeconds'] === T0, $aFirstOut['status'] . ' ' . hms((int)$aFirstOut['etaSeconds']));
+$Expect('esperando en la primera parada, la fila lo dice (atOrigin) para enseñarlo «en la parada»', $aFirstOut['atOrigin'] === true);
+$aSecondOut = $MWaiting->enrich([['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0 + 180, 'stop_seq' => 2]])[0];
+$Expect('en la segunda parada no: el bus no está en ella', $aSecondOut['status'] === 'live' && $aSecondOut['atOrigin'] === false);
+$aOnRoute = live(1500, 0, 3, T0 + 240);
+$aOnRouteOut = matcher($aOnRoute, T0 + 270)->enrich([['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0 + 720, 'stop_seq' => 5]])[0];
+$Expect('un autobús en ruta no está en la cabecera', $aOnRouteOut['status'] === 'live' && $aOnRouteOut['atOrigin'] === false);
 $SegmentsLearned = new SegmentTimes(['segments' => ['S0>S1' => ['n' => 9, 'all' => 200], 'S1>S2' => ['n' => 9, 'all' => 200]]]);
 $MWaitingLearned = matcher($aWaiting, T0 - 590, null, 40.0, DATE_WEEKDAY, $SegmentsLearned);
 [$iEta, , $bPositioned] = $MWaitingLearned->etaForStop('J_LINE', T0 + 360, $aWaiting, 3);

@@ -230,6 +230,7 @@ class StopsController
                 'etaMinutes' => $iEtaMinutes,
                 'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
                 'status' => $aRow['status'],
+                'atOrigin' => !empty($aRow['atOrigin']),
                 'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,
