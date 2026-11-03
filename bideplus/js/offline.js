@@ -355,6 +355,8 @@ const BideOffline = (() => {
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
             status: item.status,
             delayMinutes: null,
+            // Pasada la medianoche: la app la enseña como «mañana 07:00», igual que con conexión.
+            tomorrow: item.seconds >= DAY_SECONDS,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
         };

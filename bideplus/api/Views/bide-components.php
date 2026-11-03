@@ -33,6 +33,7 @@ const BIDE_FAQ = [
     ['¿Qué significa «Estimado»?', 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.'],
     ['¿Funciona sin conexión?', 'Sí, si guardas el horario de tus redes en «Horarios sin conexión», en Ajustes. Sin cobertura, las paradas muestran sus próximas salidas según el horario oficial (en Bizkaibus, también la hora estimada con lo que tardan de verdad los autobuses), y el directo vuelve en cuanto hay conexión.'],
     ['¿Cómo instalo Bide+ en el móvil?', 'Instálala desde Chrome o Firefox en Android, o desde Safari en iPhone. En Android, abre Bide+ en Chrome y pulsa «Instalar» en el aviso de abajo o en el menú ⋮ del navegador; en Firefox, menú ⋮ → «Instalar». En iPhone, ábrela en Safari, toca Compartir y elige «Añadir a pantalla de inicio». Otros navegadores, como DuckDuckGo, solo crean un acceso directo a la web: se abre dentro del navegador y sin avisos con la app cerrada.'],
+    ['¿Qué cambia si instalo Bide+?', 'Casi todo funciona sin instalarla: horarios, tiempo real, mapa de la red, buscador, «Cerca de mí», favoritos, avisos y horarios sin conexión. Instalada se abre a pantalla completa, con la barra de abajo y su propio icono. En Android y en el ordenador, las notificaciones también funcionan sin instalarla, desde Chrome o Firefox. En iPhone y iPad solo llegan con Bide+ instalada, y si no la instalas y pasas 7 días sin abrirla, Safari puede borrar tus favoritos y los horarios guardados. Desde el navegador de Instagram o de otras apps no funcionan ni las notificaciones ni la instalación: ábrela en Chrome o en Safari. Para instalarla, mira «¿Cómo instalo Bide+ en el móvil?».'],
     ['¿Cómo guardo una parada o una línea?', 'Toca el corazón en la parada, la estación o la línea. Tus favoritos salen en la pestaña Favoritos y en todas las apps.'],
     ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus favoritos, y en Ajustes puedes activar que el móvil te avise de cada una nueva, aunque tengas la app cerrada.'],
     ['¿Cada cuánto se actualizan los horarios?', 'Cada día, solos, con los datos oficiales que publican los operadores. En cada línea, «Ver horario oficial» enseña su horario por periodos (de lunes a viernes, sábados, domingos y festivos…) con el de hoy marcado, y el horario de cada línea dice desde y hasta cuándo es válido.'],
@@ -101,15 +102,19 @@ function bideMenuButton(): string
 
 function bideMenuSheet(): string
 {
+    // Como el ☰ de dentro de cada app: un panel a la derecha con los botones uno debajo de otro.
+    $aItems = [
+        ['favoritos', 'favoritos', 'app.favorites.title', 'Tus favoritos'],
+        ['avisos', 'avisos', 'bide.alerts.title', 'Avisos de tus favoritos'],
+        ['ajustes', 'ajustes', 'bide.tab.settings', 'Ajustes'],
+        ['info', 'info', 'bide.tab.info', 'Info'],
+    ];
     $sHtml = '<dialog id="bide-menu-sheet" class="bide-menu-sheet" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
     $sHtml .= '<button type="button" class="bide-menu-sheet-close" data-bide-menu-close data-i18n-attr="aria-label:bide.menu.close" aria-label="Cerrar menú">' . BIDE_ICONS['close'] . '</button>';
-    $sHtml .= '<nav class="bide-menu-sheet-nav">';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="favoritos">' . BIDE_ICONS['favoritos'] . '<span data-i18n="app.favorites.title">Tus favoritos</span></button>';
-    $sHtml .= '<a class="bide-rail-item" href="/mapa">' . BIDE_ICONS['mapa'] . '<span data-i18n="map.title">Mapa de la red</span></a>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
-    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
-    return $sHtml . '</nav></dialog>';
+    foreach ($aItems as [$sTab, $sIcon, $sKey, $sLabel]) {
+        $sHtml .= '<button type="button" class="bide-menu-pill" data-bide-tab="' . $sTab . '">' . BIDE_ICONS[$sIcon] . '<span data-i18n="' . $sKey . '">' . $sLabel . '</span></button>';
+    }
+    return $sHtml . '</dialog>';
 }
 
 function bideChangelogEntry(array $aEntry): string
