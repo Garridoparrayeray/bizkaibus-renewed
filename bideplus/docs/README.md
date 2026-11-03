@@ -15,6 +15,9 @@ Qué hay que leer según para qué la necesites.
 
 ## Para entenderla y ampliarla (técnica)
 
+- [Cómo hacer cada cosa](como-hacer.md): recetas con las órdenes (una red nueva, su tiempo real, su motor, sus iconos,
+  una novedad, publicar) y lo que se actualiza solo sin tocar nada.
+
 - [Arquitectura](../README.md): las piezas, el registro de redes, los temas, el modelo de calendario y los datos en
   tiempo real.
 - [Cómo ampliar Bide+](ampliar.md): un texto o un idioma, una ruta de la API, una pantalla, un tipo de notificación,

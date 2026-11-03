@@ -114,7 +114,7 @@ Detalle importante del ETL, común a ambas redes: `streamStopTimesByTrip()` agru
 
 Los patrones de ruta (`journey_patterns`) se derivan de la secuencia real de paradas de cada viaje, no del `shape_id` de GTFS — se comprobó con datos reales de Bizkaibus que dos viajes de la misma línea pueden compartir `shape_id` pero tener paradas distintas (uno con un desvío estacional, el otro sin él), así que agrupar por `shape_id` habría fusionado el desvío con la ruta normal.
 
-`/api/lines/{id}/schedule-text` (solo bus) expone el horario oficial en texto libre (endpoint legado `GetLineasHorarios`) como referencia complementaria — no se parsea a datos estructurados porque no tiene granularidad por parada.
+`/api/lines/{id}/schedule-text` expone el horario oficial por periodos de cada línea («Ver horario oficial»): en Bizkaibus, el texto libre del operador (endpoint legado `GetLineasHorarios`, con `features.schedule_text`); en las demás redes, sacado de su GTFS por `Services/GtfsScheduleText.php` (los días del periodo publicado juntos por horario igual, con las salidas de cabecera de cada sentido), en el mismo formato.
 
 ## Limitación conocida: "Detalle del bus" no incluye modelo/amenities
 
