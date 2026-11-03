@@ -95,6 +95,10 @@ $Expect('esperando en la primera parada, la llegada sale de su hora de salida y 
 $aFirstRow = ['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0, 'stop_seq' => 1];
 $aFirstOut = $MWaiting->enrich([$aFirstRow])[0];
 $Expect('en la primera parada sale «en directo» a su hora, no como ya pasado', $aFirstOut['status'] === 'live' && $aFirstOut['etaSeconds'] === T0, $aFirstOut['status'] . ' ' . hms((int)$aFirstOut['etaSeconds']));
+$SegmentsLearned = new SegmentTimes(['segments' => ['S0>S1' => ['n' => 9, 'all' => 200], 'S1>S2' => ['n' => 9, 'all' => 200]]]);
+$MWaitingLearned = matcher($aWaiting, T0 - 590, null, 40.0, DATE_WEEKDAY, $SegmentsLearned);
+[$iEta, , $bPositioned] = $MWaitingLearned->etaForStop('J_LINE', T0 + 360, $aWaiting, 3);
+$Expect('con tramos aprendidos, esperando en la primera parada la llegada es la de la capa 3: salida + 1 min + tramos (08:07:40)', $iEta === T0 + 460 && $bPositioned, hms($iEta));
 $aAway = live(600, 0, 2, T0 - 600);
 $Expect('antes de su hora y lejos de la primera parada (600 m) no se sitúa: puede estar acabando otro viaje', matcher($aAway, T0 - 590)->positionFor('J_LINE', $aAway) === null);
 $aTooEarly = live(0, 0, 2, T0 - 61 * 60);
