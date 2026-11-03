@@ -38,9 +38,9 @@ claves VAPID no se cambian nunca: las suscripciones de los móviles están hecha
 
 | Qué | Cuándo (hora UTC) | Qué hace |
 | --- | --- | --- |
-| cron-job.org → `/api/live/record` | cada minuto | apunta por dónde va cada bus, manda los avisos de llegada que tocan, cada 5 min las incidencias nuevas y, cuando sale una versión nueva de la app, su aviso |
+| cron-job.org → `/api/live/record` | cada minuto | apunta por dónde va cada bus de todas las redes con motor (una sola llamada), manda los avisos de llegada que tocan, cada 5 min las incidencias nuevas y, cuando sale una versión nueva de la app, su aviso |
 | `rebuild-schedule.yml` | cada día a las 03:00, en cada cambio que llega a `master` y a mano | reconstruye las bases desde los GTFS, genera el mapa y los horarios sin conexión, comprueba los datos y **despliega a producción** |
-| `pace-capture.yml` | captura continua (cada trabajo dura unas 5 h 30 min y lanza el siguiente; el cron horario de respaldo es a los :17) y recalibrado a las 04:00 | captura el feed de Bizkaibus, mide la precisión de las llegadas y recalcula el ritmo (k), los tiempos por tramo y la corrección por viaje (con la base de Bizkaibus del día); las muestras van a la release `pace-data` y lo aprendido, al repositorio del algoritmo |
+| `pace-capture.yml` | captura continua (cada trabajo dura unas 5 h 30 min y lanza el siguiente; el cron horario de respaldo es a los :17) y recalibrado a las 04:00 | por cada red con motor (Bizkaibus, Bilbobus, Lurraldebus): captura su feed, mide la precisión de las llegadas y recalcula el ritmo (k), los tiempos por tramo y la corrección por viaje con su base del día. Las muestras van a su release (`pace-data` para Bizkaibus, `pace-data-<red>` para las demás) y lo aprendido, a la carpeta de su motor en el repositorio del algoritmo. Una red cuyo feed no trae vehículos no captura: lo vuelve a mirar el cron de la hora siguiente |
 | `tests.yml` | en cada cambio y en cada *pull request* | toda la batería de pruebas |
 | `check-production.yml`, `eta-historial.yml` | a mano | comprobar el sitio desplegado (SEO, 404) y recuperar el historial de precisión |
 
@@ -51,12 +51,35 @@ ejecuta desde septiembre.
 
 1. El trabajo va en una rama y se abre una *pull request* a `master`. Vercel publica una vista previa de la rama y
    `tests.yml` pasa toda la batería.
-2. Al fusionar en `master`, `rebuild-schedule.yml` reconstruye las bases y despliega. Vercel **no** despliega `master`
+2. Al fusionar en `master`, `rebuild-schedule.yml` reconstruye las bases y despliega: construye con `vercel build`,
+   `scripts/vercel-launcher.py` adapta la función al lanzador actual de Vercel (y la deja en las extensiones de PHP que
+   usa la app) y sube lo construido. Vercel **no** despliega `master`
    por su cuenta (`vercel.json`): si lo hiciera, desplegaría las bases viejas del repositorio y pisaría las del día.
-3. Para volver atrás, se revierte el cambio en `master` (el flujo vuelve a desplegar) o, en Vercel, se promueve un
-   despliegue anterior.
+3. Para volver atrás, se revierte el cambio en `master` (el flujo vuelve a desplegar). La limpieza del flujo borra los
+   despliegues anteriores, así que en Vercel no suele haber ninguno que promover.
 4. Si el cambio trae una novedad nueva (`api/Services/Changelog.php`), es una versión nueva: al minuto del despliegue el
    cron avisa a quien tiene las notificaciones, una sola vez, y a los demás les sale el «1» rojo en Ajustes.
+
+## Consumo en Vercel (plan Hobby)
+
+El plan gratuito incluye al mes 1 000 000 de peticiones al CDN, 1 000 000 de invocaciones de funciones, 4 horas de CPU
+activa, 360 GB-hora de memoria, 100 GB de transferencia y 10 GB desde las funciones. **Si se pasa de cualquiera, Vercel
+pausa el proyecto 30 días.** Es solo para uso personal y no comercial. Se mira en Vercel → Usage.
+
+| Qué | Cuánto (medido con el PHP 8.5 de Vercel, noviembre de 2026) |
+| --- | --- |
+| Cron de cada minuto | unas 43 000 invocaciones al mes y unos 20 ms de CPU cada una (0,25 h al mes) |
+| Salidas de una parada, ficha del viaje, mapa de línea | de 1 a 10 ms de CPU; el CDN sirve la misma respuesta a todos durante 10 s |
+| Páginas, líneas, búsqueda | de 1 a 4 ms de CPU; el CDN las guarda una hora |
+| Peticiones al CDN por visita | unas 20 en una visita de 5 minutos a una parada (la app refresca cada 25 s, solo con la pestaña visible) |
+
+El límite que llega antes es el de **peticiones al CDN**: con unas 20 por visita, el millón da para unas 50 000 visitas
+al mes (unas 1 600 al día). Por encima, hay que pasar a Pro o alargar los refrescos de `js/app/stop.js`.
+
+Para no gastar de más: las peticiones salientes reutilizan las conexiones del proceso (`Core\Http::handle`, sin un
+saludo TLS nuevo en cada una), un feed vacío se vuelve a mirar cada 10 minutos (`Core\Cache::rememberFeed`) y la función
+carga solo las extensiones de PHP que usa la app (`scripts/vercel-launcher.py`: 208 MB de los 250 que admite una
+función; cada red nueva suma su base).
 
 ## Comprobar que todo va bien
 

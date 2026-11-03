@@ -54,7 +54,7 @@ class WebPush
         $sBody = self::encrypt($sPayload, (string)$aSubscription['keys']['p256dh'], (string)$aSubscription['keys']['auth']);
         $sJwt = self::vapidToken($sEndpoint, $aVapid, $sSubject);
 
-        $Ch = curl_init($sEndpoint);
+        $Ch = \Core\Http::handle($sEndpoint);
         curl_setopt_array($Ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -71,7 +71,6 @@ class WebPush
         ]);
         curl_exec($Ch);
         $iStatus = (int)curl_getinfo($Ch, CURLINFO_HTTP_CODE);
-        curl_close($Ch);
         return $iStatus;
     }
 

@@ -44,7 +44,12 @@ class Live
             foreach (Networks::all() as $sSlug => $aNetwork) {
                 Config::set($sSlug);
                 $sClass = self::engineClass('Live');
-                if ($sClass !== null && method_exists($sClass, 'record')) {
+                if ($sClass === null || !method_exists($sClass, 'record')) {
+                    continue;
+                }
+                $aRecorded[$sSlug] = 0;
+                // record() vuelve a pedir el feed, pero lo encuentra en la caché de esta lectura.
+                if (!empty(self::vehicles())) {
                     $aRecorded[$sSlug] = $sClass::record(Config::current());
                 }
             }

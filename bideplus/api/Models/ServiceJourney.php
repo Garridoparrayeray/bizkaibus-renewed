@@ -29,6 +29,44 @@ class ServiceJourney
     {
     }
 
+    // La hora (segundos desde medianoche) de la próxima salida de hoy desde la parada, o null si no queda ninguna.
+    public function nextDepartureSeconds(int|string $iStopId): int|null
+    {
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $Stmt = $this->Pdo->prepare('
+            SELECT MIN(pt.departure_seconds)
+            FROM passing_times pt
+            JOIN service_journeys sj ON sj.id = pt.service_journey_id
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE pt.stop_id = :stopId
+              AND sc.id != \'PRUEBA\'
+              AND pt.departure_seconds > :now
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce
+                  WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
+              )
+        ');
+        $Stmt->execute([
+            'stopId' => $iStopId,
+            'now' => Calendar::nowSecondsSinceMidnight(),
+            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'today' => $sToday,
+            'today2' => $sToday,
+        ]);
+        $Next = $Stmt->fetchColumn();
+        if ($Next === false || $Next === null) {
+            return null;
+        }
+        return (int)$Next;
+    }
+
     public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600): array
     {
         $iNow = Calendar::nowSecondsSinceMidnight();

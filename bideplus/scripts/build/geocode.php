@@ -108,7 +108,6 @@ class Geocode
         ]);
         $sBody = curl_exec($Ch);
         $iStatus = (int)curl_getinfo($Ch, CURLINFO_HTTP_CODE);
-        curl_close($Ch);
         if ($sBody === false || $iStatus !== 200) {
             return null;
         }

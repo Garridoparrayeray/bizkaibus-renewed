@@ -9,16 +9,30 @@ Desde agosto de 2026 Vercel arranca las funciones con un cargador que importa el
 - `launcher.js` es el de vercel-php con un adaptador al final: con la llamada nueva `(req, res)` lee el cuerpo, pasa la
   petición al servidor PHP embebido y escribe la respuesta; con la llamada antigua (evento de Lambda) sigue como antes;
 - `LAMBDA_TASK_ROOT`, que el lanzador nuevo no define, vale `/var/task` para encontrar `php/` y `user/`;
-- fuera de la función los ficheros de control de versiones (`.git/`, `.gitignore`…), que Vercel no deja subir.
+- fuera de la función los ficheros de control de versiones (`.git/`, `.gitignore`…), que Vercel no deja subir;
+- PHP carga solo las extensiones que usa la app (EXTENSIONS) y la función lleva solo las librerías que necesitan
+  (siguiendo las dependencias de cada binario con readelf): sin eso pesa más de 250 MB, el límite de una función;
+- PHP atiende con varios procesos (PHP_CLI_SERVER_WORKERS), para que una petición lenta no haga esperar a las demás;
+- las bases de datos y lo que no se publica (data/, scripts/, tests/, engine/) no se suben como ficheros estáticos:
+  las rutas ya no los sirven y solo los lee la función.
 
 Uso: python3 scripts/vercel-launcher.py [carpeta .vercel/output]   (por defecto, la de este proyecto)
 """
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 
 MARKER = '/* --- adaptador de Bide+ para el lanzador de Vercel --- */'
 VERSION_CONTROL = ('.git', '.gitignore', '.gitattributes', '.gitmodules', '.github')
+# Las extensiones de PHP que usa la app (cURL, SQLite, SimpleXML, mbstring, ctype, OpenSSL va dentro de PHP) y unas
+# pocas ligeras sin librerías propias. Las demás (intl, gd, bases de datos…) arrastran más de 60 MB de librerías.
+EXTENSIONS = ('apcu', 'bcmath', 'calendar', 'ctype', 'curl', 'dom', 'fileinfo', 'iconv', 'mbstring', 'pdo', 'pdo_sqlite',
+              'posix', 'simplexml', 'sodium', 'sqlite3', 'tokenizer', 'xml', 'xmlreader', 'xmlwriter')
+PHP_WORKERS = '4'
+NOT_PUBLISHED = ('data', 'scripts', 'tests', 'engine')
 
 ADAPTER = r'''
 /* --- adaptador de Bide+ para el lanzador de Vercel --- */
@@ -79,6 +93,44 @@ def is_version_control(path):
     return False
 
 
+def elf_needed(path):
+    out = subprocess.run(['readelf', '-d', path], capture_output=True, text=True, check=True).stdout
+    return re.findall(r'\(NEEDED\).*\[(.+?)\]', out)
+
+
+def keep_extension_line(match):
+    if match.group(1) in EXTENSIONS:
+        return match.group(0)
+    return ''
+
+
+# PHP con solo EXTENSIONS: su php.ini, sin los módulos de las demás, y lib/ con solo lo que piden PHP y esos módulos.
+def trim_php(func_dir, file_map):
+    ini_source = file_map.pop('php/php.ini')
+    with open(ini_source, encoding='utf-8') as f:
+        ini = f.read()
+    loaded = re.findall(r'^extension=(\w+)', ini, re.M)
+    ini = re.sub(r'^extension=(\w+)\n', keep_extension_line, ini, flags=re.M)
+    os.makedirs(os.path.join(func_dir, 'php'), exist_ok=True)
+    with open(os.path.join(func_dir, 'php', 'php.ini'), 'w', encoding='utf-8') as f:
+        f.write(ini)
+    for name in loaded:
+        if name not in EXTENSIONS:
+            file_map.pop(f'php/modules/{name}.so', None)
+    libs = {k[len('lib/'):]: v for k, v in file_map.items() if k.startswith('lib/')}
+    todo = [file_map['php/php']] + [file_map[f'php/modules/{n}.so'] for n in EXTENSIONS if f'php/modules/{n}.so' in file_map]
+    used = set()
+    while todo:
+        for name in elf_needed(todo.pop()):
+            if name in libs and name not in used:
+                used.add(name)
+                todo.append(libs[name])
+    for name in libs:
+        if name not in used:
+            del file_map['lib/' + name]
+    return len(libs) - len(used)
+
+
 def patch_function(func_dir):
     config_path = os.path.join(func_dir, '.vc-config.json')
     with open(config_path, encoding='utf-8') as f:
@@ -100,11 +152,16 @@ def patch_function(func_dir):
     file_map.pop('launcher.js', None)
     for key in [k for k in file_map if is_version_control(k) or is_version_control(file_map[k])]:
         del file_map[key]
+    removed_libs = 0
+    if 'php/php.ini' in file_map:
+        removed_libs = trim_php(func_dir, file_map)
     config['handler'] = 'launcher.js'
+    config.setdefault('environment', {})['PHP_CLI_SERVER_WORKERS'] = PHP_WORKERS
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
         f.write('\n')
-    print(f'{func_dir}: handler launcher.js con el adaptador')
+    size = sum(os.path.getsize(v) for v in file_map.values() if os.path.exists(v))
+    print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías fuera; {size / 1e6:.0f} MB')
 
 
 def main():
@@ -121,6 +178,10 @@ def main():
     if patched == 0:
         print(f'No hay funciones en {functions}', file=sys.stderr)
         sys.exit(1)
+    for name in NOT_PUBLISHED:
+        static_dir = os.path.join(output, 'static', name)
+        if os.path.isdir(static_dir):
+            shutil.rmtree(static_dir)
 
 
 main()
