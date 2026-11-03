@@ -109,7 +109,7 @@ node scripts/render-images.mjs        # todo; «og», «cartel» o «apps» para
 - `carteles/cartel-parada-a5.png` (A5 a 300 ppp) y `cartel-parada-a5.pdf`: el cartel «¿Cansado de perder el bus? Mira
   desde aquí el horario de esta parada», en castellano y euskera, con el hueco del centro para pegar el QR de cada
   parada (la dirección de la parada es `https://www.bideplus.eus/stops/<número>`; en otra red, con `?red=<red>`).
-  `carteles/` está fuera de `bideplus/`, así que no se publica en la web.
+  `carteles/` se genera en local: no se sube al repositorio (`.gitignore`) ni se publica en la web.
 - `carteles/apps/cartel-<red>.png` y `.pdf`: un cartel A5 por app, con su color, su icono y el QR que la abre
   (`https://www.bideplus.eus/?red=<red>`). Bizkaibus, Metro y Renfe llevan su propio mensaje y lo que ofrecen
   (`FEATURED` en el script); las demás, uno según el tipo de transporte y el subtítulo de su ficha. El QR lo dibuja

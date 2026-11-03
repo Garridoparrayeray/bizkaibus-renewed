@@ -127,7 +127,7 @@ function appPosterPage([name, icons, slug, kind, color, texts]) {
         html,body{overflow:hidden}body{background:${color}}
         main{width:1748px;height:2480px;padding:130px 140px 0;display:flex;flex-direction:column;color:#fff}
         .app{display:flex;align-items:center;gap:40px;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:92px;letter-spacing:-.01em}
-        .app img{width:190px;height:190px;border-radius:44px;box-shadow:0 0 0 6px rgba(255,255,255,.9)}
+        .app img{width:190px;height:190px;border-radius:44px}
         h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:150px;line-height:1.02;letter-spacing:-.02em;margin-top:130px}
         h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:80px;line-height:1.08;opacity:.72;margin-top:18px}
         .lead{font-size:58px;font-weight:600;line-height:1.2;margin-top:70px}
