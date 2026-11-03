@@ -129,6 +129,7 @@ $aJsonLd = [
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.5" cy="7" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="17" r="1"/></svg>
                     </button>
                 </div>
+                <?= bideMenuButton() ?>
             </div>
         </header>
 
@@ -159,6 +160,7 @@ $aJsonLd = [
         </section>
 
 <?= bideViews() ?>
+<?= bideMenuSheet() ?>
 
 <?= bideInstallBanner() ?>
 

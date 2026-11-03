@@ -91,6 +91,27 @@ function bideRail(string|null $sCurrentApp): string
     return $sHtml . '</aside>';
 }
 
+// El botón ☰ y su menú: en el móvil y la tablet desde el navegador, donde no está la columna del ordenador ni la barra
+// de la app instalada.
+function bideMenuButton(): string
+{
+    return '<button type="button" class="bide-menu-button" data-bide-menu-open data-i18n-attr="aria-label:bide.menu.open" aria-label="Abrir menú">'
+        . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg></button>';
+}
+
+function bideMenuSheet(): string
+{
+    $sHtml = '<dialog id="bide-menu-sheet" class="bide-menu-sheet" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
+    $sHtml .= '<button type="button" class="bide-menu-sheet-close" data-bide-menu-close data-i18n-attr="aria-label:bide.menu.close" aria-label="Cerrar menú">' . BIDE_ICONS['close'] . '</button>';
+    $sHtml .= '<nav class="bide-menu-sheet-nav">';
+    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="favoritos">' . BIDE_ICONS['favoritos'] . '<span data-i18n="app.favorites.title">Tus favoritos</span></button>';
+    $sHtml .= '<a class="bide-rail-item" href="/mapa">' . BIDE_ICONS['mapa'] . '<span data-i18n="map.title">Mapa de la red</span></a>';
+    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
+    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
+    $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
+    return $sHtml . '</nav></dialog>';
+}
+
 function bideChangelogEntry(array $aEntry): string
 {
     [$sIsoDate, $sDate, $iNumber, $sTitle, $sText] = $aEntry;
