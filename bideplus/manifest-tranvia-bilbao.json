@@ -2,7 +2,7 @@
     "id": "/?homescreen=TranviaBilbao",
     "name": "Tranvía Bilbao+",
     "short_name": "Tranvía+",
-    "description": "Horarios del tranvía de Bilbao, sin vueltas.",
+    "description": "Horarios y tiempo real del tranvía de Bilbao, sin vueltas.",
     "start_url": "/?red=tranvia-bilbao",
     "scope": "/",
     "display": "standalone",
@@ -21,7 +21,7 @@
         {
             "name": "Metro Bilbao",
             "short_name": "Metro+",
-            "description": "Horarios de Metro Bilbao",
+            "description": "Horarios y tiempo real de Metro Bilbao",
             "url": "/?red=metro",
             "icons": [{ "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
         }

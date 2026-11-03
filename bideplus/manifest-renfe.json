@@ -2,7 +2,7 @@
     "id": "/?homescreen=Renfe",
     "name": "Renfe Cercanías+",
     "short_name": "Renfe+",
-    "description": "Horarios de Cercanías Renfe en Bilbao y Donostia/Irun, sin vueltas.",
+    "description": "Horarios y retrasos en tiempo real de Cercanías Renfe en Bilbao y Donostia/Irun, sin vueltas.",
     "start_url": "/?red=renfe",
     "scope": "/",
     "display": "standalone",
@@ -21,7 +21,7 @@
         {
             "name": "Metro Bilbao",
             "short_name": "Metro+",
-            "description": "Horarios de Metro Bilbao",
+            "description": "Horarios y tiempo real de Metro Bilbao",
             "url": "/?red=metro",
             "icons": [{ "src": "icons-metro/icon-192.png", "sizes": "192x192", "type": "image/png" }]
         }

@@ -28,7 +28,7 @@ const wordmark = embed('icons-bide-rojo/bide-wordmark-mayusculas.svg', 'image/sv
 const base = `${fontFaces}*{box-sizing:border-box;margin:0}h1,p{text-wrap:balance}body{background:#fff;color:#16202a;font-family:'Hanken Grotesk',sans-serif}`;
 
 // Las apps del registro, en el orden del menú: nombre e icono.
-const php = 'require "api/Core/Networks.php"; $a = []; foreach (Core\\Networks::all() as $s => $n) $a[] = [$n["texts"]["es"]["name"], $n["brand"]["icons"], $s, $n["kind"], $n["brand"]["palette"]["primary"] ?? $n["brand"]["tile_color"], $n["texts"], $n["live"] ?? []]; echo json_encode($a);';
+const php = 'require "api/Core/Networks.php"; $a = []; foreach (Core\\Networks::all() as $s => $n) $a[] = [$n["texts"]["es"]["name"], $n["brand"]["icons"], $s, $n["kind"], $n["brand"]["palette"]["primary"] ?? $n["brand"]["tile_color"], $n["texts"]]; echo json_encode($a);';
 const apps = JSON.parse(execFileSync('php', ['-r', php], { cwd: ROOT, encoding: 'utf8' }));
 
 function ogPage() {
@@ -67,8 +67,8 @@ function posterPage() {
     </main></body></html>`;
 }
 
-// Las tres más usadas llevan su propio mensaje y lo que ofrecen; las demás, uno según el tipo de transporte. Solo se
-// promete «en directo» a las redes que lo tienen (Bilbobus, Lurraldebus y La Unión dan el horario programado).
+// Las tres más usadas llevan su propio mensaje y lo que ofrecen; las demás, uno según el tipo de transporte y el
+// subtítulo de su ficha, que solo dice «tiempo real» en las que lo tienen.
 const FEATURED = {
     bus: {
         title: ['¿Cansado de perder el bus?', 'Autobusa galtzeaz nekatuta?'],
@@ -104,24 +104,15 @@ const TITLE_BY_KIND = {
     train: ['¿Cuándo sale tu tren?', 'Noiz irteten da zure trena?'],
     metro: ['¿Cuándo pasa el próximo metro?', 'Noiz dator hurrengo metroa?'],
 };
-// Con el directo del operador (GTFS-Realtime): las próximas salidas, en directo.
-const LIVE_LEAD_BY_KIND = {
-    bus: ['Los próximos autobuses de tu parada, en directo', 'Zure geltokiko hurrengo autobusak, zuzenean'],
-    tram: ['Los próximos tranvías de tu parada, en directo', 'Zure geltokiko hurrengo tranbiak, zuzenean'],
-    train: ['Los próximos trenes de tu estación, en directo', 'Zure geltokiko hurrengo trenak, zuzenean'],
-    metro: ['Los próximos trenes de tu estación, en directo', 'Zure geltokiko hurrengo trenak, zuzenean'],
-};
 const appUrl = (slug) => `https://www.bideplus.eus/?red=${slug}`;
 // La primera frase del aviso de la ficha («Proyecto independiente y no oficial, sin relación con…»).
 const firstSentence = (text) => text.split(/\.(?=\s+[A-ZÁÉÍÓÚ]|$)/)[0] + '.';
 
-function appPosterPage([name, icons, slug, kind, color, texts, live]) {
+function appPosterPage([name, icons, slug, kind, color, texts]) {
     const featured = FEATURED[slug];
     const [title, titleEu] = featured?.title ?? TITLE_BY_KIND[kind] ?? TITLE_BY_KIND.bus;
+    // El subtítulo de la ficha («Horarios y tiempo real de…» en las que tienen el directo del operador).
     let [lead, leadEu] = [texts.es.subtitle, texts.eu.subtitle];
-    if (live.includes('trip-updates') || live.includes('vehicle-positions')) {
-        [lead, leadEu] = LIVE_LEAD_BY_KIND[kind] ?? LIVE_LEAD_BY_KIND.bus;
-    }
     if (featured) {
         [lead, leadEu] = featured.lead;
     }
