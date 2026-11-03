@@ -149,12 +149,12 @@ $sLurSiri = '<?xml version="1.0"?><Siri xmlns="http://www.siri.org.uk/siri"><Ser
     . '<VehicleLocation><Longitude>-1.98</Longitude><Latitude>43.31</Latitude></VehicleLocation><VehicleRef>412</VehicleRef>'
     . '<MonitoredCall><StopPointRef>130</StopPointRef><Order>5</Order></MonitoredCall></MonitoredVehicleJourney></VehicleActivity>'
     . '</VehicleMonitoringDelivery></ServiceDelivery></Siri>';
-$aLur = \Engine\Lurraldebus\Live::parse($sLurSiri, 'pesa', DATE_WEEKDAY);
+$aLur = \Engine\Lurraldebus\Live::parseSnapshot($sLurSiri, 'pesa', DATE_WEEKDAY);
 $aLurEntry = $aLur['pesa:7|pesa:7_702_LJ_29700'][0] ?? null;
 $Expect('el viaje lleva el prefijo del operador, como en la base de datos', $aLurEntry !== null && $aLurEntry['tripRef'] === 'pesa:7_702_LJ_29700' && $aLurEntry['lineId'] === 'pesa:7');
 $Expect('posición, parada, orden y hora del dato', $aLurEntry !== null && $aLurEntry['lat'] === 43.31 && $aLurEntry['currentStopId'] === '130' && $aLurEntry['order'] === 5 && $aLurEntry['locationSeconds'] === 8 * 3600 + 30 * 60 + 10);
 $Expect('salida de cabecera desde OriginAimedDepartureTime', $aLurEntry !== null && $aLurEntry['departureSeconds'] === 8 * 3600 + 15 * 60);
-$Expect('un feed vacío no trae buses', \Engine\Lurraldebus\Live::parse('<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery/></ServiceDelivery></Siri>', 'pesa', DATE_WEEKDAY) === []);
+$Expect('un feed vacío no trae buses', \Engine\Lurraldebus\Live::parseSnapshot('<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery/></ServiceDelivery></Siri>', 'pesa', DATE_WEEKDAY) === []);
 $Expect('motores separados: Lurraldebus no lee los datos aprendidos de Bizkaibus', (new \ReflectionClassConstant(\Engine\Lurraldebus\SegmentTimes::class, 'FILE_PATH'))->getValue() !== (new \ReflectionClassConstant(\Engine\Bizkaibus\SegmentTimes::class, 'FILE_PATH'))->getValue());
 
 $Section('RealtimeMatcher: capa 2, parada registrada sin GPS utilizable');
@@ -548,5 +548,27 @@ $MPassBroken->setPassageLoader(function (array $aIds) {
     throw new RuntimeException('almacén caído');
 });
 $Expect('si el registro falla, se sigue con el horario', @$MPassBroken->enrich([$aPassRows[0]])[0]['status'] === 'scheduled');
+
+/* ------------------------------------------------------------------ */
+$Section('Registro: cada red con motor tiene el suyo entero, con sus datos');
+
+// Lo que hace falta para que una red aprenda sola (captura, recalibrado, horas estimadas sin conexión y en el mapa):
+// sus cinco clases, sus datos aprendidos en su carpeta y su nombre en el emparejador. Lo crea new-engine.php.
+foreach (Core\Networks::all() as $sSlug => $aNet) {
+    if (empty($aNet['engine'])) {
+        continue;
+    }
+    $sSpace = 'Engine\\' . ucfirst($aNet['engine']) . '\\';
+    $aMissing = array_filter(['Live', 'PaceFactors', 'SegmentTimes', 'TripOffsets', 'RealtimeMatcher'], fn($sClass) => !class_exists($sSpace . $sClass));
+    $Expect("$sSlug: las cinco clases de su motor", $aMissing === [], implode(', ', $aMissing));
+    if ($aMissing !== []) {
+        continue;
+    }
+    $sDataDir = realpath(__DIR__ . '/../engine/' . $aNet['engine']) . '/data';
+    $aWrongData = array_filter(['PaceFactors', 'SegmentTimes', 'TripOffsets'], fn($sClass) => dirname(($sSpace . $sClass)::defaultPath()) !== $sDataDir);
+    $Expect("$sSlug: lo aprendido, en su carpeta y no en la de otra red", $aWrongData === [], implode(', ', $aWrongData));
+    $sMatcherNetwork = (new ReflectionClassConstant($sSpace . 'RealtimeMatcher', 'NETWORK'))->getValue();
+    $Expect("$sSlug: el emparejador lleva su nombre", $sMatcherNetwork === $sSlug, $sMatcherNetwork);
+}
 
 $Finish('algoritmo');

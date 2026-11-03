@@ -160,11 +160,18 @@ Para que la app sea **solo** de una ciudad:
 
 ## 8. El directo y el algoritmo
 
-- **Autobuses con GPS (SIRI Vehicle Monitoring)**: el algoritmo de `engine/<motor>/` empareja cada bus con su viaje del horario y calcula la llegada a cada parada con lo que tarda de verdad cada tramo. Cómo funciona y cuánto acierta: `docs/algoritmo.html`, en el repositorio `bideplus-engine`. Para una red nueva con SIRI se parte de un motor que ya existe, como se hizo con Lurraldebus a partir del de Bizkaibus: hay que adaptar cómo se reconoce cada viaje en el feed, y la captura (`pace-capture.yml`) para que aprenda sus tiempos por tramo.
+- **Autobuses con GPS (SIRI Vehicle Monitoring)**: el algoritmo de `engine/<motor>/` empareja cada bus con su viaje del horario y calcula la llegada a cada parada con lo que tarda de verdad cada tramo. Cómo funciona y cuánto acierta: `docs/algoritmo.html`, en el repositorio `bideplus-engine`. Para darle el motor a una red con SIRI (`'live' => ['vehicle-monitoring']` y su bloque `siri`, con un feed y su reserva o uno por operador en `vehicle_monitoring_urls`):
+
+  ```bash
+  php engine/bizkaibus/tools/new-engine.php <red>
+  ```
+
+  Crea `engine/<motor>/` (sus cinco clases, que heredan las de Bizkaibus, y su carpeta de datos aprendidos) y pone `'engine'` en la ficha. Lo demás va solo: la captura (`pace-capture.yml`) en cuanto el feed trae vehículos, el recalibrado diario, y las horas estimadas en los horarios sin conexión y en el mapa de la red en cuanto ha aprendido algo. `tests/engine-test.php` comprueba que cada red con motor tiene sus clases, sus datos en su carpeta y su nombre en el emparejador.
 - **Horas previstas (GTFS-Realtime)**: con `matching => 'trip'`, `Services/TripDelayMatcher.php` usa el viaje del horario que trae cada vehículo y su retraso (también si solo lo da por parada, como Tuvisa o Dbus); con `'stops'`, `Services/TripUpdatesMatcher.php` lo empareja por paradas y hora. Los dos viven en la app: no aprenden nada. Sirve para cualquier operador que publique Trip Updates.
 - **Posiciones (GTFS-Realtime)**: `Services/VehiclePositions.php` pone cada vehículo en el mapa de su línea.
 - **Incidencias (GTFS-Realtime)**: `GtfsRealtimeClient::fetchAlerts` lee `gtfs_rt.alerts_url` y da las vigentes.
 - **Sin directo**: el horario oficial, marcado «Solo horario».
+- **Guardar el directo para aprender de él** (`'capture' => 'gtfs-rt'`, como Renfe): la captura guarda su GTFS-Realtime, recortado a los viajes de la red, sin que la app lo use todavía.
 
 ## Lista de comprobación
 
@@ -172,6 +179,7 @@ Para que la app sea **solo** de una ciudad:
 - [ ] Atribución y aviso de «no oficial» correctos.
 - [ ] Iconos de verdad en `icons-<red>/`.
 - [ ] `build-database.php`, `build-sitemap.php`, `build-network-map.php` y `build-offline-data.php`.
+- [ ] Con SIRI de vehículos: `php engine/bizkaibus/tools/new-engine.php <red>`.
 - [ ] `python3 tests/static-checks.py` en verde.
 - [ ] Probada en local: buscar una parada, abrir una línea, el mapa, Ajustes y Avisos.
 - [ ] Si es una app propia: `site.php`, textos de Bide+, aviso legal y marca.
