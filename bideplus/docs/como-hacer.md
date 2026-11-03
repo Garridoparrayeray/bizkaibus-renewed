@@ -21,22 +21,26 @@ despliega en Vercel. Si el cambio toca `engine/`, primero la *pull request* del 
 
 Una red nueva entra en todo eso por estar en `api/Networks/`: no hay listas de redes en ningún otro sitio.
 
-## Añadir una red con GTFS
+## Añadir una red con GTFS (una orden)
 
 ```bash
 php scripts/new-network.php --slug=<red> --name="<Nombre>+" --color=#RRGGBB --gtfs=<url del GTFS> --kind=bus --city="<Ciudad>" --operator="<Operador>"
-php scripts/build-database.php --network=<red>
-php scripts/build-sitemap.php
 python3 tests/static-checks.py
 ```
 
-Después: revisar los textos en los tres idiomas de `api/Networks/<red>.php`, sus iconos (abajo) y probarla en local
+La primera orden lo deja todo listo: su ficha (con «Nuevo» unos días), un icono provisional con su inicial y su «+»
+sobre su color, su base de datos, el mapa de la red, los horarios sin conexión (ya sale en Ajustes para descargarla) y
+el *sitemap*. Con sus feeds GTFS-Realtime (`--trip-updates=`, `--vehicle-positions=`, `--alerts=`) sale ya en directo.
+Después: revisar los textos en los tres idiomas de `api/Networks/<red>.php` y probarla en local
 (`php -S 127.0.0.1:8011 dev-router.php` y abrir `/?red=<red>`). Si el GTFS no trae un destino útil en los viajes, pon
-`features.headsign_from_last_stop => true`. A fondo: [nueva-red.md](nueva-red.md).
+`features.headsign_from_last_stop => true`. Desde ahí, sus horarios se actualizan solos cada día. A fondo:
+[nueva-red.md](nueva-red.md).
 
-## Marcar una red como «Nuevo»
+## «Nuevo» en una red o una función nueva
 
-En su ficha, `'new_until' => 'AAAA-MM-DD'`: la etiqueta sale en el menú hasta ese día y se quita sola.
+Nada que hacer: `new-network.php` pone en la ficha `'added'` (el día que llega) y su ficha del menú lleva «Nuevo» los
+días de `new_days` (`api/Config/site.php`, 30). Para una función nueva (un botón, una tarjeta), añade
+`data-new-since="AAAA-MM-DD"` a su elemento: lleva «Nuevo» los mismos días (`js/new-badge.js`) y se quita sola.
 
 ## Darle tiempo real (GTFS-Realtime)
 

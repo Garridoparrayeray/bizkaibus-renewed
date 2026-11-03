@@ -60,6 +60,7 @@ const SHELL_FILES = [
     '/js/arrival-alerts-store.js',
     '/js/settings.js',
     '/js/location-pref.js',
+    '/js/new-badge.js',
     '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',

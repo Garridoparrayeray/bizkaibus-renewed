@@ -53,7 +53,7 @@ $aJsonLd = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="es" data-splash="first">
+<html lang="es" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -165,7 +165,7 @@ $aJsonLd = [
         <footer class="menu-footer">
             <div class="bide-footer-brand">
                 <span class="bide-wordmark">BIDE<span>+</span></span>
-                <p data-i18n="menu.footer">Datos abiertos de Bizkaibus, Metro Bilbao, Euskotren y Renfe (CC-BY 4.0 donde corresponde). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+                <p data-i18n="menu.footer">Datos abiertos del operador de cada red (las fuentes y sus licencias, en Info). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
             </div>
             <?= bideAppsLinks() ?>
             <?= bideFooterAuthor('<button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
@@ -178,6 +178,7 @@ $aJsonLd = [
     <script src="/js/api.js"></script>
     <script src="/js/alerts-store.js"></script>
     <script src="/js/bide.js"></script>
+    <script src="/js/new-badge.js"></script>
     <script src="/js/offline.js"></script>
     <script src="/js/bide-info.js"></script>
     <script type="module" src="/js/settings.js"></script>

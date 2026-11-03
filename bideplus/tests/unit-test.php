@@ -465,4 +465,15 @@ $aDedupeRows = [
 $aDeduped = $Dedupe->invoke(new ServiceJourney(buildFixture(40)), $aDedupeRows, 10);
 $Expect('el mismo viaje en dos calendarios sale una vez; otro viaje del mismo número un minuto después también sale', \count($aDeduped) === 2 && $aDeduped[1]['first_departure_seconds'] === 56700, (string)\count($aDeduped));
 
+/* ------------------------------------------------------------------ */
+$Section('NewBadge: «Nuevo» unos días (new_days de Config/site.php)');
+
+$iDays = Core\NewBadge::days();
+$Since = new DateTime('2026-11-02');
+$Expect('el primer día, nueva', Core\NewBadge::isNew('2026-11-02', clone $Since));
+$Expect("el día $iDays, todavía nueva", Core\NewBadge::isNew('2026-11-02', (clone $Since)->modify('+' . ($iDays - 1) . ' days')));
+$Expect('el día siguiente, ya no', !Core\NewBadge::isNew('2026-11-02', (clone $Since)->modify("+$iDays days")));
+$Expect('sin fecha o con una que no es fecha, no', !Core\NewBadge::isNew(null) && !Core\NewBadge::isNew('pronto'));
+$Expect('una red sin «added» no es nueva', !Core\Networks::isNew(['slug' => 'x']));
+
 $Finish('unitarias');

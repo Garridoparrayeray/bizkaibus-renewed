@@ -1,15 +1,17 @@
 <?php
 
-// Crea una red nueva: su configuración (api/Networks/<red>.php), unos iconos provisionales (icons-<red>/) y los
-// archivos que salen de la configuración (js/networks.js y style-networks.css). Después hay que revisar los textos,
-// poner los iconos de verdad y construir su base de datos. Paso a paso: docs/nueva-red.md.
+// Crea una red nueva entera con una orden: su configuración (api/Networks/<red>.php, con «Nuevo» unos días), un icono
+// provisional con su inicial y su «+» sobre su color (icons-<red>/), los archivos que salen de la configuración
+// (js/networks.js y style-networks.css), su base de datos, el mapa de la red, los horarios sin conexión y el sitemap.
+// Después solo queda revisar los textos y, cuando los haya, poner sus iconos de verdad. Paso a paso: docs/nueva-red.md.
 //
 // Uso:
 //   php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 --gtfs=https://…/gtfs.zip
 //                               [--kind=bus|metro|tram|train] [--city=Getxo] [--operator="Getxo Udala"]
 //                               [--trip-updates=https://…pb] [--vehicle-positions=https://…pb] [--alerts=https://…pb]
-//                               [--matching=trip|stops]
+//                               [--matching=trip|stops] [--sin-datos]
 // Con los feeds GTFS-Realtime del operador, la red sale ya en directo: retrasos, vehículos en el mapa e incidencias.
+// --sin-datos solo crea la configuración y los iconos (sin descargar el GTFS ni construir nada).
 
 declare(strict_types=1);
 
@@ -37,7 +39,7 @@ function fail(string $sMessage): never
 
 function options(): array
 {
-    $aOptions = getopt('', ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'operator:', 'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:']);
+    $aOptions = getopt('', ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'operator:', 'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:', 'sin-datos']);
     foreach (['slug', 'name', 'color', 'gtfs'] as $sRequired) {
         if (empty($aOptions[$sRequired])) {
             fail("Falta --$sRequired. Uso: php scripts/new-network.php --slug=getxo --name=\"Getxo Bus+\" --color=#E30613 --gtfs=https://…/gtfs.zip");
@@ -168,6 +170,12 @@ function config(array $aOptions): string
         $sPalette .= "            '$sKey' => '$sValue',\n";
     }
 
+    // En la cabecera, la marca en blanco (glyph.png) si se ha podido dibujar; si no, el icono entero.
+    $sLogomark = '<img class="is-icon" src="/icons-' . $sSlug . '/icon-192.png" alt="">';
+    if (is_file(ROOT . '/icons-' . $sSlug . '/glyph.png')) {
+        $sLogomark = '<img src="/icons-' . $sSlug . '/glyph.png" alt="">';
+    }
+    $sAdded = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d');
     return <<<PHP
 <?php
 
@@ -178,12 +186,15 @@ return [
     'order' => $iOrder,
     'db' => '{$sSlug}',
     'kind' => '{$aOptions['kind']}',
+    // El día que llegó a Bide+: su ficha del menú lleva «Nuevo» los días de new_days (api/Config/site.php).
+    'added' => '{$sAdded}',
 
     'brand' => [
         'icons' => 'icons-$sSlug',
         'theme_color' => '{$aPalette['primary']}',
         'title' => [$sTitle, ''],
-        'logomark' => '<img src="/icons-$sSlug/icon-192.png" alt="">',
+        'logomark' => '$sLogomark',
+        'card_logomark' => '<img src="/icons-$sSlug/icon-192.png" alt="">',
         'tile_color' => '{$aPalette['primary']}',
         'swatch_color' => '{$aPalette['primary']}',
         'palette' => [
@@ -252,41 +263,64 @@ $sLiveConfig
 PHP;
 }
 
+// Lanza scripts de scripts/ con sus argumentos, uno detrás de otro; para si alguno falla.
+function run(array $aScripts): void
+{
+    foreach ($aScripts as $sScript) {
+        [$sFile, $sArgs] = array_pad(explode(' ', $sScript, 2), 2, '');
+        $sCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/' . $sFile);
+        if ($sArgs !== '') {
+            $sCommand .= ' ' . escapeshellarg($sArgs);
+        }
+        passthru($sCommand, $iStatus);
+        if ($iStatus !== 0) {
+            fail("Falló scripts/$sScript");
+        }
+    }
+}
+
+// Icono provisional: la inicial de la red y su «+» en blanco sobre su color (icon.svg) y en negro (glyph.svg), pasados
+// a PNG con scripts/render-icons.mjs. Sin Node o sin navegador, los iconos de Bide+.
+function makeIcons(string $sSlug, string $sName, string $sColor): void
+{
+    $sDir = ROOT . '/icons-' . $sSlug;
+    if (!is_dir($sDir)) {
+        mkdir($sDir);
+    }
+    $sLetter = htmlspecialchars(mb_strtoupper(mb_substr(trim($sName), 0, 1)));
+    $sMark = '<text x="226" y="372" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="300" font-weight="700">'
+        . $sLetter . '</text><rect x="354" y="113" width="104" height="30" rx="5"/><rect x="391" y="76" width="30" height="104" rx="5"/>';
+    $sSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">';
+    file_put_contents($sDir . '/icon.svg', $sSvg . '<rect width="512" height="512" rx="112" fill="' . $sColor . '"/><g fill="#FFFFFF">' . $sMark . '</g></svg>' . "\n");
+    file_put_contents($sDir . '/glyph.svg', $sSvg . '<g fill="#000000">' . $sMark . '</g></svg>' . "\n");
+    passthru('node ' . escapeshellarg(__DIR__ . '/render-icons.mjs') . ' ' . escapeshellarg($sSlug), $iStatus);
+    if ($iStatus === 0) {
+        return;
+    }
+    fwrite(STDERR, "Sin navegador para dibujar el icono: van los de Bide+ (node scripts/render-icons.mjs $sSlug más tarde).\n");
+    foreach (['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'] as $sIcon) {
+        copy(ROOT . '/icons-bide-rojo/' . $sIcon, $sDir . '/' . $sIcon);
+    }
+}
+
 $aOptions = options();
-$sConfigPath = ROOT . '/api/Networks/' . $aOptions['slug'] . '.php';
-file_put_contents($sConfigPath, config($aOptions));
-
-// Iconos provisionales (los de Bide+), para que la app funcione desde el primer momento.
-$sIcons = ROOT . '/icons-' . $aOptions['slug'];
-if (!is_dir($sIcons)) {
-    mkdir($sIcons);
-}
-foreach (['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'] as $sIcon) {
-    $sSource = ROOT . '/icons-bide-rojo/' . $sIcon;
-    if (!is_file($sSource)) {
-        $sSource = ROOT . '/icons-bide-rojo/icon-192.png';
-    }
-    copy($sSource, $sIcons . '/' . $sIcon);
-}
-
-foreach (['build-networks-js.php', 'build-networks-css.php'] as $sScript) {
-    passthru(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/' . $sScript), $iStatus);
-    if ($iStatus !== 0) {
-        fail("Falló scripts/$sScript");
-    }
+makeIcons($aOptions['slug'], $aOptions['name'], $aOptions['color']);
+file_put_contents(ROOT . '/api/Networks/' . $aOptions['slug'] . '.php', config($aOptions));
+run(['build-networks-js.php', 'build-networks-css.php']);
+if (!isset($aOptions['sin-datos'])) {
+    run(['build-database.php --network=' . $aOptions['slug'], 'build-network-map.php', 'build-offline-data.php', 'build-sitemap.php']);
 }
 
 $sSlug = $aOptions['slug'];
 echo <<<TXT
 
-Red «{$aOptions['name']}» creada:
-  api/Networks/$sSlug.php   configuración (revisa los textos)
-  icons-$sSlug/             iconos provisionales (cámbialos por los suyos: 192 y 512 px, y apple-touch-icon de 180)
+Red «{$aOptions['name']}» creada y lista: /?red=$sSlug
+  api/Networks/$sSlug.php   su configuración: revisa los textos en los tres idiomas
+  icons-$sSlug/             icono provisional (para el de verdad: dibuja icon.svg y glyph.svg y
+                            node scripts/render-icons.mjs $sSlug)
+  data/$sSlug.sqlite        su horario, con el mapa, los horarios sin conexión y el sitemap ya al día
 
-Siguientes pasos:
-  1. php scripts/build-database.php --network=$sSlug     (descarga el GTFS y crea data/$sSlug.sqlite)
-  2. php scripts/build-sitemap.php
-  3. php -S 127.0.0.1:8011 dev-router.php  y abre http://127.0.0.1:8011/?red=$sSlug
-  4. python3 tests/static-checks.py
+Para probarla: php -S 127.0.0.1:8011 dev-router.php y abre http://127.0.0.1:8011/?red=$sSlug
+Después: python3 tests/static-checks.py, y subirla (rama, pull request y fusionar: se publica sola).
 
 TXT;

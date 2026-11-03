@@ -29,9 +29,12 @@ horario oficial. No hace falta escribir código: todo lo de la red está en su a
 
 El script:
 
-- crea `api/Networks/getxo.php` con todo rellenado: textos en castellano, euskera e inglés, colores calculados desde `--color` y funciones básicas;
-- copia unos iconos provisionales en `icons-getxo/`;
-- regenera `js/networks.js` y `style-networks.css`, que salen de la configuración.
+- crea `api/Networks/getxo.php` con todo rellenado: textos en castellano, euskera e inglés, colores calculados desde `--color`, funciones básicas y `added` (el día que llega: su ficha lleva «Nuevo» los días de `new_days`, en `api/Config/site.php`);
+- dibuja un icono provisional en `icons-getxo/` (su inicial y su «+» sobre su color, en SVG y en PNG con `scripts/render-icons.mjs`; sin navegador, los de Bide+);
+- regenera `js/networks.js` y `style-networks.css`, que salen de la configuración;
+- descarga el GTFS y construye su base de datos, el mapa de la red, los horarios sin conexión y el *sitemap* (el paso 4, «Construir los datos», ya está hecho; con `--sin-datos`, no).
+
+Desde ahí no hay que tocar nada más para que funcione: la reconstrucción diaria actualiza sus horarios, su horario oficial por periodos y sus horarios sin conexión.
 
 | Opción | Qué es |
 | --- | --- |
