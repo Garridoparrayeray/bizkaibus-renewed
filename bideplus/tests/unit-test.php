@@ -15,6 +15,10 @@ use Services\ScheduleRange;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
 use Services\VehiclePositions;
+$Section('Sin motor: las salidas llevan los campos del horario');
+$aOnly = (new \Services\ScheduleOnlyMatcher())->enrich([['line_id' => '1', 'trip_number' => 'a', 'first_departure_seconds' => 100, 'arrival_seconds' => 460]]);
+$Expect('sin vehículos, cada salida sale como scheduled con su hora', $aOnly[0]['status'] === 'scheduled' && $aOnly[0]['etaSeconds'] === 460 && $aOnly[0]['delaySeconds'] === 0 && array_key_exists('vehicleRef', $aOnly[0]));
+
 $Section('Registro de redes (api/Networks)');
 $aFeatureKeys = ['platforms', 'headsign_from_last_stop', 'stop_hints', 'line_map', 'schedule_text', 'trip_detail', 'alerts', 'alerts_detail'];
 foreach (\Core\Networks::all() as $sSlug => $aNet) {
