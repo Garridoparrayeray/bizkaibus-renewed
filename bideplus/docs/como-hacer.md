@@ -106,6 +106,18 @@ php scripts/build-networks-css.php
 php scripts/build-networks-js.php
 ```
 
+## Cambiar el nombre de una red
+
+En su ficha, `texts.<idioma>.name`. Además de la app, el nombre sale en los enlaces de la página de error 404, que es
+un fichero estático. Después:
+
+```bash
+php scripts/build-networks-js.php
+php scripts/build-404.php
+```
+
+`tests/static-checks.py` falla si `404.html`, `js/networks.js` o `css/style-networks.css` no están al día.
+
 ## Textos e idiomas
 
 Los textos de la app están en `js/i18n.js`, con las mismas claves en castellano, euskera e inglés (lo comprueba
