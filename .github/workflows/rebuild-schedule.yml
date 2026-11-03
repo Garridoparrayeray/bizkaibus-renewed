@@ -176,6 +176,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          # El checkout del algoritmo deja su .git dentro de bideplus/engine y Vercel no admite subirlo.
+          rm -rf bideplus/engine/.git
           vercel build --prod --yes --token="$VERCEL_TOKEN"
           OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
           python3 bideplus/scripts/vercel-launcher.py "$OUT"

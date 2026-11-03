@@ -8,7 +8,8 @@ Desde agosto de 2026 Vercel arranca las funciones con un cargador que importa el
 - el handler pasa a ser `launcher.js`, que sí se puede importar;
 - `launcher.js` es el de vercel-php con un adaptador al final: con la llamada nueva `(req, res)` lee el cuerpo, pasa la
   petición al servidor PHP embebido y escribe la respuesta; con la llamada antigua (evento de Lambda) sigue como antes;
-- `LAMBDA_TASK_ROOT`, que el lanzador nuevo no define, vale `/var/task` para encontrar `php/` y `user/`.
+- `LAMBDA_TASK_ROOT`, que el lanzador nuevo no define, vale `/var/task` para encontrar `php/` y `user/`;
+- fuera de la función los ficheros de control de versiones (`.git/`, `.gitignore`…), que Vercel no deja subir.
 
 Uso: python3 scripts/vercel-launcher.py [carpeta .vercel/output]   (por defecto, la de este proyecto)
 """
@@ -17,6 +18,7 @@ import os
 import sys
 
 MARKER = '/* --- adaptador de Bide+ para el lanzador de Vercel --- */'
+VERSION_CONTROL = ('.git', '.gitignore', '.gitattributes', '.gitmodules', '.github')
 
 ADAPTER = r'''
 /* --- adaptador de Bide+ para el lanzador de Vercel --- */
@@ -70,6 +72,13 @@ module.exports.launcher = launcher;
 '''
 
 
+def is_version_control(path):
+    for part in path.split('/'):
+        if part in VERSION_CONTROL:
+            return True
+    return False
+
+
 def patch_function(func_dir):
     config_path = os.path.join(func_dir, '.vc-config.json')
     with open(config_path, encoding='utf-8') as f:
@@ -89,6 +98,8 @@ def patch_function(func_dir):
     with open(launcher_path, 'w', encoding='utf-8') as f:
         f.write(source)
     file_map.pop('launcher.js', None)
+    for key in [k for k in file_map if is_version_control(k) or is_version_control(file_map[k])]:
+        del file_map[key]
     config['handler'] = 'launcher.js'
     with open(config_path, 'w', encoding='utf-8') as f:
         json.dump(config, f, indent=2)
