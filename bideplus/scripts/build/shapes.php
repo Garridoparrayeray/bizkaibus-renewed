@@ -21,8 +21,9 @@ class Shapes
 
     public static function align(PDO $Pdo): array
     {
-        // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera.
-        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_align_passing_times ON passing_times (service_journey_id, seq_order)');
+        // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera. Es el
+        // mismo índice que crea después (Schema::createIndexes), así que se queda y no hay que quitarlo.
+        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_passing_times_journey ON passing_times (service_journey_id, seq_order)');
         $aJourneysByShape = [];
         $Rows = $Pdo->query('SELECT id, shape_id FROM service_journeys WHERE shape_id IS NOT NULL');
         foreach ($Rows as $aRow) {
@@ -56,7 +57,9 @@ class Shapes
                 $aTotals['reversed']++;
             }
             foreach ($aStopsByJourney as $sJourneyId => $aStops) {
-                if (!$bReversed && self::stopsMatch($aPoints, $aStops)) {
+                // Sin metros en el GTFS (Lurraldebus, Bilbobus…) se quedan sin ellos, como antes: el motor sitúa al bus
+                // con la recta entre paradas, y medirlos ahora cambiaría eso sin haberlo medido.
+                if (self::withoutDistances($aStops) || (!$bReversed && self::stopsMatch($aPoints, $aStops))) {
                     continue;
                 }
                 foreach (self::stopDistances($aPoints, $aStops) as $iSeq => $dMeters) {
@@ -65,8 +68,6 @@ class Shapes
                 $aTotals['remeasured']++;
             }
         }
-        $Rows = $LoadShape = $LoadStops = $SaveShape = $SaveDistance = null;
-        $Pdo->exec('DROP INDEX idx_align_passing_times');
         return $aTotals;
     }
 
@@ -103,6 +104,16 @@ class Shapes
             $aFlipped[] = [$aPoint[0], $aPoint[1], round($dTotal - (float)$aPoint[2], 2)];
         }
         return $aFlipped;
+    }
+
+    public static function withoutDistances(array $aStops): bool
+    {
+        foreach ($aStops as $aStop) {
+            if ($aStop['dist_m'] !== null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     // Cada parada, a sus metros del GTFS sobre el trazado, cae junto a ella.

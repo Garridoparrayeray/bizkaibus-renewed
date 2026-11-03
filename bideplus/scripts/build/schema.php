@@ -142,7 +142,7 @@ class Schema
     public static function createIndexes(PDO $Pdo): void
     {
         $Pdo->exec('CREATE INDEX idx_passing_times_stop ON passing_times (stop_id, departure_seconds)');
-        $Pdo->exec('CREATE INDEX idx_passing_times_journey ON passing_times (service_journey_id)');
+        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_passing_times_journey ON passing_times (service_journey_id, seq_order)');
         $Pdo->exec('CREATE INDEX idx_journeys_line ON service_journeys (line_id, trip_number, first_departure_seconds)');
         $Pdo->exec('CREATE INDEX idx_journeys_calendar ON service_journeys (calendar_id)');
         $Pdo->exec('CREATE INDEX idx_pattern_stops ON journey_pattern_stops (journey_pattern_id, seq_order)');
