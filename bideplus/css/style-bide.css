@@ -1301,7 +1301,7 @@ html.bide body.page-menu .legal-close {
         padding-bottom: calc(96px + 34px);
     }
     html.bide.is-standalone body.page-app .app-footer,
-    html.bide.is-standalone body.page-menu main > footer,
+    html.bide.is-standalone body.page-menu .menu-footer,
     html.bide.is-standalone .menu-open {
         display: none;
     }
@@ -1321,11 +1321,34 @@ html.bide body.page-menu .legal-close {
 
 /* ===== Ordenador ===== */
 @media (min-width: 1024px) {
+    /* La columna lateral se queda quieta y nunca pasa del alto de la pantalla: lo que no cabe (la lista de apps abierta,
+       muchos favoritos) se desplaza dentro de ella, así que no pisa el pie. */
     html.bide .bide-rail {
         display: flex;
         flex-direction: column;
         gap: 14px;
+        max-height: calc(100vh - 40px);
+        max-height: calc(100dvh - 40px);
+        overflow: hidden;
     }
+        html.bide .bide-rail > :not(.bide-rail-nav, .bide-rail-favorites),
+        html.bide .bide-rail-nav > :not(.bide-rail-applist) {
+            flex: none;
+        }
+        html.bide .bide-rail-nav {
+            flex: 0 1 auto;
+            min-height: 0;
+        }
+        html.bide :is(.bide-rail-applist, .bide-rail-favorites) {
+            flex: 0 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+        }
+        html.bide .bide-rail-favorites {
+            min-height: 92px;
+        }
     html.bide .bide-view-back {
         display: none;
     }
@@ -1441,7 +1464,7 @@ html.bide body.page-menu .legal-close {
         display: grid;
         flex: 1 0 auto;
         grid-template-columns: 248px minmax(0, 1fr);
-        grid-template-rows: repeat(4, auto) 1fr auto;
+        grid-template-rows: repeat(4, auto) 1fr;
         column-gap: 24px;
         width: 100%;
         max-width: 1400px;
@@ -1478,8 +1501,6 @@ html.bide body.page-menu .legal-close {
         overflow-x: clip;
     }
     html.bide body.page-menu .menu-footer {
-        grid-column: 1 / -1;
-        grid-row: 6;
         width: 100vw;
         margin: 24px 0 0 calc(50% - 50vw);
     }

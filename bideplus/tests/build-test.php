@@ -5,6 +5,7 @@ require __DIR__ . '/../scripts/build-database.php';
 use Build\Calendars;
 use Build\Gtfs;
 use Build\Journeys;
+use Build\Shapes;
 
 $aFailures = [];
 $Expect = function (string $sName, bool $bOk) use (&$aFailures): void {
@@ -202,6 +203,54 @@ $PdoStops->exec("INSERT INTO stops VALUES ('9', 'Atxuri')");
 $LastStopName = $PdoStops->prepare('SELECT name FROM stops WHERE id = ?');
 $Expect('un viaje sin rótulo va hacia su última parada', Journeys::patternHeadsign('', '9', $LastStopName) === 'Atxuri');
 $Expect('un viaje con rótulo lo conserva', Journeys::patternHeadsign('Miribilla', '9', $LastStopName) === 'Miribilla');
+
+/*
+ * Trazados del GTFS que no casan con sus paradas: una línea recta hacia el norte, 4 paradas cada 1000 m. Un trazado
+ * dibujado del final al principio se pone del derecho, y unos metros del GTFS que no caen sobre la parada se miden de
+ * nuevo sobre el trazado.
+ */
+$ShapeFixture = function (bool $bReversed, array $aStopMeters): PDO {
+    $Pdo = new PDO('sqlite::memory:');
+    $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $Pdo->exec('
+        CREATE TABLE stops (id TEXT PRIMARY KEY, lat REAL, lon REAL);
+        CREATE TABLE service_journeys (id TEXT PRIMARY KEY, shape_id TEXT);
+        CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, dist_m REAL);
+        CREATE TABLE shapes (id TEXT PRIMARY KEY, points TEXT);
+    ');
+    $dLatPerMeter = 1 / 111320;
+    $aPoints = [];
+    for ($iMeters = 0; $iMeters <= 3000; $iMeters += 100) {
+        $aPoints[] = [43.2 + $iMeters * $dLatPerMeter, -2.9, (float)$iMeters];
+    }
+    if ($bReversed) {
+        $aPoints = array_map(fn($aPoint) => [43.2 + (3000 - $aPoint[2]) * $dLatPerMeter, -2.9, $aPoint[2]], $aPoints);
+    }
+    $Pdo->prepare('INSERT INTO shapes VALUES (?, ?)')->execute(['SH', json_encode($aPoints)]);
+    $Pdo->exec("INSERT INTO service_journeys VALUES ('J', 'SH')");
+    foreach ($aStopMeters as $i => $dMeters) {
+        $Pdo->prepare('INSERT INTO stops VALUES (?, ?, ?)')->execute(['S' . $i, 43.2 + $i * 1000 * $dLatPerMeter, -2.9]);
+        $Pdo->prepare('INSERT INTO passing_times VALUES (?, ?, ?, ?)')->execute(['J', $i + 1, 'S' . $i, $dMeters]);
+    }
+    return $Pdo;
+};
+$Distances = fn(PDO $Pdo) => array_map(fn($dMeters) => (int)round((float)$dMeters), $Pdo->query("SELECT dist_m FROM passing_times ORDER BY seq_order")->fetchAll(PDO::FETCH_COLUMN));
+$FirstPoint = fn(PDO $Pdo) => json_decode((string)$Pdo->query("SELECT points FROM shapes")->fetchColumn(), true)[0];
+
+$Pdo = $ShapeFixture(false, [0, 1000, 2000, 3000]);
+$aTotals = Shapes::align($Pdo);
+$Expect('un trazado que casa con sus paradas no se toca', $aTotals === ['reversed' => 0, 'remeasured' => 0] && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+
+$Pdo = $ShapeFixture(true, [0, 1000, 2000, 3000]);
+$aTotals = Shapes::align($Pdo);
+$aFirst = $FirstPoint($Pdo);
+$Expect('un trazado dibujado al revés se pone del derecho: empieza en la primera parada', $aTotals['reversed'] === 1 && abs($aFirst[0] - 43.2) < 1e-6 && $aFirst[2] == 0);
+$Expect('con el trazado del derecho, cada parada cae a sus metros', $Distances($Pdo) === [0, 1000, 2000, 3000]);
+
+$Pdo = $ShapeFixture(false, [0, 700, 1500, 2600]);
+$aTotals = Shapes::align($Pdo);
+$Expect('unos metros del GTFS que no caen sobre la parada se miden de nuevo sobre el trazado', $aTotals['remeasured'] === 1 && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";

@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-const SHELL_DIRS = ['js', 'lib', 'fonts'];
+const SHELL_DIRS = ['css', 'js', 'lib', 'fonts'];
 const SHELL_ROOT_PATTERNS = ['*.css', '*.html', 'manifest*.json'];
 
 // Rutas relativas, ordenadas, de todo lo que el service worker puede servir sin volver a pedir.

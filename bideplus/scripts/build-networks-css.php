@@ -1,6 +1,6 @@
 <?php
 
-// Genera style-networks.css con los colores de cada red de api/Networks.
+// Genera css/style-networks.css con los colores de cada red de api/Networks.
 // Uso: php scripts/build-networks-css.php [--output=ruta]
 
 declare(strict_types=1);
@@ -10,7 +10,7 @@ require __DIR__ . '/../api/Core/Networks.php';
 use Core\Networks;
 
 $aOptions = getopt('', ['output:']);
-$sOutput = $aOptions['output'] ?? __DIR__ . '/../style-networks.css';
+$sOutput = $aOptions['output'] ?? __DIR__ . '/../css/style-networks.css';
 
 // Solo colores y nombres de variable: nada que pueda romper el CSS.
 function cssValue(string $sValue): string
@@ -57,4 +57,4 @@ $sCss = "/* Generado por scripts/build-networks-css.php: no lo edites a mano. */
     . "/* ===== Paleta de la app de cada red ===== */\n" . implode("\n", $aPalettes) . "\n";
 
 file_put_contents($sOutput, $sCss);
-echo 'style-networks.css: ' . count($aTiles) . " redes\n";
+echo 'css/style-networks.css: ' . count($aTiles) . " redes\n";

@@ -2,8 +2,9 @@
 
 // Crea una red nueva entera con una orden: su configuración (api/Networks/<red>.php, con «Nuevo» unos días), un icono
 // provisional con su inicial y su «+» sobre su color (icons-<red>/), los archivos que salen de la configuración
-// (js/networks.js y style-networks.css), su base de datos, el mapa de la red, los horarios sin conexión y el sitemap.
-// Después solo queda revisar los textos y, cuando los haya, poner sus iconos de verdad. Paso a paso: docs/nueva-red.md.
+// (js/networks.js y css/style-networks.css), su base de datos, el mapa de la red, los horarios sin conexión y el
+// sitemap. Después solo queda revisar los textos y, cuando los haya, poner sus iconos de verdad. Paso a paso:
+// docs/nueva-red.md.
 //
 // Uso:
 //   php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 --gtfs=https://…/gtfs.zip

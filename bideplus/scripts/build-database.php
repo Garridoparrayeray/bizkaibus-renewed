@@ -23,6 +23,7 @@ require_once __DIR__ . '/build/download.php';
 require_once __DIR__ . '/build/gtfs.php';
 require_once __DIR__ . '/build/calendars.php';
 require_once __DIR__ . '/build/journeys.php';
+require_once __DIR__ . '/build/shapes.php';
 require_once __DIR__ . '/build/schema.php';
 
 // Valor de una variable de entorno, o el de por defecto si no está definida (o está vacía, con $bEmptyIsUnset).

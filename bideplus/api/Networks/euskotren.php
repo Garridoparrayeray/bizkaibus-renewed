@@ -11,7 +11,7 @@ return [
         'theme_color' => '#003F8C',
         'title' => ['EUSKOTREN', ''],
         'logomark' => '<img src="/icons-euskotren/icon-192.png" alt="">',
-        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de
         // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
         'tile_color' => '#003F8C',
         'swatch_color' => '#003F8C',

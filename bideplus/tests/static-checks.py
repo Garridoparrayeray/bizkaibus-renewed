@@ -126,10 +126,10 @@ print('js/networks.js:', networks_result)
 if stale_js:
     failures.append('js/networks.js desactualizado')
 
-# style-networks.css: los colores de cada red, generados por scripts/build-networks-css.php desde api/Networks.
+# css/style-networks.css: los colores de cada red, generados por scripts/build-networks-css.php desde api/Networks.
 fresh_css = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.css')
 r = subprocess.run([PHP, ROOT + 'scripts/build-networks-css.php', '--output=' + fresh_css], capture_output=True, text=True)
-stale_css = r.returncode != 0 or open(fresh_css, encoding='utf-8').read() != open(ROOT + 'style-networks.css', encoding='utf-8').read()
+stale_css = r.returncode != 0 or open(fresh_css, encoding='utf-8').read() != open(ROOT + 'css/style-networks.css', encoding='utf-8').read()
 css_result = 'al día (' + r.stdout.strip() + ')'
 if stale_css:
     css_result = 'desactualizado, ejecuta php scripts/build-networks-css.php'

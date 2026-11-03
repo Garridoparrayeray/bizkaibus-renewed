@@ -12,7 +12,7 @@ return [
         'title' => ['TRANVÍA', 'BILBAO'],
         'logomark' => '<img src="/icons-tranvia-bilbao/glyph.png" alt="">',
         'card_logomark' => '<img src="/icons-tranvia-bilbao/icon-192.png" alt="">',
-        // Colores (scripts/build-networks-css.php los pasa a style-networks.css): la ficha del menú, el cuadradito de
+        // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de
         // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
         'tile_color' => '#4EB848',
         'swatch_color' => '#2f7a2a',
