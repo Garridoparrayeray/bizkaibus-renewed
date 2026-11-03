@@ -1,7 +1,7 @@
 // Buscador de paradas y líneas, y paradas cercanas con la ubicación.
 import { ICONS, el } from './core.js';
 import { selectStop } from './stop.js';
-import { debounce, setPillContent } from './ui.js';
+import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
 import { isLocationOff } from '../location-pref.js';
 
@@ -80,7 +80,7 @@ function renderNearbyResults(stops) {
         button.type = 'button';
         button.className = 'pill';
         let next = 'Sin salidas próximas';
-        if (stop.next) next = `${stop.next.lineCode} → ${stop.next.headsign} · ${Math.max(stop.next.etaMinutes, 0)} min`;
+        if (stop.next) next = `${stop.next.lineCode} → ${stop.next.headsign} · ${departureWhen(stop.next)}`;
         setPillContent(button, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
         button.addEventListener('click', () => {
             el.searchResults.hidden = true;

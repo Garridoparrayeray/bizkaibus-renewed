@@ -67,10 +67,13 @@ class ServiceJourney
         return (int)$Next;
     }
 
-    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600): array
+    // Con $iDaysAhead = 1, las de mañana con su calendario, en las mismas horas que hoy (+24 h): 07:00 de mañana es 31:00.
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0): array
     {
-        $iNow = Calendar::nowSecondsSinceMidnight();
-        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $iShift = $iDaysAhead * 86400;
+        $iNow = Calendar::nowSecondsSinceMidnight() - $iShift;
+        $Day = Calendar::todayMadrid()->modify("+{$iDaysAhead} day");
+        $sToday = $Day->format('Y-m-d');
 
         $Stmt = $this->Pdo->prepare('
             SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
@@ -104,14 +107,23 @@ class ServiceJourney
         ');
         $Stmt->execute([
             'stopId' => $iStopId,
-            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'weekdayBit' => Calendar::weekdayBitFor($Day),
             'today' => $sToday,
             'today2' => $sToday,
             'windowStart' => $iNow - self::PAST_GRACE_SECONDS,
             'windowEnd' => $iNow + $iWindowSeconds,
         ]);
 
-        return $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5, $iNow - self::COUNTED_PAST_SECONDS);
+        $aRows = $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5, $iNow - self::COUNTED_PAST_SECONDS);
+        if ($iShift === 0) {
+            return $aRows;
+        }
+        foreach ($aRows as &$aRow) {
+            $aRow['arrival_seconds'] = (int)$aRow['arrival_seconds'] + $iShift;
+            $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + $iShift;
+        }
+        unset($aRow);
+        return $aRows;
     }
 
     public function directionsByPattern(int|string $iStopId, int|string $iReferenceStopId): array
