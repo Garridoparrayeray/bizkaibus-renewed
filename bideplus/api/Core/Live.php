@@ -34,15 +34,24 @@ class Live
         return $sClass::vehicles(Config::current());
     }
 
-    // Apunta por dónde va cada vehículo del directo (lo llama un cron cada minuto). Null si la red no tiene registro
-    // o falló.
-    public static function record(): int|null
+    // Apunta por dónde va cada vehículo del directo en todas las redes con motor (lo llama un cron cada minuto, una sola
+    // vez para todas): [red => vehículos apuntados, o null si falló]. Al acabar se vuelve a la red de la llamada.
+    public static function recordAll(): array
     {
-        $sClass = self::engineClass('Live');
-        if ($sClass === null || !method_exists($sClass, 'record')) {
-            return null;
+        $sCurrent = Config::network();
+        $aRecorded = [];
+        try {
+            foreach (Networks::all() as $sSlug => $aNetwork) {
+                Config::set($sSlug);
+                $sClass = self::engineClass('Live');
+                if ($sClass !== null && method_exists($sClass, 'record')) {
+                    $aRecorded[$sSlug] = $sClass::record(Config::current());
+                }
+            }
+        } finally {
+            Config::set($sCurrent);
         }
-        return $sClass::record(Config::current());
+        return $aRecorded;
     }
 
     // Hora de paso por cada parada de los viajes de una línea en un día (los últimos 3 días). Null si no hay registro.
