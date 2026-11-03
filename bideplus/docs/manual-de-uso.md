@@ -30,8 +30,9 @@ Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**
   - **«ESTIMADO»**: no hay datos del vehículo y la hora sale de lo que tardan de verdad en cada tramo y de lo que suele
     retrasarse ese viaje; debajo, en gris, la hora oficial;
   - **«SOLO HORARIO»**: la hora del horario oficial, sin más.
-- **Ver horario completo** abre el horario de una línea por días y horas. En Bizkaibus, **Ver horario oficial** enseña
-  el texto del operador: el periodo de hoy y los que vienen.
+- **Ver horario completo** abre el horario de una línea por días y horas. **Ver horario oficial** lo enseña por
+  periodos (de lunes a viernes, sábados, domingos y festivos, días especiales), con el de hoy marcado: en Bizkaibus, el
+  texto del operador; en las demás, sacado de su horario oficial, que se actualiza cada día.
 - Tocando una salida se abre la **ficha del viaje**: sus paradas, por dónde va y, en Bizkaibus, el bus en el mapa.
   Desde ahí se puede **compartir el viaje**: quien abre el enlace ve el mismo viaje en directo.
 

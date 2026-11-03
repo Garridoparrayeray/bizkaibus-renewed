@@ -1,0 +1,133 @@
+# Cómo hacer cada cosa
+
+Recetas cortas, con las órdenes, para lo que se hace a menudo. Cada una enlaza la guía que lo explica a fondo. Las
+órdenes se lanzan desde `bideplus/`, salvo las que empiezan por `.github/`.
+
+Todo cambio sigue el mismo camino: rama `centro-de-pruebas` → *pull request* a `master` → pruebas en verde (CI) →
+fusionar. **Fusionar es publicar**: el flujo «Rebuild schedule data» se lanza solo con cada cambio en `bideplus/` y
+despliega en Vercel. Si el cambio toca `engine/`, primero la *pull request* del repositorio del algoritmo.
+
+## Lo que va solo, sin tocar nada
+
+| Qué | Cuándo | Quién lo hace |
+| --- | --- | --- |
+| Horarios de todas las redes (GTFS oficial) | cada día a las 03:00 UTC, y con cada cambio fusionado | `rebuild-schedule.yml`: base de datos, mapa de la red, horarios sin conexión, *sitemap* y despliegue |
+| «Ver horario oficial» por periodos | con los horarios | Bizkaibus, el texto del operador; las demás, sacado de su GTFS |
+| Directo (retrasos, vehículos en el mapa) | en cada consulta; un feed vacío se vuelve a mirar a los 10 minutos | la app, con la caché de cada red |
+| Incidencias y notificaciones | cada minuto | el cron (`/api/live/record`) |
+| Captura y aprendizaje del motor | sin parar mientras el feed trae vehículos; recalibrado a las 04:00 UTC | `pace-capture.yml`, para cada red con `engine` (y Renfe, que solo guarda) |
+| Horas estimadas sin conexión y en el mapa | con los horarios, en cuanto el motor de la red ha aprendido algo | `build-offline-data.php` y `build-network-map.php` |
+| Aviso de versión nueva | al publicar una novedad nueva | el cron, una vez por móvil |
+
+Una red nueva entra en todo eso por estar en `api/Networks/`: no hay listas de redes en ningún otro sitio.
+
+## Añadir una red con GTFS
+
+```bash
+php scripts/new-network.php --slug=<red> --name="<Nombre>+" --color=#RRGGBB --gtfs=<url del GTFS> --kind=bus --city="<Ciudad>" --operator="<Operador>"
+php scripts/build-database.php --network=<red>
+php scripts/build-sitemap.php
+python3 tests/static-checks.py
+```
+
+Después: revisar los textos en los tres idiomas de `api/Networks/<red>.php`, sus iconos (abajo) y probarla en local
+(`php -S 127.0.0.1:8011 dev-router.php` y abrir `/?red=<red>`). Si el GTFS no trae un destino útil en los viajes, pon
+`features.headsign_from_last_stop => true`. A fondo: [nueva-red.md](nueva-red.md).
+
+## Marcar una red como «Nuevo»
+
+En su ficha, `'new_until' => 'AAAA-MM-DD'`: la etiqueta sale en el menú hasta ese día y se quita sola.
+
+## Darle tiempo real (GTFS-Realtime)
+
+En su ficha, `'live' => ['trip-updates', 'vehicle-positions']` y el bloque `gtfs_rt` con `trip_updates_url`,
+`vehicle_positions_url` y, si publica incidencias, `alerts_url`. Con `'matching' => 'trip'` si los viajes del feed son
+los del GTFS (Tuvisa, Dbus, Álavabus, Renfe); si no, `'stops'` (por paradas y hora, como Metro). Para comprobarlo, una
+parada con salidas próximas debe dar alguna con `"status":"live"`:
+
+```bash
+curl -s "http://127.0.0.1:8011/api/stops/<parada>/departures?red=<red>"
+```
+
+## Darle el motor (feed SIRI de vehículos)
+
+Con `'live' => ['vehicle-monitoring']` y su bloque `siri` en la ficha (un feed con su reserva, o uno por operador en
+`vehicle_monitoring_urls`):
+
+```bash
+php engine/bizkaibus/tools/new-engine.php <red>
+php tests/engine-test.php
+```
+
+Crea `engine/<motor>/` y pone `'engine'` en la ficha. Se sube `engine/<motor>/` al repositorio del algoritmo y la
+ficha a la app. La captura, el recalibrado y las horas estimadas empiezan solos en cuanto el feed traiga vehículos.
+
+## Guardar el directo de una red para aprender de él
+
+Para medir antes de usar el motor (como Renfe): `'capture' => 'gtfs-rt'` en la ficha y su herramienta en
+`engine/<red>/tools/capture.php` (la de Renfe sirve de modelo). Las capturas, recortadas a la red, van cada hora a las
+releases `capturas-<red>-AAAA-MM` del repositorio del algoritmo.
+
+## Incidencias
+
+Según lo que publique el operador: `gtfs_rt.alerts_url` (GTFS-Realtime), `siri.alerts_url` o `siri.alerts_urls`
+(SIRI Situation Exchange, una o varias). `features.alerts` dice cómo se piden: `network`, `lines` o `stops`. Las
+notificaciones de los favoritos salen solas con el cron.
+
+## Horario oficial por periodos
+
+Nada que hacer: sale del GTFS de la red. Si el operador publica el suyo en texto (como Bizkaibus), `schedule_text.url`
+y `features.schedule_text => true` en la ficha, y un lector como `Services/ScheduleTextClient.php`.
+
+## Iconos y logo
+
+Dibuja la marca en `icons-<red>/icon.svg` (512 × 512: el fondo de la red con esquinas de 112 y la marca en blanco con
+su «+») y en `icons-<red>/glyph.svg` (la misma marca en negro sobre transparente, para la cabecera). Las de Bilbobus,
+Tuvisa, Dbus, Álavabus y La Unión sirven de plantilla. Después:
+
+```bash
+node scripts/render-icons.mjs <red>
+```
+
+Saca `icon-512.png`, `icon-192.png`, `apple-touch-icon.png`, `icon-maskable-512.png` y `glyph.png` (con el navegador de
+las pruebas: `CHROME_PATH`). En la ficha, `logomark` con `glyph.png` y `card_logomark` con `icon-192.png`.
+
+## Cambiar los colores de una red
+
+En su ficha, `tile_color`, `swatch_color`, `theme_color` y `palette`. Después:
+
+```bash
+php scripts/build-networks-css.php
+php scripts/build-networks-js.php
+```
+
+## Textos e idiomas
+
+Los textos de la app están en `js/i18n.js`, con las mismas claves en castellano, euskera e inglés (lo comprueba
+`tests/code-quality.php`); los de cada red, en su ficha (`texts`). A fondo: [ampliar.md](ampliar.md).
+
+## Novedad de versión (avisa a quien tiene la app)
+
+Una entrada nueva al principio de `api/Services/Changelog.php` (fecha, número siguiente, título y texto) y sus
+traducciones en `js/i18n.js` (`bide.changelog.<número>.title` y `.text`, con el título distinto en cada idioma). Al
+publicar, el cron avisa una vez a cada móvil y Ajustes enseña el «1» rojo.
+
+## Lanzar a mano
+
+| Qué | Cómo |
+| --- | --- |
+| Horarios y despliegue | GitHub → Actions → «Rebuild schedule data» → *Run workflow* |
+| Captura de una red | Actions → «Ritmo de los buses (k)» → *Run workflow*, con `red` |
+| Recalibrar el motor | el mismo, marcando «Recalibrar en vez de capturar» |
+| Volver al despliegue anterior | Actions → «Rollback production» |
+
+## Comprobar que una red funciona
+
+```bash
+curl -s "https://bideplus.vercel.app/?red=<red>" -o /dev/null -w "%{http_code}\n"
+curl -s "https://bideplus.vercel.app/api/status?red=<red>"
+python3 tests/run-all.py
+```
+
+`/api/status` dice cuántos vehículos trae un feed SIRI ahora mismo. Qué mirar cada día y qué hacer si algo falla:
+[operacion.md](operacion.md).

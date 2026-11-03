@@ -1,5 +1,5 @@
 // Periodos del horario oficial (js/app/schedule-periods.js). Uso: node tests/schedule-periods.mjs
-import { schedulePeriods } from '../js/app/schedule-periods.js';
+import { schedulePeriods, seasonLabel } from '../js/app/schedule-periods.js';
 
 const block = (season, from, to, outbound) => ({
     'DENBORALDIA-TEMPORADA': season,
@@ -51,6 +51,21 @@ const newYear = schedulePeriods(BLOCKS, day(2027, 1, 2));
 check('al cambiar de año desaparece lo del anterior', titles(newYear).join('|') === 'Negua|Sin fechas', titles(newYear).join(', '));
 check('el último día de un periodo todavía sale', schedulePeriods(BLOCKS, day(2026, 12, 30)).some((period) => period.season === 'Bakarra' && period.isCurrent));
 check('sin bloques, no hay periodos', schedulePeriods([], day(2026, 10, 31)).length === 0);
+
+// Las demás redes: los bloques salen de su GTFS (GtfsScheduleText), con el de hoy marcado (ACTUAL) y el nombre de los
+// días como clave de traducción.
+const gtfs = (season, from, to, current) => ({ TEMPORADA: season, PERIODO_DESDE: from, PERIODO_HASTA: to, HORARIO_IDA_CAS: '→ Boulevard\n07:29  07:43', HORARIO_VUELTA_CAS: '', ACTUAL: current });
+const gtfsPeriods = schedulePeriods([
+    gtfs('i18n:app.days.weekdays', '03/11/2026', '14/12/2026', '1'),
+    gtfs('i18n:app.days.saturdays', '07/11/2026', '12/12/2026', '0'),
+], day(2026, 11, 3));
+check('GTFS: el periodo que trae ACTUAL es el de hoy, y solo ese', gtfsPeriods.filter((period) => period.isCurrent).map((period) => period.season).join() === 'i18n:app.days.weekdays', JSON.stringify(gtfsPeriods.map((period) => [period.season, period.isCurrent])));
+const TEXTS = { 'app.days.weekdays': 'Lunes a viernes', 'app.days.range': '{from} a {to}', 'app.day.1': 'lunes', 'app.day.3': 'miércoles', 'app.day.4': 'jueves', 'app.day.5': 'viernes' };
+globalThis.I18n = { t: (key, vars = {}) => (TEXTS[key] || key).replace(/\{(\w+)\}/g, (match, name) => vars[name]) };
+check('nombre de los días: una clave de traducción', seasonLabel('i18n:app.days.weekdays') === 'Lunes a viernes');
+check('nombre de los días: seguidos, «Lunes a jueves»', seasonLabel('i18n-days:1,2,3,4') === 'Lunes a jueves', seasonLabel('i18n-days:1,2,3,4'));
+check('nombre de los días: sueltos, uno detrás de otro', seasonLabel('i18n-days:1,3,5') === 'Lunes, miércoles, viernes', seasonLabel('i18n-days:1,3,5'));
+check('nombre de los días: el texto del operador, tal cual', seasonLabel('Negua') === 'Negua');
 
 console.log(results.join('\n'));
 const bad = results.filter((line) => line.startsWith('MAL')).length;

@@ -7,10 +7,14 @@ use Core\Database;
 use Core\Request;
 use Core\Response;
 use Models\LineModel;
+use Models\ServiceJourney;
+use Services\Calendar;
+use Services\GtfsScheduleText;
+use Services\ScheduleRange;
 use Services\ScheduleTextClient;
 
-// Líneas de la red: la lista (/api/lines), una línea con sus paradas (/api/lines/{id}) y el horario en texto
-// que publica el operador (/api/lines/{id}/schedule-text).
+// Líneas de la red: la lista (/api/lines), una línea con sus paradas (/api/lines/{id}) y su horario oficial por
+// periodos (/api/lines/{id}/schedule-text): el texto del operador si lo publica (schedule_text), o el de su GTFS.
 class LinesController
 {
 
@@ -36,12 +40,24 @@ class LinesController
 
     public function scheduleText(Request $Req, array $aParams): void
     {
-        $aConfig = Config::current();
-        $aBlocks = (new ScheduleTextClient($aConfig))->fetchForLine((int)$aParams['id']);
+        if (Config::feature('schedule_text')) {
+            Response::json([
+                'lineId' => (int)$aParams['id'],
+                'schedule' => (new ScheduleTextClient(Config::current()))->fetchForLine((int)$aParams['id']),
+                'source' => 'operator',
+            ]);
+            return;
+        }
+        $Pdo = Database::connection();
+        if ((new LineModel($Pdo))->find($aParams['id']) === null) {
+            Response::error('Line not found', 404);
+            return;
+        }
+        $Text = new GtfsScheduleText(new ServiceJourney($Pdo), (bool)Config::feature('headsign_from_last_stop'));
         Response::json([
-            'lineId' => (int)$aParams['id'],
-            'schedule' => $aBlocks,
-            'source' => 'Bizkaibus (horario oficial vigente, texto libre, no estructurado por parada)',
+            'lineId' => $aParams['id'],
+            'schedule' => $Text->forLine($aParams['id'], Calendar::todayMadrid(), ScheduleRange::forDatabase($Pdo)['to']),
+            'source' => 'gtfs',
         ]);
     }
 }

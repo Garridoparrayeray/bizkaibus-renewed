@@ -1,6 +1,6 @@
-// «Ver horario oficial»: el horario en texto del operador, por periodos.
-import { FEATURES, el, state } from './core.js';
-import { schedulePeriods } from './schedule-periods.js';
+// «Ver horario oficial»: el horario por periodos, en todas las redes (el texto del operador o el de su GTFS).
+import { el, state } from './core.js';
+import { schedulePeriods, seasonLabel } from './schedule-periods.js';
 
 function textBlock(title, text) {
     const heading = document.createElement('h5');
@@ -14,7 +14,7 @@ function periodBlock(period) {
     const block = document.createElement('div');
     block.className = 'schedule-block';
     const heading = document.createElement('h4');
-    heading.textContent = period.season || I18n.t('app.schedule');
+    heading.textContent = seasonLabel(period.season) || I18n.t('app.schedule');
     block.appendChild(heading);
     if (period.isCurrent) {
         block.classList.add('is-current');
@@ -76,8 +76,4 @@ export function setUpScheduleModal() {
     el.scheduleModal.addEventListener('click', (e) => {
         if (e.target === el.scheduleModal) el.scheduleModal.close();
     });
-
-    if (!FEATURES.schedule_text) {
-        el.scheduleTextToggle.hidden = true;
-    }
 }

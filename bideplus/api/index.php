@@ -49,9 +49,8 @@ $Router->get('/lines/{id}/timetable', [$Timetable, 'show'], 60);
 $Alerts = new AlertsController();
 $Router->get('/alerts', [$Alerts, 'index'], 60);
 
-if (Config::feature('schedule_text')) {
-    $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], 3600);
-}
+// El horario oficial por periodos: el del operador o, si no publica uno en texto, el de su GTFS (todas las redes).
+$Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], 3600);
 
 $Realtime = new RealtimeController();
 $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], 10);
