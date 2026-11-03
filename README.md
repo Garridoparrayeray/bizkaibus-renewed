@@ -2,7 +2,7 @@
 
 Horarios, llegadas y avisos del transporte público de Euskadi en una sola aplicación web, sin vueltas. Hecha por [Yeray Garrido](https://www.yeraygarrido.dev/).
 
-**Pruébala:** <https://bideplus.vercel.app>
+**Pruébala:** <https://www.bideplus.eus>
 
 | App | Qué muestra |
 |---|---|

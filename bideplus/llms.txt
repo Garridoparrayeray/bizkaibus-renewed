@@ -9,7 +9,7 @@
 - Tranvía Bilbao+ and Tranvía Vitoria+: tram timetables in Bilbao and Vitoria-Gasteiz.
 - Renfe Cercanías+: Renfe commuter rail timetables and alerts in Bilbao and Donostia/Irun.
 - Lurraldebus+ (Gipuzkoa buses): planned, not available yet.
-- Every stop and line has its own page, e.g. [Moyua Plaza, Bilbao](https://bideplus.vercel.app/stops/4255).
+- Every stop and line has its own page, e.g. [Moyua Plaza, Bilbao](https://www.bideplus.eus/stops/4255).
 
 ## How it works
 - Web app installable as a PWA, in Spanish and Basque, with no accounts and no personal data stored on servers. Favorites are kept in the browser.
@@ -17,14 +17,14 @@
 - Data sources: Open Data Bizkaia, Open Data Euskadi, the Bizkaia Transport Consortium (data.ctb.eus, Metro Bilbao timetables and real time) and the Spanish National Access Point (NAP), under open licences (CC-BY 4.0 where applicable).
 
 ## Links
-- [Bide+ (menu)](https://bideplus.vercel.app/)
-- [Bizkaibus+](https://bideplus.vercel.app/?red=bus)
-- [Metro+](https://bideplus.vercel.app/?red=metro)
-- [Euskotren+](https://bideplus.vercel.app/?red=euskotren)
-- [Tranvía Bilbao+](https://bideplus.vercel.app/?red=tranvia-bilbao)
-- [Tranvía Vitoria+](https://bideplus.vercel.app/?red=tranvia-vitoria)
-- [Renfe Cercanías+](https://bideplus.vercel.app/?red=renfe)
-- [Sitemap](https://bideplus.vercel.app/sitemap.xml): every stop and line
+- [Bide+ (menu)](https://www.bideplus.eus/)
+- [Bizkaibus+](https://www.bideplus.eus/?red=bus)
+- [Metro+](https://www.bideplus.eus/?red=metro)
+- [Euskotren+](https://www.bideplus.eus/?red=euskotren)
+- [Tranvía Bilbao+](https://www.bideplus.eus/?red=tranvia-bilbao)
+- [Tranvía Vitoria+](https://www.bideplus.eus/?red=tranvia-vitoria)
+- [Renfe Cercanías+](https://www.bideplus.eus/?red=renfe)
+- [Sitemap](https://www.bideplus.eus/sitemap.xml): every stop and line
 - [Source code](https://github.com/Garridoparrayeray/bizkaibus-renewed): open source on GitHub
 
 ## Author

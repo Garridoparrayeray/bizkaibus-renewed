@@ -188,8 +188,9 @@ jobs:
       # (la limpieza de abajo los borra).
       - name: Comprobar producción
         run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
           for i in $(seq 1 6); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' https://bideplus.vercel.app/api/lines)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO/api/lines")
             echo "producción /api/lines -> $CODE"
             [ "$CODE" = "200" ] && exit 0
             sleep 10

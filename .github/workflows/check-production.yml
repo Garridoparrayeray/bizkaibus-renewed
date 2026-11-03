@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: URL base a comprobar
-        default: https://bideplus.vercel.app
+        description: URL base a comprobar (vacío, la de bideplus/api/Config/site.php)
+        default: ''
 
 jobs:
   check:
@@ -24,10 +24,15 @@ jobs:
           sparse-checkout: |
             bideplus/api/Core
             bideplus/api/Networks
+            bideplus/api/Config
             bideplus/scripts
 
       - name: Redes a comprobar
-        run: echo "NETWORKS=$(php bideplus/scripts/networks.php --slugs)" >> "$GITHUB_ENV"
+        run: |
+          echo "NETWORKS=$(php bideplus/scripts/networks.php --slugs)" >> "$GITHUB_ENV"
+          if [ -z "$BASE" ]; then
+            echo "BASE=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" >> "$GITHUB_ENV"
+          fi
 
       - name: robots.txt y llms.txt
         run: |

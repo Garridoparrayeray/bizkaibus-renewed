@@ -19,4 +19,4 @@ Allow: /
 Disallow: /api/
 Disallow: /pantalla/
 
-Sitemap: https://bideplus.vercel.app/sitemap.xml
+Sitemap: https://www.bideplus.eus/sitemap.xml
