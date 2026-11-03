@@ -97,6 +97,9 @@ Cambia los provisionales de `icons-<red>/` por los de la red:
 
 Si el logotipo de la cabecera es otra imagen (por ejemplo `glyph.png`), ponla en la misma carpeta y cambia `brand.logomark`.
 
+Bilbobus, Tuvisa, Dbus y Álavabus guardan además su dibujo en SVG (`icon.svg`, y `glyph.svg` en negro):
+sirven de plantilla para redibujar los PNG o para una red nueva con el mismo estilo (marca blanca y «+» sobre su color).
+
 ## 4. Construir los datos
 
 ```bash
