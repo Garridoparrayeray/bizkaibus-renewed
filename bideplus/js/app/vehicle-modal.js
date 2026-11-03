@@ -83,6 +83,8 @@ export function renderModalHeader(data) {
         el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
     } else if (data.status === 'estimated') {
         el.modalVehicle.textContent = I18n.t('app.estimatedNoGps');
+    } else if (data.awaitingVehicle) {
+        el.modalVehicle.textContent = I18n.t('app.awaitingVehicle');
     } else {
         el.modalVehicle.textContent = I18n.t('app.noLiveTracking');
     }
