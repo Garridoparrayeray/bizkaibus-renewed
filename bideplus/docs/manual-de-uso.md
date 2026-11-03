@@ -12,11 +12,11 @@ móvil y del ordenador, y se puede instalar como una app más.
 | **Euskotren+** | horarios y tiempo real por andén e incidencias |
 | **Tranvía Bilbao+** y **Tranvía Vitoria+** | horarios y tiempo real por andén e incidencias |
 | **Renfe Cercanías+** | horarios y retrasos en directo de Bilbao y Donostia/Irun, trenes cancelados, los trenes en el mapa de la línea con su GPS e incidencias por estación y línea |
-| **Lurraldebus+** | horarios e incidencias de los autobuses de Gipuzkoa |
+| **Lurraldebus+** | horarios e incidencias de los autobuses de Gipuzkoa, con el urbano de Tolosa |
 | **Bilbobus+** | horarios de los autobuses urbanos de Bilbao |
 | **Tuvisa+** | horarios y tiempo real de los autobuses de Vitoria-Gasteiz, los autobuses en el mapa e incidencias |
 | **Dbus+** | horarios y tiempo real de los autobuses de Donostia y los autobuses en el mapa |
-| **Álavabus+** | horarios de los autobuses interurbanos de Álava |
+| **Álavabus+** | horarios y tiempo real de los autobuses interurbanos de Álava y los autobuses en el mapa |
 | **La Unión+** | horarios de los autobuses de La Unión entre Bizkaia y Vitoria-Gasteiz (Bilbao, las dos márgenes, Leioa, Algorta y el aeropuerto de Loiu) |
 
 Se cambia de app con la flecha junto al nombre, en la cabecera, o desde **Apps**.
@@ -75,11 +75,15 @@ llegan, mira que las notificaciones de Bide+ estén permitidas y que el ahorro d
 | Apartado | Qué hay |
 | --- | --- |
 | **Idioma** | castellano, euskera o inglés (también con el botón ES/EU/EN de la cabecera) |
-| **Notificaciones** | el permiso del móvil, los avisos de llegada activos (con su botón de cancelar) y el interruptor de incidencias |
+| **Notificaciones** | el permiso del móvil, los avisos de llegada activos (con su botón de cancelar), el interruptor de incidencias y «Desactivar las notificaciones», que lo cancela todo |
 | **Horarios sin conexión** | guardar o quitar el horario de cada red, o de todas |
-| **Ubicación** | el permiso para «Cerca de mí» |
+| **Ubicación** | el permiso para «Cerca de mí» y «No usar mi ubicación», para que no la pida aunque el navegador la permita |
 | **La app** | vaciar la caché si algo no carga o se queda una versión vieja, y la versión que tienes. Si hay una versión nueva, aquí ves lo que trae |
 | **Tus datos** | borrar de este móvil favoritos, idioma, avisos y horarios guardados |
+
+Una web no puede quitarse a sí misma un permiso del navegador: los botones de Ajustes hacen que Bide+ deje de usarlo, y
+para quitarlo del todo se cambia en los ajustes del navegador (en Chrome, el icono junto a la dirección; en iPhone,
+Ajustes › Notificaciones o Ajustes › Privacidad › Localización).
 
 ## Info
 
