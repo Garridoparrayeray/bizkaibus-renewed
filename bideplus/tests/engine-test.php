@@ -98,6 +98,8 @@ $Expect('en la primera parada sale «en directo» a su hora, no como ya pasado',
 $Expect('esperando en la primera parada, la fila lo dice (atOrigin) para enseñarlo «en la parada»', $aFirstOut['atOrigin'] === true);
 $aSecondOut = $MWaiting->enrich([['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0 + 180, 'stop_seq' => 2]])[0];
 $Expect('en la segunda parada no: el bus no está en ella', $aSecondOut['status'] === 'live' && $aSecondOut['atOrigin'] === false);
+$aSameTimeOut = $MWaiting->enrich([['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0, 'stop_seq' => 2]])[0];
+$Expect('ni aunque la segunda parada tenga la misma hora que la primera: cuenta el orden, no la hora', $aSameTimeOut['atOrigin'] === false);
 $aOnRoute = live(1500, 0, 3, T0 + 240);
 $aOnRouteOut = matcher($aOnRoute, T0 + 270)->enrich([['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0 + 720, 'stop_seq' => 5]])[0];
 $Expect('un autobús en ruta no está en la cabecera', $aOnRouteOut['status'] === 'live' && $aOnRouteOut['atOrigin'] === false);
