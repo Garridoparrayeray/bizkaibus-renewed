@@ -12,13 +12,14 @@ export function debounce(fn, delayMs) {
     };
 }
 
-export function liveBadgeText(status, etaMinutes) {
+// atOrigin: el bus espera en la primera parada de su viaje (el motor lo sitúa allí antes de su hora de salida).
+export function liveBadgeText(status, etaMinutes, atOrigin = false) {
     if (status === 'departed') return I18n.t('app.badge.leaving');
     if (status === 'estimated') return I18n.t('app.badge.estimated');
     if (status === 'likely_departed') return I18n.t('app.badge.likelyDeparted');
     if (status === 'cancelled') return I18n.t('app.badge.cancelled');
     if (status !== 'live') return I18n.t('app.badge.scheduled');
-    if (etaMinutes <= 0) return I18n.t('app.badge.atStop');
+    if (etaMinutes <= 0 || atOrigin) return I18n.t('app.badge.atStop');
     if (etaMinutes <= 3) return I18n.t('app.badge.arriving');
     return I18n.t('app.badge.enRoute');
 }

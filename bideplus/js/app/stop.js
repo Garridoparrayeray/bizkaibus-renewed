@@ -233,7 +233,7 @@ function renderLiveCard(departures) {
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
     setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime);
-    el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes);
+    el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes, departure.atOrigin);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
@@ -313,7 +313,7 @@ function renderPlatformColumn(direction, departures) {
 
     const badge = document.createElement('span');
     badge.className = 'badge';
-    badge.textContent = liveBadgeText(next.status, next.etaMinutes);
+    badge.textContent = liveBadgeText(next.status, next.etaMinutes, next.atOrigin);
 
     const { text, className } = statusLabel(next.status, next.delayMinutes);
     const dot = document.createElement('span');

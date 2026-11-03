@@ -80,7 +80,7 @@ dentro de 1 minuto, dentro de 2, etc. Y cada día el sistema se recalibra solo c
 - **Un bus que ya pasó no vuelve a salir.** Un proceso apunta cada minuto por qué parada va cada bus, aunque nadie esté
   mirando la app. Si un bus va muy adelantado y deja de mandar posición (llega a cabecera y se apaga), la app sabe que
   ya pasó por tu parada y no lo enseña con su hora de papel. Si no hay registro pero el cálculo dice que pasó hace más
-  de 10 minutos y el horario va claramente más lento, sale al final y en gris como «probablemente ya pasó».
+  de 10 minutos y el horario va claramente más lento, sale al final y en gris como «Sin datos del bus»: no hay ningún dato del vehículo que lo confirme.
 - **También sin conexión.** Los horarios que se guardan en el móvil llevan la hora estimada de cada viaje, calculada como
   en el servidor: sin cobertura se ve lo mismo que con cobertura cuando no hay datos del bus.
 - **Cada viaje, con su costumbre.** La hora estimada sin datos del bus llegaba de media 2 minutos antes que el bus: sumar

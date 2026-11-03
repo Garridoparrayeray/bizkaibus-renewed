@@ -11,9 +11,13 @@ use Models\ServiceJourney;
 // de ahí salen las paradas pasadas, la siguiente, la llegada a cada una y el retraso.
 class BusSheet
 {
+    // Hasta 2 min después de su hora, un viaje sin bus puede estar a punto de salir.
+    private const AWAITING_GRACE_SECONDS = 120;
+
     public static function build(ServiceJourney $JourneyModel, array $aTripKey, array $aVariants, string|null $sFromStopId): array
     {
-        $Matcher = Live::matcher($JourneyModel);
+        $aVehicles = Live::vehicles();
+        $Matcher = Live::matcher($JourneyModel, $aVehicles);
         [$aJourney, $aLive] = self::liveVariant($Matcher, $aTripKey, $aVariants);
         $bLive = $Matcher->isLive($aJourney['id'], $aLive);
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
@@ -51,7 +55,16 @@ class BusSheet
             $iDelayMinutes = 0;
             $sVehicleRef = null;
         }
-        return TripSheet::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut);
+        $aExtra = ['awaitingVehicle' => self::awaitingVehicle($sStatus, $aVehicles, (int)$aTripKey[2], $iNow)];
+        return TripSheet::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut, $aExtra);
+    }
+
+    // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses: el operador
+    // todavía no le ha asignado uno (Bizkaibus lo hace unos 6 min antes de la salida, la mitad de las veces).
+    private static function awaitingVehicle(string $sStatus, array $aVehicles, int $iFirstDepartureSeconds, int $iNow): bool
+    {
+        return $sStatus === 'scheduled' && !empty($aVehicles) && Config::hasLive('vehicle-monitoring')
+            && $iNow < $iFirstDepartureSeconds + self::AWAITING_GRACE_SECONDS;
     }
 
     // Entre las variantes del viaje (calendarios distintos), la que el directo sigue; si ninguna, la que circula hoy.
