@@ -100,7 +100,7 @@ return [
 
     'gtfs' => [
         'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
-        'fallback_source' => 'ftp://ftp.geo.euskadi.net/cartografia/Transporte/Moveuskadi/Euskotren/google_transit.zip',
+        'fallback_source' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/gtfs_euskotren.zip',
         'agency_id' => 'ES:Euskotren:Operator:EUS_TrGa:',
         'stops' => 'euskotren',
         'skip_geocode' => false,
