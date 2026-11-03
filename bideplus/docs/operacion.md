@@ -60,21 +60,26 @@ ejecuta desde septiembre.
 4. Si el cambio trae una novedad nueva (`api/Services/Changelog.php`), es una versión nueva: al minuto del despliegue el
    cron avisa a quien tiene las notificaciones, una sola vez, y a los demás les sale el «1» rojo en Ajustes.
 
-## Consumo en Vercel (plan Hobby)
+## Consumo en Vercel (plan Pro)
 
-El plan gratuito incluye al mes 1 000 000 de peticiones al CDN, 1 000 000 de invocaciones de funciones, 4 horas de CPU
-activa, 360 GB-hora de memoria, 100 GB de transferencia y 10 GB desde las funciones. **Si se pasa de cualquiera, Vercel
-pausa el proyecto 30 días.** Es solo para uso personal y no comercial. Se mira en Vercel → Usage.
+El plan Pro (20 $ al mes por miembro) trae 20 $ de uso incluidos y, al mes, 10 000 000 de peticiones al CDN y 1 TB de
+transferencia. Lo que pase de ahí se cobra aparte (unos 2 $ por millón de peticiones al CDN, 0,60 $ por millón de
+invocaciones, 0,128 $ por hora de CPU activa y 0,0106 $ por GB-hora de memoria; los precios al día están en
+vercel.com/pricing). El proyecto **no se pausa** al pasarse: se paga. Para poner un tope, Vercel → Settings → Billing →
+Spend Management. Se mira en Vercel → Usage.
 
 | Qué | Cuánto (medido con el PHP 8.5 de Vercel, noviembre de 2026) |
 | --- | --- |
-| Cron de cada minuto | unas 43 000 invocaciones al mes y unos 20 ms de CPU cada una (0,25 h al mes) |
+| Cron de cada minuto | unas 43 000 invocaciones al mes y unos 20 ms de CPU cada una (0,25 h al mes, céntimos) |
 | Salidas de una parada, ficha del viaje, mapa de línea | de 1 a 10 ms de CPU; el CDN sirve la misma respuesta a todos durante 10 s |
 | Páginas, líneas, búsqueda | de 1 a 4 ms de CPU; el CDN las guarda una hora |
 | Peticiones al CDN por visita | unas 20 en una visita de 5 minutos a una parada (la app refresca cada 25 s, solo con la pestaña visible) |
 
-El límite que llega antes es el de **peticiones al CDN**: con unas 20 por visita, el millón da para unas 50 000 visitas
-al mes (unas 1 600 al día). Por encima, hay que pasar a Pro o alargar los refrescos de `js/app/stop.js`.
+Lo primero que se gasta son las **peticiones al CDN**: con unas 20 por visita, los 10 millones dan para unas 500 000
+visitas al mes (unas 16 000 al día); cada 50 000 visitas más cuestan unos 2 $. La CPU y las invocaciones se quedan muy
+por debajo. La memoria se cobra mientras la función está viva, también esperando a los feeds: en Pro se puede bajar de
+2 GB a 1 GB (Vercel → Settings → Functions) y cuesta la mitad; antes, mirar en Observability que la memoria que usa
+la función queda lejos de 1 GB.
 
 Para no gastar de más: las peticiones salientes reutilizan las conexiones del proceso (`Core\Http::handle`, sin un
 saludo TLS nuevo en cada una), un feed vacío se vuelve a mirar cada 10 minutos (`Core\Cache::rememberFeed`) y la función
