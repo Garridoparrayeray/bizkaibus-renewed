@@ -70,7 +70,8 @@ ficha a la app. La captura, el recalibrado y las horas estimadas empiezan solos 
 
 Para medir antes de usar el motor (como Renfe): `'capture' => 'gtfs-rt'` en la ficha y su herramienta en
 `engine/<red>/tools/capture.php` (la de Renfe sirve de modelo). Las capturas, recortadas a la red, van cada hora a las
-releases `capturas-<red>-AAAA-MM` del repositorio del algoritmo.
+releases `capturas-<red>-AAAA-MM` del repositorio del algoritmo. El plan de Renfe, paso a paso: `renfe/README.md` en el
+repositorio del algoritmo.
 
 ## Incidencias
 
