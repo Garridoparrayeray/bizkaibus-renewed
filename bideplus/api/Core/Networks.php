@@ -79,14 +79,10 @@ class Networks
         return in_array($sSource, $aNetwork['live'] ?? [], true);
     }
 
-    // Una red recién llegada (new_until en su ficha, una fecha Y-m-d): su ficha del menú lleva «Nuevo» hasta ese día.
+    // Una red recién llegada (added en su ficha, el día que llegó): su ficha del menú lleva «Nuevo» unos días (NewBadge).
     public static function isNew(array $aNetwork): bool
     {
-        if (empty($aNetwork['new_until'])) {
-            return false;
-        }
-        $sToday = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->format('Y-m-d');
-        return $sToday <= $aNetwork['new_until'];
+        return NewBadge::isNew($aNetwork['added'] ?? null);
     }
 
     public static function feature(array $aNetwork, string $sFeature): mixed

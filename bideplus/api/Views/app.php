@@ -4,7 +4,7 @@
 use Core\Networks;
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <base href="/">
@@ -42,6 +42,7 @@ use Core\Networks;
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
+    <script src="/js/new-badge.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
     <script src="/js/theme.js"></script>
     <script src="/js/boot.js"></script>
@@ -247,7 +248,7 @@ use Core\Networks;
             </div>
             <p id="timetable-empty" class="timetable-empty" hidden data-i18n="app.noDepartures">No hay salidas programadas en ese rango.</p>
 
-            <button id="schedule-text-toggle" class="schedule-text-toggle" type="button" data-i18n="app.officialSchedule">Ver horario oficial</button>
+            <button id="schedule-text-toggle" class="schedule-text-toggle" type="button" data-new-since="2026-11-03" data-i18n="app.officialSchedule">Ver horario oficial</button>
         </section>
                 <p id="detail-empty" class="detail-empty" data-i18n="detail.empty">Elige una línea para ver aquí su mapa y su horario.</p>
             </div>

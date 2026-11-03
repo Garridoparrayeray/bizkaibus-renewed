@@ -7,8 +7,8 @@ return [
     'order' => 10,
     'db' => 'dbus',
     'kind' => 'bus',
-    // Recién llegada: «Nuevo» en su ficha del menú de Bide+ hasta este día.
-    'new_until' => '2026-12-02',
+    // El día que llegó a Bide+: su ficha del menú lleva «Nuevo» los días de new_days (api/Config/site.php).
+    'added' => '2026-11-02',
 
     'brand' => [
         'icons' => 'icons-dbus',
