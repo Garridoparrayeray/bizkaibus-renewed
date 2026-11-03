@@ -42,6 +42,7 @@ SCHEMAS = {
         'departures': [{
             'lineId': ID, 'lineCode': str, 'lineName': str, 'headsign': opt(str), 'tripKey': str,
             'scheduledTime': 'hm', 'etaMinutes': int, 'etaAt': int, 'status': 'status', 'delayMinutes': opt(int),
+            'tomorrow': bool,
         }],
         'attribution': str,
     },
@@ -205,6 +206,13 @@ for name, cfg in NETS.items():
             etas = [x['etaAt'] for x in dep.get('departures') or []]
             if etas != sorted(etas):
                 fails.append(f'{name} {sid}: las salidas no vienen ordenadas por hora de llegada prevista')
+        # Hoy ya no sale ninguna más: las de mañana, detrás de las de hoy y con su horario, sin el directo de hoy.
+        tomorrow = [bool(x.get('tomorrow')) for x in dep.get('departures') or []]
+        if tomorrow != sorted(tomorrow):
+            fails.append(f'{name} {sid}: una salida de mañana delante de una de hoy')
+        for x in dep.get('departures') or []:
+            if x.get('tomorrow') and x['status'] != 'scheduled':
+                fails.append(f"{name} {sid}: una salida de mañana con el estado de hoy ({x['status']})")
         for line in (stop.get('lines') or [])[:3]:
             lid = enc(line['id'])
             get(net(f'/api/lines/{lid}', s), 'line', name)

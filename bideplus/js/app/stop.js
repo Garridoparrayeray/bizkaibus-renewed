@@ -1,7 +1,7 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
 import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, el, networkQuery, state, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
-import { escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
+import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
 import { loadTimetable, selectLine } from './timetable.js';
 import { DEPARTED_GRACE_MS, openVehicleModal } from './vehicle-modal.js';
@@ -216,6 +216,7 @@ function renderLiveCard(departures) {
         el.liveLine.textContent = state.currentStop.name;
         el.liveHeadsign.textContent = I18n.t('app.noUpcomingDepartures');
         el.liveMinutes.textContent = '–';
+        el.liveMinutes.nextElementSibling.hidden = false;
         setDelaySub(el.liveDelay, null, 0);
         el.liveBadge.textContent = I18n.t('app.noData');
         el.liveStatusText.textContent = '';
@@ -232,13 +233,22 @@ function renderLiveCard(departures) {
     el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
+    el.liveMinutes.nextElementSibling.hidden = false;
     setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime);
     el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes, departure.atOrigin);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
+    // Hoy ya no sale ninguna más: la hora de la primera de mañana, en vez de cientos de minutos.
+    if (departure.tomorrow) {
+        el.liveMinutes.textContent = departure.scheduledTime;
+        el.liveMinutes.nextElementSibling.hidden = true;
+        el.liveBadge.textContent = I18n.t('app.badge.tomorrow');
+        el.liveStatusText.textContent = I18n.t('app.noMoreToday');
+    }
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
     el.liveOpenDetail.disabled = false;
     el.liveOpenDetail.dataset.tripKey = departure.tripKey;
+    el.liveOpenDetail.dataset.tomorrow = String(Boolean(departure.tomorrow));
     el.liveTimetableLink.disabled = false;
     el.liveTimetableLink.dataset.lineId = departure.lineId;
 
@@ -248,7 +258,7 @@ function renderLiveCard(departures) {
         button.type = 'button';
         const when = document.createElement('span');
         when.className = 'live-more-when';
-        when.textContent = `${Math.max(other.etaMinutes, 0)} min`;
+        when.textContent = departureWhen(other);
         // Estimada arriba y, debajo y en gris, la hora oficial.
         if (other.status === 'estimated') {
             when.textContent = `≈ ${when.textContent}`;
@@ -267,7 +277,7 @@ function renderLiveCard(departures) {
         button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span>`;
         button.appendChild(when);
 
-        button.addEventListener('click', () => openVehicleModal(other.tripKey));
+        button.addEventListener('click', () => openVehicleModal(other.tripKey, { tomorrow: other.tomorrow }));
 
         li.appendChild(button);
         if (offlineView) {
@@ -308,12 +318,14 @@ function renderPlatformColumn(direction, departures) {
     nextButton.type = 'button';
     nextButton.className = 'time-display';
     nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
+    if (next.tomorrow) nextButton.querySelector('.platform-column-next').innerHTML = `<strong>${escapeHtml(next.scheduledTime)}</strong>`;
     setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime);
-    nextButton.addEventListener('click', () => openVehicleModal(next.tripKey));
+    nextButton.addEventListener('click', () => openVehicleModal(next.tripKey, { tomorrow: next.tomorrow }));
 
     const badge = document.createElement('span');
     badge.className = 'badge';
     badge.textContent = liveBadgeText(next.status, next.etaMinutes, next.atOrigin);
+    if (next.tomorrow) badge.textContent = I18n.t('app.badge.tomorrow');
 
     const { text, className } = statusLabel(next.status, next.delayMinutes);
     const dot = document.createElement('span');
@@ -332,8 +344,10 @@ function renderPlatformColumn(direction, departures) {
             const li = document.createElement('li');
             const button = document.createElement('button');
             button.type = 'button';
-            button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(departure.scheduledTime)} · ${Math.max(departure.etaMinutes, 0)} min</span>`;
-            button.addEventListener('click', () => openVehicleModal(departure.tripKey));
+            let when = `${departure.scheduledTime} · ${departureWhen(departure)}`;
+            if (departure.tomorrow) when = departureWhen(departure);
+            button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(when)}</span>`;
+            button.addEventListener('click', () => openVehicleModal(departure.tripKey, { tomorrow: departure.tomorrow }));
             li.appendChild(button);
             if (offlineView) {
                 li.classList.add('has-mark');
@@ -424,7 +438,7 @@ export function setUpStop() {
         if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });
 
-    el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey));
+    el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey, { tomorrow: el.liveOpenDetail.dataset.tomorrow === 'true' }));
     el.liveTimetableLink.addEventListener('click', () => {
         if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
     });

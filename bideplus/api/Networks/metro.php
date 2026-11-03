@@ -32,25 +32,25 @@ return [
         'es' => [
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
-            'switcher' => 'Horarios de Metro Bilbao',
-            'subtitle' => 'Horarios de Metro Bilbao',
+            'switcher' => 'Horarios y tiempo real de Metro Bilbao',
+            'subtitle' => 'Horarios y tiempo real de Metro Bilbao',
             'liveEmpty' => 'Busca una estación para ver el próximo metro.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
             'name' => 'Metro+',
             'tile' => 'Bilboko Metroa',
-            'switcher' => 'Bilboko Metroaren ordutegiak',
-            'subtitle' => 'Bilboko Metroaren ordutegiak',
+            'switcher' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
+            'subtitle' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
-            'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora erreala',
+            'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean',
         ],
         'en' => [
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
-            'switcher' => 'Metro Bilbao timetables',
-            'subtitle' => 'Metro Bilbao timetables',
+            'switcher' => 'Metro Bilbao timetables and real time',
+            'subtitle' => 'Metro Bilbao timetables and real time',
             'liveEmpty' => 'Search for a station to see the next metro.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time',
@@ -58,8 +58,8 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Metro+ · Horarios de Metro Bilbao: líneas L1, L2 y L3, estaciones y avisos | Bide+',
-        'description' => 'Consulta los horarios de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.',
+        'title' => 'Metro+ · Horarios y tiempo real de Metro Bilbao: líneas L1, L2 y L3, estaciones y avisos | Bide+',
+        'description' => 'Consulta los horarios y el tiempo real de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.',
     ],
     'attribution' => 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real',
 

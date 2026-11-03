@@ -41,6 +41,7 @@ function minutesLeft(item) {
 
 function timeText(item) {
     if (item.status === 'cancelled') return item.scheduledTime;
+    if (item.tomorrow) return I18n.t('app.tomorrowAt', { time: item.scheduledTime });
     const minutes = minutesLeft(item);
     if (minutes <= 0) return I18n.t('screen.now');
     if (minutes < 60) return minutes + ' min';

@@ -32,16 +32,16 @@ return [
         'es' => [
             'name' => 'Euskotren+',
             'tile' => 'Horarios y tiempo real',
-            'switcher' => 'Horarios de Euskotren',
-            'subtitle' => 'Horarios de Euskotren',
+            'switcher' => 'Horarios y tiempo real de Euskotren',
+            'subtitle' => 'Horarios y tiempo real de Euskotren',
             'liveEmpty' => 'Busca una estación para ver el próximo tren.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
             'name' => 'Euskotren+',
             'tile' => 'Ordutegiak eta zuzenekoa',
-            'switcher' => 'Euskotrenen ordutegiak',
-            'subtitle' => 'Euskotrenen ordutegiak',
+            'switcher' => 'Euskotrenen ordutegiak eta denbora errealean',
+            'subtitle' => 'Euskotrenen ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)',
@@ -49,8 +49,8 @@ return [
         'en' => [
             'name' => 'Euskotren+',
             'tile' => 'Timetables and real time',
-            'switcher' => 'Euskotren timetables',
-            'subtitle' => 'Euskotren timetables',
+            'switcher' => 'Euskotren timetables and real time',
+            'subtitle' => 'Euskotren timetables and real time',
             'liveEmpty' => 'Search for a station to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Euskotren / Open Data Euskadi (CC-BY 4.0)',
@@ -58,8 +58,8 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Euskotren+ · Horarios de trenes y tranvía de Euskotren por línea y estación | Bide+',
-        'description' => 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación en Bizkaia y Gipuzkoa.',
+        'title' => 'Euskotren+ · Horarios y tiempo real de trenes y tranvía de Euskotren por línea y estación | Bide+',
+        'description' => 'Consulta los horarios y el tiempo real de Euskotren, trenes y tranvía, por línea y estación en Bizkaia y Gipuzkoa.',
     ],
     'attribution' => 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)',
 

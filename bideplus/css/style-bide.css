@@ -1591,9 +1591,24 @@ html.bide body.page-menu .legal-close {
                 grid-column: 2;
                 grid-row: 1 / span 6;
             }
-        html.bide .bide-sources-card {
+        /* Info: las fuentes (larga) junto a «Próximamente» y «Apoya Bide+», que juntas miden casi lo mismo; luego las
+           novedades a todo lo ancho, y al final el autor y el aviso legal, una al lado de la otra y con el mismo alto. */
+        html.bide [data-bide-view="info"] .bide-info-grid > .bide-sources-card {
             grid-column: 1;
-            grid-row: span 3;
+            grid-row: span 2;
+            align-self: stretch;
+            order: 1;
+        }
+        html.bide [data-bide-view="info"] .bide-info-grid > :is(.bide-upcoming, .bide-donate) {
+            grid-column: 2;
+            order: 2;
+        }
+        html.bide [data-bide-view="info"] .bide-info-grid > .bide-changelog {
+            order: 3;
+        }
+        html.bide [data-bide-view="info"] .bide-info-grid > :is(.bide-author, [data-bide-legal]) {
+            align-self: stretch;
+            order: 4;
         }
     html.bide .bide-view[data-bide-view="favoritos"],
     html.bide .bide-view[data-bide-view="avisos"] {

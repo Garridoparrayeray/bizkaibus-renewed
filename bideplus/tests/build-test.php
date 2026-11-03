@@ -239,7 +239,7 @@ $FirstPoint = fn(PDO $Pdo) => json_decode((string)$Pdo->query("SELECT points FRO
 
 $Pdo = $ShapeFixture(false, [0, 1000, 2000, 3000]);
 $aTotals = Shapes::align($Pdo);
-$Expect('un trazado que casa con sus paradas no se toca', $aTotals === ['reversed' => 0, 'remeasured' => 0] && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+$Expect('un trazado que casa con sus paradas no se toca', $aTotals === ['reversed' => 0, 'remeasured' => 0, 'measured' => 0] && $Distances($Pdo) === [0, 1000, 2000, 3000]);
 
 $Pdo = $ShapeFixture(true, [0, 1000, 2000, 3000]);
 $aTotals = Shapes::align($Pdo);
@@ -249,7 +249,34 @@ $Expect('con el trazado del derecho, cada parada cae a sus metros', $Distances($
 
 $Pdo = $ShapeFixture(false, [null, null, null, null]);
 $aTotals = Shapes::align($Pdo);
-$Expect('un viaje sin metros en el GTFS se queda sin ellos, como antes', $aTotals['remeasured'] === 0 && (int)$Pdo->query('SELECT COUNT(*) FROM passing_times WHERE dist_m IS NOT NULL')->fetchColumn() === 0);
+$Expect('un viaje sin metros en el GTFS los recibe, medidos sobre su trazado', $aTotals['remeasured'] === 1 && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+
+// Un GTFS sin metros en el trazado (todos a 0) ni en las paradas: el trazado los recibe sumando de punto a punto, y
+// las paradas, medidas sobre él; también si está dibujado al revés.
+$WithoutMeters = function (PDO $Pdo): void {
+    $aPoints = json_decode((string)$Pdo->query('SELECT points FROM shapes')->fetchColumn(), true);
+    $Pdo->prepare('UPDATE shapes SET points = ?')->execute([json_encode(array_map(fn($aPoint) => [$aPoint[0], $aPoint[1], 0], $aPoints))]);
+};
+$LastPoint = function (PDO $Pdo): array {
+    $aPoints = json_decode((string)$Pdo->query('SELECT points FROM shapes')->fetchColumn(), true);
+    return $aPoints[\count($aPoints) - 1];
+};
+$Pdo = $ShapeFixture(false, [null, null, null, null]);
+$WithoutMeters($Pdo);
+$aTotals = Shapes::align($Pdo);
+$Expect('un trazado sin metros los recibe: 3000 m al final', $aTotals['measured'] === 1 && abs($LastPoint($Pdo)[2] - 3000) < 1);
+$Expect('y sus paradas, medidas sobre él', $Distances($Pdo) === [0, 1000, 2000, 3000]);
+$Pdo = $ShapeFixture(false, [null, null, null, null]);
+$aPoints = json_decode((string)$Pdo->query('SELECT points FROM shapes')->fetchColumn(), true);
+$aPoints = array_map(fn($aPoint) => [$aPoint[0], $aPoint[1], 0], $aPoints);
+$aPoints[\count($aPoints) - 1][2] = 3000;
+$Pdo->prepare('UPDATE shapes SET points = ?')->execute([json_encode($aPoints)]);
+$aTotals = Shapes::align($Pdo);
+$Expect('metros a 0 salvo el último (Bilbobus) cuentan como sin metros', $aTotals['measured'] === 1 && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+$Pdo = $ShapeFixture(true, [null, null, null, null]);
+$WithoutMeters($Pdo);
+$aTotals = Shapes::align($Pdo);
+$Expect('un trazado sin metros y al revés se pone del derecho y se mide', $aTotals['measured'] === 1 && $aTotals['reversed'] === 1 && abs($FirstPoint($Pdo)[0] - 43.2) < 1e-6 && $Distances($Pdo) === [0, 1000, 2000, 3000]);
 
 $Pdo = $ShapeFixture(false, [0, 700, 1500, 2600]);
 $aTotals = Shapes::align($Pdo);

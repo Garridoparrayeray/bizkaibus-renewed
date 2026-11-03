@@ -73,10 +73,13 @@ export function renderModalStops(data) {
 export function renderModalHeader(data) {
     const { text } = statusLabel(data.status, data.delayMinutes);
     el.modalBadge.textContent = text;
+    if (data.tomorrow) el.modalBadge.textContent = I18n.t('app.badge.tomorrow');
     el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
     el.modalHeadsign.textContent = I18n.t('app.direction', { headsign: data.headsign });
     if (data.vehicleRef) {
         el.modalVehicle.textContent = I18n.t('app.liveTracking', { ref: data.vehicleRef });
+    } else if (data.tomorrow) {
+        el.modalVehicle.textContent = I18n.t('app.tripTomorrow');
     } else if (data.status === 'finished') {
         el.modalVehicle.textContent = I18n.t('app.tripFinished');
     } else if (data.status === 'live') {
@@ -120,10 +123,16 @@ function tickVehicleModal() {
     renderModalStops(modalState.data);
 }
 
-export async function openVehicleModal(tripKey) {
+// Un viaje de mañana (hoy ya no sale ninguno más de la parada): su horario, sin nada del día de hoy.
+function asTomorrow(data) {
+    const stops = data.stops.map((stop) => ({ ...stop, isPast: false, isCurrent: false, etaMinutes: null, etaAt: null }));
+    return { ...data, stops, tomorrow: true, status: 'scheduled', vehicleRef: null, awaitingVehicle: false, delayMinutes: null };
+}
+
+export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
     if (!tripKey) return;
     if (FEATURES.trip_detail === 'stops') {
-        await openTripStopsModal(tripKey);
+        await openTripStopsModal(tripKey, tomorrow);
         return;
     }
 
@@ -132,10 +141,11 @@ export async function openVehicleModal(tripKey) {
         data = await Api.vehicle(tripKey, state.currentStop?.id);
     } catch (e) {
         if (HAS_PLATFORMS) {
-            await openTripStopsModal(tripKey);
+            await openTripStopsModal(tripKey, tomorrow);
         }
         return;
     }
+    if (tomorrow) data = asTomorrow(data);
 
     stopModalFollow();
     modalState.signature = '';
@@ -159,11 +169,13 @@ export async function openVehicleModal(tripKey) {
     showArrivalAlerts(tripKey);
 
     el.modal.showModal();
+    // El horario de mañana no cambia: no hace falta irlo refrescando.
+    if (tomorrow) return;
     modalState.refreshTimer = setInterval(whenVisible(refreshVehicleModal), MODAL_REFRESH_MS);
     modalState.tickTimer = setInterval(tickVehicleModal, MODAL_TICK_MS);
 }
 
-async function openTripStopsModal(tripKey) {
+async function openTripStopsModal(tripKey, tomorrow = false) {
     let data;
     try {
         data = await Api.tripStops(tripKey, state.currentStop?.id ?? '');
@@ -188,7 +200,7 @@ async function openTripStopsModal(tripKey) {
         const li = document.createElement('li');
         const classes = ['stop-clickable'];
         if (stop.isTarget) classes.push('stop-current');
-        if (stop.scheduledTime < nowHm) classes.push('stop-past');
+        if (!tomorrow && stop.scheduledTime < nowHm) classes.push('stop-past');
         li.className = classes.join(' ');
         li.textContent = `${stop.scheduledTime} · ${stop.name}`;
         li.addEventListener('click', () => {

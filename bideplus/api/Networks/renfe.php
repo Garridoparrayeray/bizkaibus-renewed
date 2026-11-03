@@ -33,16 +33,16 @@ return [
         'es' => [
             'name' => 'Renfe Cercanías+',
             'tile' => 'Cercanías en Bilbao y Donostia',
-            'switcher' => 'Horarios de Cercanías en Bilbao y Donostia',
-            'subtitle' => 'Horarios de Cercanías',
+            'switcher' => 'Horarios y tiempo real de Cercanías en Bilbao y Donostia',
+            'subtitle' => 'Horarios y tiempo real de Cercanías',
             'liveEmpty' => 'Busca una parada para ver el próximo tren.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
         ],
         'eu' => [
             'name' => 'Renfe Aldiriak+',
             'tile' => 'Bilbo eta Donostiako aldiriak',
-            'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak',
-            'subtitle' => 'Aldirien ordutegiak',
+            'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak eta denbora errealean',
+            'subtitle' => 'Aldirien ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.',
             'attribution' => 'Datuak: Renfe Aldiriak',
@@ -50,8 +50,8 @@ return [
         'en' => [
             'name' => 'Renfe Cercanías+',
             'tile' => 'Commuter trains in Bilbao and Donostia',
-            'switcher' => 'Commuter train timetables in Bilbao and Donostia',
-            'subtitle' => 'Commuter train timetables',
+            'switcher' => 'Commuter train timetables and real time in Bilbao and Donostia',
+            'subtitle' => 'Commuter train timetables and real time',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
             'attribution' => 'Data: Renfe Cercanías',
@@ -59,8 +59,8 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Renfe Cercanías+ · Horarios de Cercanías en Bilbao y Donostia',
-        'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada.',
+        'title' => 'Renfe Cercanías+ · Horarios y retrasos en tiempo real de Cercanías en Bilbao y Donostia',
+        'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, con los retrasos y los trenes cancelados en tiempo real.',
     ],
     'attribution' => 'Datos: Renfe Cercanías',
 

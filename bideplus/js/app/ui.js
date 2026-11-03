@@ -12,6 +12,12 @@ export function debounce(fn, delayMs) {
     };
 }
 
+// Cuánto falta, para las listas: «5 min» o, si hoy ya no sale ninguna más, «mañana 07:00».
+export function departureWhen(departure) {
+    if (departure.tomorrow) return I18n.t('app.tomorrowAt', { time: departure.scheduledTime });
+    return `${Math.max(departure.etaMinutes, 0)} min`;
+}
+
 // atOrigin: el bus espera en la primera parada de su viaje (el motor lo sitúa allí antes de su hora de salida).
 export function liveBadgeText(status, etaMinutes, atOrigin = false) {
     if (status === 'departed') return I18n.t('app.badge.leaving');

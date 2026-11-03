@@ -1,6 +1,8 @@
 <?php
 // Trazados y paradas que casan: el GTFS de Bizkaibus dibuja algunos trazados al revés y, en otros, los metros de cada
 // parada no caen sobre ella. Así el GPS no sitúa al bus; se le da la vuelta al trazado y se miden de nuevo las paradas.
+// Sin metros en el GTFS (Lurraldebus, Bilbobus, Tuvisa, La Unión), se miden aquí: el trazado, de punto a punto, y las
+// paradas sobre él.
 
 declare(strict_types=1);
 
@@ -37,7 +39,7 @@ class Shapes
         $SaveShape = $Pdo->prepare('UPDATE shapes SET points = ? WHERE id = ?');
         $SaveDistance = $Pdo->prepare('UPDATE passing_times SET dist_m = ? WHERE service_journey_id = ? AND seq_order = ?');
 
-        $aTotals = ['reversed' => 0, 'remeasured' => 0];
+        $aTotals = ['reversed' => 0, 'remeasured' => 0, 'measured' => 0];
         foreach ($aJourneysByShape as $sShapeId => $aJourneyIds) {
             $LoadShape->execute([$sShapeId]);
             $aPoints = json_decode((string)$LoadShape->fetchColumn(), true);
@@ -50,16 +52,25 @@ class Shapes
                 $LoadStops->execute([$sJourneyId]);
                 $aStopsByJourney[$sJourneyId] = $LoadStops->fetchAll(PDO::FETCH_ASSOC);
             }
+            $bChanged = false;
+            if (!self::hasMeters($aPoints)) {
+                $aPoints = self::withMeters($aPoints);
+                $bChanged = true;
+                $aTotals['measured']++;
+            }
             $bReversed = self::runsBackwards($aPoints, $aStopsByJourney);
             if ($bReversed) {
                 $aPoints = self::flipped($aPoints);
-                $SaveShape->execute([json_encode($aPoints), $sShapeId]);
+                $bChanged = true;
                 $aTotals['reversed']++;
             }
+            if ($bChanged) {
+                $SaveShape->execute([json_encode($aPoints), $sShapeId]);
+            }
             foreach ($aStopsByJourney as $sJourneyId => $aStops) {
-                // Sin metros en el GTFS (Lurraldebus, Bilbobus…) se quedan sin ellos, como antes: el motor sitúa al bus
-                // con la recta entre paradas, y medirlos ahora cambiaría eso sin haberlo medido.
-                if (self::withoutDistances($aStops) || (!$bReversed && self::stopsMatch($aPoints, $aStops))) {
+                // Sin metros en el GTFS no casa y se miden: así el motor sitúa al bus sobre el trazado, no en la recta
+                // entre paradas (medido en la memoria, «Trazados que No Casan con sus Paradas»).
+                if (!$bReversed && self::stopsMatch($aPoints, $aStops)) {
                     continue;
                 }
                 foreach (self::stopDistances($aPoints, $aStops) as $iSeq => $dMeters) {
@@ -106,14 +117,31 @@ class Shapes
         return $aFlipped;
     }
 
-    public static function withoutDistances(array $aStops): bool
+    // El GTFS trae los metros del trazado (shape_dist_traveled) si pasan de 0 en la mayoría de los puntos: el de Bilbobus
+    // los deja a 0 en todos menos el último.
+    public static function hasMeters(array $aPoints): bool
     {
-        foreach ($aStops as $aStop) {
-            if ($aStop['dist_m'] !== null) {
-                return false;
+        $iWithMeters = 0;
+        foreach ($aPoints as $aPoint) {
+            if ((float)($aPoint[2] ?? 0) > 0) {
+                $iWithMeters++;
             }
         }
-        return true;
+        return $iWithMeters * 2 >= \count($aPoints);
+    }
+
+    // Los metros de cada punto del trazado desde el primero, sumando lo que hay de un punto al siguiente.
+    public static function withMeters(array $aPoints): array
+    {
+        $dMeters = 0.0;
+        $aMeasured = [];
+        foreach ($aPoints as $i => $aPoint) {
+            if ($i > 0) {
+                $dMeters += self::meters([(float)$aPoints[$i - 1][0], (float)$aPoints[$i - 1][1]], [(float)$aPoint[0], (float)$aPoint[1]]);
+            }
+            $aMeasured[] = [$aPoint[0], $aPoint[1], round($dMeters, 2)];
+        }
+        return $aMeasured;
     }
 
     // Cada parada, a sus metros del GTFS sobre el trazado, cae junto a ella.

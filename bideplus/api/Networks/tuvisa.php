@@ -43,8 +43,8 @@ return [
         'eu' => [
             'name' => 'Tuvisa+',
             'tile' => 'Gasteizko autobusak',
-            'switcher' => 'Tuvisaren ordutegiak eta denbora erreala Gasteizen',
-            'subtitle' => 'Tuvisaren ordutegiak eta denbora erreala',
+            'switcher' => 'Tuvisaren ordutegiak eta denbora errealean Gasteizen',
+            'subtitle' => 'Tuvisaren ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Tuvisarekin eta Vitoria-Gasteizko Udalarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)',

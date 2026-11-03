@@ -11,6 +11,7 @@ use Core\TripKey;
 use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
+use Services\ScheduleOnlyMatcher;
 use Core\Live;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
@@ -95,6 +96,7 @@ class StopsController
             'headsign' => $sHeadsign,
             'etaMinutes' => (int)round(((int)$aBest['departure_seconds'] - $iNow) / 60),
             'scheduledTime' => Calendar::secondsToHm((int)$aBest['departure_seconds']),
+            'tomorrow' => !empty($aBest['tomorrow']),
         ];
     }
 
@@ -167,13 +169,33 @@ class StopsController
         if (count($aRows) < $iLimit + 5) {
             $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600);
         }
-        return $aRows;
+        // Hoy ya no sale ninguna más: detrás de las que acaban de salir (puede venir alguna con retraso), las primeras de
+        // mañana con su horario.
+        $iNow = Calendar::nowSecondsSinceMidnight();
+        foreach ($aRows as $aRow) {
+            if ((int)$aRow['departure_seconds'] >= $iNow) {
+                return $aRows;
+            }
+        }
+        $aTomorrow = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 1);
+        return array_merge($aRows, array_map(fn(array $aRow) => ['tomorrow' => true] + $aRow, $aTomorrow));
     }
 
     // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en los trenes y tranvías, las horas del
     // feed del operador (sin los que ya han salido).
+    // Las de mañana van con el horario tal cual: el directo de hoy no es el de esos viajes.
     private static function withLive(object $Matcher, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
+        $aToday = array_values(array_filter($aRows, fn(array $aRow) => empty($aRow['tomorrow'])));
+        $aTomorrow = array_values(array_filter($aRows, fn(array $aRow) => !empty($aRow['tomorrow'])));
+        return array_merge(self::withLiveToday($Matcher, $TripMatcher, $sStopId, $aToday), (new ScheduleOnlyMatcher())->enrich($aTomorrow));
+    }
+
+    private static function withLiveToday(object $Matcher, object|null $TripMatcher, string $sStopId, array $aRows): array
+    {
+        if (empty($aRows)) {
+            return [];
+        }
         $aRows = $Matcher->enrich($aRows);
         if ($TripMatcher === null) {
             return $aRows;
@@ -231,6 +253,7 @@ class StopsController
                 'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
                 'status' => $aRow['status'],
                 'atOrigin' => !empty($aRow['atOrigin']),
+                'tomorrow' => !empty($aRow['tomorrow']),
                 'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,

@@ -284,14 +284,32 @@ muestras de tramo se reconstruye el paso real `R` de cada viaje por cada parada 
 general a lo más fino:
 
 ```
-g(b)        = media de e en la franja b (tipo de día + hora de salida)
-l(línea,b)  = (Σ e + 20 · g(b)) / (n + 20)
-Δ(v,d,p)    = (Σ_días ē_día + 1 · l(línea,b)) / (días + 1)
+g(b)        = P40 de e en la franja b (tipo de día + hora de salida)
+l(línea,b)  = (n · P40(e de la línea en b) + 20 · g(b)) / (n + 20)
+Δ(v,d,p)    = (Σ_días P40(e_día) + 1 · l(línea,b)) / (días + 1)
 ```
 
-donde `v` es el viaje (línea, primera y última parada, salida y número de paradas: no cambian aunque el operador renueve
-los identificadores), `d` el tipo de día, `p` el tercio del recorrido de la parada y `ē_día` la media del residuo de ese
-viaje y tercio ese día. En la predicción, `Δ_v` es `Δ(v,d,p)` si existe; si no, `l(línea,b)`; si no, `g(b)`.
+donde `P40` es el percentil 40 (`TRIP_OFFSET_RANK`), `v` es el viaje (línea, primera y última parada, salida y número de
+paradas: no cambian aunque el operador renueve los identificadores), `d` el tipo de día, `p` el tercio del recorrido de
+la parada y `e_día` los residuos de ese viaje y tercio ese día. En la predicción, `Δ_v` es `Δ(v,d,p)` si existe; si no,
+`l(línea,b)`; si no, `g(b)`.
+
+**El percentil 40 y no la media** (desde el 3 nov. 2026). Los residuos tienen una cola larga de retrasos que sube la
+media por encima de lo típico: con la media, el bus pasaba a menudo antes de la hora mostrada. Medido reconstruyendo lo
+que habría enseñado la app el 2 y el 3 nov., con lo aprendido solo hasta el día anterior, en las filas «Estimado» sin bus:
+
+| Cada valor | ±2 min | ±5 min | Error medio | El bus pasa >2 min antes | >2 min después |
+| --- | --- | --- | --- | --- | --- |
+| Media (antes) | 51,5 / 58,2 % | 83,5 / 87,8 % | 190 / 162 s | 26,6 / 22,4 % | 22,0 / 19,4 % |
+| Mediana | 53,6 / 59,8 % | 83,5 / 87,9 % | 187 / 160 s | 22,4 / 19,1 % | 24,0 / 21,2 % |
+| **Percentil 40** | **55,6 / 60,7 %** | 83,1 / 87,7 % | **187 / 159 s** | 17,1 / 15,2 % | 27,3 / 24,2 % |
+| Percentil 35 | 56,0 / 60,5 % | 82,7 / 87,5 % | 188 / 160 s | 15,1 / 13,7 % | 28,9 / 25,8 % |
+
+En la prueba de la recalibración (7 últimos días, todos los viajes), 162 → 160 s y 51,8 → 54,2 % a ±2 min. Se probaron
+también, y no entraron: no dar una llegada anterior a salir ahora mismo cuando ya pasó la hora de salida sin bus (+0,1
+puntos en conjunto: muchos salen a su hora sin aparecer en el feed) y corregir con lo que se apartan ahora los demás
+viajes de la línea (como mucho +0,4 puntos y peor casi siempre). Lo que queda es el desvío de cada viaje ese día: si se
+conociera, ±2 min pasaría al 81-85 %, pero lo explica el bus que lo hace, que Bizkaibus no publica.
 
 **Tipo de día.** `d` es laborable o fin de semana. Un festivo entre semana (el GTFS hace circular ese día, por excepción,
 los calendarios de solo domingo: `ServiceJourney::isHoliday`) cuenta como fin de semana para toda la capa 3, tramos y
