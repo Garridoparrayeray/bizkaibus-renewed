@@ -120,18 +120,28 @@ class Stop
         return $aStops;
     }
 
-    public function headsignsForMany(array $aStopIds, int $iLimitPerStop = 2): array
+    // Hacia dónde van los recorridos que pasan por cada parada (sin contar los que acaban en ella): su rótulo o, con
+    // $bFromLastStop (redes cuyo GTFS no trae un rótulo útil), el nombre de su última parada.
+    public function headsignsForMany(array $aStopIds, int $iLimitPerStop = 2, bool $bFromLastStop = false): array
     {
         if (empty($aStopIds)) {
             return [];
         }
+        $sHeadsign = 'jp.headsign';
+        if ($bFromLastStop) {
+            $sHeadsign = '(SELECT s.name FROM journey_pattern_stops lastStop JOIN stops s ON s.id = lastStop.stop_id
+                WHERE lastStop.journey_pattern_id = jps.journey_pattern_id ORDER BY lastStop.seq_order DESC LIMIT 1)';
+        }
         $sPlaceholders = implode(',', array_fill(0, count($aStopIds), '?'));
         $Stmt = $this->Pdo->prepare('
-            SELECT DISTINCT jps.stop_id, jp.headsign
-            FROM journey_pattern_stops jps
-            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
-            WHERE jps.stop_id IN (' . $sPlaceholders . ') AND jp.headsign IS NOT NULL AND jp.headsign != \'\'
-              AND jps.seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = jps.journey_pattern_id)
+            SELECT DISTINCT stop_id, headsign FROM (
+                SELECT jps.stop_id, ' . $sHeadsign . ' AS headsign
+                FROM journey_pattern_stops jps
+                JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
+                WHERE jps.stop_id IN (' . $sPlaceholders . ')
+                  AND jps.seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = jps.journey_pattern_id)
+            )
+            WHERE headsign IS NOT NULL AND headsign != \'\'
         ');
         $Stmt->execute(array_values($aStopIds));
         $aByStop = [];

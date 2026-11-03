@@ -562,6 +562,56 @@
                 "attribution": "Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
+    },
+    "launion": {
+        "kind": "bus",
+        "icons": "icons-launion",
+        "themeColor": "#30609D",
+        "title": [
+            "LA UNIÓN",
+            "BILBAO · GASTEIZ"
+        ],
+        "favoritesKey": "launion_favorites",
+        "live": false,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": true,
+            "stop_hints": true,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "stops",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "La Unión+",
+                "tile": "Autobuses Bilbao - Vitoria",
+                "switcher": "Horarios de La Unión entre Bizkaia y Vitoria-Gasteiz",
+                "subtitle": "Horarios de La Unión",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Autobuses La Unión. Horario programado oficial: no refleja retrasos ni cancelaciones.",
+                "attribution": "Datos: Autobuses La Unión, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "eu": {
+                "name": "La Unión+",
+                "tile": "Bilbo - Gasteiz autobusak",
+                "switcher": "La Uniónen ordutegiak Bizkaia eta Vitoria-Gasteiz artean",
+                "subtitle": "La Uniónen ordutegiak",
+                "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Autobuses La Uniónekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.",
+                "attribution": "Datuak: Autobuses La Unión, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "en": {
+                "name": "La Unión+",
+                "tile": "Bilbao - Vitoria buses",
+                "switcher": "La Unión timetables between Bizkaia and Vitoria-Gasteiz",
+                "subtitle": "La Unión timetables",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Autobuses La Unión. Official scheduled timetable: it does not reflect delays or cancellations.",
+                "attribution": "Data: Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            }
+        }
     }
 };
     const order = Object.keys(networks);

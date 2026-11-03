@@ -34,6 +34,9 @@
 .tile--alavabus {
     --c: #A8034F;
 }
+.tile--launion {
+    --c: #30609D;
+}
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
@@ -65,6 +68,9 @@ html.bide .bide-swatch--dbus {
 }
 html.bide .bide-swatch--alavabus {
     background: #A8034F;
+}
+html.bide .bide-swatch--launion {
+    background: #30609D;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -177,4 +183,15 @@ html.is-alavabus {
     --text: #261c21;
     --text-secondary: #66595f;
     --backdrop: rgba(17, 0, 8, .5);
+}
+html.is-launion {
+    --bg: #eff1f2;
+    --border: #d5d8dc;
+    --primary: #30609D;
+    --primary-light: #a2b7d3;
+    --primary-dark: #1e3c61;
+    --primary-tint: #eef2f7;
+    --text: #1f2226;
+    --text-secondary: #5c6065;
+    --backdrop: rgba(5, 10, 16, .5);
 }
