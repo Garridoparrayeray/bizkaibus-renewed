@@ -7,6 +7,8 @@ return [
     'order' => 9,
     'db' => 'tuvisa',
     'kind' => 'bus',
+    // Recién llegada: «Nuevo» en su ficha del menú de Bide+ hasta este día.
+    'new_until' => '2026-12-02',
 
     'brand' => [
         'icons' => 'icons-tuvisa',

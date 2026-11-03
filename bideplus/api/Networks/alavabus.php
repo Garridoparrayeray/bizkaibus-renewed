@@ -7,6 +7,8 @@ return [
     'order' => 11,
     'db' => 'alavabus',
     'kind' => 'bus',
+    // Recién llegada: «Nuevo» en su ficha del menú de Bide+ hasta este día.
+    'new_until' => '2026-12-02',
 
     'brand' => [
         'icons' => 'icons-alavabus',
