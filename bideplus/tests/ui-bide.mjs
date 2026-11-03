@@ -101,7 +101,7 @@ await ev(`localStorage.clear();
 await send('Emulation.setUserAgentOverride', { userAgent: IOS_UA });
 await go('/');
 check('navegador · menú: sin barra de pestañas', (await ev(shown('.bide-tabbar'))) === false);
-check('navegador · menú: con pie', await ev(shown('main > footer')));
+check('navegador · menú: con pie', await ev(shown('.menu-footer')));
 check('navegador · menú: selectores de idioma y vista', (await ev(shown('.bide-lang'))) && (await ev(shown('.view-toggle'))));
 check('navegador · menú: ES marcado', (await ev("document.querySelector('[data-bide-lang=es]').getAttribute('aria-pressed')")) === 'true');
 check('navegador · menú: aviso «Instala Bide+» en iPhone', await waitTrue(shown('.bide-install'), 4000));
@@ -113,7 +113,7 @@ await ev("localStorage.removeItem('bide_install_dismissed'); true");
 // En la web el pie lleva los enlaces: se queda también con Ajustes, Info, Avisos o Favoritos abiertos desde el inicio.
 for (const view of ['ajustes', 'info', 'avisos', 'favoritos']) {
     await ev(`(() => { document.querySelector('[data-bide-tab=${view}]').click(); return true; })()`);
-    check(`navegador · menú: con ${view} abierto sigue el pie`, await waitTrue(`${shown(`[data-bide-view=${view}]`)} && ${shown('main > footer')}`));
+    check(`navegador · menú: con ${view} abierto sigue el pie`, await waitTrue(`${shown(`[data-bide-view=${view}]`)} && ${shown('.menu-footer')}`));
     await go('/');
 }
 
@@ -131,7 +131,7 @@ await setStandalone(true);
 await go('/');
 check('instalada · menú: barra con 5 pestañas', (await ev(shown('.bide-tabbar'))) && (await ev("document.querySelectorAll('.bide-tabbar .bide-tab').length")) === 5);
 check('instalada · menú: «Apps» marcada', (await ev("document.querySelector('.bide-tabbar [data-bide-tab=apps]').getAttribute('aria-current')")) === 'page');
-check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('main > footer'))) === false && (await ev(shown('.bide-install'))) === false);
+check('instalada · menú: sin pie ni aviso de instalación', (await ev(shown('.menu-footer'))) === false && (await ev(shown('.bide-install'))) === false);
 
 await ev("document.querySelector('.bide-tabbar [data-bide-tab=favoritos]').click(); true");
 check('instalada · Favoritos: se abre como página', await waitTrue(shown('[data-bide-view=favoritos]')));
@@ -262,6 +262,9 @@ const openStop = async () => {
     await ev("document.querySelector('#search-results .pill').click(); true");
     return waitTrue("location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden");
 };
+// Con 50 pasos en el historial (el tope de Chrome) el navegador empieza a quitar pasos y «atrás» deja de probar la
+// app: las pruebas de «atrás» empiezan con el historial vacío.
+await send('Page.resetNavigationHistory');
 await go('/?red=bus');
 check('atrás · se abre una parada', await openStop());
 await waitTrue("!!document.querySelector('#live-more-list button')", 15000);
@@ -312,6 +315,12 @@ check('ordenador · Info se abre en el contenido', (await waitTrue(shown('[data-
 check('ordenador · sin desbordar a lo ancho', await ev(noOverflow));
 await go('/');
 check('ordenador · menú: columna de Bide+ sin título en la barra', (await ev(shown('.bide-rail'))) && (await ev(shown('.menu-brand'))) === false);
+// Con la lista de apps abierta y Ajustes (largo), al bajar del todo la columna no tapa el pie: se desplaza por dentro.
+await ev("(() => { document.querySelector('[data-bide-tab=ajustes]').click(); if (!document.querySelector('.bide-rail-applist').offsetParent) document.querySelector('.bide-rail-apps').click(); return true; })()");
+await waitTrue(`${shown('[data-bide-view=ajustes]')} && ${shown('.bide-rail-applist')}`);
+await ev('window.scrollTo(0, document.documentElement.scrollHeight); true');
+check('ordenador · menú: con todas las apps abiertas la columna no tapa el pie', await waitTrue("(() => { const r = document.querySelector('.bide-rail').getBoundingClientRect(); const f = document.querySelector('.menu-footer').getBoundingClientRect(); return f.height > 0 && r.bottom <= f.top + 1 && r.bottom <= window.innerHeight; })()"));
+await go('/');
 check('ordenador · menú: idioma a la izquierda y vista a la derecha, en una fila', await ev("(() => { const l = document.querySelector('.bide-lang').getBoundingClientRect(); const v = document.querySelector('.view-toggle').getBoundingClientRect(); return Math.abs(l.top - v.top) < 4 && l.right < v.left && v.right > window.innerWidth * 0.8; })()"));
 
 // ===== Mapa de la red =====

@@ -1301,7 +1301,7 @@ html.bide body.page-menu .legal-close {
         padding-bottom: calc(96px + 34px);
     }
     html.bide.is-standalone body.page-app .app-footer,
-    html.bide.is-standalone body.page-menu main > footer,
+    html.bide.is-standalone body.page-menu .menu-footer,
     html.bide.is-standalone .menu-open {
         display: none;
     }
