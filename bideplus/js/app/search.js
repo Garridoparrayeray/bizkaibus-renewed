@@ -3,6 +3,7 @@ import { ICONS, el } from './core.js';
 import { selectStop } from './stop.js';
 import { debounce, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
+import { isLocationOff } from '../location-pref.js';
 
 async function performSearch(query) {
     if (query.trim().length < 2) {
@@ -94,6 +95,10 @@ function renderNearbyResults(stops) {
 async function findNearby() {
     if (!('geolocation' in navigator)) {
         showSearchMessage(I18n.t('app.nearby.noGeolocation'));
+        return;
+    }
+    if (isLocationOff()) {
+        showSearchMessage(I18n.t('app.nearby.off'));
         return;
     }
     el.nearbyBtn.classList.add('is-loading');

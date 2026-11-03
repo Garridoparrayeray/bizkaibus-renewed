@@ -109,6 +109,8 @@ return [
             'pesa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/gtfs_pesa.zip',
             'tbh' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/gtfs_tbh.zip',
             'tolosaldea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/gtfs_tolosaldea.zip',
+            // El autobús urbano de Tolosa (Hiribusa), también de Lurraldebus.
+            'tolosa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/gtfs_tolosa.zip',
         ],
         'agency_id' => null,
         'stops' => 'generic',

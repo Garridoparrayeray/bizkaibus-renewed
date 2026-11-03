@@ -1,7 +1,7 @@
 <?php
 
-// Álavabus, los autobuses interurbanos de Álava (y el transporte comarcal). Horario de Open Data Euskadi (Moveuskadi);
-// no publica directo, así que va con el horario oficial.
+// Álavabus, los autobuses interurbanos de Álava (y el transporte comarcal). Horario y directo de Open Data Euskadi
+// (Moveuskadi): el retraso de cada autobús y dónde va (GTFS-Realtime).
 return [
     'slug' => 'alavabus',
     'order' => 11,
@@ -14,7 +14,7 @@ return [
         'icons' => 'icons-alavabus',
         'theme_color' => '#A8034F',
         'title' => ['ÁLAVABUS', 'ARABA'],
-        'logomark' => '<img class="is-icon" src="/icons-alavabus/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-alavabus/glyph.png" alt="">',
         'card_logomark' => '<img src="/icons-alavabus/icon-192.png" alt="">',
         'tile_color' => '#A8034F',
         'swatch_color' => '#A8034F',
@@ -35,34 +35,34 @@ return [
         'es' => [
             'name' => 'Álavabus+',
             'tile' => 'Autobuses de Álava',
-            'switcher' => 'Horarios de Álavabus en Álava',
-            'subtitle' => 'Horarios de Álavabus',
+            'switcher' => 'Horarios y tiempo real de Álavabus en Álava',
+            'subtitle' => 'Horarios y tiempo real de Álavabus',
             'liveEmpty' => 'Busca una parada para ver el próximo autobús.',
-            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Álavabus ni con la Diputación Foral de Álava. Horario programado oficial: no refleja retrasos ni cancelaciones.',
+            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Álavabus ni con la Diputación Foral de Álava. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
             'name' => 'Álavabus+',
             'tile' => 'Arabako autobusak',
-            'switcher' => 'Álavabusen ordutegiak Araban',
-            'subtitle' => 'Álavabusen ordutegiak',
+            'switcher' => 'Álavabusen ordutegiak eta denbora erreala Araban',
+            'subtitle' => 'Álavabusen ordutegiak eta denbora erreala',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
-            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Álavabusekin eta Arabako Foru Aldundiarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Álavabus+',
             'tile' => 'Álava buses',
-            'switcher' => 'Álavabus timetables in Álava',
-            'subtitle' => 'Álavabus timetables',
+            'switcher' => 'Álavabus timetables and real time in Álava',
+            'subtitle' => 'Álavabus timetables and real time',
             'liveEmpty' => 'Search for a stop to see the next bus.',
-            'disclaimer' => 'An independent, unofficial project, not affiliated with Álavabus or with the Provincial Council of Álava. Official scheduled timetable: it does not reflect delays or cancellations.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Álavabus or with the Provincial Council of Álava. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
     ],
 
     'seo' => [
-        'title' => 'Álavabus+ · Horarios de los autobuses de Álava por línea y parada | Bide+',
-        'description' => 'Consulta los horarios de Álavabus, los autobuses interurbanos de Álava, por línea y parada, con el recorrido de cada línea en el mapa.',
+        'title' => 'Álavabus+ · Autobuses de Álava en tiempo real por línea y parada | Bide+',
+        'description' => 'Consulta los próximos autobuses de Álavabus, los interurbanos de Álava, en tiempo real, sus horarios por línea y parada y dónde va cada autobús en el mapa.',
     ],
     'attribution' => 'Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
@@ -72,12 +72,23 @@ return [
         'stop_hints' => true,
         'line_map' => true,
         'schedule_text' => false,
-        'trip_detail' => 'stops',
+        'trip_detail' => 'vehicle',
         'alerts' => 'network',
         'alerts_detail' => true,
     ],
 
-    'live' => [],
+    'live' => ['trip-updates', 'vehicle-positions'],
+
+    // El directo trae el viaje del horario de cada autobús: se empareja por viaje. Sin incidencias: su feed GTFS-RT llega
+    // vacío y el SIRI (SX.xml) solo trae mensajes de prueba (3/11/2026).
+    'gtfs_rt' => [
+        'trip_updates_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/tripUpdate.bin',
+        'vehicle_positions_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/position.bin',
+        'matching' => 'trip',
+        'cache_ttl_seconds' => 30,
+        'http_timeout_seconds' => 8,
+        'max_age_seconds' => 300,
+    ],
 
     'gtfs' => [
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/gtfs_alavabus.zip',

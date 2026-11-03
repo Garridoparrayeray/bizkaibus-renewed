@@ -210,6 +210,13 @@ check('instalada · Ajustes: la versión es la de la última novedad', await ev(
 check('instalada · Ajustes: la ubicación, aún sin pedir y con su botón', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationPrompt' && !document.querySelector('[data-settings-location-ask]').hidden"));
 await send('Browser.grantPermissions', { permissions: ['geolocation'], origin: BASE });
 check('instalada · Ajustes: al darla, «Permitida» sin recargar', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationGranted' && document.querySelector('[data-settings-location-ask]').hidden"));
+// Una web no puede quitarse el permiso: «No usar mi ubicación» hace que Bide+ deje de pedirla, y se puede deshacer.
+check('instalada · Ajustes: con la ubicación permitida, «No usar mi ubicación»', await ev("!document.querySelector('[data-settings-location-off]').hidden"));
+await ev("document.querySelector('[data-settings-location-off]').click(); true");
+check('instalada · Ajustes: al no usarla, lo dice y ofrece volver a usarla', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationOff' && document.querySelector('[data-settings-location-off]').hidden && document.querySelector('[data-settings-location-ask]').getAttribute('data-i18n') === 'bide.settings.locationOn' && localStorage.getItem('bide_location_off') === '1'"));
+await ev("document.querySelector('[data-settings-location-ask]').click(); true");
+check('instalada · Ajustes: «Volver a usar la ubicación» la recupera', await waitTrue("localStorage.getItem('bide_location_off') === null && document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationGranted'"));
+check('instalada · Ajustes: sin notificaciones permitidas, no sale «Desactivar»', await ev("document.querySelector('[data-settings-notify-off]').hidden"));
 await send('Browser.resetPermissions', {});
 
 // Vaciar la caché: la app se vuelve a bajar entera y se recarga; los horarios sin conexión y el service worker se quedan.

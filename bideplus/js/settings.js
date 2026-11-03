@@ -3,6 +3,7 @@ import { cancelArrivalAlert, readArrivalAlerts } from './arrival-alerts-store.js
 import { disableLineAlerts, setUpIncidentAlerts } from './incident-alerts.js';
 import { isIos } from './push.js';
 import { forgetUpdates, setUpAppUpdate } from './app-update.js';
+import { isLocationOff, setLocationOff } from './location-pref.js';
 
 const view = document.querySelector('[data-bide-view="ajustes"]');
 const CONFIRM_MS = 5000;
@@ -33,8 +34,25 @@ function permissionKey() {
     return 'bide.settings.notAsked';
 }
 
-function renderPermission() {
-    setText(view.querySelector('[data-settings-permission]'), permissionKey());
+// La suscripción a las notificaciones de este navegador, o null.
+async function pushSubscription() {
+    if (!('serviceWorker' in navigator)) return null;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration || !('pushManager' in registration)) return null;
+    return registration.pushManager.getSubscription();
+}
+
+// Con el permiso dado, el botón de desactivar sale mientras Bide+ tenga algo que mandar.
+async function renderPermission() {
+    let key = permissionKey();
+    let active = false;
+    if (key === 'bide.settings.allowed') {
+        const subscribed = (await pushSubscription().catch(() => null)) !== null;
+        active = subscribed || (await AlertsStore.get('enabled')) === true;
+        if (!active) key = 'bide.settings.allowedIdle';
+    }
+    setText(view.querySelector('[data-settings-permission]'), key);
+    view.querySelector('[data-settings-notify-off]').hidden = !active;
 }
 
 // Los avisos creados antes de guardar la línea y la parada solo tienen los minutos.
@@ -97,11 +115,23 @@ async function locationState() {
     }
 }
 
+// Apagada en Ajustes, se ofrece volver a usarla; si no, permitirla o dejar de usarla, según el permiso.
 function showLocation(state) {
+    const ask = view.querySelector('[data-settings-location-ask]');
+    const off = view.querySelector('[data-settings-location-off]');
+    if (isLocationOff()) {
+        setText(view.querySelector('[data-settings-location]'), 'bide.settings.locationOff');
+        setText(ask, 'bide.settings.locationOn');
+        ask.hidden = false;
+        off.hidden = true;
+        return;
+    }
     let key = LOCATION_KEYS[state];
     if (!key) key = LOCATION_KEYS.unknown;
     setText(view.querySelector('[data-settings-location]'), key);
-    view.querySelector('[data-settings-location-ask]').hidden = state !== 'prompt' && state !== 'unknown';
+    setText(ask, 'bide.settings.locationAsk');
+    ask.hidden = state !== 'prompt' && state !== 'unknown';
+    off.hidden = state === 'denied' || state === 'unsupported';
 }
 
 async function renderLocation() {
@@ -110,7 +140,18 @@ async function renderLocation() {
 
 // Pedir la posición es lo que hace que el navegador pregunte; la posición no se usa ni se manda a ningún sitio.
 function setUpLocation() {
-    view.querySelector('[data-settings-location-ask]').addEventListener('click', () => {
+    view.querySelector('[data-settings-location-off]').addEventListener('click', () => {
+        setLocationOff(true);
+        renderLocation();
+    });
+    view.querySelector('[data-settings-location-ask]').addEventListener('click', async () => {
+        setLocationOff(false);
+        // Al volver a usarla con el permiso ya dado, no hace falta pedir la posición.
+        const state = await locationState();
+        if (state === 'granted') {
+            showLocation(state);
+            return;
+        }
         navigator.geolocation.getCurrentPosition(
             () => showLocation('granted'),
             (error) => {
@@ -186,13 +227,30 @@ function render() {
 async function forgetNotifications() {
     for (const alert of readArrivalAlerts()) await cancelArrivalAlert(alert);
     if ((await AlertsStore.get('enabled')) === true) await disableLineAlerts();
-    if (!('serviceWorker' in navigator)) return;
-    const registration = await navigator.serviceWorker.getRegistration();
-    if (!registration || !('pushManager' in registration)) return;
-    const subscription = await registration.pushManager.getSubscription();
+    const subscription = await pushSubscription();
     if (!subscription) return;
     await forgetUpdates(subscription.endpoint);
     await subscription.unsubscribe();
+}
+
+// Desactivar: se cancela todo lo que Bide+ tiene apuntado para este móvil. El permiso del navegador sigue dado; quitarlo
+// solo se puede desde sus ajustes, y el texto lo explica.
+function setUpNotifyOff() {
+    const button = view.querySelector('[data-settings-notify-off]');
+    const status = view.querySelector('[data-settings-notify-status]');
+    button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+            await forgetNotifications();
+            document.getElementById('alerts-toggle').checked = false;
+            setText(status, 'bide.settings.notifyOffDone');
+        } catch (e) {
+            setText(status, 'bide.settings.notifyOffError');
+        }
+        button.disabled = false;
+        renderArrivals();
+        renderPermission();
+    });
 }
 
 async function forgetDevice() {
@@ -239,6 +297,7 @@ function setUpDelete() {
 if (view) {
     setUpIncidentAlerts();
     setUpLocation();
+    setUpNotifyOff();
     setUpCache();
     setUpDelete();
     setUpAppUpdate(view);

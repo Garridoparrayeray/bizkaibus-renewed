@@ -88,6 +88,13 @@ await go('/?red=bus');
 await ev("document.getElementById('nearby-btn').click()");
 check('ubicacion fuera de la zona: muestra aviso', await waitTrue("(document.querySelector('#search-results .search-message') || {}).innerText?.includes('fuera de la zona') === true"));
 
+// «No usar mi ubicación» de Ajustes: con el permiso dado, «Cerca de mí» no la pide y dice dónde volver a activarla.
+await ev("localStorage.setItem('bide_location_off', '1'); true");
+await go('/?red=bus');
+await ev("window.__pidio = false; const orig = navigator.geolocation.getCurrentPosition.bind(navigator.geolocation); navigator.geolocation.getCurrentPosition = (...a) => { window.__pidio = true; return orig(...a); }; document.getElementById('nearby-btn').click(); true");
+check('ubicacion desactivada en Ajustes: no la pide y lo dice', await waitTrue("(document.querySelector('#search-results .search-message') || {}).innerText?.includes('Ajustes') === true && window.__pidio === false"));
+await ev("localStorage.removeItem('bide_location_off'); true");
+
 await send('Browser.setPermission', { permission: { name: 'geolocation' }, setting: 'denied', origin: BASE });
 await go('/?red=bus');
 await ev("document.getElementById('nearby-btn').click()");

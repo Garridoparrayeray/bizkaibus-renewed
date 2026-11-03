@@ -1,7 +1,8 @@
 <?php
 
-// Bilbobus, los autobuses urbanos de Bilbao. Horario y directo (SIRI Vehicle Monitoring) del Consorcio de Transportes
-// de Bizkaia, con el motor de Bizkaibus (engine/bilbobus). El feed llega vacío a ratos: entonces, horario oficial.
+// Bilbobus, los autobuses urbanos de Bilbao. Horario y directo (SIRI) del Consorcio de Transportes de Bizkaia, con el
+// motor de Bizkaibus. Sus feeds llegan vacíos también en hora punta (3/11/2026): horario oficial hasta que traigan
+// autobuses; entonces el motor los usa y la captura (cada 10 minutos) aprende sus tramos.
 return [
     'slug' => 'bilbobus',
     'order' => 8,
@@ -14,7 +15,7 @@ return [
         'icons' => 'icons-bilbobus',
         'theme_color' => '#C0362C',
         'title' => ['BILBOBUS', 'BILBAO'],
-        'logomark' => '<img class="is-icon" src="/icons-bilbobus/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-bilbobus/glyph.png" alt="">',
         'card_logomark' => '<img src="/icons-bilbobus/icon-192.png" alt="">',
         'tile_color' => '#C0362C',
         'swatch_color' => '#C0362C',
@@ -88,9 +89,10 @@ return [
         'http_timeout_seconds' => 8,
     ],
 
+    // El GTFS del CTB es la versión más reciente; el de Open Data Euskadi, la misma con un par de días de retraso.
     'gtfs' => [
         'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bilbobus.zip',
-        'fallback_source' => null,
+        'fallback_source' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/gtfs_bilbobus.zip',
         'agency_id' => null,
         'stops' => 'generic',
         // Los rótulos llevan delante el tipo de horario: «PT-Semana / (PLAZA BIRIBILA)».
