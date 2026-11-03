@@ -21,6 +21,8 @@ class Shapes
 
     public static function align(PDO $Pdo): array
     {
+        // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera.
+        $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_align_passing_times ON passing_times (service_journey_id, seq_order)');
         $aJourneysByShape = [];
         $Rows = $Pdo->query('SELECT id, shape_id FROM service_journeys WHERE shape_id IS NOT NULL');
         foreach ($Rows as $aRow) {
@@ -38,6 +40,7 @@ class Shapes
         foreach ($aJourneysByShape as $sShapeId => $aJourneyIds) {
             $LoadShape->execute([$sShapeId]);
             $aPoints = json_decode((string)$LoadShape->fetchColumn(), true);
+            $LoadShape->closeCursor();
             if (!\is_array($aPoints) || \count($aPoints) < 2) {
                 continue;
             }
@@ -62,6 +65,8 @@ class Shapes
                 $aTotals['remeasured']++;
             }
         }
+        $Rows = $LoadShape = $LoadStops = $SaveShape = $SaveDistance = null;
+        $Pdo->exec('DROP INDEX idx_align_passing_times');
         return $aTotals;
     }
 
