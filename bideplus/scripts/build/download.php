@@ -37,7 +37,6 @@ class Download
                 $sError = curl_error($Ch);
             }
 
-            curl_close($Ch);
             fclose($Fp);
 
             if ($bOk) {

@@ -23,7 +23,7 @@ class Store
         }
         [$sUrl, $sToken] = $aCredentials;
 
-        $Ch = curl_init($sUrl . '/pipeline');
+        $Ch = Http::handle($sUrl . '/pipeline');
         curl_setopt_array($Ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -35,7 +35,6 @@ class Store
         $sBody = curl_exec($Ch);
         $iStatus = curl_getinfo($Ch, CURLINFO_HTTP_CODE);
         $sError = curl_error($Ch);
-        curl_close($Ch);
 
         $aDecoded = null;
         if (is_string($sBody)) {

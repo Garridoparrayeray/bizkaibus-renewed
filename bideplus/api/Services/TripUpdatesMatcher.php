@@ -68,29 +68,15 @@ class TripUpdatesMatcher
 
         $aPredictions = [];
         $aPairs = [];
+        $aTripsByPattern = [];
         foreach ($aRows as $iRow => $aRow) {
             if (($aRow['status'] ?? 'scheduled') !== 'scheduled') {
                 continue;
             }
-            $aSequence = $aSequences[$aRow['journey_pattern_id']] ?? [];
-            foreach ($this->aTrips as $iTrip => $aTrip) {
-                if (\count($aTrip['stops']) < 2) {
-                    continue;
-                }
-                $aAligned = self::alignToSequence($aTrip['stops'], $aSequence);
-                if ($aAligned === null) {
-                    continue;
-                }
-                $iSeconds = null;
-                foreach ($aAligned as [$sTripStopId, $iTime]) {
-                    if ($sTripStopId === $sStopId) {
-                        $iSeconds = $iTime - $this->iMidnight;
-                        break;
-                    }
-                }
-                if ($iSeconds === null) {
-                    continue;
-                }
+            $sPattern = (string)$aRow['journey_pattern_id'];
+            // La alineación de cada tren solo depende del recorrido: una vez por recorrido, no por salida.
+            $aTripsByPattern[$sPattern] ??= $this->tripsAtStop($sStopId, $aSequences[$aRow['journey_pattern_id']] ?? []);
+            foreach ($aTripsByPattern[$sPattern] as $iTrip => [$iSeconds, $aAligned]) {
                 $aPredictions[$iTrip] = ['seconds' => $iSeconds, 'stopIds' => array_column($aAligned, 0), 'stops' => $aAligned];
                 $iDifference = abs($iSeconds - (int)$aRow['arrival_seconds']);
                 if ($iDifference <= $this->iToleranceSeconds) {
@@ -111,6 +97,29 @@ class TripUpdatesMatcher
             $aPredictions[$iTrip] = ['seconds' => $iSeconds, 'stopIds' => array_column($aAligned, 0), 'stops' => $aAligned];
         }
         return [$aPredictions, $aMatches];
+    }
+
+    // Los trenes del feed que, alineados con la secuencia de un recorrido, pasan por la parada: [tren => [segundos desde
+    // medianoche en la parada, paradas alineadas]].
+    private function tripsAtStop(string $sStopId, array $aSequence): array
+    {
+        $aAtStop = [];
+        foreach ($this->aTrips as $iTrip => $aTrip) {
+            if (\count($aTrip['stops']) < 2) {
+                continue;
+            }
+            $aAligned = self::alignToSequence($aTrip['stops'], $aSequence);
+            if ($aAligned === null) {
+                continue;
+            }
+            foreach ($aAligned as [$sTripStopId, $iTime]) {
+                if ($sTripStopId === $sStopId) {
+                    $aAtStop[$iTrip] = [$iTime - $this->iMidnight, $aAligned];
+                    break;
+                }
+            }
+        }
+        return $aAtStop;
     }
 
     private static function alignToSequence(array $aStops, array $aSequence): array|null

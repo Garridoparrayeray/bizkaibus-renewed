@@ -11,7 +11,7 @@ use Services\ArrivalAlerts;
 use Services\IncidentAlerts;
 use Services\UpdateAlerts;
 
-// Cron externo de cada minuto: apunta por dónde va cada bus y manda las notificaciones.
+// Cron externo de cada minuto: apunta por dónde va cada bus de todas las redes con motor y manda las notificaciones.
 // Sin la clave secreta (BIDE_CRON_SECRET) responde como si la ruta no existiera.
 class LiveRecordController
 {
@@ -25,17 +25,17 @@ class LiveRecordController
             Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store not configured'], 503);
             return;
         }
-        $iRecorded = Live::record();
+        $aRecorded = Live::recordAll();
         $aNotifications = [
             'arrivalAlerts' => self::safely('avisos de llegada', fn() => ArrivalAlerts::process()),
             'incidentAlerts' => self::safely('avisos de incidencias', fn() => IncidentAlerts::process()),
             'updateAlerts' => self::safely('aviso de versión nueva', fn() => UpdateAlerts::process()),
         ];
-        if ($iRecorded === null && Config::hasLive('vehicle-monitoring')) {
-            Response::json(['network' => Config::current()['network'], 'recorded' => null, 'error' => 'store write failed'] + $aNotifications, 502);
+        if (in_array(null, $aRecorded, true)) {
+            Response::json(['recorded' => $aRecorded, 'error' => 'store write failed'] + $aNotifications, 502);
             return;
         }
-        Response::json(['network' => Config::current()['network'], 'recorded' => $iRecorded] + $aNotifications);
+        Response::json(['recorded' => $aRecorded] + $aNotifications);
     }
 
     // Un fallo en las notificaciones no estropea el registro de pasos: se apunta y se sigue. Recorren todas las redes,

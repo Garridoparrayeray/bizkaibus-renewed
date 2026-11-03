@@ -1,6 +1,6 @@
 name: Rollback production
 
-# Vuelve al despliegue de producción anterior en Vercel (plan Hobby: solo uno atrás). Se lanza a mano desde cualquier
+# Vuelve al despliegue de producción anterior en Vercel (el anterior que quede). Se lanza a mano desde cualquier
 # rama; sirve cuando un despliegue sale mal y no se puede esperar al siguiente.
 on:
   workflow_dispatch: {}

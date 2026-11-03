@@ -97,6 +97,9 @@ Cambia los provisionales de `icons-<red>/` por los de la red:
 
 Si el logotipo de la cabecera es otra imagen (por ejemplo `glyph.png`), ponla en la misma carpeta y cambia `brand.logomark`.
 
+Bilbobus, Tuvisa, Dbus y Álavabus guardan además su dibujo en SVG (`icon.svg`, y `glyph.svg` en negro):
+sirven de plantilla para redibujar los PNG o para una red nueva con el mismo estilo (marca blanca y «+» sobre su color).
+
 ## 4. Construir los datos
 
 ```bash
@@ -153,7 +156,7 @@ Para que la app sea **solo** de una ciudad:
    | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | Opcionales: las claves de las notificaciones. Si no están, se crean solas y se guardan en el almacén. |
 
 3. **GitHub Actions**: `rebuild-schedule.yml` reconstruye cada día las bases de datos con el GTFS nuevo y despliega; `check-production.yml` comprueba la web publicada. Necesitan los secretos de Vercel, `NAP_API_KEY` si alguna red usa el NAP y `ENGINE_REPO_TOKEN` para traer el algoritmo. En `check-production.yml`, cambia las paradas de ejemplo por paradas de tu red.
-4. **Cron cada minuto** (por ejemplo, en cron-job.org): `https://<tu-dominio>/api/live/record?key=<BIDE_CRON_SECRET>`. Apunta por dónde pasa cada autobús, manda los avisos de llegada y, cada 5 minutos, las notificaciones de incidencias.
+4. **Cron cada minuto** (por ejemplo, en cron-job.org): `https://<tu-dominio>/api/live/record?key=<BIDE_CRON_SECRET>`. Apunta por dónde pasa cada autobús de todas las redes con motor (una llamada para todas), manda los avisos de llegada y, cada 5 minutos, las notificaciones de incidencias.
 
 ## 8. El directo y el algoritmo
 

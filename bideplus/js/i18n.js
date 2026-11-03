@@ -78,6 +78,7 @@
             'bide.donate.title': 'Apoya Bide+',
             'bide.donate.text': 'Bide+ es gratis y sin anuncios. Si te ayuda, puedes invitarme a un café para mantener el servidor.',
             'bide.donate.button': 'Invitar a un café en Ko-fi',
+            'bide.new': 'Nuevo',
             'bide.upcoming.title': 'Próximamente',
             'bide.upcoming.badge': 'En desarrollo',
             'bide.upcoming.planner.title': 'Planificador de ruta',
@@ -431,6 +432,7 @@
             'bide.donate.title': 'Lagundu Bide+',
             'bide.donate.text': 'Bide+ doakoa da eta ez du iragarkirik. Baliagarria bazaizu, kafe bat ordain diezadakezu zerbitzariari eusteko.',
             'bide.donate.button': 'Kafe bat ordaindu Ko-fi-n',
+            'bide.new': 'Berria',
             'bide.upcoming.title': 'Laster',
             'bide.upcoming.badge': 'Garatzen',
             'bide.upcoming.planner.title': 'Ibilbide-planifikatzailea',
@@ -711,6 +713,7 @@
             'app.noneOfYourLinesHaveIncidents': 'Linea horietako batek ere ez du intzidentzia aktiborik orain.',
         },
         en: {
+            'bide.new': 'New',
             'menu.tagline': 'Getting around the Basque Country',
             'menu.section': 'Transport apps',
             'menu.view.tiles': 'Show as large tiles',

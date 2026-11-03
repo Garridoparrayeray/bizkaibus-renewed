@@ -466,7 +466,7 @@
     "dbus": {
         "kind": "bus",
         "icons": "icons-dbus",
-        "themeColor": "#1565C0",
+        "themeColor": "#0141AD",
         "title": [
             "DBUS",
             "DONOSTIA"
@@ -516,7 +516,7 @@
     "alavabus": {
         "kind": "bus",
         "icons": "icons-alavabus",
-        "themeColor": "#B45309",
+        "themeColor": "#A8034F",
         "title": [
             "ÁLAVABUS",
             "ARABA"

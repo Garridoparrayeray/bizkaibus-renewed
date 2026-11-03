@@ -7,8 +7,17 @@ namespace Core;
 class Cache
 {
     private const FAILURE_RETRY_SECONDS = 60;
+    // Un feed en directo que responde sin ningún vehículo (Lurraldebus y Bilbobus pasan días así) se vuelve a pedir
+    // pasado este tiempo, no en cada petición ni en cada minuto del cron. Un fallo no cuenta: se reintenta al minuto.
+    private const EMPTY_FEED_RETRY_SECONDS = 600;
 
-    public static function remember(string $sKey, int $iTtlSeconds, callable $Producer): mixed
+    // Como remember(), para un feed en directo: una respuesta vacía se guarda EMPTY_FEED_RETRY_SECONDS.
+    public static function rememberFeed(string $sKey, int $iTtlSeconds, callable $Producer): mixed
+    {
+        return self::remember($sKey, $iTtlSeconds, $Producer, self::EMPTY_FEED_RETRY_SECONDS);
+    }
+
+    public static function remember(string $sKey, int $iTtlSeconds, callable $Producer, int $iEmptyTtlSeconds = 0): mixed
     {
         $sFile = sys_get_temp_dir() . '/bizkaibusplus_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $sKey) . '.json';
         $sFailureMarker = $sFile . '.fail';
@@ -17,9 +26,9 @@ class Cache
             $iAge = time() - filemtime($sFile);
         }
 
-        if ($iAge < $iTtlSeconds) {
+        if ($iAge < max($iTtlSeconds, $iEmptyTtlSeconds)) {
             $aCached = json_decode((string)file_get_contents($sFile), true);
-            if ($aCached !== null) {
+            if ($aCached !== null && ($iAge < $iTtlSeconds || $aCached === [])) {
                 return $aCached;
             }
         }

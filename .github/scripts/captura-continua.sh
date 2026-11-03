@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Captura continua del feed en directo de Bizkaibus para el workflow «Ritmo de los buses».
+# Captura continua del feed en directo de una red con motor (Bizkaibus por defecto) para el workflow «Ritmo de los
+# buses».
 #
 # Captura en bloques de una hora de reloj, uno detrás de otro: mientras se captura un bloque se procesa el anterior, así
 # que no quedan huecos. Por cada bloque:
@@ -11,11 +12,13 @@
 # Los bloques no cruzan la medianoche: el horario de cada captura es el de su día.
 #
 # Variables:
+#   RED            red de api/Networks con motor (bus por defecto); cada una tiene su release de acumulados
+#                  (pace-data para bus, pace-data-<red> para las demás) y su archivo de capturas
 #   MINUTOS        minutos de captura en total (330 por defecto: el trabajo tiene un límite de 6 horas)
 #   BLOQUE         minutos por bloque; vacío, hasta la siguiente hora en punto (para probar, 2 o 3)
 #   INTERVALO      segundos entre lecturas del feed (20 por defecto; el feed cambia cada 55 s más o menos)
 #   SUBIR          1 sube los resultados; 0 solo calcula (para probar en local)
-#   RELEASE        release de los acumulados (pace-data por defecto)
+#   RELEASE        release de los acumulados (la de la red por defecto)
 #   ARCHIVO_REPO   repositorio donde se archivan las capturas (Garridoparrayeray/bideplus-engine por defecto)
 #   ARCHIVO_TOKEN  token con permiso de escritura en ARCHIVO_REPO; sin él no se archiva
 #                  (con una RELEASE de pruebas, el archivo va a <RELEASE>-capturas-AAAA-MM para no mezclarse)
@@ -24,6 +27,14 @@
 #                  solo si esta ha capturado al menos una hora, para no encadenar fallos
 set -uo pipefail
 
+RED=${RED:-bus}
+RELEASE_RED=pace-data
+PREFIJO_ARCHIVO=capturas
+if [ "$RED" != bus ]; then
+  RELEASE_RED="pace-data-$RED"
+  PREFIJO_ARCHIVO="capturas-$RED"
+fi
+RELEASE=${RELEASE:-$RELEASE_RED}
 MINUTOS=${MINUTOS:-330}
 BLOQUE=${BLOQUE:-}
 INTERVALO=${INTERVALO:-20}
@@ -37,8 +48,7 @@ RESUMEN=${GITHUB_STEP_SUMMARY:-/dev/null}
 MOTOR=bideplus/engine/bizkaibus/tools
 ACUMULADOS=(pace-samples.jsonl segment-samples.jsonl coverage-samples.jsonl eta-eval.jsonl)
 ACUM="$TRABAJO/acumulados"
-PREFIJO_ARCHIVO=capturas
-if [ "${RELEASE:-pace-data}" != pace-data ]; then
+if [ "$RELEASE" != "$RELEASE_RED" ]; then
   PREFIJO_ARCHIVO="$RELEASE-capturas"
 fi
 
@@ -90,7 +100,7 @@ iniciar_bloque() {
   BLOQUE_ACTUAL="$TRABAJO/bloque-$(sello "$(date +%s)")"
   mkdir -p "$BLOQUE_ACTUAL/capturas"
   echo "$(date +%H:%M:%S) captura $(basename "$BLOQUE_ACTUAL") hasta las $(TZ=Europe/Madrid date -d "@$iFin" +%H:%M)"
-  php "$MOTOR/realtime-backtest.php" capture "$BLOQUE_ACTUAL/capturas" 0 "$INTERVALO" --hasta="$iFin" \
+  php "$MOTOR/realtime-backtest.php" capture "$BLOQUE_ACTUAL/capturas" 0 "$INTERVALO" --hasta="$iFin" --red="$RED" \
     >"$BLOQUE_ACTUAL/captura.log" 2>&1 &
   PID_CAPTURA=$!
 }
@@ -117,7 +127,8 @@ descargar_acumulados() {
       touch "$ACUM/$sNombre"
     fi
   done
-  if [ ! -s "$ACUM/segment-samples.jsonl" ]; then
+  # La semilla de tramos es de Bizkaibus: las demás redes empiezan sin ninguno.
+  if [ "$RED" = bus ] && [ ! -s "$ACUM/segment-samples.jsonl" ]; then
     gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz >"$ACUM/segment-samples.jsonl"
   fi
 }
@@ -143,10 +154,10 @@ subir_acumulados() {
 procesar_muestras() {
   local sBloque=$1
   timeout 900 php "$MOTOR/realtime-backtest.php" samples "$sBloque/capturas" "$ACUM/pace-samples.jsonl" \
-    --nuevas="$sBloque/muestras-ritmo.jsonl" || aviso "Fallan las muestras de ritmo de $(basename "$sBloque")"
+    --nuevas="$sBloque/muestras-ritmo.jsonl" --red="$RED" || aviso "Fallan las muestras de ritmo de $(basename "$sBloque")"
   timeout 900 php "$MOTOR/realtime-backtest.php" segment-samples "$sBloque/capturas" "$ACUM/segment-samples.jsonl" \
-    --nuevas="$sBloque/muestras-tramos.jsonl" || aviso "Fallan los tiempos por tramo de $(basename "$sBloque")"
-  if timeout 600 php "$MOTOR/coverage-samples.php" "$sBloque/capturas" "$sBloque/cobertura.jsonl" 15; then
+    --nuevas="$sBloque/muestras-tramos.jsonl" --red="$RED" || aviso "Fallan los tiempos por tramo de $(basename "$sBloque")"
+  if timeout 600 php "$MOTOR/coverage-samples.php" "$sBloque/capturas" "$sBloque/cobertura.jsonl" 15 --red="$RED"; then
     cat "$sBloque/cobertura.jsonl" >>"$ACUM/coverage-samples.jsonl"
   else
     aviso "Falla la cobertura de $(basename "$sBloque")"
@@ -175,8 +186,8 @@ archivar() {
   fi
   if ! GH_TOKEN=$ARCHIVO_TOKEN gh release view "$sEtiqueta" --repo "$ARCHIVO_REPO" >/dev/null 2>&1; then
     GH_TOKEN=$ARCHIVO_TOKEN gh release create "$sEtiqueta" --repo "$ARCHIVO_REPO" --prerelease \
-      --title "Capturas del feed de Bizkaibus (${sNombre:0:4}-${sNombre:4:2})" \
-      --notes "Copias del feed SIRI de Bizkaibus en bloques de una hora (hora de Madrid), con las muestras que se sacaron de cada bloque. Las genera el workflow Ritmo de los buses; no es una versión." \
+      --title "Capturas del feed de $RED (${sNombre:0:4}-${sNombre:4:2})" \
+      --notes "Copias del feed SIRI de la red $RED en bloques de una hora (hora de Madrid), con las muestras que se sacaron de cada bloque. Las genera el workflow Ritmo de los buses; no es una versión." \
       >/dev/null 2>&1
   fi
   if GH_TOKEN=$ARCHIVO_TOKEN reintentar 3 gh release upload "$sEtiqueta" --repo "$ARCHIVO_REPO" "$sTar" --clobber; then
@@ -197,16 +208,16 @@ evaluar() {
     aSeguimiento=(--seguimiento="$sSiguiente/capturas")
   fi
   {
-    echo "### Precisión de las llegadas, bloque ${sNombre#bloque-} (hora de Madrid)"
+    echo "### Precisión de las llegadas ($RED), bloque ${sNombre#bloque-} (hora de Madrid)"
     echo '```'
     timeout 900 php "$MOTOR/eval-eta.php" "$sBloque/capturas" "${aSeguimiento[@]}" --jsonl="$ACUM/eta-eval.jsonl" \
-      || echo "Sin datos suficientes"
+      --red="$RED" || echo "Sin datos suficientes"
     echo '```'
   } | tee -a "$RESUMEN"
   for sModo in --sin-gps --sin-feed; do
     echo "== $sModo"
     timeout 900 php "$MOTOR/eval-eta.php" "$sBloque/capturas" "${aSeguimiento[@]}" "$sModo" \
-      --jsonl="$ACUM/eta-eval.jsonl" >/dev/null || aviso "Falla la medida $sModo de $sNombre"
+      --jsonl="$ACUM/eta-eval.jsonl" --red="$RED" >/dev/null || aviso "Falla la medida $sModo de $sNombre"
   done
 }
 
@@ -277,7 +288,7 @@ fi
 subir_acumulados
 if [ "${ENCADENAR:-0}" = 1 ] && (($(date +%s) - INICIO >= 3600)); then
   # La siguiente espera su turno (concurrency) y arranca en cuanto acabe esta.
-  if gh workflow run pace-capture.yml --repo "$REPO_APP" --ref "${GITHUB_REF_NAME:-master}"; then
+  if gh workflow run pace-capture.yml --repo "$REPO_APP" --ref "${GITHUB_REF_NAME:-master}" -f red="$RED"; then
     echo "Siguiente captura lanzada"
   else
     aviso "No se ha podido lanzar la siguiente captura; queda el cron horario"

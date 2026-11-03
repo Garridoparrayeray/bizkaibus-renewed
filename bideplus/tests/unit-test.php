@@ -19,6 +19,30 @@ $Section('Sin motor: las salidas llevan los campos del horario');
 $aOnly = (new \Services\ScheduleOnlyMatcher())->enrich([['line_id' => '1', 'trip_number' => 'a', 'first_departure_seconds' => 100, 'arrival_seconds' => 460]]);
 $Expect('sin vehículos, cada salida sale como scheduled con su hora', $aOnly[0]['status'] === 'scheduled' && $aOnly[0]['etaSeconds'] === 460 && $aOnly[0]['delaySeconds'] === 0 && array_key_exists('vehicleRef', $aOnly[0]));
 
+$Section('Caché de los feeds en directo');
+$sFeedKey = 'prueba_feed_' . getmypid();
+$sFeedFile = sys_get_temp_dir() . '/bizkaibusplus_' . $sFeedKey . '.json';
+$iCalls = 0;
+$Empty = function () use (&$iCalls) {
+    $iCalls++;
+    return [];
+};
+\Core\Cache::rememberFeed($sFeedKey, 25, $Empty);
+touch($sFeedFile, time() - 120);
+clearstatcache();
+\Core\Cache::rememberFeed($sFeedKey, 25, $Empty);
+$Expect('un feed vacío no se vuelve a pedir en 10 minutos (sí en remember normal)', $iCalls === 1, (string)$iCalls);
+touch($sFeedFile, time() - 700);
+clearstatcache();
+\Core\Cache::rememberFeed($sFeedKey, 25, $Empty);
+$Expect('pasados 10 minutos, el feed vacío se vuelve a pedir', $iCalls === 2, (string)$iCalls);
+file_put_contents($sFeedFile, json_encode(['3514|1' => [['vehicleRef' => 'x']]]));
+touch($sFeedFile, time() - 120);
+clearstatcache();
+$aFresh = \Core\Cache::rememberFeed($sFeedKey, 25, fn() => ['nuevo' => []]);
+$Expect('un feed con vehículos caduca a su tiempo normal', array_keys($aFresh) === ['nuevo']);
+@unlink($sFeedFile);
+
 $Section('Registro de redes (api/Networks)');
 $aFeatureKeys = ['platforms', 'headsign_from_last_stop', 'stop_hints', 'line_map', 'schedule_text', 'trip_detail', 'alerts', 'alerts_detail'];
 foreach (\Core\Networks::all() as $sSlug => $aNet) {
