@@ -84,7 +84,7 @@ class Live
                 $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
             }
             $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
-            if ($TripMatcher->hasData() || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
+            if ($TripMatcher->matchedJourneys() > 0 || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
                 return $TripMatcher;
             }
         }

@@ -21,6 +21,7 @@ class TripDelayMatcher
     private array $aStopsByJourney = [];
     private int $iMidnight;
     private bool $bRail;
+    private int $iMatched = 0;
 
     public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
@@ -51,6 +52,10 @@ class TripDelayMatcher
                 'nextStopId' => $sNextStopId,
                 'canceled' => !empty($aTrip['canceled']),
             ];
+        }
+        $this->iMatched = \count($this->aByJourney);
+        if ($this->copiesSchedule()) {
+            $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->addVehicles($aVehicles);
     }
@@ -90,6 +95,27 @@ class TripDelayMatcher
 
     public function hasData(): bool
     {
+        return !empty($this->aByJourney);
+    }
+
+    public function matchedJourneys(): int
+    {
+        return $this->iMatched;
+    }
+
+    private function copiesSchedule(): bool
+    {
+        foreach ($this->aByJourney as $sJourneyId => $aLive) {
+            if (empty($aLive['times'])) {
+                return false;
+            }
+            foreach ($this->stops((string)$sJourneyId) as $aStop) {
+                $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
+                if ($iTime !== null && $iTime !== (int)$aStop['arrival_seconds']) {
+                    return false;
+                }
+            }
+        }
         return !empty($this->aByJourney);
     }
 
