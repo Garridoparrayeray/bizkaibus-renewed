@@ -8,7 +8,7 @@ Esta guía explica, paso a paso, cómo añadir una red de transporte a Bide+ o c
 | --- | --- | --- |
 | **GTFS** (un ZIP con paradas, líneas y horarios) | Sí | Horarios, paradas, buscador, mapa de la red y horarios sin conexión. Casi todos los operadores lo publican; en España, en el [Punto de Acceso Nacional](https://nap.transportes.gob.es/) (NAP). |
 | **Directo de vehículos** (SIRI Vehicle Monitoring) | No | Llegadas en tiempo real con la posición de cada autobús. Usa el algoritmo de `engine/` (repositorio privado `bideplus-engine`). |
-| **Horas previstas o retrasos** (GTFS-Realtime Trip Updates) | No | Llegadas en tiempo real cuando el operador ya publica la hora prevista o el retraso de cada vehículo (Metro Bilbao, Euskotren, Renfe, Tuvisa, Dbus). |
+| **Horas previstas o retrasos** (GTFS-Realtime Trip Updates) | No | Llegadas en tiempo real cuando el operador ya publica la hora prevista o el retraso de cada vehículo (Metro Bilbao, los tranvías, Renfe, Tuvisa, Dbus). |
 | **Posiciones** (GTFS-Realtime Vehicle Positions) | No | Los vehículos en el mapa de la línea (Renfe, Metro, Tuvisa, Dbus). |
 | **Incidencias** (GTFS-Realtime Service Alerts o SIRI Situation Exchange) | No | La pestaña Avisos y las notificaciones de incidencias. |
 

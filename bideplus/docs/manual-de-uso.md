@@ -9,7 +9,7 @@ móvil y del ordenador, y se puede instalar como una app más.
 | --- | --- |
 | **Bizkaibus+** | horarios, llegadas calculadas con la posición GPS de cada bus, mapa en vivo de la línea e incidencias por línea |
 | **Metro+** | horarios y tiempo real de Metro Bilbao, por andén, los trenes en el mapa e incidencias de la red |
-| **Euskotren+** | horarios y tiempo real por andén e incidencias |
+| **Euskotren+** | horarios por andén e incidencias |
 | **Tranvía Bilbao+** y **Tranvía Vitoria+** | horarios y tiempo real por andén e incidencias |
 | **Renfe Cercanías+** | horarios y retrasos en directo de Bilbao y Donostia/Irun, trenes cancelados, los trenes en el mapa de la línea con su GPS e incidencias por estación y línea |
 | **Lurraldebus+** | horarios e incidencias de los autobuses de Gipuzkoa, con el urbano de Tolosa |

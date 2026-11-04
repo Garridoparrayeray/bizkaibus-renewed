@@ -124,29 +124,29 @@
         "texts": {
             "es": {
                 "name": "Euskotren+",
-                "tile": "Horarios y tiempo real",
-                "switcher": "Horarios y tiempo real de Euskotren",
-                "subtitle": "Horarios y tiempo real de Euskotren",
+                "tile": "Horarios",
+                "switcher": "Horarios de Euskotren",
+                "subtitle": "Horarios de Euskotren",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Euskotren S.A. Euskotren no publica el directo de sus trenes: las horas son las del horario oficial.",
                 "attribution": "Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Euskotren+",
-                "tile": "Ordutegiak eta zuzenekoa",
-                "switcher": "Euskotrenen ordutegiak eta denbora errealean",
-                "subtitle": "Euskotrenen ordutegiak eta denbora errealean",
+                "tile": "Ordutegiak",
+                "switcher": "Euskotrenen ordutegiak",
+                "subtitle": "Euskotrenen ordutegiak",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
-                "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Euskotren S.A.-rekin loturarik gabea. Euskotrenek ez du bere trenen zuzenekoa argitaratzen: orduak ordutegi ofizialekoak dira.",
                 "attribution": "Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
                 "name": "Euskotren+",
-                "tile": "Timetables and real time",
-                "switcher": "Euskotren timetables and real time",
-                "subtitle": "Euskotren timetables and real time",
+                "tile": "Timetables",
+                "switcher": "Euskotren timetables",
+                "subtitle": "Euskotren timetables",
                 "liveEmpty": "Search for a station to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Euskotren does not publish live data for its trains: times are from the official timetable.",
                 "attribution": "Data: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             }
         }
