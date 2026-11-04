@@ -1,0 +1,150 @@
+name: Check production
+
+# Comprobación manual del sitio desplegado (Actions > Check production > Run workflow).
+# Verifica lo que importa para el SEO: robots, sitemaps, título/descripción/canonical
+# por página y que el HTML servido no empiece con avisos de «necesita JavaScript».
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: URL base a comprobar (vacío, la de bideplus/api/Config/site.php)
+        default: ''
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE: ${{ inputs.base_url }}
+    steps:
+      # Solo para leer la lista de redes (bideplus/api/Networks).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            bideplus/api/Core
+            bideplus/api/Networks
+            bideplus/api/Config
+            bideplus/scripts
+
+      - name: Redes a comprobar
+        run: |
+          echo "NETWORKS=$(php bideplus/scripts/networks.php --slugs)" >> "$GITHUB_ENV"
+          if [ -z "$BASE" ]; then
+            echo "BASE=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" >> "$GITHUB_ENV"
+          fi
+
+      - name: robots.txt y llms.txt
+        run: |
+          set -e
+          curl -fsS "$BASE/robots.txt" | grep -q "Sitemap: $BASE/sitemap.xml"
+          curl -fsS "$BASE/llms.txt" | grep -q "Bide+"
+
+      - name: Sitemap
+        run: |
+          set -e
+          # Como lo pide Google: con su user-agent, mostrando estado y tipo de contenido.
+          curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" -D headers.txt -o sitemap.xml "$BASE/sitemap.xml"
+          grep -iE '^(HTTP|content-type|content-length|x-vercel-cache)' headers.txt
+          head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap.xml no responde 200 a Googlebot"; exit 1; }
+          grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap.xml sin Content-Type XML"; exit 1; }
+          python3 -c "import xml.dom.minidom as m; m.parse('sitemap.xml')" || { echo "::error::sitemap.xml no es XML válido"; exit 1; }
+          for r in $NETWORKS; do
+            grep -q "/?red=$r</loc>" sitemap.xml || { echo "::error::falta la app $r"; exit 1; }
+          done
+          echo "URLs: $(grep -c '<url>' sitemap.xml) | líneas: $(grep -c '/lines/' sitemap.xml) | paradas: $(grep -c '/stops/' sitemap.xml)"
+          [ "$(grep -c '<url>' sitemap.xml)" -gt 1000 ] || { echo "::error::sitemap.xml con muy pocas URLs"; exit 1; }
+
+      - name: Títulos, descripción, canonical y snippet
+        run: |
+          fail=0
+          check() {
+            url="$BASE$1"
+            curl -fsS "$url" -o page.html || { echo "::error::$url no responde"; fail=1; return 0; }
+            echo "$url -> $(grep -o '<title>[^<]*</title>' page.html | head -1)"
+            grep -q '<meta name="description" content="[^"]\{40,\}' page.html || { echo "::error::$url sin descripción útil"; fail=1; }
+            grep -q '<link rel="canonical"' page.html || { echo "::error::$url sin canonical"; fail=1; }
+            grep -q 'application/ld+json' page.html || { echo "::error::$url sin JSON-LD"; fail=1; }
+            # el primer texto del <noscript> no debe ser el aviso de JavaScript
+            if tr '\n' ' ' < page.html | grep -o '<noscript>.\{0,200\}' | grep -qi '^<noscript> *<p>[^<]*necesita JavaScript'; then
+              echo "::error::$url empieza con el aviso de JavaScript"; fail=1
+            fi
+            return 0
+          }
+          for p in "/" $(for r in $NETWORKS; do echo "/?red=$r"; done) "/stops/4255" "/lines/2151"; do
+            check "$p"
+          done
+          # los títulos de cada app deben ser distintos
+          dup=$(for r in $NETWORKS; do curl -fsS "$BASE/?red=$r" | grep -o '<title>[^<]*</title>' | head -1; done | sort | uniq -d)
+          [ -z "$dup" ] || { echo "::error::títulos repetidos entre apps: $dup"; fail=1; }
+          exit $fail
+
+      - name: Directo y notificaciones
+        run: |
+          fail=0
+          curl -fsS "$BASE/api/status?red=bus" -o status.json || { echo "::error::/api/status no responde"; fail=1; }
+          python3 -c "import json, sys; d = json.load(open('status.json')); print('feed de Bizkaibus:', d.get('ok'), '|', d.get('vehicles'), 'buses'); sys.exit(not d.get('ok'))" || { echo "::error::el feed en directo de Bizkaibus no responde"; fail=1; }
+          curl -fsS "$BASE/api/push/key" -o push.json || { echo "::error::/api/push/key no responde"; fail=1; }
+          python3 -c "import json, sys; d = json.load(open('push.json')); print('notificaciones, con clave pública:', bool(d.get('publicKey'))); sys.exit(not d.get('publicKey'))" || { echo "::error::sin clave de notificaciones: falta Upstash o sus variables en Vercel"; fail=1; }
+          # «Cerca de mí» no se guarda en el CDN, así que la responde el servidor: su cabecera dice dónde corre (CDN::servidor::id).
+          curl -sS -o /dev/null -D nearby.txt "$BASE/api/nearby?lat=43.263&lon=-2.935"
+          echo "dónde corre el servidor: $(grep -i '^x-vercel-id' nearby.txt | tr -d '\r')"
+          exit $fail
+
+      - name: 404 en páginas inexistentes y en lo que no se publica
+        run: |
+          fail=0
+          for p in /stops/no-existe-999999 /data/bizkaibus.sqlite /scripts/build-database.php /engine/bizkaibus/data/pace-factors.json /engine/bizkaibus/RealtimeMatcher.php /api/Networks/bus.php; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")
+            [ "$code" = "404" ] || { echo "::error::$p: esperaba 404, obtuve $code"; fail=1; }
+          done
+          exit $fail
+
+      # Mapa de la red y horarios sin conexión: se generan en cada despliegue (no están en git), así que se comprueba
+      # que se sirven y que cada red tiene su fichero con datos.
+      - name: Mapa de la red y horarios sin conexión
+        run: |
+          fail=0
+          for dir in map-data offline-data; do
+            curl -fsS "$BASE/$dir/index.json" -o index.json || { echo "::error::/$dir/index.json no responde"; fail=1; continue; }
+            for r in $NETWORKS; do
+              code=$(curl -s -o net.json -w '%{http_code}' "$BASE/$dir/$r.json")
+              size=$(wc -c < net.json)
+              echo "/$dir/$r.json -> $code ($size bytes)"
+              [ "$code" = "200" ] && [ "$size" -gt 1000 ] || { echo "::error::/$dir/$r.json vacío o sin servir"; fail=1; }
+            done
+          done
+          python3 -c "import json; d = json.load(open('net.json')); print('  último horario:', d.get('generated'), '| viajes:', len(d.get('trips', [])))" || fail=1
+          exit $fail
+
+      # La API en producción: cada red responde, y en Bizkaibus se cuentan los estados de las salidas (directo, estimado,
+      # horario…) de unas paradas concurridas. Si el algoritmo no se hubiera desplegado, las respuestas fallarían o no
+      # habría ninguna salida «estimada» ni «en directo».
+      - name: API en directo
+        run: |
+          fail=0
+          for r in $NETWORKS; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/lines?red=$r")
+            echo "$r /api/lines -> $code"
+            [ "$code" = "200" ] || fail=1
+          done
+          # Paradas concurridas: Moyua, Catalina Gibaja, Bilbao Intermodal y La Casilla. Si una deja de existir, falla.
+          for s in 4255 1137 2877 356; do
+            code=$(curl -sS "$BASE/api/stops/$s/departures?red=bus" -o dep.json -w '%{http_code}')
+            echo "parada $s -> $code"
+            [ "$code" = "200" ] || { echo "::error::parada $s: esperaba 200, obtuve $code"; fail=1; continue; }
+            python3 - <<'PY' || fail=1
+          import json, collections
+          d = json.load(open('dep.json'))
+          deps = d.get('departures', [])
+          print('  estados:', dict(collections.Counter(x.get('status') for x in deps)), '| salidas:', len(deps))
+          for x in deps[:6]:
+              print('   ', x.get('lineCode'), x.get('scheduledTime'), x.get('status'), x.get('etaMinutes'), x.get('delayMinutes'))
+          PY
+          done
+          # Mapa de una línea en la consulta de horarios: recorridos aunque no haya buses en ruta.
+          for l in 651 2151; do
+            curl -sS "$BASE/api/lines/$l/live?red=bus" -o live.json -w "línea $l /live -> %{http_code}\n"
+            python3 -c "import json; d = json.load(open('live.json')); print('  recorridos:', len(d.get('patterns', [])), '| buses:', len(d.get('vehicles', [])), '| error:', d.get('error'))" || fail=1
+          done
+          exit $fail

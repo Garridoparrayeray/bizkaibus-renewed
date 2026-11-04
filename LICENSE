@@ -1,0 +1,84 @@
+=======================================================================
+PROYECTO: Bide+ (www.bideplus.eus)
+COPYRIGHT: (c) 2026 Yeray Garrido Parra
+LICENCIA: Todos los derechos reservados, con los permisos de abajo
+=======================================================================
+
+El código fuente, el diseño, los iconos y los textos de este repositorio
+son obra de Yeray Garrido Parra. Todos los derechos están reservados,
+salvo los permisos que se conceden expresamente en este documento.
+
+El código es público para que cualquiera pueda verlo, estudiarlo y usarlo
+en su casa. Lo que no se permite es que nadie se lucre con él, ni que una
+organización lo use o lo ponga en servicio, sin que el autor lo autorice.
+
+1. LO QUE SE PERMITE, SIN PEDIR PERMISO
+
+a) A cualquier persona, a título particular y sin ningún fin comercial:
+   - ver y descargar el código;
+   - ejecutarlo en su propio equipo, para su uso personal y privado;
+   - estudiarlo e investigarlo, y modificarlo en privado para aprender o
+     hacer pruebas;
+   - citarlo y publicar lo que aprenda de él (trabajos, artículos,
+     charlas), mencionando al autor y enlazando este repositorio;
+   - proponer cambios a este repositorio (punto 3).
+
+b) A universidades, centros educativos y centros de investigación: verlo,
+   estudiarlo e investigarlo, y usarlo en la docencia, siempre que no se
+   ponga en funcionamiento para dar un servicio a la propia institución,
+   a su comunidad o a terceros.
+
+2. LO QUE NECESITA EL PERMISO DEL AUTOR
+
+   Cualquier uso que no esté en el punto 1 necesita el permiso por escrito
+   del autor. Si quieres hacer algo distinto, escríbele antes: puede
+   autorizarlo gratis (por ejemplo, para un proyecto social sin ánimo de
+   lucro) o con una licencia. En particular, no se permite sin ese permiso:
+
+   - Cualquier uso comercial o con ánimo de lucro, directo o indirecto.
+   - Cualquier uso por organizaciones, públicas o privadas
+     (administraciones, consorcios, empresas, asociaciones,
+     fundaciones...), salvo el estudio y la investigación del punto 1.b.
+   - Ponerlo a disposición del público: publicar una web, una aplicación
+     o un servicio basados en este código, con cambios o sin ellos.
+   - Distribuir copias, completas o en parte, o versiones modificadas.
+   - Usar el nombre «Bide+», sus logotipos o el dominio bideplus.eus, o
+     presentar un trabajo derivado como si fuera Bide+.
+
+3. CONTRIBUCIONES
+
+   Al enviar una contribución a este repositorio (una pull request, un
+   parche o código en una issue) concedes al autor una licencia perpetua,
+   gratuita, mundial e irrevocable para usarla, modificarla, publicarla y
+   licenciarla, también con fines comerciales, como parte de Bide+.
+
+4. DATOS Y MARCAS DE TERCEROS
+
+   Los datos de transporte son de sus operadores y se rigen por sus
+   propias licencias (se citan en la aplicación). Los nombres y logotipos
+   de los operadores (Bizkaibus, Metro Bilbao, Euskotren, Renfe y los
+   demás) son de sus titulares. Bide+ es un proyecto independiente, sin
+   relación con ellos ni con las administraciones que publican los datos.
+
+5. VERSIONES ANTERIORES
+
+   Lo publicado antes del 4 de noviembre de 2026 se distribuyó bajo la
+   licencia Creative Commons BY-NC-SA 4.0, y quien lo obtuvo entonces
+   puede seguir usando esa copia en esas condiciones. Todo lo publicado
+   desde esa fecha se rige por este documento.
+
+6. SIN GARANTÍA
+
+   El software se ofrece «tal cual», sin garantía de ningún tipo. El autor
+   no responde de los daños que pueda causar su uso.
+
+=======================================================================
+LICENCIAS COMERCIALES E INSTITUCIONALES
+
+Para usarlo en una organización, ponerlo en servicio para el público o
+cualquier uso comercial (Gobierno Vasco, Diputaciones, Ayuntamientos,
+consorcios, empresas), contactar con el titular de los derechos:
+
+📩 garridoparrayeraytx@gmail.com
+🌐 https://www.bideplus.eus
+=======================================================================

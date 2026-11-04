@@ -1,0 +1,80 @@
+{
+  "git": {
+    "deploymentEnabled": {
+      "master": false
+    }
+  },
+  "regions": [
+    "cdg1"
+  ],
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.9.0"
+    },
+    "api/shell.php": {
+      "runtime": "vercel-php@0.9.0"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "geolocation=(self), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), browsing-topics=()",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "X-Permitted-Cross-Domain-Policies": "none"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/(?!api/|data/|scripts/|tests/|engine/|sw[.]js$)[^?]*[.](?:css|js|woff2|png|webp|svg|ico|jpe?g|json)$",
+      "headers": {
+        "Cache-Control": "public, max-age=0, s-maxage=86400"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/(data|scripts|tests|engine)(/.*)?$",
+      "dest": "/api/index.php"
+    },
+        {
+      "src": "^/api/[A-Z][^/]*/.*$",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$",
+      "dest": "/api/index.php"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.php"
+    },
+    {
+      "src": "/mapa",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/lines/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/stops/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/pantalla/(.*)",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/",
+      "dest": "/api/shell.php"
+    }
+  ]
+}

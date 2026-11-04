@@ -1,0 +1,188 @@
+<?php
+$aSite = require __DIR__ . '/../Config/site.php';
+require_once __DIR__ . '/bide-components.php';
+$sTitle = 'Bide+ · Tu red de transporte público';
+$sDescription = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
+$sCanonical = $aSite['url'] . '/';
+$sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
+$sOgAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
+$sWordmark = require __DIR__ . '/wordmark.php';
+
+$aApps = [];
+foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
+    $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name'), 'description' => \Core\Networks::text($aNetwork, 'switcher'), 'url' => $aSite['url'] . '/?red=' . $sSlug];
+}
+
+$aAuthor = ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']];
+$aItems = [];
+foreach ($aApps as $i => $aApp) {
+    $aItems[] = [
+        '@type' => 'ListItem',
+        'position' => $i + 1,
+        'item' => [
+            '@type' => 'SoftwareApplication',
+            'name' => $aApp['name'],
+            'description' => $aApp['description'],
+            'url' => $aApp['url'],
+            'applicationCategory' => 'TravelApplication',
+            'operatingSystem' => 'Web, Android, iOS',
+            'inLanguage' => 'es',
+            'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
+            'author' => $aAuthor,
+        ],
+    ];
+}
+$aJsonLd = [
+    '@context' => 'https://schema.org',
+    '@graph' => [
+        [
+            '@type' => 'WebSite',
+            '@id' => $sCanonical . '#website',
+            'name' => $aSite['name'],
+            'url' => $sCanonical,
+            'description' => $sDescription,
+            'inLanguage' => 'es',
+            'publisher' => $aAuthor,
+        ],
+        [
+            '@type' => 'ItemList',
+            'name' => 'Apps de movilidad de Bide+',
+            'itemListElement' => $aItems,
+        ],
+    ],
+];
+?>
+<!DOCTYPE html>
+<html lang="es" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title><?= htmlspecialchars($sTitle) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
+    <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
+    <meta property="og:locale" content="<?= htmlspecialchars($aSite['locale']) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">
+    <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= htmlspecialchars($sOgAlt) ?>">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars($sOgAlt) ?>">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Bide+">
+    <meta name="theme-color" content="#FFFFFF">
+    <link rel="manifest" href="/manifest-bide.json">
+    <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons-bide-rojo/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/icons-bide-rojo/apple-touch-icon.png">
+
+    <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="/fonts/fonts.css">
+    <link rel="stylesheet" href="/css/style-splash.css">
+    <script src="/js/splash.js"></script>
+    <script src="/js/menu-view.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/bide-mode.js"></script>
+    <script src="/js/notification-open.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/networks.js"></script>
+    <link rel="stylesheet" href="/css/style-menu.css">
+    <link rel="stylesheet" href="/css/style-bide.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
+    <link rel="stylesheet" href="/css/style-miamor.css">
+    <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+</head>
+<body class="page-menu">
+    <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>
+    <main>
+<?= bideRail(null) ?>
+
+        <header>
+            <div class="menu-brand">
+                <h1><?= $sWordmark ?></h1>
+                <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
+            </div>
+            <div class="header-controls">
+                <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle" hidden>Euskaraz</button>
+                <?= bideLangSwitch() ?>
+                <div class="view-toggle bide-seg" role="group" aria-label="Forma de mostrar las apps">
+                    <button type="button" data-view-btn="tiles" aria-pressed="true" data-i18n-attr="aria-label:menu.view.tiles,title:menu.view.tilesTitle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+                    </button>
+                    <button type="button" data-view-btn="list" aria-pressed="false" data-i18n-attr="aria-label:menu.view.list,title:menu.view.listTitle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.5" cy="7" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="17" r="1"/></svg>
+                    </button>
+                </div>
+                <?= bideMenuButton() ?>
+            </div>
+        </header>
+
+        <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
+            <ul class="tiles">
+<?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
+    $sName = \Core\Networks::text($aNetwork, 'name');
+    $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
+                <li>
+                    <a class="tile tile--<?= $sSlug ?>" data-app="<?= $sSlug ?>" data-name="<?= htmlspecialchars($sName) ?>" href="/?red=<?= $sSlug ?>">
+                        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+                        <img class="mark" src="<?= $sIcon ?>" alt="">
+                        <img class="appicon" src="<?= $sIcon ?>" alt="" width="56" height="56">
+                        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+<?php if (\Core\Networks::isNew($aNetwork)): ?>
+                        <span class="tile-new" data-i18n="bide.new">Nuevo</span>
+<?php endif; ?>
+<?php if (!empty($aNetwork['texts']['es']['tile_city'])): ?>
+                        <span class="txt"><strong><span data-i18n="net.<?= $sSlug ?>.tile_title"><?= htmlspecialchars($aNetwork['texts']['es']['tile_title']) ?></span><span>+</span></strong><span class="tile-city" data-i18n="net.<?= $sSlug ?>.tile_city"><?= htmlspecialchars($aNetwork['texts']['es']['tile_city']) ?></span><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+<?php else: ?>
+                        <span class="txt"><strong data-i18n="net.<?= $sSlug ?>.name"><?= htmlspecialchars($sName) ?></strong><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
+<?php endif; ?>
+                    </a>
+                </li>
+<?php endforeach; ?>
+            </ul>
+            <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
+        </section>
+
+<?= bideViews() ?>
+<?= bideMenuSheet() ?>
+
+<?= bideInstallBanner() ?>
+
+    </main>
+    <footer class="menu-footer">
+        <div class="bide-footer-brand">
+            <span class="bide-wordmark">BIDE<span>+</span></span>
+            <p data-i18n="menu.footer">Datos abiertos del operador de cada red (las fuentes y sus licencias, en Info). Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+        </div>
+        <?= bideAppsLinks() ?>
+        <?= bideFooterAuthor('<button type="button" class="bide-footer-legal" data-bide-legal data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>
+    </footer>
+<?= bideTabbar() ?>
+<?php require __DIR__ . '/legal.php'; ?>
+    <script src="/js/menu.js" defer></script>
+    <script src="/js/menu-lang.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/alerts-store.js"></script>
+    <script src="/js/bide.js"></script>
+    <script src="/js/new-badge.js"></script>
+    <script src="/js/offline.js"></script>
+    <script src="/js/bide-info.js"></script>
+    <script type="module" src="/js/settings.js"></script>
+</body>
+</html>

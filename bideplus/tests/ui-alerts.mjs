@@ -1,0 +1,348 @@
+import { spawn } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
+const PORT = Number(process.env.CDP_PORT || 9368);
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const profileDir = mkdtempSync(join(tmpdir(), 'bide-alerts-'));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
+const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
+if (process.env.CI) flags.unshift('--no-sandbox');
+const browser = spawn(CHROME, flags, { stdio: 'ignore' });
+const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
+
+let targets;
+for (let i = 0; i < 40 && !targets; i++) {
+    await sleep(500);
+    try { targets = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json(); } catch (e) { }
+}
+if (!targets) { console.log('MAL no se pudo conectar con el navegador'); shutdown(1); }
+
+const ws = new WebSocket(targets.find(x => x.type === 'page').webSocketDebuggerUrl);
+await new Promise(r => ws.onopen = r);
+let id = 0;
+const pending = new Map();
+const problems = [];
+let registrationId = null;
+const mock = { bus: null, metro: null, renfe: null, euskotren: null, status: 200 };
+const requested = [];
+
+ws.onmessage = async e => {
+    const m = JSON.parse(e.data);
+    if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
+    if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
+    if (m.method === 'ServiceWorker.workerRegistrationUpdated') {
+        const reg = (m.params.registrations || []).find(r => r.scopeURL.startsWith(BASE));
+        if (reg) registrationId = reg.registrationId;
+    }
+    if (m.method === 'Fetch.requestPaused') {
+        const { requestId, request } = m.params;
+        requested.push(request.url);
+        const mocks = [['red=metro', mock.metro], ['red=renfe', mock.renfe], ['red=euskotren', mock.euskotren], ['line=', mock.bus]];
+        const match = mocks.find(([part]) => request.url.includes(part));
+        let body = null;
+        if (match) body = match[1];
+        if (body === null && mock.status === 200) {
+            send('Fetch.continueRequest', { requestId });
+        } else {
+            send('Fetch.fulfillRequest', {
+                requestId,
+                responseCode: mock.status,
+                responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+                body: Buffer.from(JSON.stringify({ alerts: body || [] })).toString('base64'),
+            });
+        }
+    }
+};
+const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
+const ev = async expr => {
+    const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
+    if (r.exceptionDetails) return 'EXC:' + (r.exceptionDetails.exception?.description || '').split('\n')[0];
+    return r.result && r.result.value;
+};
+const waitTrue = async (expr, ms = 9000) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+        if ((await ev(expr)) === true) return true;
+        await sleep(300);
+    }
+    return false;
+};
+const results = [];
+const check = (name, ok, extra = '') => {
+    let line = `MAL ${name}`;
+    if (ok) line = `OK  ${name}`;
+    if (extra) line += ' — ' + extra;
+    results.push(line);
+};
+const skip = (name, why) => results.push(`SKIP ${name} — ${why}`);
+const go = async (url, wait = 3000) => { await send('Page.navigate', { url: BASE + url }); await sleep(wait); };
+
+await send('Runtime.enable'); await send('Page.enable'); await send('ServiceWorker.enable');
+await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+await send('Browser.grantPermissions', { permissions: ['notifications'], origin: BASE });
+
+const A = { summary: 'Incidencia', description: 'Obras en Gernika A' };
+const B = { summary: 'Incidencia', description: 'Corte de calle B' };
+const extra = n => ({ summary: 'Incidencia', description: `Aviso extra ${n}` });
+
+await go('/?red=bus');
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/alerts*' }] });
+
+await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.resetBaseline(); await AlertsStore.setFavorites('bus', ['3513']); await AlertsStore.setFavorites('metro', []); await AlertsStore.setFavorites('euskotren', []); await AlertsStore.setFavorites('tranvia-bilbao', []); await AlertsStore.setFavorites('tranvia-vitoria', []); await AlertsStore.setFavorites('renfe', []); })()`);
+
+mock.bus = [A];
+const first = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('primera comprobacion: los avisos que ya existen no notifican (linea base)', first === 0, `${first}`);
+
+mock.bus = [A, B];
+const second = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.body))`);
+check('un aviso nuevo se detecta una sola vez', Array.isArray(second) && second.length === 1 && second[0] === B.description, JSON.stringify(second));
+const repeated = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('el mismo aviso no se repite', repeated === 0, `${repeated}`);
+
+mock.bus = [A, B, extra(1), extra(2), extra(3), extra(4), extra(5)];
+const many = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('varios avisos nuevos a la vez se detectan todos', many === 5, `${many}`);
+const notified = await ev(`(async () => {
+    const calls = [];
+    const fake = { showNotification: async (title, options) => { calls.push({ title, tag: options.tag, url: options.data.url, badge: options.badge }); } };
+    const alerts = ['a', 'b', 'c', 'd', 'e'].map(k => ({ network: 'bus', title: 'Incidencia', body: 'x' + k, key: 'bus:' + k }));
+    await AlertsStore.notify(fake, alerts);
+    await AlertsStore.set('lang', 'en');
+    await AlertsStore.notify(fake, alerts);
+    await AlertsStore.set('lang', I18n.getLang());
+    return calls;
+})()`);
+check('se muestran como mucho 3 notificaciones y un resumen', notified.length === 8 && notified[0].title.startsWith('Bizkaibus+') && notified[3].tag === 'bide-more-alerts', `${notified.length} notificaciones`);
+check('sin push: al tocarlas se abre la pestaña Avisos, una sola vez', notified.every(n => /^\/\?red=bus&aviso=[a-z0-9]+-[a-z0-9]+#avisos$/.test(n.url)), JSON.stringify(notified.map(n => n.url)));
+check('sin push: el resumen va en el idioma elegido', notified[3].title === 'Más incidencias en tus favoritos' && notified[7].title === 'More disruptions on your favourites', `${notified[3].title} / ${notified[7].title}`);
+check('sin push: llevan el icono de la barra de estado', notified.every(n => n.badge === '/icons-bide-rojo/badge-96.png'));
+
+await ev(`AlertsStore.setFavorites('metro', ['MB'])`);
+mock.metro = [{ title: 'Incidencia', description: 'Metro M1' }];
+const metroFirst = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('Metro: la primera comprobacion tambien es linea base', metroFirst === 0, `${metroFirst}`);
+mock.metro = [{ title: 'Incidencia', description: 'Metro M1' }, { title: 'Incidencia', description: 'Metro M2' }];
+const metroSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.body))`);
+check('Metro: un aviso nuevo se detecta', Array.isArray(metroSecond) && metroSecond.length === 1 && metroSecond[0] === 'metro:Metro M2', JSON.stringify(metroSecond));
+check('Euskotren sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=euskotren')));
+check('Tranvia Bilbao sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-bilbao')));
+check('Tranvia Vitoria sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=tranvia-vitoria')));
+check('Renfe sin lineas favoritas no consulta avisos', !requested.some(u => u.includes('red=renfe')));
+
+await ev(`AlertsStore.setFavorites('renfe', [], ['13400'])`);
+mock.renfe = [{ summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 1 fuera de servicio' }];
+const renfeFirst = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('Renfe: la primera comprobacion de una parada guardada es linea base', renfeFirst === 0, `${renfeFirst}`);
+mock.renfe = [{ summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 1 fuera de servicio' }, { summary: 'DESERTU-BARAKALDO', description: 'Ascensor de via 2 fuera de servicio' }];
+const renfeSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.title + ':' + x.body))`);
+check('Renfe: un aviso nuevo de la parada guardada se detecta, sea del tipo que sea', Array.isArray(renfeSecond) && renfeSecond.length === 1 && renfeSecond[0] === 'renfe:DESERTU-BARAKALDO:Ascensor de via 2 fuera de servicio', JSON.stringify(renfeSecond));
+check('Renfe: se consultan los avisos de la parada guardada', requested.some(u => u.includes('red=renfe&stop=13400')));
+
+await ev(`AlertsStore.setFavorites('euskotren', [], ['ESTACION1'])`);
+mock.euskotren = [{ summary: 'Incidencia', description: 'Euskotren E1' }];
+const euskoFirst = await ev(`AlertsStore.checkAlerts().then(r => r.length)`);
+check('Euskotren: con solo paradas favoritas la primera comprobacion es linea base', euskoFirst === 0, `${euskoFirst}`);
+mock.euskotren = [{ summary: 'Incidencia', description: 'Euskotren E1' }, { summary: 'Incidencia', description: 'Euskotren E2' }];
+const euskoSecond = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.network + ':' + x.body))`);
+check('Euskotren: con solo paradas favoritas se avisa de lo nuevo de la red, como Metro+', Array.isArray(euskoSecond) && euskoSecond.length === 1 && euskoSecond[0] === 'euskotren:Euskotren E2', JSON.stringify(euskoSecond));
+
+mock.status = 500;
+mock.bus = [A, B, extra(9)];
+const failed = await ev(`AlertsStore.checkAlerts().then(r => r.length).catch(e => 'error')`);
+mock.status = 200;
+check('si la API falla no lanza error ni notifica', failed === 0, `${failed}`);
+const afterFailure = await ev(`AlertsStore.checkAlerts().then(r => r.map(x => x.body))`);
+check('tras un fallo, el aviso no se pierde (se detecta despues)', Array.isArray(afterFailure) && afterFailure.includes('Aviso extra 9'), JSON.stringify(afterFailure));
+
+await send('Fetch.disable');
+await ev(`AlertsStore.set('enabled', false)`);
+
+// El interruptor está en Ajustes, que se abre desde el menú lateral.
+const openSettings = async () => {
+    await ev("document.getElementById('menu-open').click()");
+    await sleep(500);
+    await ev("document.querySelector('#side-menu [data-bide-tab=ajustes]').click()");
+    await sleep(500);
+};
+await go('/?red=bus');
+await openSettings();
+check('interruptor de avisos visible en Ajustes, desde el menu lateral', (await ev("!!document.getElementById('alerts-toggle') && document.getElementById('alerts-toggle').offsetParent !== null")) === true);
+await ev("document.getElementById('alerts-toggle').click()");
+check('activar avisos: queda marcado y muestra la nota', await waitTrue("document.getElementById('alerts-toggle').checked === true && !document.getElementById('alerts-note').hidden"), await ev("document.getElementById('alerts-note').textContent"));
+check('activar avisos: se guarda como activado', (await ev(`AlertsStore.get('enabled')`)) === true);
+await ev("document.getElementById('alerts-toggle').click()");
+check('desactivar avisos: se guarda como desactivado', await waitTrue(`document.getElementById('alerts-toggle').checked === false && document.getElementById('alerts-note').hidden`));
+check('desactivar avisos: enabled = false', (await ev(`AlertsStore.get('enabled')`)) === false);
+
+await send('Browser.setPermission', { permission: { name: 'notifications' }, setting: 'denied', origin: BASE });
+await go('/?red=bus');
+await openSettings();
+await ev("document.getElementById('alerts-toggle').click()");
+check('permiso denegado: no se activa y explica por que', await waitTrue("document.getElementById('alerts-toggle').checked === false && document.getElementById('alerts-note').textContent.includes('bloqueadas')"));
+await send('Browser.grantPermissions', { permissions: ['notifications'], origin: BASE });
+
+await go('/?red=bus');
+await ev(`(async () => { await AlertsStore.set('enabled', true); await AlertsStore.resetBaseline(); await AlertsStore.setFavorites('bus', ['3513']); })()`);
+const realAlerts = await ev(`fetch('/api/alerts?line=3513').then(r => r.json()).then(d => d.alerts.length).catch(() => -1)`);
+if (!(realAlerts > 0) || !registrationId) {
+    let why = 'la linea 3513 no tiene avisos en el feed real ahora mismo';
+    if (realAlerts > 0) why = 'no se obtuvo el registro del service worker';
+    skip('service worker: notificacion al llegar un aviso nuevo', why);
+} else {
+    await ev(`AlertsStore.checkAlerts()`);
+    await ev(`(async () => { const seen = await AlertsStore.get('seen'); delete seen[Object.keys(seen)[0]]; await AlertsStore.set('seen', seen); })()`);
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+    await send('ServiceWorker.dispatchPeriodicSyncEvent', { origin: BASE, registrationId, tag: 'line-alerts-check' });
+    const shown = await waitTrue(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.length >= 1)`, 10000);
+    check('service worker: un aviso nuevo genera una notificacion', shown);
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+    await send('ServiceWorker.dispatchPeriodicSyncEvent', { origin: BASE, registrationId, tag: 'line-alerts-check' });
+    await sleep(4000);
+    const again = await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.length)`);
+    check('service worker: una segunda sincronizacion no repite la notificacion', again === 0, `${again}`);
+}
+
+// Notificaciones push con la app cerrada: ninguna ventana del sitio abierta y el service worker parado. El navegador
+// lo despierta al llegar el push y tiene que enseñar la notificación él solo.
+const swEval = async expr => {
+    const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
+    const target = list.find(t => t.type === 'service_worker' && t.url.startsWith(BASE));
+    if (!target) return 'EXC:sin service worker';
+    const sw = new WebSocket(target.webSocketDebuggerUrl);
+    await new Promise(r => sw.onopen = r);
+    const reply = await new Promise(r => {
+        sw.onmessage = e => { const m = JSON.parse(e.data); if (m.id === 1) r(m.result); };
+        sw.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: expr, returnByValue: true, awaitPromise: true } }));
+    });
+    sw.close();
+    if (reply.exceptionDetails) return 'EXC:' + (reply.exceptionDetails.exception?.description || '').split('\n')[0];
+    return reply.result && reply.result.value;
+};
+const notifications = () => ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.map(n => ({ title: n.title, body: n.body, tag: n.tag, badge: n.badge, url: n.data && n.data.url })))`);
+
+await go('/?red=bus');
+await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+if (!registrationId) {
+    skip('push con la app cerrada', 'no se obtuvo el registro del service worker');
+} else {
+    const arrival = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=prueba', tag: 'bide-arrival-prueba', alertId: 'aaaaaaaaaaaaaaaaaaaaaaaa', repeat: false };
+    const daily = { title: 'A3514 llega en 5 min', body: '→ Gernika · La Casilla', url: '/stops/4255?viaje=diario', tag: 'bide-arrival-diario', alertId: 'bbbbbbbbbbbbbbbbbbbbbbbb', repeat: true };
+    // En la lista de la app: el de una vez y uno de todos los días.
+    const listed = (id, repeat) => ({ id, tripKey: 'x', stopId: '4255', minutes: 5, repeat, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now(), lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' });
+    await ev(`localStorage.setItem('bide-arrival-alerts', ${JSON.stringify(JSON.stringify([listed(arrival.alertId, false), listed(daily.alertId, true)]))}); true`);
+    await send('Page.navigate', { url: 'about:blank' });
+    await sleep(800);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(arrival) });
+    await sleep(1500);
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(daily) });
+    await sleep(1500);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: 'esto no es JSON' });
+    await sleep(1500);
+    await go('/?red=bus');
+    const shown = await notifications();
+    const real = (shown || []).find(n => n.tag === arrival.tag);
+    check('push con la app cerrada: sale la notificacion con su texto', !!real && real.title === arrival.title && real.body === arrival.body, JSON.stringify(shown));
+    check('push con la app cerrada: al tocarla abre la parada del aviso', !!real && real.url === arrival.url);
+    check('push con la app cerrada: icono de la barra de estado en silueta', !!real && real.badge.endsWith('/icons-bide-rojo/badge-96.png'));
+    check('push con un mensaje roto: sale igual una notificacion (iPhone quita el permiso si no)', (shown || []).some(n => n.tag === 'bide-arrival' && n.title === 'Bide+'));
+    const ids = () => ev(`JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').map(a => a.id)`);
+    const afterClosed = await waitTrue(`!JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').some(a => a.id === '${arrival.alertId}')`, 5000);
+    check('aviso de una vez: tras avisar con la app cerrada, al abrirla ya no esta en la lista', afterClosed, JSON.stringify(await ids()));
+    check('aviso de todos los dias: tras avisar sigue en la lista', (await ids()).includes(daily.alertId), JSON.stringify(await ids()));
+    // Con la app abierta se quita al momento.
+    const openOnce = { ...arrival, alertId: 'cccccccccccccccccccccccc', tag: 'bide-arrival-abierta' };
+    await ev(`localStorage.setItem('bide-arrival-alerts', ${JSON.stringify(JSON.stringify([listed(openOnce.alertId, false)]))}); true`);
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(openOnce) });
+    check('aviso de una vez: con la app abierta se quita de la lista al avisar', await waitTrue(`JSON.parse(localStorage.getItem('bide-arrival-alerts') || '[]').length === 0`, 5000), JSON.stringify(await ids()));
+    await ev(`localStorage.removeItem('bide-arrival-alerts'); navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+}
+
+// Al tocarla: la ventana abierta va a la dirección del aviso.
+await go('/?red=bus');
+await swEval(`openFromNotification('/stops/4255?red=bus')`);
+await sleep(2500);
+check('tocar la notificacion: la app abierta va a la parada', (await ev('location.pathname')) === '/stops/4255', await ev('location.pathname + location.search'));
+
+// iPhone con la app cerrada: la ventana que abre el sistema no se deja llevar («navigate failed»); se le pide a la página.
+const fallback = await swEval(`(async () => {
+    const sent = [];
+    const fake = { focus: async () => fake, navigate: async () => { throw new TypeError('navigate failed'); }, postMessage: (message) => sent.push(message) };
+    clients.matchAll = async () => [fake];
+    try {
+        await openFromNotification('/stops/4255?red=bus');
+    } finally {
+        delete clients.matchAll;
+    }
+    return sent;
+})()`);
+check('tocar la notificacion: si la ventana no se deja llevar, se le pide a la pagina', Array.isArray(fallback) && fallback.length === 1 && fallback[0].type === 'bide:open' && fallback[0].url === '/stops/4255?red=bus', JSON.stringify(fallback));
+await go('/?red=bus');
+await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'bide:open', url: '/stops/4255?red=bus' })))`);
+await sleep(2500);
+check('la pagina, al recibirlo, va a la parada', (await ev('location.pathname')) === '/stops/4255', await ev('location.pathname + location.search'));
+await go('/');
+await swEval(`clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => list.forEach(c => c.postMessage({ type: 'bide:open', url: '//ejemplo.com/x' })))`);
+await sleep(1500);
+check('la pagina no va a direcciones de fuera', (await ev('location.host')) === new URL(BASE).host);
+
+// Con Avisos abierto, las incidencias se renuevan solas (cada 5 minutos y al volver a la app) sin volver a «Cargando…».
+await go('/?red=bus');
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/alerts*' }] });
+await ev(`localStorage.setItem(BideNetworks.get('bus').favoritesKey, JSON.stringify([{ type: 'line', refId: '3513' }])); true`);
+mock.bus = [A];
+await go(`/?red=bus&aviso=avisos-${Date.now().toString(36)}#avisos`, 3500);
+check('Avisos: enseña las incidencias de los favoritos', await waitTrue(`document.querySelector('[data-bide-alerts]').textContent.includes('${A.description}')`));
+mock.bus = [A, B];
+await ev(`(() => {
+    const list = document.querySelector('[data-bide-alerts]');
+    window.__bideLoading = false;
+    new MutationObserver(() => { if (list.textContent.includes(I18n.t('app.loadingIncidents'))) window.__bideLoading = true; }).observe(list, { childList: true, subtree: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    return true;
+})()`);
+check('Avisos: al volver a la app se renuevan solas', await waitTrue(`document.querySelector('[data-bide-alerts]').textContent.includes('${B.description}')`));
+check('Avisos: al renovarse no vuelve a salir «Cargando…»', await ev('window.__bideLoading === false'));
+mock.bus = null;
+await send('Fetch.disable');
+await ev(`localStorage.removeItem(BideNetworks.get('bus').favoritesKey); true`);
+
+// Incidencias por push: con la app cerrada salen igual que las de llegada, y al tocarlas se abre la pestaña Avisos de
+// esa app una sola vez.
+if (registrationId) {
+    const incidentUrl = `/?red=metro&aviso=prueba-${Date.now().toString(36)}#avisos`;
+    const incident = { title: 'Metro+ · Obras L2', body: 'Sin servicio entre Urbinaga y Kabiezes', url: incidentUrl, tag: 'metro:prueba', icon: '/icons-metro/icon-192.png' };
+    await send('Page.navigate', { url: 'about:blank' });
+    await sleep(800);
+    await send('ServiceWorker.stopAllWorkers');
+    await send('ServiceWorker.deliverPushMessage', { origin: BASE, registrationId, data: JSON.stringify(incident) });
+    await sleep(1500);
+    await go('/?red=bus');
+    const shownIncident = (await notifications() || []).find(n => n.tag === 'metro:prueba');
+    check('incidencia con la app cerrada: sale con su texto y su enlace', !!shownIncident && shownIncident.title === incident.title && shownIncident.url === incidentUrl, JSON.stringify(shownIncident));
+    await ev(`navigator.serviceWorker.ready.then(r => r.getNotifications()).then(list => list.forEach(n => n.close()))`);
+    await go(incidentUrl, 3500);
+    check('incidencia: al tocarla se abre la pestaña Avisos de su app', await waitTrue("!document.querySelector('[data-bide-view=avisos]').hidden && location.hash === '#avisos' && !location.search.includes('aviso=')"), await ev('location.pathname + location.search + location.hash'));
+    await go(incidentUrl, 3500);
+    check('incidencia: si el sistema vuelve a cargar su dirección, no se abre otra vez', await ev("document.querySelector('[data-bide-view=avisos]').hidden && location.hash === '' && location.search === '?red=metro'"), await ev('location.pathname + location.search + location.hash'));
+} else {
+    skip('incidencias por push con la app cerrada', 'no se obtuvo el registro del service worker');
+}
+
+await ev(`AlertsStore.set('enabled', false)`);
+const bad = results.filter(r => r.startsWith('MAL')).length;
+const uniqueProblems = [...new Set(problems)];
+console.log(results.join('\n'));
+console.log(`\nRESULTADO avisos: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${results.filter(r => r.startsWith('SKIP')).length} SKIP, ${uniqueProblems.length} excepciones`);
+for (const p of uniqueProblems.slice(0, 10)) console.log(' -', p);
+ws.close();
+let exitCode = 0;
+if (bad || uniqueProblems.length) exitCode = 1;
+shutdown(exitCode);

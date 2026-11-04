@@ -1,0 +1,131 @@
+<?php
+
+namespace Services;
+
+use Core\Cache;
+use Core\Http;
+
+// Incidencias en formato SIRI (Situation Exchange) de Open Data Euskadi, por línea; el texto, en castellano.
+class SiriAlertsClient
+{
+    private array $aConfig;
+
+    public function __construct(array $aConfig)
+    {
+        $this->aConfig = $aConfig;
+    }
+
+    public function fetchAlerts(): array
+    {
+        $aCfg = $this->aConfig['siri'];
+        // Redes con varios operadores (Lurraldebus): un feed por operador, se juntan los avisos de todos.
+        if (!empty($aCfg['alerts_urls'])) {
+            return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
+                $aAlerts = [];
+                foreach ($aCfg['alerts_urls'] as $sUrl) {
+                    try {
+                        $aAlerts = array_merge($aAlerts, self::parse(Http::get($sUrl, $aCfg['http_timeout_seconds'])));
+                    } catch (\Throwable $Ex) {
+                    }
+                }
+                return $aAlerts;
+            });
+        }
+        if (empty($aCfg['alerts_url'])) {
+            return [];
+        }
+        $aUrls = array_filter([$aCfg['alerts_url'], $aCfg['alerts_fallback_url'] ?? null]);
+        return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
+            return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
+        });
+    }
+
+    public function alertsByLine(): array
+    {
+        $aByLine = [];
+        foreach ($this->fetchAlerts() as $aAlert) {
+            foreach ($aAlert['lineRefs'] as $sLineRef) {
+                $aByLine[$sLineRef][] = [
+                    'summary' => $aAlert['summary'],
+                    'description' => $aAlert['description'],
+                    'startTime' => $aAlert['startTime'],
+                    'endTime' => $aAlert['endTime'],
+                ];
+            }
+        }
+        return $aByLine;
+    }
+
+    private static function parse(string $sXmlString): array
+    {
+        $Xml = @simplexml_load_string($sXmlString);
+        if ($Xml === false) {
+            return [];
+        }
+        $aSituations = [];
+        if (isset($Xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement)) {
+            $aSituations = $Xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement;
+        }
+
+        $aAlerts = [];
+        foreach ($aSituations as $Situation) {
+            $aLineRefs = [];
+            if (isset($Situation->Affects->VehicleJourneys->AffectedVehicleJourney)) {
+                foreach ($Situation->Affects->VehicleJourneys->AffectedVehicleJourney as $Vj) {
+                    if (isset($Vj->LineRef)) {
+                        $aLineRefs[] = (string)$Vj->LineRef;
+                    }
+                }
+            }
+
+            $SummaryElements = null;
+            if (isset($Situation->Summary)) {
+                $SummaryElements = $Situation->Summary;
+            }
+            $DescriptionElements = null;
+            if (isset($Situation->Description)) {
+                $DescriptionElements = $Situation->Description;
+            }
+
+            $sStartTime = null;
+            if (isset($Situation->ValidityPeriod->StartTime)) {
+                $sStartTime = (string)$Situation->ValidityPeriod->StartTime;
+            }
+            $sEndTime = null;
+            if (isset($Situation->ValidityPeriod->EndTime)) {
+                $sEndTime = (string)$Situation->ValidityPeriod->EndTime;
+            }
+
+            $aAlerts[] = [
+                'summary' => self::textByLang($SummaryElements, 'es'),
+                'description' => self::textByLang($DescriptionElements, 'es'),
+                'startTime' => $sStartTime,
+                'endTime' => $sEndTime,
+                'lineRefs' => array_values(array_unique($aLineRefs)),
+            ];
+        }
+        return $aAlerts;
+    }
+
+    private static function textByLang($Elements, string $sLang): string
+    {
+        if ($Elements === null) {
+            return '';
+        }
+        foreach ($Elements as $El) {
+            $Attrs = $El->attributes('http://www.w3.org/XML/1998/namespace');
+            $sElLang = '';
+            if (isset($Attrs['lang'])) {
+                $sElLang = (string)$Attrs['lang'];
+            }
+            if ($sElLang === $sLang) {
+                return (string)$El;
+            }
+        }
+
+        foreach ($Elements as $El) {
+            return (string)$El;
+        }
+        return '';
+    }
+}

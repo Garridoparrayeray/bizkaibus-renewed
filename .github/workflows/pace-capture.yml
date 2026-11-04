@@ -1,0 +1,227 @@
+name: Ritmo de los buses (k)
+
+# Captura continua del feed en directo de cada red con motor (Bizkaibus, Bilbobus, Lurraldebus…) y recalibrado diario
+# de los datos del algoritmo, cada red con los suyos. Las redes salen del registro (api/Networks): las que tienen motor
+# y directo de vehículos, y las que piden solo guardar su directo GTFS-Realtime para aprender (capture = gtfs-rt, Renfe).
+# Una red cuyo feed no trae ningún vehículo no captura: lo vuelve a mirar el cron de cada 10 minutos (con el feed lleno,
+# la captura lo lee cada minuto).
+# El algoritmo y su documentación viven en un repositorio aparte (todos los derechos reservados).
+# Las horas están en UTC; GitHub puede retrasar unos minutos los trabajos programados.
+#
+# Cada trabajo de captura dura unas 5 horas y media (el límite es 6) y, si ha ido bien, lanza el siguiente al acabar.
+# Como GitHub retrasa o se salta muchas ejecuciones programadas, el cron horario queda de respaldo: si ya hay una
+# captura en marcha, la nueva espera su turno (concurrency) y arranca en cuanto la otra acaba. Si llegan varias mientras
+# tanto, solo espera la última; GitHub cancela las demás, y es normal verlas como canceladas.
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+    # Redes con el feed vacío (todas menos Bizkaibus): se vuelven a mirar cada 10 minutos.
+    - cron: '*/10 * * * *'
+    # Recalibrado diario.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Minutos de captura en total (para probar, 6)'
+        default: '330'
+      block:
+        description: 'Minutos por bloque (vacío: hasta la siguiente hora en punto; para probar, 3)'
+        default: ''
+      red:
+        description: 'Red a capturar (slug de api/Networks con motor)'
+        default: 'bus'
+      release:
+        description: 'Release de pruebas para los acumulados (vacío: la de la red, pace-data para bus)'
+        default: ''
+      engine_ref:
+        description: 'Rama del algoritmo (vacío: la principal)'
+        default: ''
+      recalibrate:
+        description: 'Recalibrar en vez de capturar'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+
+jobs:
+  # Las redes a capturar: con el cron, todas las que tienen motor y directo de vehículos; a mano o encadenada, la pedida.
+  # Cada una con su release de acumulados.
+  redes:
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate != 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lista: ${{ steps.lista.outputs.lista }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+            bideplus/api/Core
+            bideplus/api/Networks
+            bideplus/api/Config
+      - id: lista
+        env:
+          PEDIDA: ${{ github.event.inputs.red }}
+          CADA_10: ${{ github.event.schedule == '*/10 * * * *' }}
+        run: |
+          LISTA=$(php -r '
+            require "bideplus/api/Core/Networks.php";
+            $sPedida = getenv("PEDIDA");
+            $aLista = [];
+            foreach (Core\Networks::all() as $sSlug => $aNet) {
+              $sTipo = "siri";
+              if (($aNet["capture"] ?? "") === "gtfs-rt") { $sTipo = "gtfs-rt"; }
+              $bMotor = !empty($aNet["engine"]) && Core\Networks::hasLive($aNet, "vehicle-monitoring");
+              if (!$bMotor && $sTipo !== "gtfs-rt") { continue; }
+              if ($sPedida !== false && $sPedida !== "" && $sPedida !== $sSlug) { continue; }
+              $sRelease = "pace-data";
+              if ($sSlug !== "bus") { $sRelease = "pace-data-" . $sSlug; }
+              $aLista[] = ["red" => $sSlug, "release" => $sRelease, "tipo" => $sTipo];
+            }
+            echo json_encode($aLista);
+          ')
+          if [ "$CADA_10" = true ]; then
+            # Cada 10 minutos, solo las redes que no están ya capturando (Bizkaibus tiene su cadena y el cron horario).
+            OCUPADAS=$(bash .github/scripts/redes-capturando.sh)
+            LISTA=$(jq -c --arg ocupadas "$OCUPADAS" '[.[] | select(.red != "bus") | select(.red as $r | ($ocupadas | split(" ") | index($r)) == null)]' <<<"$LISTA")
+          fi
+          echo "lista=$LISTA" | tee -a "$GITHUB_OUTPUT"
+
+  capture:
+    needs: redes
+    if: ${{ needs.redes.outputs.lista != '[]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.redes.outputs.lista) }}
+    concurrency:
+      group: pace-capture-${{ github.event.inputs.release || matrix.release }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          ref: ${{ github.event.inputs.engine_ref }}
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      # Bizkaibus captura siempre; las demás, solo si su feed trae vehículos ahora mismo.
+      - name: ¿Trae vehículos el feed?
+        id: feed
+        run: |
+          if [ "${{ matrix.tipo }}" = gtfs-rt ]; then
+            N=$(php bideplus/engine/${{ matrix.red }}/tools/capture.php --contar --red=${{ matrix.red }} | tail -n 1)
+          else
+            N=$(php bideplus/engine/bizkaibus/tools/realtime-backtest.php vehicles --red=${{ matrix.red }} | tail -n 1)
+          fi
+          echo "${{ matrix.red }}: $N vehículos en el feed"
+          CAPTURAR=1
+          if [ "${{ matrix.red }}" != bus ] && [ "${N:-0}" = 0 ]; then
+            CAPTURAR=0
+            echo "${{ matrix.red }}: el feed no trae vehículos; no se captura" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "capturar=$CAPTURAR" >> "$GITHUB_OUTPUT"
+
+      - name: Reconstruir la base de datos de la red
+        if: ${{ steps.feed.outputs.capturar == '1' }}
+        env:
+          GEOCODE_MAX_NEW: '0'
+          GEOCODE_MAX_RETRIES: '0'
+        run: php bideplus/scripts/build-database.php --network=${{ matrix.red }}
+
+      # Captura en bloques de una hora; al acabar cada bloque mide la precisión, añade las muestras a la release y
+      # archiva las capturas en bruto en el repositorio del algoritmo. Ver .github/scripts/captura-continua.sh.
+      - name: Capturar y medir sin parar
+        if: ${{ steps.feed.outputs.capturar == '1' }}
+        env:
+          RED: ${{ matrix.red }}
+          TIPO: ${{ matrix.tipo }}
+          MINUTOS: ${{ github.event.inputs.minutes || '330' }}
+          BLOQUE: ${{ github.event.inputs.block }}
+          RELEASE: ${{ github.event.inputs.release || matrix.release }}
+          ARCHIVO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
+        run: |
+          ENCADENAR=1
+          if [ "$RELEASE" != "${{ matrix.release }}" ]; then
+            ENCADENAR=0
+            gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Pruebas de la captura (no es una version)" --notes "Release de prueba del workflow Ritmo de los buses."
+          elif [ "$TIPO" != gtfs-rt ] && ! gh release view "$RELEASE" >/dev/null 2>&1; then
+            # La primera vez que una red trae vehículos: su release de acumulados.
+            gh release create "$RELEASE" --prerelease --title "Muestras del algoritmo ($RED)" --notes "Muestras acumuladas de la red $RED para el workflow Ritmo de los buses (no es una versión)."
+          fi
+          export ENCADENAR
+          bash .github/scripts/captura-continua.sh
+
+  recalibrate:
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 4 * * *') || (github.event_name == 'workflow_dispatch' && github.event.inputs.recalibrate == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    concurrency:
+      group: pace-recalibrate
+      cancel-in-progress: false
+    env:
+      RELEASE: ${{ github.event.inputs.release || 'pace-data' }}
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          ref: ${{ github.event.inputs.engine_ref }}
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      # Cada red con motor con sus muestras: ver .github/scripts/recalibrar.sh. La captura sube los acumulados cada hora
+      # mientras tanto; las funciones de pace-data.sh reintentan y, si pillan el momento del cambio, descargan la copia
+      # nueva.
+      - name: Recalibrar cada red
+        env:
+          REDES: ${{ github.event.inputs.red != 'bus' && github.event.inputs.red || '' }}
+        run: bash .github/scripts/recalibrar.sh
+
+      - name: Guardar el resultado si ha cambiado
+        working-directory: bideplus/engine
+        run: |
+          FILES=$(ls */data/pace-factors.json */data/segment-times.json */data/trip-offsets.json 2>/dev/null)
+          if git diff --quiet -- $FILES && [ -z "$(git ls-files --others --exclude-standard $FILES)" ]; then
+            echo "Sin cambios en pace-factors.json, segment-times.json ni trip-offsets.json de ninguna red"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $FILES
+          git commit -m "chore(bideplus): recalibra el ritmo de los buses (factor k, tiempos por tramo y corrección por viaje)"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((i * 10))
+          done
+          exit 1

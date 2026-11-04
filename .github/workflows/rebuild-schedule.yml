@@ -1,0 +1,205 @@
+name: Rebuild schedule data
+
+# Reconstruye y redespliega a diario la base de datos de cada red de
+# bideplus/api/Networks desde su GTFS oficial. Los .sqlite no se comitean (solo
+# geocache.json si cambia): se regeneran en el runner y se suben tal cual con el
+# deploy de Vercel.
+#
+# Fuentes primarias: NAP (nap.transportes.gob.es) con ApiKey.
+# Fuentes fallback:  S3 (Bizkaibus), CMS (Metro), local zip (Euskotren).
+
+# Es la UNICA via de despliegue a produccion (vercel.json desactiva los despliegues de master por Git): los .sqlite
+# del repositorio son viejos y, si Vercel los desplegara por su cuenta, pisarian las bases recien reconstruidas.
+# Por eso corre a diario, a mano y en cada cambio que llega a master: cada despliegue lleva siempre los horarios
+# de hoy junto al codigo nuevo.
+on:
+  schedule:
+    - cron: '0 3 * * *' # diario, 03:00 UTC
+  push:
+    branches: [master]
+    paths:
+      - 'bideplus/**'
+      - '.github/workflows/rebuild-schedule.yml'
+  workflow_dispatch: {} # allows manually clicking "Run workflow" too
+
+# Un despliegue cada vez; si llegan varios, el ultimo espera su turno y los intermedios se saltan.
+concurrency:
+  group: rebuild-and-deploy
+  cancel-in-progress: false
+
+jobs:
+  rebuild-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - name: Rebuild BizkaiBus+ database
+        run: |
+          set -o pipefail
+          php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
+
+      # Resumen visible en la ejecucion: que horario se ha publicado, hasta cuando vale y si los calendarios cuadran con
+      # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
+      # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
+      - name: Summarize the published schedule
+        run: |
+          python3 - <<'PY'
+          import os, re, sqlite3, datetime
+          c = sqlite3.connect('bideplus/data/bizkaibus.sqlite')
+          meta = dict(c.execute('select key, value from meta'))
+          start, end, published = meta.get('feed_start_date', '?'), meta.get('feed_end_date', '?'), meta.get('schedule_source_published', '?')
+          journeys = c.execute('select count(*) from service_journeys').fetchone()[0]
+          audit = ''
+          log = open(os.path.join(os.environ['RUNNER_TEMP'], 'bus-build.log'), encoding='utf-8', errors='replace').read()
+          m = re.search(r'Auditoría de calendarios[^\n]*', log)
+          if m: audit = m.group(0).strip()
+          left = None
+          try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
+          except ValueError: pass
+          remaining = ''
+          if left is not None: remaining = f' (quedan {left} días)'
+          audit_line = '- Sin línea de auditoría de calendarios (revisar el log del build)'
+          if audit: audit_line = f'- {audit}'
+          lines = ['### Horario de Bizkaibus publicado',
+                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + remaining,
+                   f'- {journeys:,} viajes en la base'.replace(',', '.'),
+                   audit_line]
+          open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
+          if left is not None and left <= 10:
+              print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
+          PY
+
+      # El resto de redes salen de bideplus/api/Networks. Cada base se genera en un fichero
+      # temporal y solo sustituye a la del repositorio si el build termina bien y no está
+      # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
+      # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
+      - name: Rebuild the other networks
+        run: |
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            [ "$network" = "bus" ] && continue
+            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
+              mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
+              echo "OK: $network reconstruida"
+            elif [ "$required" = "1" ]; then
+              echo "::error::No se pudo reconstruir $network (obligatoria)"
+              exit 1
+            else
+              echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
+            fi
+          done
+
+      - name: Verify databases exist and are non-empty
+        run: |
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            f="bideplus/data/$db.sqlite"
+            if [ ! -s "$f" ]; then
+              echo "ERROR: $f is missing or empty"
+              exit 1
+            fi
+            echo "OK: $f ($(du -h "$f" | cut -f1))"
+          done
+
+      # sitemap.xml es estático: se regenera con las bases nuevas para que cada línea y
+      # parada que aparezca o desaparezca entre o salga del sitemap en el mismo despliegue.
+      - name: Rebuild sitemap.xml
+        run: php bideplus/scripts/build-sitemap.php
+
+      # El mapa de la red (/mapa): líneas, recorridos y paradas de cada red, sacados de las bases recién construidas.
+      - name: Rebuild network map data
+        run: php bideplus/scripts/build-network-map.php
+
+      # Horarios sin conexión: el horario oficial de cada red, que el móvil guarda si la persona lo elige en Info.
+      - name: Rebuild offline timetables
+        run: php bideplus/scripts/build-offline-data.php
+
+      # Puerta antes de desplegar: si las bases nuevas rompen el cálculo de llegadas, la
+      # integridad de los datos o el contrato de la API, no se despliega y producción
+      # sigue con el último despliegue bueno.
+      - name: Check rebuilt data before deploying
+        working-directory: bideplus
+        run: |
+          php tests/unit-test.php
+          php tests/data-integrity.php
+          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs -o /dev/null http://localhost:8011/; then break; fi
+            sleep 1
+          done
+          python3 tests/api-contract.py
+
+      - name: Commit updated geocache, if it changed
+        run: |
+          if ! git diff --quiet bideplus/scripts/geocache.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add bideplus/scripts/geocache.json
+            git commit -m "chore: update geocache with newly seen stop coordinates"
+            git push
+          else
+            echo "geocache.json unchanged, nothing to commit"
+          fi
+
+      # La huella de los ficheros de la app en sw.js: con ella el móvil no los vuelve a pedir en cada apertura y baja
+      # la versión nueva entera en cuanto cambia alguno. Va después del commit de geocache para no subirla al
+      # repositorio. Si fallara, sw.js se queda sin huella y la app funciona como hasta ahora: no frena el despliegue.
+      - name: Stamp the app files fingerprint in sw.js
+        continue-on-error: true
+        run: php bideplus/scripts/stamp-sw.php
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Vercel ya no arranca las funciones tal como las emite vercel-php (vercel-community/php#650): se construye aquí,
+      # se parchea el lanzador (bideplus/scripts/vercel-launcher.py) y se sube la salida ya construida.
+      - name: Deploy freshly rebuilt database to production
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          # El checkout del algoritmo deja su .git dentro de bideplus/engine y Vercel no admite subirlo.
+          rm -rf bideplus/engine/.git
+          vercel build --prod --yes --token="$VERCEL_TOKEN"
+          OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
+          python3 bideplus/scripts/vercel-launcher.py "$OUT"
+          rm -f .vercelignore bideplus/.vercelignore
+          vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
+
+      # Si lo recién desplegado no responde, el flujo falla y lo dice; no hay despliegue anterior al que volver
+      # (la limpieza de abajo los borra).
+      - name: Comprobar producción
+        run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
+          for i in $(seq 1 6); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO/api/lines")
+            echo "producción /api/lines -> $CODE"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "::error::Producción no responde con el despliegue nuevo"
+          exit 1
+
+      - name: Clean up old deployments to save Vercel storage
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+        run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true

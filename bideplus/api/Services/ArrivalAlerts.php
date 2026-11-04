@@ -1,0 +1,336 @@
+<?php
+
+namespace Services;
+
+use Controllers\StopsController;
+use Core\Config;
+use Core\Networks;
+use Core\Store;
+
+// «Avísame cuando llegue»: una vez, o todos los días que haya ese viaje. Lo revisa el cron de cada minuto.
+class ArrivalAlerts
+{
+    public const MINUTES = [2, 5, 10];
+    private const TTL_SECONDS = 3 * 3600;
+    private const REPEAT_TTL_SECONDS = 60 * 86400;
+    private const REPEAT_SENT_SECONDS = 12 * 3600;
+    private const REPEAT_WINDOW_SECONDS = 90 * 60;
+    private const MAX_PENDING = 5000;
+    private const MAX_PER_RUN = 1000;
+    private const DEPARTURES_LIMIT = 40;
+    // Un aviso de llegada que no se entrega en 10 minutos ya no sirve.
+    private const PUSH_TTL_SECONDS = 600;
+    private const PENDING_KEY = 'bide:arrival:pending';
+    private const ALERT_PREFIX = 'bide:arrival:';
+    private const SENT_PREFIX = 'bide:arrival:sent:';
+    private const GONE_STATUSES = ['departed', 'likely_departed', 'finished'];
+    private const TEXTS = [
+        'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'body' => '→ {headsign} · {stop}'],
+        'eu' => ['minutes' => '{line}: {min} min barru', 'now' => '{line} iristen ari da', 'body' => '→ {headsign} · {stop}'],
+        'en' => ['minutes' => '{line} arrives in {min} min', 'now' => '{line} is arriving', 'body' => '→ {headsign} · {stop}'],
+    ];
+
+    // Estados: created, now, gone, unknown y unavailable. Uno de todos los días se crea siempre, con «today».
+    public static function create(array $aSubscription, string $sStopId, string $sTripKey, int $iMinutes, string $sLang, bool $bRepeat = false): array
+    {
+        [$aStop, $aDeparture] = self::departure($sStopId, $sTripKey);
+        if ($aDeparture === null) {
+            return ['status' => 'unknown'];
+        }
+        $iLeft = self::minutesLeft($aDeparture);
+        $sToday = self::today($aDeparture, $iLeft, $iMinutes);
+        if (!$bRepeat && $sToday === 'gone') {
+            return ['status' => 'gone'];
+        }
+        if (!$bRepeat && $sToday === 'now') {
+            return ['status' => 'now', 'minutesLeft' => max(0, $iLeft)];
+        }
+        $aCount = Store::pipeline([['SCARD', self::PENDING_KEY]]);
+        if ($aCount === null || (int)$aCount[0] >= self::MAX_PENDING) {
+            return ['status' => 'unavailable'];
+        }
+        $aAlert = [
+            'id' => bin2hex(random_bytes(12)),
+            'network' => Config::current()['network'],
+            'stopId' => (string)$aStop['id'],
+            'stopName' => $aStop['name'],
+            'tripKey' => $sTripKey,
+            'lineCode' => $aDeparture['lineCode'],
+            'headsign' => $aDeparture['headsign'],
+            'minutes' => $iMinutes,
+            'lang' => $sLang,
+            'subscription' => $aSubscription,
+            'created' => time(),
+            'repeat' => $bRepeat,
+            'scheduledSeconds' => Calendar::hmToSeconds((string)$aDeparture['scheduledTime']),
+        ];
+        if (!self::store($aAlert, $bRepeat && $sToday === 'now')) {
+            return ['status' => 'unavailable'];
+        }
+        return [
+            'status' => 'created',
+            'id' => $aAlert['id'],
+            'minutesLeft' => $iLeft,
+            'repeat' => $bRepeat,
+            'today' => $sToday,
+            'lineCode' => $aAlert['lineCode'],
+            'headsign' => $aAlert['headsign'],
+            'stopName' => $aAlert['stopName'],
+        ];
+    }
+
+    private static function today(array $aDeparture, int $iLeft, int $iMinutes): string
+    {
+        if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
+            return 'gone';
+        }
+        if ($iLeft <= $iMinutes) {
+            return 'now';
+        }
+        return 'coming';
+    }
+
+    private static function store(array $aAlert, bool $bSentToday): bool
+    {
+        $iTtl = self::TTL_SECONDS;
+        if ($aAlert['repeat']) {
+            $iTtl = self::REPEAT_TTL_SECONDS;
+        }
+        $aCommands = [
+            ['SET', self::ALERT_PREFIX . $aAlert['id'], json_encode($aAlert, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'EX', $iTtl],
+            ['SADD', self::PENDING_KEY, $aAlert['id']],
+        ];
+        if ($bSentToday) {
+            $aCommands[] = ['SET', self::SENT_PREFIX . $aAlert['id'], '1', 'EX', self::REPEAT_SENT_SECONDS];
+        }
+        return Store::pipeline($aCommands) !== null;
+    }
+
+    // Solo cancela quien creó el aviso: hay que dar la misma suscripción.
+    public static function cancel(string $sId, string $sEndpoint): bool
+    {
+        if (!preg_match('/^[a-f0-9]{24}$/', $sId)) {
+            return false;
+        }
+        $aResult = Store::pipeline([['GET', self::ALERT_PREFIX . $sId]]);
+        if ($aResult === null) {
+            return false;
+        }
+        if (!is_string($aResult[0])) {
+            return true;
+        }
+        $aAlert = json_decode($aResult[0], true);
+        if (!hash_equals((string)($aAlert['subscription']['endpoint'] ?? ''), $sEndpoint)) {
+            return false;
+        }
+        Store::pipeline([['DEL', self::ALERT_PREFIX . $sId], ['DEL', self::SENT_PREFIX . $sId], ['SREM', self::PENDING_KEY, $sId]]);
+        return true;
+    }
+
+    // Lo llama el cron cada minuto: manda los avisos a los que ya les toca y olvida los caducados o ya pasados.
+    // $Sender recibe la suscripción y el mensaje y devuelve el código HTTP del servicio de push (en las pruebas, uno
+    // falso).
+    public static function process(callable|null $Sender = null): array
+    {
+        $aCounts = ['pending' => 0, 'sent' => 0, 'dropped' => 0];
+        $aIds = Store::pipeline([['SMEMBERS', self::PENDING_KEY]]);
+        if ($aIds === null || !is_array($aIds[0]) || empty($aIds[0])) {
+            return $aCounts;
+        }
+        $aIds = array_slice($aIds[0], 0, self::MAX_PER_RUN);
+        $aCounts['pending'] = count($aIds);
+        $aValues = Store::pipeline([array_merge(['MGET'], array_map(fn($sId) => self::ALERT_PREFIX . $sId, $aIds))]);
+        $Sender ??= Push::sender(self::PUSH_TTL_SECONDS);
+        if ($aValues === null || $Sender === null) {
+            return $aCounts;
+        }
+
+        [$aByStop, $aForget] = self::groupByStop($aIds, $aValues[0]);
+        // Cada parada se mira en su red; al acabar se vuelve a la de la llamada.
+        $sNetwork = Config::current()['network'];
+        foreach ($aByStop as $aAlerts) {
+            [$iSent, $aGone] = self::processStop($aAlerts, $Sender);
+            $aCounts['sent'] += $iSent;
+            array_push($aForget, ...$aGone);
+        }
+        Config::set($sNetwork);
+        $aCounts['dropped'] = self::forget($aForget);
+        return $aCounts;
+    }
+
+    // Por parada, para calcular sus salidas una vez. Los de todos los días lejos de su hora no se miran.
+    private static function groupByStop(array $aIds, array $aValues): array
+    {
+        $aByStop = [];
+        $aForget = [];
+        foreach ($aIds as $iIndex => $sId) {
+            $aAlert = null;
+            if (is_string($aValues[$iIndex] ?? null)) {
+                $aAlert = json_decode($aValues[$iIndex], true);
+            }
+            if (!is_array($aAlert)) {
+                $aForget[] = $sId;
+                continue;
+            }
+            if (!empty($aAlert['repeat']) && !self::nearItsTime($aAlert)) {
+                continue;
+            }
+            $aByStop[$aAlert['network'] . '|' . $aAlert['stopId']][] = $aAlert;
+        }
+        return [$aByStop, $aForget];
+    }
+
+    // Devuelve [enviados, ids que ya no sirven].
+    private static function processStop(array $aAlerts, callable $Sender): array
+    {
+        Config::set($aAlerts[0]['network']);
+        $aData = (new StopsController())->departuresData($aAlerts[0]['stopId'], self::DEPARTURES_LIMIT);
+        $iSent = 0;
+        $aGone = [];
+        foreach ($aAlerts as $aAlert) {
+            $aDeparture = self::findTrip($aData, $aAlert['tripKey']);
+            if ($aDeparture === null) {
+                continue;
+            }
+            $bRepeat = !empty($aAlert['repeat']);
+            if (in_array($aDeparture['status'], self::GONE_STATUSES, true)) {
+                if (!$bRepeat) {
+                    $aGone[] = $aAlert['id'];
+                }
+                continue;
+            }
+            $iLeft = self::minutesLeft($aDeparture);
+            if ($iLeft > $aAlert['minutes']) {
+                continue;
+            }
+            $bSent = false;
+            if ($bRepeat) {
+                [$bSent, $bDead] = self::sendToday($aAlert, max(0, $iLeft), $Sender);
+                if ($bDead) {
+                    $aGone[] = $aAlert['id'];
+                }
+            } else {
+                $bSent = self::sendOnce($aAlert, max(0, $iLeft), $Sender);
+            }
+            if ($bSent) {
+                $iSent++;
+            }
+        }
+        return [$iSent, $aGone];
+    }
+
+    // Quita los avisos de la lista y del almacén. Devuelve cuántos.
+    private static function forget(array $aIds): int
+    {
+        if (empty($aIds)) {
+            return 0;
+        }
+        $aCommands = [array_merge(['SREM', self::PENDING_KEY], $aIds)];
+        foreach ($aIds as $sId) {
+            $aCommands[] = ['DEL', self::ALERT_PREFIX . $sId, self::SENT_PREFIX . $sId];
+        }
+        Store::pipeline($aCommands);
+        return count($aIds);
+    }
+
+    // Se quita de la lista antes de enviar (SREM devuelve 1 solo a quien lo quita): dos llamadas del cron a la vez no
+    // mandan el mismo aviso dos veces. Si el servicio de push falla, vuelve a la lista para el minuto siguiente.
+    private static function sendOnce(array $aAlert, int $iLeft, callable $Sender): bool
+    {
+        $aTaken = Store::pipeline([['SREM', self::PENDING_KEY, $aAlert['id']]]);
+        if ($aTaken === null || (int)$aTaken[0] !== 1) {
+            return false;
+        }
+        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft)));
+        $bDelivered = $iStatus >= 200 && $iStatus < 300;
+        // 404 y 410: la suscripción ya no existe (se desinstaló la app o se quitó el permiso). No se reintenta.
+        if ($bDelivered || $iStatus === 404 || $iStatus === 410) {
+            Store::pipeline([['DEL', self::ALERT_PREFIX . $aAlert['id']]]);
+            return $bDelivered;
+        }
+        Store::pipeline([['SADD', self::PENDING_KEY, $aAlert['id']]]);
+        return false;
+    }
+
+    // Devuelve [enviado, la suscripción ya no existe]. Si el push falla, se reintenta al minuto siguiente.
+    private static function sendToday(array $aAlert, int $iLeft, callable $Sender): array
+    {
+        $aTaken = Store::pipeline([['SET', self::SENT_PREFIX . $aAlert['id'], '1', 'NX', 'EX', self::REPEAT_SENT_SECONDS]]);
+        if ($aTaken === null || $aTaken[0] !== 'OK') {
+            return [false, false];
+        }
+        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft)));
+        if ($iStatus >= 200 && $iStatus < 300) {
+            Store::pipeline([['EXPIRE', self::ALERT_PREFIX . $aAlert['id'], self::REPEAT_TTL_SECONDS]]);
+            return [true, false];
+        }
+        if ($iStatus === 404 || $iStatus === 410) {
+            return [false, true];
+        }
+        Store::pipeline([['DEL', self::SENT_PREFIX . $aAlert['id']]]);
+        return [false, false];
+    }
+
+    // Cuenta la vuelta del día: un viaje de las 00:10 está cerca a las 23:50.
+    private static function nearItsTime(array $aAlert): bool
+    {
+        $iDiff = ((((int)($aAlert['scheduledSeconds'] ?? 0) - Calendar::nowSecondsSinceMidnight()) % 86400) + 86400) % 86400;
+        if ($iDiff > 43200) {
+            $iDiff -= 86400;
+        }
+        return $iDiff >= -self::REPEAT_WINDOW_SECONDS && $iDiff <= (int)$aAlert['minutes'] * 60 + self::REPEAT_WINDOW_SECONDS;
+    }
+
+    public static function message(array $aAlert, int $iLeft): array
+    {
+        $aTexts = self::TEXTS[$aAlert['lang']] ?? self::TEXTS['es'];
+        $aVars = ['{line}' => $aAlert['lineCode'], '{min}' => (string)$iLeft, '{headsign}' => $aAlert['headsign'], '{stop}' => $aAlert['stopName']];
+        $sTitle = strtr($aTexts['minutes'], $aVars);
+        if ($iLeft <= 0) {
+            $sTitle = strtr($aTexts['now'], $aVars);
+        }
+        // Al tocarla se abre la parada con la ficha del viaje en directo.
+        $sUrl = '/stops/' . rawurlencode($aAlert['stopId']) . Networks::urlSuffix($aAlert['network']);
+        $sSeparator = '?';
+        if (str_contains($sUrl, '?')) {
+            $sSeparator = '&';
+        }
+        $sUrl .= $sSeparator . 'viaje=' . rawurlencode($aAlert['tripKey']) . '&aviso=' . $aAlert['id'] . '-' . base_convert((string)time(), 10, 36);
+        return [
+            'title' => $sTitle,
+            'body' => strtr($aTexts['body'], $aVars),
+            'url' => $sUrl,
+            'tag' => 'bide-arrival-' . $aAlert['id'],
+            'alertId' => $aAlert['id'],
+            'repeat' => !empty($aAlert['repeat']),
+        ];
+    }
+
+    private static function departure(string $sStopId, string $sTripKey): array
+    {
+        $aData = (new StopsController())->departuresData($sStopId, self::DEPARTURES_LIMIT);
+        if ($aData === null) {
+            return [null, null];
+        }
+        return [$aData['stop'], self::findTrip($aData, $sTripKey)];
+    }
+
+    private static function findTrip(array|null $aData, string $sTripKey): array|null
+    {
+        foreach ($aData['departures'] ?? [] as $aDeparture) {
+            if (($aDeparture['tripKey'] ?? null) === $sTripKey) {
+                return $aDeparture;
+            }
+        }
+        return null;
+    }
+
+    // Igual que la app: con la hora absoluta prevista (etaAt), contra el reloj de ahora.
+    private static function minutesLeft(array $aDeparture): int
+    {
+        if (isset($aDeparture['etaAt']) && is_numeric($aDeparture['etaAt'])) {
+            return (int)round(($aDeparture['etaAt'] - time()) / 60);
+        }
+        return (int)$aDeparture['etaMinutes'];
+    }
+}

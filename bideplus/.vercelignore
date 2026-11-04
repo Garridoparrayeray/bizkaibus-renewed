@@ -1,0 +1,8 @@
+javadoc-BizkaiBus-Metro.pdf
+manual-BizkaiBus-Metro.pdf
+tests/
+scripts/
+engine/*/tools/
+engine/*/data/*.jsonl*
+dev-router.php
+bizkaibus-renewed.code-workspace

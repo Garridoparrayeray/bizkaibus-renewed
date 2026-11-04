@@ -1,0 +1,56 @@
+name: Horario o llegada incorrectos
+description: Un horario, una parada, una línea o un tiempo de llegada no coincide con la realidad.
+title: "[Dato] "
+labels: ["datos"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Los horarios vienen de los datos oficiales de cada operador y se reconstruyen cada día. Si el error ya está en el dato de origen, aquí no se puede corregir, pero conviene saberlo.
+        Euskotren, los tranvías y Renfe muestran el horario programado: no incluyen retrasos, salvo los avisos que publique el operador.
+  - type: dropdown
+    id: app
+    attributes:
+      label: ¿En qué app?
+      options:
+        - Bizkaibus+
+        - Metro+
+        - Euskotren+
+        - Tranvía Bilbao+
+        - Tranvía Vitoria+
+        - Renfe Cercanías+
+    validations:
+      required: true
+  - type: input
+    id: parada
+    attributes:
+      label: Parada y línea
+      placeholder: "Ej.: parada San Juan (Amorebieta), línea A3514"
+    validations:
+      required: true
+  - type: input
+    id: cuando
+    attributes:
+      label: Día y hora en que lo viste
+      placeholder: "Ej.: jueves 1 de octubre, a las 16:40"
+    validations:
+      required: true
+  - type: textarea
+    id: app-dice
+    attributes:
+      label: Lo que mostraba la app
+      placeholder: "Ej.: «15 min» para la A3514"
+    validations:
+      required: true
+  - type: textarea
+    id: realidad
+    attributes:
+      label: Lo que pasó en realidad
+      placeholder: "Ej.: el bus ya estaba en la parada"
+    validations:
+      required: true
+  - type: textarea
+    id: capturas
+    attributes:
+      label: Capturas
+      description: Si puedes, una captura de la app en ese momento.

@@ -1,0 +1,505 @@
+<?php
+
+namespace Models;
+
+use Services\Calendar;
+
+// Consultas de viajes del horario: próximas salidas en una parada, horario de una línea y los datos de un
+// viaje concreto. Los calendarios (qué días circula cada viaje) se resuelven aquí.
+class ServiceJourney
+{
+    private const DEDUPE_TOLERANCE_SECONDS = 90;
+
+    private const PAST_GRACE_SECONDS = 900;
+
+    private const COUNTED_PAST_SECONDS = 120;
+
+    private const SUNDAY_ONLY_MASK = 0b1000000;
+
+    private const LAST_STOP_NAME_SUBQUERY = '(
+        SELECT s2.name FROM passing_times pt2
+        JOIN stops s2 ON s2.id = pt2.stop_id
+        WHERE pt2.service_journey_id = sj.id
+        ORDER BY pt2.seq_order DESC LIMIT 1
+    )';
+
+    private array $aTableExists = [];
+
+    public function __construct(private \PDO $Pdo)
+    {
+    }
+
+    // La hora (segundos desde medianoche) de la próxima salida de hoy desde la parada, o null si no queda ninguna.
+    public function nextDepartureSeconds(int|string $iStopId): int|null
+    {
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $Stmt = $this->Pdo->prepare('
+            SELECT MIN(pt.departure_seconds)
+            FROM passing_times pt
+            JOIN service_journeys sj ON sj.id = pt.service_journey_id
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE pt.stop_id = :stopId
+              AND sc.id != \'PRUEBA\'
+              AND pt.departure_seconds > :now
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce
+                  WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
+              )
+        ');
+        $Stmt->execute([
+            'stopId' => $iStopId,
+            'now' => Calendar::nowSecondsSinceMidnight(),
+            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'today' => $sToday,
+            'today2' => $sToday,
+        ]);
+        $Next = $Stmt->fetchColumn();
+        if ($Next === false || $Next === null) {
+            return null;
+        }
+        return (int)$Next;
+    }
+
+    // Con $iDaysAhead = 1, las de mañana con su calendario, en las mismas horas que hoy (+24 h): 07:00 de mañana es 31:00.
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0): array
+    {
+        $iShift = $iDaysAhead * 86400;
+        $iNow = Calendar::nowSecondsSinceMidnight() - $iShift;
+        $Day = Calendar::todayMadrid()->modify("+{$iDaysAhead} day");
+        $sToday = $Day->format('Y-m-d');
+
+        $Stmt = $this->Pdo->prepare('
+            SELECT sj.line_id, sj.trip_number, sj.id AS service_journey_id, sj.first_departure_seconds,
+                   l.code AS line_code, l.name AS line_name, jp.id AS journey_pattern_id, jp.headsign,
+                   pt.arrival_seconds, pt.departure_seconds, pt.seq_order AS stop_seq,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
+            FROM passing_times pt
+            JOIN service_journeys sj ON sj.id = pt.service_journey_id
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            JOIN lines l ON l.id = sj.line_id
+            JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+            WHERE pt.stop_id = :stopId
+              AND sc.id != \'PRUEBA\'
+              AND EXISTS (
+                  SELECT 1 FROM passing_times pt2
+                  WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+              )
+              AND pt.departure_seconds BETWEEN :windowStart AND :windowEnd
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce
+                  WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
+              )
+            ORDER BY pt.departure_seconds ASC
+        ');
+        $Stmt->execute([
+            'stopId' => $iStopId,
+            'weekdayBit' => Calendar::weekdayBitFor($Day),
+            'today' => $sToday,
+            'today2' => $sToday,
+            'windowStart' => $iNow - self::PAST_GRACE_SECONDS,
+            'windowEnd' => $iNow + $iWindowSeconds,
+        ]);
+
+        $aRows = $this->dedupeByTrip($Stmt->fetchAll(), $iLimit + 5, $iNow - self::COUNTED_PAST_SECONDS);
+        if ($iShift === 0) {
+            return $aRows;
+        }
+        foreach ($aRows as &$aRow) {
+            $aRow['arrival_seconds'] = (int)$aRow['arrival_seconds'] + $iShift;
+            $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + $iShift;
+        }
+        unset($aRow);
+        return $aRows;
+    }
+
+    public function directionsByPattern(int|string $iStopId, int|string $iReferenceStopId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT jp.id AS pattern_id,
+                   j.seq_order AS stop_seq,
+                   (SELECT jr.seq_order FROM journey_pattern_stops jr
+                    WHERE jr.journey_pattern_id = jp.id AND jr.stop_id = :ref LIMIT 1) AS ref_seq,
+                   last_stop.name AS last_name,
+                   last_stop.lon AS last_lon
+            FROM journey_patterns jp
+            JOIN journey_pattern_stops j ON j.journey_pattern_id = jp.id AND j.stop_id = :stop
+            JOIN stops last_stop ON last_stop.id = (
+                SELECT jl.stop_id FROM journey_pattern_stops jl
+                WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1
+            )
+        ');
+        $Stmt->execute(['ref' => $iReferenceStopId, 'stop' => $iStopId]);
+        $aRows = $Stmt->fetchAll();
+        if (empty($aRows)) {
+            return [];
+        }
+
+        $LonStmt = $this->Pdo->prepare('SELECT lon FROM stops WHERE id = ?');
+        $LonStmt->execute([$iStopId]);
+        $dStopLon = (float)$LonStmt->fetchColumn();
+        $LonStmt->execute([$iReferenceStopId]);
+        $dReferenceLon = (float)$LonStmt->fetchColumn();
+
+        $aDirections = [];
+        foreach ($aRows as $aRow) {
+            $bSameSideAsReference = ((float)$aRow['last_lon'] - $dStopLon) * ($dReferenceLon - $dStopLon) > 0;
+            if ($aRow['ref_seq'] !== null && (int)$aRow['stop_seq'] !== (int)$aRow['ref_seq']) {
+                $bToward = (int)$aRow['stop_seq'] < (int)$aRow['ref_seq'];
+            } elseif ((string)$iStopId === (string)$iReferenceStopId) {
+                $bToward = (float)$aRow['last_lon'] > $dStopLon;
+            } else {
+                $bToward = $bSameSideAsReference;
+            }
+            $sDirection = 'away_from_reference';
+            if ($bToward) {
+                $sDirection = 'toward_reference';
+            }
+            $aDirections[$aRow['pattern_id']] = [
+                'direction' => $sDirection,
+                'terminus' => $aRow['last_name'],
+            ];
+        }
+        return $aDirections;
+    }
+
+    public function timetableForLine(int|string $iLineId, \DateTime $Date, int $iHourFromSeconds, int $iHourToSeconds, int|string|null $iStopId = null): array
+    {
+        $iWeekdayBit = Calendar::weekdayBitFor($Date);
+        $sDateStr = $Date->format('Y-m-d');
+
+        $sStopCondition = 'pt.seq_order = 1';
+        if ($iStopId !== null) {
+            $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)
+                AND EXISTS (
+                    SELECT 1 FROM passing_times pt2
+                    WHERE pt2.service_journey_id = pt.service_journey_id AND pt2.seq_order > pt.seq_order
+                )';
+        }
+
+        $Stmt = $this->Pdo->prepare('
+            SELECT sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.id AS service_journey_id,
+                   jp.headsign, jp.id AS journey_pattern_id, pt.departure_seconds,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name
+            FROM passing_times pt
+            JOIN service_journeys sj ON sj.id = pt.service_journey_id
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+            WHERE sj.line_id = :lineId
+              AND ' . $sStopCondition . '
+              AND sc.id != \'PRUEBA\'
+              AND (
+                  (sc.weekday_mask & :weekdayBit) != 0
+                  OR EXISTS (
+                      SELECT 1 FROM service_calendar_exceptions sce_inc
+                      WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :dateStr2 AND sce_inc.available = 1
+                  )
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce
+                  WHERE sce.calendar_id = sc.id AND sce.date = :dateStr AND sce.available = 0
+              )
+              AND pt.departure_seconds BETWEEN :hourFrom AND :hourTo
+            ORDER BY pt.departure_seconds ASC
+        ');
+        $aParams = [
+            'lineId' => $iLineId,
+            'weekdayBit' => $iWeekdayBit,
+            'dateStr' => $sDateStr,
+            'dateStr2' => $sDateStr,
+            'hourFrom' => $iHourFromSeconds,
+            'hourTo' => $iHourToSeconds,
+        ];
+        if ($iStopId !== null) {
+            $aParams['stopId'] = $iStopId;
+            $aParams['stopIdAsStation'] = $iStopId;
+        }
+        $Stmt->execute($aParams);
+
+        return $this->dedupeByTrip($Stmt->fetchAll(), 2000);
+    }
+
+    public function findByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array|null
+    {
+        $aVariants = $this->variantsByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds);
+        if (empty($aVariants)) {
+            return null;
+        }
+        return $aVariants[0];
+    }
+
+    // Un mismo número de viaje y primera salida puede existir en varios calendarios (L-J y V) con horas distintas.
+    // Salen primero los que circulan hoy, que son los que el directo puede estar siguiendo; si no, la ficha del viaje
+    // podía quedarse con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
+    public function variantsByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array
+    {
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $Stmt = $this->Pdo->prepare('
+            SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,
+                   l.code AS line_code, l.name AS line_name, jp.headsign,
+                   ' . self::LAST_STOP_NAME_SUBQUERY . ' AS last_stop_name,
+                   CASE WHEN sc.id IS NOT NULL AND (
+                       (sc.weekday_mask & :weekdayBit) != 0
+                       OR EXISTS (
+                           SELECT 1 FROM service_calendar_exceptions sce_inc
+                           WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :today2 AND sce_inc.available = 1
+                       )
+                   ) AND NOT EXISTS (
+                       SELECT 1 FROM service_calendar_exceptions sce
+                       WHERE sce.calendar_id = sc.id AND sce.date = :today AND sce.available = 0
+                   ) THEN 1 ELSE 0 END AS runs_today
+            FROM service_journeys sj
+            JOIN lines l ON l.id = sj.line_id
+            JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+            LEFT JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE sj.line_id = :lineId AND sj.trip_number = :tripNumber AND sj.first_departure_seconds = :firstDeparture
+            ORDER BY runs_today DESC, sj.id ASC
+        ');
+        $Stmt->execute([
+            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'today' => $sToday,
+            'today2' => $sToday,
+            'lineId' => $iLineId,
+            'tripNumber' => $sTripNumber,
+            'firstDeparture' => $iFirstDepartureSeconds,
+        ]);
+        return $Stmt->fetchAll();
+    }
+
+    public function arrivalSecondsAtOrder(string $sServiceJourneyId, int $iSeqOrder): int|null
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT arrival_seconds FROM passing_times
+            WHERE service_journey_id = ? AND seq_order = ?
+        ');
+        $Stmt->execute([$sServiceJourneyId, $iSeqOrder]);
+        $sValue = $Stmt->fetchColumn();
+        if ($sValue === false) {
+            return null;
+        }
+        return (int)$sValue;
+    }
+
+    public function journeyIdsForTripRefs(array $aTripRefs): array
+    {
+        if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
+            return [];
+        }
+        $aResult = [];
+        foreach (array_chunk(array_values(array_unique($aTripRefs)), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE trip_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute($aChunk);
+            foreach ($Stmt->fetchAll() as $aRow) {
+                $aResult[$aRow['trip_id']] = $aRow['service_journey_id'];
+            }
+        }
+        return $aResult;
+    }
+
+    // Nombres con los que el directo puede llamar a cada viaje (sus alias y su propio id).
+    public function tripRefsForJourneys(array $aJourneyIds): array
+    {
+        $aResult = [];
+        foreach ($aJourneyIds as $sJourneyId) {
+            $aResult[(string)$sJourneyId] = [(string)$sJourneyId];
+        }
+        if (empty($aResult) || !$this->hasTable('trip_aliases')) {
+            return $aResult;
+        }
+        foreach (array_chunk(array_keys($aResult), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT trip_id, service_journey_id FROM trip_aliases
+                WHERE service_journey_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute(array_map('strval', $aChunk));
+            foreach ($Stmt->fetchAll() as $aRow) {
+                if (!in_array($aRow['trip_id'], $aResult[$aRow['service_journey_id']], true)) {
+                    $aResult[$aRow['service_journey_id']][] = $aRow['trip_id'];
+                }
+            }
+        }
+        return $aResult;
+    }
+
+    public function shapePointsForJourney(string $sServiceJourneyId): array
+    {
+        if (!$this->hasTable('shapes')) {
+            return [];
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT s.points FROM service_journeys sj
+            JOIN shapes s ON s.id = sj.shape_id
+            WHERE sj.id = ?
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        $sPoints = $Stmt->fetchColumn();
+        if ($sPoints === false) {
+            return [];
+        }
+        $aPoints = json_decode($sPoints, true);
+        if (!\is_array($aPoints)) {
+            return [];
+        }
+        return $aPoints;
+    }
+
+    public function stopsWithCoordinates(string $sServiceJourneyId): array
+    {
+        $sDistanceColumn = 'NULL AS dist_m';
+        if ($this->hasTable('shapes')) {
+            $sDistanceColumn = 'pt.dist_m';
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT pt.seq_order, pt.stop_id, pt.arrival_seconds, pt.departure_seconds, s.lat, s.lon, ' . $sDistanceColumn . '
+            FROM passing_times pt
+            JOIN stops s ON s.id = pt.stop_id
+            WHERE pt.service_journey_id = ?
+            ORDER BY pt.seq_order
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        return $Stmt->fetchAll();
+    }
+
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
+    public function isHoliday(string $sDate): bool
+    {
+        if (!$this->hasTable('service_calendars') || !$this->hasTable('service_calendar_exceptions')) {
+            return false;
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT 1
+            FROM service_calendar_exceptions sce
+            JOIN service_calendars sc ON sc.id = sce.calendar_id
+            WHERE sce.date = ? AND sce.available = 1 AND sc.weekday_mask = ?
+            LIMIT 1
+        ');
+        $Stmt->execute([$sDate, self::SUNDAY_ONLY_MASK]);
+        return $Stmt->fetchColumn() !== false;
+    }
+
+    private function hasTable(string $sTable): bool
+    {
+        if (!isset($this->aTableExists[$sTable])) {
+            $Stmt = $this->Pdo->prepare('SELECT 1 FROM sqlite_master WHERE type = \'table\' AND name = ?');
+            $Stmt->execute([$sTable]);
+            $this->aTableExists[$sTable] = $Stmt->fetchColumn() !== false;
+        }
+        return $this->aTableExists[$sTable];
+    }
+
+    public function stopSequencesForPatterns(array $aPatternIds): array
+    {
+        if (empty($aPatternIds)) {
+            return [];
+        }
+        $sPlaceholders = implode(',', array_fill(0, \count($aPatternIds), '?'));
+        $Stmt = $this->Pdo->prepare("SELECT journey_pattern_id, stop_id FROM journey_pattern_stops WHERE journey_pattern_id IN ($sPlaceholders) ORDER BY journey_pattern_id, seq_order");
+        $Stmt->execute(array_values($aPatternIds));
+        $aSequences = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aSequences[$aRow['journey_pattern_id']][] = (string)$aRow['stop_id'];
+        }
+        return $aSequences;
+    }
+
+    // De los viajes del directo que son de la línea, su última parada: [viaje del directo => nombre].
+    public function lastStopNamesOnLine(string $sLineId, array $aTripRefs): array
+    {
+        if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
+            return [];
+        }
+        $aResult = [];
+        foreach (array_chunk(array_values(array_unique($aTripRefs)), 500) as $aChunk) {
+            $Stmt = $this->Pdo->prepare('
+                SELECT ta.trip_id, (
+                    SELECT s.name FROM passing_times pt JOIN stops s ON s.id = pt.stop_id
+                    WHERE pt.service_journey_id = ta.service_journey_id
+                    ORDER BY pt.seq_order DESC LIMIT 1
+                ) AS last_stop_name
+                FROM trip_aliases ta
+                JOIN service_journeys sj ON sj.id = ta.service_journey_id
+                JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+                WHERE jp.line_id = ? AND ta.trip_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
+            ');
+            $Stmt->execute(array_merge([$sLineId], $aChunk));
+            foreach ($Stmt->fetchAll() as $aRow) {
+                $aResult[(string)$aRow['trip_id']] = $aRow['last_stop_name'];
+            }
+        }
+        return $aResult;
+    }
+
+    public function lineOfJourney(string $sServiceJourneyId): array|null
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT l.id, l.code
+            FROM service_journeys sj
+            JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
+            JOIN lines l ON l.id = jp.line_id
+            WHERE sj.id = ?
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        $aLine = $Stmt->fetch();
+        if ($aLine === false) {
+            return null;
+        }
+        return $aLine;
+    }
+
+    public function stopsForJourney(string $sServiceJourneyId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT pt.seq_order, s.id AS stop_id, s.name, pt.arrival_seconds, pt.departure_seconds
+            FROM passing_times pt
+            JOIN stops s ON s.id = pt.stop_id
+            WHERE pt.service_journey_id = ?
+            ORDER BY pt.seq_order
+        ');
+        $Stmt->execute([$sServiceJourneyId]);
+        return $Stmt->fetchAll();
+    }
+
+    private function dedupeByTrip(array $aRows, int $iLimit, int $iCountFromSeconds = PHP_INT_MIN): array
+    {
+        $aKept = [];
+        $aResult = [];
+        $iCounted = 0;
+        foreach ($aRows as $aRow) {
+            $sKey = $aRow['line_id'] . '|' . $aRow['trip_number'];
+            $iDeparture = (int)$aRow['departure_seconds'];
+            // Mismo viaje en dos calendarios: misma hora en la parada y misma salida de cabecera. Dos viajes distintos del mismo
+            // número pueden pasar a la vez por la parada si uno lleva un horario más lento (A3514 por San Juan, Amorebieta).
+            $iFirst = (int)($aRow['first_departure_seconds'] ?? 0);
+            foreach ($aKept[$sKey] ?? [] as [$iKeptDeparture, $iKeptFirst]) {
+                if (abs($iDeparture - $iKeptDeparture) <= self::DEDUPE_TOLERANCE_SECONDS && abs($iFirst - $iKeptFirst) <= self::DEDUPE_TOLERANCE_SECONDS) {
+                    continue 2;
+                }
+            }
+            $aKept[$sKey][] = [$iDeparture, $iFirst];
+            $aResult[] = $aRow;
+            if ($iDeparture >= $iCountFromSeconds) {
+                $iCounted++;
+            }
+            if ($iCounted >= $iLimit) {
+                break;
+            }
+        }
+        return $aResult;
+    }
+}

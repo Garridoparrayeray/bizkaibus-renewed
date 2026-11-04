@@ -1,0 +1,68 @@
+<?php
+
+namespace Core;
+
+// Rutas de la API: patrón con {parámetros}, método y segundos de caché. Ver api/index.php.
+class Router
+{
+
+    private array $aRoutes = [];
+
+    public function get(string $sPattern, callable $Handler, int $iCacheSeconds = 0): void
+    {
+        $this->add('GET', $sPattern, $Handler, $iCacheSeconds);
+    }
+
+    public function post(string $sPattern, callable $Handler): void
+    {
+        $this->add('POST', $sPattern, $Handler);
+    }
+
+    private function add(string $sMethod, string $sPattern, callable $Handler, int $iCacheSeconds = 0): void
+    {
+        $aParamNames = [];
+        $sRegex = preg_replace_callback('#\{(\w+)\}#', function ($aM) use (&$aParamNames) {
+            $aParamNames[] = $aM[1];
+            return '([^/]+)';
+        }, $sPattern);
+
+        $this->aRoutes[] = [
+            'method' => $sMethod,
+            'pattern' => $sPattern,
+            'regex' => '#^' . $sRegex . '$#',
+            'params' => $aParamNames,
+            'handler' => $Handler,
+            'cache' => $iCacheSeconds,
+        ];
+    }
+
+    public function dispatch(Request $Req): void
+    {
+        $bMatchedPath = false;
+        foreach ($this->aRoutes as $aRoute) {
+            if (!preg_match($aRoute['regex'], $Req->sPath, $aMatches)) {
+                continue;
+            }
+            $bMatchedPath = true;
+            if ($aRoute['method'] !== $Req->sMethod) {
+                continue;
+            }
+            array_shift($aMatches);
+            $aParams = array_combine($aRoute['params'], array_map('rawurldecode', $aMatches));
+            Response::$iCacheSeconds = $aRoute['cache'];
+            try {
+                ($aRoute['handler'])($Req, $aParams);
+            } catch (\Throwable $Ex) {
+                error_log('Bide+ API: ' . $Ex->getMessage() . ' en ' . $Ex->getFile() . ':' . $Ex->getLine());
+                Response::error('Internal error', 500);
+            }
+            return;
+        }
+
+        if ($bMatchedPath) {
+            Response::error('Method not allowed', 405);
+        } else {
+            Response::error('Not found', 404);
+        }
+    }
+}

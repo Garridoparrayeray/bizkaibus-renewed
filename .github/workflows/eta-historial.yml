@@ -1,0 +1,67 @@
+name: Historial de precision de las llegadas
+
+# Recupera de los logs de «Ritmo de los buses» las medidas de precisión que se imprimían antes de que la captura
+# guardara histogramas (eta-eval.jsonl), y las deja en eta-eval-historial.jsonl en la release pace-data.
+# Los logs de GitHub caducan a los 90 días: lo ya recuperado se conserva aunque su log desaparezca.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: eta-historial
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  RELEASE: pace-data
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # El lector de logs está con el algoritmo, en un repositorio privado.
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Descargar los logs de las capturas
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          gh run list --workflow pace-capture.yml --status completed --limit 1000 \
+            --json databaseId,createdAt,event,conclusion,headSha > "$RUNNER_TEMP/runs.json"
+          for ID in $(jq -r '.[] | select(.conclusion != "cancelled" and .conclusion != "skipped") | .databaseId' "$RUNNER_TEMP/runs.json"); do
+            if ! gh run view "$ID" --log > "$RUNNER_TEMP/logs/$ID.log" 2>/dev/null; then
+              rm -f "$RUNNER_TEMP/logs/$ID.log"
+            fi
+          done
+          echo "$(ls "$RUNNER_TEMP/logs" | wc -l) logs descargados de $(jq length "$RUNNER_TEMP/runs.json") ejecuciones"
+
+      - name: Leer las medidas y guardarlas
+        run: |
+          source .github/scripts/pace-data.sh
+          PREVIO=""
+          ESTADO=0
+          descargar_acumulado eta-eval-historial.jsonl "$RUNNER_TEMP/previo" || ESTADO=$?
+          if [ "$ESTADO" = 1 ]; then
+            echo "El historial anterior no se puede descargar; no se sustituye" >&2
+            exit 1
+          fi
+          if [ "$ESTADO" = 0 ]; then
+            PREVIO="--previo=$RUNNER_TEMP/previo/eta-eval-historial.jsonl"
+          fi
+          mkdir -p "$RUNNER_TEMP/nuevo"
+          python3 bideplus/engine/bizkaibus/tools/eta-history.py "$RUNNER_TEMP/runs.json" "$RUNNER_TEMP/logs" $PREVIO \
+            > "$RUNNER_TEMP/nuevo/eta-eval-historial.jsonl"
+          subir_acumulado "$RUNNER_TEMP/nuevo/eta-eval-historial.jsonl"
+          python3 bideplus/engine/bizkaibus/tools/eta-report.py /dev/null \
+            --historial="$RUNNER_TEMP/nuevo/eta-eval-historial.jsonl" >> "$GITHUB_STEP_SUMMARY"

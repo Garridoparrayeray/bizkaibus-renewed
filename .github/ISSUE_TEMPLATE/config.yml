@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Informar de una vulnerabilidad (privado)
+    url: https://github.com/Garridoparrayeray/bizkaibus-renewed/security/advisories/new
+    about: Las vulnerabilidades no se publican como issue. Usa este aviso privado.
+  - name: Contactar con el autor
+    url: https://www.yeraygarrido.dev/
+    about: Para cualquier otra cosa que no encaje en las plantillas.

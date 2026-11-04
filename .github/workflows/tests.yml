@@ -1,0 +1,128 @@
+name: Tests
+
+on:
+  push:
+    paths:
+      - 'bideplus/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    paths:
+      - 'bideplus/**'
+      - '.github/workflows/tests.yml'
+  workflow_dispatch: {}
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: bideplus
+    env:
+      CI: 'true'
+      BASE_URL: http://localhost:8011
+    steps:
+      - uses: actions/checkout@v4
+
+      # El algoritmo vive en un repositorio privado y se coloca en bideplus/engine (esa carpeta no se sube a este repo).
+      # Si allí hay una rama con el mismo nombre que esta (centro-de-pruebas), se prueba con ella; si no, con main.
+      - name: Rama del algoritmo
+        id: engine
+        env:
+          ENGINE_REPO_TOKEN: ${{ secrets.ENGINE_REPO_TOKEN }}
+        run: |
+          BRANCH="${{ github.head_ref || github.ref_name }}"
+          # El secreto puede llevar un salto de línea al final: fuera.
+          TOKEN="$(printf '%s' "$ENGINE_REPO_TOKEN" | tr -d '\r\n')"
+          REF=main
+          # Por su nombre exacto: GitHub redirige la antigua «master» a «main» y respondería que existe.
+          FOUND="$(curl -s -H "Authorization: Bearer $TOKEN" "https://api.github.com/repos/Garridoparrayeray/bideplus-engine/branches/$BRANCH" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("name", ""))' 2>/dev/null || true)"
+          if [ "$FOUND" = "$BRANCH" ]; then
+            REF="$BRANCH"
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Algoritmo: rama $REF"
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          ref: ${{ steps.engine.outputs.ref }}
+          path: bideplus/engine
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, mbstring
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # El mapa de la red (/mapa) lee map-data/*.json, que se generan con las bases como en la reconstrucción diaria.
+      - name: Datos del mapa de la red
+        run: php scripts/build-network-map.php
+
+      # Los horarios sin conexión (offline-data/*.json) también salen de las bases.
+      - name: Horarios sin conexión
+        run: php scripts/build-offline-data.php
+
+      - name: Start local server
+        run: |
+          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs -o /dev/null http://localhost:8011/; then exit 0; fi
+            sleep 1
+          done
+          echo "El servidor local no arranca"
+          cat "$RUNNER_TEMP/php-server.log"
+          exit 1
+
+      - name: Static checks, unit tests and data integrity
+        run: python tests/static-checks.py
+
+      - name: API smoke tests
+        run: python tests/api-smoke.py
+
+      - name: API contract (campos y tipos que usa la app)
+        run: python tests/api-contract.py
+
+      - name: Horarios sin conexión (las salidas guardadas son las de la API)
+        run: node tests/offline-schedule.mjs
+
+      - name: Periodos del horario oficial (sin años pasados, días sueltos juntos)
+        run: node tests/schedule-periods.mjs
+
+      - name: UI battery
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-battery.mjs
+
+      - name: UI offline (recursos propios y servicio sin conexion)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-offline.mjs
+
+      - name: UI avisos (notificaciones de incidencias)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-alerts.mjs
+
+      - name: UI cerca de mi (GPS)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-nearby.mjs
+
+      - name: UI Bide+ (pestañas, columna lateral y páginas comunes)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-bide.mjs
+
+      - name: Server log (on failure)
+        if: failure()
+        run: cat "$RUNNER_TEMP/php-server.log" || true

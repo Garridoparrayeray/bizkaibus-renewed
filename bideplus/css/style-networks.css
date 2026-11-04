@@ -1,0 +1,197 @@
+/* Generado por scripts/build-networks-css.php: no lo edites a mano. */
+
+/* ===== Ficha de cada red en el inicio ===== */
+.tile--bus {
+    --c: #0B6E4C;
+}
+.tile--metro {
+    --c: #C8102E;
+}
+.tile--euskotren {
+    --c: #003F8C;
+}
+.tile--renfe {
+    --c: #74349A;
+}
+.tile--lurraldebus {
+    --c: #0062A8;
+}
+.tile--tranvia-bilbao {
+    --c: #4EB848;
+}
+.tile--tranvia-vitoria {
+    --c: #60AE27;
+}
+.tile--bilbobus {
+    --c: #C0362C;
+}
+.tile--tuvisa {
+    --c: #00796B;
+}
+.tile--dbus {
+    --c: #0141AD;
+}
+.tile--alavabus {
+    --c: #A8034F;
+}
+.tile--launion {
+    --c: #30609D;
+}
+
+/* ===== Cuadradito de cada red en Bide+ ===== */
+html.bide .bide-swatch--metro {
+    background: #C8102E;
+}
+html.bide .bide-swatch--euskotren {
+    background: #003F8C;
+}
+html.bide .bide-swatch--renfe {
+    background: #74349A;
+}
+html.bide .bide-swatch--lurraldebus {
+    background: #0062A8;
+}
+html.bide .bide-swatch--tranvia-bilbao {
+    background: #2f7a2a;
+}
+html.bide .bide-swatch--tranvia-vitoria {
+    background: #3f7f1c;
+}
+html.bide .bide-swatch--bilbobus {
+    background: #C0362C;
+}
+html.bide .bide-swatch--tuvisa {
+    background: #00796B;
+}
+html.bide .bide-swatch--dbus {
+    background: #0141AD;
+}
+html.bide .bide-swatch--alavabus {
+    background: #A8034F;
+}
+html.bide .bide-swatch--launion {
+    background: #30609D;
+}
+
+/* ===== Paleta de la app de cada red ===== */
+html.is-metro {
+    --bg: #f6f4f4;
+    --border: #e3ddde;
+    --primary: #C8102E;
+    --primary-light: #FF8A80;
+    --primary-dark: #7A0C1D;
+    --primary-tint: #FCEBEA;
+    --text: #211c1c;
+    --text-secondary: #665c5d;
+    --backdrop: rgba(20, 10, 11, .5);
+}
+html.is-euskotren {
+    --bg: #f0f4f8;
+    --border: #d0dce8;
+    --primary: #003F8C;
+    --primary-light: #5B9BD5;
+    --primary-dark: #002560;
+    --primary-tint: #E6F0FA;
+    --text: #171d26;
+    --text-secondary: #4d5966;
+    --backdrop: rgba(10, 14, 20, .5);
+}
+html.is-renfe {
+    --bg: #f8f4fa;
+    --border: #e6dbec;
+    --primary: #74349A;
+    --primary-light: #B98BD1;
+    --primary-dark: #4A1D66;
+    --primary-tint: #F3EAF8;
+    --text: #24192b;
+    --text-secondary: #65596c;
+    --backdrop: rgba(18, 10, 22, .5);
+}
+html.is-lurraldebus {
+    --bg: #f4f7fb;
+    --border: #d9e3ef;
+    --primary: #0062A8;
+    --primary-light: #8DC63F;
+    --primary-dark: #003F70;
+    --primary-tint: #E6F0F8;
+    --text: #152230;
+    --text-secondary: #556372;
+    --backdrop: rgba(8, 16, 26, .5);
+}
+html.is-tranvia-bilbao {
+    --bg: #f4f8f4;
+    --border: #dde8dc;
+    --primary: #2F7A2A;
+    --primary-light: #D8F5C8;
+    --primary-dark: #1E5420;
+    --primary-tint: #EAF7E6;
+    --text: #1c2a1d;
+    --text-secondary: #5c6b5e;
+    --backdrop: rgba(10, 20, 12, .5);
+}
+html.is-tranvia-vitoria {
+    --bg: #f5f8f3;
+    --border: #dfe8da;
+    --primary: #3B7D23;
+    --primary-light: #ECFAE2;
+    --primary-dark: #2A5612;
+    --primary-tint: #EEF7E7;
+    --text: #1e2a19;
+    --text-secondary: #5e6b58;
+    --backdrop: rgba(12, 20, 10, .5);
+}
+html.is-bilbobus {
+    --bg: #f3efef;
+    --border: #ded6d5;
+    --primary: #C0362C;
+    --primary-light: #e3a5a0;
+    --primary-dark: #77211b;
+    --primary-tint: #faefee;
+    --text: #281f1f;
+    --text-secondary: #685d5c;
+    --backdrop: rgba(19, 5, 4, .5);
+}
+html.is-tuvisa {
+    --bg: #eef1f1;
+    --border: #d3dad9;
+    --primary: #00796B;
+    --primary-light: #8cc3bc;
+    --primary-dark: #004b42;
+    --primary-tint: #ebf4f3;
+    --text: #1c2323;
+    --text-secondary: #586261;
+    --backdrop: rgba(0, 12, 11, .5);
+}
+html.is-dbus {
+    --bg: #eef0f3;
+    --border: #d3d6dd;
+    --primary: #0141AD;
+    --primary-light: #8daada;
+    --primary-dark: #01286b;
+    --primary-tint: #ebf0f8;
+    --text: #1c2027;
+    --text-secondary: #585e66;
+    --backdrop: rgba(0, 6, 17, .5);
+}
+html.is-alavabus {
+    --bg: #f3eef0;
+    --border: #ddd3d7;
+    --primary: #A8034F;
+    --primary-light: #d88eb0;
+    --primary-dark: #680231;
+    --primary-tint: #f8ebf1;
+    --text: #261c21;
+    --text-secondary: #66595f;
+    --backdrop: rgba(17, 0, 8, .5);
+}
+html.is-launion {
+    --bg: #eff1f2;
+    --border: #d5d8dc;
+    --primary: #30609D;
+    --primary-light: #a2b7d3;
+    --primary-dark: #1e3c61;
+    --primary-tint: #eef2f7;
+    --text: #1f2226;
+    --text-secondary: #5c6065;
+    --backdrop: rgba(5, 10, 16, .5);
+}
