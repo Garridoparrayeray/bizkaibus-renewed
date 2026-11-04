@@ -477,7 +477,26 @@ main {
     }
 }
 
-/* ===== Mapa de la red ===== */
+/* ===== Mapa de la red y estado de las redes, uno junto al otro ===== */
+.menu-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+    .menu-links .menu-map-link {
+        margin-top: 0;
+    }
+@media (max-width: 520px) {
+    .menu-links .menu-map-link {
+        gap: 10px;
+        padding: 14px;
+    }
+        .menu-links .menu-map-link span span,
+        .menu-links .menu-map-link > svg:last-child {
+            display: none;
+        }
+}
 .menu-map-link {
     display: flex;
     align-items: center;

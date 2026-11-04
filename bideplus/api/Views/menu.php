@@ -173,7 +173,10 @@ $aJsonLd = [
                 </li>
 <?php endforeach; ?>
             </ul>
-            <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
+            <div class="menu-links">
+                <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
+                <a class="menu-map-link" href="/estado"><?= BIDE_ICONS['estado'] ?><span><strong data-i18n="status.title">Estado de las redes</strong><span data-i18n="status.subtitle">Qué va en directo ahora en cada red</span></span><?= BIDE_ICONS['next'] ?></a>
+            </div>
         </section>
 
 <?= bideViews() ?>
