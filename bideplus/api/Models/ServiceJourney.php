@@ -68,7 +68,7 @@ class ServiceJourney
     }
 
     // Con $iDaysAhead = 1, las de mañana con su calendario, en las mismas horas que hoy (+24 h): 07:00 de mañana es 31:00.
-    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0): array
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0, int|null $iPastSeconds = null): array
     {
         $iShift = $iDaysAhead * 86400;
         $iNow = Calendar::nowSecondsSinceMidnight() - $iShift;
@@ -110,7 +110,7 @@ class ServiceJourney
             'weekdayBit' => Calendar::weekdayBitFor($Day),
             'today' => $sToday,
             'today2' => $sToday,
-            'windowStart' => $iNow - self::PAST_GRACE_SECONDS,
+            'windowStart' => $iNow - ($iPastSeconds ?? self::PAST_GRACE_SECONDS),
             'windowEnd' => $iNow + $iWindowSeconds,
         ]);
 

@@ -360,6 +360,20 @@ $aLate = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', 0]], 
 $Expect('menos de un minuto de retraso cuenta como en hora, pero la hora prevista lo lleva', $aLate[0]['delaySeconds'] === 0 && $aLate[0]['etaSeconds'] === T0 + 120 + 45);
 $Expect('sin directo, las salidas no cambian y hasData es falso', !(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->hasData() && (new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->enrich('B', $aRenfeRows) === $aRenfeRows);
 
+// Metro: cada tren trae su viaje y su hora en las estaciones que le quedan, sin retraso.
+$aMetroTrip = [['tripId' => '6005L1C1', 'stops' => [['B', T0 + 120 + 900], ['C', T0 + 240 + 960]]]];
+$aMetro = (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
+$Expect('Metro: la hora de la estación es la del feed y el retraso, lo que se aparta del horario (15 min)', $aMetro[0]['status'] === 'live' && $aMetro[0]['etaSeconds'] === T0 + 1020 && $aMetro[0]['delaySeconds'] === 900, json_encode($aMetro[0]));
+$aMetroAhead = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', T0 + 300], ['C', T0 + 840]]]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
+$Expect('Metro: si el feed se salta la estación, la hora de la siguiente menos lo que se tarda hasta ella', $aMetroAhead[0]['etaSeconds'] === T0 + 720, json_encode($aMetroAhead[0]));
+\Core\Config::set('metro');
+$MMetroNow = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
+$Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');
+$MMetroEarly = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - T0);
+$Expect('Metro: uno que aún no toca y no está en el feed sigue con el horario', $MMetroEarly->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+\Core\Config::set('bus');
+$Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+
 $aCancelAlerts = CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 60);
 $Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y destino', count($aCancelAlerts) === 1 && $aCancelAlerts[0]['summary'] === 'C1 · tren de las 08:20 cancelado' && $aCancelAlerts[0]['description'] === 'Renfe ha cancelado el tren de las 08:20 de Abando a Zabalburu.' && $aCancelAlerts[0]['lineRefs'] === ['C1-ida'], json_encode($aCancelAlerts));
 $Expect('la incidencia sale en las estaciones por las que aún tenía que pasar', $aCancelAlerts[0]['stopRefs'] === ['B', 'C'] && $aCancelAlerts[0]['scope'] === 'stop', json_encode($aCancelAlerts[0]['stopRefs'] ?? null));
