@@ -290,7 +290,7 @@ function bideSettings(string $sBack): string
     $sHtml .= '<section class="bide-card bide-settings-location"><h3 data-i18n="bide.settings.location">Ubicación</h3>';
     $sHtml .= '<p data-i18n="bide.settings.locationText">Para «Cerca de mí»: ver las paradas que tienes al lado.</p>';
     $sHtml .= '<p class="bide-note" data-settings-location role="status"></p>';
-    $sHtml .= '<p class="bide-note" data-settings-location-ios data-i18n="bide.settings.locationIos" hidden>En iPhone, si te la pide cada vez: en los Ajustes del iPhone, entra en Privacidad y seguridad › Localización › Sitios web de Safari y elige permitirla al usar la app; y en Safari › Ubicación, elige «Permitir».</p>';
+    $sHtml .= '<p class="bide-note" data-settings-location-ios data-i18n="bide.settings.locationIos" hidden>En iPhone, para que no te la pida cada vez solo en Bide+: abre www.bideplus.eus en Safari, toca el botón de la página a la izquierda de la dirección (aA) › Ajustes del sitio web › Ubicación › «Permitir». El resto de webs siguen como estaban.</p>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-ask data-i18n="bide.settings.locationAsk" hidden>Permitir la ubicación</button>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-new-since="2026-11-03" data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
     $sHtml .= '</section>';
