@@ -5,8 +5,8 @@ import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
 import { isLocationOff } from '../location-pref.js';
 
-// La última posición vale unos minutos: la app instalada en iPhone pregunta en cada petición y cada cambio de red es
-// otra página. Se guarda en la sesión, que se borra al cerrar la app, y nunca sale del móvil.
+// Donde el navegador no guarda el permiso y pregunta en cada petición (la app instalada en iPhone), la última posición
+// vale unos minutos, también al cambiar de red. Se guarda en la sesión, que se borra al cerrar la app.
 const POSITION_REUSE_MS = 5 * 60 * 1000;
 const POSITION_KEY = 'bide-last-position';
 
@@ -18,9 +18,20 @@ function savedPosition() {
     return null;
 }
 
-function currentPosition() {
+async function permissionState() {
+    try {
+        return (await navigator.permissions.query({ name: 'geolocation' })).state;
+    } catch (e) {
+        return 'unknown';
+    }
+}
+
+async function currentPosition() {
+    const state = await permissionState();
     const saved = savedPosition();
-    if (saved) return Promise.resolve({ coords: { latitude: saved.lat, longitude: saved.lon } });
+    if (saved && state !== 'granted' && state !== 'denied') {
+        return { coords: { latitude: saved.lat, longitude: saved.lon } };
+    }
     return new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition((position) => {
             try {
