@@ -13,6 +13,8 @@ class TripDelayMatcher
 
     private const ON_TIME_SECONDS = 60;
     private const DUE_SECONDS = 60;
+    private const STALE_PREDICTION_SECONDS = 60;
+    private const MAX_STALE_PREDICTION_SECONDS = 3600;
 
     // id del viaje del horario => ['delay' => segundos, 'nextStopId' => string|null, 'canceled' => bool]
     private array $aByJourney = [];
@@ -193,6 +195,24 @@ class TripDelayMatcher
     }
 
     private function etaAt(string $sServiceJourneyId, int $iStopOrder, int $iArrivalSeconds, array $aLive): int
+    {
+        $iEta = $this->feedEtaAt($sServiceJourneyId, $iStopOrder, $iArrivalSeconds, $aLive);
+        $iNextOrder = null;
+        if ($aLive['nextStopId'] !== null) {
+            $iNextOrder = $this->orderOf($sServiceJourneyId, $aLive['nextStopId']);
+        }
+        if ($iNextOrder === null || $iStopOrder < $iNextOrder) {
+            return $iEta;
+        }
+        $iNextArrival = (int)$this->stops($sServiceJourneyId)[$this->indexOf($sServiceJourneyId, $iNextOrder)]['arrival_seconds'];
+        $iLate = $this->nowSeconds() - $this->feedEtaAt($sServiceJourneyId, $iNextOrder, $iNextArrival, $aLive);
+        if ($iLate < self::STALE_PREDICTION_SECONDS || $iLate > self::MAX_STALE_PREDICTION_SECONDS) {
+            return $iEta;
+        }
+        return $iEta + $iLate;
+    }
+
+    private function feedEtaAt(string $sServiceJourneyId, int $iStopOrder, int $iArrivalSeconds, array $aLive): int
     {
         if (empty($aLive['times'])) {
             return $iArrivalSeconds + $aLive['delay'];

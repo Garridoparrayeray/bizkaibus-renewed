@@ -377,6 +377,14 @@ $aGpsRow = $MGps->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 
 $Expect('Metro: un tren con GPS y sin hora prevista va en directo, con lo que va tarde en su estación (5 min)', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['etaSeconds'] === T0 + 1140 && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
 $aGpsPassed = $MGps->enrich('A', [['stop_seq' => 0, 'arrival_seconds' => T0 + 600, 'etaSeconds' => T0 + 600] + $RenfeRow('J2', 1)]);
 $Expect('Metro: con GPS, una estación que ya ha dejado atrás no sale', $aGpsPassed === [], json_encode($aGpsPassed));
+$iStuckMidnight = time() - (T0 + 120 + 300);
+$MStuck = new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['B', $iStuckMidnight + T0 + 120], ['C', $iStuckMidnight + T0 + 240]]]], new ServiceJourney($PdoRenfe), $iStuckMidnight);
+$aStuck = $MStuck->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 240, 'etaSeconds' => T0 + 240] + $RenfeRow('J1', 0)]);
+$Expect('un tren que no ha llegado a su siguiente estación pasada su hora prevista va más tarde: se suma lo que lleva de más (5 min)', $aStuck[0]['etaSeconds'] === T0 + 540 && $aStuck[0]['delaySeconds'] === 300, json_encode($aStuck[0]));
+$aStuckNext = $MStuck->enrich('B', [$RenfeRow('J1', 0)]);
+$Expect('en la estación a la que va, llega ya (no desaparece)', count($aStuckNext) === 1 && $aStuckNext[0]['etaSeconds'] === T0 + 420, json_encode($aStuckNext));
+$aStuckRenfe = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['B', 0]], 'delay' => 60]], new ServiceJourney($PdoRenfe), time() - (T0 + 120 + 360)))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 240, 'etaSeconds' => T0 + 240] + $RenfeRow('J1', 0)]);
+$Expect('Renfe: con su retraso ya sobrepasado en la siguiente estación, también', $aStuckRenfe[0]['delaySeconds'] === 360, json_encode($aStuckRenfe[0]));
 \Core\Config::set('metro');
 $MMetroNow = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
 $Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');
