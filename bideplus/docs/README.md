@@ -35,7 +35,7 @@ Qué hay que leer según para qué la necesites.
 
 ## El algoritmo de llegadas
 
-- [El algoritmo, explicado](algoritmo-explicado.md): primero sin matemáticas y luego en versión formal, con lo que ha
+- [El algoritmo, explicado](algoritmo-explicado.md): sin matemáticas, con lo que ha
   cambiado y cuánto acierta.
 - La referencia completa (la memoria técnica, el laboratorio y las páginas interactivas) está en el repositorio del
   algoritmo, que los flujos de trabajo colocan en `engine/`: `engine/README.md` y `engine/docs/README.md`.
