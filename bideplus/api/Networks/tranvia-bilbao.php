@@ -89,8 +89,6 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
-        // Cada viaje del feed trae su viaje del horario y su hora en las paradas que le quedan: se empareja por el viaje
-        // (y, si ninguno está en el horario, por paradas y hora con este margen).
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
     ],

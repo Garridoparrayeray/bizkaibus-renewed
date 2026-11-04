@@ -184,8 +184,6 @@ class StopsController
         return array_merge($aRows, array_map(fn(array $aRow) => ['tomorrow' => true] + $aRow, $aTomorrow));
     }
 
-    // Con el directo por viaje (Renfe, Metro…) el feed dice cuánto va tarde cada tren: se miran también las salidas de la
-    // última hora, para que un tren que va 20 minutos tarde siga en la lista. Sin él, lo de siempre (null).
     private static function pastSeconds(object|null $TripMatcher): int|null
     {
         if ($TripMatcher instanceof TripDelayMatcher && $TripMatcher->hasData()) {

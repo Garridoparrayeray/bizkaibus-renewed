@@ -1,6 +1,3 @@
-// Las incidencias que afectan a la parada abierta, en un aviso dentro de su tarjeta: el primero entero y un botón que
-// abre todas. Según la red, las de toda la red (Metro, Euskotren…), las de las líneas de la parada (Bizkaibus) o las
-// de la estación y sus líneas (Renfe).
 import { FEATURES, state } from './core.js';
 import { openSideMenu } from './side-menu.js';
 
@@ -16,7 +13,6 @@ async function stopAlerts(stop) {
     return alerts.filter((alert) => (alert.lineRefs || []).some((ref) => lineIds.has(String(ref))));
 }
 
-// Bizkaibus titula todas «Incidencia» y lo que pasa va en la descripción: con un título así de corto, la descripción.
 function alertText(alert) {
     const summary = alert.summary || alert.title || '';
     if (alert.description && summary.length < 25) return alert.description;
@@ -39,7 +35,6 @@ function render(alerts) {
     }
 }
 
-// Se piden al abrir la parada y, con ella abierta, como mucho cada dos minutos.
 export async function refreshStopAlerts() {
     const stop = state.currentStop;
     if (!stop || !FEATURES.alerts) {
@@ -62,7 +57,6 @@ export async function refreshStopAlerts() {
 
 export function setUpStopAlerts() {
     for (const button of document.querySelectorAll('.stop-alerts')) button.addEventListener('click', openSideMenu);
-    // Al cambiar de idioma se vuelve a pedir, para el texto del botón (y las de Renfe, que vienen traducidas).
     window.addEventListener('bide:lang', () => {
         lastFetchAt = 0;
         refreshStopAlerts();

@@ -56,7 +56,6 @@ class TrainSheet
     private static function predictedSeconds(ServiceJourney $JourneyModel, object|null $TripMatcher, array $aJourney, array $aStops, string|null $sPreferredStopId, int $iNow, int $iMidnight): array
     {
         $sAnchorStopId = self::anchorStopId($aStops, $sPreferredStopId, $iNow);
-        // Por horario ya habría acabado, pero puede ir con retraso: con el directo por viaje (Metro, Renfe) se mira igual.
         if ($sAnchorStopId === null && $TripMatcher instanceof TripDelayMatcher && !empty($aStops)) {
             $sAnchorStopId = (string)$aStops[\count($aStops) - 1]['stop_id'];
         }

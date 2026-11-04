@@ -366,7 +366,6 @@ $aLate = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', 0]], 
 $Expect('menos de un minuto de retraso cuenta como en hora, pero la hora prevista lo lleva', $aLate[0]['delaySeconds'] === 0 && $aLate[0]['etaSeconds'] === T0 + 120 + 45);
 $Expect('sin directo, las salidas no cambian y hasData es falso', !(new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->hasData() && (new TripDelayMatcher([], new ServiceJourney($PdoRenfe), 0))->enrich('B', $aRenfeRows) === $aRenfeRows);
 
-// Metro: cada tren trae su viaje y su hora en las estaciones que le quedan, sin retraso.
 $aMetroTrip = [['tripId' => '6005L1C1', 'stops' => [['B', T0 + 120 + 900], ['C', T0 + 240 + 960]]]];
 $aMetro = (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
 $Expect('Metro: la hora de la estación es la del feed y el retraso, lo que se aparta del horario (15 min)', $aMetro[0]['status'] === 'live' && $aMetro[0]['etaSeconds'] === T0 + 1020 && $aMetro[0]['delaySeconds'] === 900, json_encode($aMetro[0]));

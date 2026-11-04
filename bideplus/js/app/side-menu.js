@@ -77,7 +77,7 @@ async function renderNetworkAlerts() {
     }
 }
 
-// Bizkaibus: líneas guardadas, la abierta y las de la parada abierta.
+// Bizkaibus: líneas guardadas y la abierta.
 async function renderLineAlerts() {
     const lineIds = new Set(readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
     if (state.currentLine) lineIds.add(String(state.currentLine.id));

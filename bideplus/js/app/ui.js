@@ -18,7 +18,6 @@ export function departureWhen(departure) {
     return `${Math.max(departure.etaMinutes, 0)} min`;
 }
 
-// «Sin datos del tren» en Metro y Renfe: el directo trae cada tren y el que falta no está en él. En el resto, del bus.
 function noData(busKey, trainKey) {
     const network = window.BideNetworks?.get(window.__bbNetwork);
     if (network && ['train', 'metro'].includes(network.kind)) return I18n.t(trainKey);

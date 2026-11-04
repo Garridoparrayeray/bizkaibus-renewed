@@ -1060,7 +1060,6 @@ tbody tr {
     tbody tr.is-past > td {
         opacity: .5;
     }
-/* Incidencias de la parada abierta (js/app/stop-alerts.js): la primera y un botón para verlas todas. */
 .stop-alerts {
     display: flex;
     flex-direction: column;

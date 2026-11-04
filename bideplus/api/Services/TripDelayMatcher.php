@@ -4,8 +4,8 @@ namespace Services;
 
 use Models\ServiceJourney;
 
-// Directo por viaje (GTFS-Realtime de Renfe, Metro, Tuvisa y Dbus): cada vehículo trae su viaje del horario y su hora
-// prevista en las paradas que le quedan (Metro) o un retraso (Renfe). Se empareja por el viaje; los que ya pasaron por
+// Directo por viaje (GTFS-Realtime de Renfe, Tuvisa y Dbus): cada vehículo trae su viaje del horario, el retraso y la
+// parada a la que va. Se empareja por el viaje, el retraso vale para las paradas que le quedan, los que ya pasaron por
 // la parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
@@ -14,14 +14,12 @@ class TripDelayMatcher
     private const ON_TIME_SECONDS = 60;
     private const DUE_SECONDS = 60;
 
-    // id del viaje del horario => ['delay' => segundos, 'times' => [parada => segundos desde medianoche],
-    // 'nextStopId' => string|null, 'canceled' => bool]
+    // id del viaje del horario => ['delay' => segundos, 'nextStopId' => string|null, 'canceled' => bool]
     private array $aByJourney = [];
     private array $aStopsByJourney = [];
     private int $iMidnight;
     private bool $bRail;
 
-    // $aVehicles: posiciones GPS (GtfsRealtimeClient::fetchVehiclePositions); las de trenes sin hora prevista cuentan.
     public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
         if ($iMidnight === null) {
@@ -39,7 +37,6 @@ class TripDelayMatcher
             if (!empty($aTrip['stops'])) {
                 $sNextStopId = (string)$aTrip['stops'][0][0];
             }
-            // Con retraso (Renfe), el retraso; sin él (Metro), la hora de cada parada que trae.
             $aTimes = [];
             foreach ($aTrip['stops'] ?? [] as [$sStopId, $iTime]) {
                 if (!isset($aTrip['delay'])) {
@@ -56,8 +53,6 @@ class TripDelayMatcher
         $this->addVehicles($aVehicles);
     }
 
-    // Un tren con posición GPS y sin hora prevista también va en directo: su retraso es lo que va tarde en la estación
-    // por la que va (nunca adelantado: la posición no dice si ya ha llegado), y vale para las que le quedan.
     private function addVehicles(array $aVehicles): void
     {
         $aJourneyIds = $this->JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
@@ -171,8 +166,6 @@ class TripDelayMatcher
         return $aStops;
     }
 
-    // El directo aporta algo si el tren ya ha salido de origen o si su hora prevista no es la del horario. Renfe y
-    // Euskotren publican los trenes que aún no han salido con su hora de papel (retraso 0): eso es el horario.
     private function hasRealData(string $sServiceJourneyId, array $aLive): bool
     {
         $aStops = $this->stops($sServiceJourneyId);
@@ -191,8 +184,6 @@ class TripDelayMatcher
         return false;
     }
 
-    // En los trenes (Metro, Renfe) el directo trae cada tren en marcha: uno que ya debería estar en la parada y no está en
-    // el feed no sale el primero con su hora de papel, sino al final como «Sin datos del tren».
     private function missingFromFeed(array $aRow): bool
     {
         if (!$this->bRail || !$this->hasData() || ($aRow['status'] ?? 'scheduled') !== 'scheduled') {
@@ -201,8 +192,6 @@ class TripDelayMatcher
         return (int)$aRow['arrival_seconds'] <= $this->nowSeconds() + self::DUE_SECONDS;
     }
 
-    // La hora prevista en la parada de orden $iStopOrder: la del feed si la trae; si no, la de la siguiente parada que la
-    // trae menos lo que se tarda hasta ella según el horario; sin horas por parada (Renfe), la del horario más el retraso.
     private function etaAt(string $sServiceJourneyId, int $iStopOrder, int $iArrivalSeconds, array $aLive): int
     {
         if (empty($aLive['times'])) {
