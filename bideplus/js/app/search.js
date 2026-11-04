@@ -5,17 +5,27 @@ import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
 import { isLocationOff } from '../location-pref.js';
 
-// La última posición, solo en memoria y unos minutos: en iPhone el sistema puede volver a preguntar en cada petición.
+// La última posición vale unos minutos: la app instalada en iPhone pregunta en cada petición y cada cambio de red es
+// otra página. Se guarda en la sesión, que se borra al cerrar la app, y nunca sale del móvil.
 const POSITION_REUSE_MS = 5 * 60 * 1000;
-let lastPosition = null;
+const POSITION_KEY = 'bide-last-position';
+
+function savedPosition() {
+    try {
+        const saved = JSON.parse(sessionStorage.getItem(POSITION_KEY));
+        if (saved && Date.now() - saved.at < POSITION_REUSE_MS) return saved;
+    } catch (e) { /* sin almacenamiento: se pide otra vez */ }
+    return null;
+}
 
 function currentPosition() {
-    if (lastPosition && Date.now() - lastPosition.at < POSITION_REUSE_MS) {
-        return Promise.resolve(lastPosition.position);
-    }
+    const saved = savedPosition();
+    if (saved) return Promise.resolve({ coords: { latitude: saved.lat, longitude: saved.lon } });
     return new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition((position) => {
-            lastPosition = { position: position, at: Date.now() };
+            try {
+                sessionStorage.setItem(POSITION_KEY, JSON.stringify({ lat: position.coords.latitude, lon: position.coords.longitude, at: Date.now() }));
+            } catch (e) { /* sin almacenamiento: vale igual esta vez */ }
             resolve(position);
         }, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
     });
