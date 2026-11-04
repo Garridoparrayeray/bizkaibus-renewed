@@ -5,6 +5,22 @@ import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
 import { isLocationOff } from '../location-pref.js';
 
+// La última posición, solo en memoria y unos minutos: en iPhone el sistema puede volver a preguntar en cada petición.
+const POSITION_REUSE_MS = 5 * 60 * 1000;
+let lastPosition = null;
+
+function currentPosition() {
+    if (lastPosition && Date.now() - lastPosition.at < POSITION_REUSE_MS) {
+        return Promise.resolve(lastPosition.position);
+    }
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition((position) => {
+            lastPosition = { position: position, at: Date.now() };
+            resolve(position);
+        }, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+    });
+}
+
 async function performSearch(query) {
     if (query.trim().length < 2) {
         el.searchResults.hidden = true;
@@ -106,9 +122,7 @@ async function findNearby() {
     try {
         let position;
         try {
-            position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-            });
+            position = await currentPosition();
         } catch (error) {
             if (error.code === 1) {
                 showSearchMessage(I18n.t('app.nearby.denied'));

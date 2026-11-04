@@ -119,6 +119,7 @@ async function locationState() {
 function showLocation(state) {
     const ask = view.querySelector('[data-settings-location-ask]');
     const off = view.querySelector('[data-settings-location-off]');
+    view.querySelector('[data-settings-location-ios]').hidden = !isIos() || isLocationOff() || state === 'unsupported';
     if (isLocationOff()) {
         setText(view.querySelector('[data-settings-location]'), 'bide.settings.locationOff');
         setText(ask, 'bide.settings.locationOn');
