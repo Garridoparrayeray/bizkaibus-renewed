@@ -377,6 +377,10 @@ $aGpsRow = $MGps->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 
 $Expect('Metro: un tren con GPS y sin hora prevista va en directo, con lo que va tarde en su estación (5 min)', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['etaSeconds'] === T0 + 1140 && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
 $aGpsPassed = $MGps->enrich('A', [['stop_seq' => 0, 'arrival_seconds' => T0 + 600, 'etaSeconds' => T0 + 600] + $RenfeRow('J2', 1)]);
 $Expect('Metro: con GPS, una estación que ya ha dejado atrás no sale', $aGpsPassed === [], json_encode($aGpsPassed));
+$MGpsEnd = new TripDelayMatcher([], new ServiceJourney($PdoRenfe), time() - (T0 + 840 + 1800), [['stopId' => 'C'] + $aGpsOnly[0]]);
+$Expect('con GPS en la última parada de su viaje, ya ha terminado: no cuenta', !$MGpsEnd->hasData());
+$MGpsParked = new TripDelayMatcher([], new ServiceJourney($PdoRenfe), time() - (T0 + 720 + 3000), $aGpsOnly);
+$Expect('con GPS y más de 45 min de retraso (parado o con el viaje mal asignado), no cuenta', !$MGpsParked->hasData());
 $iStuckMidnight = time() - (T0 + 150 + 300);
 $MStuck = new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['B', $iStuckMidnight + T0 + 150], ['C', $iStuckMidnight + T0 + 270]]]], new ServiceJourney($PdoRenfe), $iStuckMidnight);
 $aStuck = $MStuck->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 240, 'etaSeconds' => T0 + 240] + $RenfeRow('J1', 0)]);
