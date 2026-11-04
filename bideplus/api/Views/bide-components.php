@@ -216,15 +216,16 @@ function bideDonate(string $sUrl): string
         . '<a class="bide-button" href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer" data-i18n="bide.donate.button">Invitar a un café en Ko-fi</a></section>';
 }
 
-// Pie del menú y de las apps: Ajustes e Info (en el navegador del móvil no hay barra de pestañas), el autor y el aviso
-// legal, que cada página abre a su manera.
+// Pie del menú y de las apps: Ajustes e Info (en el navegador del móvil no hay barra de pestañas), el autor, el aviso
+// legal, que cada página abre a su manera, y el copyright (los términos, en LICENSE y en el aviso legal).
 function bideFooterAuthor(string $sLegalButton): string
 {
     return '<div class="bide-footer-author"><p class="bide-footer-title"><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</p>'
         . '<p class="bide-footer-links">'
         . '<button type="button" class="bide-footer-legal" data-bide-tab="ajustes" data-i18n="bide.tab.settings">Ajustes</button>'
         . '<button type="button" class="bide-footer-legal" data-bide-tab="info" data-i18n="bide.tab.info">Info</button>'
-        . bideAuthorLinks() . $sLegalButton . '</p></div>';
+        . bideAuthorLinks() . $sLegalButton . '</p>'
+        . '<p class="bide-footer-copyright">© 2026 ' . htmlspecialchars(bideSite()['author']) . ' · <span data-i18n="bide.footer.rights">Todos los derechos reservados</span></p></div>';
 }
 
 // Sugerencias y errores: el mensaje se manda por correo desde el móvil de quien escribe (o se copia).
