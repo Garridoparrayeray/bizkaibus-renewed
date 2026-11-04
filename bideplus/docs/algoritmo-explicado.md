@@ -78,6 +78,10 @@ dentro de 1 minuto, dentro de 2, etc. Y cada día el sistema se recalibra solo c
   mirando la app. Si un bus va muy adelantado y deja de mandar posición (llega a cabecera y se apaga), la app sabe que
   ya pasó por tu parada y no lo enseña con su hora de papel. Si no hay registro pero el cálculo dice que pasó hace más
   de 10 minutos y el horario va claramente más lento, sale al final y en gris como «Sin datos del bus»: no hay ningún dato del vehículo que lo confirme.
+- **Un bus que se pierde un minuto no se olvida.** El feed de Bizkaibus deja fuera a veces, una o dos lecturas, a un bus
+  que sigue en su viaje: pasa cientos de veces al día. Antes, ese minuto la parada pasaba a «Solo horario»; ahora se
+  sigue usando la última posición del bus hasta 3 minutos, y la llegada se calcula desde la hora de esa posición. En
+  esos minutos, las llegadas a menos de 5 minutos que aciertan con menos de 2 minutos de error pasan del 55 % al 78 %.
 - **También sin conexión.** Los horarios que se guardan en el móvil llevan la hora estimada de cada viaje, calculada como
   en el servidor: sin cobertura se ve lo mismo que con cobertura cuando no hay datos del bus.
 - **Cada viaje, con su costumbre.** La hora estimada sin datos del bus llegaba de media 2 minutos antes que el bus: sumar

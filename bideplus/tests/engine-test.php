@@ -9,6 +9,7 @@ if (!is_dir(__DIR__ . '/../engine')) {
 require __DIR__ . '/unit-harness.php';
 
 use Core\Config;
+use Engine\Bizkaibus\FeedMemory;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
 use Engine\Bizkaibus\RealtimeMatcher;
@@ -523,6 +524,24 @@ $Expect('lee GPS, hora del dato (08:04:00), parada y VisitNumber', $aFirst !== n
 $Expect('Order tiene prioridad y un GPS de otro día se descarta', $aSecond !== null && $aSecond['order'] === 7 && $aSecond['lat'] === null && $aSecond['locationSeconds'] === null);
 $Expect('guarda la hora del dato (RecordedAtTime) aunque no haya GPS', $aFirst !== null && $aFirst['recordedSeconds'] === T0 + 240 && $aSecond !== null && $aSecond['recordedSeconds'] === null);
 $Expect('un XML roto devuelve un mapa vacío', SiriVehicleMonitoringClient::parse('<Siri><roto', DATE_WEEKDAY) === []);
+
+/* ------------------------------------------------------------------ */
+$Section('Buses que faltan en una lectura del feed (FeedMemory)');
+$iHeldGps = T0 + 240;
+$aHeldBus = live(1500, 0, 3, $iHeldGps);
+$aOtherBus = live(0, 0, 2, $iHeldGps);
+$aOtherBus['vehicleRef'] = 'BUS2';
+$aPrevious = ['3414|808' => [$aHeldBus]];
+$aHeld = FeedMemory::withHeld([], $aPrevious, $iHeldGps + 60);
+$Expect('un bus que falta se sigue usando con su último dato', ($aHeld['3414|808'][0]['vehicleRef'] ?? '') === 'BUS1' && !empty($aHeld['3414|808'][0]['held']));
+$Expect('pasado HOLD_SECONDS ya no se guarda', FeedMemory::withHeld([], $aPrevious, $iHeldGps + FeedMemory::HOLD_SECONDS + 1) === []);
+$aOtherTrip = live(0, 0, 1, $iHeldGps + 60, 'trp_A3414_809_OP9LSEPT_30600_x');
+$Expect('si el bus ya va en otro viaje, el anterior no se guarda', FeedMemory::withHeld(['3414|809' => [$aOtherTrip]], $aPrevious, $iHeldGps + 60) === ['3414|809' => [$aOtherTrip]]);
+$Expect('si su viaje ya lo lleva otro bus, no se duplica', FeedMemory::withHeld(['3414|808' => [$aOtherBus]], $aPrevious, $iHeldGps + 60) === ['3414|808' => [$aOtherBus]]);
+$Expect('sin hora del dato no se guarda', FeedMemory::withHeld([], ['3414|808' => [['vehicleRef' => 'BUS1']]], $iHeldGps) === []);
+$MHeld = new RealtimeMatcher($aHeld, new ServiceJourney(buildFixture(40)), $iHeldGps + 60, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$aHeldRow = $MHeld->enrich([['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5]])[0];
+$Expect('con el dato guardado la parada sigue en directo, con la llegada de esa posición', $aHeldRow['status'] === 'live' && $aHeldRow['etaSeconds'] === T0 + 690, json_encode([$aHeldRow['status'], hms($aHeldRow['etaSeconds'])]));
 
 /* ------------------------------------------------------------------ */
 $Section('Registro de pasos (buses que ya pasaron aunque hayan salido del directo)');
