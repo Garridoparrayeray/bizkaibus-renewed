@@ -185,3 +185,57 @@ python3 tests/run-all.py
 
 `/api/status` dice cuántos vehículos trae un feed SIRI ahora mismo. Qué mirar cada día y qué hacer si algo falla:
 [operacion.md](operacion.md).
+
+## Consultar una parada desde la terminal
+
+Para contestar «¿cuándo pasa el bus por tal parada?» sin abrir la app. Bizkaibus va sin `red=`; las demás, con el
+`red=` de la tabla. Las órdenes son de PowerShell (`irm`); con `curl` valen las mismas direcciones.
+
+```powershell
+# 1. El número de la parada
+(irm "https://www.bideplus.eus/api/search?red=metro&q=bidezabal").stops | ft id,name,area
+# 2. Sus próximas salidas
+(irm "https://www.bideplus.eus/api/stops/24/departures?red=metro&limit=10").departures | ft lineCode,headsign,scheduledTime,etaMinutes,status,delayMinutes,tripKey
+# 3. Un viaje: qué vehículo es, su retraso y por qué parada va
+$v = irm "https://www.bideplus.eus/api/vehicles/<tripKey>?red=metro"; $v | select lineCode,status,vehicleRef,delayMinutes; $v.stops | ft scheduledTime,name,etaMinutes,isPast,isCurrent
+```
+
+O todo de una vez, con una función que se pega una vez en PowerShell:
+
+```powershell
+function Bide($red, $parada) {
+    $r = ''; if ($red -ne 'bus') { $r = "red=$red&" }
+    $s = (irm "https://www.bideplus.eus/api/search?${r}q=$([uri]::EscapeDataString($parada))").stops | select -First 1
+    "$($s.name) · $($s.area) · $($s.id)"
+    (irm "https://www.bideplus.eus/api/stops/$($s.id)/departures?${r}limit=10").departures | ft lineCode,headsign,scheduledTime,etaMinutes,status,delayMinutes
+}
+Bide bus 'amorebieta san juan'
+```
+
+| Red | `red=` | Ejemplo de búsqueda | Parada | Directo |
+| --- | --- | --- | --- | --- |
+| Bizkaibus+ | (nada) | `amorebieta san juan` | 3388 | GPS de cada bus |
+| Metro+ | `metro` | `bidezabal` | 24 | retraso del operador |
+| Euskotren+ | `euskotren` | `zazpikaleak` | `ES:Euskotren:StopPlace:2577:` | retraso del operador |
+| Renfe Cercanías+ | `renfe` | `santurtzi` | 13405 | retraso del operador |
+| Tranvía Bilbao+ | `tranvia-bilbao` | `guggenheim` | `ES:Euskotren:StopPlace:1476:` | retraso del operador |
+| Tranvía Vitoria+ | `tranvia-vitoria` | `angulema` | `ES:Euskotren:StopPlace:1573:` | retraso del operador |
+| Lurraldebus+ | `lurraldebus` | `arrasate ulgor` | 5702 | solo horario |
+| Bilbobus+ | `bilbobus` | `arenal arriaga` | 140 | solo horario |
+| Tuvisa+ | `tuvisa` | `adriano` | 1178 | retraso del operador |
+| Dbus+ | `dbus` | `vasconia` | 105 | retraso del operador |
+| Álavabus+ | `alavabus` | `laudio` | 26 | retraso del operador |
+| La Unión+ | `launion` | `intermodal` | 17 | solo horario |
+
+Cómo leer cada salida:
+
+- `etaMinutes`: los minutos que faltan; `scheduledTime`, la hora oficial.
+- `status`: `live` (en directo), `estimated` (sin vehículo, con lo que tarda de verdad ese recorrido), `scheduled`
+  (solo la hora oficial, «SOLO HORARIO»), `likely_departed` («Sin datos del bus»), `departed` (ya ha pasado),
+  `cancelled` (suprimido).
+- `delayMinutes`: el retraso frente al horario oficial; negativo, adelanto. Un adelanto de muchos minutos en Bizkaibus
+  suele ser un horario oficial mal hecho, no un bus que va antes: la hora buena es `etaMinutes`.
+- `tomorrow`: hoy ya no sale ninguna más y es la primera de mañana.
+
+Si en Bizkaibus no sale ningún bus en directo, `irm "https://www.bideplus.eus/api/status"` dice cuántos trae ahora el
+feed GPS: con 0 o `ok: false`, el problema es el feed, no la app.

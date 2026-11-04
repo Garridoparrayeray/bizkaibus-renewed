@@ -1355,15 +1355,24 @@ html.bide body.page-menu .legal-close {
             flex: 0 1 auto;
             min-height: 0;
         }
-        html.bide :is(.bide-rail-applist, .bide-rail-favorites) {
+        html.bide :is(.bide-rail-applist, .bide-rail-favorites .bide-fav-list) {
             flex: 0 1 auto;
             min-height: 0;
             overflow-y: auto;
             overscroll-behavior: contain;
             scrollbar-width: thin;
         }
+        /* El título se queda fijo y la lista se desplaza: se ven los cuatro primeros (js/bide.js, fitRailFavorites). */
         html.bide .bide-rail-favorites {
+            flex: 0 1 auto;
+            display: flex;
+            flex-direction: column;
             min-height: 92px;
+            overflow: hidden;
+        }
+        html.bide .bide-rail-favorites .bide-fav-list {
+            margin-right: -6px;
+            padding-right: 6px;
         }
     html.bide .bide-view-back {
         display: none;

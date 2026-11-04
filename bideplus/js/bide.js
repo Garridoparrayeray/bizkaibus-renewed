@@ -172,7 +172,28 @@
             const empty = list.parentElement.querySelector('[data-bide-favorites-empty]');
             if (empty) empty.hidden = total > 0;
         });
+        fitRailFavorites();
     }
+
+    // En la columna lateral del ordenador se ven los cuatro primeros favoritos; los demás, desplazando la lista.
+    // Se vuelve a medir cuando cambia el alto de un favorito (su nombre llega después) y al cambiar la ventana.
+    const RAIL_FAVORITES_VISIBLE = 4;
+    let railFavoritesObserver = null;
+    if ('ResizeObserver' in window) railFavoritesObserver = new ResizeObserver(() => fitRailFavorites());
+    function fitRailFavorites() {
+        document.querySelectorAll('.bide-rail-favorites .bide-fav-list').forEach((list) => {
+            const last = list.children[RAIL_FAVORITES_VISIBLE - 1];
+            if (list.children.length <= RAIL_FAVORITES_VISIBLE || !list.offsetParent || !last) {
+                list.style.maxHeight = '';
+                return;
+            }
+            if (railFavoritesObserver) [...list.children].forEach((item) => railFavoritesObserver.observe(item));
+            const height = last.getBoundingClientRect().bottom - list.getBoundingClientRect().top + list.scrollTop;
+            list.style.maxHeight = `${Math.ceil(height)}px`;
+        });
+    }
+    window.addEventListener('resize', fitRailFavorites);
+    document.fonts?.ready.then(fitRailFavorites);
 
     // Qué incidencias se piden, como en js/alerts-store.js: en Bizkaibus por línea, en Renfe por estación y por línea,
     // y en el resto toda la red (si hay algún favorito).
