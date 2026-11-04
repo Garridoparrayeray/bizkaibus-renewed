@@ -118,7 +118,10 @@ async function locationState() {
 function showLocation(state) {
     const ask = view.querySelector('[data-settings-location-ask]');
     const off = view.querySelector('[data-settings-location-off]');
-    view.querySelector('[data-settings-location-ios]').hidden = !isIos() || isLocationOff() || state === 'unsupported';
+    const iosNote = isIos() && !isLocationOff() && state !== 'unsupported';
+    const installed = document.documentElement.classList.contains('is-standalone');
+    view.querySelector('[data-settings-location-ios]').hidden = !iosNote || installed;
+    view.querySelector('[data-settings-location-ios-app]').hidden = !iosNote || !installed;
     if (isLocationOff()) {
         setText(view.querySelector('[data-settings-location]'), 'bide.settings.locationOff');
         setText(ask, 'bide.settings.locationOn');
