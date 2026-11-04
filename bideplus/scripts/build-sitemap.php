@@ -17,6 +17,7 @@ $sOutput = $aOptions['output'] ?? $sRoot . '/sitemap.xml';
 $aSite = require $sRoot . '/api/Config/site.php';
 
 require_once $sRoot . '/api/Core/Networks.php';
+require_once $sRoot . '/api/Core/Lang.php';
 $aNetworks = array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all());
 
 function openReadonly(string $sDbPath): PDO
@@ -42,12 +43,24 @@ function lastModified(PDO $Pdo, string $sDbPath): string
     return date('Y-m-d', (int)filemtime($sDbPath));
 }
 
+// Cada página en castellano, euskera e inglés (?lang=), y cada versión con los enlaces a las tres (hreflang), como
+// pide Google para las páginas en varios idiomas.
 function urlEntry(string $sLoc, string $sLastModified, string $sChangeFreq, string $sPriority): string
 {
-    return '  <url><loc>' . htmlspecialchars($sLoc, ENT_XML1 | ENT_QUOTES, 'UTF-8') . '</loc>'
-        . '<lastmod>' . $sLastModified . '</lastmod>'
-        . '<changefreq>' . $sChangeFreq . '</changefreq>'
-        . '<priority>' . $sPriority . '</priority></url>' . "\n";
+    $Escape = fn(string $sUrl) => htmlspecialchars($sUrl, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    $sAlternates = '';
+    foreach (\Core\Lang::LANGS as $sLang) {
+        $sAlternates .= '<xhtml:link rel="alternate" hreflang="' . $sLang . '" href="' . $Escape(\Core\Lang::url($sLoc, $sLang)) . '"/>';
+    }
+    $sAlternates .= '<xhtml:link rel="alternate" hreflang="x-default" href="' . $Escape($sLoc) . '"/>';
+    $sEntries = '';
+    foreach (\Core\Lang::LANGS as $sLang) {
+        $sEntries .= '  <url><loc>' . $Escape(\Core\Lang::url($sLoc, $sLang)) . '</loc>'
+            . '<lastmod>' . $sLastModified . '</lastmod>'
+            . '<changefreq>' . $sChangeFreq . '</changefreq>'
+            . '<priority>' . $sPriority . '</priority>' . $sAlternates . '</url>' . "\n";
+    }
+    return $sEntries;
 }
 
 $aPages = [];
@@ -76,7 +89,7 @@ if (!$aLastModified) {
 }
 
 $sXml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-$sXml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+$sXml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
 $sXml .= urlEntry($aSite['url'] . '/', max($aLastModified), 'weekly', '1.0');
 $sXml .= urlEntry($aSite['url'] . '/mapa', max($aLastModified), 'weekly', '0.8');
 foreach ($aLastModified as $sSlug => $sLastModified) {
@@ -86,4 +99,4 @@ $sXml .= implode('', $aPages);
 $sXml .= '</urlset>' . "\n";
 
 file_put_contents($sOutput, $sXml);
-echo 'sitemap.xml: ' . (count($aPages) + 2 + count($aLastModified)) . " URLs\n";
+echo 'sitemap.xml: ' . ((count($aPages) + 2 + count($aLastModified)) * count(\Core\Lang::LANGS)) . " URLs\n";

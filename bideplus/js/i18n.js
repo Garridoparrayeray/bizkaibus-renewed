@@ -1226,7 +1226,19 @@
 
     // Orden del botón de la cabecera: castellano → euskera → inglés → castellano.
     const LANGS = ['es', 'eu', 'en'];
-    let chosenLang = null;
+    // Una dirección con ?lang=eu o ?lang=en (la que ven los buscadores) abre en ese idioma y lo deja elegido.
+    let chosenLang = urlLang();
+    if (chosenLang) {
+        try { localStorage.setItem(STORAGE_KEY, chosenLang); } catch (e) { /* ignore */ }
+    }
+
+    function urlLang() {
+        try {
+            const lang = new URLSearchParams(global.location.search).get('lang');
+            if (LANGS.indexOf(lang) !== -1) return lang;
+        } catch (e) { /* sin dirección */ }
+        return null;
+    }
 
     function getLang() {
         if (chosenLang) return chosenLang;
@@ -1250,6 +1262,15 @@
         if (LANGS.indexOf(lang) === -1) return;
         chosenLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
+        // Si la dirección lleva ?lang, cambia con el idioma: al recargar o compartir sale el elegido.
+        try {
+            const url = new URL(global.location.href);
+            if (url.searchParams.has('lang')) {
+                if (lang === 'es') url.searchParams.delete('lang');
+                else url.searchParams.set('lang', lang);
+                global.history.replaceState(global.history.state, '', url);
+            }
+        } catch (e) { /* ignore */ }
         global.dispatchEvent(new CustomEvent('bide:lang', { detail: { lang: lang } }));
     }
 

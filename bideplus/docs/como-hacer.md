@@ -18,6 +18,7 @@ despliega en Vercel. Si el cambio toca `engine/`, primero la *pull request* del 
 | Captura y aprendizaje del motor | sin parar mientras el feed trae vehículos; recalibrado a las 04:00 UTC | `pace-capture.yml`, para cada red con `engine` (y Renfe, que solo guarda) |
 | Horas estimadas sin conexión y en el mapa | con los horarios, en cuanto el motor de la red ha aprendido algo | `build-offline-data.php` y `build-network-map.php` |
 | Aviso de versión nueva | al publicar una novedad nueva | el cron, una vez por móvil |
+| Aviso a los buscadores (IndexNow) | con cada despliegue | `scripts/indexnow.php`: el inicio, el mapa y cada app en los tres idiomas |
 
 Una red nueva entra en todo eso por estar en `api/Networks/`: no hay listas de redes en ningún otro sitio.
 
@@ -140,6 +141,11 @@ php scripts/build-404.php
 
 Los textos de la app están en `js/i18n.js`, con las mismas claves en castellano, euskera e inglés (lo comprueba
 `tests/code-quality.php`); los de cada red, en su ficha (`texts`). A fondo: [ampliar.md](ampliar.md).
+
+Para los buscadores, cada página existe en los tres idiomas: `?lang=eu` y `?lang=en` la sirven ya traducida desde el
+servidor (`api/Core/Lang.php`, con esos mismos textos), con su `lang`, su canónica y los enlaces `hreflang` a las otras
+dos; el sitemap las lista todas. Un elemento nuevo con `data-i18n` o `data-i18n-attr` sale traducido solo. Los títulos
+y descripciones de cada página, en `api/Views/menu.php`, `app-page.php` y `network-map.php`.
 
 ## Novedad de versión (avisa a quien tiene la app)
 

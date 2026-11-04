@@ -1,16 +1,31 @@
 <?php
+use Core\Lang;
+
 $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
-$sTitle = 'Bide+ · Tu red de transporte público';
-$sDescription = 'Consulta los horarios y el tiempo real del transporte público desde un único menú. Elige tu app y sal de casa sin esperas.';
-$sCanonical = $aSite['url'] . '/';
+$sLang = Lang::current();
+// Lo que se busca: horarios y tiempo real, los nombres de las redes y Euskadi.
+$aTitles = [
+    'es' => 'Bide+ · Horarios y tiempo real de Bizkaibus, Metro, Renfe y más en Euskadi',
+    'eu' => 'Bide+ · Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak eta denbora errealean Euskadin',
+    'en' => 'Bide+ · Bizkaibus, Metro Bilbao, Renfe and more: Basque Country timetables and real time',
+];
+$aDescriptions = [
+    'es' => 'Horarios y llegadas en tiempo real de Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión y los tranvías de Bilbao y Vitoria, en una sola app gratis.',
+    'eu' => 'Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión eta Bilbo eta Gasteizko tranbien ordutegiak eta iritsierak denbora errealean, doako aplikazio bakarrean.',
+    'en' => 'Timetables and real-time arrivals for Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión and the Bilbao and Vitoria trams, in one free app.',
+];
+$sTitle = $aTitles[$sLang];
+$sDescription = $aDescriptions[$sLang];
+$sCanonicalEs = $aSite['url'] . '/';
+$sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
 $sOgAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
 $sWordmark = require __DIR__ . '/wordmark.php';
 
 $aApps = [];
 foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
-    $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name'), 'description' => \Core\Networks::text($aNetwork, 'switcher'), 'url' => $aSite['url'] . '/?red=' . $sSlug];
+    $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name', $sLang), 'description' => \Core\Networks::text($aNetwork, 'switcher', $sLang), 'url' => Lang::url($aSite['url'] . '/?red=' . $sSlug, $sLang)];
 }
 
 $aAuthor = ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']];
@@ -26,7 +41,7 @@ foreach ($aApps as $i => $aApp) {
             'url' => $aApp['url'],
             'applicationCategory' => 'TravelApplication',
             'operatingSystem' => 'Web, Android, iOS',
-            'inLanguage' => 'es',
+            'inLanguage' => $sLang,
             'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
             'author' => $aAuthor,
         ],
@@ -41,19 +56,20 @@ $aJsonLd = [
             'name' => $aSite['name'],
             'url' => $sCanonical,
             'description' => $sDescription,
-            'inLanguage' => 'es',
+            'inLanguage' => $sLang,
             'publisher' => $aAuthor,
         ],
         [
             '@type' => 'ItemList',
-            'name' => 'Apps de movilidad de Bide+',
+            'name' => Lang::t('menu.section', $sLang),
             'itemListElement' => $aItems,
         ],
+        bideFaqJsonLd($sLang),
     ],
 ];
 ?>
 <!DOCTYPE html>
-<html lang="es" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -63,10 +79,11 @@ $aJsonLd = [
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
+    <?= Lang::alternates($sCanonicalEs) ?>
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
-    <meta property="og:locale" content="<?= htmlspecialchars($aSite['locale']) ?>">
+    <meta property="og:locale" content="<?= Lang::LOCALES[$sLang] ?>">
     <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">

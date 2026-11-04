@@ -4,7 +4,7 @@
 use Core\Networks;
 ?>
 <!DOCTYPE html>
-<html lang="es" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <base href="/">
@@ -18,10 +18,11 @@ use Core\Networks;
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
+    <?= \Core\Lang::alternates($sCanonicalEs) ?>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
-    <meta property="og:locale" content="<?= htmlspecialchars($aSite['locale']) ?>">
+    <meta property="og:locale" content="<?= \Core\Lang::LOCALES[$sLang] ?>">
     <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">

@@ -150,6 +150,22 @@ function bideChangelog(): string
     return $sHtml . '</details></section>';
 }
 
+// Las preguntas frecuentes como FAQPage de schema.org, para que los buscadores y los asistentes las lean como
+// respuestas. En castellano, las de BIDE_FAQ; en euskera e inglés, sus traducciones de js/i18n.js.
+function bideFaqJsonLd(string $sLang): array
+{
+    $aQuestions = [];
+    foreach (BIDE_FAQ as $iIndex => [$sQuestion, $sAnswer]) {
+        $iNumber = $iIndex + 1;
+        if ($sLang !== 'es') {
+            $sQuestion = \Core\Lang::t('bide.faq.' . $iNumber . '.q', $sLang);
+            $sAnswer = \Core\Lang::t('bide.faq.' . $iNumber . '.a', $sLang);
+        }
+        $aQuestions[] = ['@type' => 'Question', 'name' => $sQuestion, 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $sAnswer]];
+    }
+    return ['@type' => 'FAQPage', 'inLanguage' => $sLang, 'mainEntity' => $aQuestions];
+}
+
 function bideFaq(): string
 {
     $sHtml = '<section class="bide-card bide-faq"><h3 data-i18n="bide.faq.title">Preguntas frecuentes</h3>';
