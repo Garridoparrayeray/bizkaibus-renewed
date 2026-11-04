@@ -3,12 +3,11 @@ import { cancelArrivalAlert, readArrivalAlerts } from './arrival-alerts-store.js
 import { disableLineAlerts, setUpIncidentAlerts } from './incident-alerts.js';
 import { isIos } from './push.js';
 import { forgetUpdates, setUpAppUpdate } from './app-update.js';
-import { isLocationOff, setLocationOff } from './location-pref.js';
+import { currentPosition, isLocationOff, setLocationOff } from './location-pref.js';
 
 const view = document.querySelector('[data-bide-view="ajustes"]');
 const CONFIRM_MS = 5000;
 const CACHE_TIMEOUT_MS = 30000;
-const LOCATION_TIMEOUT_MS = 10000;
 const LOCATION_KEYS = {
     granted: 'bide.settings.locationGranted',
     denied: 'bide.settings.locationDenied',
@@ -119,6 +118,10 @@ async function locationState() {
 function showLocation(state) {
     const ask = view.querySelector('[data-settings-location-ask]');
     const off = view.querySelector('[data-settings-location-off]');
+    const iosNote = isIos() && !isLocationOff() && state !== 'unsupported';
+    const installed = document.documentElement.classList.contains('is-standalone');
+    view.querySelector('[data-settings-location-ios]').hidden = !iosNote || installed;
+    view.querySelector('[data-settings-location-ios-app]').hidden = !iosNote || !installed;
     if (isLocationOff()) {
         setText(view.querySelector('[data-settings-location]'), 'bide.settings.locationOff');
         setText(ask, 'bide.settings.locationOn');
@@ -152,17 +155,16 @@ function setUpLocation() {
             showLocation(state);
             return;
         }
-        navigator.geolocation.getCurrentPosition(
-            () => showLocation('granted'),
-            (error) => {
-                if (error.code === error.PERMISSION_DENIED) {
-                    showLocation('denied');
-                    return;
-                }
-                renderLocation();
-            },
-            { timeout: LOCATION_TIMEOUT_MS, maximumAge: 10 * 60 * 1000 }
-        );
+        try {
+            await currentPosition();
+            showLocation('granted');
+        } catch (error) {
+            if (error.code === 1) {
+                showLocation('denied');
+                return;
+            }
+            renderLocation();
+        }
     });
 }
 

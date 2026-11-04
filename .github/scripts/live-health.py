@@ -7,11 +7,13 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
 - una red que se empareja por viaje no encuentra ningún viaje del feed en su horario;
 - los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60.
 Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos).
+Una red con error se vuelve a mirar al minuto: un feed que viene vacío en una sola lectura no es un fallo.
 """
 import datetime
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from zoneinfo import ZoneInfo
@@ -20,6 +22,7 @@ EMPTY_FEEDS_KNOWN = {'bilbobus', 'lurraldebus'}
 MIN_LIVE = 5
 MAX_MEDIAN_MINUTES = 30
 MAX_P95_MINUTES = 60
+RETRY_SECONDS = 60
 
 
 def night():
@@ -28,9 +31,9 @@ def night():
     return 30 <= minutes < 6 * 60
 
 
-def status(base, network):
+def status(base, network, attempt=1):
     try:
-        with urllib.request.urlopen(f'{base}/api/status?red={network}', timeout=60) as response:
+        with urllib.request.urlopen(f'{base}/api/status?red={network}&intento={attempt}', timeout=60) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         if error.code == 404:
@@ -76,6 +79,10 @@ def main():
     failed = False
     for network in sys.argv[2:]:
         errors, notices, summary = check(network, status(base, network))
+        if errors:
+            print(f'{network}: ' + '; '.join(errors) + f'; se vuelve a mirar en {RETRY_SECONDS} s')
+            time.sleep(RETRY_SECONDS)
+            errors, notices, summary = check(network, status(base, network, 2))
         state = 'bien'
         if notices:
             state = 'aviso: ' + '; '.join(notices)

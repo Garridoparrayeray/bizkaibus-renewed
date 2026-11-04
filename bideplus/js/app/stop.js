@@ -200,10 +200,11 @@ function renderStopLines(lines) {
     }
 }
 
+// La salida grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus) ni un tren cancelado, salvo
+// que no haya otro.
+const coming = (d) => d.status !== 'likely_departed' && d.status !== 'cancelled';
+
 function renderLiveCard(departures) {
-    // La tarjeta grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus) ni un tren cancelado,
-    // salvo que no haya otro.
-    const coming = (d) => d.status !== 'likely_departed' && d.status !== 'cancelled';
     const favoriteIndex = departures.findIndex((d) => coming(d) && state.favoriteKeys.has(favoriteKey('line', d.lineId)));
     let heroIndex = Math.max(0, departures.findIndex(coming));
     if (favoriteIndex !== -1) heroIndex = favoriteIndex;
@@ -310,7 +311,9 @@ function renderPlatformColumn(direction, departures) {
         return column;
     }
 
-    const [next, ...rest] = departures;
+    const nextIndex = Math.max(0, departures.findIndex(coming));
+    const next = departures[nextIndex];
+    const rest = departures.filter((_, i) => i !== nextIndex);
 
     const headsignEl = document.createElement('p');
     headsignEl.className = 'platform-column-headsign';
@@ -348,6 +351,14 @@ function renderPlatformColumn(direction, departures) {
             button.type = 'button';
             let when = `${departure.scheduledTime} · ${departureWhen(departure)}`;
             if (departure.tomorrow) when = departureWhen(departure);
+            if (departure.status === 'likely_departed') {
+                when = I18n.t('app.list.likelyDeparted', { time: departure.scheduledTime });
+                li.className = 'is-likely-past';
+            }
+            if (departure.status === 'cancelled') {
+                when = I18n.t('app.list.cancelled', { time: departure.scheduledTime });
+                li.className = 'is-cancelled';
+            }
             button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(when)}</span>`;
             button.addEventListener('click', () => openVehicleModal(departure.tripKey, { tomorrow: departure.tomorrow }));
             li.appendChild(button);
@@ -375,9 +386,12 @@ function renderPlatformPanel(data) {
             const platformDepartures = departures.filter((d) => d.platformId === platform.id);
             el.platformColumns.appendChild(renderPlatformColumn(platform, platformDepartures));
         }
+    } else if (departures.length > 0 && departures.every((d) => !d.direction)) {
+        el.platformColumns.appendChild(renderPlatformColumn({ label: '' }, departures));
     } else {
         for (const direction of PLATFORM_DIRECTIONS) {
             const columnDepartures = departures.filter((d) => d.direction === direction.key);
+            if (columnDepartures.length === 0 && departures.length > 0) continue;
             const termini = data.directionLabels && data.directionLabels[direction.key];
             let label = direction.label;
             if (termini) label = 'Hacia ' + termini;
@@ -385,10 +399,10 @@ function renderPlatformPanel(data) {
         }
     }
     const distinctLines = [];
-    const seenLineIds = new Set();
+    const seenLineCodes = new Set();
     for (const departure of departures) {
-        if (seenLineIds.has(departure.lineId)) continue;
-        seenLineIds.add(departure.lineId);
+        if (seenLineCodes.has(departure.lineCode)) continue;
+        seenLineCodes.add(departure.lineCode);
         distinctLines.push(departure);
     }
     if (distinctLines.length === 0) {

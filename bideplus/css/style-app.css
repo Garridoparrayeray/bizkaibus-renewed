@@ -750,10 +750,12 @@ header p {
         font-weight: 700;
         white-space: nowrap;
     }
-    .live-more-list li.is-likely-past {
+    .live-more-list li.is-likely-past,
+    .platform-column-list li.is-likely-past {
         opacity: .55;
     }
-    .live-more-list li.is-cancelled {
+    .live-more-list li.is-cancelled,
+    .platform-column-list li.is-cancelled {
         opacity: .7;
     }
     .live-more-list .live-more-when {

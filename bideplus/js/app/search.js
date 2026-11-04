@@ -3,7 +3,7 @@ import { ICONS, el } from './core.js';
 import { selectStop } from './stop.js';
 import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
-import { isLocationOff } from '../location-pref.js';
+import { currentPosition, isLocationOff } from '../location-pref.js';
 
 async function performSearch(query) {
     if (query.trim().length < 2) {
@@ -106,9 +106,7 @@ async function findNearby() {
     try {
         let position;
         try {
-            position = await new Promise((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-            });
+            position = await currentPosition();
         } catch (error) {
             if (error.code === 1) {
                 showSearchMessage(I18n.t('app.nearby.denied'));
