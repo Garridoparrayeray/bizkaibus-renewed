@@ -11,9 +11,9 @@ $aTitles = [
     'en' => 'Bide+ · Bizkaibus, Metro Bilbao, Renfe and more: Basque Country timetables and real time',
 ];
 $aDescriptions = [
-    'es' => 'Horarios y llegadas en tiempo real de Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión y los tranvías de Bilbao y Vitoria, en una sola app gratis.',
-    'eu' => 'Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión eta Bilbo eta Gasteizko tranbien ordutegiak eta iritsierak denbora errealean, doako aplikazio bakarrean.',
-    'en' => 'Timetables and real-time arrivals for Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión and the Bilbao and Vitoria trams, in one free app.',
+    'es' => 'Horarios de Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión y los tranvías de Bilbao y Vitoria, y llegadas en tiempo real donde el operador las publica, en una sola app gratis.',
+    'eu' => 'Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión eta Bilbo eta Gasteizko tranbien ordutegiak, eta iritsierak denbora errealean operadoreak argitaratzen dituenean, doako aplikazio bakarrean.',
+    'en' => 'Timetables for Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión and the Bilbao and Vitoria trams, with real-time arrivals where the operator publishes them, in one free app.',
 ];
 $sTitle = $aTitles[$sLang];
 $sDescription = $aDescriptions[$sLang];
