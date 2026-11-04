@@ -607,14 +607,14 @@ header p {
         .live-card footer p {
             margin: 0;
             color: rgba(255, 255, 255, .78);
-            font-size: 14.4px;
+            font-size: 12.8px;
             font-weight: 600;
         }
 .live-line {
     margin: 0;
     color: #fff;
     font-family: var(--font-display);
-    font-size: 21.6px;
+    font-size: 20.8px;
     font-weight: 700;
 }
 .live-headsign {
@@ -637,7 +637,7 @@ header p {
     .time-display strong {
         color: #fff;
         font-family: var(--font-display);
-        font-size: clamp(60.8px, 16vw, 88px);
+        font-size: 51.2px;
         font-weight: 700;
         line-height: 1.05;
         letter-spacing: -2px;
@@ -689,7 +689,7 @@ header p {
     border: none;
     background: none;
     color: var(--primary-light);
-    font-size: 13.6px;
+    font-size: 12.8px;
     font-weight: 700;
     text-decoration: underline;
     cursor: pointer;
@@ -732,7 +732,7 @@ header p {
         }
     .live-more-list strong {
         color: var(--primary-light);
-        font-size: 13.6px;
+        font-size: 12.8px;
     }
     .live-more-list span:nth-child(2),
     .platform-column-list span:first-child {
@@ -905,9 +905,6 @@ header p {
     background: var(--primary-dark);
     color: #fff;
 }
-    .platform-column .time-display strong {
-        font-size: 51.2px;
-    }
     .platform-column .badge {
         margin-bottom: 6px;
     }
