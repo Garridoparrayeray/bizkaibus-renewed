@@ -1009,6 +1009,11 @@ html.bide .bide-footer-links {
     justify-content: center;
     gap: 4px 14px;
 }
+html.bide .bide-footer-copyright {
+    margin: 14px 0 0;
+    font-size: 12.8px;
+    opacity: .75;
+}
 html.bide .bide-footer-title {
     flex-basis: 100%;
     margin: 0;

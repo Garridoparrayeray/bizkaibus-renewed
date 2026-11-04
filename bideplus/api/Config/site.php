@@ -24,4 +24,6 @@ return [
     // La página de Ko-fi de «Apoya Bide+» en Info. Vacía, la tarjeta no sale.
     'donate_url' => 'https://ko-fi.com/bideplus',
     'gsc_verification' => 'd7akLe3xucjSHfxtm75cUFm5NyeE8X2NEX3f8knOGYU',
+    // IndexNow (Bing y los buscadores que lo usan): la clave es pública y está también en /<clave>.txt.
+    'indexnow_key' => '8d58558d724417215fec67b11fb10246',
 ];

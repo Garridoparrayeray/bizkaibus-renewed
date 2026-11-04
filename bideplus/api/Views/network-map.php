@@ -1,10 +1,24 @@
 <?php
+use Core\Lang;
+
 $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sWordmark = require __DIR__ . '/wordmark.php';
-$sTitle = 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+';
-$sDescription = 'Mapa con todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.';
-$sCanonical = $aSite['url'] . '/mapa';
+$sLang = Lang::current();
+$aTitles = [
+    'es' => 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+',
+    'eu' => 'Sarearen mapa · Euskadiko garraio-linea guztiak | Bide+',
+    'en' => 'Network map · Every public transport line in the Basque Country | Bide+',
+];
+$aDescriptions = [
+    'es' => 'Mapa con todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.',
+    'eu' => 'Bilboko Metroa, Bizkaibus, Euskotren, Renfe Aldiriak, Lurraldebus eta Bilbo eta Gasteizko tranbien linea guztiak dituen mapa, geltokiekin, loturekin eta linea bakoitzaren eskemarekin.',
+    'en' => 'Map with every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe Cercanías, Lurraldebus and the Bilbao and Vitoria trams, with their stops, transfers and each line\'s diagram.',
+];
+$sTitle = $aTitles[$sLang];
+$sDescription = $aDescriptions[$sLang];
+$sCanonicalEs = $aSite['url'] . '/mapa';
+$sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
 $aJsonLd = [
     '@context' => 'https://schema.org',
@@ -12,12 +26,12 @@ $aJsonLd = [
     'name' => $sTitle,
     'description' => $sDescription,
     'url' => $sCanonical,
-    'inLanguage' => 'es',
+    'inLanguage' => $sLang,
     'isPartOf' => ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'],
 ];
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="<?= $sLang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -25,6 +39,7 @@ $aJsonLd = [
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
+    <?= Lang::alternates($sCanonicalEs) ?>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
     <meta property="og:url" content="<?= htmlspecialchars($sCanonical) ?>">

@@ -4,6 +4,7 @@
 
 use Core\Config;
 use Core\Database;
+use Core\Lang;
 use Core\Networks;
 use Models\LineModel;
 use Models\Stop;
@@ -14,7 +15,47 @@ $sWordmark = require __DIR__ . '/wordmark.php';
 
 $sNetworkSlug = Networks::fromQuery($_GET['red'] ?? null);
 $aNetwork = Networks::get($sNetworkSlug);
-$aAppNames = array_map(fn($aOne) => Networks::text($aOne, 'name'), Networks::all());
+$sLang = Lang::current();
+$aAppNames = array_map(fn($aOne) => Networks::text($aOne, 'name', $sLang), Networks::all());
+// Los textos de la página para los buscadores, en cada idioma ({...} se rellena con la parada, la línea o la red).
+$aPageTexts = [
+    'es' => [
+        'networkDescription' => '', 'stopTitle' => '{stop} · Horarios y próximas salidas | {app}',
+        'stopDescription' => 'Próximas salidas y horarios de {app} en {place}.', 'lines' => ' Líneas: {list}.',
+        'live' => ' Llegadas en tiempo real.', 'lineTitle' => 'Línea {code} {name} · Horarios | {app}',
+        'lineDescription' => 'Horarios, recorrido y paradas de la línea {code} ({name}) de {app}.',
+        'busMap' => ' Mapa con los autobuses en tiempo real.', 'trainMap' => ' Mapa con los trenes en tiempo real.',
+        'line' => 'Línea {code}', 'linesAt' => 'Líneas que paran en {stop}', 'stopsOf' => 'Paradas de la línea {code}',
+        'appDescription' => 'Horarios de {app}.',
+    ],
+    'eu' => [
+        'networkDescription' => '{switcher}: geltoki eta linea bakoitzaren hurrengo irteerak, ordutegiak eta abisuak.',
+        'stopTitle' => '{stop} · Ordutegiak eta hurrengo irteerak | {app}',
+        'stopDescription' => '{app}: {place} geltokiko hurrengo irteerak eta ordutegiak.', 'lines' => ' Lineak: {list}.',
+        'live' => ' Iritsierak denbora errealean.', 'lineTitle' => '{code} {name} linea · Ordutegiak | {app}',
+        'lineDescription' => '{app}: {code} ({name}) linearen ordutegiak, ibilbidea eta geltokiak.',
+        'busMap' => ' Autobusak denbora errealean erakusten dituen mapa.', 'trainMap' => ' Trenak denbora errealean erakusten dituen mapa.',
+        'line' => '{code} linea', 'linesAt' => '{stop} geltokian gelditzen diren lineak', 'stopsOf' => '{code} linearen geltokiak',
+        'appDescription' => '{app}: ordutegiak.',
+    ],
+    'en' => [
+        'networkDescription' => '{switcher}: next departures, timetables and alerts for every stop and line.',
+        'stopTitle' => '{stop} · Timetable and next departures | {app}',
+        'stopDescription' => 'Next departures and timetables for {app} at {place}.', 'lines' => ' Lines: {list}.',
+        'live' => ' Real-time arrivals.', 'lineTitle' => 'Line {code} {name} · Timetable | {app}',
+        'lineDescription' => 'Timetable, route and stops of line {code} ({name}), {app}.',
+        'busMap' => ' Map with the buses in real time.', 'trainMap' => ' Map with the trains in real time.',
+        'line' => 'Line {code}', 'linesAt' => 'Lines stopping at {stop}', 'stopsOf' => 'Stops on line {code}',
+        'appDescription' => '{app} timetables.',
+    ],
+];
+$PageText = function (string $sKey, array $aVars = []) use ($aPageTexts, $sLang): string {
+    $aReplace = [];
+    foreach ($aVars as $sName => $sValue) {
+        $aReplace['{' . $sName . '}'] = (string)$sValue;
+    }
+    return strtr($aPageTexts[$sLang][$sKey], $aReplace);
+};
 
 $sSiteUrl = $aSite['url'];
 if ($bMiamorDomain) {
@@ -30,6 +71,11 @@ if ($bMiamorDomain) {
 } else {
     $sTitle = $aNetwork['seo']['title'];
     $sDescription = $aNetwork['seo']['description'];
+    if ($sLang !== 'es') {
+        $sSwitcher = Networks::text($aNetwork, 'switcher', $sLang);
+        $sTitle = $aAppNames[$sNetworkSlug] . ' · ' . $sSwitcher . ' | Bide+';
+        $sDescription = $PageText('networkDescription', ['switcher' => $sSwitcher]);
+    }
     // Al compartir cualquier página (parada, línea, red), la vista previa es siempre la imagen de Bide+.
     $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
     $iImageWidth = 1200;
@@ -91,19 +137,19 @@ try {
                 $sStopLabel .= ' (' . $aRecord['area'] . ')';
             }
             $aRelated = (new Stop(Database::connection()))->linesServing($aRecord['id']);
-            $sTitle = $aRecord['name'] . ' · Horarios y próximas salidas | ' . $sAppName;
-            $sDescription = 'Próximas salidas y horarios de ' . $sAppName . ' en ' . $sStopLabel . '.';
+            $sTitle = $PageText('stopTitle', ['stop' => $aRecord['name'], 'app' => $sAppName]);
+            $sDescription = $PageText('stopDescription', ['app' => $sAppName, 'place' => $sStopLabel]);
             if (!empty($aRelated)) {
                 // Renfe publica una línea por sentido: el mismo código sale dos veces.
                 $aCodes = array_values(array_unique(array_column($aRelated, 'code')));
-                $sDescription .= ' Líneas: ' . implode(', ', array_slice($aCodes, 0, 8));
+                $sList = implode(', ', array_slice($aCodes, 0, 8));
                 if (count($aCodes) > 8) {
-                    $sDescription .= '…';
+                    $sList .= '…';
                 }
-                $sDescription .= '.';
+                $sDescription .= $PageText('lines', ['list' => $sList]);
             }
             if (!empty($aNetwork['live'])) {
-                $sDescription .= ' Llegadas en tiempo real.';
+                $sDescription .= $PageText('live');
             }
             $aStopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'train' => 'TrainStation', 'tram' => 'TrainStation'];
             $aPlace = [
@@ -115,19 +161,20 @@ try {
                 $aPlace['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $aRecord['area'], 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
             }
             $sBreadcrumbName = $aRecord['name'];
-            $sRelatedHeading = 'Líneas que paran en ' . $aRecord['name'];
+            $sRelatedHeading = $PageText('linesAt', ['stop' => $aRecord['name']]);
             $sRelatedType = 'lines';
         } else {
-            $sTitle = 'Línea ' . $aRecord['code'] . ' ' . $aRecord['name'] . ' · Horarios | ' . $sAppName;
-            $sDescription = 'Horarios, recorrido y paradas de la línea ' . $aRecord['code'] . ' (' . $aRecord['name'] . ') de ' . $sAppName . '.';
+            $aLineVars = ['code' => $aRecord['code'], 'name' => $aRecord['name'], 'app' => $sAppName];
+            $sTitle = $PageText('lineTitle', $aLineVars);
+            $sDescription = $PageText('lineDescription', $aLineVars);
             if (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-monitoring')) {
-                $sDescription .= ' Mapa con los autobuses en tiempo real.';
+                $sDescription .= $PageText('busMap');
             } elseif (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-positions')) {
-                $sDescription .= ' Mapa con los trenes en tiempo real.';
+                $sDescription .= $PageText('trainMap');
             }
             $aRelated = (new LineModel(Database::connection()))->stopsByName($aRecord['id']);
-            $sBreadcrumbName = 'Línea ' . $aRecord['code'];
-            $sRelatedHeading = 'Paradas de la línea ' . $aRecord['code'];
+            $sBreadcrumbName = $PageText('line', ['code' => $aRecord['code']]);
+            $sRelatedHeading = $PageText('stopsOf', ['code' => $aRecord['code']]);
             $sRelatedType = 'stops';
         }
         $sCanonical .= Networks::urlSuffix($sNetworkSlug);
@@ -143,7 +190,10 @@ if ($bNotFound) {
     exit;
 }
 
-$sAppUrl = $aSite['url'] . '/?red=' . $sNetworkSlug;
+// La canónica en el idioma de la página; la castellana es la de referencia de las otras dos (hreflang).
+$sCanonicalEs = $sCanonical;
+$sCanonical = Lang::url($sCanonicalEs, $sLang);
+$sAppUrl = Lang::url($aSite['url'] . '/?red=' . $sNetworkSlug, $sLang);
 $aWebSite = ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'];
 $aApp = [
     '@type' => 'SoftwareApplication',
@@ -153,7 +203,7 @@ $aApp = [
     'image' => $sImage,
     'applicationCategory' => 'TravelApplication',
     'operatingSystem' => 'Web, Android, iOS',
-    'inLanguage' => 'es',
+    'inLanguage' => $sLang,
     'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
     'author' => ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']],
     'isPartOf' => $aWebSite,
@@ -161,8 +211,8 @@ $aApp = [
 $aJsonLd = ['@context' => 'https://schema.org', '@graph' => [$aApp]];
 if ($sBreadcrumbName !== null) {
     $aApp['url'] = $sAppUrl;
-    $aApp['description'] = 'Horarios de ' . $aAppNames[$sNetworkSlug] . '.';
-    $aWebPage = ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => 'es', 'isPartOf' => $aWebSite];
+    $aApp['description'] = $PageText('appDescription', ['app' => $aAppNames[$sNetworkSlug]]);
+    $aWebPage = ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang, 'isPartOf' => $aWebSite];
     if ($aPlace !== null) {
         $aWebPage['about'] = $aPlace;
     }

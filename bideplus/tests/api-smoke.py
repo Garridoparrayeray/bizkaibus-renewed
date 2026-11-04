@@ -218,6 +218,23 @@ for red in NETS:
                 fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
 print('sitemap ok')
 
+# Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.
+for path, lang, text in (('/?lang=eu', 'eu', 'Aplikazio guztiak'), ('/?lang=en', 'en', 'All the apps'),
+                         ('/mapa?lang=eu', 'eu', None), ('/?red=metro&lang=en', 'en', None)):
+    code, page = fetch_text(path)
+    canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
+    hreflangs = set(_re.findall(r'hreflang="([a-z-]+)"', page))
+    if code != 200 or f'<html lang="{lang}"' not in page or not canonical.endswith('lang=' + lang):
+        fails.append(f'{path}: {code}, sin lang="{lang}" o con canónica {canonical!r}')
+    if hreflangs != {'es', 'eu', 'en', 'x-default'}:
+        fails.append(f'{path}: hreflang {sorted(hreflangs)}')
+    if text and text not in page:
+        fails.append(f'{path}: no sale traducido («{text}»)')
+code, page = fetch_text('/')
+if '<html lang="es"' not in page or 'FAQPage' not in page:
+    fails.append('/: sin lang="es" o sin las preguntas frecuentes (FAQPage)')
+print('idiomas ok')
+
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:
     print(' -', f)

@@ -20,6 +20,18 @@ header_register_callback(function () use ($bMiamorDomain) {
     header('Vary: Host');
 });
 
+// Con ?lang=eu o ?lang=en, la página sale ya traducida: así los buscadores ven la versión en euskera y en inglés.
+$sLang = \Core\Lang::current();
+if ($sLang !== 'es') {
+    ob_start(function (string $sHtml) use ($sLang): string {
+        // La página de error (404.html) es estática y en castellano: se deja tal cual.
+        if (http_response_code() !== 200) {
+            return $sHtml;
+        }
+        return \Core\Lang::translateHtml($sHtml, $sLang);
+    });
+}
+
 if ($sPath === '/mapa') {
     require __DIR__ . '/Views/network-map.php';
     exit;
