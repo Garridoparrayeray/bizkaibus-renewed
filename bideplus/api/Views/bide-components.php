@@ -41,6 +41,7 @@ const BIDE_FAQ = [
     ['¿Es una app oficial?', 'No. Bide+ es un proyecto independiente que usa los datos abiertos de los operadores. Si hay dudas, vale lo que diga cada operador.'],
     ['¿Qué apps hay en Bide+?', 'Doce: Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+ (con el urbano de Tolosa), Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+ y La Unión+ (los autobuses entre Bizkaia y Vitoria-Gasteiz). Los iconos de Bilbobus+, Álavabus+, Dbus+ y Tuvisa+ son provisionales.'],
     ['¿Cómo quito los permisos de notificaciones o de ubicación?', 'En Ajustes: «Desactivar las notificaciones» cancela todos tus avisos, y «No usar mi ubicación» hace que «Cerca de mí» no la pida. Una web no puede quitarse el permiso a sí misma: para quitarlo del todo, cámbialo en los ajustes del navegador (en Chrome, el icono junto a la dirección; en iPhone, Ajustes › Notificaciones o Privacidad › Localización).'],
+    ['¿Por qué en iPhone me pide la ubicación cada vez?', 'Porque iOS no guarda el permiso de ubicación de las webs ni de las apps añadidas a la pantalla de inicio, como Bide+. Cada vez que usas «Cerca de mí», el iPhone te lo vuelve a pedir: dale a «Permitir». No es un fallo de Bide+ y no se puede cambiar desde la app. Si no quieres que te lo pida, busca la parada por su nombre o activa «No usar mi ubicación» en Ajustes.'],
 ];
 
 function bideTabbar(): string
@@ -290,8 +291,7 @@ function bideSettings(string $sBack): string
     $sHtml .= '<section class="bide-card bide-settings-location"><h3 data-i18n="bide.settings.location">Ubicación</h3>';
     $sHtml .= '<p data-i18n="bide.settings.locationText">Para «Cerca de mí»: ver las paradas que tienes al lado.</p>';
     $sHtml .= '<p class="bide-note" data-settings-location role="status"></p>';
-    $sHtml .= '<p class="bide-note" data-settings-location-ios data-i18n="bide.settings.locationIos" hidden>En iPhone, para que no te la pida cada vez solo en Bide+: abre www.bideplus.eus en Safari, toca el botón de la página a la izquierda de la dirección (aA) › Ajustes del sitio web › Ubicación › «Permitir». El resto de webs siguen como estaban.</p>';
-    $sHtml .= '<p class="bide-note" data-settings-location-ios-app data-i18n="bide.settings.locationIosApp" hidden>En la app instalada, el iPhone pide la ubicación la primera vez que usas «Cerca de mí» cada vez que abres Bide+. Después, Bide+ la recuerda mientras la tienes abierta y unos minutos aunque cambies de red.</p>';
+    $sHtml .= '<p class="bide-note" data-settings-location-ios data-i18n="bide.settings.locationIos" hidden>En iPhone, iOS no guarda el permiso de ubicación: te lo pedirá cada vez que uses «Cerca de mí». Dale a «Permitir».</p>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-ask data-i18n="bide.settings.locationAsk" hidden>Permitir la ubicación</button>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-new-since="2026-11-03" data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
     $sHtml .= '</section>';
