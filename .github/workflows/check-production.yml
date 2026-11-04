@@ -22,6 +22,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: |
+            .github/scripts
             bideplus/api/Core
             bideplus/api/Networks
             bideplus/api/Config
@@ -90,6 +91,9 @@ jobs:
           curl -sS -o /dev/null -D nearby.txt "$BASE/api/nearby?lat=43.263&lon=-2.935"
           echo "dónde corre el servidor: $(grep -i '^x-vercel-id' nearby.txt | tr -d '\r')"
           exit $fail
+
+      - name: Directo de cada red
+        run: python3 .github/scripts/live-health.py "$BASE" $NETWORKS
 
       - name: 404 en páginas inexistentes y en lo que no se publica
         run: |

@@ -203,6 +203,10 @@ jobs:
       - name: Avisar a los buscadores (IndexNow)
         run: php bideplus/scripts/indexnow.php || echo "::warning::IndexNow no ha respondido bien"
 
+      # El directo de cada red en producción (.github/scripts/live-health.py): si algo no cuadra, el flujo sale en rojo.
+      - name: Vigilar el directo
+        run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
+
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

@@ -3,16 +3,21 @@
 namespace Services;
 
 use Core\Config;
+use Core\Database;
 use Core\Live;
+use Models\ServiceJourney;
 
-// Diagnóstico del feed de vehículos en directo (/api/status): lo pide el servidor como lo hace la app y cuenta qué
-// trae (vehículos, GPS, hora del dato y retraso). Sirve para ver si la fuente responde desde el despliegue.
+// Diagnóstico del directo de la red (/api/status): lo pide el servidor como lo hace la app y cuenta qué trae. Lo revisa
+// cada hora .github/scripts/live-health.py.
 class FeedStatus
 {
     // Null si la red no tiene vehículos en directo.
     public static function report(): array|null
     {
         $aConfig = Config::current();
+        if (Config::hasLive('trip-updates')) {
+            return self::tripUpdatesReport($aConfig);
+        }
         if (!Config::hasLive('vehicle-monitoring')) {
             return null;
         }
@@ -22,6 +27,31 @@ class FeedStatus
         try {
             $aOut += self::counts(Live::vehicles());
             $aOut['ok'] = $aOut['vehicles'] > 0;
+        } catch (\Throwable $Ex) {
+            $aOut['error'] = 'La fuente no respondió';
+        }
+        $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
+        return $aOut;
+    }
+
+    private static function tripUpdatesReport(array $aConfig): array
+    {
+        $dStart = microtime(true);
+        $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($aConfig['gtfs_rt']['trip_updates_url'], PHP_URL_HOST), 'ok' => false];
+        try {
+            $Client = new GtfsRealtimeClient($aConfig);
+            $aOut['feedTrips'] = \count($Client->fetchTripUpdates());
+            $aOut['vehicles'] = 0;
+            if (Config::hasLive('vehicle-positions')) {
+                $aOut['vehicles'] = \count($Client->fetchVehiclePositions());
+            }
+            $Matcher = Live::tripMatcher(new ServiceJourney(Database::connection()));
+            $aOut['matching'] = 'stops';
+            if ($Matcher instanceof TripDelayMatcher) {
+                $aOut['matching'] = 'trip';
+                $aOut += $Matcher->diagnostics();
+            }
+            $aOut['ok'] = $aOut['feedTrips'] > 0;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }

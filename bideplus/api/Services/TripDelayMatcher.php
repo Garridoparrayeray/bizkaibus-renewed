@@ -24,6 +24,8 @@ class TripDelayMatcher
     private int $iMidnight;
     private bool $bRail;
     private int $iMatched = 0;
+    private bool $bCopiesSchedule = false;
+    private bool $bContradictsVehicles = false;
 
     public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
@@ -56,7 +58,9 @@ class TripDelayMatcher
             ];
         }
         $this->iMatched = \count($this->aByJourney);
-        if ($this->copiesSchedule() || $this->contradictsVehicles($aVehicles)) {
+        $this->bCopiesSchedule = $this->copiesSchedule();
+        $this->bContradictsVehicles = $this->contradictsVehicles($aVehicles);
+        if ($this->bCopiesSchedule || $this->bContradictsVehicles) {
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->addVehicles($aVehicles);
@@ -103,6 +107,54 @@ class TripDelayMatcher
     public function matchedJourneys(): int
     {
         return $this->iMatched;
+    }
+
+    public function diagnostics(): array
+    {
+        $aDelays = [];
+        foreach ($this->aByJourney as $sJourneyId => $aLive) {
+            $iDelay = $this->nextStopDelay((string)$sJourneyId, $aLive);
+            if ($iDelay !== null) {
+                $aDelays[] = $iDelay;
+            }
+        }
+        sort($aDelays);
+        $iCount = \count($aDelays);
+        $aOut = [
+            'matched' => $this->iMatched,
+            'copiesSchedule' => $this->bCopiesSchedule,
+            'contradictsVehicles' => $this->bContradictsVehicles,
+            'live' => $iCount,
+            'cancelled' => \count($this->cancelledJourneyIds()),
+        ];
+        if ($iCount > 0) {
+            $aAbs = array_map('abs', $aDelays);
+            sort($aAbs);
+            $aOut['delayMinutes'] = [
+                'median' => (int)round($aAbs[intdiv($iCount, 2)] / 60),
+                'p95' => (int)round($aAbs[min($iCount - 1, (int)floor($iCount * 0.95))] / 60),
+                'min' => (int)round($aDelays[0] / 60),
+                'max' => (int)round($aDelays[$iCount - 1] / 60),
+            ];
+        }
+        return $aOut;
+    }
+
+    private function nextStopDelay(string $sJourneyId, array $aLive): int|null
+    {
+        if ($aLive['canceled'] || !$this->hasRealData($sJourneyId, $aLive)) {
+            return null;
+        }
+        $iOrder = null;
+        if ($aLive['nextStopId'] !== null) {
+            $iOrder = $this->orderOf($sJourneyId, $aLive['nextStopId']);
+        }
+        $aStops = $this->stops($sJourneyId);
+        if ($iOrder === null || empty($aStops)) {
+            return null;
+        }
+        $iArrival = (int)$aStops[$this->indexOf($sJourneyId, $iOrder)]['arrival_seconds'];
+        return $this->etaAt($sJourneyId, $iOrder, $iArrival, $aLive) - $iArrival;
     }
 
     private function contradictsVehicles(array $aVehicles): bool
