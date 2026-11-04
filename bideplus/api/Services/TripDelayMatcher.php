@@ -21,7 +21,8 @@ class TripDelayMatcher
     private int $iMidnight;
     private bool $bRail;
 
-    public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null)
+    // $aVehicles: posiciones GPS (GtfsRealtimeClient::fetchVehiclePositions); las de trenes sin hora prevista cuentan.
+    public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
         if ($iMidnight === null) {
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
@@ -52,6 +53,42 @@ class TripDelayMatcher
                 'canceled' => !empty($aTrip['canceled']),
             ];
         }
+        $this->addVehicles($aVehicles);
+    }
+
+    // Un tren con posición GPS y sin hora prevista también va en directo: su retraso es lo que va tarde en la estación
+    // por la que va (nunca adelantado: la posición no dice si ya ha llegado), y vale para las que le quedan.
+    private function addVehicles(array $aVehicles): void
+    {
+        $aJourneyIds = $this->JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
+        foreach ($aVehicles as $aVehicle) {
+            $sJourneyId = (string)($aJourneyIds[$aVehicle['tripId']] ?? '');
+            $sStopId = (string)($aVehicle['stopId'] ?? '');
+            if ($sJourneyId === '' || $sStopId === '' || isset($this->aByJourney[$sJourneyId])) {
+                continue;
+            }
+            $iOrder = $this->orderOf($sJourneyId, $sStopId);
+            if ($iOrder === null) {
+                continue;
+            }
+            $iArrival = (int)$this->stops($sJourneyId)[$this->indexOf($sJourneyId, $iOrder)]['arrival_seconds'];
+            $this->aByJourney[$sJourneyId] = [
+                'delay' => max(0, $this->nowSeconds() - $iArrival),
+                'times' => [],
+                'nextStopId' => $sStopId,
+                'canceled' => false,
+            ];
+        }
+    }
+
+    private function indexOf(string $sServiceJourneyId, int $iOrder): int
+    {
+        foreach ($this->stops($sServiceJourneyId) as $iIndex => $aStop) {
+            if ((int)$aStop['seq_order'] === $iOrder) {
+                return $iIndex;
+            }
+        }
+        return 0;
     }
 
     public function hasData(): bool

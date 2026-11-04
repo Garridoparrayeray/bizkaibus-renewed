@@ -366,6 +366,12 @@ $aMetro = (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), 0))-
 $Expect('Metro: la hora de la estación es la del feed y el retraso, lo que se aparta del horario (15 min)', $aMetro[0]['status'] === 'live' && $aMetro[0]['etaSeconds'] === T0 + 1020 && $aMetro[0]['delaySeconds'] === 900, json_encode($aMetro[0]));
 $aMetroAhead = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', T0 + 300], ['C', T0 + 840]]]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
 $Expect('Metro: si el feed se salta la estación, la hora de la siguiente menos lo que se tarda hasta ella', $aMetroAhead[0]['etaSeconds'] === T0 + 720, json_encode($aMetroAhead[0]));
+$aGpsOnly = [['tripId' => '6005L2C1', 'lat' => 43.26, 'lon' => -2.93, 'stopId' => 'B', 'stopStatus' => null, 'vehicleId' => '513']];
+$MGps = new TripDelayMatcher([], new ServiceJourney($PdoRenfe), time() - (T0 + 720 + 300), $aGpsOnly);
+$aGpsRow = $MGps->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);
+$Expect('Metro: un tren con GPS y sin hora prevista va en directo, con lo que va tarde en su estación (5 min)', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['etaSeconds'] === T0 + 1140 && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
+$aGpsPassed = $MGps->enrich('A', [['stop_seq' => 0, 'arrival_seconds' => T0 + 600, 'etaSeconds' => T0 + 600] + $RenfeRow('J2', 1)]);
+$Expect('Metro: con GPS, una estación que ya ha dejado atrás no sale', $aGpsPassed === [], json_encode($aGpsPassed));
 \Core\Config::set('metro');
 $MMetroNow = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
 $Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');

@@ -79,7 +79,11 @@ class Live
         $aConfig = Config::current();
         $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
         if (($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip') {
-            $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight);
+            $aVehicles = [];
+            if (Config::hasLive('vehicle-positions')) {
+                $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
+            }
+            $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
             // Si ningún tren del feed está en el horario (Metro con un horario recién cambiado), por paradas y hora.
             if ($TripMatcher->hasData() || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
                 return $TripMatcher;
