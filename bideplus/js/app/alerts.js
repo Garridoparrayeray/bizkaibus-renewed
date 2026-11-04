@@ -16,5 +16,5 @@ export function setUpAlerts() {
     });
 
     if (FEATURES.alerts === 'stops') setIncidentsHeading('app.myStopsIncidents');
-    if (FEATURES.alerts === 'network') setIncidentsHeading('app.myFavoritesIncidents');
+    if (FEATURES.alerts === 'network') setIncidentsHeading('app.networkIncidents');
 }

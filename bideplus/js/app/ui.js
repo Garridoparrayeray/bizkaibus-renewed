@@ -18,11 +18,17 @@ export function departureWhen(departure) {
     return `${Math.max(departure.etaMinutes, 0)} min`;
 }
 
+function noData(busKey, trainKey) {
+    const network = window.BideNetworks?.get(window.__bbNetwork);
+    if (network && ['train', 'metro'].includes(network.kind)) return I18n.t(trainKey);
+    return I18n.t(busKey);
+}
+
 // atOrigin: el bus espera en la primera parada de su viaje (el motor lo sitúa allí antes de su hora de salida).
 export function liveBadgeText(status, etaMinutes, atOrigin = false) {
     if (status === 'departed') return I18n.t('app.badge.leaving');
     if (status === 'estimated') return I18n.t('app.badge.estimated');
-    if (status === 'likely_departed') return I18n.t('app.badge.likelyDeparted');
+    if (status === 'likely_departed') return noData('app.badge.likelyDeparted', 'app.badge.likelyDepartedTrain');
     if (status === 'cancelled') return I18n.t('app.badge.cancelled');
     if (status !== 'live') return I18n.t('app.badge.scheduled');
     if (etaMinutes <= 0 || atOrigin) return I18n.t('app.badge.atStop');
@@ -41,7 +47,7 @@ export function statusLabel(status, delayMinutes) {
     if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
     if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
     if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
-    if (status === 'likely_departed') return { text: I18n.t('app.status.likelyDeparted'), className: 'status-muted' };
+    if (status === 'likely_departed') return { text: noData('app.status.likelyDeparted', 'app.status.likelyDepartedTrain'), className: 'status-muted' };
     if (status === 'cancelled') return { text: I18n.t('app.status.cancelled'), className: 'status-warn' };
     return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
 }

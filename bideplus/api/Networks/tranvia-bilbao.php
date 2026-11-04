@@ -89,6 +89,7 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
+        'matching' => 'trip',
         'match_tolerance_seconds' => 600,
     ],
 

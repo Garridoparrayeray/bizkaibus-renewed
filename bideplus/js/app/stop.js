@@ -5,6 +5,7 @@ import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } fr
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
 import { loadTimetable, selectLine } from './timetable.js';
 import { DEPARTED_GRACE_MS, openVehicleModal } from './vehicle-modal.js';
+import { refreshStopAlerts } from './stop-alerts.js';
 
 const DEPARTURES_REFRESH_MS = 25000;
 const DEPARTURES_TICK_MS = 10000;
@@ -169,6 +170,7 @@ export async function loadDepartures() {
     showOfflineSchedule(data.offline === true);
     state.lastDepartures = data;
     renderDepartures(data);
+    refreshStopAlerts();
 }
 
 function tickDepartures() {

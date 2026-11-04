@@ -81,6 +81,7 @@ async function renderNetworkAlerts() {
 async function renderLineAlerts() {
     const lineIds = new Set(readFavorites().filter((favorite) => favorite.type === 'line').map((favorite) => String(favorite.refId)));
     if (state.currentLine) lineIds.add(String(state.currentLine.id));
+    for (const line of state.currentStop?.lines || []) lineIds.add(String(line.id));
     showEmpty('app.saveLineToSeeIncidents');
     if (lineIds.size === 0) return;
 
@@ -116,7 +117,7 @@ async function lineCodes(lineIds) {
     return codes;
 }
 
-async function openSideMenu() {
+export async function openSideMenu() {
     el.sideMenu.showModal();
     el.menuAlertsList.innerHTML = '';
     el.menuAlertsEmpty.hidden = false;

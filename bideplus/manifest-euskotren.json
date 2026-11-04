@@ -2,7 +2,7 @@
     "id": "/?homescreen=Euskotren",
     "name": "Euskotren+",
     "short_name": "Euskotren+",
-    "description": "Horarios y tiempo real de Euskotren, sin vueltas.",
+    "description": "Horarios de Euskotren, sin vueltas.",
     "start_url": "/?red=euskotren",
     "scope": "/",
     "display": "standalone",

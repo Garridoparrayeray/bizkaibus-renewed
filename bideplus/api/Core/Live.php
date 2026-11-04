@@ -79,7 +79,14 @@ class Live
         $aConfig = Config::current();
         $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
         if (($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip') {
-            return new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight);
+            $aVehicles = [];
+            if (Config::hasLive('vehicle-positions')) {
+                $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
+            }
+            $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
+            if ($TripMatcher->matchedJourneys() > 0 || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
+                return $TripMatcher;
+            }
         }
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
     }

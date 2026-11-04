@@ -12,12 +12,15 @@ use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\ScheduleOnlyMatcher;
+use Services\TripDelayMatcher;
 use Core\Live;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
 // (/api/stops/{id}/departures) y las paradas de un viaje (/api/trips/{tripKey}).
 class StopsController
 {
+    private const LATE_TRAINS_LOOKBACK_SECONDS = 3600;
+
     public function show(Request $Req, array $aParams): void
     {
         $Pdo = Database::connection();
@@ -133,13 +136,13 @@ class StopsController
         if (!empty($aPlatforms)) {
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {
-                $aRows = self::withLive($Matcher, $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit));
+                $aRows = self::withLive($Matcher, $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
                 array_push($aDepartures, ...array_slice(self::departureItems($aRows, $bUseLastStopHeadsign, $aPlatform), 0, $iLimit));
             }
             return $aOut + ['platforms' => $aPlatforms, 'departures' => $aDepartures, 'attribution' => $aConfig['attribution']];
         }
 
-        $aRows = self::upcomingRows($JourneyModel, $sStopId, $iLimit);
+        $aRows = self::upcomingRows($JourneyModel, $sStopId, $iLimit, self::pastSeconds($TripMatcher));
         $aDirectionLabels = null;
         if (isset($aConfig['direction_reference_stop_id'])) {
             [$aRows, $aDirectionLabels] = self::withDirections($JourneyModel, $aRows, $sStopId, $aStop['name'], $aConfig['direction_reference_stop_id']);
@@ -156,18 +159,18 @@ class StopsController
     // Salidas del horario de las próximas 4 horas o, si no hay ninguna (de noche), las 4 horas desde la primera que
     // queda y, si no bastan, las próximas 24. Mirar el día entero de una vez repasa cientos de salidas (en Metro, 40 ms
     // de CPU); como van por orden, las 4 horas desde la primera dan lo mismo cuando bastan.
-    private static function upcomingRows(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit): array
+    private static function upcomingRows(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast = null): array
     {
-        $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600);
+        $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, 0, $iPast);
         if (!empty($aRows)) {
             return $aRows;
         }
         $iNext = $JourneyModel->nextDepartureSeconds($StopId);
         if ($iNext !== null) {
-            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iNext - Calendar::nowSecondsSinceMidnight() + 4 * 3600);
+            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iNext - Calendar::nowSecondsSinceMidnight() + 4 * 3600, 0, $iPast);
         }
         if (count($aRows) < $iLimit + 5) {
-            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600);
+            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 0, $iPast);
         }
         // Hoy ya no sale ninguna más: detrás de las que acaban de salir (puede venir alguna con retraso), las primeras de
         // mañana con su horario.
@@ -179,6 +182,14 @@ class StopsController
         }
         $aTomorrow = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 1);
         return array_merge($aRows, array_map(fn(array $aRow) => ['tomorrow' => true] + $aRow, $aTomorrow));
+    }
+
+    private static function pastSeconds(object|null $TripMatcher): int|null
+    {
+        if ($TripMatcher instanceof TripDelayMatcher && $TripMatcher->hasData()) {
+            return self::LATE_TRAINS_LOOKBACK_SECONDS;
+        }
+        return null;
     }
 
     // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en los trenes y tranvías, las horas del

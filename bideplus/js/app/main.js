@@ -10,6 +10,7 @@ import { setUpScheduleModal } from './schedule-modal.js';
 import { modalState, renderModalHeader, renderModalStops, setUpVehicleModal } from './vehicle-modal.js';
 import { setUpStopShare } from './share.js';
 import { setUpSideMenu } from './side-menu.js';
+import { setUpStopAlerts } from './stop-alerts.js';
 import { setUpAlerts } from './alerts.js';
 import { setUpArrivalAlerts } from './arrival-alerts.js';
 
@@ -50,6 +51,7 @@ function setUpLanguage() {
 setUpConnectionBanner();
 setUpNetworkMenu();
 setUpSideMenu();
+setUpStopAlerts();
 setUpFavoritesPanel();
 setUpAlerts();
 setUpLanguage();
