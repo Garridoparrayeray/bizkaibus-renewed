@@ -389,6 +389,18 @@ $aCopy = $MCopy->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 240, '
 $Expect('Euskotren: un feed cuyas horas son las del horario al segundo no es directo: sale con el horario', $aCopy[0]['status'] === 'scheduled' && !$MCopy->hasData() && $MCopy->matchedJourneys() === 1, json_encode($aCopy[0]));
 $aStuckRenfe = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['B', 0]], 'delay' => 60]], new ServiceJourney($PdoRenfe), time() - (T0 + 120 + 360)))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 240, 'etaSeconds' => T0 + 240] + $RenfeRow('J1', 0)]);
 $Expect('Renfe: con su retraso ya sobrepasado en la siguiente estación, también', $aStuckRenfe[0]['delaySeconds'] === 360, json_encode($aStuckRenfe[0]));
+$iOffMidnight = time() - (T0 + 1020);
+$aOffTrips = [];
+$aOffVehicles = [];
+foreach (['6005L1C1', '6005L2C1', '6005L4C1'] as $sOffTrip) {
+    $aOffTrips[] = ['tripId' => $sOffTrip, 'stops' => [['B', $iOffMidnight + T0 + 1020 + 3600], ['C', $iOffMidnight + T0 + 1140 + 3600]]];
+    $aOffVehicles[] = ['tripId' => $sOffTrip, 'lat' => 42.85, 'lon' => -2.67, 'stopId' => 'B', 'stopStatus' => 'arriving', 'vehicleId' => $sOffTrip];
+}
+$aOffRow = (new TripDelayMatcher($aOffTrips, new ServiceJourney($PdoRenfe), $iOffMidnight, $aOffVehicles))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);
+$Expect('Álavabus: si las horas del feed no cuadran con dónde están los autobuses (una hora de más), se usa el GPS', $aOffRow[0]['status'] === 'live' && $aOffRow[0]['delaySeconds'] === 300, json_encode($aOffRow[0]));
+$aOnTrips = array_map(fn($aTrip) => ['tripId' => $aTrip['tripId'], 'stops' => [['B', $iOffMidnight + T0 + 1050], ['C', $iOffMidnight + T0 + 1170]]], $aOffTrips);
+$aOnRow = (new TripDelayMatcher($aOnTrips, new ServiceJourney($PdoRenfe), $iOffMidnight, $aOffVehicles))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);
+$Expect('si cuadran, mandan las horas del feed', $aOnRow[0]['etaSeconds'] === T0 + 1170, json_encode($aOnRow[0]));
 \Core\Config::set('metro');
 $MMetroNow = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
 $Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');

@@ -15,6 +15,8 @@ class TripDelayMatcher
     private const DUE_SECONDS = 60;
     private const STALE_PREDICTION_SECONDS = 60;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
+    private const VEHICLE_DISAGREEMENT_SECONDS = 1200;
+    private const MIN_VEHICLES_TO_DISTRUST = 3;
 
     // id del viaje del horario => ['delay' => segundos, 'nextStopId' => string|null, 'canceled' => bool]
     private array $aByJourney = [];
@@ -54,7 +56,7 @@ class TripDelayMatcher
             ];
         }
         $this->iMatched = \count($this->aByJourney);
-        if ($this->copiesSchedule()) {
+        if ($this->copiesSchedule() || $this->contradictsVehicles($aVehicles)) {
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->addVehicles($aVehicles);
@@ -101,6 +103,25 @@ class TripDelayMatcher
     public function matchedJourneys(): int
     {
         return $this->iMatched;
+    }
+
+    private function contradictsVehicles(array $aVehicles): bool
+    {
+        $aJourneyIds = $this->JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
+        $iChecked = 0;
+        $iOff = 0;
+        foreach ($aVehicles as $aVehicle) {
+            $sJourneyId = (string)($aJourneyIds[$aVehicle['tripId']] ?? '');
+            $iTime = $this->aByJourney[$sJourneyId]['times'][(string)($aVehicle['stopId'] ?? '')] ?? null;
+            if ($iTime === null) {
+                continue;
+            }
+            $iChecked++;
+            if (abs($iTime - $this->nowSeconds()) > self::VEHICLE_DISAGREEMENT_SECONDS) {
+                $iOff++;
+            }
+        }
+        return $iChecked >= self::MIN_VEHICLES_TO_DISTRUST && $iOff * 2 > $iChecked;
     }
 
     private function copiesSchedule(): bool
