@@ -129,6 +129,10 @@ class TripDelayMatcher
                 $aOut[] = ['status' => 'cancelled', 'etaSeconds' => (int)$aRow['arrival_seconds'], 'delaySeconds' => 0] + $aRow;
                 continue;
             }
+            if (!$this->hasRealData((string)$aRow['service_journey_id'], $aLive)) {
+                $aOut[] = $aRow;
+                continue;
+            }
             $iEtaSeconds = $this->etaAt((string)$aRow['service_journey_id'], (int)$aRow['stop_seq'], (int)$aRow['arrival_seconds'], $aLive);
             if ($this->passed((string)$aRow['service_journey_id'], (int)$aRow['stop_seq'], $aLive['nextStopId'], $iEtaSeconds)) {
                 continue;
@@ -150,7 +154,7 @@ class TripDelayMatcher
     public function liveTrip(string $sStopId, array $aRows, string $sServiceJourneyId): array|null
     {
         $aLive = $this->aByJourney[$sServiceJourneyId] ?? null;
-        if ($aLive === null || $aLive['canceled']) {
+        if ($aLive === null || $aLive['canceled'] || !$this->hasRealData($sServiceJourneyId, $aLive)) {
             return null;
         }
         $iFromOrder = 0;
@@ -165,6 +169,26 @@ class TripDelayMatcher
             }
         }
         return $aStops;
+    }
+
+    // El directo aporta algo si el tren ya ha salido de origen o si su hora prevista no es la del horario. Renfe y
+    // Euskotren publican los trenes que aún no han salido con su hora de papel (retraso 0): eso es el horario.
+    private function hasRealData(string $sServiceJourneyId, array $aLive): bool
+    {
+        $aStops = $this->stops($sServiceJourneyId);
+        if (empty($aStops) || (int)$aStops[0]['departure_seconds'] <= $this->nowSeconds()) {
+            return true;
+        }
+        if (empty($aLive['times'])) {
+            return abs($aLive['delay']) >= self::ON_TIME_SECONDS;
+        }
+        foreach ($aStops as $aStop) {
+            $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
+            if ($iTime !== null && abs($iTime - (int)$aStop['arrival_seconds']) >= self::ON_TIME_SECONDS) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // En los trenes (Metro, Renfe) el directo trae cada tren en marcha: uno que ya debería estar en la parada y no está en
