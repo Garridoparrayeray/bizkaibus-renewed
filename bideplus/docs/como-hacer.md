@@ -200,14 +200,18 @@ Para contestar «¿cuándo pasa el bus por tal parada?» sin abrir la app. Bizka
 $v = irm "https://www.bideplus.eus/api/vehicles/<tripKey>?red=metro"; $v | select lineCode,status,vehicleRef,delayMinutes; $v.stops | ft scheduledTime,name,etaMinutes,isPast,isCurrent
 ```
 
-O todo de una vez, con una función que se pega una vez en PowerShell:
+O todo de una vez, con una función que se pega una vez en PowerShell. Enseña cada parada que encuentra (hasta
+cuatro) con sus salidas: en el bus, una parada por sentido (SAN JUAN de Amorebieta: 3388 hacia Gernika y 3391 hacia
+Bilbao); en metro y tren, una estación con los dos sentidos.
 
 ```powershell
-function Bide($red, $parada) {
+function Bide($red, $parada, $max = 4) {
     $r = ''; if ($red -ne 'bus') { $r = "red=$red&" }
-    $s = (irm "https://www.bideplus.eus/api/search?${r}q=$([uri]::EscapeDataString($parada))").stops | select -First 1
-    "$($s.name) · $($s.area) · $($s.id)"
-    (irm "https://www.bideplus.eus/api/stops/$($s.id)/departures?${r}limit=10").departures | ft lineCode,headsign,scheduledTime,etaMinutes,status,delayMinutes
+    $stops = (irm "https://www.bideplus.eus/api/search?${r}q=$([uri]::EscapeDataString($parada))").stops | select -First $max
+    foreach ($s in $stops) {
+        "== $($s.name) · $($s.area) · parada $($s.id)"
+        (irm "https://www.bideplus.eus/api/stops/$($s.id)/departures?${r}limit=8").departures | ft lineCode,headsign,scheduledTime,etaMinutes,status,delayMinutes | Out-String
+    }
 }
 Bide bus 'amorebieta san juan'
 ```
