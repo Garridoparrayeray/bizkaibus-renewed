@@ -1060,6 +1060,40 @@ tbody tr {
     tbody tr.is-past > td {
         opacity: .5;
     }
+/* Incidencias de la parada abierta (js/app/stop-alerts.js): la primera y un botón para verlas todas. */
+.stop-alerts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--warn-tint);
+    color: var(--status-warn);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+    .stop-alerts[hidden] {
+        display: none;
+    }
+    .stop-alerts-summary {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        font-size: 13.6px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .stop-alerts-action {
+        font-size: 12.8px;
+        font-weight: 700;
+        text-decoration: underline;
+    }
 .timetable-note {
     margin: 0 0 14px;
     padding: 10px 12px;

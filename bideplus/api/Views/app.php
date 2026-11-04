@@ -171,6 +171,7 @@ use Core\Networks;
                             </button>
                         </span>
                     </header>
+                    <button id="live-alerts" class="stop-alerts" type="button" hidden></button>
                     <h3 id="live-line" class="live-line"></h3>
                     <p id="live-headsign" class="live-headsign"></p>
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
@@ -204,6 +205,7 @@ use Core\Networks;
                     </header>
                     <button id="platform-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
+                    <button id="platform-alerts" class="stop-alerts" type="button" hidden></button>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
                     <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>

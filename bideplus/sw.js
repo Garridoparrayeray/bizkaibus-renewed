@@ -52,6 +52,7 @@ const SHELL_FILES = [
     '/js/app/share.js',
     '/js/app/favorites.js',
     '/js/app/side-menu.js',
+    '/js/app/stop-alerts.js',
     '/js/app/alerts.js',
     '/js/app/arrival-alerts.js',
     '/js/networks.js',
