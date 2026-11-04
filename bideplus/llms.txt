@@ -25,7 +25,7 @@
 - [Tranvía Vitoria+](https://www.bideplus.eus/?red=tranvia-vitoria)
 - [Renfe Cercanías+](https://www.bideplus.eus/?red=renfe)
 - [Sitemap](https://www.bideplus.eus/sitemap.xml): every stop and line
-- [Source code](https://github.com/Garridoparrayeray/bizkaibus-renewed): open source on GitHub
+- [Source code](https://github.com/Garridoparrayeray/bizkaibus-renewed): source code on GitHub (all rights reserved; personal, non-commercial study and local use allowed, see LICENSE)
 
 ## Author
 - Name: Yeray Garrido, Software Engineer and Full Stack Developer based in Bilbao.

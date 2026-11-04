@@ -17,7 +17,7 @@ return [
         'LinkedIn' => 'https://www.linkedin.com/in/yeray-garrido',
         'Portfolio' => 'https://www.yeraygarrido.dev/',
     ],
-    // El enlace «Código abierto en GitHub».
+    // El enlace «Código en GitHub».
     'source_url' => 'https://github.com/Garridoparrayeray/bizkaibus-renewed',
     // Adonde llegan las sugerencias y los errores del formulario de Info.
     'contact_email' => 'garridoparrayeraytx@gmail.com',

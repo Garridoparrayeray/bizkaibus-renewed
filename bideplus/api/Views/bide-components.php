@@ -186,7 +186,7 @@ function bideAuthorLinks(): string
     foreach ($aSite['author_links'] as $sLabel => $sUrl) {
         $sHtml .= '<a href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer">' . htmlspecialchars($sLabel) . '</a>';
     }
-    return $sHtml . '<a href="' . htmlspecialchars($aSite['source_url']) . '" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código abierto en GitHub</a>';
+    return $sHtml . '<a href="' . htmlspecialchars($aSite['source_url']) . '" target="_blank" rel="noopener noreferrer" data-i18n="info.source">Código en GitHub</a>';
 }
 
 // Donaciones: solo un enlace a Ko-fi. Su botón incrustado cargaría scripts de fuera, que la CSP bloquea.

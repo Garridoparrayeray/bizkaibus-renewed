@@ -160,7 +160,7 @@ La pista "hacia X" en los resultados de búsqueda (`SearchController::addDirecti
 
 ## Licencia
 
-El código, el diseño y los iconos de este proyecto se publican bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE): se pueden copiar y adaptar citando al autor, sin fines comerciales y compartiendo las obras derivadas con la misma licencia. Los datos de transporte son de sus operadores y mantienen sus propias licencias (véase «Atribución de datos»). Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares.
+El código, el diseño y los iconos de este proyecto son de Yeray Garrido, con todos los derechos reservados salvo los permisos del archivo [LICENSE](../LICENSE): verlo, ejecutarlo en local, estudiarlo e investigarlo a título particular y sin fines comerciales. Cualquier uso por organizaciones, público o comercial necesita una licencia del autor. Los datos de transporte son de sus operadores y mantienen sus propias licencias (véase «Atribución de datos»). Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares.
 
 ## Atribución de datos
 

@@ -58,4 +58,4 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 
 ## Licencia de tus contribuciones
 
-El proyecto se publica bajo [CC BY-NC-SA 4.0](LICENSE). Al enviar una contribución aceptas que se publique bajo esa misma licencia. Los datos de los operadores mantienen las suyas.
+El proyecto tiene todos los derechos reservados, con los permisos del archivo [LICENSE](LICENSE). Al enviar una contribución concedes al autor una licencia perpetua, gratuita e irrevocable para usarla, modificarla, publicarla y licenciarla, también con fines comerciales, como parte de Bide+ (punto 3 de [LICENSE](LICENSE)). Los datos de los operadores mantienen sus licencias.

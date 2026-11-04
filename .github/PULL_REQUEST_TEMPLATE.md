@@ -13,4 +13,4 @@
 - [ ] El estilo del código es el del entorno (ver la [guía para contribuir](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/CONTRIBUTING.md)).
 - [ ] Si cambia algún texto, está en castellano y en euskera.
 - [ ] No incluyo bases de datos `.sqlite` regeneradas, claves ni datos personales.
-- [ ] Acepto que mi contribución se publique bajo la licencia [CC BY-NC-SA 4.0](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/LICENSE).
+- [ ] Acepto las condiciones de las contribuciones del punto 3 de [LICENSE](https://github.com/Garridoparrayeray/bizkaibus-renewed/blob/master/LICENSE).

@@ -50,8 +50,12 @@ Un error en un horario o en una llegada, una idea o una barrera de accesibilidad
 
 ## Licencia
 
-El código, el diseño y los iconos se publican bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE): puedes copiarlos y adaptarlos citando al autor, sin fines comerciales y compartiendo las obras derivadas con la misma licencia. © 2026 Yeray Garrido.
+© 2026 Yeray Garrido. **Todos los derechos reservados**, con estos permisos ([LICENSE](LICENSE)):
 
-Cualquier uso comercial necesita una licencia del autor: venderlo o revenderlo, cobrar por instalarlo, adaptarlo, mantenerlo o desplegarlo para terceros (también para administraciones públicas) o incluirlo en un producto o servicio de pago. El uso sin ánimo de lucro, también por administraciones y entidades, está permitido con la misma licencia. Para una licencia comercial, mira la cabecera del archivo [LICENSE](LICENSE).
+- **Cualquier persona, a título particular y sin fines comerciales**, puede ver y descargar el código, ejecutarlo en su propio equipo, estudiarlo e investigarlo (también modificándolo en privado) y publicar lo que aprenda citando al autor.
+- **Universidades y centros de investigación** pueden estudiarlo, investigarlo y usarlo en la docencia, pero no ponerlo en funcionamiento para dar un servicio.
+- **Sin una licencia del autor no se permite**: ningún uso comercial ni con ánimo de lucro, ningún uso por organizaciones públicas o privadas (administraciones, consorcios, empresas…), publicar una web o app basada en este código, distribuir copias o versiones modificadas, ni usar el nombre «Bide+», sus logos o bideplus.eus.
 
-Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren y Renfe son de sus titulares, menos los generados para usar la aplicación que están publicados bajo [Creative Commons Reconocimiento-NoComercial-CompartirIgual 4.0 (CC BY-NC-SA 4.0)](LICENSE). Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
+Para una licencia comercial o institucional, mira el final del archivo [LICENSE](LICENSE). Lo publicado antes del 4 de noviembre de 2026 se distribuyó bajo CC BY-NC-SA 4.0.
+
+Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren, Renfe y los demás operadores son de sus titulares. Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
