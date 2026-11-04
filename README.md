@@ -56,6 +56,6 @@ Un error en un horario o en una llegada, una idea o una barrera de accesibilidad
 - **Universidades y centros de investigación** pueden estudiarlo, investigarlo y usarlo en la docencia, pero no ponerlo en funcionamiento para dar un servicio.
 - **Sin una licencia del autor no se permite**: ningún uso comercial ni con ánimo de lucro, ningún uso por organizaciones públicas o privadas (administraciones, consorcios, empresas…), publicar una web o app basada en este código, distribuir copias o versiones modificadas, ni usar el nombre «Bide+», sus logos o bideplus.eus.
 
-Para una licencia comercial o institucional, mira el final del archivo [LICENSE](LICENSE). Lo publicado antes del 4 de noviembre de 2026 se distribuyó bajo CC BY-NC-SA 4.0.
+Cualquier otro uso necesita el permiso por escrito del autor, que puede darlo gratis (por ejemplo, a un proyecto social sin ánimo de lucro) o con una licencia: escríbele antes (contacto al final del archivo [LICENSE](LICENSE)). Lo publicado antes del 4 de noviembre de 2026 se distribuyó bajo CC BY-NC-SA 4.0.
 
 Los nombres y logotipos de Bizkaibus, Metro Bilbao, Euskotren, Renfe y los demás operadores son de sus titulares. Este es un proyecto independiente y no tiene relación con ellos ni con las administraciones que publican los datos.
