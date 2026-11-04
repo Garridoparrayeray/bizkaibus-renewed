@@ -110,7 +110,10 @@ for name, cfg in NETS.items():
 status = get('/api/status') or {}
 if 'bus' in NETS and status.get('source') != 'ctb-siri.s3.eu-south-2.amazonaws.com' or 'ok' not in status or 'ms' not in status:
     fails.append(f'/api/status: la fuente de los buses no es el feed GPS de Open Data Bizkaia o falta el diagnostico {status}')
-get('/api/status?red=metro', 404)
+get('/api/status?red=launion', 404)
+metro_status = get('/api/status?red=metro') or {}
+if metro_status.get('ok') is None or 'feedTrips' not in metro_status or 'matching' not in metro_status:
+    fails.append(f'/api/status?red=metro: sin el diagnóstico del directo {metro_status}')
 # Aviso de versión nueva.
 version = get('/api/app/version?desde=0&lang=eu') or {}
 if not isinstance(version.get('version'), int) or not version.get('notes') or not all(n.get('title') and n.get('text') for n in version['notes']):

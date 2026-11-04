@@ -1,0 +1,29 @@
+name: Vigilar el directo
+
+# Cada hora, de día, mira en producción el directo de cada red (/api/status): si un feed deja de responder, si una red
+# deja de encontrar sus viajes en el horario o si se enseñan retrasos no creíbles, el flujo sale en rojo y GitHub avisa
+# por correo. Lo mismo se mira tras cada despliegue (rebuild-schedule.yml).
+
+on:
+  schedule:
+    - cron: '23 6-21 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts
+            bideplus/api/Core
+            bideplus/api/Networks
+            bideplus/api/Config
+            bideplus/scripts
+
+      - name: Directo de cada red
+        run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
+          python3 .github/scripts/live-health.py "$SITIO" $(php bideplus/scripts/networks.php --slugs)
