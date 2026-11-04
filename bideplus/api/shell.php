@@ -1,6 +1,6 @@
 <?php
-// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa), la pantalla de una parada (/pantalla/{id}) y la app de
-// cada red (/?red=, /stops/{id}, /lines/{id}).
+// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa), el estado de las redes (/estado), la pantalla de una
+// parada (/pantalla/{id}) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
 
 require __DIR__ . '/autoload.php';
 
@@ -34,6 +34,10 @@ if ($sLang !== 'es') {
 
 if ($sPath === '/mapa') {
     require __DIR__ . '/Views/network-map.php';
+    exit;
+}
+if ($sPath === '/estado') {
+    require __DIR__ . '/Views/estado.php';
     exit;
 }
 if (str_starts_with($sPath, '/pantalla/')) {
