@@ -80,8 +80,8 @@ $aPrecision = [
 
     <main class="status-main">
         <section class="status-intro">
-            <h2>Ahora en las redes</h2>
-            <p id="status-summary">Preguntando a cada red…</p>
+            <h2 data-i18n="status.heading">Ahora en las redes</h2>
+            <p id="status-summary" data-i18n="status.loading">Preguntando a cada red…</p>
         </section>
 
         <ul class="status-grid">
@@ -102,27 +102,27 @@ $aPrecision = [
         </ul>
 
         <section class="status-precision" aria-labelledby="status-precision-title">
-            <h2 id="status-precision-title">Bide+ acierta 4 veces más que el horario</h2>
-            <p class="status-lead">Llegadas de Bizkaibus que caen a menos de 2 minutos del paso real del autobús, según lo lejos que esté.</p>
+            <h2 id="status-precision-title" data-i18n="status.precision.title">Bide+ acierta 4 veces más que el horario</h2>
+            <p class="status-lead" data-i18n="status.precision.lead">Llegadas de Bizkaibus que caen a menos de 2 minutos del paso real del autobús, según lo lejos que esté.</p>
             <div class="status-legend">
                 <span><i class="is-bide"></i>Bide+</span>
-                <span><i class="is-timetable"></i>Horario publicado</span>
+                <span><i class="is-timetable"></i><span data-i18n="status.precision.timetable">Horario publicado</span></span>
             </div>
-            <div class="status-chart" role="table" aria-label="Acierto a ±2 minutos por distancia al autobús">
+            <div class="status-chart" role="table" data-i18n-attr="aria-label:status.precision.aria" aria-label="Acierto a ±2 minutos según lo lejos que esté el autobús">
 <?php foreach ($aPrecision as $aRow): ?>
                 <div class="status-chart-row" role="row">
-                    <span class="status-chart-label" role="rowheader">a <?= $aRow['range'] ?> min</span>
+                    <span class="status-chart-label" role="rowheader"><?= $aRow['range'] ?> min</span>
                     <div class="status-chart-bars" role="cell">
-                        <div class="status-bar is-bide" data-value="<?= $aRow['bide'] ?>" title="Bide+: <?= $aRow['bide'] ?> %"><span><?= $aRow['bide'] ?> %</span></div>
-                        <div class="status-bar is-timetable" data-value="<?= $aRow['timetable'] ?>" title="Horario publicado: <?= $aRow['timetable'] ?> %"><span><?= $aRow['timetable'] ?> %</span></div>
+                        <div class="status-bar is-bide" data-value="<?= $aRow['bide'] ?>"><span><?= $aRow['bide'] ?> %</span></div>
+                        <div class="status-bar is-timetable" data-value="<?= $aRow['timetable'] ?>"><span><?= $aRow['timetable'] ?> %</span></div>
                     </div>
                 </div>
 <?php endforeach; ?>
             </div>
-            <p class="status-source">2,37 millones de llegadas en 17 días de octubre de 2026, cada una contrastada con el paso real del autobús por la parada.</p>
+            <p class="status-source" data-i18n="status.precision.source">2,37 millones de llegadas en 17 días de octubre de 2026, cada una contrastada con el paso real del autobús por la parada.</p>
         </section>
 
-        <p class="status-foot">Con los datos abiertos de cada operador, cada minuto. Bide+ es un proyecto independiente, sin relación con los operadores.</p>
+        <p class="status-foot" data-i18n="status.foot">Con los datos abiertos de cada operador, cada minuto. Bide+ es un proyecto independiente, sin relación con los operadores.</p>
     </main>
 </body>
 </html>

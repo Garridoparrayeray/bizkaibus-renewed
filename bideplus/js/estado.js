@@ -4,7 +4,9 @@
     'use strict';
 
     const REFRESH_MS = 60000;
-    const UNITS = { bus: 'autobuses', metro: 'trenes', train: 'trenes', tram: 'tranvías' };
+    const KINDS = ['bus', 'metro', 'train', 'tram'];
+    const LOCALES = { es: 'es-ES', eu: 'eu-ES', en: 'en-GB' };
+    const t = (key, vars) => I18n.t(key, vars);
 
     async function getJson(url) {
         try {
@@ -24,20 +26,21 @@
     }
 
     function alertsText(count) {
-        if (count === 1) return '1 aviso';
-        return `${count} avisos`;
+        if (count === 1) return t('status.alerts.one');
+        return t('status.alerts.many', { n: count });
     }
 
     function fillTile(tile, status, alerts) {
         const count = liveCount(status);
-        const unit = UNITS[tile.dataset.kind] || 'vehículos';
+        let kind = tile.dataset.kind;
+        if (!KINDS.includes(kind)) kind = 'bus';
         tile.classList.toggle('is-schedule', count === 0);
         const strong = tile.querySelector('.status-count strong');
         const label = tile.querySelector('.status-count span');
         strong.textContent = String(count);
-        label.textContent = `${unit} en directo`;
+        label.textContent = t(`status.live.${kind}`);
         strong.hidden = count === 0;
-        if (count === 0) label.textContent = 'Ahora sin directo: sale el horario';
+        if (count === 0) label.textContent = t('status.noLive');
         let alertCount = 0;
         if (alerts && Array.isArray(alerts.alerts)) alertCount = alerts.alerts.length;
         const badge = tile.querySelector('.status-alerts');
@@ -57,11 +60,19 @@
             return fillTile(tile, status, alerts);
         }));
         const sum = (key) => results.reduce((total, result) => total + result[key], 0);
-        const time = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        const live = sum('live').toLocaleString('es-ES');
-        document.getElementById('status-summary').textContent =
-            `A las ${time} hay ${live} vehículos en directo en ${sum('networks')} de las ${tiles.length} redes, y ${alertsText(sum('alerts'))} de los operadores.`;
+        const locale = LOCALES[I18n.getLang()] || 'es-ES';
+        const summary = document.getElementById('status-summary');
+        summary.removeAttribute('data-i18n');
+        summary.textContent = t('status.summary', {
+            time: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
+            live: sum('live').toLocaleString(locale),
+            networks: sum('networks'),
+            total: tiles.length,
+            alerts: alertsText(sum('alerts')),
+        });
     }
+
+    I18n.applyTranslations(document);
 
     document.querySelectorAll('.status-bar[data-value]').forEach((bar) => {
         bar.style.setProperty('--value', `${bar.dataset.value}%`);
