@@ -592,8 +592,8 @@ fakeDepartures = { stop: { id: '13200', name: 'Bilbao-Abando' }, platforms: [], 
 ] };
 await send('Fetch.enable', { patterns: [{ urlPattern: '*/departures*' }] });
 await go('/stops/13200?red=renfe');
-check('Renfe · la salida grande es el tren que viene, no el cancelado', await waitTrue("document.getElementById('live-line').textContent.includes('Muskiz') && document.getElementById('live-delay').textContent.includes('4')"));
-check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...document.querySelectorAll('#live-more-list li.is-cancelled')].some((li) => li.textContent.includes(I18n.t('app.list.cancelled', { time: '20:10' })))"));
+check('Renfe · la salida grande es el tren que viene, no el cancelado', await waitTrue("document.querySelector('#platform-columns .platform-column-headsign').textContent.includes('Muskiz') && document.querySelector('#platform-columns .delay-sub').textContent.includes('4')"));
+check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...document.querySelectorAll('#platform-columns .platform-column-list li.is-cancelled')].some((li) => li.textContent.includes(I18n.t('app.list.cancelled', { time: '20:10' })))"));
 await go('/pantalla/13200?red=renfe', 2500);
 check('Renfe · en la pantalla, el cancelado lleva su hora tachada y «Cancelado», no los minutos', await waitTrue("[...document.querySelectorAll('.screen-row.is-cancelled')].some((li) => li.querySelector('.screen-time').textContent === '20:10' && li.querySelector('.screen-detail').textContent.includes(I18n.t('app.status.cancelled')) && getComputedStyle(li.querySelector('.screen-time')).textDecorationLine === 'line-through')"));
 fakeDepartures = null;
