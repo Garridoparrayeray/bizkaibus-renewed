@@ -411,6 +411,7 @@ function renderPlatformPanel(data) {
         }
     }
 
+    distinctLines.sort((a, b) => String(a.lineCode).localeCompare(String(b.lineCode), undefined, { numeric: true }));
     if (distinctLines.length > 1) {
         el.platformTimetableLink.hidden = true;
         el.platformTimetableLines.hidden = false;

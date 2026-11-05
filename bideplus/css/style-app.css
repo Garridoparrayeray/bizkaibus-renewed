@@ -198,11 +198,16 @@ svg[viewBox] rect {
         font-weight: 800;
         letter-spacing: .02em;
     }
-.glass > header,
-.platform-panel > header {
+.glass > header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+.platform-panel > header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
 }
 
 /* ===== Cabecera ===== */
