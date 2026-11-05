@@ -26,6 +26,7 @@ class Shapes
         // Corre antes de que la construcción cree los índices: sin este, cada consulta recorrería la tabla entera. Es el
         // mismo índice que crea después (Schema::createIndexes), así que se queda y no hay que quitarlo.
         $Pdo->exec('CREATE INDEX IF NOT EXISTS idx_passing_times_journey ON passing_times (service_journey_id, seq_order)');
+        $iOrphaned = $Pdo->exec('UPDATE service_journeys SET shape_id = NULL WHERE shape_id IS NOT NULL AND shape_id NOT IN (SELECT id FROM shapes)');
         $aJourneysByShape = [];
         $Rows = $Pdo->query('SELECT id, shape_id FROM service_journeys WHERE shape_id IS NOT NULL');
         foreach ($Rows as $aRow) {
@@ -39,7 +40,7 @@ class Shapes
         $SaveShape = $Pdo->prepare('UPDATE shapes SET points = ? WHERE id = ?');
         $SaveDistance = $Pdo->prepare('UPDATE passing_times SET dist_m = ? WHERE service_journey_id = ? AND seq_order = ?');
 
-        $aTotals = ['reversed' => 0, 'remeasured' => 0, 'measured' => 0];
+        $aTotals = ['reversed' => 0, 'remeasured' => 0, 'measured' => 0, 'orphaned' => (int)$iOrphaned];
         foreach ($aJourneysByShape as $sShapeId => $aJourneyIds) {
             $LoadShape->execute([$sShapeId]);
             $aPoints = json_decode((string)$LoadShape->fetchColumn(), true);

@@ -239,7 +239,12 @@ $FirstPoint = fn(PDO $Pdo) => json_decode((string)$Pdo->query("SELECT points FRO
 
 $Pdo = $ShapeFixture(false, [0, 1000, 2000, 3000]);
 $aTotals = Shapes::align($Pdo);
-$Expect('un trazado que casa con sus paradas no se toca', $aTotals === ['reversed' => 0, 'remeasured' => 0, 'measured' => 0] && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+$Expect('un trazado que casa con sus paradas no se toca', $aTotals === ['reversed' => 0, 'remeasured' => 0, 'measured' => 0, 'orphaned' => 0] && $Distances($Pdo) === [0, 1000, 2000, 3000]);
+
+$Pdo = $ShapeFixture(false, [0, 1000, 2000, 3000]);
+$Pdo->exec("UPDATE service_journeys SET shape_id = 'NO-EXISTE'");
+$aTotals = Shapes::align($Pdo);
+$Expect('un viaje con un trazado que el GTFS no trae se queda sin trazado', $aTotals['orphaned'] === 1 && $Pdo->query("SELECT shape_id FROM service_journeys")->fetchColumn() === null);
 
 $Pdo = $ShapeFixture(true, [0, 1000, 2000, 3000]);
 $aTotals = Shapes::align($Pdo);
