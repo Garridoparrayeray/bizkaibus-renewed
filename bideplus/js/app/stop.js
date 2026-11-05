@@ -400,7 +400,7 @@ function renderPlatformPanel(data) {
             el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
         }
     }
-    renderLineButtons(departures, el.platformTimetableLink, el.platformTimetableLines, true);
+    renderLineButtons(departures, el.platformTimetableLink, el.platformTimetableLines, true, FEATURES.line_buttons === true);
 }
 
 function renderLineButtons(departures, link, container, enabled, fromStop = false) {

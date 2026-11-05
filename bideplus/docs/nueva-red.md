@@ -70,7 +70,7 @@ Abre `api/Networks/<red>.php`. Lo que más conviene revisar:
 | `features.platforms` | Estaciones con andenes: las salidas se separan por andén (Metro, Euskotren). |
 | `features.headsign_from_last_stop` | El destino de cada viaje es su última parada, no el rótulo del GTFS. |
 | `features.stop_hints` | En el buscador, cada parada dice hacia dónde van sus autobuses («hacia Gernika»), para distinguir las dos aceras. |
-| `features.line_buttons` | En la tarjeta de la parada, con más de una línea, un botón por línea (C1 C2 C3) en vez de «Ver horario completo», como en el panel de estación (Renfe). |
+| `features.line_buttons` | Los botones de línea (C1 C2 C3) salen de todas las líneas que paran en la estación, no solo de los trenes que vienen en las próximas horas (Renfe). |
 | `features.line_map` | Mapa de la línea en «Consultar horarios». |
 | `features.schedule_text` | Botón «Ver horario oficial» con el horario en texto del operador (necesita `schedule_text.url`). |
 | `features.trip_detail` | `vehicle`: ficha del vehículo en directo; `stops`: lista de paradas del viaje. |
