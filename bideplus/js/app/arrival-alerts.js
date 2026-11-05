@@ -63,6 +63,11 @@ async function createAlert(minutes) {
     let subscription;
     try {
         subscription = await pushSubscription(key.publicKey);
+    } catch (e) {
+        setStatus('app.notify.browser');
+        return;
+    }
+    try {
         result = await Api.createArrivalAlert({ subscription, stopId: target.stopId, tripKey: target.tripKey, minutes, repeat, lang: I18n.getLang() });
     } catch (e) {
         setStatus('app.notify.error');
