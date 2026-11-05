@@ -328,6 +328,7 @@ use Core\Networks;
         </button>
         <button class="pill" type="button" data-bide-tab="ajustes"><?= BIDE_ICONS['ajustes'] ?><span data-i18n="bide.tab.settings">Ajustes</span></button>
         <button class="pill" type="button" data-bide-tab="info"><?= BIDE_ICONS['info'] ?><span data-i18n="bide.tab.info">Info</span></button>
+        <?= bideDonateLink(bideSite()['donate_url'] ?? '', 'pill bide-menu-donate', BIDE_ICONS['cafe'] . '<span data-i18n="bide.donate.title">Apoya Bide+</span>') ?>
         <h3 data-i18n="app.myLinesIncidents">Incidencias de mis líneas</h3>
         <p id="menu-alerts-empty" class="menu-alerts-empty" data-i18n="app.noFavoriteIncidents">Guarda alguna línea en favoritos para ver aquí sus incidencias activas.</p>
         <ul id="menu-alerts-list" class="menu-alerts-list"></ul>
