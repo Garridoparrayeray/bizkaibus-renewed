@@ -15,8 +15,8 @@ return [
         'icons' => 'icons-launion',
         'theme_color' => '#30609D',
         'title' => ['LA UNIÓN', 'BILBAO · GASTEIZ'],
-        'logomark' => '<img src="/icons-launion/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-launion/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-launion/glyph.png" alt="La Unión+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-launion/icon-192.png" alt="La Unión+" aria-hidden="true">',
         'tile_color' => '#30609D',
         'swatch_color' => '#30609D',
         'palette' => [

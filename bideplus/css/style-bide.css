@@ -319,12 +319,39 @@ html.bide .bide-upcoming-head {
         text-transform: uppercase;
         letter-spacing: .04em;
     }
-html.bide .bide-donate > .bide-button {
+html.bide .bide-donate-button {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     text-decoration: none;
 }
+    html.bide .bide-donate-button svg {
+        width: 18px;
+        height: 18px;
+    }
+html.bide .bide-footer-donate {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 8px;
+    margin: 4px 0 0;
+    padding: 8px 16px;
+    border: 1.5px solid rgba(255, 255, 255, .85);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 13.12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+    html.bide .bide-footer-donate svg {
+        width: 18px;
+        height: 18px;
+        flex: none;
+    }
+    html.bide .bide-footer-donate:hover {
+        background: rgba(255, 255, 255, .12);
+    }
 html.bide .bide-upcoming-list {
     margin: 0;
     padding: 0 0 0 18px;
@@ -1639,7 +1666,7 @@ html.bide body.page-menu .legal-close {
             align-self: stretch;
             order: 1;
         }
-        html.bide [data-bide-view="info"] .bide-info-grid > :is(.bide-upcoming, .bide-donate) {
+        html.bide [data-bide-view="info"] .bide-info-grid > .bide-upcoming {
             grid-column: 2;
             order: 2;
         }

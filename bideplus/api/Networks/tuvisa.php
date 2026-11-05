@@ -14,8 +14,8 @@ return [
         'icons' => 'icons-tuvisa',
         'theme_color' => '#00796B',
         'title' => ['TUVISA', 'VITORIA-GASTEIZ'],
-        'logomark' => '<img src="/icons-tuvisa/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-tuvisa/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-tuvisa/glyph.png" alt="Tuvisa+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-tuvisa/icon-192.png" alt="Tuvisa+" aria-hidden="true">',
         'tile_color' => '#00796B',
         'swatch_color' => '#00796B',
         'palette' => [

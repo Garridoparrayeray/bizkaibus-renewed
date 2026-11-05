@@ -14,8 +14,8 @@ return [
         'icons' => 'icons-alavabus',
         'theme_color' => '#A8034F',
         'title' => ['ÁLAVABUS', 'ARABA'],
-        'logomark' => '<img src="/icons-alavabus/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-alavabus/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-alavabus/glyph.png" alt="Álavabus+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-alavabus/icon-192.png" alt="Álavabus+" aria-hidden="true">',
         'tile_color' => '#A8034F',
         'swatch_color' => '#A8034F',
         'palette' => [

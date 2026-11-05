@@ -10,8 +10,8 @@ return [
         'icons' => 'icons-lurraldebus',
         'theme_color' => '#0062A8',
         'title' => ['LURRALDEBUS', ''],
-        'logomark' => '<img class="is-icon" src="/icons-lurraldebus/icon-192.png" alt="">',
-        'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="">',
+        'logomark' => '<img class="is-icon" src="/icons-lurraldebus/icon-192.png" alt="Lurraldebus+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="Lurraldebus+" aria-hidden="true">',
         // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de
         // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
         'tile_color' => '#0062A8',

@@ -172,9 +172,10 @@ function config(array $aOptions): string
     }
 
     // En la cabecera, la marca en blanco (glyph.png) si se ha podido dibujar; si no, el icono entero.
-    $sLogomark = '<img class="is-icon" src="/icons-' . $sSlug . '/icon-192.png" alt="">';
+    $sAlt = htmlspecialchars($sName, ENT_QUOTES);
+    $sLogomark = '<img class="is-icon" src="/icons-' . $sSlug . '/icon-192.png" alt="' . $sAlt . '" aria-hidden="true">';
     if (is_file(ROOT . '/icons-' . $sSlug . '/glyph.png')) {
-        $sLogomark = '<img src="/icons-' . $sSlug . '/glyph.png" alt="">';
+        $sLogomark = '<img src="/icons-' . $sSlug . '/glyph.png" alt="' . $sAlt . '" aria-hidden="true">';
     }
     $sAdded = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d');
     return <<<PHP
@@ -195,7 +196,7 @@ return [
         'theme_color' => '{$aPalette['primary']}',
         'title' => [$sTitle, ''],
         'logomark' => '$sLogomark',
-        'card_logomark' => '<img src="/icons-$sSlug/icon-192.png" alt="">',
+        'card_logomark' => '<img src="/icons-$sSlug/icon-192.png" alt="$sAlt" aria-hidden="true">',
         'tile_color' => '{$aPalette['primary']}',
         'swatch_color' => '{$aPalette['primary']}',
         'palette' => [

@@ -158,8 +158,8 @@ $aJsonLd = [
                 <li>
                     <a class="tile tile--<?= $sSlug ?>" data-app="<?= $sSlug ?>" data-name="<?= htmlspecialchars($sName) ?>" href="/?red=<?= $sSlug ?>">
                         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
-                        <img class="mark" src="<?= $sIcon ?>" alt="">
-                        <img class="appicon" src="<?= $sIcon ?>" alt="" width="56" height="56">
+                        <img class="mark" src="<?= $sIcon ?>" alt="<?= htmlspecialchars($sName) ?>" aria-hidden="true">
+                        <img class="appicon" src="<?= $sIcon ?>" alt="<?= htmlspecialchars($sName) ?>" aria-hidden="true" width="56" height="56">
                         <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
 <?php if (\Core\Networks::isNew($aNetwork)): ?>
                         <span class="tile-new" data-i18n="bide.new">Nuevo</span>

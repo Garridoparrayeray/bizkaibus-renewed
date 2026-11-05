@@ -19,6 +19,7 @@ const BIDE_ICONS = [
     'mapa' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>',
     'estado' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 12 7 12 10 5 14 19 17 12 21 12"/></svg>',
     'ajustes' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+    'cafe' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17"/><line x1="8" y1="3.5" x2="8" y2="6"/><line x1="12" y1="3.5" x2="12" y2="6"/></svg>',
     'info' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>',
     'back' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>',
     'next' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>',
@@ -81,7 +82,7 @@ function bideRail(string|null $sCurrentApp): string
         if ($sApp === $sCurrentApp) {
             $sCurrent = ' aria-current="page"';
         }
-        $sHtml .= '<a class="bide-rail-item" href="/?red=' . $sApp . '"' . $sCurrent . '><img class="bide-app-logo" src="/' . $sIcons . '/icon-192.png" alt="" width="22" height="22">' . $sName . '</a>';
+        $sHtml .= '<a class="bide-rail-item" href="/?red=' . $sApp . '"' . $sCurrent . '><img class="bide-app-logo" src="/' . $sIcons . '/icon-192.png" alt="' . htmlspecialchars($sName) . '" aria-hidden="true" width="22" height="22">' . $sName . '</a>';
     }
     $sHtml .= '</div>';
     $sHtml .= '<div class="bide-rail-sep"></div>';
@@ -90,6 +91,7 @@ function bideRail(string|null $sCurrentApp): string
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
+    $sHtml .= bideDonateLink(bideSite()['donate_url'] ?? '', 'bide-rail-item', BIDE_ICONS['cafe'] . '<span data-i18n="bide.donate.title">Apoya Bide+</span>');
     $sHtml .= '</nav>';
     $sHtml .= '<section class="bide-rail-favorites"><h2 data-i18n="app.favorites.title">Tus favoritos</h2><ul class="bide-fav-list" data-bide-favorites="compact"></ul></section>';
     return $sHtml . '</aside>';
@@ -209,14 +211,12 @@ function bideAuthorLinks(): string
 }
 
 // Donaciones: solo un enlace a Ko-fi. Su botón incrustado cargaría scripts de fuera, que la CSP bloquea.
-function bideDonate(string $sUrl): string
+function bideDonateLink(string $sUrl, string $sClass, string $sInner): string
 {
     if ($sUrl === '') {
         return '';
     }
-    return '<section class="bide-card bide-donate"><h3 data-i18n="bide.donate.title">Apoya Bide+</h3>'
-        . '<p data-i18n="bide.donate.text">Bide+ es gratis y sin anuncios. Si te ayuda, puedes invitarme a un café para mantener el servidor.</p>'
-        . '<a class="bide-button" href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer" data-i18n="bide.donate.button">Invitar a un café en Ko-fi</a></section>';
+    return '<a class="' . $sClass . '" href="' . htmlspecialchars($sUrl) . '" target="_blank" rel="noopener noreferrer">' . $sInner . '</a>';
 }
 
 // Pie del menú y de las apps: Ajustes e Info (en el navegador del móvil no hay barra de pestañas), el autor, el aviso
@@ -228,6 +228,7 @@ function bideFooterAuthor(string $sLegalButton): string
         . '<button type="button" class="bide-footer-legal" data-bide-tab="ajustes" data-i18n="bide.tab.settings">Ajustes</button>'
         . '<button type="button" class="bide-footer-legal" data-bide-tab="info" data-i18n="bide.tab.info">Info</button>'
         . bideAuthorLinks() . $sLegalButton . '</p>'
+        . bideDonateLink(bideSite()['donate_url'] ?? '', 'bide-footer-donate', BIDE_ICONS['cafe'] . '<span data-i18n="bide.donate.button">Invitar a un café en Ko-fi</span>')
         . '<p class="bide-footer-copyright">© 2026 ' . htmlspecialchars(bideSite()['legal_name']) . ' · <span data-i18n="bide.footer.rights">Todos los derechos reservados</span></p></div>';
 }
 
@@ -311,6 +312,9 @@ function bideSettings(string $sBack): string
     $sHtml .= '<span class="bide-update-badge" data-settings-update-badge aria-hidden="true" hidden>1</span></div>';
     $sHtml .= '<p class="bide-feedback-status" data-settings-cache-status role="status"></p>';
     $sHtml .= '<p class="bide-settings-version"><span data-i18n="bide.settings.version">Versión</span> <span data-settings-version>' . htmlspecialchars(bideVersion()) . '</span></p>';
+    $sHtml .= '<h4 data-i18n="bide.donate.title">Apoya Bide+</h4>';
+    $sHtml .= '<p data-i18n="bide.donate.text">Bide+ es gratis y sin anuncios. Si te ayuda, puedes invitarme a un café para mantener el servidor.</p>';
+    $sHtml .= bideDonateLink(bideSite()['donate_url'] ?? '', 'bide-button bide-donate-button', BIDE_ICONS['cafe'] . '<span data-i18n="bide.donate.button">Invitar a un café en Ko-fi</span>');
     $sHtml .= '</section>';
 
     $sHtml .= '<section class="bide-card bide-settings-data"><h3 data-i18n="bide.settings.data">Tus datos</h3>';
@@ -360,7 +364,6 @@ function bideViews(): string
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
     $sHtml .= '<section class="bide-card bide-author"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
-    $sHtml .= bideDonate(bideSite()['donate_url'] ?? '');
     $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';

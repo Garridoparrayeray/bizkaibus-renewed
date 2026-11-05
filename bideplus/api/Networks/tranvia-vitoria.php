@@ -10,8 +10,8 @@ return [
         'icons' => 'icons-tranvia-vitoria',
         'theme_color' => '#60AE27',
         'title' => ['TRANVÍA', 'VITORIA'],
-        'logomark' => '<img src="/icons-tranvia-vitoria/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-tranvia-vitoria/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-tranvia-vitoria/glyph.png" alt="Tranvía Vitoria+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-tranvia-vitoria/icon-192.png" alt="Tranvía Vitoria+" aria-hidden="true">',
         // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de
         // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
         'tile_color' => '#60AE27',
