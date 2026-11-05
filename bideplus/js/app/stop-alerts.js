@@ -1,5 +1,5 @@
 import { FEATURES, state } from './core.js';
-import { openSideMenu } from './side-menu.js';
+import { openIncidents } from './side-menu.js';
 
 const REFRESH_MS = 2 * 60 * 1000;
 let lastStopId = null;
@@ -56,7 +56,7 @@ export async function refreshStopAlerts() {
 }
 
 export function setUpStopAlerts() {
-    for (const button of document.querySelectorAll('.stop-alerts')) button.addEventListener('click', openSideMenu);
+    for (const button of document.querySelectorAll('.stop-alerts')) button.addEventListener('click', openIncidents);
     window.addEventListener('bide:lang', () => {
         lastFetchAt = 0;
         refreshStopAlerts();

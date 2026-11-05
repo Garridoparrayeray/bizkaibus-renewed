@@ -178,6 +178,7 @@ use Core\Networks;
                         <strong id="live-minutes">–</strong><span>min</span><sub id="live-delay" class="delay-sub" hidden></sub>
                     </button>
                     <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
+                    <div id="live-timetable-lines" class="platform-timetable-lines live-timetable-lines" hidden></div>
                     <footer>
                         <p>
                             <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>

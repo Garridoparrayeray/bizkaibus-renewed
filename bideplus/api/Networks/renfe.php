@@ -65,7 +65,8 @@ return [
     'attribution' => 'Datos: Renfe Cercanías',
 
     'features' => [
-        'platforms' => false,
+        'platforms' => true,
+        'line_buttons' => true,
         'headsign_from_last_stop' => true,
         'stop_hints' => false,
         'line_map' => true,
@@ -76,6 +77,7 @@ return [
     ],
 
     'live' => ['trip-updates', 'vehicle-positions'],
+
     // El workflow «Ritmo de los buses» guarda este directo para que el motor aprenda de él (engine/renfe). La app todavía
     // no lo usa: primero se mide si acierta más que el retraso del feed.
     'capture' => 'gtfs-rt',
