@@ -37,11 +37,15 @@ function ensureLineMap() {
 
 // Recorridos y vehículos de una línea en el mapa. Devuelve las capas, para quitarlas, y los puntos, para encuadrar.
 // Los trenes van en su posición GPS; los autobuses, en su parada.
+function cssColor(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function drawLine(map, lineItem, data) {
     const routeLayers = [];
     const vehicleMarkers = [];
     const points = [];
-    const lineColor = lineItem.color || '#01573c';
+    const lineColor = lineItem.color || cssColor('--bide-green');
 
     for (const pattern of data.patterns || []) {
         const latlngs = (pattern.stops || []).map((s) => [s.lat, s.lon]);
@@ -98,7 +102,7 @@ function renderLineMap(data) {
         id: String(data.line.id),
         name: String(data.line.name),
         // El color de la app (el de la red, o el rosa de «mi amor»).
-        color: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || net?.brand?.color || '#01573c',
+        color: cssColor('--primary') || net?.brand?.color || cssColor('--bide-green'),
     };
 
     const map = ensureLineMap();

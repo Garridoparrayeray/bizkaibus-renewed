@@ -5,6 +5,8 @@ return [
     // aquí. bideplus.vercel.app y bideplus.eus redirigen a ella.
     'url' => 'https://www.bideplus.eus',
     'name' => 'Bide+',
+    // El verde de Bide+: sale como --bide-green en css/style-networks.css y lo usan todas las hojas de estilos.
+    'brand_color' => '#01573C',
     'locale' => 'es_ES',
     // La red que se abre en «/» y cuyas direcciones no llevan ?red= (una de api/Networks).
     'default_network' => 'bus',

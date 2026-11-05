@@ -1,5 +1,10 @@
 /* Generado por scripts/build-networks-css.php: no lo edites a mano. */
 
+/* ===== El verde de Bide+ (brand_color de api/Config/site.php) ===== */
+:root {
+    --bide-green: #01573C;
+}
+
 /* ===== Ficha de cada red en el inicio ===== */
 .tile--bus {
     --c: #0B6E4C;

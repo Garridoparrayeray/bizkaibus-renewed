@@ -4,7 +4,6 @@
     --ink: #16202C;
     --muted: #5B6470;
     --line: #E6E3DC;
-    --green: #01573C;
 }
 
 /* ===== Base ===== */
@@ -262,7 +261,7 @@ main {
         background: #FAF9F6;
     }
     .lang-toggle:focus-visible {
-        outline: 3px solid var(--green);
+        outline: 3px solid var(--bide-green);
         outline-offset: -3px;
     }
 
@@ -285,7 +284,7 @@ main {
             color: #fff;
         }
         .view-toggle > button:focus-visible {
-            outline: 3px solid var(--green);
+            outline: 3px solid var(--bide-green);
             outline-offset: -3px;
         }
 
@@ -360,7 +359,7 @@ main {
             [data-view="list"] .tile.is-last .txt .last {
                 display: block;
                 margin-top: 4px;
-                color: var(--green);
+                color: var(--bide-green);
                 font-size: 12.48px;
                 font-weight: 600;
             }
@@ -401,7 +400,7 @@ main {
         margin-top: 6px;
         padding: 12px 22px;
         border-radius: 999px;
-        background: var(--green);
+        background: var(--bide-green);
         color: #fff;
         font-weight: 600;
         text-decoration: none;
@@ -513,7 +512,7 @@ main {
         flex: none;
         width: 28px;
         height: 28px;
-        color: var(--green);
+        color: var(--bide-green);
     }
     .menu-map-link > svg:last-child {
         flex: none;

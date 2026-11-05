@@ -38,6 +38,7 @@ $sHtml = <<<HTML
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
     <link rel="stylesheet" href="/css/style-menu.css">
 </head>
 <body>

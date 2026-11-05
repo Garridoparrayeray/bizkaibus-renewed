@@ -36,6 +36,7 @@ $sAppName = Networks::text($aNetwork, 'name');
     <meta name="theme-color" content="<?= htmlspecialchars($aNetwork['brand']['theme_color']) ?>">
     <link rel="icon" href="/<?= htmlspecialchars($aNetwork['brand']['icons']) ?>/icon-192.png">
     <link rel="stylesheet" href="/fonts/fonts.css">
+    <link rel="stylesheet" href="/css/style-networks.css">
     <link rel="stylesheet" href="/css/style-screen.css">
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>

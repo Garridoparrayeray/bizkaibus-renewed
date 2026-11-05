@@ -1,5 +1,4 @@
 :root {
-    --bide-green: #01573C;
     --bide-red: #C8102E;
     --bide-ink: #1c211d;
     --bide-muted: #5c665e;
@@ -1713,7 +1712,7 @@ html.bide .is-new::after {
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 999px;
-    background: var(--primary, #01573C);
+    background: var(--primary, var(--bide-green));
     color: #fff;
     font-size: 10.5px;
     font-weight: 800;
