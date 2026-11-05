@@ -120,8 +120,8 @@ class PushController
         Response::json(['status' => 'removed']);
     }
 
-    private static function validId(string $sId): bool
+    public static function validId(string $sId): bool
     {
-        return $sId !== '' && strlen($sId) <= self::MAX_ID_LENGTH && preg_match('/^[A-Za-z0-9:._-]+$/', $sId) === 1;
+        return $sId !== '' && strlen($sId) <= self::MAX_ID_LENGTH && preg_match('/^[A-Za-z0-9:._~-]+$/', $sId) === 1;
     }
 }

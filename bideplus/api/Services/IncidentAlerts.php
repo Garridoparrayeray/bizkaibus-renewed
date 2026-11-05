@@ -37,7 +37,7 @@ class IncidentAlerts
     private const BODY_LENGTH = 180;
     // Una incidencia sigue valiendo unas horas después: si el móvil está apagado, le llega al encenderlo.
     private const PUSH_TTL_SECONDS = 6 * 3600;
-    private const ID_PATTERN = '/^[A-Za-z0-9:._-]{1,64}$/';
+    private const ID_PATTERN = '/^[A-Za-z0-9:._~-]{1,64}$/';
     // Como en la app: sin título, «Incidencia» (y así la clave de la incidencia es la misma).
     private const UNTITLED = 'Incidencia';
     // Espacios que quita trim() en JavaScript.

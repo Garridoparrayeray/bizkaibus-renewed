@@ -7,6 +7,7 @@ declare(strict_types=1);
 date_default_timezone_set('Europe/Madrid');
 require __DIR__ . '/../api/autoload.php';
 
+use Controllers\PushController;
 use Controllers\StopsController;
 use Core\Config;
 use Core\Store;
@@ -248,6 +249,9 @@ try {
     Store::pipeline([['SADD', 'bide:arrival:pending', 'aaaaaaaaaaaaaaaaaaaaaaaa']]);
     ArrivalAlerts::process($Sender);
     $Expect('caducado: un aviso que ya no está en el almacén sale de la lista', !in_array('aaaaaaaaaaaaaaaaaaaaaaaa', $Pending(), true));
+
+    $Expect('crear: vale un viaje con «~» en su clave, como los de Tuvisa', PushController::validId('5-L5ESP5_007~LAB-48300'));
+    $Expect('crear: no vale una clave con espacios, barras o comillas', !PushController::validId('5 L5') && !PushController::validId('5/L5') && !PushController::validId('5"L5'));
 
     $aMessage = ArrivalAlerts::message(['id' => 'x', 'network' => 'metro', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'MB-1-2', 'lineCode' => 'MB', 'headsign' => 'Basauri', 'lang' => 'eu'], 3);
     $Expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && str_starts_with($aMessage['url'], '/stops/7?red=metro&viaje=MB-1-2&aviso=x-') && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
