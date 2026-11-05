@@ -320,6 +320,7 @@ function renderPlatformColumn(direction, departures) {
     const headsignEl = document.createElement('p');
     headsignEl.className = 'platform-column-headsign';
     headsignEl.textContent = `→ ${next.headsign}`;
+    if (direction.lineCode) headsignEl.textContent = `${direction.lineCode} → ${next.headsign}`;
 
     const nextButton = document.createElement('button');
     nextButton.type = 'button';
@@ -390,6 +391,12 @@ function renderPlatformPanel(data) {
         }
     } else if (departures.length > 0 && departures.every((d) => !d.direction)) {
         el.platformColumns.appendChild(renderPlatformColumn({ label: '' }, departures));
+    } else if (new Set(departures.map((d) => d.direction)).size === 1 && new Set(departures.map((d) => d.lineCode)).size > 1) {
+        const codes = [...new Set(departures.map((d) => d.lineCode))];
+        codes.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+        for (const code of codes) {
+            el.platformColumns.appendChild(renderPlatformColumn({ label: code, lineCode: code }, departures.filter((d) => d.lineCode === code)));
+        }
     } else {
         for (const direction of PLATFORM_DIRECTIONS) {
             const columnDepartures = departures.filter((d) => d.direction === direction.key);
