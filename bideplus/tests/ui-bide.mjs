@@ -217,6 +217,7 @@ await ev("document.querySelector('[data-settings-location-off]').click(); true")
 check('instalada · Ajustes: al no usarla, lo dice y ofrece volver a usarla', await waitTrue("document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationOff' && document.querySelector('[data-settings-location-off]').hidden && document.querySelector('[data-settings-location-ask]').getAttribute('data-i18n') === 'bide.settings.locationOn' && localStorage.getItem('bide_location_off') === '1'"));
 await ev("document.querySelector('[data-settings-location-ask]').click(); true");
 check('instalada · Ajustes: «Volver a usar la ubicación» la recupera', await waitTrue("localStorage.getItem('bide_location_off') === null && document.querySelector('[data-settings-location]').getAttribute('data-i18n') === 'bide.settings.locationGranted'"));
+check('instalada · «Desactivar las notificaciones» se recuerda hasta que se activa algo a mano', await ev("import('/js/push.js').then((m) => { m.setNotificationsOff(true); const off = m.notificationsOff() && localStorage.getItem('bide-notifications-off') === '1'; m.setNotificationsOff(false); return off && !m.notificationsOff(); })"));
 check('instalada · Ajustes: sin notificaciones permitidas, no sale «Desactivar»', await ev("document.querySelector('[data-settings-notify-off]').hidden"));
 await send('Browser.resetPermissions', {});
 

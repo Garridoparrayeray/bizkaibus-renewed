@@ -1,5 +1,5 @@
 // Aviso de versión nueva: «1» en Ajustes con sus novedades y, con permiso, notificación del servidor.
-import { pushSupported, pushSubscription, serverKey } from './push.js';
+import { notificationsOff, pushSupported, pushSubscription, serverKey } from './push.js';
 
 const MAX_VERSION = 999;
 const CHECK_EVERY_MS = 30 * 60 * 1000;
@@ -83,7 +83,7 @@ function readSubscribed() {
 }
 
 async function subscribeToUpdates() {
-    if (!pushSupported() || Notification.permission !== 'granted') return;
+    if (!pushSupported() || Notification.permission !== 'granted' || notificationsOff()) return;
     const key = await serverKey();
     if (!key) return;
     const subscription = await pushSubscription(key.publicKey);

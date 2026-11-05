@@ -1,7 +1,7 @@
 // «Avísame cuando llegue», desde la ficha de un viaje. Lo manda el servidor (api/Services/ArrivalAlerts.php).
 import { el, state } from './core.js';
 import { cancelArrivalAlert, readArrivalAlerts, writeArrivalAlerts } from '../arrival-alerts-store.js';
-import { isIos, pushSubscription, pushSupported, serverKey } from '../push.js';
+import { isIos, pushSubscription, pushSupported, serverKey, setNotificationsOff } from '../push.js';
 
 let current = { tripKey: null, stopId: null };
 
@@ -74,6 +74,7 @@ async function createAlert(minutes) {
         return;
     }
     if (result.status === 'created') {
+        setNotificationsOff(false);
         const alert = { id: result.id, tripKey: target.tripKey, stopId: target.stopId, minutes, repeat, endpoint: subscription.endpoint, created: Date.now() };
         if (typeof result.minutesLeft === 'number') alert.expectedAt = Date.now() + result.minutesLeft * 60000;
         writeArrivalAlerts([...readArrivalAlerts(), { ...alert, lineCode: result.lineCode, headsign: result.headsign, stopName: result.stopName }]);

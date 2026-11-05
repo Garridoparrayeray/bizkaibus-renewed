@@ -1,6 +1,25 @@
 // Suscripción a las notificaciones push de Bide+ (llegan con la app cerrada). La usan los avisos de llegada y los de
 // incidencias. En iPhone solo funcionan con Bide+ añadida a la pantalla de inicio.
 let keyRequest = null;
+const OFF_KEY = 'bide-notifications-off';
+
+// «Desactivar las notificaciones» se recuerda: nada vuelve a apuntarse solo hasta que se active algo a mano.
+export function notificationsOff() {
+    try {
+        return localStorage.getItem(OFF_KEY) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+export function setNotificationsOff(off) {
+    try {
+        if (off) localStorage.setItem(OFF_KEY, '1');
+        else localStorage.removeItem(OFF_KEY);
+    } catch (e) {
+        // Sin almacenamiento no se puede recordar.
+    }
+}
 
 export function pushSupported() {
     return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
