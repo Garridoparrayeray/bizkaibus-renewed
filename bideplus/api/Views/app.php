@@ -110,7 +110,7 @@ use Core\Networks;
 <?php endforeach; ?>
                     <a class="net-card" id="net-card-menu" href="/">
                         <span class="net-card-logomark" aria-hidden="true">
-                            <img class="is-full" src="/icons-bide-rojo/icon-192.png" alt="">
+                            <img class="is-full" src="/icons-bide-rojo/icon-192.png" alt="Bide+">
                         </span>
                         <span class="net-card-text">
                             <strong>Bide+</strong>

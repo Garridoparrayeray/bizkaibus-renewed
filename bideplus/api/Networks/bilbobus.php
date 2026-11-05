@@ -15,8 +15,8 @@ return [
         'icons' => 'icons-bilbobus',
         'theme_color' => '#C0362C',
         'title' => ['BILBOBUS', 'BILBAO'],
-        'logomark' => '<img src="/icons-bilbobus/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-bilbobus/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-bilbobus/glyph.png" alt="Bilbobus+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-bilbobus/icon-192.png" alt="Bilbobus+" aria-hidden="true">',
         'tile_color' => '#C0362C',
         'swatch_color' => '#C0362C',
         'palette' => [

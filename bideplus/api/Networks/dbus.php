@@ -14,8 +14,8 @@ return [
         'icons' => 'icons-dbus',
         'theme_color' => '#0141AD',
         'title' => ['DBUS', 'DONOSTIA'],
-        'logomark' => '<img src="/icons-dbus/glyph.png" alt="">',
-        'card_logomark' => '<img src="/icons-dbus/icon-192.png" alt="">',
+        'logomark' => '<img src="/icons-dbus/glyph.png" alt="Dbus+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-dbus/icon-192.png" alt="Dbus+" aria-hidden="true">',
         'tile_color' => '#0141AD',
         'swatch_color' => '#0141AD',
         'palette' => [

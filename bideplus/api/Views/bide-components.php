@@ -81,7 +81,7 @@ function bideRail(string|null $sCurrentApp): string
         if ($sApp === $sCurrentApp) {
             $sCurrent = ' aria-current="page"';
         }
-        $sHtml .= '<a class="bide-rail-item" href="/?red=' . $sApp . '"' . $sCurrent . '><img class="bide-app-logo" src="/' . $sIcons . '/icon-192.png" alt="" width="22" height="22">' . $sName . '</a>';
+        $sHtml .= '<a class="bide-rail-item" href="/?red=' . $sApp . '"' . $sCurrent . '><img class="bide-app-logo" src="/' . $sIcons . '/icon-192.png" alt="' . htmlspecialchars($sName) . '" aria-hidden="true" width="22" height="22">' . $sName . '</a>';
     }
     $sHtml .= '</div>';
     $sHtml .= '<div class="bide-rail-sep"></div>';

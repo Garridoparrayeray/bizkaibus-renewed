@@ -86,15 +86,16 @@ $aPrecision = [
 
         <ul class="status-grid">
 <?php foreach (Networks::all() as $sSlug => $aNetwork):
-    $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
+    $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png';
+    $sName = htmlspecialchars(Networks::text($aNetwork, 'name')); ?>
             <li>
                 <a class="status-tile tile--<?= $sSlug ?>" href="/?red=<?= $sSlug ?>" data-red="<?= $sSlug ?>" data-kind="<?= htmlspecialchars($aNetwork['kind'] ?? 'bus') ?>">
-                    <img class="status-mark" src="<?= $sIcon ?>" alt="">
+                    <img class="status-mark" src="<?= $sIcon ?>" alt="<?= $sName ?>" aria-hidden="true">
                     <span class="status-tile-top">
-                        <img class="status-icon" src="<?= $sIcon ?>" alt="" width="44" height="44">
+                        <img class="status-icon" src="<?= $sIcon ?>" alt="<?= $sName ?>" aria-hidden="true" width="44" height="44">
                         <span class="status-alerts" hidden></span>
                     </span>
-                    <span class="status-name"><?= htmlspecialchars(Networks::text($aNetwork, 'name')) ?></span>
+                    <span class="status-name"><?= $sName ?></span>
                     <span class="status-count"><strong>·</strong><span></span></span>
                 </a>
             </li>
