@@ -14,7 +14,7 @@
     --c: #74349A;
 }
 .tile--lurraldebus {
-    --c: #0062A8;
+    --c: #2A9AB2;
 }
 .tile--tranvia-bilbao {
     --c: #4EB848;
@@ -49,7 +49,7 @@ html.bide .bide-swatch--renfe {
     background: #74349A;
 }
 html.bide .bide-swatch--lurraldebus {
-    background: #0062A8;
+    background: #2A9AB2;
 }
 html.bide .bide-swatch--tranvia-bilbao {
     background: #2f7a2a;
@@ -108,12 +108,12 @@ html.is-renfe {
     --backdrop: rgba(18, 10, 22, .5);
 }
 html.is-lurraldebus {
-    --bg: #f4f7fb;
-    --border: #d9e3ef;
-    --primary: #0062A8;
+    --bg: #f3f8f9;
+    --border: #d4e6ea;
+    --primary: #1E7C95;
     --primary-light: #8DC63F;
-    --primary-dark: #003F70;
-    --primary-tint: #E6F0F8;
+    --primary-dark: #145A6C;
+    --primary-tint: #E2F2F5;
     --text: #152230;
     --text-secondary: #556372;
     --backdrop: rgba(8, 16, 26, .5);

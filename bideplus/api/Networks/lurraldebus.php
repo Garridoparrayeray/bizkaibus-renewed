@@ -8,21 +8,21 @@ return [
 
     'brand' => [
         'icons' => 'icons-lurraldebus',
-        'theme_color' => '#0062A8',
+        'theme_color' => '#2A9AB2',
         'title' => ['LURRALDEBUS', ''],
         'logomark' => '<img class="is-icon" src="/icons-lurraldebus/icon-192.png" alt="Lurraldebus+" aria-hidden="true">',
         'card_logomark' => '<img src="/icons-lurraldebus/icon-192.png" alt="Lurraldebus+" aria-hidden="true">',
         // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de
         // Bide+ y la paleta de la app. Sin paleta ni cuadradito, los de Bide+ (verde).
-        'tile_color' => '#0062A8',
-        'swatch_color' => '#0062A8',
+        'tile_color' => '#2A9AB2',
+        'swatch_color' => '#2A9AB2',
         'palette' => [
-            'bg' => '#f4f7fb',
-            'border' => '#d9e3ef',
-            'primary' => '#0062A8',
+            'bg' => '#f3f8f9',
+            'border' => '#d4e6ea',
+            'primary' => '#1E7C95',
             'primary-light' => '#8DC63F',
-            'primary-dark' => '#003F70',
-            'primary-tint' => '#E6F0F8',
+            'primary-dark' => '#145A6C',
+            'primary-tint' => '#E2F2F5',
             'text' => '#152230',
             'text-secondary' => '#556372',
             'backdrop' => 'rgba(8, 16, 26, .5)',
