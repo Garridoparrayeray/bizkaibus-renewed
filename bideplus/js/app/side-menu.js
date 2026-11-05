@@ -117,7 +117,8 @@ async function lineCodes(lineIds) {
     return codes;
 }
 
-export async function openSideMenu() {
+async function showSideMenu(onlyIncidents) {
+    el.sideMenu.classList.toggle('is-incidents', onlyIncidents);
     el.sideMenu.showModal();
     el.menuAlertsList.innerHTML = '';
     el.menuAlertsEmpty.hidden = false;
@@ -130,9 +131,17 @@ export async function openSideMenu() {
     }
 }
 
+export function openSideMenu() {
+    return showSideMenu(false);
+}
+
+export function openIncidents() {
+    return showSideMenu(true);
+}
+
 export function setUpSideMenu() {
     el.menuOpen.addEventListener('click', openSideMenu);
-    el.liveIncidentsLink.addEventListener('click', openSideMenu);
+    el.liveIncidentsLink.addEventListener('click', openIncidents);
     el.menuClose.addEventListener('click', () => el.sideMenu.close());
     el.sideMenu.addEventListener('click', (e) => {
         if (e.target === el.sideMenu) el.sideMenu.close();
