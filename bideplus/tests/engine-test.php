@@ -377,6 +377,23 @@ if (class_exists(TripOffsets::class)) {
 }
 
 /* ------------------------------------------------------------------ */
+$Section('RealtimeMatcher: el bus que llega a la parada no desaparece antes de pasarla');
+
+$aRowS2 = ['service_journey_id' => 'J_LINE', 'line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'arrival_seconds' => T0 + 360, 'stop_seq' => 3];
+$iLate = T0 + 600;
+$aAtStop = live(2020, 0, 3, $iLate - 70);
+$aAtStopOut = matcher($aAtStop, $iLate)->enrich([$aRowS2])[0];
+$Expect('a 20 m de la parada y con el feed aún hacia ella, sigue en directo y llega «ahora», aunque el GPS sea de hace 70 s', $aAtStopOut['status'] === 'live' && $aAtStopOut['etaSeconds'] === $iLate, $aAtStopOut['status'] . ' ' . hms((int)$aAtStopOut['etaSeconds']));
+$Expect('su retraso es al menos lo que ya va tarde', $aAtStopOut['delaySeconds'] >= $iLate - (T0 + 360), (string)$aAtStopOut['delaySeconds']);
+$aFeedNext = live(2020, 0, 4, $iLate - 70);
+$Expect('si el feed ya apunta a la siguiente parada, está pasada', matcher($aFeedNext, $iLate)->enrich([$aRowS2])[0]['status'] === 'departed');
+$aFarPast = live(2300, 0, 3, $iLate - 70);
+$Expect('si el GPS está a más de 150 m después de la parada, está pasada aunque el feed no lo diga', matcher($aFarPast, $iLate)->enrich([$aRowS2])[0]['status'] === 'departed');
+$aStuck = live(1950, 0, 3, $iLate - 300);
+$aStuckOut = matcher($aStuck, $iLate)->enrich([$aRowS2])[0];
+$Expect('con la llegada cumplida hace más de 3 min y sin confirmación, «puede que ya haya pasado», sin desaparecer', $aStuckOut['status'] === 'likely_departed' && $aStuckOut['etaSeconds'] === $iLate, $aStuckOut['status']);
+$Expect('la ficha del viaje usa la misma regla', !matcher($aAtStop, $iLate)->hasPassed('J_LINE', $aAtStop, T0 + 360, 3) && matcher($aFeedNext, $iLate)->hasPassed('J_LINE', $aFeedNext, T0 + 360, 3));
+
 $Section('RealtimeMatcher: sin trazado (tramos entre paradas)');
 
 $aSeg = live(1500, 100, 3, $iGps, 'trp_A3414_809_X_28800_x');
