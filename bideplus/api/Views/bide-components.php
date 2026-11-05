@@ -86,6 +86,7 @@ function bideRail(string|null $sCurrentApp): string
     $sHtml .= '</div>';
     $sHtml .= '<div class="bide-rail-sep"></div>';
     $sHtml .= '<a class="bide-rail-item" href="/mapa">' . BIDE_ICONS['mapa'] . '<span data-i18n="map.title">Mapa de la red</span></a>';
+    $sHtml .= '<a class="bide-rail-item" href="/estado">' . BIDE_ICONS['estado'] . '<span data-i18n="status.title">Estado de las redes</span></a>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="avisos">' . BIDE_ICONS['avisos'] . '<span data-i18n="bide.tab.alerts">Avisos</span></button>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="ajustes">' . BIDE_ICONS['ajustes'] . '<span data-i18n="bide.tab.settings">Ajustes</span></button>';
     $sHtml .= '<button type="button" class="bide-rail-item" data-bide-tab="info">' . BIDE_ICONS['info'] . '<span data-i18n="bide.tab.info">Info</span></button>';
