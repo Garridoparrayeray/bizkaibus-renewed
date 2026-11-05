@@ -390,12 +390,13 @@ function renderPlatformPanel(data) {
             el.platformColumns.appendChild(renderPlatformColumn(platform, platformDepartures));
         }
     } else if (departures.length > 0 && departures.every((d) => !d.direction)) {
-        el.platformColumns.appendChild(renderPlatformColumn({ label: '' }, departures));
-    } else if (new Set(departures.map((d) => d.direction)).size === 1 && new Set(departures.map((d) => d.lineCode)).size > 1) {
-        const codes = [...new Set(departures.map((d) => d.lineCode))];
-        codes.sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
-        for (const code of codes) {
-            el.platformColumns.appendChild(renderPlatformColumn({ label: code, lineCode: code }, departures.filter((d) => d.lineCode === code)));
+        const routes = [];
+        for (const departure of departures) {
+            if (!routes.some((route) => route.lineId === departure.lineId)) routes.push(departure);
+        }
+        routes.sort((a, b) => String(a.lineCode).localeCompare(String(b.lineCode), undefined, { numeric: true }) || a.etaMinutes - b.etaMinutes);
+        for (const route of routes) {
+            el.platformColumns.appendChild(renderPlatformColumn({ label: route.lineCode, lineCode: route.lineCode }, departures.filter((d) => d.lineId === route.lineId)));
         }
     } else {
         for (const direction of PLATFORM_DIRECTIONS) {
