@@ -893,6 +893,17 @@ header p {
     gap: 8px;
     margin-bottom: 14px;
 }
+.live-timetable-lines {
+    margin: 14px 0 0;
+}
+    .live-timetable-lines .pill {
+        border-color: rgba(255, 255, 255, .28);
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+    }
+        .live-timetable-lines .pill:hover {
+            background: rgba(255, 255, 255, .18);
+        }
 .platform-notice {
     margin: 0 0 14px;
     color: var(--text-secondary);

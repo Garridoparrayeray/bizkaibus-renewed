@@ -57,6 +57,7 @@ export const el = {
     liveHeadsign: document.getElementById('live-headsign'),
     liveOpenDetail: document.getElementById('live-open-detail'),
     liveTimetableLink: document.getElementById('live-timetable-link'),
+    liveTimetableLines: document.getElementById('live-timetable-lines'),
     liveMinutes: document.getElementById('live-minutes'),
     liveDelay: document.getElementById('live-delay'),
     liveStatusDot: document.getElementById('live-status-dot'),

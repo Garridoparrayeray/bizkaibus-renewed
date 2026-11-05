@@ -162,7 +162,8 @@
         "favoritesKey": "renfe_favorites",
         "live": true,
         "features": {
-            "platforms": true,
+            "platforms": false,
+            "line_buttons": true,
             "headsign_from_last_stop": true,
             "stop_hints": false,
             "line_map": true,

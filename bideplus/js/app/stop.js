@@ -216,6 +216,7 @@ function renderLiveCard(departures) {
     if (offlineView && departure) offlineMarkButton(departure, el.liveMark);
 
     if (!departure) {
+        el.liveTimetableLines.hidden = true;
         el.liveLine.textContent = state.currentStop.name;
         el.liveHeadsign.textContent = I18n.t('app.noUpcomingDepartures');
         el.liveMinutes.textContent = '–';
@@ -254,6 +255,7 @@ function renderLiveCard(departures) {
     el.liveOpenDetail.dataset.tomorrow = String(Boolean(departure.tomorrow));
     el.liveTimetableLink.disabled = false;
     el.liveTimetableLink.dataset.lineId = departure.lineId;
+    renderLineButtons(departures, el.liveTimetableLink, el.liveTimetableLines, FEATURES.line_buttons === true, FEATURES.line_buttons === true);
 
     for (const other of others) {
         const li = document.createElement('li');
@@ -398,39 +400,41 @@ function renderPlatformPanel(data) {
             el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
         }
     }
+    renderLineButtons(departures, el.platformTimetableLink, el.platformTimetableLines, true);
+}
+
+function renderLineButtons(departures, link, container, enabled, fromStop = false) {
     const distinctLines = [];
     const seenLineCodes = new Set();
-    for (const departure of departures) {
-        if (seenLineCodes.has(departure.lineCode)) continue;
-        seenLineCodes.add(departure.lineCode);
-        distinctLines.push(departure);
+    const stopLines = (state.currentStop?.lines || []).map((line) => ({ lineId: line.id, lineCode: line.code }));
+    let candidates = departures;
+    if (departures.length === 0) candidates = stopLines;
+    if (fromStop) candidates = [...stopLines, ...departures];
+    for (const line of candidates) {
+        if (seenLineCodes.has(line.lineCode)) continue;
+        seenLineCodes.add(line.lineCode);
+        distinctLines.push(line);
     }
-    if (distinctLines.length === 0) {
-        for (const line of state.currentStop?.lines || []) {
-            distinctLines.push({ lineId: line.id, lineCode: line.code });
-        }
-    }
-
     distinctLines.sort((a, b) => String(a.lineCode).localeCompare(String(b.lineCode), undefined, { numeric: true }));
-    if (distinctLines.length > 1) {
-        el.platformTimetableLink.hidden = true;
-        el.platformTimetableLines.hidden = false;
-        el.platformTimetableLines.innerHTML = '';
+    if (enabled && distinctLines.length > 1) {
+        link.hidden = true;
+        container.hidden = false;
+        container.innerHTML = '';
         for (const line of distinctLines) {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'pill';
             button.textContent = line.lineCode;
             button.addEventListener('click', () => selectLine(line.lineId, true));
-            el.platformTimetableLines.appendChild(button);
+            container.appendChild(button);
         }
-    } else {
-        el.platformTimetableLink.hidden = false;
-        el.platformTimetableLines.hidden = true;
-        const lineId = distinctLines[0]?.lineId;
-        el.platformTimetableLink.disabled = lineId === undefined;
-        el.platformTimetableLink.dataset.lineId = lineId ?? '';
+        return;
     }
+    link.hidden = false;
+    container.hidden = true;
+    const lineId = distinctLines[0]?.lineId;
+    link.disabled = lineId === undefined;
+    link.dataset.lineId = lineId ?? '';
 }
 
 export function setUpConnectionBanner() {

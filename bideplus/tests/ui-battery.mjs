@@ -215,7 +215,7 @@ for (const [url, panel, name] of [
     ['/stops/ES%3AEuskotren%3AStopPlace%3A2581%3A?red=euskotren', 'platform-panel', 'estacion euskotren con el id codificado (enlace de Favoritos)'],
     ['/stops/ES:Euskotren:StopPlace:1468:?red=tranvia-bilbao', 'platform-panel', 'parada tranvia bilbao'],
     ['/stops/ES:Euskotren:StopPlace:1560:?red=tranvia-vitoria', 'platform-panel', 'parada tranvia vitoria'],
-    ['/stops/13200?red=renfe', 'platform-panel', 'estacion renfe'],
+    ['/stops/13200?red=renfe', 'live-card', 'parada renfe'],
     ['/lines/MB?red=metro', 'timetable-section', 'linea metro'],
     ['/lines/3516', 'timetable-section', 'linea bus'],
 ]) {
