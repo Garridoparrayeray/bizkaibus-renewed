@@ -24,7 +24,6 @@ const SHELL_FILES = [
     '/css/style-app.css',
     '/css/style-screen.css',
     '/fonts/fonts.css',
-    '/fonts/inter-latin.woff2',
     '/fonts/bricolage-grotesque-latin.woff2',
     '/fonts/hanken-grotesk-latin.woff2',
     '/lib/leaflet/leaflet.css',

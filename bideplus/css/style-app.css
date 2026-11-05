@@ -20,7 +20,7 @@
     --radius-sm: 12px;
     --gutter: 14px;
     --container: 1180px;
-    --font-display: 'Bricolage Grotesque', 'Inter', sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', sans-serif;
 }
 
 /* ===== Base ===== */
@@ -43,7 +43,7 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
     -webkit-tap-highlight-color: transparent;
 }
 button {

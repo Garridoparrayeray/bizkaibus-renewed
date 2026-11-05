@@ -4,7 +4,7 @@
 // provisional con su inicial y su «+» sobre su color (icons-<red>/), los archivos que salen de la configuración
 // (js/networks.js, css/style-networks.css y los enlaces de 404.html), su base de datos, el mapa de la red, los
 // horarios sin conexión y el sitemap. Después solo queda revisar los textos y, cuando los haya, poner sus iconos de
-// verdad. Paso a paso: docs/nueva-red.md.
+// verdad.
 //
 // Uso:
 //   php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 --gtfs=https://…/gtfs.zip
@@ -117,7 +117,7 @@ function liveConfig(array $aOptions): string
         }
     }
     if ($sUrls === '') {
-        return "    // Sin datos en directo: el horario oficial. Para el directo, ver docs/nueva-red.md.\n    'live' => [],\n";
+        return "    // Sin datos en directo: el horario oficial.\n    'live' => [],\n";
     }
     $sMatching = "        'matching' => '{$aOptions['matching']}',\n";
     if ($aOptions['matching'] === 'stops') {
@@ -181,7 +181,7 @@ function config(array $aOptions): string
 <?php
 
 // Creada con scripts/new-network.php. Revisa los textos (sobre todo los de euskera e inglés), el aviso de
-// «disclaimer» y las funciones (features); la explicación de cada campo está en docs/nueva-red.md.
+// «disclaimer» y las funciones (features).
 return [
     'slug' => '$sSlug',
     'order' => $iOrder,

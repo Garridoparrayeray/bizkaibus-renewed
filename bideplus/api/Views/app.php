@@ -36,7 +36,7 @@ use Core\Networks;
     <meta name="twitter:image" content="<?= htmlspecialchars($sImage) ?>">
     <link rel="icon" href="/<?= $sFaviconFolder ?>/icon-192.png">
     <link rel="apple-touch-icon" href="/<?= $sFaviconFolder ?>/apple-touch-icon.png">
-    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/css/style-splash.css">
