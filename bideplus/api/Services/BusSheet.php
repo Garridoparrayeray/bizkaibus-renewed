@@ -23,19 +23,22 @@ class BusSheet
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iNow = Calendar::nowSecondsSinceMidnight();
-        $iNextSeqOrder = self::nextSeqOrder($aStops, $aPosition, $aLive, $bLive);
-
         $aStopsOut = [];
+        $bCurrentFound = false;
         foreach ($aStops as $aStop) {
-            $bPast = self::passed($aStop, $aPosition, $aLive, $bLive);
+            $bPast = $bLive && $Matcher->hasPassed($aJourney['id'], $aLive, (int)$aStop['arrival_seconds'], (int)$aStop['seq_order']);
             $iEta = null;
             if (!$bPast) {
                 $iEta = (int)$aStop['arrival_seconds'];
             }
             if (!$bPast && $bLive) {
                 [$iEta] = $Matcher->etaForStop($aJourney['id'], (int)$aStop['arrival_seconds'], $aLive, (int)$aStop['seq_order']);
+                if ($aPosition !== null) {
+                    $iEta = max($iEta, $iNow);
+                }
             }
-            $bCurrent = $iNextSeqOrder !== null && (int)$aStop['seq_order'] === $iNextSeqOrder;
+            $bCurrent = $bLive && !$bPast && !$bCurrentFound;
+            $bCurrentFound = $bCurrentFound || $bCurrent;
             $aStopsOut[] = TripSheet::stopEntry($aStop, $iEta, $bPast, $bCurrent, $iNow);
         }
 
@@ -78,32 +81,6 @@ class BusSheet
             }
         }
         return [$aVariants[0], null];
-    }
-
-    // Con GPS, las paradas de antes de su posición; sin GPS, las de antes de la parada que registró.
-    private static function passed(array $aStop, array|null $aPosition, array|null $aLive, bool $bLive): bool
-    {
-        if ($aPosition !== null) {
-            return (int)$aStop['arrival_seconds'] < $aPosition['scheduledSeconds'];
-        }
-        if ($bLive && isset($aLive['order'])) {
-            return (int)$aStop['seq_order'] < (int)$aLive['order'];
-        }
-        return false;
-    }
-
-    // Orden de la siguiente parada del bus: por su posición GPS o, sin GPS, la última parada que registró.
-    private static function nextSeqOrder(array $aStops, array|null $aPosition, array|null $aLive, bool $bLive): int|null
-    {
-        foreach ($aStops as $aStop) {
-            if ($aPosition !== null && (int)$aStop['arrival_seconds'] >= $aPosition['scheduledSeconds']) {
-                return (int)$aStop['seq_order'];
-            }
-            if ($aPosition === null && $bLive && $aStop['stop_id'] === $aLive['currentStopId']) {
-                return (int)$aStop['seq_order'];
-            }
-        }
-        return null;
     }
 
     // Adelanto o retraso en la siguiente parada del bus. Abierta desde una parada que el bus aún no ha pasado, el de
