@@ -387,8 +387,8 @@ try {
 
     $iVersion = Changelog::version();
     $Expect('versión: es la última novedad', $iVersion === Changelog::ENTRIES[0][2] && $iVersion >= 34, (string)$iVersion);
-    $aNewer = Changelog::newerThan($iVersion - 2, 'es');
-    $Expect('versión: lo que trae cada versión posterior a la del móvil, de la más nueva a la más vieja', array_column($aNewer, 'number') === [$iVersion, $iVersion - 1] && $aNewer[0]['title'] === Changelog::ENTRIES[0][3]);
+    $aNewer = Changelog::newerThan(Changelog::ENTRIES[2][2], 'es');
+    $Expect('versión: lo que trae cada versión posterior a la del móvil, de la más nueva a la más vieja', array_column($aNewer, 'number') === [Changelog::ENTRIES[0][2], Changelog::ENTRIES[1][2]] && $aNewer[0]['title'] === Changelog::ENTRIES[0][3]);
     $aBasque = Changelog::newerThan($iVersion - 1, 'eu');
     $Expect('versión: en euskera y en inglés, con los textos de js/i18n.js', count($aBasque) === 1 && $aBasque[0]['title'] !== Changelog::ENTRIES[0][3] && Changelog::newerThan($iVersion - 1, 'en')[0]['title'] !== $aBasque[0]['title']);
     $Expect('versión: el móvil al día no tiene nada pendiente', Changelog::newerThan($iVersion, 'es') === []);
