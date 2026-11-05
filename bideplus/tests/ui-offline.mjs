@@ -71,11 +71,11 @@ for (const [url, name] of [['/', 'menu Bide+'], ['/?red=bus', 'Bizkaibus+'], ['/
 
 await go('/?red=metro');
 const fonts = await ev(`({
-    inter: document.fonts.check('16px Inter'),
+    hanken: document.fonts.check('16px "Hanken Grotesk"'),
     bricolage: document.fonts.check('800 16px "Bricolage Grotesque"'),
     loaded: [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/"/g, '')).filter((v, i, a) => a.indexOf(v) === i)
 })`);
-check('tipografias Inter y Bricolage disponibles', fonts.inter === true && fonts.bricolage === true, `cargadas: ${fonts.loaded.join(', ')}`);
+check('tipografias Hanken Grotesk y Bricolage disponibles', fonts.hanken === true && fonts.bricolage === true, `cargadas: ${fonts.loaded.join(', ')}`);
 check('las tipografias vienen de /fonts (woff2 propios)', fonts.loaded.length >= 2);
 
 await go('/', 2500);
