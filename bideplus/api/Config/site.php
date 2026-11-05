@@ -9,7 +9,7 @@ return [
     // La red que se abre en «/» y cuyas direcciones no llevan ?red= (una de api/Networks).
     'default_network' => 'bus',
     // Días que una red nueva (added en su ficha) o una función nueva (data-new-since) llevan la etiqueta «Nuevo».
-    'new_days' => 30,
+    'new_days' => 3,
     'author' => 'Yeray Garrido',
     'legal_name' => 'Yeray Garrido Parra',
     'author_url' => 'https://www.yeraygarrido.dev/',

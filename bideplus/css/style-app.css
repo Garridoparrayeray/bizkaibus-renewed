@@ -278,6 +278,10 @@ svg[viewBox] rect {
         object-fit: contain;
         filter: brightness(0) invert(1);
     }
+    .app-logomark > img.is-large {
+        width: 90%;
+        height: 90%;
+    }
     .app-logomark > img.is-icon {
         width: 100%;
         height: 100%;
