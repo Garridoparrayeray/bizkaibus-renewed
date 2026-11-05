@@ -3,7 +3,7 @@
 // cerrada (api/Services/IncidentAlerts.php): aquí solo se le dan la suscripción, los favoritos y el idioma. Si el
 // navegador no tiene push, la app mira al abrirse y, donde se puede, en segundo plano de vez en cuando
 // (js/alerts-store.js).
-import { isIos, pushSubscription, pushSupported, serverKey } from './push.js';
+import { isIos, pushSubscription, pushSupported, serverKey, setNotificationsOff } from './push.js';
 
 let alertsToggle = null;
 let alertsNote = null;
@@ -146,6 +146,7 @@ async function enableLineAlerts() {
         setAlertsNote('app.alerts.denied');
         return false;
     }
+    setNotificationsOff(false);
     await syncAlertFavorites();
     await AlertsStore.resetBaseline();
     let note = 'app.alerts.push';

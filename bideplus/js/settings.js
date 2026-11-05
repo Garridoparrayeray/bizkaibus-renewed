@@ -1,7 +1,7 @@
 // Ajustes de Bide+, en el inicio y en cada app. Todo se guarda al momento, sin recargar.
 import { cancelArrivalAlert, readArrivalAlerts } from './arrival-alerts-store.js';
 import { disableLineAlerts, setUpIncidentAlerts } from './incident-alerts.js';
-import { isIos } from './push.js';
+import { isIos, setNotificationsOff } from './push.js';
 import { forgetUpdates, setUpAppUpdate } from './app-update.js';
 import { currentPosition, isLocationOff, setLocationOff } from './location-pref.js';
 
@@ -49,6 +49,7 @@ async function renderPermission() {
         const subscribed = (await pushSubscription().catch(() => null)) !== null;
         active = subscribed || (await AlertsStore.get('enabled')) === true;
         if (!active) key = 'bide.settings.allowedIdle';
+        if (!active && isIos()) key = 'bide.settings.allowedIdleIos';
     }
     setText(view.querySelector('[data-settings-permission]'), key);
     view.querySelector('[data-settings-notify-off]').hidden = !active;
@@ -241,6 +242,7 @@ function setUpNotifyOff() {
         button.disabled = true;
         try {
             await forgetNotifications();
+            setNotificationsOff(true);
             document.getElementById('alerts-toggle').checked = false;
             setText(status, 'bide.settings.notifyOffDone');
         } catch (e) {
