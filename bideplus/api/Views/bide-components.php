@@ -283,7 +283,7 @@ function bideSettings(string $sBack): string
     $sHtml .= '<label class="alerts-toggle"><input type="checkbox" id="alerts-toggle"><span data-i18n="app.notifyMeFavorites">Avisarme de las incidencias nuevas de mis favoritos</span></label>';
     $sHtml .= '<p id="alerts-note" class="alerts-note" role="status" hidden></p>';
     $sHtml .= '<p class="bide-note" data-settings-permission></p>';
-    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-notify-off data-new-since="2026-11-03" data-i18n="bide.settings.notifyOff" hidden>Desactivar las notificaciones</button>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-notify-off data-i18n="bide.settings.notifyOff" hidden>Desactivar las notificaciones</button>';
     $sHtml .= '<p class="bide-feedback-status" data-settings-notify-status role="status"></p>';
     $sHtml .= '<h4 data-i18n="bide.settings.arrivals">Avisos de llegada</h4>';
     $sHtml .= '<ul class="bide-settings-arrivals" data-settings-arrivals></ul>';
@@ -295,7 +295,7 @@ function bideSettings(string $sBack): string
     $sHtml .= '<p class="bide-note" data-settings-location role="status"></p>';
     $sHtml .= '<p class="bide-note" data-settings-location-ios data-i18n="bide.settings.locationIos" hidden>En iPhone, iOS no guarda el permiso de ubicación: te lo pedirá cada vez que uses «Cerca de mí». Dale a «Permitir».</p>';
     $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-ask data-i18n="bide.settings.locationAsk" hidden>Permitir la ubicación</button>';
-    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-new-since="2026-11-03" data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
+    $sHtml .= '<button type="button" class="bide-button is-secondary" data-settings-location-off data-i18n="bide.settings.locationOffButton" hidden>No usar mi ubicación</button>';
     $sHtml .= '</section>';
 
     $sHtml .= bideOffline();
