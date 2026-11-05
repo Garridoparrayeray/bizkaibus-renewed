@@ -1112,15 +1112,16 @@ html.bide body.page-app .bide-menu-apps {
         font-size: 14.4px;
     }
     /* Ajustes e Info, debajo y del mismo ancho que las de arriba. */
-    html.bide body.page-app .side-menu > .pill[data-bide-tab] {
+    html.bide body.page-app .side-menu > :is(.pill[data-bide-tab], .bide-menu-donate) {
         display: flex;
         width: 100%;
         justify-content: flex-start;
         margin: 0 0 10px;
         font-size: 14.4px;
     }
-        html.bide body.page-app .side-menu > .pill[data-bide-tab="info"] {
+        html.bide body.page-app .side-menu > .bide-menu-donate {
             margin-bottom: 24px;
+            text-decoration: none;
         }
     html.bide body.page-app .side-menu.is-incidents > :is(.pill, .bide-menu-apps) {
         display: none;
