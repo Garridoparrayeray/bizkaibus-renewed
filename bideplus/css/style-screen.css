@@ -2,7 +2,7 @@
 /* Para verse de lejos */
 
 :root {
-    --network: #01573C;
+    --network: var(--bide-green);
     --screen-bg: #0E1512;
     --screen-text: #F4F7F5;
     --screen-muted: #A9B6AF;

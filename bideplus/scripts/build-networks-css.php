@@ -51,7 +51,9 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     }
 }
 
+$aSite = require __DIR__ . '/../api/Config/site.php';
 $sCss = "/* Generado por scripts/build-networks-css.php: no lo edites a mano. */\n\n"
+    . "/* ===== El verde de Bide+ (brand_color de api/Config/site.php) ===== */\n" . cssRule(':root', ['--bide-green' => $aSite['brand_color']]) . "\n\n"
     . "/* ===== Ficha de cada red en el inicio ===== */\n" . implode("\n", $aTiles) . "\n\n"
     . "/* ===== Cuadradito de cada red en Bide+ ===== */\n" . implode("\n", $aSwatches) . "\n\n"
     . "/* ===== Paleta de la app de cada red ===== */\n" . implode("\n", $aPalettes) . "\n";

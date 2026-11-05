@@ -3,7 +3,7 @@
     --bg: #f4f6f4;
     --surface: #FFFFFF;
     --border: #dde3dc;
-    --primary: #01573C;
+    --primary: var(--bide-green);
     --primary-light: #9CCD64;
     --primary-dark: #003D29;
     --primary-tint: #EEF6E4;
