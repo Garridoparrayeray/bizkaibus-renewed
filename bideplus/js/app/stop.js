@@ -253,9 +253,7 @@ function renderLiveCard(departures) {
     el.liveOpenDetail.disabled = false;
     el.liveOpenDetail.dataset.tripKey = departure.tripKey;
     el.liveOpenDetail.dataset.tomorrow = String(Boolean(departure.tomorrow));
-    el.liveTimetableLink.disabled = false;
-    el.liveTimetableLink.dataset.lineId = departure.lineId;
-    renderLineButtons(departures, el.liveTimetableLink, el.liveTimetableLines, FEATURES.line_buttons === true, FEATURES.line_buttons === true);
+    renderLineButtons(departures, el.liveTimetableLink, el.liveTimetableLines, FEATURES.line_buttons === true, FEATURES.line_buttons === true, departure.lineId);
 
     for (const other of others) {
         const li = document.createElement('li');
@@ -411,7 +409,8 @@ function renderPlatformPanel(data) {
     renderLineButtons(departures, el.platformTimetableLink, el.platformTimetableLines, true, FEATURES.line_buttons === true);
 }
 
-function renderLineButtons(departures, link, container, enabled, fromStop = false) {
+// Con una sola línea a la vista, el enlace abre la de la salida que se enseña (shownLineId) o, sin ella, la primera.
+function renderLineButtons(departures, link, container, enabled, fromStop = false, shownLineId = null) {
     const distinctLines = [];
     const seenLineCodes = new Set();
     const stopLines = (state.currentStop?.lines || []).map((line) => ({ lineId: line.id, lineCode: line.code }));
@@ -440,7 +439,7 @@ function renderLineButtons(departures, link, container, enabled, fromStop = fals
     }
     link.hidden = false;
     container.hidden = true;
-    const lineId = distinctLines[0]?.lineId;
+    const lineId = shownLineId ?? distinctLines[0]?.lineId;
     link.disabled = lineId === undefined;
     link.dataset.lineId = lineId ?? '';
 }
