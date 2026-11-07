@@ -70,11 +70,12 @@ class BusSheet
         return TripSheet::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut, $aExtra);
     }
 
-    // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses: el operador
-    // todavía no le ha asignado uno (Bizkaibus lo hace unos 6 min antes de la salida, la mitad de las veces).
+    // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses (con hora de
+    // hoy: de madrugada el de Bizkaibus repite los de antes de medianoche): el operador todavía no le ha asignado uno
+    // (Bizkaibus lo hace unos 6 min antes de la salida, la mitad de las veces).
     private static function awaitingVehicle(string $sStatus, array $aVehicles, int $iFirstDepartureSeconds, int $iNow): bool
     {
-        return $sStatus === 'scheduled' && !empty($aVehicles) && Config::hasLive('vehicle-monitoring')
+        return $sStatus === 'scheduled' && Live::isFresh($aVehicles) && Config::hasLive('vehicle-monitoring')
             && $iNow < $iFirstDepartureSeconds + self::AWAITING_GRACE_SECONDS;
     }
 

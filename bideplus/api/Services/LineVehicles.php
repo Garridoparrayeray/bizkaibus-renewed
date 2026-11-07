@@ -20,13 +20,14 @@ class LineVehicles
     }
 
     // Si el mapa puede decir que no circula nada: con posiciones del operador siempre; con el directo de vehículos,
-    // solo si el feed trae alguno (los de Lurraldebus y Bilbobus llegan vacíos a ratos).
+    // solo si el feed trae alguno con hora de hoy (los de Lurraldebus y Bilbobus llegan vacíos a ratos, y el de
+    // Bizkaibus se queda congelado de madrugada).
     public static function tracked(): bool
     {
         if (Config::hasLive('vehicle-positions')) {
             return true;
         }
-        return Config::hasLive('vehicle-monitoring') && !empty(Live::vehicles());
+        return Config::hasLive('vehicle-monitoring') && Live::isFresh(Live::vehicles());
     }
 
     private static function positions(\PDO $Pdo, string $sLineId, array $aPatterns): array

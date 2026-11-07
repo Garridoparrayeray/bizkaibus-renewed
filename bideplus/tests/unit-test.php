@@ -292,6 +292,9 @@ $AddTrip('DE_AYER', 'AYER', $iVarNow + 86400 - 600, $iVarNow + 86400 + 600);
 $AddTrip('DE_AYER_ACABADO', 'AYER', $iVarNow + 86400 - 3600, $iVarNow + 86400 - 1800);
 $JourneyRun = new ServiceJourney($PdoRun);
 $Expect('en marcha según el horario: el de hoy entre su salida y su llegada y el de ayer que pasa de las 24:00', $JourneyRun->runningCount() === 2, (string)$JourneyRun->runningCount());
+$Expect('directo con hora de hoy: sí con un bus que la trae; no con el feed congelado de madrugada (ningún bus la trae)',
+    Core\Live::isFresh(['1|2' => [['recordedSeconds' => null, 'locationSeconds' => null], ['recordedSeconds' => 300]]])
+    && !Core\Live::isFresh(['1|2' => [['recordedSeconds' => null, 'locationSeconds' => null]]]) && !Core\Live::isFresh([]));
 $aLateVariants = $JourneyRun->lateVariants('L1', '9', $iVarNow + 86400 - 600, Services\TripSheet::LATE_GRACE_SECONDS);
 $Expect('la ficha de un viaje de ayer que aún va es la de ayer', array_column($aLateVariants, 'id') === ['DE_AYER'], json_encode(array_column($aLateVariants, 'id')));
 $Expect('la de uno que terminó hace más de 10 min, o de uno de hoy, no', $JourneyRun->lateVariants('L1', '9', $iVarNow + 86400 - 3600, Services\TripSheet::LATE_GRACE_SECONDS) === []

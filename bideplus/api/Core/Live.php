@@ -34,6 +34,20 @@ class Live
         return $sClass::vehicles(Config::current());
     }
 
+    // Si el directo trae algún vehículo con hora de hoy. De 23:58 a 05:00, el feed de Bizkaibus repite los buses de antes
+    // de medianoche: trae vehículos, pero ninguno sirve (ni para el mapa ni para decir que a un viaje le falta bus).
+    public static function isFresh(array $aVehicles): bool
+    {
+        foreach ($aVehicles as $aEntries) {
+            foreach ($aEntries as $aEntry) {
+                if (isset($aEntry['locationSeconds']) || isset($aEntry['recordedSeconds'])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Apunta por dónde va cada vehículo del directo en todas las redes con motor (lo llama un cron cada minuto, una sola
     // vez para todas): [red => vehículos apuntados, o null si falló]. Al acabar se vuelve a la red de la llamada.
     public static function recordAll(): array

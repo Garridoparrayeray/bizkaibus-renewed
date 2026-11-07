@@ -8,7 +8,8 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
 /api/status; sin él, de 00:30 a 06:00 no cuentan): de noche o con un feed compartido (Euskotren publica uno para sus
 trenes y los dos tranvías), que no haya nada de la red es lo normal.
-Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos).
+Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos), o trae
+vehículos sin hora de hoy (de 23:58 a 05:00 el de Bizkaibus repite los de antes de medianoche: la app usa el horario).
 Una red con error se vuelve a mirar al minuto: un feed que viene vacío en una sola lectura no es un fallo.
 """
 import datetime
@@ -74,6 +75,8 @@ def check(network, report):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):
         notices.append('las horas del feed contradicen al GPS: manda el GPS')
+    if report.get('vehicles') and report.get('withTime') == 0:
+        notices.append('el feed repite datos sin hora de hoy: sale con el horario')
     delays = report.get('delayMinutes')
     if delays and report.get('live', 0) >= MIN_LIVE:
         if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:

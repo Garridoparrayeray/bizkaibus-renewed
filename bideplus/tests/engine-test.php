@@ -633,8 +633,22 @@ $Expect('los de ayer van con sus horas en las de ayer (+24 h); los de hoy, apart
     array_keys($aYesterdayMap) === ['3414|808'] && $aYesterdayMap['3414|808'][0]['locationSeconds'] === $iNightNow - 10 + 86400
     && $aYesterdayMap['3414|808'][0]['recordedSeconds'] === $iNightNow - 10 + 86400 && RealtimeMatcher::vehiclesOfDay($aNightMap, $iNightNow, 0) === ['3414|809' => [$aDayBus]],
     json_encode($aYesterdayMap));
-$aDayMap = ['3414|808' => [live(500, 0, 2, T0 + 80)], '3414|809' => [['vehicleRef' => 'BUS2', 'lat' => null, 'locationSeconds' => null] + live(0, 0, 1, T0)]];
+$aDayMap = ['3414|808' => [live(500, 0, 2, T0 + 80)], '3414|809' => [['vehicleRef' => 'BUS2', 'lat' => null, 'locationSeconds' => null, 'recordedSeconds' => T0 + 60] + live(0, 0, 1, T0)]];
 $Expect('de día, los de hoy son todos y sin tocar', RealtimeMatcher::vehiclesOfDay($aDayMap, T0 + 90, 0) === $aDayMap && RealtimeMatcher::vehiclesOfDay($aDayMap, T0 + 90, 1) === []);
+
+// De 23:58 a 05:00 el feed de Bizkaibus repite los buses de antes de medianoche (capturas del 1 y del 7 de noviembre):
+// leídos pasada la medianoche no traen hora de hoy y no cuentan para nadie, ni hoy ni ayer.
+$sFrozenXml = '<Siri><ServiceDelivery><VehicleMonitoringDelivery><VehicleActivity><RecordedAtTime>2026-11-06T23:58:26+01:00</RecordedAtTime>'
+    . '<MonitoredVehicleJourney><VehicleJourneyRef>trp_A3136_668_OP40VIN_84600_O40VI3136_313603_12</VehicleJourneyRef>'
+    . '<LocationRecordedAtTime>2026-11-06T23:58:26+01:00</LocationRecordedAtTime><VehicleLocation><Longitude>-2.9</Longitude><Latitude>43.2</Latitude></VehicleLocation>'
+    . '<MonitoredCall><StopPointRef>0418</StopPointRef><Order>12</Order></MonitoredCall></MonitoredVehicleJourney></VehicleActivity>'
+    . '</VehicleMonitoringDelivery></ServiceDelivery></Siri>';
+$aFrozen = SiriVehicleMonitoringClient::parse($sFrozenXml, '2026-11-07');
+$Expect('el feed congelado de madrugada: el bus de las 23:58 no lleva hora de hoy y no es de nadie',
+    \count($aFrozen['3136|668'] ?? []) === 1 && !RealtimeMatcher::hasTime($aFrozen['3136|668'][0])
+    && RealtimeMatcher::vehiclesOfDay($aFrozen, 3600, 0) === [] && RealtimeMatcher::vehiclesOfDay($aFrozen, 3600, 1) === [],
+    json_encode($aFrozen));
+$Expect('leído antes de medianoche, sí: de hoy y con su hora', RealtimeMatcher::vehiclesOfDay(SiriVehicleMonitoringClient::parse($sFrozenXml, '2026-11-06'), 86340, 0)['3136|668'][0]['recordedSeconds'] === 86306);
 
 $MNight = new RealtimeMatcher($aYesterdayMap, new ServiceJourney($PdoNight), $iNightNow + 86400, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $aNightRow = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => NIGHT, 'service_journey_id' => 'J_LINE', 'stop_seq' => 3, 'stop_id' => 'S2', 'arrival_seconds' => NIGHT + 360];
