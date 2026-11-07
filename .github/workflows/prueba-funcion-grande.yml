@@ -34,15 +34,18 @@ jobs:
         run: |
           rm -rf bideplus/engine/.git
           vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          grep -c VERCEL_SUPPORT_LARGE_FUNCTIONS .vercel/.env.preview.local bideplus/.vercel/.env.preview.local 2>/dev/null || echo "(la variable no aparece en el entorno de vista previa)"
-          vercel curl --help 2>&1 | head -20 || true
+          # Solo los nombres y en qué entornos están, nunca los valores.
+          vercel env ls --token="$VERCEL_TOKEN" 2>/dev/null | grep -i "LARGE_FUNCTIONS" || echo "(VERCEL_SUPPORT_LARGE_FUNCTIONS no está en las variables del proyecto)"
 
+          # vercel curl pasa la protección de las vistas previas; la primera consulta es la del arranque en frío.
           medir() {
             local URL=$1 NOMBRE=$2
             for P in "/api/lines?red=bus" "/api/stops/2877/departures?red=bus&limit=3" "/api/status?red=metro"; do
               for I in 1 2 3; do
-                R=$(curl -s -o respuesta.json -w '%{http_code} %{time_total}s' "$URL$P")
-                echo "$NOMBRE $P intento $I: $R $(head -c 80 respuesta.json | tr '\n' ' ')"
+                T0=$(date +%s.%N)
+                vercel curl "$URL$P" --yes --token="$VERCEL_TOKEN" > respuesta.json 2> curl.err || true
+                T1=$(date +%s.%N)
+                echo "$NOMBRE $P intento $I: $(echo "$T1 - $T0" | bc) s · $(head -c 90 respuesta.json | tr '\n' ' ') $(tail -c 200 curl.err | tr '\n' ' ')"
               done
             done
           }
