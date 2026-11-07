@@ -345,6 +345,13 @@ if (class_exists(TripOffsets::class)) {
     $Expect('sin datos de la línea, el de la franja', $Trips->seconds('1|A|B|28800|3', '1', DATE_WEEKDAY, T0, 1, 3) === 70.0);
     $Expect('el viaje solo tiene datos de laborable: en fin de semana va a la franja de fin de semana', $Trips->seconds($sLineKey, '3414', DATE_WEEKEND, T0, 4, 5) === 90.0);
     $Expect('sin tabla, no se corrige nada', (new TripOffsets())->seconds($sLineKey, '3414', DATE_WEEKDAY, T0, 4, 5) === 0.0 && (new TripOffsets())->isEmpty());
+    // El feed escribe la línea con ceros delante (0651) y el horario sin ellos (651): las dos formas son la misma línea.
+    $Expect('la clave del viaje no cambia por un cero delante de la línea', TripOffsets::key('03414', 'S0', 'S4', T0, 5) === $sLineKey);
+    $Expect('con la línea como la escribe el feed se encuentran el viaje y la línea', $Trips->seconds('03414|S0|S4|28800|5', '03414', DATE_WEEKDAY, T0, 4, 5) === 30.0 && $Trips->seconds('03414|S0|S9|28800|9', '03414', DATE_WEEKDAY, T0, 4, 9) === 50.0);
+    $TripsFeed = new TripOffsets(['lines' => ['03414' => ['laborable.punta_manana' => 50]]]);
+    $Expect('una tabla escrita con ceros delante vale para la línea del horario', $TripsFeed->seconds('3414|S0|S9|28800|9', '3414', DATE_WEEKDAY, T0, 4, 9) === 50.0);
+    $PaceFeed = new PaceFactors(['lines' => ['0651' => ['laborable.punta_manana' => 0.8]]]);
+    $Expect('el factor de ritmo de 0651 vale para la línea 651 del horario, y al revés', $PaceFeed->factor('651', DATE_WEEKDAY, T0) === 0.8 && (new PaceFactors(['lines' => ['651' => ['laborable.punta_manana' => 0.8]]]))->factor('0651', DATE_WEEKDAY, T0) === 0.8);
 
     $MTrip = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned, $Trips);
     $aTrip = $MTrip->enrich([$aRowNoBus])[0];
