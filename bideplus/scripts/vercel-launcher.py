@@ -11,7 +11,7 @@ Desde agosto de 2026 Vercel arranca las funciones con un cargador que importa el
 - `LAMBDA_TASK_ROOT`, que el lanzador nuevo no define, vale `/var/task` para encontrar `php/` y `user/`;
 - fuera de la función los ficheros de control de versiones (`.git/`, `.gitignore`…), que Vercel no deja subir;
 - PHP carga solo las extensiones que usa la app (EXTENSIONS) y la función lleva solo las librerías que necesitan
-  (siguiendo las dependencias de cada binario con readelf): sin eso pesa más de 250 MB, el límite de una función;
+  (siguiendo las dependencias de cada binario con readelf): sin eso pesa más de 250 MB, el límite normal de una función;
 - PHP atiende con varios procesos (PHP_CLI_SERVER_WORKERS), para que una petición lenta no haga esperar a las demás;
 - las bases de datos y lo que no se publica (data/, scripts/, tests/, engine/) no se suben como ficheros estáticos:
   las rutas ya no los sirven y solo los lee la función.
@@ -32,9 +32,9 @@ VERSION_CONTROL = ('.git', '.gitignore', '.gitattributes', '.gitmodules', '.gith
 EXTENSIONS = ('apcu', 'bcmath', 'calendar', 'ctype', 'curl', 'dom', 'fileinfo', 'iconv', 'mbstring', 'pdo', 'pdo_sqlite',
               'posix', 'simplexml', 'sodium', 'sqlite3', 'tokenizer', 'xml', 'xmlreader', 'xmlwriter')
 PHP_WORKERS = '4'
-# Vercel admite 250 MB por función en todos los planes; por encima de este aviso queda sitio para poco más que una red
-# mediana (ver «Tamaño de la función» en el manual de operación).
-SIZE_WARNING_MB = 235
+# Vercel admite 250 MB por función; por encima va con las funciones grandes (VERCEL_SUPPORT_LARGE_FUNCTIONS, hasta
+# 5 GB), probadas con 269 MB (ver «Tamaño de la función» en el manual de operación).
+NORMAL_LIMIT_MB = 250
 NOT_PUBLISHED = ('data', 'scripts', 'tests', 'engine')
 
 ADAPTER = r'''
@@ -165,9 +165,9 @@ def patch_function(func_dir):
         f.write('\n')
     size = sum(os.path.getsize(v) for v in file_map.values() if os.path.exists(v))
     print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías fuera; {size / 1e6:.0f} MB')
-    if size / 1e6 > SIZE_WARNING_MB:
-        print(f'::warning::La función pesa {size / 1e6:.0f} MB y Vercel admite 250: cada red nueva suma su base. '
-              'Activa VERCEL_SUPPORT_LARGE_FUNCTIONS en Vercel o reparte las redes en varias funciones.')
+    if size / 1e6 > NORMAL_LIMIT_MB:
+        print(f'::notice::La función pesa {size / 1e6:.0f} MB, más de los 250 normales de Vercel: va gracias a '
+              'VERCEL_SUPPORT_LARGE_FUNCTIONS, que tiene que seguir puesta en Vercel.')
 
 
 def main():
