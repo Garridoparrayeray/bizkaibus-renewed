@@ -78,6 +78,8 @@ return [
     // Motor propio en engine/lurraldebus, que hereda el de Bizkaibus. Los feeds de los operadores llegan vacíos
     // (2/11/2026): mientras tanto la app enseña el horario oficial y el mapa no dice que siga a nadie.
     'live' => ['vehicle-monitoring'],
+    // El feed llega vacío a ratos aunque haya servicio: «Vigilar el directo» lo apunta como aviso, no como fallo.
+    'live_often_empty' => true,
     'engine' => 'lurraldebus',
 
     'siri' => [

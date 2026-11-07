@@ -15,3 +15,7 @@ Bide+ es un proyecto independiente, sin relación con los operadores ni con los 
 ## El algoritmo
 
 La carpeta `engine/` (la capa de cálculo de llegadas de Bizkaibus, y de Lurraldebus y Bilbobus, que heredan de ella) y su documentación no están en este repositorio: viven en un repositorio privado y los workflows de GitHub Actions la traen con el secreto `ENGINE_REPO_TOKEN` antes de probar o desplegar. Para trabajar en local, clona el repositorio privado en `bideplus/engine`.
+
+Cómo se conectan: la ficha de una red con el algoritmo lleva `'live' => ['vehicle-monitoring']` y `'engine' => '<motor>'`; `Core\Live` busca la clase `Engine\<Motor>\Live`, que `api/autoload.php` carga de `engine/<motor>/`. Sin `engine/`, esas redes salen con el horario oficial, sin error. Las redes con GTFS-Realtime (trenes, tranvías, Tuvisa, Dbus, Álavabus) no usan el motor: se emparejan en la app (`TripDelayMatcher`, `TripUpdatesMatcher`).
+
+Las pruebas de una rama de la app usan la rama del motor con el mismo nombre, si existe; el despliegue y la captura, siempre su `main`. Con cambios en los dos repositorios, primero se fusiona el motor en `main` y luego la app en `master`: al revés, producción saldría con la app nueva y el motor viejo.

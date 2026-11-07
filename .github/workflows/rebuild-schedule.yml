@@ -5,8 +5,8 @@ name: Rebuild schedule data
 # geocache.json si cambia): se regeneran en el runner y se suben tal cual con el
 # deploy de Vercel.
 #
-# Fuentes primarias: NAP (nap.transportes.gob.es) con ApiKey.
-# Fuentes fallback:  S3 (Bizkaibus), CMS (Metro), local zip (Euskotren).
+# Fuentes: las de cada ficha de bideplus/api/Networks (gtfs.source y, si falla, gtfs.fallback_source). Las del NAP
+# (nap.transportes.gob.es) piden NAP_API_KEY.
 
 # Es la UNICA via de despliegue a produccion (vercel.json desactiva los despliegues de master por Git): los .sqlite
 # del repositorio son viejos y, si Vercel los desplegara por su cuenta, pisarian las bases recien reconstruidas.
@@ -152,7 +152,14 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add bideplus/scripts/geocache.json
             git commit -m "chore: update geocache with newly seen stop coordinates"
-            git push
+            # GitHub rechaza a veces el push con un error suyo («fatal error in commit_refs», 4/11/2026) o porque
+            # master ha cambiado entretanto: se reintenta hasta tres veces, poniéndose al día antes.
+            for INTENTO in 1 2 3; do
+              git push && break
+              [ "$INTENTO" = 3 ] && exit 1
+              sleep 10
+              git pull --rebase
+            done
           else
             echo "geocache.json unchanged, nothing to commit"
           fi
@@ -184,8 +191,8 @@ jobs:
           rm -f .vercelignore bideplus/.vercelignore
           vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
 
-      # Si lo recién desplegado no responde, el flujo falla y lo dice; no hay despliegue anterior al que volver
-      # (la limpieza de abajo los borra).
+      # Si lo recién desplegado no responde, el flujo falla aquí y no llega a la limpieza del final: el anterior sigue
+      # en Vercel y «Rollback production» puede volver a él. Con el flujo en verde, la limpieza ya los ha borrado.
       - name: Comprobar producción
         run: |
           SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')

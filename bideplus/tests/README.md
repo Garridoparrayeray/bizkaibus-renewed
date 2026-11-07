@@ -10,7 +10,7 @@ python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unit
 O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal:
 
 ```
-python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
+python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/schedule-periods.mjs && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
 ```
 
 | Script | Qué comprueba |
@@ -22,7 +22,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 | `engine-test.php` | Lo mismo para el algoritmo (`engine/`, repositorio aparte): emparejado, las tres capas, ritmo, tramos, corrección por viaje, SIRI-VM y registro de pasos. Sin `engine/` a mano sale `SKIP`. La lanza `static-checks.py` |
 | `unit-harness.php` | Lo que comparten las dos: el informe de cada comprobación, la base de datos de prueba en memoria y un bus en directo de ejemplo. No se lanza sola |
 | `network-samples.php` | Una muestra de cada red sacada del registro y de su base (la parada con más pasos, una búsqueda que la encuentra y dónde está), en JSON. La leen `api-smoke.py`, `api-contract.py` y `ui-battery.mjs`: una red nueva entra en las tres sin tocarlas |
-| `data-integrity.php` | Las seis bases `data/*.sqlite`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
+| `data-integrity.php` | La base `data/*.sqlite` de cada red de `api/Networks`: tablas, referencias entre paradas, viajes, líneas y calendarios, horas que no van hacia atrás, `first_departure_seconds`, coordenadas, `trip_aliases`, `dist_m` y trazados. La lanza `static-checks.py` y también el flujo diario antes de desplegar |
 | `api-smoke.py` | Todas las rutas de la API en todas las redes, con la muestra de `network-samples.php` (búsqueda, paradas, salidas, líneas, horarios, trenes, alertas, línea en vivo, 404) |
 | `api-contract.py` | Forma del JSON de cada ruta en todas las redes (muestra de `network-samples.php`): campos que usan los módulos de `js/app/`, tipos, horas `HH:MM` y estados conocidos (`scheduled`, `live`, `departed`, `finished`). Añadir campos está permitido; quitar o renombrar uno rompe la prueba |
 | `schedule-periods.mjs` | «Ver horario oficial» de Bizkaibus: con los bloques tal como los publica el operador, sale el periodo de hoy primero y luego los que vienen, los días sueltos de un mismo periodo juntos, nada ya terminado ni de años anteriores, y al cambiar de año desaparece lo del anterior |

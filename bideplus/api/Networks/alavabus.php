@@ -78,6 +78,9 @@ return [
     ],
 
     'live' => ['trip-updates', 'vehicle-positions'],
+    // El feed llega vacío a ratos aunque haya servicio (4 y 5/11/2026, con más de 30 buses en marcha): «Vigilar el
+    // directo» lo apunta como aviso, no como fallo.
+    'live_often_empty' => true,
 
     // El directo trae el viaje del horario de cada autobús: se empareja por viaje. Sin incidencias: su feed GTFS-RT llega
     // vacío y el SIRI (SX.xml) solo trae mensajes de prueba (3/11/2026).

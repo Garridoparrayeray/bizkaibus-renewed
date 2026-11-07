@@ -2,7 +2,8 @@
 
 Uso: python3 live-health.py <url base> <red> [<red>...]
 Errores (el flujo sale en rojo y GitHub avisa por correo):
-- el feed de una red con directo no responde o viene vacío (salvo Bilbobus y Lurraldebus, que lo publican vacío);
+- el feed de una red con directo no responde o viene vacío (salvo las que lo publican vacío a ratos aunque haya
+  servicio: «live_often_empty» en su ficha de api/Networks, que /api/status devuelve como «oftenEmpty»);
 - una red que se empareja por viaje no encuentra ningún viaje del feed en su horario;
 - los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60.
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
@@ -21,7 +22,6 @@ import urllib.error
 import urllib.request
 from zoneinfo import ZoneInfo
 
-EMPTY_FEEDS_KNOWN = {'bilbobus', 'lurraldebus'}
 MIN_LIVE = 5
 MIN_SCHEDULED = 3
 MAX_MEDIAN_MINUTES = 30
@@ -61,7 +61,7 @@ def check(network, report):
         return errors, notices, 'sin directo'
     if report.get('error') or not report.get('ok'):
         message = f"el feed no responde o viene vacío ({report.get('error') or 'sin datos'})"
-        if network in EMPTY_FEEDS_KNOWN or little_scheduled(report):
+        if report.get('oftenEmpty') or little_scheduled(report):
             notices.append(message)
         else:
             errors.append(message)
@@ -75,7 +75,7 @@ def check(network, report):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):
         notices.append('las horas del feed contradicen al GPS: manda el GPS')
-    if report.get('vehicles') and report.get('withTime') == 0:
+    if report.get('vehicles') and report.get('fresh', report.get('withTime')) == 0:
         notices.append('el feed repite datos sin hora de hoy: sale con el horario')
     delays = report.get('delayMinutes')
     if delays and report.get('live', 0) >= MIN_LIVE:
