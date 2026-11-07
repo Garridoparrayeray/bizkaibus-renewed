@@ -68,11 +68,12 @@ class ServiceJourney
     }
 
     // Con $iDaysAhead = 1, las de mañana con su calendario, en las mismas horas que hoy (+24 h): 07:00 de mañana es 31:00.
+    // Con -1, las de ayer que pasan de las 24:00 (el metro de la noche del viernes), en horas de hoy: 26:00 es 02:00.
     public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0, int|null $iPastSeconds = null): array
     {
         $iShift = $iDaysAhead * 86400;
         $iNow = Calendar::nowSecondsSinceMidnight() - $iShift;
-        $Day = Calendar::todayMadrid()->modify("+{$iDaysAhead} day");
+        $Day = Calendar::todayMadrid()->modify(sprintf('%+d day', $iDaysAhead));
         $sToday = $Day->format('Y-m-d');
 
         $Stmt = $this->Pdo->prepare('

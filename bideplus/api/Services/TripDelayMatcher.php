@@ -16,8 +16,11 @@ class TripDelayMatcher
     private const STALE_PREDICTION_SECONDS = 60;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
     private const MAX_GPS_DELAY_SECONDS = 45 * 60;
+    private const DAY_SECONDS = 86400;
 
-    // id del viaje del horario => ['delay' => segundos, 'times' => [parada => segundos], 'nextStopId', 'canceled']
+    // id del viaje => ['delay', 'times' => [parada => segundos], 'nextStopId', 'canceled', 'shift']. 'times' va en las
+    // horas del horario del viaje; 'shift' se suma a las de hoy para llegar a ellas (24 h de madrugada en un viaje de
+    // ayer que pasa de las 24:00, 0 el resto del día).
     private array $aByJourney = [];
     private int $iMidnight;
     private bool $bRail;
@@ -40,7 +43,7 @@ class TripDelayMatcher
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
             if ($sJourneyId !== null) {
-                $this->aByJourney[(string)$sJourneyId] = $this->liveFromTrip($aTrip);
+                $this->aByJourney[(string)$sJourneyId] = $this->liveFromTrip($aTrip, (string)$sJourneyId);
             }
         }
         $this->iMatched = \count($this->aByJourney);
@@ -53,19 +56,43 @@ class TripDelayMatcher
         $this->addVehicles($aVehicles, $aVehicleJourneys);
     }
 
-    private function liveFromTrip(array $aTrip): array
+    private function liveFromTrip(array $aTrip, string $sJourneyId): array
     {
         $sNextStopId = $aTrip['nextStopId'] ?? null;
         if (!empty($aTrip['stops'])) {
             $sNextStopId = (string)$aTrip['stops'][0][0];
         }
+        $aStops = $this->Stops->of($sJourneyId);
+        $iShift = $this->shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0));
         $aTimes = [];
         if (!isset($aTrip['delay'])) {
-            foreach ($aTrip['stops'] ?? [] as [$sStopId, $iTime]) {
-                $aTimes[(string)$sStopId] = (int)$iTime - $this->iMidnight;
+            $aArrivals = array_column($aStops, 'arrival_seconds', 'stop_id');
+            foreach ($aTrip['stops'] ?? [] as $iIndex => [$sStopId, $iTime]) {
+                $iToday = (int)$iTime - $this->iMidnight;
+                if ($iIndex === 0 && isset($aArrivals[$sStopId])) {
+                    $iShift = $this->dayShift((int)$aArrivals[$sStopId], $iToday);
+                }
+                $aTimes[(string)$sStopId] = $iToday + $iShift;
             }
         }
-        return ['delay' => (int)($aTrip['delay'] ?? 0), 'times' => $aTimes, 'nextStopId' => $sNextStopId, 'canceled' => !empty($aTrip['canceled'])];
+        return ['delay' => (int)($aTrip['delay'] ?? 0), 'times' => $aTimes, 'nextStopId' => $sNextStopId, 'canceled' => !empty($aTrip['canceled']), 'shift' => $iShift];
+    }
+
+    // Días enteros (en segundos) que separan una hora de hoy de la del horario más cercana: 0 casi siempre, 24 h para
+    // las 02:00 de un viaje anotado a las 26:00.
+    private function dayShift(int $iScheduledSeconds, int $iTodaySeconds): int
+    {
+        return self::DAY_SECONDS * (int)round(($iScheduledSeconds - $iTodaySeconds) / self::DAY_SECONDS);
+    }
+
+    // Sin horas del directo, la referencia es la hora de ahora (solo con una medianoche de verdad: ahora entre 0 y 24 h).
+    private function shiftFromNow(int $iScheduledSeconds): int
+    {
+        $iNow = $this->nowSeconds();
+        if ($iNow < 0 || $iNow >= self::DAY_SECONDS) {
+            return 0;
+        }
+        return $this->dayShift($iScheduledSeconds, $iNow);
     }
 
     private function addVehicles(array $aVehicles, array $aJourneyIds): void
@@ -81,11 +108,13 @@ class TripDelayMatcher
             if ($iOrder === null || $iOrder === (int)end($aStops)['seq_order']) {
                 continue;
             }
-            $iDelay = max(0, $this->nowSeconds() - $this->Stops->arrivalAt($sJourneyId, $iOrder));
+            $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
+            $iShift = $this->shiftFromNow($iArrival);
+            $iDelay = max(0, $this->nowSeconds() + $iShift - $iArrival);
             if ($iDelay > self::MAX_GPS_DELAY_SECONDS) {
                 continue;
             }
-            $this->aByJourney[$sJourneyId] = ['delay' => $iDelay, 'times' => [], 'nextStopId' => $sStopId, 'canceled' => false];
+            $this->aByJourney[$sJourneyId] = ['delay' => $iDelay, 'times' => [], 'nextStopId' => $sStopId, 'canceled' => false, 'shift' => $iShift];
         }
     }
 
@@ -208,8 +237,8 @@ class TripDelayMatcher
         $aStops = [];
         foreach ($this->Stops->of($sServiceJourneyId) as $aStop) {
             $iEtaSeconds = $this->etaAt($sServiceJourneyId, (int)$aStop['seq_order'], (int)$aStop['arrival_seconds'], $aLive);
-            if ((int)$aStop['seq_order'] >= $iFromOrder || $iEtaSeconds > $this->nowSeconds()) {
-                $aStops[] = [(string)$aStop['stop_id'], $this->iMidnight + $iEtaSeconds];
+            if ((int)$aStop['seq_order'] >= $iFromOrder || $iEtaSeconds > $this->nowSeconds() + $aLive['shift']) {
+                $aStops[] = [(string)$aStop['stop_id'], $this->iMidnight + $iEtaSeconds - $aLive['shift']];
             }
         }
         return $aStops;
@@ -234,7 +263,7 @@ class TripDelayMatcher
             return $iEta;
         }
         $iNextArrival = $this->Stops->arrivalAt($sServiceJourneyId, $iNextOrder);
-        $iLate = $this->nowSeconds() - $this->feedEtaAt($sServiceJourneyId, $iNextOrder, $iNextArrival, $aLive);
+        $iLate = $this->nowSeconds() + $aLive['shift'] - $this->feedEtaAt($sServiceJourneyId, $iNextOrder, $iNextArrival, $aLive);
         if ($iLate < self::STALE_PREDICTION_SECONDS || $iLate > self::MAX_STALE_PREDICTION_SECONDS) {
             return $iEta;
         }

@@ -213,7 +213,10 @@ for name, cfg in NETS.items():
         for x in dep.get('departures') or []:
             if x.get('tomorrow') and x['status'] != 'scheduled':
                 fails.append(f"{name} {sid}: una salida de mañana con el estado de hoy ({x['status']})")
-        for line in (stop.get('lines') or [])[:3]:
+        # Las 3 primeras líneas, y más hasta dar con una que salga hoy (en fin de semana no circulan todas).
+        for index, line in enumerate(stop.get('lines') or []):
+            if index >= 3 and entries_seen > 0:
+                break
             lid = enc(line['id'])
             get(net(f'/api/lines/{lid}', s), 'line', name)
             get(net(f'/api/lines/{lid}/live', s), 'live', name)

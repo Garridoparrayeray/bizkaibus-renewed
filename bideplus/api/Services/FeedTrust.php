@@ -41,7 +41,7 @@ class FeedTrust
                 continue;
             }
             $iChecked++;
-            if (abs($iTime - $this->iNowSeconds) > self::VEHICLE_DISAGREEMENT_SECONDS) {
+            if (abs($iTime - ($aByJourney[$sJourneyId]['shift'] ?? 0) - $this->iNowSeconds) > self::VEHICLE_DISAGREEMENT_SECONDS) {
                 $iOff++;
             }
         }
