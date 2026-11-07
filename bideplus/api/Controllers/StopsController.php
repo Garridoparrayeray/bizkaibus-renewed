@@ -156,12 +156,19 @@ class StopsController
         ];
     }
 
-    // Salidas del horario de las próximas 4 horas o, si no hay ninguna (de noche), las 4 horas desde la primera que
-    // queda y, si no bastan, las próximas 24. Mirar el día entero de una vez repasa cientos de salidas (en Metro, 40 ms
-    // de CPU); como van por orden, las 4 horas desde la primera dan lo mismo cuando bastan.
+    // Salidas de las próximas 4 horas o, si no hay (de noche), 4 horas desde la primera que queda o las próximas 24.
+    // De madrugada, en las redes sin motor propio, delante van los viajes de ayer que pasan de las 24:00.
     private static function upcomingRows(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast = null): array
     {
+        $aYesterday = [];
+        if (empty(Config::current()['engine'])) {
+            $aYesterday = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, -1, $iPast);
+        }
         $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, 0, $iPast);
+        if (!empty($aYesterday)) {
+            $aRows = array_merge($aYesterday, $aRows);
+            usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        }
         if (!empty($aRows)) {
             return $aRows;
         }

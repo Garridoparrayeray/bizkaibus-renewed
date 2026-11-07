@@ -371,6 +371,25 @@ $aMetro = (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), 0))-
 $Expect('Metro: la hora de la estación es la del feed y el retraso, lo que se aparta del horario (15 min)', $aMetro[0]['status'] === 'live' && $aMetro[0]['etaSeconds'] === T0 + 1020 && $aMetro[0]['delaySeconds'] === 900, json_encode($aMetro[0]));
 $aMetroAhead = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', T0 + 300], ['C', T0 + 840]]]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
 $Expect('Metro: si el feed se salta la estación, la hora de la siguiente menos lo que se tarda hasta ella', $aMetroAhead[0]['etaSeconds'] === T0 + 720, json_encode($aMetroAhead[0]));
+// De madrugada, un tren del horario de ayer anotado a las 26:00 (las 02:00 de hoy) con 3 min de retraso.
+$PdoNight = new PDO('sqlite::memory:');
+$PdoNight->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoNight->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT)');
+$PdoNight->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER)');
+$PdoNight->exec('CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT)');
+$PdoNight->exec("INSERT INTO stops VALUES ('A', 'Abando'), ('B', 'Ametzola'), ('C', 'Zabalburu')");
+foreach (['A', 'B', 'C'] as $iSeq => $sStop) {
+    $iArrival = 26 * 3600 + $iSeq * 120;
+    $PdoNight->exec("INSERT INTO passing_times VALUES ('N1', $iSeq, '$sStop', $iArrival, $iArrival)");
+}
+$PdoNight->exec("INSERT INTO trip_aliases VALUES ('noche1', 'N1')");
+$iNightMidnight = time() - (2 * 3600 + 60);
+$MNight = new TripDelayMatcher([['tripId' => 'noche1', 'stops' => [['B', $iNightMidnight + 2 * 3600 + 120 + 180], ['C', $iNightMidnight + 2 * 3600 + 240 + 180]]]], new ServiceJourney($PdoNight), $iNightMidnight);
+$aNightRow = ['service_journey_id' => 'N1', 'trip_number' => 'N1', 'stop_seq' => 1, 'arrival_seconds' => 2 * 3600 + 120, 'status' => 'scheduled', 'etaSeconds' => 2 * 3600 + 120, 'delaySeconds' => 0];
+$aNight = $MNight->enrich('B', [$aNightRow]);
+$Expect('de madrugada, un tren de ayer anotado a las 26:00 lleva sus 3 min de retraso, no 24 h', ($aNight[0]['status'] ?? null) === 'live' && $aNight[0]['delaySeconds'] === 180 && $aNight[0]['etaSeconds'] === 2 * 3600 + 300, json_encode($aNight));
+$Expect('de madrugada, el retraso que se cuenta para vigilar el directo es de 3 min', ($MNight->diagnostics()['delayMinutes']['median'] ?? null) === 3, json_encode($MNight->diagnostics()));
+$Expect('de madrugada, la ficha del tren da la hora de hoy, no la de mañana', (array_column($MNight->liveTrip('B', [], 'N1') ?? [], 1, 0)['B'] ?? null) === $iNightMidnight + 2 * 3600 + 300, json_encode($MNight->liveTrip('B', [], 'N1')));
 $aGpsOnly = [['tripId' => '6005L2C1', 'lat' => 43.26, 'lon' => -2.93, 'stopId' => 'B', 'stopStatus' => null, 'vehicleId' => '513']];
 $MGps = new TripDelayMatcher([], new ServiceJourney($PdoRenfe), time() - (T0 + 720 + 300), $aGpsOnly);
 $aGpsRow = $MGps->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);

@@ -104,7 +104,11 @@ const net = BideOffline.prepare({
     lon: {},
     directionReference: null,
 });
-const nowAt = (seconds) => new Date(2026, 10, 5, 0, 0, seconds);
+// Un lunes a jueves desde hoy (el viaje de prueba solo tiene hora estimada en laborable, también al día siguiente): la
+// app borra las marcas de antes de ayer, así que con una fecha fija la prueba caducaría.
+const markDay = new Date();
+while (markDay.getDay() === 0 || markDay.getDay() >= 5) markDay.setDate(markDay.getDate() + 1);
+const nowAt = (seconds, days = 0) => new Date(markDay.getFullYear(), markDay.getMonth(), markDay.getDate() + days, 0, 0, seconds);
 const statusAt = (stopId, seconds) => BideOffline.departures(net, stopId, nowAt(seconds), 5).departures.map((d) => d.status).join(',');
 check('marcas: sin marcas el bus sale estimado en la tercera parada', statusAt('S3', T + 100) === 'estimated', statusAt('S3', T + 100));
 let shown = BideOffline.departures(net, 'S2', nowAt(T + 100), 5).departures[0];
@@ -119,7 +123,7 @@ check('marcas: sin marca, a los 25 min sale como «probablemente ya pasó»', st
 shown = BideOffline.departures(net, 'S3', nowAt(T + 1500), 5).departures[0];
 BideOffline.mark(shown, 'coming');
 check('marcas: «no ha pasado» lo devuelve con su hora oficial', statusAt('S3', T + 1500) === 'scheduled', statusAt('S3', T + 1500));
-const otherDay = BideOffline.departures(net, 'S3', new Date(2026, 10, 6, 0, 0, T + 1500), 5).departures.map((d) => d.status).join(',');
+const otherDay = BideOffline.departures(net, 'S3', nowAt(T + 1500, 1), 5).departures.map((d) => d.status).join(',');
 check('marcas: una marca vale solo para el día de ese viaje', otherDay === 'likely_departed', otherDay);
 
 const bad = results.filter((r) => r.startsWith('MAL')).length;
