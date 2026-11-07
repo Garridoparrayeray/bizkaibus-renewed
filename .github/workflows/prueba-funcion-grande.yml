@@ -1,0 +1,89 @@
+name: Prueba de función grande (temporal)
+
+# Comprueba, sin tocar producción, que la función de la app funciona por encima de 250 MB: construye como el despliegue
+# diario, sube tres vistas previas (tal cual, con 60 MB de relleno, y con relleno más VERCEL_SUPPORT_LARGE_FUNCTIONS),
+# mide lo que tardan en contestar y las borra. Se quita en cuanto haya resultado.
+on:
+  push:
+    branches: [centro-de-pruebas]
+    paths: ['.github/workflows/prueba-funcion-grande.yml']
+  workflow_dispatch: {}
+
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Traer el algoritmo (repositorio privado)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Tres vistas previas, sin y con relleno
+        run: |
+          rm -rf bideplus/engine/.git
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+          # vercel curl pasa la protección de las vistas previas y coge el token de VERCEL_TOKEN.
+          # La primera consulta es la del arranque en frío; el tiempo es el de curl, sin lo que tarda la CLI.
+          medir() {
+            local URL=$1 NOMBRE=$2
+            for P in "/api/lines?red=bus" "/api/stops/2877/departures?red=bus&limit=3" "/api/status?red=metro"; do
+              for I in 1 2 3; do
+                RES=$(vercel curl "$URL$P" --yes -- --silent --show-error --output respuesta.json --write-out "%{http_code} %{time_total}" 2> curl.err || true)
+                echo "$NOMBRE $P intento $I: $RES s · $(head -c 90 respuesta.json 2>/dev/null | tr '\n' ' ') $(tail -c 200 curl.err | tr '\n' ' ')"
+              done
+            done
+          }
+
+          desplegar() {
+            local NOMBRE=$1
+            git checkout -- bideplus/.vercelignore 2>/dev/null || true
+            rm -rf .vercel/output bideplus/.vercel/output
+            if ! vercel build --yes --token="$VERCEL_TOKEN" > "build-$NOMBRE.log" 2>&1; then
+              echo "::error::$NOMBRE: vercel build falla"
+              tail -40 "build-$NOMBRE.log"
+              return 1
+            fi
+            OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
+            python3 bideplus/scripts/vercel-launcher.py "$OUT"
+            rm -f .vercelignore bideplus/.vercelignore
+            if ! URL=$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN" 2> "deploy-$NOMBRE.err"); then
+              echo "::error::$NOMBRE: Vercel no acepta el despliegue"
+              tail -30 "deploy-$NOMBRE.err"
+              return 1
+            fi
+            echo "$NOMBRE: desplegado en $URL"
+            echo "$URL" >> urls.txt
+            sleep 20
+            medir "$URL" "$NOMBRE"
+          }
+
+          ESTADO=0
+          desplegar normal || ESTADO=1
+          # 60 MB que no se comprimen: la función pasa de 250 MB.
+          head -c 60000000 /dev/urandom > bideplus/data/relleno-prueba.bin
+          desplegar grande || ESTADO=1
+          # Igual, pero con la variable puesta al construir, como en producción.
+          VERCEL_SUPPORT_LARGE_FUNCTIONS=1 desplegar grande-con-variable || ESTADO=1
+          rm -f bideplus/data/relleno-prueba.bin
+          exit $ESTADO
+
+      - name: Borrar las vistas previas
+        if: always()
+        run: |
+          [ -f urls.txt ] || exit 0
+          while read -r URL; do
+            vercel rm "$URL" --yes --token="$VERCEL_TOKEN" || true
+          done < urls.txt
