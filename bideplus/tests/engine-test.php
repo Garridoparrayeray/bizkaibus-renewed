@@ -548,6 +548,12 @@ $Expect('lee GPS, hora del dato (08:04:00), parada y VisitNumber', $aFirst !== n
 $Expect('Order tiene prioridad y un GPS de otro día se descarta', $aSecond !== null && $aSecond['order'] === 7 && $aSecond['lat'] === null && $aSecond['locationSeconds'] === null);
 $Expect('guarda la hora del dato (RecordedAtTime) aunque no haya GPS', $aFirst !== null && $aFirst['recordedSeconds'] === T0 + 240 && $aSecond !== null && $aSecond['recordedSeconds'] === null);
 $Expect('un XML roto devuelve un mapa vacío', SiriVehicleMonitoringClient::parse('<Siri><roto', DATE_WEEKDAY) === []);
+$sXmlZero = '<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery><VehicleActivity>'
+    . '<RecordedAtTime>2026-10-01T08:04:00+02:00</RecordedAtTime><MonitoredVehicleJourney>'
+    . '<VehicleJourneyRef>trp_A0651_738_OP43SIN_57900_x</VehicleJourneyRef><MonitoredCall><Order>4</Order></MonitoredCall>'
+    . '</MonitoredVehicleJourney></VehicleActivity></VehicleMonitoringDelivery></ServiceDelivery></Siri>';
+$aMapZero = SiriVehicleMonitoringClient::parse($sXmlZero, DATE_WEEKDAY);
+$Expect('la línea A0651 del feed se lee como 651, igual que en el horario', array_keys($aMapZero) === ['651|738'] && ($aMapZero['651|738'][0]['lineId'] ?? '') === '651', implode(', ', array_keys($aMapZero)));
 
 /* ------------------------------------------------------------------ */
 $Section('Buses que faltan en una lectura del feed (FeedMemory)');
