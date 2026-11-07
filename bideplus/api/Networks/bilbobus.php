@@ -79,6 +79,8 @@ return [
     ],
 
     'live' => ['vehicle-monitoring'],
+    // El feed llega vacío a ratos aunque haya servicio: «Vigilar el directo» lo apunta como aviso, no como fallo.
+    'live_often_empty' => true,
     'engine' => 'bilbobus',
 
     // El feed del CTB y la copia de Open Data Euskadi. Avisos: el CTB no publica ninguno para Bilbobus.

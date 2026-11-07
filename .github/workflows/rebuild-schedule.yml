@@ -152,7 +152,14 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add bideplus/scripts/geocache.json
             git commit -m "chore: update geocache with newly seen stop coordinates"
-            git push
+            # GitHub rechaza a veces el push con un error suyo («fatal error in commit_refs», 4/11/2026) o porque
+            # master ha cambiado entretanto: se reintenta hasta tres veces, poniéndose al día antes.
+            for INTENTO in 1 2 3; do
+              git push && break
+              [ "$INTENTO" = 3 ] && exit 1
+              sleep 10
+              git pull --rebase
+            done
           else
             echo "geocache.json unchanged, nothing to commit"
           fi
