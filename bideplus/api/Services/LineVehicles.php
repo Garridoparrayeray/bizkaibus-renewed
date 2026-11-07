@@ -40,7 +40,12 @@ class LineVehicles
     private static function registered(\PDO $Pdo, string $sLineId): array
     {
         $aVmMap = Live::vehicles();
-        $Matcher = Live::matcher(new ServiceJourney($Pdo), $aVmMap);
+        $JourneyModel = new ServiceJourney($Pdo);
+        $aMatchers = [Live::matcher($JourneyModel, $aVmMap)];
+        // De madrugada, los buses que no sigue el de hoy van en viajes de ayer que pasan de las 24:00.
+        if (self::count($aMatchers[0]->vehicles()) < self::count($aVmMap)) {
+            $aMatchers[] = Live::matcher($JourneyModel, $aVmMap, 1);
+        }
         $HeadsignStmt = $Pdo->prepare('
             SELECT jp.headsign
             FROM service_journeys sj
@@ -51,41 +56,55 @@ class LineVehicles
         $StopStmt = $Pdo->prepare('SELECT id, name, lat, lon FROM stops WHERE id = ?');
 
         $aVehicles = [];
-        foreach ($aVmMap as $sKey => $aEntries) {
-            // Las claves del feed son «línea|número de viaje».
-            [$sKeyLineId, $sTripNumber] = explode('|', $sKey);
-            if ((string)$sKeyLineId !== (string)$sLineId) {
+        foreach ($aMatchers as $Matcher) {
+            foreach ($Matcher->vehicles() as $sKey => $aEntries) {
+                array_push($aVehicles, ...self::lineVehicles($Matcher, $sLineId, $sKey, $aEntries, $HeadsignStmt, $StopStmt));
+            }
+        }
+        return $aVehicles;
+    }
+
+    private static function count(array $aVmMap): int
+    {
+        return array_sum(array_map('count', $aVmMap));
+    }
+
+    // Los buses de una clave del feed («línea|número de viaje»), si es de la línea.
+    private static function lineVehicles(object $Matcher, string $sLineId, string $sKey, array $aEntries, \PDOStatement $HeadsignStmt, \PDOStatement $StopStmt): array
+    {
+        [$sKeyLineId, $sTripNumber] = explode('|', $sKey);
+        if ((string)$sKeyLineId !== (string)$sLineId) {
+            return [];
+        }
+        $aVehicles = [];
+        foreach ($aEntries as $aEntry) {
+            if ($aEntry['currentStopId'] === null) {
                 continue;
             }
-            foreach ($aEntries as $aEntry) {
-                if ($aEntry['currentStopId'] === null) {
-                    continue;
-                }
-                $StopStmt->execute([$aEntry['currentStopId']]);
-                $aStop = $StopStmt->fetch();
-                if (!\is_array($aStop)) {
-                    continue;
-                }
-                $HeadsignStmt->execute([$sLineId, $sTripNumber]);
-                $sHeadsign = $HeadsignStmt->fetchColumn();
-                if ($sHeadsign === false) {
-                    $sHeadsign = null;
-                }
-                $iDelaySeconds = $Matcher->displayDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
-                $aVehicles[] = [
-                    'vehicleRef' => $aEntry['vehicleRef'],
-                    'delayMinutes' => $Matcher->displayDelayMinutes($iDelaySeconds),
-                    'headsign' => $sHeadsign,
-                    'stopStatus' => null,
-                    'position' => null,
-                    'currentStop' => [
-                        'id' => Ids::forOutput($aStop['id']),
-                        'name' => $aStop['name'],
-                        'lat' => (float)$aStop['lat'],
-                        'lon' => (float)$aStop['lon'],
-                    ],
-                ];
+            $StopStmt->execute([$aEntry['currentStopId']]);
+            $aStop = $StopStmt->fetch();
+            if (!\is_array($aStop)) {
+                continue;
             }
+            $HeadsignStmt->execute([$sLineId, $sTripNumber]);
+            $sHeadsign = $HeadsignStmt->fetchColumn();
+            if ($sHeadsign === false) {
+                $sHeadsign = null;
+            }
+            $iDelaySeconds = $Matcher->displayDelaySeconds($Matcher->journeyIdFor($aEntry), $aEntry);
+            $aVehicles[] = [
+                'vehicleRef' => $aEntry['vehicleRef'],
+                'delayMinutes' => $Matcher->displayDelayMinutes($iDelaySeconds),
+                'headsign' => $sHeadsign,
+                'stopStatus' => null,
+                'position' => null,
+                'currentStop' => [
+                    'id' => Ids::forOutput($aStop['id']),
+                    'name' => $aStop['name'],
+                    'lat' => (float)$aStop['lat'],
+                    'lon' => (float)$aStop['lon'],
+                ],
+            ];
         }
         return $aVehicles;
     }

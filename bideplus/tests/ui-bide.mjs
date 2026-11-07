@@ -1,29 +1,16 @@
-import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { launchBrowser } from './browser.mjs';
 
 // Bide+ como una sola app: navegador del móvil, app instalada (pestañas), ordenador (columna lateral),
 // páginas de Favoritos, Avisos e Info, selector de idioma, aviso de instalación y tema «mi amor» intacto.
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
 const PORT = Number(process.env.CDP_PORT || 9376);
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const profileDir = mkdtempSync(join(tmpdir(), 'bide-shell-'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
-// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
-const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
-if (process.env.CI) flags.unshift('--no-sandbox');
-const browser = spawn(CHROME, flags, { stdio: 'ignore' });
+const { browser, targets } = await launchBrowser(PORT, 'bide-shell-');
 const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
 
-let targets;
-for (let i = 0; i < 40 && !targets; i++) {
-    await sleep(500);
-    try { targets = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json(); } catch (e) { }
-}
 if (!targets) { console.log('MAL no se pudo conectar con el navegador'); shutdown(1); }
 
 const ws = new WebSocket(targets.find(x => x.type === 'page').webSocketDebuggerUrl);

@@ -9,6 +9,9 @@ class TripSheet
 {
     // Antes de su hora prevista se da la parada por pasada solo si han pasado más de 60 s (sin datos en directo).
     public const PASSED_MARGIN_SECONDS = 60;
+    // De madrugada, la ficha de un viaje de ayer que pasa de las 24:00 sigue siendo la de ayer hasta 10 min después de
+    // su última parada (luego, la del de hoy, que sale esta noche).
+    public const LATE_GRACE_SECONDS = 10 * 60;
 
     // Con datos en vivo es «live». Sin ellos solo se sabe lo que dice el horario: no se afirma que el vehículo ya salió
     // (la hora pasada no lo prueba), solo que el viaje terminó si ya pasó su última parada. Si no, «scheduled».

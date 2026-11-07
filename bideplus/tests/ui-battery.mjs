@@ -1,25 +1,13 @@
-import { execFileSync, spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { launchBrowser } from './browser.mjs';
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
 const PORT = Number(process.env.CDP_PORT || 9362);
-const CHROME = process.env.CHROME_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
-const profileDir = mkdtempSync(join(tmpdir(), 'bide-tests-'));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// En castellano: la app sigue el idioma del navegador y las pruebas comprueban los textos en castellano.
-const flags = ['--headless=new', '--disable-gpu', '--lang=es-ES', '--accept-lang=es-ES,es', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profileDir}`, 'about:blank'];
-if (process.env.CI) flags.unshift('--no-sandbox');
-const browser = spawn(CHROME, flags, { stdio: 'ignore' });
+const { browser, targets } = await launchBrowser(PORT, 'bide-tests-');
 const shutdown = code => { try { browser.kill(); } catch (e) { } process.exit(code); };
 
-let targets;
-for (let i = 0; i < 40 && !targets; i++) {
-    await sleep(500);
-    try { targets = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json(); } catch (e) { }
-}
 if (!targets) { console.log('MAL no se pudo conectar con el navegador'); shutdown(1); }
 
 const ws = new WebSocket(targets.find(x => x.type === 'page').webSocketDebuggerUrl);
@@ -115,7 +103,8 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         }
         await until(`!!document.querySelector('${pick}')`);
         // De noche, sin próximas salidas, la tarjeta lista las líneas de la parada; las que terminan en ella no tienen salidas
-        // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada.
+        // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada. A cada
+        // tabla se le dan 15 s: en GitHub, con el feed de Renfe lento, el servidor de pruebas tarda en contestar.
         const candidates = await ev(`document.querySelectorAll('${pick}').length`);
         for (let index = 0; index < Math.max(candidates, 1); index++) {
             for (let attempt = 0; attempt < 3; attempt++) {
@@ -123,7 +112,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
                 if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
             }
             await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
-            if (await until("document.querySelectorAll('#timetable-body tr').length > 0", 5000)) break;
+            if (await until("document.querySelectorAll('#timetable-body tr').length > 0")) break;
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await sleep(500);

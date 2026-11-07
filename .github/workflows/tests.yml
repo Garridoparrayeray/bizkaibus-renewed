@@ -74,7 +74,8 @@ jobs:
 
       - name: Start local server
         run: |
-          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          # 8 a la vez: una petición que espera a un feed lento (Renfe, hasta 8 s) no deja sin servidor a las demás.
+          PHP_CLI_SERVER_WORKERS=8 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
           for i in $(seq 1 30); do
             if curl -fs -o /dev/null http://localhost:8011/; then exit 0; fi
             sleep 1

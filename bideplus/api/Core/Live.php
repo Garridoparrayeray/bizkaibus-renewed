@@ -91,12 +91,14 @@ class Live
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
     }
 
-    public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null): object
+    // El emparejador de los autobuses para los viajes de hoy o, con $iDaysAgo = 1, para los de ayer que pasan de las
+    // 24:00: ese trabaja con las horas de su horario (26:00 para las 02:00) y solo con sus buses.
+    public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null, int $iDaysAgo = 0): object
     {
         $sClass = self::engineClass('Live');
         if ($sClass === null) {
             return new ScheduleOnlyMatcher();
         }
-        return $sClass::matcher($aVehicles ?? self::vehicles(), $JourneyModel);
+        return $sClass::matcher($aVehicles ?? self::vehicles(), $JourneyModel, $iDaysAgo);
     }
 }

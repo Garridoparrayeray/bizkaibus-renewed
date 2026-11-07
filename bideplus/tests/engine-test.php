@@ -610,6 +610,46 @@ $MPassBroken->setPassageLoader(function (array $aIds) {
 $Expect('si el registro falla, se sigue con el horario', @$MPassBroken->enrich([$aPassRows[0]])[0]['status'] === 'scheduled');
 
 /* ------------------------------------------------------------------ */
+$Section('De madrugada: buses de viajes de ayer que pasan de las 24:00');
+
+// El mismo recorrido que J_LINE, de ayer a las 26:00 (02:00 de hoy). El bus va a mitad del primer tramo a las 02:04:50:
+// en horas de su horario, 26:04:50, unos 200 s tarde.
+const NIGHT = 26 * 3600;
+$PdoNight = buildFixture(40);
+$PdoNight->exec('UPDATE passing_times SET arrival_seconds = arrival_seconds + ' . (NIGHT - T0) . ', departure_seconds = departure_seconds + ' . (NIGHT - T0));
+$PdoNight->exec('UPDATE service_journeys SET first_departure_seconds = ' . NIGHT);
+$iNightNow = 2 * 3600 + 300;
+$aNightBus = ['departureSeconds' => NIGHT, 'recordedSeconds' => $iNightNow - 10] + live(500, 0, 2, $iNightNow - 10);
+$aDayBus = ['vehicleRef' => 'BUS2', 'departureSeconds' => 2 * 3600] + live(0, 0, 1, $iNightNow - 10, 'trp_A3414_809_x');
+$aNightMap = ['3414|808' => [$aNightBus], '3414|809' => [$aDayBus]];
+$Expect('a las 02:05, el bus del viaje de las 23:30 o de las 26:00 de ayer es de ayer; el de las 02:00 de hoy, de hoy',
+    RealtimeMatcher::daysAgo(['departureSeconds' => 84600], $iNightNow) === 1 && RealtimeMatcher::daysAgo($aNightBus, $iNightNow) === 1
+    && RealtimeMatcher::daysAgo($aDayBus, $iNightNow) === 0);
+$Expect('a las 23:58, el de las 24:10 del horario de hoy es de hoy; de día, uno de hace una hora también',
+    RealtimeMatcher::daysAgo(['departureSeconds' => 87000], 86280) === 0 && RealtimeMatcher::daysAgo(['departureSeconds' => 46800], 50400) === 0
+    && RealtimeMatcher::daysAgo(['departureSeconds' => 0], 50400) === 0);
+$aYesterdayMap = RealtimeMatcher::vehiclesOfDay($aNightMap, $iNightNow, 1);
+$Expect('los de ayer van con sus horas en las de ayer (+24 h); los de hoy, aparte y tal cual',
+    array_keys($aYesterdayMap) === ['3414|808'] && $aYesterdayMap['3414|808'][0]['locationSeconds'] === $iNightNow - 10 + 86400
+    && $aYesterdayMap['3414|808'][0]['recordedSeconds'] === $iNightNow - 10 + 86400 && RealtimeMatcher::vehiclesOfDay($aNightMap, $iNightNow, 0) === ['3414|809' => [$aDayBus]],
+    json_encode($aYesterdayMap));
+$aDayMap = ['3414|808' => [live(500, 0, 2, T0 + 80)], '3414|809' => [['vehicleRef' => 'BUS2', 'lat' => null, 'locationSeconds' => null] + live(0, 0, 1, T0)]];
+$Expect('de día, los de hoy son todos y sin tocar', RealtimeMatcher::vehiclesOfDay($aDayMap, T0 + 90, 0) === $aDayMap && RealtimeMatcher::vehiclesOfDay($aDayMap, T0 + 90, 1) === []);
+
+$MNight = new RealtimeMatcher($aYesterdayMap, new ServiceJourney($PdoNight), $iNightNow + 86400, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$aNightRow = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => NIGHT, 'service_journey_id' => 'J_LINE', 'stop_seq' => 3, 'stop_id' => 'S2', 'arrival_seconds' => NIGHT + 360];
+$aNightOut = $MNight->enrich([$aNightRow])[0];
+$Expect('con el emparejador de ayer, el bus de las 26:00 va en directo con su retraso (unos 200 s), no con 24 h',
+    $aNightOut['status'] === 'live' && abs($aNightOut['delaySeconds'] - 200) <= 30 && $aNightOut['etaSeconds'] > $iNightNow + 86400 && $aNightOut['etaSeconds'] < $iNightNow + 86400 + 600,
+    json_encode($aNightOut));
+$aSheetStops = (new ServiceJourney($PdoNight))->stopsWithCoordinates('J_LINE');
+$Expect('y la ficha lo sitúa en el primer tramo', positionText($MNight->positionFor('J_LINE', $aYesterdayMap['3414|808'][0])) !== 'null'
+    && $MNight->hasPassed('J_LINE', $aYesterdayMap['3414|808'][0], (int)$aSheetStops[0]['arrival_seconds'], 1) && !$MNight->hasPassed('J_LINE', $aYesterdayMap['3414|808'][0], (int)$aSheetStops[2]['arrival_seconds'], 3));
+$MNightOld = new RealtimeMatcher($aNightMap, new ServiceJourney($PdoNight), $iNightNow, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$aNightOld = $MNightOld->enrich([['arrival_seconds' => NIGHT + 360 - 86400] + $aNightRow])[0];
+$Expect('(con el de hoy y el bus tal cual, como antes, no sale en directo)', $aNightOld['status'] !== 'live', json_encode($aNightOld));
+
+/* ------------------------------------------------------------------ */
 $Section('Registro: cada red con motor tiene el suyo entero, con sus datos');
 
 // Lo que hace falta para que una red aprenda sola (captura, recalibrado, horas estimadas sin conexión y en el mapa):
