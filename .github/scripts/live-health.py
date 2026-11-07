@@ -75,7 +75,7 @@ def check(network, report):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):
         notices.append('las horas del feed contradicen al GPS: manda el GPS')
-    if report.get('vehicles') and report.get('withTime') == 0:
+    if report.get('vehicles') and report.get('fresh', report.get('withTime')) == 0:
         notices.append('el feed repite datos sin hora de hoy: sale con el horario')
     delays = report.get('delayMinutes')
     if delays and report.get('live', 0) >= MIN_LIVE:

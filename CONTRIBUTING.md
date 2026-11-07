@@ -28,7 +28,7 @@ Antes de abrir una *pull request*, toda la batería tiene que salir en verde. De
 python tests/run-all.py
 ```
 
-Mientras trabajas, `python tests/run-all.py --rapido` comprueba en unos segundos todo lo que no necesita navegador. El detalle de cada prueba está en [bideplus/tests/README.md](bideplus/tests/README.md), junto con qué prueba ampliar según lo que añadas. Si tu cambio toca el cálculo de llegadas, usa además `php scripts/realtime-backtest.php`, que está explicado en [bideplus/README.md](bideplus/README.md).
+Mientras trabajas, `python tests/run-all.py --rapido` comprueba en unos segundos todo lo que no necesita navegador. El detalle de cada prueba está en [bideplus/tests/README.md](bideplus/tests/README.md), junto con qué prueba ampliar según lo que añadas. Si tu cambio toca el cálculo de llegadas (con el repositorio privado del algoritmo en `bideplus/engine`), usa además `php engine/bizkaibus/tools/realtime-backtest.php`, que explica sus órdenes al lanzarlo sin argumentos.
 
 ## Estilo del código
 

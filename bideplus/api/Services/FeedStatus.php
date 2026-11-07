@@ -76,12 +76,14 @@ class FeedStatus
 
     private static function counts(array $aMap): array
     {
-        $aCounts = ['vehicles' => 0, 'withGps' => 0, 'withTime' => 0, 'withDelay' => 0];
+        $aCounts = ['vehicles' => 0, 'withGps' => 0, 'withTime' => 0, 'fresh' => 0, 'withDelay' => 0];
         foreach ($aMap as $aEntries) {
             foreach ($aEntries as $aEntry) {
                 $aCounts['vehicles']++;
                 $aCounts['withGps'] += (int)($aEntry['lat'] !== null);
                 $aCounts['withTime'] += (int)($aEntry['recordedSeconds'] !== null);
+                // Con hora de hoy, de la posición o de la lectura (como Live::isFresh): 0 con el feed congelado.
+                $aCounts['fresh'] += (int)Live::isFresh([[$aEntry]]);
                 $aCounts['withDelay'] += (int)($aEntry['delaySeconds'] !== 0);
             }
         }

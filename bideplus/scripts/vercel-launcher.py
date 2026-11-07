@@ -32,6 +32,9 @@ VERSION_CONTROL = ('.git', '.gitignore', '.gitattributes', '.gitmodules', '.gith
 EXTENSIONS = ('apcu', 'bcmath', 'calendar', 'ctype', 'curl', 'dom', 'fileinfo', 'iconv', 'mbstring', 'pdo', 'pdo_sqlite',
               'posix', 'simplexml', 'sodium', 'sqlite3', 'tokenizer', 'xml', 'xmlreader', 'xmlwriter')
 PHP_WORKERS = '4'
+# Vercel admite 250 MB por función en todos los planes; por encima de este aviso queda sitio para poco más que una red
+# mediana (ver «Tamaño de la función» en el manual de operación).
+SIZE_WARNING_MB = 235
 NOT_PUBLISHED = ('data', 'scripts', 'tests', 'engine')
 
 ADAPTER = r'''
@@ -162,6 +165,9 @@ def patch_function(func_dir):
         f.write('\n')
     size = sum(os.path.getsize(v) for v in file_map.values() if os.path.exists(v))
     print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías fuera; {size / 1e6:.0f} MB')
+    if size / 1e6 > SIZE_WARNING_MB:
+        print(f'::warning::La función pesa {size / 1e6:.0f} MB y Vercel admite 250: cada red nueva suma su base. '
+              'Activa VERCEL_SUPPORT_LARGE_FUNCTIONS en Vercel o reparte las redes en varias funciones.')
 
 
 def main():
