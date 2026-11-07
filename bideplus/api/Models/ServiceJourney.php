@@ -13,6 +13,8 @@ class ServiceJourney
     private const PAST_GRACE_SECONDS = 900;
 
     private const COUNTED_PAST_SECONDS = 120;
+    // Ningún viaje dura más (el más largo, un Bizkaibus de noche, ronda las 2 h): acota los que pueden ir en marcha.
+    private const LONGEST_TRIP_SECONDS = 6 * 3600;
 
     private const SUNDAY_ONLY_MASK = 0b1000000;
 
@@ -243,11 +245,12 @@ class ServiceJourney
     }
 
     // Un mismo número de viaje y primera salida puede existir en varios calendarios (L-J y V) con horas distintas.
-    // Salen primero los que circulan hoy, que son los que el directo puede estar siguiendo; si no, la ficha del viaje
-    // podía quedarse con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
-    public function variantsByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds): array
+    // Salen primero los que circulan hoy (o el día $Day), los que puede seguir el directo; si no, la ficha podía quedarse
+    // con la variante de otro día y decir «sin seguimiento» de un bus que sí iba en directo.
+    public function variantsByLineAndTrip(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds, \DateTime|null $Day = null): array
     {
-        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $Day ??= Calendar::todayMadrid();
+        $sToday = $Day->format('Y-m-d');
         $Stmt = $this->Pdo->prepare('
             SELECT sj.id, sj.line_id, sj.trip_number, sj.first_departure_seconds, sj.journey_pattern_id,
                    l.code AS line_code, l.name AS line_name, jp.headsign,
@@ -270,7 +273,7 @@ class ServiceJourney
             ORDER BY runs_today DESC, sj.id ASC
         ');
         $Stmt->execute([
-            'weekdayBit' => Calendar::todayWeekdayBit(),
+            'weekdayBit' => Calendar::weekdayBitFor($Day),
             'today' => $sToday,
             'today2' => $sToday,
             'lineId' => $iLineId,
@@ -278,6 +281,64 @@ class ServiceJourney
             'firstDeparture' => $iFirstDepartureSeconds,
         ]);
         return $Stmt->fetchAll();
+    }
+
+    // Las variantes de ayer del viaje que pasan de las 24:00 y aún no han terminado: su última parada, en horas de ayer
+    // (26:00), no queda más de $iGraceSeconds por detrás de ahora. De madrugada, la ficha del viaje es la de esas.
+    public function lateVariants(int|string $iLineId, string $sTripNumber, int $iFirstDepartureSeconds, int $iGraceSeconds): array
+    {
+        $iNow = Calendar::nowSecondsSinceMidnight() + Calendar::DAY_SECONDS;
+        $aLate = [];
+        foreach ($this->variantsByLineAndTrip($iLineId, $sTripNumber, $iFirstDepartureSeconds, Calendar::yesterdayMadrid()) as $aVariant) {
+            if ((int)$aVariant['runs_today'] === 1 && $this->lastArrivalSeconds((string)$aVariant['id']) >= $iNow - $iGraceSeconds) {
+                $aLate[] = $aVariant;
+            }
+        }
+        return $aLate;
+    }
+
+    // Cuántos viajes deberían ir en marcha ahora según el horario: los de hoy entre su salida y su llegada, y los de ayer
+    // que pasan de las 24:00. Lo usa el diagnóstico del directo: sin nada en marcha, un feed vacío no es un fallo.
+    public function runningCount(): int
+    {
+        $iNow = Calendar::nowSecondsSinceMidnight();
+        return $this->runningOn(Calendar::todayMadrid(), $iNow) + $this->runningOn(Calendar::yesterdayMadrid(), $iNow + Calendar::DAY_SECONDS);
+    }
+
+    private function runningOn(\DateTime $Day, int $iNowSeconds): int
+    {
+        $sDay = $Day->format('Y-m-d');
+        $Stmt = $this->Pdo->prepare('
+            SELECT COUNT(*) FROM service_journeys sj
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE sc.id != \'PRUEBA\'
+              AND sj.first_departure_seconds BETWEEN :from AND :now
+              AND ((sc.weekday_mask & :weekdayBit) != 0 OR EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce_inc
+                  WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :day2 AND sce_inc.available = 1
+              ))
+              AND NOT EXISTS (
+                  SELECT 1 FROM service_calendar_exceptions sce
+                  WHERE sce.calendar_id = sc.id AND sce.date = :day AND sce.available = 0
+              )
+              AND EXISTS (SELECT 1 FROM passing_times pt WHERE pt.service_journey_id = sj.id AND pt.arrival_seconds >= :now2)
+        ');
+        $Stmt->execute([
+            'from' => $iNowSeconds - self::LONGEST_TRIP_SECONDS,
+            'now' => $iNowSeconds,
+            'now2' => $iNowSeconds,
+            'weekdayBit' => Calendar::weekdayBitFor($Day),
+            'day' => $sDay,
+            'day2' => $sDay,
+        ]);
+        return (int)$Stmt->fetchColumn();
+    }
+
+    public function lastArrivalSeconds(string $sServiceJourneyId): int
+    {
+        $Stmt = $this->Pdo->prepare('SELECT MAX(arrival_seconds) FROM passing_times WHERE service_journey_id = ?');
+        $Stmt->execute([$sServiceJourneyId]);
+        return (int)$Stmt->fetchColumn();
     }
 
     public function arrivalSecondsAtOrder(string $sServiceJourneyId, int $iSeqOrder): int|null

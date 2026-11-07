@@ -13,6 +13,7 @@ use Services\BusSheet;
 use Services\FeedStatus;
 use Services\LineVehicles;
 use Services\TrainSheet;
+use Services\TripSheet;
 
 // Directo: los vehículos de una línea en el mapa (/api/lines/{id}/live), la ficha de un viaje (/api/vehicles/{tripKey})
 // y el diagnóstico de la fuente (/api/status). Cada cosa la hace su servicio; el cálculo de llegadas está en engine/.
@@ -62,10 +63,17 @@ class RealtimeController
             Response::error('Trip not found', 404);
             return;
         }
+        // De madrugada, el de ayer si pasa de las 24:00 y aún no ha terminado.
+        [$sLineId, $sTripNumber, $iFirstDeparture] = $aTripKey;
+        $aLate = $JourneyModel->lateVariants($sLineId, $sTripNumber, $iFirstDeparture, TripSheet::LATE_GRACE_SECONDS);
         if (Config::hasLive('trip-updates')) {
+            if (!empty($aLate)) {
+                Response::json(TrainSheet::build($JourneyModel, $aLate[0], $Req->query('stopId'), 1));
+                return;
+            }
             Response::json(TrainSheet::build($JourneyModel, $aVariants[0], $Req->query('stopId')));
             return;
         }
-        Response::json(BusSheet::build($JourneyModel, $aTripKey, $aVariants, $Req->query('stopId')));
+        Response::json(BusSheet::build($JourneyModel, $aTripKey, $aVariants, $Req->query('stopId'), $aLate));
     }
 }

@@ -2,11 +2,14 @@
 
 Uso: python3 live-health.py <url base> <red> [<red>...]
 Errores (el flujo sale en rojo y GitHub avisa por correo):
-- el feed de una red con directo no responde o viene vacío (salvo Bilbobus y Lurraldebus, que lo publican vacío, y
-  de 00:30 a 06:00, cuando no circula nada);
+- el feed de una red con directo no responde o viene vacío (salvo Bilbobus y Lurraldebus, que lo publican vacío);
 - una red que se empareja por viaje no encuentra ningún viaje del feed en su horario;
 - los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60.
-Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos).
+Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
+/api/status; sin él, de 00:30 a 06:00 no cuentan): de noche o con un feed compartido (Euskotren publica uno para sus
+trenes y los dos tranvías), que no haya nada de la red es lo normal.
+Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos), o trae
+vehículos sin hora de hoy (de 23:58 a 05:00 el de Bizkaibus repite los de antes de medianoche: la app usa el horario).
 Una red con error se vuelve a mirar al minuto: un feed que viene vacío en una sola lectura no es un fallo.
 """
 import datetime
@@ -20,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 EMPTY_FEEDS_KNOWN = {'bilbobus', 'lurraldebus'}
 MIN_LIVE = 5
+MIN_SCHEDULED = 3
 MAX_MEDIAN_MINUTES = 30
 MAX_P95_MINUTES = 60
 RETRY_SECONDS = 60
@@ -43,6 +47,13 @@ def status(base, network, attempt=1):
         return {'error': str(error)}
 
 
+def little_scheduled(report):
+    scheduled = report.get('scheduled')
+    if scheduled is None:
+        return night()
+    return scheduled < MIN_SCHEDULED
+
+
 def check(network, report):
     errors = []
     notices = []
@@ -50,22 +61,28 @@ def check(network, report):
         return errors, notices, 'sin directo'
     if report.get('error') or not report.get('ok'):
         message = f"el feed no responde o viene vacío ({report.get('error') or 'sin datos'})"
-        if network in EMPTY_FEEDS_KNOWN or night():
+        if network in EMPTY_FEEDS_KNOWN or little_scheduled(report):
             notices.append(message)
         else:
             errors.append(message)
     if report.get('matching') == 'stops' and report.get('feedTrips'):
-        errors.append('ningún viaje del feed está en el horario: se empareja por paradas y hora')
+        message = 'ningún viaje del feed está en el horario: se empareja por paradas y hora'
+        if little_scheduled(report):
+            notices.append(message)
+        else:
+            errors.append(message)
     if report.get('copiesSchedule'):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):
         notices.append('las horas del feed contradicen al GPS: manda el GPS')
+    if report.get('vehicles') and report.get('withTime') == 0:
+        notices.append('el feed repite datos sin hora de hoy: sale con el horario')
     delays = report.get('delayMinutes')
     if delays and report.get('live', 0) >= MIN_LIVE:
         if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:
             errors.append(f"retrasos no creíbles: mediana {delays['median']} min, p95 {delays['p95']} min")
     summary = []
-    for key in ('vehicles', 'feedTrips', 'matched', 'live'):
+    for key in ('scheduled', 'vehicles', 'feedTrips', 'matched', 'live'):
         if key in report:
             summary.append(f'{key} {report[key]}')
     if delays:

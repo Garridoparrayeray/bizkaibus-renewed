@@ -10,13 +10,15 @@ use Models\ServiceJourney;
 // la primera que sí, ya están pasadas; las que no vienen después de ella llevan el retraso de la primera.
 class TrainSheet
 {
-    public static function build(ServiceJourney $JourneyModel, array $aJourney, string|null $sPreferredStopId): array
+    // Con $iDaysAgo = 1, un viaje de ayer que pasa de las 24:00: la ficha va en las horas de su horario (02:00 son 26:00).
+    public static function build(ServiceJourney $JourneyModel, array $aJourney, string|null $sPreferredStopId, int $iDaysAgo = 0): array
     {
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
-        $iNow = Calendar::nowSecondsSinceMidnight();
+        $iShift = $iDaysAgo * Calendar::DAY_SECONDS;
+        $iNow = Calendar::nowSecondsSinceMidnight() + $iShift;
         $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
         $TripMatcher = Live::tripMatcher($JourneyModel, $iMidnight);
-        $aPredicted = self::predictedSeconds($JourneyModel, $TripMatcher, $aJourney, $aStops, $sPreferredStopId, $iNow, $iMidnight);
+        $aPredicted = self::predictedSeconds($JourneyModel, $TripMatcher, $aJourney, $aStops, $sPreferredStopId, $iNow, $iMidnight - $iShift);
         $iFirstPredictedOrder = null;
         foreach ($aStops as $aStop) {
             if (isset($aPredicted[(string)$aStop['stop_id']])) {
@@ -52,7 +54,8 @@ class TrainSheet
         return TripSheet::sheet($aJourney, $sStatus, null, $iDelayMinutes, $aStopsOut, ['feedTimes' => true]);
     }
 
-    // Hora prevista por el feed en cada parada que le queda al tren (segundos desde medianoche), o [] si no está.
+    // Hora prevista por el feed en cada parada que le queda al tren (segundos desde $iMidnight, la medianoche del día del
+    // viaje), o [] si no está.
     private static function predictedSeconds(ServiceJourney $JourneyModel, object|null $TripMatcher, array $aJourney, array $aStops, string|null $sPreferredStopId, int $iNow, int $iMidnight): array
     {
         $sAnchorStopId = self::anchorStopId($aStops, $sPreferredStopId, $iNow);
@@ -62,7 +65,13 @@ class TrainSheet
         if ($sAnchorStopId === null || $TripMatcher === null || !$TripMatcher->hasData()) {
             return [];
         }
+        // Las salidas de la parada como en su tarjeta: de madrugada, con las de ayer que pasan de las 24:00 delante.
         $aRows = $JourneyModel->upcomingAtStop($sAnchorStopId, 40, 3 * 3600);
+        $aYesterday = $JourneyModel->upcomingAtStop($sAnchorStopId, 40, 3 * 3600, -1);
+        if (!empty($aYesterday)) {
+            $aRows = array_merge($aYesterday, $aRows);
+            usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        }
         foreach ($aRows as $iRow => $aRow) {
             $aRows[$iRow]['status'] = 'scheduled';
         }

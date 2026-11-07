@@ -30,6 +30,7 @@ class FeedStatus
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }
+        $aOut['scheduled'] = self::scheduled();
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
     }
@@ -55,8 +56,20 @@ class FeedStatus
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }
+        $aOut['scheduled'] = self::scheduled();
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
+    }
+
+    // Los viajes que según el horario van ahora en marcha (null si la base no responde): sin ninguno, un feed vacío o
+    // sin viajes de esta red (Euskotren publica uno para sus trenes y los dos tranvías) es lo normal.
+    private static function scheduled(): int|null
+    {
+        try {
+            return (new ServiceJourney(Database::connection()))->runningCount();
+        } catch (\Throwable $Ex) {
+            return null;
+        }
     }
 
     private static function counts(array $aMap): array

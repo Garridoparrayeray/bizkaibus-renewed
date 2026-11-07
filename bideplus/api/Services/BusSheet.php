@@ -14,15 +14,23 @@ class BusSheet
     // Hasta 2 min después de su hora, un viaje sin bus puede estar a punto de salir.
     private const AWAITING_GRACE_SECONDS = 120;
 
-    public static function build(ServiceJourney $JourneyModel, array $aTripKey, array $aVariants, string|null $sFromStopId): array
+    // $aLateVariants: las de ayer del viaje que pasan de las 24:00 y aún no han terminado (de madrugada).
+    public static function build(ServiceJourney $JourneyModel, array $aTripKey, array $aVariants, string|null $sFromStopId, array $aLateVariants = []): array
     {
         $aVehicles = Live::vehicles();
         $Matcher = Live::matcher($JourneyModel, $aVehicles);
         [$aJourney, $aLive] = self::liveVariant($Matcher, $aTripKey, $aVariants);
+        $iDaysAgo = 0;
+        // Si ningún bus lo hace hoy, es el de ayer: con su emparejador y en las horas de su horario (00:30 son 24:30).
+        if ($aLive === null && !empty($aLateVariants)) {
+            $iDaysAgo = 1;
+            $Matcher = Live::matcher($JourneyModel, $aVehicles, 1);
+            [$aJourney, $aLive] = self::liveVariant($Matcher, $aTripKey, $aLateVariants);
+        }
         $bLive = $Matcher->isLive($aJourney['id'], $aLive);
         $aPosition = $Matcher->positionFor($aJourney['id'], $aLive);
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
-        $iNow = Calendar::nowSecondsSinceMidnight();
+        $iNow = Calendar::nowSecondsSinceMidnight() + $iDaysAgo * Calendar::DAY_SECONDS;
         $aStopsOut = [];
         $bCurrentFound = false;
         foreach ($aStops as $aStop) {
@@ -62,11 +70,12 @@ class BusSheet
         return TripSheet::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut, $aExtra);
     }
 
-    // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses: el operador
-    // todavía no le ha asignado uno (Bizkaibus lo hace unos 6 min antes de la salida, la mitad de las veces).
+    // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses (con hora de
+    // hoy: de madrugada el de Bizkaibus repite los de antes de medianoche): el operador todavía no le ha asignado uno
+    // (Bizkaibus lo hace unos 6 min antes de la salida, la mitad de las veces).
     private static function awaitingVehicle(string $sStatus, array $aVehicles, int $iFirstDepartureSeconds, int $iNow): bool
     {
-        return $sStatus === 'scheduled' && !empty($aVehicles) && Config::hasLive('vehicle-monitoring')
+        return $sStatus === 'scheduled' && Live::isFresh($aVehicles) && Config::hasLive('vehicle-monitoring')
             && $iNow < $iFirstDepartureSeconds + self::AWAITING_GRACE_SECONDS;
     }
 

@@ -5,9 +5,16 @@ namespace Services;
 // Fechas y horas en hora de Madrid: hoy, segundos desde medianoche y el bit del día de la semana.
 class Calendar
 {
+    public const DAY_SECONDS = 86400;
+
     public static function todayMadrid(): \DateTime
     {
         return new \DateTime('now', new \DateTimeZone('Europe/Madrid'));
+    }
+
+    public static function yesterdayMadrid(): \DateTime
+    {
+        return self::todayMadrid()->modify('-1 day');
     }
 
     public static function nowSecondsSinceMidnight(): int

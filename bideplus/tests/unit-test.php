@@ -260,6 +260,46 @@ $Expect('la variante que circula hoy va la primera, aunque su id sea posterior',
 $Expect('findByLineAndTrip da la variante de hoy', $JourneyVar->findByLineAndTrip('L1', '721', 79200)['id'] === 'B_TODAY');
 $Expect('un viaje que no existe da null', $JourneyVar->findByLineAndTrip('L1', '999', 79200) === null && $JourneyVar->variantsByLineAndTrip('L1', '999', 79200) === []);
 
+// De madrugada, la ficha de un viaje de ayer que pasa de las 24:00 es la de ayer mientras no haya terminado; y el
+// diagnóstico del directo cuenta los viajes en marcha según el horario (los de hoy y los de ayer pasadas las 24:00).
+$iVarNow = Calendar::nowSecondsSinceMidnight();
+$iTodayBit = Calendar::weekdayBitFor(Calendar::todayMadrid());
+$iYesterdayBit = Calendar::weekdayBitFor(Calendar::yesterdayMadrid());
+$PdoRun = new PDO('sqlite::memory:');
+$PdoRun->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoRun->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoRun->exec('
+    CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT, name TEXT);
+    CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, headsign TEXT);
+    CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT);
+    CREATE TABLE service_calendars (id TEXT PRIMARY KEY, weekday_mask INTEGER, from_date TEXT, to_date TEXT);
+    CREATE TABLE service_calendar_exceptions (calendar_id TEXT, date TEXT, available INTEGER);
+    CREATE TABLE service_journeys (id TEXT PRIMARY KEY, line_id TEXT, journey_pattern_id TEXT, trip_number TEXT, calendar_id TEXT, first_departure_seconds INTEGER, shape_id TEXT);
+    CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER, dist_m REAL);
+    INSERT INTO lines VALUES (\'L1\', \'A1\', \'Línea 1\');
+    INSERT INTO journey_patterns VALUES (\'P1\', \'Destino\');
+    INSERT INTO stops VALUES (\'S0\', \'Parada 0\'), (\'S1\', \'Parada 1\');
+');
+$PdoRun->exec("INSERT INTO service_calendars VALUES ('HOY', $iTodayBit, NULL, NULL), ('AYER', $iYesterdayBit, NULL, NULL)");
+$AddTrip = function (string $sId, string $sCalendar, int $iFrom, int $iTo) use ($PdoRun): void {
+    $PdoRun->exec("INSERT INTO service_journeys VALUES ('$sId', 'L1', 'P1', '9', '$sCalendar', $iFrom, NULL)");
+    $PdoRun->exec("INSERT INTO passing_times VALUES ('$sId', 1, 'S0', $iFrom, $iFrom, 0), ('$sId', 2, 'S1', $iTo, $iTo, 0)");
+};
+$AddTrip('EN_MARCHA', 'HOY', $iVarNow - 600, $iVarNow + 600);
+$AddTrip('ACABADO', 'HOY', $iVarNow - 3600, $iVarNow - 1800);
+$AddTrip('SIN_SALIR', 'HOY', $iVarNow + 600, $iVarNow + 1200);
+$AddTrip('DE_AYER', 'AYER', $iVarNow + 86400 - 600, $iVarNow + 86400 + 600);
+$AddTrip('DE_AYER_ACABADO', 'AYER', $iVarNow + 86400 - 3600, $iVarNow + 86400 - 1800);
+$JourneyRun = new ServiceJourney($PdoRun);
+$Expect('en marcha según el horario: el de hoy entre su salida y su llegada y el de ayer que pasa de las 24:00', $JourneyRun->runningCount() === 2, (string)$JourneyRun->runningCount());
+$Expect('directo con hora de hoy: sí con un bus que la trae; no con el feed congelado de madrugada (ningún bus la trae)',
+    Core\Live::isFresh(['1|2' => [['recordedSeconds' => null, 'locationSeconds' => null], ['recordedSeconds' => 300]]])
+    && !Core\Live::isFresh(['1|2' => [['recordedSeconds' => null, 'locationSeconds' => null]]]) && !Core\Live::isFresh([]));
+$aLateVariants = $JourneyRun->lateVariants('L1', '9', $iVarNow + 86400 - 600, Services\TripSheet::LATE_GRACE_SECONDS);
+$Expect('la ficha de un viaje de ayer que aún va es la de ayer', array_column($aLateVariants, 'id') === ['DE_AYER'], json_encode(array_column($aLateVariants, 'id')));
+$Expect('la de uno que terminó hace más de 10 min, o de uno de hoy, no', $JourneyRun->lateVariants('L1', '9', $iVarNow + 86400 - 3600, Services\TripSheet::LATE_GRACE_SECONDS) === []
+    && $JourneyRun->lateVariants('L1', '9', $iVarNow - 600, Services\TripSheet::LATE_GRACE_SECONDS) === []);
+
 $Section('Rango de fechas publicado');
 $MakeRange = function (array $aMeta, array $aCalendars, array $aExceptions): PDO {
     $P = new PDO('sqlite::memory:');
@@ -536,6 +576,39 @@ $aDedupeRows = [
 ];
 $aDeduped = $Dedupe->invoke(new ServiceJourney(buildFixture(40)), $aDedupeRows, 10);
 $Expect('el mismo viaje en dos calendarios sale una vez; otro viaje del mismo número un minuto después también sale', \count($aDeduped) === 2 && $aDeduped[1]['first_departure_seconds'] === 56700, (string)\count($aDeduped));
+
+// De madrugada, las salidas de ayer (26:00, en la lista como 02:00) pasan por el emparejador de ayer en las horas de su
+// horario y vuelven en las de hoy; las de hoy, por el de hoy. Sin salidas de ayer, el de ayer ni se crea.
+$WithEngine = new ReflectionMethod(Controllers\StopsController::class, 'withEngine');
+$FakeMatcher = fn(string $sWho) => new class ($sWho) {
+    public array $aSeen = [];
+    public function __construct(private string $sWho)
+    {
+    }
+    public function enrich(array $aRows): array
+    {
+        $this->aSeen = array_merge($this->aSeen, array_column($aRows, 'arrival_seconds'));
+        return array_map(fn(array $aRow) => $aRow + ['etaSeconds' => (int)$aRow['arrival_seconds'] + 60, 'who' => $this->sWho], $aRows);
+    }
+};
+$TodayFake = $FakeMatcher('hoy');
+$YesterdayFake = $FakeMatcher('ayer');
+$iYesterdayCalls = 0;
+$Yesterday = function () use ($YesterdayFake, &$iYesterdayCalls) {
+    $iYesterdayCalls++;
+    return $YesterdayFake;
+};
+$aMixed = $WithEngine->invoke(null, [$TodayFake, $Yesterday], [
+    ['trip_number' => 'N', 'yesterday' => true, 'arrival_seconds' => 7200, 'departure_seconds' => 7200],
+    ['trip_number' => 'D', 'arrival_seconds' => 7500, 'departure_seconds' => 7500],
+]);
+$Expect('de madrugada, la de ayer va con el de ayer a las 26:00 y vuelve a las 02:00; la de hoy, con el de hoy y en orden',
+    array_column($aMixed, 'who') === ['ayer', 'hoy'] && $YesterdayFake->aSeen === [7200 + 86400] && $TodayFake->aSeen === [7500]
+    && $aMixed[0]['arrival_seconds'] === 7200 && $aMixed[0]['etaSeconds'] === 7260 && $aMixed[0]['departure_seconds'] === 7200,
+    json_encode($aMixed));
+$aDayRows = [['trip_number' => 'D', 'arrival_seconds' => 50000, 'departure_seconds' => 50000]];
+$iYesterdayCalls = 0;
+$Expect('de día, todo con el de hoy y sin crear el de ayer', $WithEngine->invoke(null, [$TodayFake, $Yesterday], $aDayRows) === $TodayFake->enrich($aDayRows) && $iYesterdayCalls === 0);
 
 /* ------------------------------------------------------------------ */
 $Section('NewBadge: «Nuevo» unos días (new_days de Config/site.php)');

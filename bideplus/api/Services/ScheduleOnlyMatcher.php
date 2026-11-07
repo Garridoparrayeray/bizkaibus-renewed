@@ -18,6 +18,12 @@ class ScheduleOnlyMatcher
         ], $aRows);
     }
 
+    // Los vehículos que sigue: ninguno.
+    public function vehicles(): array
+    {
+        return [];
+    }
+
     public function isLive(string|null $sServiceJourneyId, array|null $aLive): bool
     {
         return false;

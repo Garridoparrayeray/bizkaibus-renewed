@@ -127,6 +127,12 @@ class StopsController
         $aConfig = Config::current();
         $JourneyModel = new ServiceJourney($Pdo);
         $Matcher = Live::matcher($JourneyModel);
+        // El de los viajes de ayer, solo si de madrugada hace falta (y uno para todos los andenes).
+        $YesterdayMatcher = null;
+        $Yesterday = function () use (&$YesterdayMatcher, $JourneyModel): object {
+            $YesterdayMatcher ??= Live::matcher($JourneyModel, null, 1);
+            return $YesterdayMatcher;
+        };
         $TripMatcher = Live::tripMatcher($JourneyModel);
         $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
         $aOut = ['stop' => ['id' => $aStop['id'], 'name' => $aStop['name']]];
@@ -136,7 +142,7 @@ class StopsController
         if (!empty($aPlatforms)) {
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {
-                $aRows = self::withLive($Matcher, $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
+                $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
                 array_push($aDepartures, ...array_slice(self::departureItems($aRows, $bUseLastStopHeadsign, $aPlatform), 0, $iLimit));
             }
             return $aOut + ['platforms' => $aPlatforms, 'departures' => $aDepartures, 'attribution' => $aConfig['attribution']];
@@ -147,7 +153,7 @@ class StopsController
         if (isset($aConfig['direction_reference_stop_id'])) {
             [$aRows, $aDirectionLabels] = self::withDirections($JourneyModel, $aRows, $sStopId, $aStop['name'], $aConfig['direction_reference_stop_id']);
         }
-        $aRows = self::withLive($Matcher, $TripMatcher, $sStopId, $aRows);
+        $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, $sStopId, $aRows);
         return $aOut + [
             'platforms' => [],
             'directionLabels' => $aDirectionLabels,
@@ -156,19 +162,23 @@ class StopsController
         ];
     }
 
-    // Salidas de las próximas 4 horas o, si no hay (de noche), 4 horas desde la primera que queda o las próximas 24.
-    // De madrugada, en las redes sin motor propio, delante van los viajes de ayer que pasan de las 24:00.
+    // De madrugada, delante de las de hoy van los viajes de ayer que pasan de las 24:00, en horas de hoy (26:00 es 02:00).
     private static function upcomingRows(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast = null): array
     {
-        $aYesterday = [];
-        if (empty(Config::current()['engine'])) {
-            $aYesterday = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, -1, $iPast);
+        $aRows = self::upcomingRowsToday($JourneyModel, $StopId, $iLimit, $iPast);
+        $aYesterday = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, -1, $iPast);
+        if (empty($aYesterday)) {
+            return $aRows;
         }
+        $aRows = array_merge(array_map(fn(array $aRow) => ['yesterday' => true] + $aRow, $aYesterday), $aRows);
+        usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        return $aRows;
+    }
+
+    // Salidas de las próximas 4 horas o, si no hay (de noche), 4 horas desde la primera que queda o las próximas 24.
+    private static function upcomingRowsToday(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast): array
+    {
         $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, 0, $iPast);
-        if (!empty($aYesterday)) {
-            $aRows = array_merge($aYesterday, $aRows);
-            usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
-        }
         if (!empty($aRows)) {
             return $aRows;
         }
@@ -199,22 +209,22 @@ class StopsController
         return null;
     }
 
-    // El directo sobre las salidas del horario: el algoritmo de los autobuses y, en los trenes y tranvías, las horas del
-    // feed del operador (sin los que ya han salido).
+    // El directo sobre las salidas del horario: el algoritmo de los autobuses ([emparejador de hoy, el de ayer cuando
+    // se pida]) y, en los trenes y tranvías, las horas del feed del operador (sin los que ya han salido).
     // Las de mañana van con el horario tal cual: el directo de hoy no es el de esos viajes.
-    private static function withLive(object $Matcher, object|null $TripMatcher, string $sStopId, array $aRows): array
+    private static function withLive(array $aMatchers, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
         $aToday = array_values(array_filter($aRows, fn(array $aRow) => empty($aRow['tomorrow'])));
         $aTomorrow = array_values(array_filter($aRows, fn(array $aRow) => !empty($aRow['tomorrow'])));
-        return array_merge(self::withLiveToday($Matcher, $TripMatcher, $sStopId, $aToday), (new ScheduleOnlyMatcher())->enrich($aTomorrow));
+        return array_merge(self::withLiveToday($aMatchers, $TripMatcher, $sStopId, $aToday), (new ScheduleOnlyMatcher())->enrich($aTomorrow));
     }
 
-    private static function withLiveToday(object $Matcher, object|null $TripMatcher, string $sStopId, array $aRows): array
+    private static function withLiveToday(array $aMatchers, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
         if (empty($aRows)) {
             return [];
         }
-        $aRows = $Matcher->enrich($aRows);
+        $aRows = self::withEngine($aMatchers, $aRows);
         if ($TripMatcher === null) {
             return $aRows;
         }
@@ -222,6 +232,37 @@ class StopsController
         if ($TripMatcher->hasData()) {
             $aRows = $TripMatcher->withoutDeparted($aRows, Calendar::nowSecondsSinceMidnight());
         }
+        return $aRows;
+    }
+
+    // El algoritmo de los autobuses sobre las salidas. Las de ayer, con el emparejador de ayer y las horas de su horario
+    // (26:00), que vuelven en las de hoy (02:00); sin ellas, todo pasa por el de hoy como siempre.
+    private static function withEngine(array $aMatchers, array $aRows): array
+    {
+        [$Matcher, $Yesterday] = $aMatchers;
+        $aYesterday = array_filter($aRows, fn(array $aRow) => !empty($aRow['yesterday']));
+        if (empty($aYesterday)) {
+            return $Matcher->enrich($aRows);
+        }
+        $aToday = array_diff_key($aRows, $aYesterday);
+        $aLate = $Yesterday()->enrich(self::shifted(array_values($aYesterday), Calendar::DAY_SECONDS));
+        $aEnriched = array_combine(array_keys($aToday), $Matcher->enrich(array_values($aToday)))
+            + array_combine(array_keys($aYesterday), self::shifted($aLate, -Calendar::DAY_SECONDS));
+        ksort($aEnriched);
+        return array_values($aEnriched);
+    }
+
+    // Las salidas con sus horas movidas $iSeconds.
+    private static function shifted(array $aRows, int $iSeconds): array
+    {
+        foreach ($aRows as &$aRow) {
+            foreach (['arrival_seconds', 'departure_seconds', 'etaSeconds'] as $sField) {
+                if (isset($aRow[$sField])) {
+                    $aRow[$sField] = (int)$aRow[$sField] + $iSeconds;
+                }
+            }
+        }
+        unset($aRow);
         return $aRows;
     }
 

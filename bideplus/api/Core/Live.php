@@ -34,6 +34,20 @@ class Live
         return $sClass::vehicles(Config::current());
     }
 
+    // Si el directo trae algún vehículo con hora de hoy. De 23:58 a 05:00, el feed de Bizkaibus repite los buses de antes
+    // de medianoche: trae vehículos, pero ninguno sirve (ni para el mapa ni para decir que a un viaje le falta bus).
+    public static function isFresh(array $aVehicles): bool
+    {
+        foreach ($aVehicles as $aEntries) {
+            foreach ($aEntries as $aEntry) {
+                if (isset($aEntry['locationSeconds']) || isset($aEntry['recordedSeconds'])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Apunta por dónde va cada vehículo del directo en todas las redes con motor (lo llama un cron cada minuto, una sola
     // vez para todas): [red => vehículos apuntados, o null si falló]. Al acabar se vuelve a la red de la llamada.
     public static function recordAll(): array
@@ -91,12 +105,14 @@ class Live
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
     }
 
-    public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null): object
+    // El emparejador de los autobuses para los viajes de hoy o, con $iDaysAgo = 1, para los de ayer que pasan de las
+    // 24:00: ese trabaja con las horas de su horario (26:00 para las 02:00) y solo con sus buses.
+    public static function matcher(ServiceJourney|null $JourneyModel, array|null $aVehicles = null, int $iDaysAgo = 0): object
     {
         $sClass = self::engineClass('Live');
         if ($sClass === null) {
             return new ScheduleOnlyMatcher();
         }
-        return $sClass::matcher($aVehicles ?? self::vehicles(), $JourneyModel);
+        return $sClass::matcher($aVehicles ?? self::vehicles(), $JourneyModel, $iDaysAgo);
     }
 }

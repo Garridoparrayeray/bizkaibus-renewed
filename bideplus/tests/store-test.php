@@ -12,6 +12,7 @@ use Core\Request;
 use Core\Store;
 use Engine\Bizkaibus\PassageLog;
 use Models\ServiceJourney;
+use Services\Calendar;
 
 $aFailures = [];
 $Expect = function (string $sName, bool $bOk, string $sDetail = '') use (&$aFailures): void {
@@ -95,6 +96,19 @@ try {
             'trp_A3514_909_LIN_53100_y' => [2 => 52900],
         ], json_encode($aHistory));
         $Expect('historial: línea con caracteres raros no se consulta', PassageLog::history('bus', '2026-10-29', '35*') === null);
+
+        // De madrugada, el bus de un viaje de ayer (salió a las 23:30) se apunta en el registro de ayer, en horas de ayer;
+        // el de hoy, en el de hoy. Así el de las 23:30 de hoy no sale esta noche por pasado antes de salir.
+        $aNightVm = ['3514|909' => [['tripRef' => 'trp_A3514_909_LIN_51300_x', 'departureSeconds' => 84600, 'order' => 12, 'recordedSeconds' => 1800]],
+            '3515|914' => [['tripRef' => 'trp_A3515_914_LIN_55800_z', 'departureSeconds' => 1500, 'order' => 2, 'recordedSeconds' => 1800]]];
+        $sToday = Calendar::todayMadrid()->format('Y-m-d');
+        $sYesterday = Calendar::yesterdayMadrid()->format('Y-m-d');
+        $Expect('de madrugada se apuntan los dos', Engine\Bizkaibus\Live::recordVehicles($aNightVm, 'noche', 1800) === 2);
+        $Expect('el de ayer, en el registro de ayer y a las 24:30', PassageLog::forJourneys($Journeys, ['J1'], 'noche', $sYesterday) === ['J1' => ['order' => 12, 'seconds' => 1800 + 86400]]
+            && PassageLog::forJourneys($Journeys, ['J1'], 'noche', $sToday) === []);
+        $Expect('el de hoy, en el de hoy', Store::pipeline([['HMGET', PassageLog::key('noche', $sToday), 'trp_A3515_914_LIN_55800_z']]) === [['2:1800']]);
+        @unlink(PassageLog::expiryMarker('noche', $sToday));
+        @unlink(PassageLog::expiryMarker('noche', $sYesterday));
 
         putenv('UPSTASH_REDIS_REST_TOKEN=token-malo');
         $Expect('con la clave mala no se escribe', PassageLog::record($aVm, 'bus', '2026-10-29') === null);
