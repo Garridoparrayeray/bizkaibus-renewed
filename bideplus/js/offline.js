@@ -12,9 +12,10 @@ const BideOffline = (() => {
     const CHECK_EVERY_MS = 6 * 3600 * 1000;
     const DAY_SECONDS = 86400;
     const PAST_MARGIN_SECONDS = 60;
-    // Las mismas que el motor: un bus «probablemente ya pasó» si la estimación quedó 10 min atrás y el horario va
-    // 10 min o más lento que lo aprendido.
-    const LIKELY_PASSED_SECONDS = 600;
+    // Las mismas que el motor: un bus «puede haber pasado» si la estimación quedó 3 min atrás y el horario va 10 min o
+    // más lento que lo aprendido. Detrás de las que vienen salen como mucho dos.
+    const LIKELY_PASSED_SECONDS = 180;
+    const LIKELY_PAST_SHOWN = 2;
     const SLOW_SCHEDULE_SECONDS = 600;
     const SUNDAY_ONLY_MASK = 0b1000000;
     const prepared = new Map();
@@ -294,7 +295,7 @@ const BideOffline = (() => {
             }
             // Por hora prevista; los que probablemente ya pasaron, al final (como la API).
             items.sort((a, b) => rank(a) - rank(b) || a.etaSeconds - b.etaSeconds);
-            for (const item of items.slice(0, limit)) found.push(departureItem(data, item, target, platforms.length > 0, now, nowSeconds));
+            for (const item of limited(items, limit)) found.push(departureItem(data, item, target, platforms.length > 0, now, nowSeconds));
         }
         found.sort((a, b) => rank(a) - rank(b) || a.etaAt - b.etaAt);
 
@@ -307,6 +308,12 @@ const BideOffline = (() => {
             hiddenByMarks: hidden,
             offline: true,
         };
+    }
+
+    function limited(items, limit) {
+        const coming = items.filter((item) => item.status !== 'likely_departed');
+        const likelyPast = items.filter((item) => item.status === 'likely_departed');
+        return coming.slice(0, limit).concat(likelyPast.slice(0, LIKELY_PAST_SHOWN));
     }
 
     function rank(item) {
@@ -325,7 +332,7 @@ const BideOffline = (() => {
         const estimated = officialSeconds - data.timings[trip[1]][position] + data.estimates[slot][position];
         if (estimated >= nowSeconds) return { status: 'estimated', etaSeconds: estimated };
         if (nowSeconds - estimated > LIKELY_PASSED_SECONDS && officialSeconds - estimated >= SLOW_SCHEDULE_SECONDS && data.estimateTrusted[slot][position] === '1') {
-            return { status: 'likely_departed', etaSeconds: officialSeconds };
+            return { status: 'likely_departed', etaSeconds: officialSeconds, passedSeconds: estimated };
         }
         return official;
     }
@@ -338,8 +345,6 @@ const BideOffline = (() => {
         const line = data.lines[item.pattern[0]];
         let headsign = item.pattern[1];
         if (data.headsignFromLastStop || !headsign) headsign = lastStopName(data, item.pattern);
-        const hours = Math.floor(item.seconds / 3600);
-        const minutes = Math.floor((item.seconds % 3600) / 60);
         let platformId = null;
         if (isPlatform) platformId = outputId(target);
         return {
@@ -350,7 +355,7 @@ const BideOffline = (() => {
             tripKey: item.tripKey,
             serviceDay: item.serviceDay,
             position: item.position,
-            scheduledTime: `${String(((hours % 24) + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`,
+            scheduledTime: hm(item.seconds),
             etaMinutes: Math.round((item.etaSeconds - nowSeconds) / 60),
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
             status: item.status,
@@ -359,7 +364,19 @@ const BideOffline = (() => {
             tomorrow: item.seconds >= DAY_SECONDS,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
+            passedTime: passedTime(item),
         };
+    }
+
+    function hm(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${String(((hours % 24) + 24) % 24).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    function passedTime(item) {
+        if (item.passedSeconds === undefined) return null;
+        return hm(item.passedSeconds);
     }
 
     // Destinos de cada columna de Metro («Hacia Basauri · Etxebarri»).

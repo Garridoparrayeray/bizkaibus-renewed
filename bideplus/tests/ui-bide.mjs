@@ -584,6 +584,16 @@ check('Renfe · la salida grande es el tren que viene, no el cancelado', await w
 check('Renfe · en la lista, «cancelado · 20:10»', await waitTrue("[...document.querySelectorAll('#platform-columns .platform-column-list li.is-cancelled')].some((li) => li.textContent.includes(I18n.t('app.list.cancelled', { time: '20:10' })))"));
 await go('/pantalla/13200?red=renfe', 2500);
 check('Renfe · en la pantalla, el cancelado lleva su hora tachada y «Cancelado», no los minutos', await waitTrue("[...document.querySelectorAll('.screen-row.is-cancelled')].some((li) => li.querySelector('.screen-time').textContent === '20:10' && li.querySelector('.screen-detail').textContent.includes(I18n.t('app.status.cancelled')) && getComputedStyle(li.querySelector('.screen-time')).textDecorationLine === 'line-through')"));
+
+// ===== Bizkaibus: un bus sin datos que el algoritmo da por pasado sigue en la lista, en gris, con la hora de paso =====
+const busDeparture = (lineCode, headsign, time, minutes, status, passedTime) => ({ lineId: lineCode.slice(1), lineCode, lineName: 'x', headsign, tripKey: `${lineCode.slice(1)}-914-${time.replace(':', '')}`, scheduledTime: time, etaMinutes: minutes, etaAt: nowSeconds + minutes * 60, status, delayMinutes: 0, direction: null, platformId: null, passedTime });
+fakeDepartures = { stop: { id: '3388', name: 'SAN JUAN' }, platforms: [], directionLabels: null, attribution: 'Datos: Bizkaibus', departures: [
+    busDeparture('A3514', 'GERNIKA', '12:37', 21, 'live', null),
+    busDeparture('A3523', 'LEKEITIO', '12:57', 30, 'live', null),
+    busDeparture('A3515', 'BERMEO', '12:13', 6, 'likely_departed', '11:58'),
+] };
+await go('/stops/3388?red=bus');
+check('Bizkaibus · el que puede haber pasado no es la salida grande y sale en la lista, en gris, con «≈ 11:58»', await waitTrue("[...document.querySelectorAll('.live-more-list li.is-likely-past')].some((li) => li.textContent.includes(I18n.t('app.list.likelyPassedAt', { time: '11:58' })))"));
 fakeDepartures = null;
 await send('Fetch.disable');
 

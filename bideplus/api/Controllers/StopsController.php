@@ -20,6 +20,7 @@ use Core\Live;
 class StopsController
 {
     private const LATE_TRAINS_LOOKBACK_SECONDS = 3600;
+    private const LIKELY_PAST_SHOWN = 2;
 
     public function show(Request $Req, array $aParams): void
     {
@@ -143,7 +144,7 @@ class StopsController
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {
                 $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
-                array_push($aDepartures, ...array_slice(self::departureItems($aRows, $bUseLastStopHeadsign, $aPlatform), 0, $iLimit));
+                array_push($aDepartures, ...self::limited(self::departureItems($aRows, $bUseLastStopHeadsign, $aPlatform), $iLimit));
             }
             return $aOut + ['platforms' => $aPlatforms, 'departures' => $aDepartures, 'attribution' => $aConfig['attribution']];
         }
@@ -157,7 +158,7 @@ class StopsController
         return $aOut + [
             'platforms' => [],
             'directionLabels' => $aDirectionLabels,
-            'departures' => array_slice(self::departureItems($aRows, $bUseLastStopHeadsign), 0, $iLimit),
+            'departures' => self::limited(self::departureItems($aRows, $bUseLastStopHeadsign), $iLimit),
             'attribution' => $aConfig['attribution'],
         ];
     }
@@ -316,9 +317,34 @@ class StopsController
                 'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,
+                'passedTime' => self::passedTime($aRow),
             ];
         }
         return $aDepartures;
+    }
+
+    // Las primeras que vienen y, detrás, las que puede que ya hayan pasado: el límite no las deja fuera.
+    private static function limited(array $aItems, int $iLimit): array
+    {
+        $aComing = [];
+        $aLikelyPast = [];
+        foreach ($aItems as $aItem) {
+            if ($aItem['status'] === 'likely_departed') {
+                $aLikelyPast[] = $aItem;
+                continue;
+            }
+            $aComing[] = $aItem;
+        }
+        return array_merge(array_slice($aComing, 0, $iLimit), array_slice($aLikelyPast, 0, self::LIKELY_PAST_SHOWN));
+    }
+
+    // La hora a la que el algoritmo calcula que pasó un bus sin datos que «puede haber pasado».
+    private static function passedTime(array $aRow): string|null
+    {
+        if (!isset($aRow['likelyPassedSeconds'])) {
+            return null;
+        }
+        return Calendar::secondsToHm((int)$aRow['likelyPassedSeconds']);
     }
 
     private static function headsign(array $aRow, bool $bUseLastStopHeadsign): string|null

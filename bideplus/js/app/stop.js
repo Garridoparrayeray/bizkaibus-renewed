@@ -200,6 +200,12 @@ function renderStopLines(lines) {
     }
 }
 
+// Un bus sin datos que el algoritmo da por pasado: «puede haber pasado · ≈ 11:58», con la hora a la que calcula que pasó.
+function likelyPastText(departure) {
+    if (departure.passedTime) return I18n.t('app.list.likelyPassedAt', { time: departure.passedTime });
+    return I18n.t('app.list.likelyDeparted', { time: departure.scheduledTime });
+}
+
 // La salida grande nunca es un bus que probablemente ya pasó (estimación sin datos del bus) ni un tren cancelado, salvo
 // que no haya otro.
 const coming = (d) => d.status !== 'likely_departed' && d.status !== 'cancelled';
@@ -270,7 +276,7 @@ function renderLiveCard(departures) {
             when.appendChild(official);
         }
         if (other.status === 'likely_departed') {
-            when.textContent = I18n.t('app.list.likelyDeparted', { time: other.scheduledTime });
+            when.textContent = likelyPastText(other);
             li.className = 'is-likely-past';
         }
         if (other.status === 'cancelled') {
@@ -353,7 +359,7 @@ function renderPlatformColumn(direction, departures) {
             let when = `${departure.scheduledTime} · ${departureWhen(departure)}`;
             if (departure.tomorrow) when = departureWhen(departure);
             if (departure.status === 'likely_departed') {
-                when = I18n.t('app.list.likelyDeparted', { time: departure.scheduledTime });
+                when = likelyPastText(departure);
                 li.className = 'is-likely-past';
             }
             if (departure.status === 'cancelled') {

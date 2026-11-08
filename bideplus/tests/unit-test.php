@@ -566,6 +566,18 @@ $MakeItem = fn(string $sTrip, string $sStatus, int $iEta) => ['line_id' => '3514
     'trip_number' => $sTrip, 'first_departure_seconds' => 0, 'arrival_seconds' => $iEta, 'etaSeconds' => $iEta, 'status' => $sStatus, 'delaySeconds' => 0];
 $aItems = $BuildItems->invoke(null, [$MakeItem('A', 'likely_departed', $iNowItems + 600), $MakeItem('B', 'estimated', $iNowItems + 1200), $MakeItem('C', 'live', $iNowItems + 900)], false);
 $Expect('el que probablemente ya pasó va el último; los demás por hora', array_column($aItems, 'status') === ['live', 'estimated', 'likely_departed'], json_encode(array_column($aItems, 'status')));
+$aPassedItem = $BuildItems->invoke(null, [['likelyPassedSeconds' => 11 * 3600 + 58 * 60] + $MakeItem('A', 'likely_departed', $iNowItems + 600)], false)[0];
+$Expect('el que puede haber pasado lleva la hora a la que el algoritmo calcula que pasó; los demás, ninguna', $aPassedItem['passedTime'] === '11:58' && $aItems[0]['passedTime'] === null, (string)$aPassedItem['passedTime']);
+$Limited = new ReflectionMethod(Controllers\StopsController::class, 'limited');
+$aMany = [];
+foreach (range(1, 6) as $iItem) {
+    $aMany[] = $MakeItem('L' . $iItem, 'live', $iNowItems + $iItem * 300);
+}
+$aMany[] = $MakeItem('P1', 'likely_departed', $iNowItems + 60);
+$aMany[] = $MakeItem('P2', 'likely_departed', $iNowItems + 90);
+$aMany[] = $MakeItem('P3', 'likely_departed', $iNowItems + 120);
+$aShown = array_column($Limited->invoke(null, $BuildItems->invoke(null, $aMany, false), 5), 'status');
+$Expect('el límite no deja fuera a los que pueden haber pasado: las 5 que vienen y, detrás, dos de ellos', $aShown === ['live', 'live', 'live', 'live', 'live', 'likely_departed', 'likely_departed'], json_encode($aShown));
 
 // Filas repetidas: mismo número de viaje en dos calendarios se junta; dos viajes distintos a la vez por la parada, no.
 $Dedupe = new ReflectionMethod(ServiceJourney::class, 'dedupeByTrip');
