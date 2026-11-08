@@ -5,7 +5,7 @@ body.page-status {
     background: var(--bide-bg);
     color: var(--bide-ink);
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
-    font-size: 16px;
+    font-size: calc(16px * var(--text-scale, 1));
     line-height: 1.45;
 }
 .page-status .map-top {
@@ -33,14 +33,14 @@ body.page-status {
 
 /* ===== Resumen ===== */
 .status-intro h2 {
-    font-size: clamp(28px, 4.4vw, 40px);
+    font-size: calc(clamp(28px, 4.4vw, 40px) * var(--text-scale, 1));
     line-height: 1.1;
 }
 .status-intro p {
     max-width: 680px;
     margin: 4px 0 0;
     color: var(--bide-muted);
-    font-size: 17px;
+    font-size: calc(17px * var(--text-scale, 1));
 }
 
 /* ===== Fichas: como las del menú, con el directo de cada red ===== */
@@ -112,7 +112,7 @@ body.page-status {
     border-radius: 999px;
     background: rgba(255, 255, 255, .95);
     color: #14181c;
-    font-size: 12px;
+    font-size: calc(12px * var(--text-scale, 1));
     font-weight: 800;
     white-space: nowrap;
 }
@@ -120,7 +120,7 @@ body.page-status {
     margin-top: auto;
     padding-top: 18px;
     font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-    font-size: 19px;
+    font-size: calc(19px * var(--text-scale, 1));
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1.1;
@@ -132,7 +132,7 @@ body.page-status {
     .status-count strong {
         display: block;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 34px;
+        font-size: calc(34px * var(--text-scale, 1));
         font-weight: 800;
         font-variant-numeric: tabular-nums;
         line-height: 1;
@@ -140,11 +140,11 @@ body.page-status {
     .status-count span {
         display: block;
         margin-top: 2px;
-        font-size: 13.6px;
+        font-size: calc(13.6px * var(--text-scale, 1));
         opacity: .88;
     }
 .status-tile.is-schedule .status-count span {
-    font-size: 14.4px;
+    font-size: calc(14.4px * var(--text-scale, 1));
     font-weight: 700;
 }
 
@@ -160,7 +160,7 @@ body.page-status {
     display: flex;
     gap: 18px;
     margin-bottom: 14px;
-    font-size: 14.4px;
+    font-size: calc(14.4px * var(--text-scale, 1));
     font-weight: 700;
 }
     .status-legend span {
@@ -185,7 +185,7 @@ body.page-status {
 }
 .status-chart-label {
     color: var(--bide-muted);
-    font-size: 14.4px;
+    font-size: calc(14.4px * var(--text-scale, 1));
     font-weight: 700;
 }
 .status-chart-bars {
@@ -205,7 +205,7 @@ body.page-status {
         top: 50%;
         transform: translateY(-50%);
         color: var(--bide-ink);
-        font-size: 14.4px;
+        font-size: calc(14.4px * var(--text-scale, 1));
         font-weight: 800;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
@@ -226,13 +226,13 @@ body.page-status {
 .status-source {
     margin: 18px 0 0;
     color: var(--bide-muted);
-    font-size: 13.6px;
+    font-size: calc(13.6px * var(--text-scale, 1));
 }
 
 .status-foot {
     margin: 20px 0 0;
     color: var(--bide-muted);
-    font-size: 13.6px;
+    font-size: calc(13.6px * var(--text-scale, 1));
 }
 
 @media (max-width: 600px) {
