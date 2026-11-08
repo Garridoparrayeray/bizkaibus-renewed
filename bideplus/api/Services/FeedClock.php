@@ -4,32 +4,20 @@ namespace Services;
 
 use Core\Config;
 
-// Feeds que escriben la hora de aquí como si fuera UTC (Álavabus): todas sus horas llegan adelantadas lo que Madrid se
-// aparta de UTC (una hora en invierno, dos en verano). Se corrige si la ficha de la red lo dice (gtfs_rt.local_clock) y
-// las horas del feed lo confirman: si el operador lo arregla, la mediana vuelve a cero y no se toca nada.
+// Feeds que escriben la hora de aquí como si fuera UTC (Álavabus): sus horas llegan adelantadas lo que Madrid se aparta
+// de UTC (una hora en invierno, dos en verano), pero no las de todos sus viajes. Si la ficha de la red lo dice
+// (gtfs_rt.local_clock), cada viaje se lee de las dos maneras y vale la que más se acerca a su horario: un retraso de
+// verdad de más de media hora es raro y, si lo hay, lo contradice el GPS.
 final class FeedClock
 {
-    public static function offset(array $aTrips, array $aJourneyIds, JourneyStops $Stops, int $iMidnight, int $iZoneSeconds): int
+    // Lo que hay que quitar a las horas de este viaje: 0 o lo que Madrid se aparta de UTC.
+    public static function shift(array $aFeedStops, array $aStops, int $iMidnight, int $iZoneSeconds): int
     {
         if (empty(Config::current()['gtfs_rt']['local_clock'])) {
             return 0;
         }
-        $aGaps = [];
-        foreach ($aTrips as $aTrip) {
-            $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
-            if ($sJourneyId !== null && !empty($aTrip['stops'])) {
-                $iGap = self::firstGap($aTrip['stops'], $Stops->of((string)$sJourneyId), $iMidnight);
-                if ($iGap !== null) {
-                    $aGaps[] = $iGap;
-                }
-            }
-        }
-        if (empty($aGaps)) {
-            return 0;
-        }
-        sort($aGaps);
-        $iMedian = $aGaps[intdiv(\count($aGaps), 2)];
-        if (abs($iMedian - $iZoneSeconds) < abs($iMedian)) {
+        $iGap = self::firstGap($aFeedStops, $aStops, $iMidnight);
+        if ($iGap !== null && abs($iGap - $iZoneSeconds) < abs($iGap)) {
             return $iZoneSeconds;
         }
         return 0;

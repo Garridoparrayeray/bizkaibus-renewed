@@ -464,16 +464,25 @@ $Expect('Álavabus: si las horas del feed no cuadran con dónde están los autob
 $aOnTrips = array_map(fn($aTrip) => ['tripId' => $aTrip['tripId'], 'stops' => [['B', $iOffMidnight + T0 + 1050], ['C', $iOffMidnight + T0 + 1170]]], $aOffTrips);
 $aOnRow = (new TripDelayMatcher($aOnTrips, new ServiceJourney($PdoRenfe), $iOffMidnight, $aOffVehicles))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);
 $Expect('si cuadran, mandan las horas del feed', $aOnRow[0]['etaSeconds'] === T0 + 1170, json_encode($aOnRow[0]));
-// Álavabus escribe la hora de aquí como si fuera UTC: con gtfs_rt.local_clock se le quita lo que Madrid se aparta de
-// UTC, también con un solo autobús y sin GPS; si sus horas ya cuadran con el horario, no se toca nada.
+// Álavabus escribe la hora de aquí como si fuera UTC, pero no en todos sus viajes: con gtfs_rt.local_clock cada viaje
+// se lee de las dos maneras y vale la que más se acerca a su horario.
 $iZone = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->getOffset();
 $aAheadTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + $iZone], ['C', $iOffMidnight + T0 + 1170 + $iZone]]]];
 $aRowC = [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)];
 \Core\Config::set('alavabus');
 $MClock = new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight);
-$Expect('Álavabus: sus horas adelantadas lo que Madrid se aparta de UTC se corrigen, con un solo autobús y sin GPS', $MClock->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 && $MClock->diagnostics()['clockMinutes'] === intdiv($iZone, 60), json_encode($MClock->enrich('C', $aRowC)[0]));
+$Expect('Álavabus: sus horas adelantadas lo que Madrid se aparta de UTC se corrigen, con un solo autobús y sin GPS', $MClock->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 && $MClock->diagnostics()['clockShifted'] === 1, json_encode($MClock->enrich('C', $aRowC)[0]));
 $aRightRow = (new TripDelayMatcher([$aOnTrips[1]], new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
-$Expect('Álavabus: si sus horas ya cuadran con el horario (el operador lo arregla), no se corrigen', $aRightRow[0]['etaSeconds'] === T0 + 1170, json_encode($aRightRow[0]));
+$Expect('Álavabus: un viaje cuyas horas ya cuadran con el horario no se corrige', $aRightRow[0]['etaSeconds'] === T0 + 1170, json_encode($aRightRow[0]));
+$aYesterdayTrip = [['startDate' => date('Ymd', strtotime('-2 days'))] + $aOnTrips[1]];
+$Expect('Álavabus: un viaje de otro día que sigue en el feed no vale (sale con el horario)', (new TripDelayMatcher($aYesterdayTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
+$aTodayTrip = [['startDate' => date('Ymd', $iOffMidnight + 12 * 3600)] + $aOnTrips[1]];
+$Expect('el viaje de hoy sí vale', (new TripDelayMatcher($aTodayTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170);
+// Donde el autobús manda su posición manda el GPS, aunque el feed traiga horas: 30 min de más en el feed, el GPS
+// dice 5.
+$aBadTimes = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 1800], ['C', $iOffMidnight + T0 + 1140 + 1800]]]];
+$aGpsRow = (new TripDelayMatcher($aBadTimes, new ServiceJourney($PdoRenfe), $iOffMidnight, [$aOffVehicles[1]]))->enrich('C', $aRowC);
+$Expect('Álavabus: con la posición del autobús, su retraso sale del GPS y no de las horas del feed', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
 $aOtherTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + 5 * 3600], ['C', $iOffMidnight + T0 + 1170 + 5 * 3600]]]];
 \Core\Config::set('renfe');
 $Expect('unas horas que se apartan más de 2 h del horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
