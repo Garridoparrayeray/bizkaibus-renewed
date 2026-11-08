@@ -51,7 +51,49 @@ for (const { slug } of index.networks) {
         if (offline.stop.name !== api.stop.name) differences.push(`${stopId}: nombre «${offline.stop.name}» frente a «${api.stop.name}»`);
     }
     check(`${slug}: las salidas guardadas son las del horario (${same}/${sample.length} paradas)`, differences.length === 0, differences.slice(0, 3).join(' | '));
+
+    // Buscador sin conexión: con el nombre de unas paradas de muestra, las mismas paradas y líneas que /api/search (el
+    // orden de dos con el mismo nombre puede cambiar).
+    const ids = (list) => list.map((item) => String(item.id)).sort().join(',');
+    const queries = sample.map((stopId) => data.stops[stopId][0].split(/\s+/)[0]).filter((word) => word.length >= 3).slice(0, 3);
+    queries.push(data.lines[0][1]);
+    const searchDiffs = [];
+    for (const query of queries) {
+        const response = await fetch(`${BASE}/api/search?q=${encodeURIComponent(query)}&red=${slug}`);
+        if (!response.ok) continue;
+        const api = await response.json();
+        const offline = BideOffline.search(data, query, false);
+        // Con el tope de 60 lleno, entre nombres igual de largos cada uno puede quedarse con otros: se compara su largo.
+        let stopsOf = ids;
+        if (api.stops.length >= 60) stopsOf = (list) => list.map((item) => item.name.length).join(',');
+        if (stopsOf(offline.stops) !== stopsOf(api.stops) || ids(offline.lines) !== ids(api.lines)) searchDiffs.push(`«${query}»: ${offline.stops.length}/${api.stops.length} paradas, ${offline.lines.length}/${api.lines.length} líneas`);
+    }
+    check(`${slug}: el buscador sin conexión encuentra lo mismo que el servidor (${queries.length} búsquedas)`, searchDiffs.length === 0, searchDiffs.slice(0, 3).join(' | '));
+
+    // Horario de la línea y paradas de un viaje sin conexión: los de la API para mañana, de 07:00 a 10:00.
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    const lineId = data.lines[0][0];
+    const apiTimetable = await (await fetch(`${BASE}/api/lines/${encodeURIComponent(lineId)}/timetable?date=${day}&hourFrom=07:00&hourTo=10:00&red=${slug}`)).json();
+    const offlineTimetable = BideOffline.timetable(data, lineId, { date: tomorrow, from: 7 * 3600, to: 10 * 3600, stopId: null, now: new Date() });
+    const entryKeys = (entries) => entries.map((entry) => `${entry.departure} ${entry.tripKey} ${entry.headsign}`).sort().join('\n');
+    check(`${slug}: el horario de la línea sin conexión es el de la API (${offlineTimetable.entries.length} salidas)`, entryKeys(offlineTimetable.entries) === entryKeys(apiTimetable.entries), `${offlineTimetable.entries.length} frente a ${apiTimetable.entries.length}`);
+    const firstTrip = apiTimetable.entries[0];
+    if (firstTrip) {
+        const apiTrip = await (await fetch(`${BASE}/api/trips/${encodeURIComponent(firstTrip.tripKey)}?red=${slug}`)).json();
+        const offlineTrip = BideOffline.tripStops(data, firstTrip.tripKey, '');
+        const tripKeys = (trip) => trip.stops.map((stop) => `${stop.name} ${stop.scheduledTime}`).join(',');
+        check(`${slug}: las paradas de un viaje sin conexión son las de la API`, offlineTrip !== null && tripKeys(offlineTrip) === tripKeys(apiTrip) && offlineTrip.headsign === apiTrip.headsign, firstTrip.tripKey);
+    }
 }
+
+// Por defecto se guardan todas las redes; quien quita una ya ha elegido las suyas.
+const memory = new Map();
+globalThis.localStorage = { getItem: (name) => memory.get(name) ?? null, setItem: (name, value) => memory.set(name, String(value)), removeItem: (name) => memory.delete(name) };
+check('por defecto se guardan todas las redes', BideOffline.savesAll() === true);
+BideOffline.choose();
+check('quien quita una red ya no recibe las que falten', BideOffline.savesAll() === false);
 
 // Horas estimadas con los tramos aprendidos (las mismas reglas que el motor sin datos del bus). Viaje de ejemplo que sale
 // a las 08:00 y llega a la tercera parada a las 08:40 según el horario, pero a las 08:10 según lo aprendido.

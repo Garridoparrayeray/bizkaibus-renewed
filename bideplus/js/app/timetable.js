@@ -1,15 +1,25 @@
 // Horario de una línea con los filtros de fecha y hora.
-import { FEATURES, el, networkQuery, state } from './core.js';
+import { FEATURES, el, networkQuery, savedSchedule, state } from './core.js';
 import { toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { loadLineMap, startLineMapRefresh } from './line-map.js';
 import { statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
 import { openVehicleModal } from './vehicle-modal.js';
 
+// La línea: con la red guardada en el móvil, de ahí, sin pedirla al servidor; si no, de la API.
+async function lineInfo(lineId) {
+    const saved = await savedSchedule();
+    if (saved) {
+        const line = BideOffline.line(saved, lineId);
+        if (line) return line;
+    }
+    return Api.line(lineId);
+}
+
 export async function selectLine(lineId, scopeToCurrentStop = false) {
     let line;
     try {
-        line = await Api.line(lineId);
+        line = await lineInfo(lineId);
     } catch (e) {
         return;
     }
@@ -55,9 +65,9 @@ export async function loadTimetable() {
             stopId: state.timetableStopId,
         });
     } catch (e) {
-        return;
+        data = await offlineTimetable();
     }
-    if (requestId !== timetableRequestId) return;
+    if (!data || requestId !== timetableRequestId) return;
     state.lastTimetableEntries = data.entries;
     renderTimetableRows(data.entries);
     const timetableNote = document.getElementById('timetable-note');
@@ -69,14 +79,35 @@ export async function loadTimetable() {
     } else {
         rangeNote.hidden = true;
     }
-    timetableNote.hidden = !(data.beyondPublished || data.beforePublished);
-    if (data.beyondPublished) {
+    timetableNote.hidden = !(data.beyondPublished || data.beforePublished || data.offline);
+    if (data.offline) {
+        timetableNote.textContent = I18n.t('app.timetable.offline', { date: fmtDate(data.generated) });
+    } else if (data.beyondPublished) {
         timetableNote.textContent = I18n.t('app.timetable.beyond', { date: fmtDate(data.publishedUntil) });
     } else if (data.beforePublished) {
         timetableNote.textContent = I18n.t('app.timetable.before', { date: fmtDate(data.publishedFrom) });
     }
     state.schedulePublished = data.scheduleSourcePublished;
     renderSchedulePublished();
+}
+
+// Sin conexión, el horario del día y la franja elegidos sale del guardado en el móvil.
+async function offlineTimetable() {
+    const saved = await savedSchedule();
+    if (!saved) return null;
+    const [year, month, day] = el.filterDate.value.split('-').map(Number);
+    return BideOffline.timetable(saved, state.currentLine.id, {
+        date: new Date(year, month - 1, day),
+        from: hmSeconds(el.filterHourFrom.value || '00:00'),
+        to: hmSeconds(el.filterHourTo.value || '23:59'),
+        stopId: state.timetableStopId,
+        now: new Date(),
+    });
+}
+
+function hmSeconds(value) {
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 3600 + minutes * 60;
 }
 
 export function renderSchedulePublished() {

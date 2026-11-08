@@ -18,7 +18,7 @@ Horarios, llegadas y avisos del transporte público de Euskadi en una sola aplic
 | **Álavabus+** | Horarios y tiempo real de los autobuses interurbanos de Álava |
 | **La Unión+** | Horarios de los autobuses de La Unión entre Bizkaia y Vitoria-Gasteiz |
 
-Es una aplicación web instalable (PWA) en castellano, euskera e inglés, que funciona en el móvil y en el ordenador. Avisa con una notificación antes de que llegue tu bus o tu tren y de las incidencias nuevas de tus favoritos, aunque la app esté cerrada, y guarda en el dispositivo el horario de las redes que elijas para verlo sin conexión.
+Es una aplicación web instalable (PWA) en castellano, euskera e inglés, que funciona en el móvil y en el ordenador. Avisa con una notificación antes de que llegue tu bus o tu tren y de las incidencias nuevas de tus favoritos, aunque la app esté cerrada, y guarda en el dispositivo el horario de todas las redes: sin conexión se puede buscar y ver las paradas, las líneas con su horario y las paradas de cada viaje.
 
 ## Cómo funciona
 

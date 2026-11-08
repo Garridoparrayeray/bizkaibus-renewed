@@ -104,12 +104,17 @@ await goOwn('/?red=metro');
 await searchOwn('abando');
 check('busqueda online funciona (rellena la cache)', await waitTrue("document.querySelectorAll('#search-results .pill').length > 0"));
 
-// Horarios sin conexión: se guarda Bizkaibus desde Ajustes y se abre una parada con el servidor caído.
+// Horarios sin conexión: sin elegir nada se guardan todas las redes solas, unos segundos después de abrir la app.
 await goOwn('/?red=bus');
+check('horarios sin conexion: sin elegir nada, se guardan todas las redes', await waitTrue("BideNetworks.slugs.every((slug) => !!BideOffline.saved()[slug])", 60000));
+// Quitar una en Ajustes se recuerda: ya no vuelve sola.
 await ev("document.querySelector('[data-bide-tab=ajustes]').click()");
 await sleep(800);
-await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Bizkaibus')).querySelector('input'); input.click(); return true; })()");
-check('horarios sin conexion: Bizkaibus se guarda desde Ajustes', await waitTrue("!!BideOffline.saved().bus"));
+await ev("(() => { const input = [...document.querySelectorAll('.bide-offline-item')].find(li => li.textContent.includes('Tuvisa')).querySelector('input'); input.click(); return true; })()");
+check('horarios sin conexion: quitar una red en Ajustes la borra del movil', await waitTrue("!BideOffline.saved().tuvisa"));
+await ev("(() => { localStorage.removeItem('bide-offline-checked'); window.dispatchEvent(new Event('online')); return true; })()");
+await sleep(4000);
+check('horarios sin conexion: la red quitada no vuelve sola', await ev("!BideOffline.saved().tuvisa && !!BideOffline.saved().bus"));
 await ev("(() => { const list = BideOffline.saved(); list.bus.generated = '2000-01-01'; localStorage.setItem('bide-offline-networks', JSON.stringify(list)); localStorage.removeItem('bide-offline-checked'); window.dispatchEvent(new Event('online')); return true; })()");
 check('horarios sin conexion: un horario mas nuevo se baja solo al volver la conexion', await waitTrue("BideOffline.saved().bus.generated !== '2000-01-01'", 20000));
 await goOwn('/stops/3388', 4000);
@@ -127,8 +132,19 @@ check('servidor caido: los estilos siguen aplicados', (await ev("getComputedStyl
 check('servidor caido: las tipografias siguen disponibles', (await ev(`document.fonts.check('800 16px "Bricolage Grotesque"')`)) === true);
 await searchOwn('abando');
 check('servidor caido: una busqueda ya hecha responde desde la cache', await waitTrue("document.querySelectorAll('#search-results .pill').length > 0"));
-await searchOwn('zzqqxx');
-check('servidor caido: una consulta nueva muestra el aviso de conexion', await waitTrue("!document.getElementById('net-banner').hidden"));
+// Con la red guardada, el buscador no necesita el servidor: una búsqueda nueva también responde.
+await searchOwn('santutxu');
+check('servidor caido: una busqueda nueva responde con el horario guardado', await waitTrue("[...document.querySelectorAll('#search-results .pill')].some((pill) => pill.textContent.includes('Santutxu'))"));
+// Las líneas y su horario, y las paradas de un viaje, también salen del horario guardado.
+await searchOwn('MB');
+await ev("(() => { const pill = [...document.querySelectorAll('#search-results .pill')].find((p) => p.textContent.includes('MB ·')); if (pill) pill.click(); return true; })()");
+await sleep(1500);
+// De 08:00 a 10:00, para que haya trenes a cualquier hora a la que se pase la prueba.
+await ev("(() => { const from = document.getElementById('filter-hour-from'); const to = document.getElementById('filter-hour-to'); from.value = '08:00'; to.value = '10:00'; to.dispatchEvent(new Event('change')); return true; })()");
+check('servidor caido: la linea se abre con su horario guardado', await waitTrue("!document.getElementById('timetable-section').hidden && document.querySelectorAll('#timetable-body tr').length > 0 && !document.getElementById('timetable-note').hidden"));
+await ev("document.querySelector('#timetable-body tr').click()");
+check('servidor caido: un viaje del horario abre sus paradas con su hora', await waitTrue("document.getElementById('vehicle-modal').open && document.querySelectorAll('#modal-stops li').length > 1"));
+await ev("document.getElementById('vehicle-modal').close()");
 await goOwn('/stops/1137', 4000);
 check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && ['ESTIMADO', 'SOLO HORARIO'].includes(document.getElementById('live-badge').textContent) && /\\d/.test(document.getElementById('live-minutes').textContent)"));
 // Bizkaibus guarda también lo que tardan de verdad los buses: sin conexión sale la hora estimada con la oficial al lado.

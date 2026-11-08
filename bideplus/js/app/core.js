@@ -7,6 +7,12 @@ export const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
 export const networkQuery = networkQueryFor(NETWORK_SLUG);
 export const VEHICLE_PLURAL = { bus: 'autobuses', metro: 'metros', tram: 'tranvías', train: 'trenes' };
 
+// El horario de esta red guardado en el móvil (Ajustes → Horarios sin conexión), o null si no está.
+export async function savedSchedule() {
+    if (typeof BideOffline === 'undefined') return null;
+    return BideOffline.load(NETWORK_SLUG).catch(() => null);
+}
+
 export const ICONS = {
     pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>',
     bus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><line x1="3" y1="11" x2="21" y2="11"/><circle cx="7.5" cy="19" r="1.5"/><circle cx="16.5" cy="19" r="1.5"/></svg>',

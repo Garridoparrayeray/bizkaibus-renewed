@@ -9,6 +9,8 @@ const BideOffline = (() => {
     // Marcas que pone la persona sin conexión: { 'AAAA-MM-DD': { tripKey: { passed: posición } | { coming: posición } } }.
     const MARKS_KEY = 'bide-offline-marks';
     const CHECKED_KEY = 'bide-offline-checked';
+    // Quien quita una red en Ajustes ya elige las suyas: desde entonces no se guarda ninguna sola.
+    const CHOSEN_KEY = 'bide-offline-chosen';
     const CHECK_EVERY_MS = 6 * 3600 * 1000;
     const DAY_SECONDS = 86400;
     const PAST_MARGIN_SECONDS = 60;
@@ -78,6 +80,28 @@ const BideOffline = (() => {
         return data;
     }
 
+    function chosen() {
+        try {
+            return localStorage.getItem(CHOSEN_KEY) === '1';
+        } catch (e) {
+            return true;
+        }
+    }
+
+    function choose() {
+        try {
+            localStorage.setItem(CHOSEN_KEY, '1');
+        } catch (e) {
+            // Sin almacenamiento tampoco se recuerdan las redes guardadas.
+        }
+    }
+
+    // Por defecto se guardan todas, salvo con el ahorro de datos del móvil activado.
+    function savesAll() {
+        if (chosen()) return false;
+        return !(navigator.connection && navigator.connection.saveData);
+    }
+
     function checkedRecently() {
         try {
             return Date.now() - Number(localStorage.getItem(CHECKED_KEY) || 0) < CHECK_EVERY_MS;
@@ -96,14 +120,17 @@ const BideOffline = (() => {
 
     async function refreshSaved() {
         const list = saved();
-        if (!supported() || !navigator.onLine || Object.keys(list).length === 0 || checkedRecently()) return false;
+        const all = savesAll();
+        if (!supported() || !navigator.onLine || checkedRecently()) return false;
+        if (Object.keys(list).length === 0 && !all) return false;
         const response = await fetch('/offline-data/index.json', { cache: 'no-store' });
         if (!response.ok) return false;
         const index = await response.json();
         let updated = false;
         let failed = false;
         for (const network of index.networks || []) {
-            if (list[network.slug] && list[network.slug].generated !== network.generated) {
+            const kept = list[network.slug];
+            if ((kept && kept.generated !== network.generated) || (!kept && all)) {
                 await save(network.slug).then(() => {
                     updated = true;
                 }).catch(() => {
@@ -115,7 +142,8 @@ const BideOffline = (() => {
         return updated;
     }
 
-    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo.
+    // Con conexión, como mucho cada 6 horas: vuelve a bajar las redes guardadas que tengan un horario más nuevo y, si la
+    // persona no ha elegido las suyas, guarda las que falten.
     function refresh() {
         if (!refreshing) {
             refreshing = refreshSaved().finally(() => {
@@ -337,8 +365,9 @@ const BideOffline = (() => {
         return official;
     }
 
+    // Como Core\TripKey::build: un guion dentro del número de viaje (Tuvisa) va como «~».
     function tripKeyOf(data, pattern, trip) {
-        return `${data.lines[pattern[0]][0]}-${trip[4]}-${trip[5]}`;
+        return `${data.lines[pattern[0]][0]}-${String(trip[4]).replaceAll('-', '~')}-${trip[5]}`;
     }
 
     function departureItem(data, item, target, isPlatform, now, nowSeconds) {
@@ -392,6 +421,173 @@ const BideOffline = (() => {
         return { toward_reference: labels.toward_reference.join(' · '), away_from_reference: labels.away_from_reference.join(' · ') };
     }
 
+    const SEARCH_STOPS = 60;
+    const SEARCH_LINES = 30;
+    const SEARCH_HINTS = 2;
+
+    // Como Models\Search::normalize: sin tildes, en minúsculas y con un solo espacio.
+    function normalize(text) {
+        return String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function words(query) {
+        return [...new Set(normalize(query).split(/[^\p{L}\p{N}]+/u).filter(Boolean))];
+    }
+
+    // Primero lo que más se parece a lo escrito: igual, empieza por ello, lo contiene, el resto.
+    function matchRank(name, query) {
+        if (name === query) return 0;
+        if (name.startsWith(query)) return 1;
+        if (name.includes(query)) return 2;
+        return 3;
+    }
+
+    // «hacia Gernika, Lekeitio» con los destinos de los recorridos que salen de la parada; si no sale ninguno, es final.
+    function hint(data, stopId) {
+        const headsigns = [];
+        for (const [patternIndex] of data.byStop.get(stopId) || []) {
+            const pattern = data.patterns[patternIndex];
+            let headsign = pattern[1];
+            if (data.headsignFromLastStop) headsign = lastStopName(data, pattern);
+            if (headsign && !headsigns.includes(headsign)) headsigns.push(headsign);
+            if (headsigns.length === SEARCH_HINTS) break;
+        }
+        if (headsigns.length === 0) return 'final de línea';
+        return 'hacia ' + headsigns.join(', ');
+    }
+
+    // El buscador con el horario guardado, como /api/search: cada palabra en el nombre o en el pueblo de la parada, y en
+    // el número o el nombre de la línea.
+    function search(data, query, withHints) {
+        const found = words(query);
+        if (normalize(query).length < 2 || found.length === 0) return { stops: [], lines: [] };
+        const normalized = normalize(query);
+        const areas = data.areas || {};
+        const stops = [];
+        for (const [stopId, entry] of Object.entries(data.stops)) {
+            if (entry.length > 1) continue;
+            const name = normalize(entry[0]);
+            const haystack = name + ' ' + normalize(areas[stopId]);
+            if (!found.every((word) => haystack.includes(word))) continue;
+            stops.push({ id: outputId(stopId), name: entry[0], area: areas[stopId] || '', rank: matchRank(name, normalized) });
+        }
+        stops.sort((a, b) => a.rank - b.rank || a.name.length - b.name.length || a.area.localeCompare(b.area, 'es'));
+        const hidden = data.hiddenLineCodes || [];
+        const lines = data.lines
+            .filter((line) => !hidden.includes(line[1]) && found.every((word) => (line[1].toLowerCase() + ' ' + normalize(line[2])).includes(word)))
+            .sort((a, b) => Number(a[1] > b[1]) - Number(a[1] < b[1]))
+            .slice(0, SEARCH_LINES)
+            .map((line) => ({ id: outputId(line[0]), code: line[1], name: line[2] }));
+        return {
+            stops: stops.slice(0, SEARCH_STOPS).map((stop) => {
+                let stopHint = null;
+                if (withHints) stopHint = hint(data, String(stop.id));
+                return { id: stop.id, name: stop.name, area: stop.area, hint: stopHint };
+            }),
+            lines,
+            offline: true,
+        };
+    }
+
+    function headsignOf(data, pattern) {
+        if (data.headsignFromLastStop) return lastStopName(data, pattern);
+        return pattern[1];
+    }
+
+    function lineIndex(data, lineId) {
+        return data.lines.findIndex((line) => String(line[0]) === String(lineId));
+    }
+
+    // La línea, como /api/lines/{id} (sin recorridos).
+    function line(data, lineId) {
+        const index = lineIndex(data, lineId);
+        if (index < 0) return null;
+        const [id, code, name] = data.lines[index];
+        return { id: outputId(id), code, name, offline: true };
+    }
+
+    // Dónde para el recorrido en la parada (o en un andén de la estación), sin contar la última.
+    function positionsAt(data, pattern, stopId) {
+        if (stopId === null || stopId === undefined || stopId === '') return [0];
+        const id = String(stopId);
+        const positions = [];
+        pattern[2].forEach((patternStop, position) => {
+            if (position === pattern[2].length - 1) return;
+            const entry = data.stops[patternStop] || [];
+            if (patternStop === id || entry[1] === id) positions.push(position);
+        });
+        return positions;
+    }
+
+    function departuresOn(data, index, date, from, to, stopId, shift) {
+        const rows = [];
+        data.patterns.forEach((pattern, patternIndex) => {
+            if (pattern[0] !== index) return;
+            const positions = positionsAt(data, pattern, stopId);
+            for (const trip of data.tripsByPattern[patternIndex]) {
+                if (!runsOn(data.calendars[trip[3]], date)) continue;
+                for (const position of positions) {
+                    // En la cabecera, la hora de salida (la de llegada puede ser antes); en las demás, la de llegada.
+                    let seconds = trip[2] + data.timings[trip[1]][position];
+                    if (position === 0) seconds = trip[5];
+                    if (seconds < from || seconds > to) continue;
+                    rows.push({ seconds: seconds + shift, pattern, trip });
+                }
+            }
+        });
+        return rows;
+    }
+
+    /*
+     * Horario de una línea para un día y una franja, como /api/lines/{id}/timetable: desde la primera parada o, con
+     * stopId, en esa parada. Si la franja pasa de medianoche, se suman las de la madrugada del día siguiente.
+     * options: { date: Date, from, to (segundos), stopId, now: Date }.
+     */
+    function timetable(data, lineId, options) {
+        const index = lineIndex(data, lineId);
+        if (index < 0) return null;
+        let rows;
+        if (options.to >= options.from) {
+            rows = departuresOn(data, index, options.date, options.from, options.to, options.stopId, 0);
+        } else {
+            rows = departuresOn(data, index, options.date, options.from, options.to + DAY_SECONDS, options.stopId, 0);
+            const next = new Date(options.date);
+            next.setDate(next.getDate() + 1);
+            rows = rows.concat(departuresOn(data, index, next, 0, options.to, options.stopId, DAY_SECONDS));
+        }
+        rows.sort((a, b) => a.seconds - b.seconds);
+        const day = isoDate(options.date);
+        const today = isoDate(options.now);
+        const nowSeconds = options.now.getHours() * 3600 + options.now.getMinutes() * 60 + options.now.getSeconds();
+        const entries = rows.map((row) => {
+            let status = 'scheduled';
+            if (day < today || (day === today && row.seconds < nowSeconds)) status = 'departed';
+            return { tripKey: tripKeyOf(data, row.pattern, row.trip), departure: hm(row.seconds), headsign: headsignOf(data, row.pattern), status, delayMinutes: 0 };
+        });
+        return { line: line(data, lineId), date: day, entries, generated: data.generated, offline: true };
+    }
+
+    // Las paradas de un viaje con su hora, como /api/trips/{tripKey}.
+    function tripStops(data, tripKey, stopId) {
+        for (const [patternIndex, pattern] of data.patterns.entries()) {
+            const trip = data.tripsByPattern[patternIndex].find((candidate) => tripKeyOf(data, pattern, candidate) === tripKey);
+            if (!trip) continue;
+            const [, code, name] = data.lines[pattern[0]];
+            const target = String(stopId || '');
+            const stops = pattern[2].map((patternStop, position) => {
+                const entry = data.stops[patternStop] || [patternStop];
+                return {
+                    stopId: outputId(entry[1] || patternStop),
+                    name: entry[0],
+                    scheduledTime: hm(trip[2] + data.timings[trip[1]][position]),
+                    isTarget: target !== '' && (patternStop === target || entry[1] === target),
+                };
+            });
+            return { lineCode: code, lineName: name, headsign: headsignOf(data, pattern), stops, offline: true };
+        }
+        return null;
+    }
+
     // La parada (o estación) con sus líneas, como /api/stops/{id}.
     function stop(data, stopId) {
         const id = String(stopId);
@@ -419,6 +615,8 @@ const BideOffline = (() => {
         saved,
         save,
         remove,
+        choose,
+        savesAll,
         refresh,
         load,
         prepare,
@@ -427,6 +625,10 @@ const BideOffline = (() => {
         mark,
         unmark,
         stop,
+        search,
+        line,
+        timetable,
+        tripStops,
     };
 })();
 

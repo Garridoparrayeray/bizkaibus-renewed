@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, HAS_PLATFORMS, NETWORK_SLUG, el, onReturn, state, whenVisible } from './core.js';
+import { FEATURES, NETWORK_SLUG, el, onReturn, savedSchedule, state, whenVisible } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -140,9 +140,8 @@ export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
     try {
         data = await Api.vehicle(tripKey, state.currentStop?.id);
     } catch (e) {
-        if (HAS_PLATFORMS) {
-            await openTripStopsModal(tripKey, tomorrow);
-        }
+        // Sin el directo (sin conexión, o en estaciones con andenes), las paradas del viaje con su hora.
+        await openTripStopsModal(tripKey, tomorrow);
         return;
     }
     if (tomorrow) data = asTomorrow(data);
@@ -180,8 +179,10 @@ async function openTripStopsModal(tripKey, tomorrow = false) {
     try {
         data = await Api.tripStops(tripKey, state.currentStop?.id ?? '');
     } catch (e) {
-        return;
+        const saved = await savedSchedule();
+        if (saved) data = BideOffline.tripStops(saved, tripKey, state.currentStop?.id ?? '');
     }
+    if (!data) return;
     shareState.tripKey = tripKey;
     shareState.data = data;
     showShareOptions();
