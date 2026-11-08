@@ -16,6 +16,7 @@ class TripDelayMatcher
     private const STALE_PREDICTION_SECONDS = 60;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
     private const MAX_GPS_DELAY_SECONDS = 45 * 60;
+    private const MAX_FEED_GAP_SECONDS = 2 * 3600;
     private const DAY_SECONDS = 86400;
 
     // id del viaje => ['delay', 'times' => [parada => segundos], 'nextStopId', 'canceled', 'shift']. 'times' va en las
@@ -23,6 +24,7 @@ class TripDelayMatcher
     // ayer que pasa de las 24:00, 0 el resto del día).
     private array $aByJourney = [];
     private int $iMidnight;
+    private int $iClock = 0;
     private bool $bRail;
     private int $iMatched = 0;
     private bool $bCopiesSchedule = false;
@@ -40,10 +42,16 @@ class TripDelayMatcher
         $this->Stops = new JourneyStops($JourneyModel);
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
         $aJourneyIds = $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId'));
+        $iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
+        $this->iClock = FeedClock::offset($aTrips, $aJourneyIds, $this->Stops, $iMidnight, $iZone);
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
-            if ($sJourneyId !== null) {
-                $this->aByJourney[(string)$sJourneyId] = $this->liveFromTrip($aTrip, (string)$sJourneyId);
+            if ($sJourneyId === null) {
+                continue;
+            }
+            $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
+            if (!$this->implausible((string)$sJourneyId, $aLive)) {
+                $this->aByJourney[(string)$sJourneyId] = $aLive;
             }
         }
         $this->iMatched = \count($this->aByJourney);
@@ -68,7 +76,7 @@ class TripDelayMatcher
         if (!isset($aTrip['delay'])) {
             $aArrivals = array_column($aStops, 'arrival_seconds', 'stop_id');
             foreach ($aTrip['stops'] ?? [] as $iIndex => [$sStopId, $iTime]) {
-                $iToday = (int)$iTime - $this->iMidnight;
+                $iToday = (int)$iTime - $this->iMidnight - $this->iClock;
                 if ($iIndex === 0 && isset($aArrivals[$sStopId])) {
                     $iShift = $this->dayShift((int)$aArrivals[$sStopId], $iToday);
                 }
@@ -76,6 +84,19 @@ class TripDelayMatcher
             }
         }
         return ['delay' => (int)($aTrip['delay'] ?? 0), 'times' => $aTimes, 'nextStopId' => $sNextStopId, 'canceled' => !empty($aTrip['canceled']), 'shift' => $iShift];
+    }
+
+    // Unas horas que se apartan más de 2 h de su horario son de otro viaje con ese número (Álavabus da a veces el de
+    // hace horas): no valen, el viaje sale con su horario.
+    private function implausible(string $sJourneyId, array $aLive): bool
+    {
+        foreach ($this->Stops->of($sJourneyId) as $aStop) {
+            $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
+            if ($iTime !== null) {
+                return abs($iTime - (int)$aStop['arrival_seconds']) > self::MAX_FEED_GAP_SECONDS;
+            }
+        }
+        return abs($aLive['delay']) > self::MAX_FEED_GAP_SECONDS;
     }
 
     // Días enteros (en segundos) que separan una hora de hoy de la del horario más cercana: 0 casi siempre, 24 h para
@@ -139,6 +160,7 @@ class TripDelayMatcher
         }
         $aOut = [
             'matched' => $this->iMatched,
+            'clockMinutes' => intdiv($this->iClock, 60),
             'copiesSchedule' => $this->bCopiesSchedule,
             'contradictsVehicles' => $this->bContradictsVehicles,
             'live' => \count($aDelays),

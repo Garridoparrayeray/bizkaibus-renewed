@@ -464,13 +464,29 @@ $Expect('Álavabus: si las horas del feed no cuadran con dónde están los autob
 $aOnTrips = array_map(fn($aTrip) => ['tripId' => $aTrip['tripId'], 'stops' => [['B', $iOffMidnight + T0 + 1050], ['C', $iOffMidnight + T0 + 1170]]], $aOffTrips);
 $aOnRow = (new TripDelayMatcher($aOnTrips, new ServiceJourney($PdoRenfe), $iOffMidnight, $aOffVehicles))->enrich('C', [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)]);
 $Expect('si cuadran, mandan las horas del feed', $aOnRow[0]['etaSeconds'] === T0 + 1170, json_encode($aOnRow[0]));
+// Álavabus escribe la hora de aquí como si fuera UTC: con gtfs_rt.local_clock se le quita lo que Madrid se aparta de
+// UTC, también con un solo autobús y sin GPS; si sus horas ya cuadran con el horario, no se toca nada.
+$iZone = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->getOffset();
+$aAheadTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + $iZone], ['C', $iOffMidnight + T0 + 1170 + $iZone]]]];
+$aRowC = [['stop_seq' => 2, 'arrival_seconds' => T0 + 840, 'etaSeconds' => T0 + 840] + $RenfeRow('J2', 1)];
+\Core\Config::set('alavabus');
+$MClock = new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight);
+$Expect('Álavabus: sus horas adelantadas lo que Madrid se aparta de UTC se corrigen, con un solo autobús y sin GPS', $MClock->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 && $MClock->diagnostics()['clockMinutes'] === intdiv($iZone, 60), json_encode($MClock->enrich('C', $aRowC)[0]));
+$aRightRow = (new TripDelayMatcher([$aOnTrips[1]], new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+$Expect('Álavabus: si sus horas ya cuadran con el horario (el operador lo arregla), no se corrigen', $aRightRow[0]['etaSeconds'] === T0 + 1170, json_encode($aRightRow[0]));
+$aOtherTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + 5 * 3600], ['C', $iOffMidnight + T0 + 1170 + 5 * 3600]]]];
+\Core\Config::set('renfe');
+$Expect('unas horas que se apartan más de 2 h del horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
+$Expect('sin local_clock en su ficha, las horas del feed no se corrigen', (new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 + $iZone);
 \Core\Config::set('metro');
-$MMetroNow = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
+// Las horas del feed, de verdad (marcas de tiempo del día de la prueba).
+$MetroTripAt = fn(int $iMidnight) => [['tripId' => '6005L1C1', 'stops' => [['B', $iMidnight + T0 + 120 + 900], ['C', $iMidnight + T0 + 240 + 960]]]];
+$MMetroNow = new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950));
 $Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');
-$MMetroEarly = new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - T0);
+$MMetroEarly = new TripDelayMatcher($MetroTripAt(time() - T0), new ServiceJourney($PdoRenfe), time() - T0);
 $Expect('Metro: uno que aún no toca y no está en el feed sigue con el horario', $MMetroEarly->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
 \Core\Config::set('bus');
-$Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+$Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
 
 $aCancelAlerts = CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 60);
 $Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y destino', count($aCancelAlerts) === 1 && $aCancelAlerts[0]['summary'] === 'C1 · tren de las 08:20 cancelado' && $aCancelAlerts[0]['description'] === 'Renfe ha cancelado el tren de las 08:20 de Abando a Zabalburu.' && $aCancelAlerts[0]['lineRefs'] === ['C1-ida'], json_encode($aCancelAlerts));
