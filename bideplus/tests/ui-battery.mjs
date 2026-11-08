@@ -62,7 +62,7 @@ const search = async (q, wait = 3200) => {
 
 // Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
 const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
-const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].q, panel: samples[key].panel, beyond: samples[key].beyondPublished }));
+const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
 let sizeFilter = null;

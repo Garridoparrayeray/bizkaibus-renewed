@@ -58,6 +58,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     $aSamples[$sSlug] = [
         'suffix' => $sSuffix,
         'q' => searchWord($aStop['name']),
+        'fullQuery' => searchWords($aStop['name']),
         'stopId' => (string)$aStop['id'],
         'name' => $aStop['name'],
         'lat' => (float)$aStop['lat'],
@@ -77,12 +78,24 @@ function dayAfter(string|null $sDate): string
     return (new DateTime($sDate))->modify('+1 day')->format('Y-m-d');
 }
 
-// La palabra más larga del nombre, sin tildes ni mayúsculas: lo que escribiría alguien en el buscador.
+// Las palabras del nombre, sin tildes ni mayúsculas.
+function nameWords(string $sName): array
+{
+    return preg_split('/[^\p{L}\p{N}]+/u', Search::normalize($sName), -1, PREG_SPLIT_NO_EMPTY);
+}
+
+// La palabra más larga del nombre: lo que escribiría alguien en el buscador.
 function searchWord(string $sName): string
 {
-    $aWords = preg_split('/[^\p{L}\p{N}]+/u', Search::normalize($sName), -1, PREG_SPLIT_NO_EMPTY);
+    $aWords = nameWords($sName);
     usort($aWords, fn($sA, $sB) => mb_strlen($sB) <=> mb_strlen($sA));
     return $aWords[0];
+}
+
+// El nombre entero: una sola palabra puede encontrar antes otra parada (una rural, sin servicio algunos días).
+function searchWords(string $sName): string
+{
+    return implode(' ', nameWords($sName));
 }
 
 echo json_encode($aSamples, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
