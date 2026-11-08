@@ -92,6 +92,8 @@ return [
         'local_clock' => true,
         // Sus horas previstas fallan a menudo: donde el autobús manda su posición, se usa la posición.
         'prefer_vehicles' => true,
+        // A veces da a un autobús el número de un viaje de hace horas: unas horas a más de 2 h del horario no valen.
+        'max_feed_gap_seconds' => 2 * 3600,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,

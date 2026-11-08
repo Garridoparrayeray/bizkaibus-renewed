@@ -524,6 +524,26 @@ class ServiceJourney
         return $aLine;
     }
 
+    // [id de la parada => [lat, lon]]; vacío si la base no tiene coordenadas.
+    public function stopCoordinates(array $aStopIds): array
+    {
+        $aIds = array_values(array_unique(array_map('strval', $aStopIds)));
+        if (empty($aIds)) {
+            return [];
+        }
+        try {
+            $Stmt = $this->Pdo->prepare('SELECT id, lat, lon FROM stops WHERE id IN (' . implode(',', array_fill(0, \count($aIds), '?')) . ')');
+            $Stmt->execute($aIds);
+        } catch (\PDOException $Ex) {
+            return [];
+        }
+        $aCoords = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aCoords[(string)$aRow['id']] = [(float)$aRow['lat'], (float)$aRow['lon']];
+        }
+        return $aCoords;
+    }
+
     public function stopsForJourney(string $sServiceJourneyId): array
     {
         $Stmt = $this->Pdo->prepare('

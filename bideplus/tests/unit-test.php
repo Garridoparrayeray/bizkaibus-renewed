@@ -483,9 +483,18 @@ $Expect('el viaje de hoy sí vale', (new TripDelayMatcher($aTodayTrip, new Servi
 $aBadTimes = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 1800], ['C', $iOffMidnight + T0 + 1140 + 1800]]]];
 $aGpsRow = (new TripDelayMatcher($aBadTimes, new ServiceJourney($PdoRenfe), $iOffMidnight, [$aOffVehicles[1]]))->enrich('C', $aRowC);
 $Expect('Álavabus: con la posición del autobús, su retraso sale del GPS y no de las horas del feed', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
+// Dónde está el autobús por su GPS: tres paradas en línea recta (A 08:00, B 08:10, C 08:20), cada una a 1 km.
+$aLine = [['stop_id' => 'A', 'arrival_seconds' => 8 * 3600], ['stop_id' => 'B', 'arrival_seconds' => 8 * 3600 + 600], ['stop_id' => 'C', 'arrival_seconds' => 8 * 3600 + 1200]];
+$aLineCoords = ['A' => [43.0, -2.9], 'B' => [43.009, -2.9], 'C' => [43.018, -2.9]];
+$iPastB = Services\RoutePosition::scheduledSeconds($aLine, 1, $aLineCoords, 43.0135, -2.9);
+$Expect('posición GPS: el feed da B pero el bus va por la mitad de B a C (B ya quedó atrás): 08:15', abs($iPastB - (8 * 3600 + 900)) <= 5, (string)$iPastB);
+$iBeforeB = Services\RoutePosition::scheduledSeconds($aLine, 1, $aLineCoords, 43.0045, -2.9);
+$Expect('posición GPS: el feed da B y el bus va por la mitad de A a B: 08:05', abs($iBeforeB - (8 * 3600 + 300)) <= 5, (string)$iBeforeB);
+$Expect('posición GPS: sin coordenadas de las paradas, no hay posición', Services\RoutePosition::scheduledSeconds($aLine, 1, [], 43.0, -2.9) === null);
 $aOtherTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + 5 * 3600], ['C', $iOffMidnight + T0 + 1170 + 5 * 3600]]]];
+$Expect('Álavabus: unas horas que se apartan más de 2 h del horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
 \Core\Config::set('renfe');
-$Expect('unas horas que se apartan más de 2 h del horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
+$Expect('en las demás redes no hay tope: un tren con más de 2 h de retraso sale con su retraso', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'live');
 $Expect('sin local_clock en su ficha, las horas del feed no se corrigen', (new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 + $iZone);
 \Core\Config::set('metro');
 // Las horas del feed, de verdad (marcas de tiempo del día de la prueba).
