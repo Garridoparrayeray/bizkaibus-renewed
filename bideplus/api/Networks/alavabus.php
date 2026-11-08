@@ -88,6 +88,8 @@ return [
         'trip_updates_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/tripUpdate.bin',
         'vehicle_positions_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/position.bin',
         'matching' => 'trip',
+        // Su feed escribe la hora de aquí como si fuera UTC: sus horas llegan adelantadas una hora (dos en verano).
+        'local_clock' => true,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
