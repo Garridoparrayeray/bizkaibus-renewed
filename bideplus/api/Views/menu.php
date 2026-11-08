@@ -58,6 +58,7 @@ $aJsonLd = [
             'description' => $sDescription,
             'inLanguage' => $sLang,
             'publisher' => $aAuthor,
+            'sameAs' => [$aSite['instagram_url']],
         ],
         [
             '@type' => 'ItemList',
