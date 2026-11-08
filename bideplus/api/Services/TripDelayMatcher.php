@@ -16,7 +16,6 @@ class TripDelayMatcher
     private const STALE_PREDICTION_SECONDS = 60;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
     private const MAX_GPS_DELAY_SECONDS = 45 * 60;
-    private const MAX_FEED_GAP_SECONDS = 2 * 3600;
     private const EARLY_MORNING_SECONDS = 4 * 3600;
     private const DAY_SECONDS = 86400;
 
@@ -108,17 +107,22 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // Unas horas que se apartan más de 2 h de su horario son de otro viaje con ese número (Álavabus da a veces el de
-    // hace horas): no valen, el viaje sale con su horario.
+    // En las redes con gtfs_rt.max_feed_gap_seconds (Álavabus, 2 h), unas horas que se apartan más de su horario son
+    // de otro viaje con ese número (da a veces el de hace horas): no valen, el viaje sale con su horario. Las demás no
+    // tienen tope: un tren de Renfe con más de 2 h de retraso sigue saliendo con su retraso.
     private function implausible(string $sJourneyId, array $aLive): bool
     {
+        $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;
+        if ($iMaxGap === null) {
+            return false;
+        }
         foreach ($this->Stops->of($sJourneyId) as $aStop) {
             $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
             if ($iTime !== null) {
-                return abs($iTime - (int)$aStop['arrival_seconds']) > self::MAX_FEED_GAP_SECONDS;
+                return abs($iTime - (int)$aStop['arrival_seconds']) > $iMaxGap;
             }
         }
-        return abs($aLive['delay']) > self::MAX_FEED_GAP_SECONDS;
+        return abs($aLive['delay']) > $iMaxGap;
     }
 
     // Días enteros (en segundos) que separan una hora de hoy de la del horario más cercana: 0 casi siempre, 24 h para
