@@ -225,7 +225,8 @@ try {
         $aSample = null;
         foreach ($aStopIds as $sStopId) {
             foreach ((new StopsController())->departuresData($sStopId, 40)['departures'] ?? [] as $aDeparture) {
-                if ($aDeparture['etaAt'] - time() > 15 * 60 && !in_array($aDeparture['status'], ['departed', 'likely_departed'], true)) {
+                // Entre 15 minutos y 11 horas: el aviso diario de un viaje más lejano no se mira hasta que se acerca su hora.
+                if ($aDeparture['etaAt'] - time() > 15 * 60 && $aDeparture['etaAt'] - time() < 11 * 3600 && !in_array($aDeparture['status'], ['departed', 'likely_departed'], true)) {
                     $aSample = [$sStopId, $aDeparture];
                     break 2;
                 }

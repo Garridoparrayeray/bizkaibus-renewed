@@ -32,5 +32,8 @@
 - [Portfolio](https://www.yeraygarrido.dev/)
 - [GitHub](https://github.com/Garridoparrayeray)
 
+## Social
+- [Instagram](https://www.instagram.com/bideplus.eus/): Bide+ on Instagram
+
 ## Notes
 - Independent project, not affiliated with Bizkaibus, Metro Bilbao, Euskotren, Renfe or the public administrations that publish the data. Timetables can change; check the operator for official information.

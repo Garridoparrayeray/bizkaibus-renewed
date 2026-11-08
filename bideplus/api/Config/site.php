@@ -20,6 +20,8 @@ return [
         'LinkedIn' => 'https://www.linkedin.com/in/yeray-garrido',
         'Portfolio' => 'https://www.yeraygarrido.dev/',
     ],
+    // El Instagram de Bide+: sale en el pie y en Info, junto a los enlaces de «Hecho por», y en los datos para buscadores.
+    'instagram_url' => 'https://www.instagram.com/bideplus.eus/',
     // El enlace «Código en GitHub».
     'source_url' => 'https://github.com/Garridoparrayeray/bizkaibus-renewed',
     // Adonde llegan las sugerencias y los errores del formulario de Info.
