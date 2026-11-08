@@ -1,5 +1,5 @@
 // Buscador de paradas y líneas, y paradas cercanas con la ubicación.
-import { ICONS, el } from './core.js';
+import { FEATURES, ICONS, el, savedSchedule } from './core.js';
 import { selectStop } from './stop.js';
 import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
@@ -11,11 +11,17 @@ async function performSearch(query) {
         el.searchResults.innerHTML = '';
         return;
     }
+    // Con la red guardada en el móvil se busca ahí, sin pedir nada al servidor y también sin conexión.
+    const saved = await savedSchedule();
     let results;
-    try {
-        results = await Api.search(query);
-    } catch (e) {
-        return;
+    if (saved) {
+        results = BideOffline.search(saved, query, Boolean(FEATURES.stop_hints));
+    } else {
+        try {
+            results = await Api.search(query);
+        } catch (e) {
+            return;
+        }
     }
     renderSearchResults(results.stops, results.lines);
 }

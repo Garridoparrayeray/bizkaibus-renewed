@@ -100,7 +100,9 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'directionReference' => $sReference,
         'lon' => (object)$aLon,
         'stops' => $aStopsOut,
+        'areas' => (object)offlineAreas($aStopsOut, $aAllStops),
         'lines' => $aLines,
+        'hiddenLineCodes' => $aNetwork['hidden_line_codes'] ?? [],
         'calendars' => $aCalendars,
         'patterns' => $Patterns->values(),
         'timings' => $Timings->values(),
@@ -246,7 +248,7 @@ function estimateSlots(Closure $Estimator, IndexedList $Estimates, array $aCalen
 function offlineStops(PDO $Pdo, array $aUsed): array
 {
     $aAll = [];
-    foreach ($Pdo->query('SELECT id, name, station_id, platform_label, lon FROM stops') as $aRow) {
+    foreach ($Pdo->query('SELECT id, name, area, station_id, platform_label, lon FROM stops') as $aRow) {
         $aAll[(string)$aRow['id']] = $aRow;
     }
     $aStops = [];
@@ -266,6 +268,19 @@ function offlineStops(PDO $Pdo, array $aUsed): array
         }
     }
     return [$aStops, $aAll];
+}
+
+// El pueblo de cada parada que se puede buscar (las que no son andén de una estación), para el buscador sin conexión.
+function offlineAreas(array $aStops, array $aAll): array
+{
+    $aAreas = [];
+    foreach ($aStops as $sStopId => $aStop) {
+        $sArea = (string)($aAll[$sStopId]['area'] ?? '');
+        if (\count($aStop) === 1 && $sArea !== '') {
+            $aAreas[$sStopId] = $sArea;
+        }
+    }
+    return $aAreas;
 }
 
 // Como ServiceJourney::directionsByPattern.

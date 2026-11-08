@@ -4,6 +4,7 @@
     if (!root.classList.contains('bide')) return;
 
     const MAX_FEEDBACK = 1500;
+    const OFFLINE_START_DELAY_MS = 3000;
 
     function translate(key, vars) {
         if (window.I18n) return I18n.t(key, vars);
@@ -107,6 +108,7 @@
                 const saved = await BideOffline.save(slug);
                 detail.textContent = offlineDetail(slug, saved);
             } else {
+                BideOffline.choose();
                 await BideOffline.remove(slug);
                 detail.textContent = offlineDetail(slug, null);
             }
@@ -207,7 +209,8 @@
         const refreshOffline = () => BideOffline.refresh().then((updated) => {
             if (updated) renderOffline();
         }).catch(() => {});
-        refreshOffline();
+        // Unos segundos después de abrir, para no quitarle conexión a la página.
+        setTimeout(refreshOffline, OFFLINE_START_DELAY_MS);
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') refreshOffline();
         });

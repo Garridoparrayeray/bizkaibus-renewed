@@ -1,5 +1,5 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, el, networkQuery, state, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, VEHICLE_PLURAL, el, networkQuery, savedSchedule, state, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
@@ -10,17 +10,11 @@ import { refreshStopAlerts } from './stop-alerts.js';
 const DEPARTURES_REFRESH_MS = 25000;
 const DEPARTURES_TICK_MS = 10000;
 
-// Sin conexión, la parada y sus salidas salen del horario guardado en el móvil (Info → Horarios sin conexión).
-async function offlineSchedule() {
-    if (typeof BideOffline === 'undefined') return null;
-    return BideOffline.load(NETWORK_SLUG).catch(() => null);
-}
-
 // Las salidas que se ven, ¿salen del horario guardado (sin conexión)? Solo entonces se puede marcar si un bus pasó.
 let offlineView = null;
 
 async function refreshOfflineDepartures() {
-    const saved = await offlineSchedule();
+    const saved = await savedSchedule();
     if (!saved || !state.currentStop) return;
     const data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
     state.lastDepartures = data;
@@ -69,7 +63,7 @@ export async function selectStop(stopId) {
     try {
         stop = await Api.stop(stopId);
     } catch (e) {
-        const saved = await offlineSchedule();
+        const saved = await savedSchedule();
         if (saved) stop = BideOffline.stop(saved, stopId);
         if (!stop) return;
     }
@@ -159,7 +153,7 @@ export async function loadDepartures() {
     try {
         data = await Api.stopDepartures(state.currentStop.id, 20);
     } catch (e) {
-        const saved = await offlineSchedule();
+        const saved = await savedSchedule();
         if (saved) data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
         if (!data) {
             state.lastDepartures = null;

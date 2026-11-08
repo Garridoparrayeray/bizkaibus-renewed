@@ -16,7 +16,7 @@ header_register_callback(function () use ($bMiamorDomain) {
     if (http_response_code() !== 200 || $bMiamorDomain) {
         return;
     }
-    header('Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=7200');
+    header('Cache-Control: public, max-age=0, s-maxage=' . Core\CacheSeconds::STATIC . ', stale-while-revalidate=' . (Core\CacheSeconds::STATIC * 2));
     header('Vary: Host');
 });
 

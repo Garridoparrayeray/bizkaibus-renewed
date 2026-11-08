@@ -261,6 +261,7 @@ async function forgetDevice() {
     await AlertsStore.resetBaseline();
     localStorage.clear();
     sessionStorage.clear();
+    BideOffline.choose();
 }
 
 // Dos pulsaciones: la primera pide confirmación y, si no llega la segunda en 5 segundos, se olvida.
