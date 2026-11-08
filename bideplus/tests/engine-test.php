@@ -272,11 +272,13 @@ for ($i = 0; $i < 5; $i++) {
 }
 $aRowSlow = array_merge($aRowNoBus, ['service_journey_id' => 'J_SLOW', 'arrival_seconds' => T0 + 3600]);
 $aSlowPassed = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 3000, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
-$Expect('horario mucho más lento que lo aprendido y el bus ya debió pasar: sale como «probablemente ya pasó», con la hora oficial', $aSlowPassed['status'] === 'likely_departed' && $aSlowPassed['etaSeconds'] === T0 + 3600, json_encode([$aSlowPassed['status'], hms($aSlowPassed['etaSeconds'])]));
+$Expect('horario mucho más lento que lo aprendido y el bus ya debió pasar: sale como «puede haber pasado», con la hora oficial y la estimada de paso', $aSlowPassed['status'] === 'likely_departed' && $aSlowPassed['etaSeconds'] === T0 + 3600 && $aSlowPassed['likelyPassedSeconds'] === T0 + 460, json_encode([$aSlowPassed['status'], hms($aSlowPassed['etaSeconds'])]));
 $aSlowSoon = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 300, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
 $Expect('mismo viaje antes de la hora estimada: sale estimado, con la hora estimada', $aSlowSoon['status'] === 'estimated' && $aSlowSoon['etaSeconds'] === T0 + 460);
-$aSlowJustPassed = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 1000, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
-$Expect('si la hora estimada pasó hace menos de 10 min (el bus puede ir con retraso), se deja el horario publicado', $aSlowJustPassed['status'] === 'scheduled' && $aSlowJustPassed['etaSeconds'] === T0 + 3600);
+$aSlowJustPassed = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 600, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
+$Expect('si la hora estimada pasó hace menos de 3 min (el bus puede ir con retraso), se deja el horario publicado', $aSlowJustPassed['status'] === 'scheduled' && $aSlowJustPassed['etaSeconds'] === T0 + 3600 && !isset($aSlowJustPassed['likelyPassedSeconds']));
+$aSlowPastMargin = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 700, new PaceFactors(), DATE_WEEKDAY, $SegLearned))->enrich([$aRowSlow])[0];
+$Expect('pasados 3 min de la hora estimada ya «puede haber pasado» (A3515 a Bermeo por San Juan: estimada 11:58, horario 12:13)', $aSlowPastMargin['status'] === 'likely_departed' && $aSlowPastMargin['likelyPassedSeconds'] === T0 + 460, $aSlowPastMargin['status']);
 $aSlowUnlearned = (new RealtimeMatcher([], new ServiceJourney($PdoSlow), T0 + 3000, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes(['segments' => ['S0>S1' => ['n' => 5, 'all' => 100]], 'lengthRatios' => ['3' => ['all' => 0.1]]])))->enrich([$aRowSlow])[0];
 $Expect('si casi ningún tramo tiene tiempo aprendido, no se esconde el viaje', $aSlowUnlearned['status'] === 'scheduled' && $aSlowUnlearned['etaSeconds'] === T0 + 3600, json_encode([$aSlowUnlearned['status'], hms($aSlowUnlearned['etaSeconds'])]));
 $MNoLearned = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 600, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
