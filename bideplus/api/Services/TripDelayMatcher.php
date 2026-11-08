@@ -69,20 +69,23 @@ class TripDelayMatcher
 
     private function liveFromTrip(array $aTrip, string $sJourneyId): array
     {
-        $sNextStopId = $aTrip['nextStopId'] ?? null;
-        if (!empty($aTrip['stops'])) {
-            $sNextStopId = (string)$aTrip['stops'][0][0];
-        }
         $aStops = $this->Stops->of($sJourneyId);
+        // Las paradas del feed en el orden del viaje: la que llega con el id de otra (Metro manda Urduliz como Gobela)
+        // se arregla o se quita, para que no ponga su hora a una estación por la que el tren ya ha pasado.
+        $aFeedStops = FeedStopOrder::fit($aTrip['stops'] ?? [], array_map(fn(array $aStop) => (string)$aStop['stop_id'], $aStops));
+        $sNextStopId = $aTrip['nextStopId'] ?? null;
+        if (!empty($aFeedStops)) {
+            $sNextStopId = (string)$aFeedStops[0][0];
+        }
         $iShift = $this->shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0));
         $aTimes = [];
         if (!isset($aTrip['delay'])) {
-            $iClock = FeedClock::shift($aTrip['stops'] ?? [], $aStops, $this->iMidnight, $this->iZone);
+            $iClock = FeedClock::shift($aFeedStops, $aStops, $this->iMidnight, $this->iZone);
             if ($iClock > 0) {
                 $this->iShifted++;
             }
             $aArrivals = array_column($aStops, 'arrival_seconds', 'stop_id');
-            foreach ($aTrip['stops'] ?? [] as $iIndex => [$sStopId, $iTime]) {
+            foreach ($aFeedStops as $iIndex => [$sStopId, $iTime]) {
                 $iToday = (int)$iTime - $this->iMidnight - $iClock;
                 if ($iIndex === 0 && isset($aArrivals[$sStopId])) {
                     $iShift = $this->dayShift((int)$aArrivals[$sStopId], $iToday);
