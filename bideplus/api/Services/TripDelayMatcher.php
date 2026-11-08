@@ -159,13 +159,31 @@ class TripDelayMatcher
             }
             $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
             $iShift = $this->shiftFromNow($iArrival);
-            $iDelay = max(0, $this->nowSeconds() + $iShift - $iArrival);
+            $iDelay = max(0, $this->nowSeconds() + $iShift - $this->vehicleScheduled($sJourneyId, $iOrder, $iArrival, $aVehicle));
             if ($iDelay > self::MAX_GPS_DELAY_SECONDS) {
                 continue;
             }
             $aEntries[$sJourneyId] = ['delay' => $iDelay, 'times' => [], 'nextStopId' => $sStopId, 'canceled' => false, 'shift' => $iShift];
         }
         return $aEntries;
+    }
+
+    // La hora del horario donde está el vehículo: la de la parada que da el feed o, en las redes con
+    // gtfs_rt.prefer_vehicles (Álavabus, que da a veces la parada que acaba de dejar atrás), la de su posición GPS en el
+    // tramo antes o después de ella.
+    private function vehicleScheduled(string $sJourneyId, int $iOrder, int $iArrival, array $aVehicle): int
+    {
+        if (empty(\Core\Config::current()['gtfs_rt']['prefer_vehicles']) || !isset($aVehicle['lat'], $aVehicle['lon'])) {
+            return $iArrival;
+        }
+        $aStops = array_values($this->Stops->of($sJourneyId));
+        $iIndex = array_search($iOrder, array_map(fn($aStop) => (int)$aStop['seq_order'], $aStops), true);
+        if ($iIndex === false) {
+            return $iArrival;
+        }
+        $aNear = array_slice($aStops, max(0, $iIndex - 1), 3);
+        $aCoords = $this->JourneyModel->stopCoordinates(array_column($aNear, 'stop_id'));
+        return RoutePosition::scheduledSeconds($aStops, $iIndex, $aCoords, (float)$aVehicle['lat'], (float)$aVehicle['lon']) ?? $iArrival;
     }
 
     public function hasData(): bool
