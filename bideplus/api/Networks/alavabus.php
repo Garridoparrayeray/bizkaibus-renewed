@@ -90,6 +90,8 @@ return [
         'matching' => 'trip',
         // Su feed escribe la hora de aquí como si fuera UTC: sus horas llegan adelantadas una hora (dos en verano).
         'local_clock' => true,
+        // Sus horas previstas fallan a menudo: donde el autobús manda su posición, se usa la posición.
+        'prefer_vehicles' => true,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,

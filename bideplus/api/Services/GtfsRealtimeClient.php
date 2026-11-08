@@ -290,6 +290,7 @@ class GtfsRealtimeClient
     private static function parseTripUpdate(string $sTripUpdate): array|null
     {
         $sTripId = '';
+        $sStartDate = null;
         $aStops = [];
         $iDelay = null;
         $sNextStopId = null;
@@ -300,6 +301,8 @@ class GtfsRealtimeClient
                 foreach (self::fields($Value) as [$iTripField, $TripValue]) {
                     if ($iTripField === 1) {
                         $sTripId = $TripValue;
+                    } elseif ($iTripField === 3) {
+                        $sStartDate = $TripValue;
                     } elseif ($iTripField === 4 && $TripValue === self::CANCELED) {
                         $bCanceled = true;
                     }
@@ -323,6 +326,9 @@ class GtfsRealtimeClient
             return null;
         }
         $aTrip = ['tripId' => $sTripId, 'stops' => $aStops];
+        if ($sStartDate !== null) {
+            $aTrip['startDate'] = $sStartDate;
+        }
         if ($iDelay !== null) {
             $aTrip['delay'] = $iDelay;
         }
