@@ -626,12 +626,13 @@
         "live": true,
         "features": {
             "platforms": false,
+            "line_buttons": true,
             "headsign_from_last_stop": false,
             "stop_hints": false,
             "line_map": true,
             "schedule_text": false,
             "trip_detail": "vehicle",
-            "alerts": "network",
+            "alerts": "stops",
             "alerts_detail": true
         },
         "texts": {
@@ -641,7 +642,7 @@
                 "switcher": "Horarios y tiempo real de los trenes de larga y media distancia",
                 "subtitle": "Larga y media distancia en tiempo real",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
-                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.",
                 "attribution": "Datos: Renfe"
             },
             "eu": {
@@ -650,7 +651,7 @@
                 "switcher": "Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean",
                 "subtitle": "Distantzia luzeko eta ertaineko trenak denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
-                "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.",
                 "attribution": "Datuak: Renfe"
             },
             "en": {
@@ -659,7 +660,7 @@
                 "switcher": "Long and medium distance train timetables and real time",
                 "subtitle": "Long and medium distance trains in real time",
                 "liveEmpty": "Search for a station to see the next train.",
-                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
                 "attribution": "Data: Renfe"
             }
         }
