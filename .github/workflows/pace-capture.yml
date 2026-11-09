@@ -130,7 +130,10 @@ jobs:
         id: feed
         run: |
           if [ "${{ matrix.tipo }}" = gtfs-rt ]; then
-            N=$(php bideplus/engine/${{ matrix.red }}/tools/capture.php --contar --red=${{ matrix.red }} | tail -n 1)
+            # La herramienta de la red o, si no tiene, la de Renfe, que vale para cualquier red con --red.
+            HERRAMIENTA=bideplus/engine/${{ matrix.red }}/tools/capture.php
+            [ -f "$HERRAMIENTA" ] || HERRAMIENTA=bideplus/engine/renfe/tools/capture.php
+            N=$(php "$HERRAMIENTA" --contar --red=${{ matrix.red }} | tail -n 1)
           else
             N=$(php bideplus/engine/bizkaibus/tools/realtime-backtest.php vehicles --red=${{ matrix.red }} | tail -n 1)
           fi

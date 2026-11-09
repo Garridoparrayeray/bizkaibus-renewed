@@ -11,8 +11,8 @@
 #     repositorio del algoritmo, para poder recalcularlo todo más adelante (los acumulados descartan lo antiguo).
 # Los bloques no cruzan la medianoche: el horario de cada captura es el de su día.
 #
-# Con TIPO=gtfs-rt (Renfe) solo se guarda y archiva el directo GTFS-Realtime de la red, recortado a sus trenes
-# (engine/<red>/tools/capture.php): ni muestras ni medida, hasta que el motor aprenda de él.
+# Con TIPO=gtfs-rt (Renfe, Álavabus) solo se guarda y archiva el directo GTFS-Realtime de la red, recortado a sus
+# viajes (engine/<red>/tools/capture.php o, si no tiene, el de Renfe): ni muestras ni medida, hasta que el motor aprenda.
 #
 # Variables:
 #   RED            red de api/Networks con motor (bus por defecto); cada una tiene su release de acumulados
@@ -111,7 +111,10 @@ iniciar_bloque() {
   mkdir -p "$BLOQUE_ACTUAL/capturas"
   echo "$(date +%H:%M:%S) captura $(basename "$BLOQUE_ACTUAL") hasta las $(TZ=Europe/Madrid date -d "@$iFin" +%H:%M)"
   if solo_guardar; then
-    php "bideplus/engine/$RED/tools/capture.php" "$BLOQUE_ACTUAL/capturas" --hasta="$iFin" --intervalo="$INTERVALO" \
+    # La herramienta de la red o, si no tiene, la de Renfe, que vale para cualquier red con --red.
+    local sHerramienta="bideplus/engine/$RED/tools/capture.php"
+    [ -f "$sHerramienta" ] || sHerramienta=bideplus/engine/renfe/tools/capture.php
+    php "$sHerramienta" "$BLOQUE_ACTUAL/capturas" --hasta="$iFin" --intervalo="$INTERVALO" \
       --red="$RED" >"$BLOQUE_ACTUAL/captura.log" 2>&1 &
   else
     php "$MOTOR/realtime-backtest.php" capture "$BLOQUE_ACTUAL/capturas" 0 "$INTERVALO" --hasta="$iFin" --red="$RED" \
