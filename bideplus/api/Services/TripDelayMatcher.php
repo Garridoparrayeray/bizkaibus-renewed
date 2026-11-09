@@ -5,8 +5,8 @@ namespace Services;
 use Models\ServiceJourney;
 
 // Directo por viaje (GTFS-Realtime de Renfe, Metro, Euskotren, tranvías, Tuvisa, Dbus y Álavabus): cada vehículo trae
-// su viaje del horario y su hora en las paradas que le quedan o un retraso. Se empareja por el viaje, los que ya
-// pasaron por la parada no salen y los cancelados se marcan.
+// su viaje del horario y su hora en las paradas que le quedan o un retraso; sin horas, el de su GPS (VehicleDelays).
+// Se empareja por el viaje, los que ya pasaron por la parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
     use DepartedRows;
@@ -15,9 +15,7 @@ class TripDelayMatcher
     private const DUE_SECONDS = 60;
     private const STALE_PREDICTION_SECONDS = 60;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
-    private const MAX_GPS_DELAY_SECONDS = 45 * 60;
     private const EARLY_MORNING_SECONDS = 4 * 3600;
-    private const DAY_SECONDS = 86400;
 
     // id del viaje => ['delay', 'times' => [parada => segundos], 'nextStopId', 'canceled', 'shift']. 'times' va en las
     // horas del horario del viaje; 'shift' se suma a las de hoy para llegar a ellas (24 h de madrugada en un viaje de
@@ -30,12 +28,10 @@ class TripDelayMatcher
     private int $iMatched = 0;
     private bool $bCopiesSchedule = false;
     private bool $bContradictsVehicles = false;
-    // Viajes cuyo GPS da más de MAX_GPS_DELAY_SECONDS: el autobús lleva el número de otro viaje.
-    private array $aGpsRejected = [];
     private JourneyStops $Stops;
     private FeedTrust $Trust;
 
-    public function __construct(array $aTrips, private ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
+    public function __construct(array $aTrips, ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
         if ($iMidnight === null) {
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
@@ -46,16 +42,11 @@ class TripDelayMatcher
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
         $aJourneyIds = $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId'));
         $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
-        $aFromVehicles = $this->vehicleEntries($aVehicles, $aVehicleJourneys);
-        // Álavabus: donde hay GPS manda el GPS; sus horas previstas fallan a menudo (+35 min con el bus a +14).
-        $bPreferVehicles = !empty(\Core\Config::current()['gtfs_rt']['prefer_vehicles']);
+        $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds());
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
-            if ($sJourneyId === null || !$this->ofToday($aTrip)) {
-                continue;
-            }
-            if ($bPreferVehicles && $this->hasGps((string)$sJourneyId, $aFromVehicles)) {
+            if ($sJourneyId === null || !$this->ofToday($aTrip) || $Vehicles->overrides((string)$sJourneyId)) {
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
@@ -69,7 +60,7 @@ class TripDelayMatcher
         if ($this->bCopiesSchedule || $this->bContradictsVehicles) {
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
-        $this->aByJourney += $aFromVehicles;
+        $this->aByJourney += $Vehicles->entries();
     }
 
     private function liveFromTrip(array $aTrip, string $sJourneyId): array
@@ -82,7 +73,7 @@ class TripDelayMatcher
         if (!empty($aFeedStops)) {
             $sNextStopId = (string)$aFeedStops[0][0];
         }
-        $iShift = $this->shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0));
+        $iShift = ServiceDay::shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0), $this->nowSeconds());
         $aTimes = [];
         if (!isset($aTrip['delay'])) {
             $iClock = FeedClock::shift($aFeedStops, $aStops, $this->iMidnight, $this->iZone);
@@ -93,7 +84,7 @@ class TripDelayMatcher
             foreach ($aFeedStops as $iIndex => [$sStopId, $iTime]) {
                 $iToday = (int)$iTime - $this->iMidnight - $iClock;
                 if ($iIndex === 0 && isset($aArrivals[$sStopId])) {
-                    $iShift = $this->dayShift((int)$aArrivals[$sStopId], $iToday);
+                    $iShift = ServiceDay::shift((int)$aArrivals[$sStopId], $iToday);
                 }
                 $aTimes[(string)$sStopId] = $iToday + $iShift;
             }
@@ -113,12 +104,6 @@ class TripDelayMatcher
             return true;
         }
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
-    }
-
-    // Con gtfs_rt.prefer_vehicles, un viaje con GPS va con el GPS; si su GPS no vale (otro viaje), tampoco sus horas.
-    private function hasGps(string $sJourneyId, array $aFromVehicles): bool
-    {
-        return isset($aFromVehicles[$sJourneyId]) || isset($this->aGpsRejected[$sJourneyId]);
     }
 
     // Con gtfs_rt.max_feed_gap_seconds (Álavabus, 45 min), un retraso de más es de otro viaje con ese número (da a
@@ -147,74 +132,6 @@ class TripDelayMatcher
             }
         }
         return abs($aLive['delay']) > $iMaxGap;
-    }
-
-    // Días enteros (en segundos) que separan una hora de hoy de la del horario más cercana: 0 casi siempre, 24 h para
-    // las 02:00 de un viaje anotado a las 26:00.
-    private function dayShift(int $iScheduledSeconds, int $iTodaySeconds): int
-    {
-        return self::DAY_SECONDS * (int)round(($iScheduledSeconds - $iTodaySeconds) / self::DAY_SECONDS);
-    }
-
-    // Sin horas del directo, la referencia es la hora de ahora (solo con una medianoche de verdad: ahora entre 0 y 24 h).
-    private function shiftFromNow(int $iScheduledSeconds): int
-    {
-        $iNow = $this->nowSeconds();
-        if ($iNow < 0 || $iNow >= self::DAY_SECONDS) {
-            return 0;
-        }
-        return $this->dayShift($iScheduledSeconds, $iNow);
-    }
-
-    // El retraso de cada vehículo con GPS por la parada hacia la que va, para los viajes que no traen horas.
-    private function vehicleEntries(array $aVehicles, array $aJourneyIds): array
-    {
-        $aEntries = [];
-        foreach ($aVehicles as $aVehicle) {
-            $sJourneyId = (string)($aJourneyIds[$aVehicle['tripId']] ?? '');
-            $sStopId = (string)($aVehicle['stopId'] ?? '');
-            if ($sJourneyId === '' || $sStopId === '' || isset($aEntries[$sJourneyId])) {
-                continue;
-            }
-            $iOrder = $this->Stops->orderOf($sJourneyId, $sStopId);
-            $aStops = $this->Stops->of($sJourneyId);
-            if ($iOrder === null || $iOrder === (int)end($aStops)['seq_order']) {
-                continue;
-            }
-            $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
-            $iShift = $this->shiftFromNow($iArrival);
-            $iScheduled = $this->vehicleScheduled($sJourneyId, $iOrder, $iArrival, $aVehicle);
-            $iDelay = max(0, $this->nowSeconds() + $iShift - $iScheduled);
-            if ($iDelay > self::MAX_GPS_DELAY_SECONDS) {
-                $this->aGpsRejected[$sJourneyId] = true;
-                continue;
-            }
-            // El GPS lo pone pasada la parada del feed (la que acaba de dejar atrás): va a la siguiente. Si no, se
-            // sumaría lo que lleva desde la hora de la que ya pasó, como si aún no hubiera llegado a ella.
-            if ($iScheduled > $iArrival) {
-                $sStopId = $this->Stops->after($sJourneyId, $iOrder) ?? $sStopId;
-            }
-            $aEntries[$sJourneyId] = ['delay' => $iDelay, 'times' => [], 'nextStopId' => $sStopId, 'canceled' => false, 'shift' => $iShift];
-        }
-        return $aEntries;
-    }
-
-    // La hora del horario donde está el vehículo: la de la parada que da el feed o, en las redes con
-    // gtfs_rt.prefer_vehicles (Álavabus, que da a veces la parada que acaba de dejar atrás), la de su posición GPS en el
-    // tramo antes o después de ella.
-    private function vehicleScheduled(string $sJourneyId, int $iOrder, int $iArrival, array $aVehicle): int
-    {
-        if (empty(\Core\Config::current()['gtfs_rt']['prefer_vehicles']) || !isset($aVehicle['lat'], $aVehicle['lon'])) {
-            return $iArrival;
-        }
-        $aStops = array_values($this->Stops->of($sJourneyId));
-        $iIndex = array_search($iOrder, array_map(fn($aStop) => (int)$aStop['seq_order'], $aStops), true);
-        if ($iIndex === false) {
-            return $iArrival;
-        }
-        $aNear = array_slice($aStops, max(0, $iIndex - 1), 3);
-        $aCoords = $this->JourneyModel->stopCoordinates(array_column($aNear, 'stop_id'));
-        return RoutePosition::scheduledSeconds($aStops, $iIndex, $aCoords, (float)$aVehicle['lat'], (float)$aVehicle['lon']) ?? $iArrival;
     }
 
     public function hasData(): bool
