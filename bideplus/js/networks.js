@@ -626,7 +626,6 @@
         "live": true,
         "features": {
             "platforms": false,
-            "line_buttons": true,
             "headsign_from_last_stop": false,
             "stop_hints": false,
             "line_map": true,
