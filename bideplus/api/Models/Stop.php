@@ -4,6 +4,7 @@ namespace Models;
 
 use Core\Config;
 use Core\Ids;
+use Core\Networks;
 
 // Consultas de paradas: buscar, las más cercanas, los andenes de una estación y las líneas que pasan.
 class Stop
@@ -47,15 +48,16 @@ class Stop
         [$sFallbackWhere, $aFallbackArgs] = Search::wordsCondition($aWords, 'name_normalized');
         $sRank = 'CASE WHEN name_normalized = ? THEN 0 WHEN name_normalized LIKE ? THEN 1 WHEN name_normalized LIKE ? THEN 2 ELSE 3 END';
         $aRankArgs = [$sNormalized, $sNormalized . '%', '%' . $sNormalized . '%'];
+        [$sListed, $aListedArgs] = self::listedCondition();
         $Stmt = $this->safeQuery(
             'SELECT id, name, area, lat, lon FROM stops
-             WHERE ' . $sWhere . ' AND station_id IS NULL
+             WHERE ' . $sWhere . ' AND station_id IS NULL' . $sListed . '
              ORDER BY ' . $sRank . ', LENGTH(name) ASC, area ASC LIMIT ?',
             'SELECT id, name, \'\' AS area, lat, lon FROM stops
-             WHERE ' . $sFallbackWhere . '
+             WHERE ' . $sFallbackWhere . $sListed . '
              ORDER BY ' . $sRank . ', LENGTH(name) ASC LIMIT ?',
-            [...$aWhereArgs, ...$aRankArgs, $iLimit],
-            [...$aFallbackArgs, ...$aRankArgs, $iLimit]
+            [...$aWhereArgs, ...$aListedArgs, ...$aRankArgs, $iLimit],
+            [...$aFallbackArgs, ...$aListedArgs, ...$aRankArgs, $iLimit]
         );
         $aRows = $Stmt->fetchAll();
         foreach ($aRows as &$aRow) {
@@ -76,7 +78,10 @@ class Stop
     // distancia, a toda España.
     public function covers(float $dLat, float $dLon): bool
     {
-        $aBox = $this->Pdo->query('SELECT MIN(lat) AS min_lat, MAX(lat) AS max_lat, MIN(lon) AS min_lon, MAX(lon) AS max_lon FROM stops')->fetch();
+        [$sListed, $aListedArgs] = self::listedCondition();
+        $Box = $this->Pdo->prepare('SELECT MIN(lat) AS min_lat, MAX(lat) AS max_lat, MIN(lon) AS min_lon, MAX(lon) AS max_lon FROM stops WHERE 1 = 1' . $sListed);
+        $Box->execute($aListedArgs);
+        $aBox = $Box->fetch();
         if (empty($aBox) || $aBox['min_lat'] === null) {
             return false;
         }
@@ -89,11 +94,12 @@ class Stop
     {
         $dLatDelta = $iRadiusMeters / 111320;
         $dLonDelta = $iRadiusMeters / (111320 * max(cos(deg2rad($dLat)), 0.01));
+        [$sListed, $aListedArgs] = self::listedCondition();
         $Stmt = $this->Pdo->prepare('
             SELECT id, name, area, lat, lon FROM stops
-            WHERE station_id IS NULL AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?
+            WHERE station_id IS NULL AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?' . $sListed . '
         ');
-        $Stmt->execute([$dLat - $dLatDelta, $dLat + $dLatDelta, $dLon - $dLonDelta, $dLon + $dLonDelta]);
+        $Stmt->execute([$dLat - $dLatDelta, $dLat + $dLatDelta, $dLon - $dLonDelta, $dLon + $dLonDelta, ...$aListedArgs]);
 
         $aNearby = [];
         foreach ($Stmt->fetchAll() as $aRow) {
@@ -107,6 +113,16 @@ class Stop
         }
         usort($aNearby, fn($aA, $aB) => $aA['distanceM'] <=> $aB['distanceM']);
         return array_slice($aNearby, 0, $iLimit);
+    }
+
+    // Con gtfs.keep_stops en la ficha, solo esas paradas: [' AND id IN (?, …)', sus ids], o ['', []] si son todas.
+    private static function listedCondition(): array
+    {
+        $aListed = Networks::listedStops(Config::current());
+        if ($aListed === null) {
+            return ['', []];
+        }
+        return [' AND id IN (' . implode(',', array_fill(0, \count($aListed), '?')) . ')', array_map('strval', array_keys($aListed))];
     }
 
     private static function distanceMeters(float $dLat1, float $dLon1, float $dLat2, float $dLon2): float

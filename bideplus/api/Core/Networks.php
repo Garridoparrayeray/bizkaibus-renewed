@@ -85,6 +85,16 @@ class Networks
         return NewBadge::isNew($aNetwork['added'] ?? null);
     }
 
+    // Las paradas que se buscan y salen en el mapa y en los avisos (gtfs.keep_stops), como [id => true]: las demás de su
+    // base solo son destino de un tren. Null si son todas.
+    public static function listedStops(array $aNetwork): array|null
+    {
+        if (empty($aNetwork['gtfs']['keep_stops'])) {
+            return null;
+        }
+        return array_fill_keys(array_map('strval', $aNetwork['gtfs']['keep_stops']), true);
+    }
+
     public static function feature(array $aNetwork, string $sFeature): mixed
     {
         return $aNetwork['features'][$sFeature] ?? false;
