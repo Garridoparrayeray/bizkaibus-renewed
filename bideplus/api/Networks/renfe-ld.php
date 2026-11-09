@@ -1,6 +1,6 @@
 <?php
 
-// Trenes de larga y media distancia de Renfe que pasan por Euskadi y Navarra (Alvia, Intercity, Media Distancia,
+// Trenes de larga y media distancia de Renfe que pasan por Euskadi y Pamplona (Alvia, Intercity, Media Distancia,
 // Regional, AVE…). El horario es el que publica Moveuskadi y el directo, el GTFS-Realtime de Renfe para esos trenes.
 return [
     'slug' => 'renfe-ld',
@@ -34,7 +34,7 @@ return [
     'texts' => [
         'es' => [
             'name' => 'Renfe Larga Distancia+',
-            'tile' => 'Larga y media distancia en Euskadi y Navarra',
+            'tile' => 'Larga y media distancia en Euskadi y Pamplona',
             'switcher' => 'Horarios y tiempo real de los trenes de larga y media distancia',
             'subtitle' => 'Larga y media distancia en tiempo real',
             'liveEmpty' => 'Busca una estación para ver el próximo tren.',
@@ -42,7 +42,7 @@ return [
         ],
         'eu' => [
             'name' => 'Renfe Distantzia Luzea+',
-            'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan',
+            'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Iruñean',
             'switcher' => 'Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean',
             'subtitle' => 'Distantzia luzeko eta ertaineko trenak denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
@@ -51,7 +51,7 @@ return [
         ],
         'en' => [
             'name' => 'Renfe Long Distance+',
-            'tile' => 'Long and medium distance trains in the Basque Country and Navarre',
+            'tile' => 'Long and medium distance trains in the Basque Country and Pamplona',
             'switcher' => 'Long and medium distance train timetables and real time',
             'subtitle' => 'Long and medium distance trains in real time',
             'liveEmpty' => 'Search for a station to see the next train.',
@@ -62,7 +62,7 @@ return [
 
     'seo' => [
         'title' => 'Renfe Larga Distancia+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
-        'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
+        'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Pamplona, con su retraso en tiempo real.',
     ],
     'attribution' => 'Datos: Renfe',
 
@@ -102,6 +102,58 @@ return [
         'stops' => 'generic',
         'skip_geocode' => true,
         'name_lines_from_stops' => true,
+        // Solo las llegadas y salidas de aquí: los trenes en los que se sube en estas estaciones de Euskadi y de Pamplona,
+        // con esas estaciones y su destino. El horario de Renfe es el de toda España.
+        'keep_stops' => [
+            '11600', // Irun
+            '11515', // Pasaia
+            '11511', // San Sebastián-Donostia
+            '11516', // Lezo-Rentería
+            '05457', // Zorrotza Zorrozgoiti
+            '11507', // Hernani-Erdia
+            '05459', // Santa Águeda
+            '05451', // Bilbao la Concordia
+            '13200', // Bilbao-Intermod. Abando Indalecio Prieto
+            '05455', // Basurto Hospital
+            '05460', // Kastrexana
+            '13206', // Ametzola
+            '05461', // Irauregui
+            '05497', // Karrantza
+            '05489', // Artzentales
+            '05487', // Traslaviña
+            '05463', // Zaramillo
+            '05465', // La Quadra
+            '05484', // Mimetiz
+            '11504', // Andoain-Centro
+            '05475', // Zalla
+            '05477', // Colegio
+            '05473', // Aranguren
+            '05474', // Aranguren-Apeadero
+            '05471', // Güeñes
+            '05470', // Lambarri
+            '05479', // Ibarra
+            '05481', // La Herrera
+            '05467', // Sodupe
+            '05469', // Artxube
+            '05483', // Balmaseda
+            '11503', // Billabona-Zizurkil
+            '13106', // Llodio
+            '11501', // Tolosa-Centro
+            '11500', // Tolosa
+            '11400', // Zumarraga
+            '11405', // Ordizia
+            '11306', // Legazpi
+            '11404', // Beasain
+            '11402', // Ormáiztegui
+            '11305', // Brinkola
+            '11213', // Araia
+            '11210', // Alegría-Dulantzi
+            '11212', // Agurain-Salvatierra de Álava
+            '11208', // Vitoria-Gasteiz
+            '80100', // Pamplona/Iruña
+            '11205', // Nanclares-Langraiz
+            '11203', // Manzanos
+        ],
         // Cada viaje, con las fechas exactas del periodo que publica el operador (y una comprobación contra el GTFS).
         'feed_window' => true,
         'required' => false,

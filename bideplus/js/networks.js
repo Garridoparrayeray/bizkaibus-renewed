@@ -637,7 +637,7 @@
         "texts": {
             "es": {
                 "name": "Renfe Larga Distancia+",
-                "tile": "Larga y media distancia en Euskadi y Navarra",
+                "tile": "Larga y media distancia en Euskadi y Pamplona",
                 "switcher": "Horarios y tiempo real de los trenes de larga y media distancia",
                 "subtitle": "Larga y media distancia en tiempo real",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
@@ -646,7 +646,7 @@
             },
             "eu": {
                 "name": "Renfe Distantzia Luzea+",
-                "tile": "Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan",
+                "tile": "Distantzia luzeko eta ertaineko trenak Euskadin eta Iruñean",
                 "switcher": "Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean",
                 "subtitle": "Distantzia luzeko eta ertaineko trenak denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
@@ -655,7 +655,7 @@
             },
             "en": {
                 "name": "Renfe Long Distance+",
-                "tile": "Long and medium distance trains in the Basque Country and Navarre",
+                "tile": "Long and medium distance trains in the Basque Country and Pamplona",
                 "switcher": "Long and medium distance train timetables and real time",
                 "subtitle": "Long and medium distance trains in real time",
                 "liveEmpty": "Search for a station to see the next train.",
