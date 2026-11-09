@@ -153,8 +153,15 @@ function main(array $aArgv): void
     if (!empty($aGtfs['name_lines_from_stops'])) {
         echo '  ' . Schema::nameLinesFromStops($Pdo) . " lines named after their end stops\n";
     }
+    $iMergeLength = (int)($aGtfs['merge_same_train_number'] ?? 0);
+    if ($iMergeLength > 0) {
+        echo '  ' . Schema::mergeSameTrains($Pdo, $iMergeLength) . " journeys that are the same train as a longer one merged\n";
+    }
     if (!empty($aGtfs['keep_stops'])) {
         echo '  ' . Schema::keepStops($Pdo, $aGtfs['keep_stops']) . " journeys boarding at the network's own stops\n";
+    }
+    if ($iMergeLength > 0) {
+        echo '  ' . Schema::mergeSameTrains($Pdo, $iMergeLength) . " journeys left identical inside the network merged\n";
     }
 
     $iPruned = Schema::pruneUnservedStops($Pdo);

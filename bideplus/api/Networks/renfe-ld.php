@@ -115,6 +115,8 @@ return [
         'stops' => 'generic',
         'skip_geocode' => true,
         'name_lines_from_stops' => true,
+        // Un tren con varios orígenes o destinos viene en un viaje por cada uno: se juntan por el número de tren (5 cifras).
+        'merge_same_train_number' => 5,
         // Las estaciones de la red: las de Euskadi y Navarra. Al construir la base quedan solo los trenes en los que se
         // sube en ellas, con esas estaciones y su destino; el destino de fuera no se busca ni sale en el mapa ni en avisos.
         'keep_stops' => [

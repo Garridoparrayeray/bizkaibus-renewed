@@ -194,6 +194,56 @@ class Schema
         return (int)$Pdo->query('SELECT COUNT(*) FROM service_journeys')->fetchColumn();
     }
 
+    // Un mismo tren publicado en varios viajes (uno por origen o por destino): con el mismo número de tren (los primeros
+    // $iNumberLength caracteres del id) y calendario, el viaje contenido en otro más largo se junta con él.
+    public static function mergeSameTrains(PDO $Pdo, int $iNumberLength): int
+    {
+        $Rows = $Pdo->query('SELECT service_journey_id, stop_id, arrival_seconds FROM passing_times ORDER BY service_journey_id, seq_order');
+        $aStopsOf = [];
+        foreach ($Rows as $aRow) {
+            $aStopsOf[$aRow['service_journey_id']][$aRow['stop_id']] = $aRow['arrival_seconds'];
+        }
+        $aGroups = [];
+        foreach ($Pdo->query('SELECT id, calendar_id FROM service_journeys') as $aRow) {
+            $aGroups[substr($aRow['id'], 0, $iNumberLength) . '#' . $aRow['calendar_id']][] = $aRow['id'];
+        }
+        $aDuplicates = [];
+        foreach ($aGroups as $aIds) {
+            usort($aIds, function ($sA, $sB) use ($aStopsOf) {
+                $iByLength = count($aStopsOf[$sB] ?? []) <=> count($aStopsOf[$sA] ?? []);
+                if ($iByLength !== 0) {
+                    return $iByLength;
+                }
+                return strcmp($sA, $sB);
+            });
+            $aKept = [];
+            foreach ($aIds as $sId) {
+                $aOwn = $aStopsOf[$sId] ?? [];
+                foreach ($aKept as $sKeptId) {
+                    if (!empty($aOwn) && $aOwn === array_intersect_key($aStopsOf[$sKeptId], $aOwn)) {
+                        $aDuplicates[$sId] = $sKeptId;
+                        continue 2;
+                    }
+                }
+                $aKept[] = $sId;
+            }
+        }
+        $Alias = $Pdo->prepare('INSERT OR REPLACE INTO trip_aliases (trip_id, service_journey_id) VALUES (?, ?)');
+        $Repoint = $Pdo->prepare('UPDATE trip_aliases SET service_journey_id = ? WHERE service_journey_id = ?');
+        $Delete = $Pdo->prepare('DELETE FROM service_journeys WHERE id = ?');
+        $DeleteTimes = $Pdo->prepare('DELETE FROM passing_times WHERE service_journey_id = ?');
+        foreach ($aDuplicates as $sDuplicateId => $sKeptId) {
+            $Repoint->execute([$sKeptId, $sDuplicateId]);
+            $Alias->execute([$sDuplicateId, $sKeptId]);
+            $DeleteTimes->execute([$sDuplicateId]);
+            $Delete->execute([$sDuplicateId]);
+        }
+        $Pdo->exec('DELETE FROM journey_patterns WHERE id NOT IN (SELECT journey_pattern_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM journey_pattern_stops WHERE journey_pattern_id NOT IN (SELECT id FROM journey_patterns)');
+        $Pdo->exec('DELETE FROM lines WHERE id NOT IN (SELECT line_id FROM service_journeys)');
+        return count($aDuplicates);
+    }
+
     public static function pruneUnservedStops(PDO $Pdo): int
     {
         $iDeletedQuays = $Pdo->exec('
