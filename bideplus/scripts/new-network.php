@@ -148,11 +148,22 @@ function config(array $aOptions): string
     $sDisclaimerEu = 'Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.';
     $sDisclaimerEn = 'Official scheduled timetable: it does not reflect delays or cancellations.';
     $sTripDetail = 'stops';
+    // Los datos de la red (Info y Estado de las redes): qué publica, cómo calcula Bide+ y sus límites.
+    $aData = [
+        'es' => ['Solo su horario.', 'Horario oficial.', 'Sin retrasos ni cancelaciones.'],
+        'eu' => ['Bere ordutegia bakarrik.', 'Ordutegi ofiziala.', 'Atzerapenik eta bertan behera utzitakorik gabe.'],
+        'en' => ['Only its timetable.', 'The official timetable.', 'No delays or cancellations.'],
+    ];
     if ($bLive) {
         $sDisclaimerEs = 'Los tiempos en directo son una previsión del operador.';
         $sDisclaimerEu = 'Zuzeneko denborak operadorearen aurreikuspena dira.';
         $sDisclaimerEn = 'Live times are the operator\'s forecast.';
         $sTripDetail = 'vehicle';
+        $aData = [
+            'es' => ['La hora prevista de cada vehículo.', 'La previsión del operador.', 'Sin limitaciones conocidas.'],
+            'eu' => ['Ibilgailu bakoitzaren aurreikusitako ordua.', 'Operadorearen aurreikuspena.', 'Ez dago muga ezagunik.'],
+            'en' => ['The predicted time of each vehicle.', 'The operator\'s forecast.', 'No known limitations.'],
+        ];
     }
     $sLiveConfig = liveConfig($aOptions);
     $sWhere = '';
@@ -211,6 +222,9 @@ $sPalette        ],
             'subtitle' => {$Quote('Horarios del ' . $sEs . $sWhere)},
             'liveEmpty' => {$Quote('Busca una parada para ver el próximo ' . $sEs . '.')},
             'disclaimer' => {$Quote('Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. ' . $sDisclaimerEs)},
+            'dataPublished' => {$Quote($aData['es'][0])},
+            'dataMethod' => {$Quote($aData['es'][1])},
+            'dataLimits' => {$Quote($aData['es'][2])},
         ],
         'eu' => [
             'name' => {$Quote($sName)},
@@ -219,6 +233,9 @@ $sPalette        ],
             'subtitle' => {$Quote(ucfirst($sEu) . 'ren ordutegiak')},
             'liveEmpty' => {$Quote('Bilatu geraleku bat hurrengo ' . $sEu . ' ikusteko.')},
             'disclaimer' => {$Quote('Proiektu independentea eta ez-ofiziala, ' . $sOperator . ' erakundearekin loturarik gabea. ' . $sDisclaimerEu)},
+            'dataPublished' => {$Quote($aData['eu'][0])},
+            'dataMethod' => {$Quote($aData['eu'][1])},
+            'dataLimits' => {$Quote($aData['eu'][2])},
             'attribution' => {$Quote('Datuak: ' . $sOperator . ' (GTFS)')},
         ],
         'en' => [
@@ -228,6 +245,9 @@ $sPalette        ],
             'subtitle' => {$Quote(ucfirst($sWhereEn . $sEn) . ' timetables')},
             'liveEmpty' => {$Quote('Search for a stop to see the next ' . $sEn . '.')},
             'disclaimer' => {$Quote('An independent, unofficial project, not affiliated with ' . $sOperator . '. ' . $sDisclaimerEn)},
+            'dataPublished' => {$Quote($aData['en'][0])},
+            'dataMethod' => {$Quote($aData['en'][1])},
+            'dataLimits' => {$Quote($aData['en'][2])},
             'attribution' => {$Quote('Data: ' . $sOperator . ' (GTFS)')},
         ],
     ],
