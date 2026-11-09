@@ -266,9 +266,9 @@
                 "subtitle": "Horarios de Lurraldebus",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Las llegadas se calculan con la posición GPS de cada autobús; sin datos del autobús, horario oficial.",
-                "dataPublished": "La posición GPS de cada autobús en 5 de sus 8 operadores, con cortes frecuentes.",
+                "dataPublished": "La posición GPS de cada autobús de sus 8 operadores, aunque a menudo llega vacía.",
                 "dataMethod": "El mismo algoritmo que Bizkaibus.",
-                "dataLimits": "Tolosaldea, Euskotren bus y el urbano de Tolosa, o con el feed vacío: horario oficial.",
+                "dataLimits": "Cuando su feed llega vacío, horario oficial.",
                 "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)"
             },
             "eu": {
@@ -278,9 +278,9 @@
                 "subtitle": "Lurraldebusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Lurraldebusekin eta Gipuzkoako Foru Aldundiarekin loturarik gabea. Iritsierak autobus bakoitzaren GPS kokapenarekin kalkulatzen dira; autobusaren daturik gabe, ordutegi ofiziala.",
-                "dataPublished": "Autobus bakoitzaren GPS kokapena, bere 8 operadoreetatik 5etan, sarritan etenda.",
+                "dataPublished": "Autobus bakoitzaren GPS kokapena bere 8 operadoreetan, nahiz eta askotan hutsik iritsi.",
                 "dataMethod": "Bizkaibusen algoritmo bera.",
-                "dataLimits": "Tolosaldea, Euskotren bus eta Tolosako hiri-autobusa, edo jarioa hutsik dagoenean: ordutegi ofiziala.",
+                "dataLimits": "Jarioa hutsik datorrenean, ordutegi ofiziala.",
                 "attribution": "Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)"
             },
             "en": {
@@ -290,9 +290,9 @@
                 "subtitle": "Lurraldebus timetables",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Arrivals are calculated from the GPS position of every bus; without data from the bus, the official timetable.",
-                "dataPublished": "The GPS position of every bus for 5 of its 8 operators, with frequent outages.",
+                "dataPublished": "The GPS position of every bus for its 8 operators, although it often comes empty.",
                 "dataMethod": "The same algorithm as Bizkaibus.",
-                "dataLimits": "Tolosaldea, Euskotren bus and the Tolosa town bus, or when the feed is empty: the official timetable.",
+                "dataLimits": "When its feed comes empty, the official timetable.",
                 "attribution": "Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)"
             }
         }
@@ -750,7 +750,10 @@
                 "subtitle": "Larga y media distancia en tiempo real",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.",
-                "attribution": "Datos: Renfe"
+                "dataPublished": "El retraso de cada tren, los cancelados y su posición, en un directo de toda España.",
+                "dataMethod": "El retraso que publica Renfe; solo los trenes de hoy.",
+                "dataLimits": "Algunos trenes no salen en su directo y van con su horario.",
+                "attribution": "Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) y data.renfe.com (CC-BY 4.0)"
             },
             "eu": {
                 "name": "Renfe Distantzia Luzea+",
@@ -759,7 +762,10 @@
                 "subtitle": "Distantzia luzeko eta ertaineko trenak denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.",
-                "attribution": "Datuak: Renfe"
+                "dataPublished": "Tren bakoitzaren atzerapena, bertan behera utzitakoak eta haren kokapena, Espainia osoko zuzeneko batean.",
+                "dataMethod": "Renfek argitaratzen duen atzerapena; gaurko trenak bakarrik.",
+                "dataLimits": "Tren batzuk ez daude zuzenekoan eta beren ordutegiarekin doaz.",
+                "attribution": "Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0) eta data.renfe.com (CC-BY 4.0)"
             },
             "en": {
                 "name": "Renfe Long Distance+",
@@ -768,7 +774,10 @@
                 "subtitle": "Long and medium distance trains in real time",
                 "liveEmpty": "Search for a station to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.",
-                "attribution": "Data: Renfe"
+                "dataPublished": "Each train's delay, cancellations and its position, in a live feed for all of Spain.",
+                "dataMethod": "The delay Renfe publishes; only today's trains.",
+                "dataLimits": "Some trains are missing from the live feed and show their timetable.",
+                "attribution": "Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0) and data.renfe.com (CC-BY 4.0)"
             }
         }
     }

@@ -39,6 +39,9 @@ return [
             'subtitle' => 'Larga y media distancia en tiempo real',
             'liveEmpty' => 'Busca una estación para ver el próximo tren.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.',
+            'dataPublished' => 'El retraso de cada tren, los cancelados y su posición, en un directo de toda España.',
+            'dataMethod' => 'El retraso que publica Renfe; solo los trenes de hoy.',
+            'dataLimits' => 'Algunos trenes no salen en su directo y van con su horario.',
         ],
         'eu' => [
             'name' => 'Renfe Distantzia Luzea+',
@@ -47,7 +50,10 @@ return [
             'subtitle' => 'Distantzia luzeko eta ertaineko trenak denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.',
-            'attribution' => 'Datuak: Renfe',
+            'dataPublished' => 'Tren bakoitzaren atzerapena, bertan behera utzitakoak eta haren kokapena, Espainia osoko zuzeneko batean.',
+            'dataMethod' => 'Renfek argitaratzen duen atzerapena; gaurko trenak bakarrik.',
+            'dataLimits' => 'Tren batzuk ez daude zuzenekoan eta beren ordutegiarekin doaz.',
+            'attribution' => 'Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0) eta data.renfe.com (CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Renfe Long Distance+',
@@ -56,7 +62,10 @@ return [
             'subtitle' => 'Long and medium distance trains in real time',
             'liveEmpty' => 'Search for a station to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.',
-            'attribution' => 'Data: Renfe',
+            'dataPublished' => 'Each train\'s delay, cancellations and its position, in a live feed for all of Spain.',
+            'dataMethod' => 'The delay Renfe publishes; only today\'s trains.',
+            'dataLimits' => 'Some trains are missing from the live feed and show their timetable.',
+            'attribution' => 'Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0) and data.renfe.com (CC-BY 4.0)',
         ],
     ],
 
@@ -64,7 +73,7 @@ return [
         'title' => 'Renfe Larga Distancia+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
         'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
     ],
-    'attribution' => 'Datos: Renfe',
+    'attribution' => 'Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) y data.renfe.com (CC-BY 4.0)',
 
     'features' => [
         'platforms' => false,
