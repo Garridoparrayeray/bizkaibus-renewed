@@ -164,6 +164,11 @@ function main(array $aArgv): void
         echo '  ' . Schema::mergeSameTrains($Pdo, $iMergeLength) . " journeys left identical inside the network merged\n";
     }
 
+    $iBackwards = Schema::fixBackwardTimes($Pdo);
+    if ($iBackwards > 0) {
+        echo "  AVISO: $iBackwards pasos con la hora anterior a la parada de antes (errata del GTFS), puestos a la hora de esa parada\n";
+    }
+
     $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
         echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";

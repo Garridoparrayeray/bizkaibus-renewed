@@ -247,6 +247,33 @@ class Schema
         return count($aDuplicates);
     }
 
+    // Erratas del operador: un paso con hora anterior a la salida de la parada de antes se deja a esa hora, para que
+    // dentro de un viaje el reloj nunca vaya hacia atrás. Devuelve cuántos pasos ha tocado.
+    public static function fixBackwardTimes(PDO $Pdo): int
+    {
+        $sBackwards = '
+            SELECT service_journey_id, seq_order, prev_departure FROM (
+                SELECT service_journey_id, seq_order, arrival_seconds,
+                       LAG(departure_seconds) OVER (PARTITION BY service_journey_id ORDER BY seq_order) AS prev_departure
+                FROM passing_times
+            ) WHERE prev_departure IS NOT NULL AND arrival_seconds < prev_departure
+        ';
+        $Update = $Pdo->prepare('
+            UPDATE passing_times SET arrival_seconds = :at, departure_seconds = MAX(departure_seconds, :at)
+            WHERE service_journey_id = :journey AND seq_order = :seq
+        ');
+        $iFixed = 0;
+        $aRows = $Pdo->query($sBackwards)->fetchAll(PDO::FETCH_ASSOC);
+        while (!empty($aRows)) {
+            foreach ($aRows as $aRow) {
+                $Update->execute(['at' => $aRow['prev_departure'], 'journey' => $aRow['service_journey_id'], 'seq' => $aRow['seq_order']]);
+                $iFixed++;
+            }
+            $aRows = $Pdo->query($sBackwards)->fetchAll(PDO::FETCH_ASSOC);
+        }
+        return $iFixed;
+    }
+
     public static function pruneUnservedStops(PDO $Pdo): int
     {
         $iDeletedQuays = $Pdo->exec('

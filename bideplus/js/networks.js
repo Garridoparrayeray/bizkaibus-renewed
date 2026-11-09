@@ -787,27 +787,27 @@
         "texts": {
             "es": {
                 "name": "Villavesas+",
-                "tile": "Horarios del autobús de Pamplona",
-                "switcher": "Horarios del autobús de Pamplona",
-                "subtitle": "Horarios del autobús de Pamplona",
+                "tile": "Autobuses de Pamplona",
+                "switcher": "Horarios de las villavesas de la Comarca de Pamplona",
+                "subtitle": "Horarios de la Comarca de Pamplona",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Mancomunidad de la Comarca de Pamplona (TCC). Horario programado oficial: no refleja retrasos ni cancelaciones.",
                 "attribution": "Datos: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
             },
             "eu": {
                 "name": "Villavesas+",
-                "tile": "Autobusaren ordutegiak",
-                "switcher": "Autobusaren ordutegiak",
-                "subtitle": "Autobusaren ordutegiak",
+                "tile": "Iruñeko autobusak",
+                "switcher": "Iruñerriko billabesen ordutegiak",
+                "subtitle": "Iruñerriko ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Mancomunidad de la Comarca de Pamplona (TCC) erakundearekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.",
                 "attribution": "Datuak: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
             },
             "en": {
                 "name": "Villavesas+",
-                "tile": "Pamplona bus timetables",
-                "switcher": "Pamplona bus timetables",
-                "subtitle": "Pamplona bus timetables",
+                "tile": "Pamplona buses",
+                "switcher": "Timetables for the Pamplona area buses",
+                "subtitle": "Pamplona area timetables",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Mancomunidad de la Comarca de Pamplona (TCC). Official scheduled timetable: it does not reflect delays or cancellations.",
                 "attribution": "Data: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
