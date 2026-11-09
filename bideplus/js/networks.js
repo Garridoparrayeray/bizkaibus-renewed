@@ -751,7 +751,7 @@
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.",
                 "dataPublished": "El retraso de cada tren, los cancelados y su posición, en un directo de toda España.",
-                "dataMethod": "El retraso que publica Renfe, en los trenes que salen de Euskadi y de Pamplona.",
+                "dataMethod": "El retraso que publica Renfe, en los trenes que salen de Euskadi y Navarra.",
                 "dataLimits": "Algunos trenes no salen en su directo y van con su horario.",
                 "attribution": "Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) y data.renfe.com (CC-BY 4.0)"
             },
@@ -763,7 +763,7 @@
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.",
                 "dataPublished": "Tren bakoitzaren atzerapena, bertan behera utzitakoak eta haren kokapena, Espainia osoko zuzeneko batean.",
-                "dataMethod": "Renfek argitaratzen duen atzerapena, Euskaditik eta Iruñetik ateratzen diren trenetan.",
+                "dataMethod": "Renfek argitaratzen duen atzerapena, Euskaditik eta Nafarroatik ateratzen diren trenetan.",
                 "dataLimits": "Tren batzuk ez daude zuzenekoan eta beren ordutegiarekin doaz.",
                 "attribution": "Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0) eta data.renfe.com (CC-BY 4.0)"
             },
@@ -775,7 +775,7 @@
                 "liveEmpty": "Search for a station to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.",
                 "dataPublished": "Each train's delay, cancellations and its position, in a live feed for all of Spain.",
-                "dataMethod": "The delay Renfe publishes, for the trains leaving the Basque Country and Pamplona.",
+                "dataMethod": "The delay Renfe publishes, for the trains leaving the Basque Country and Navarre.",
                 "dataLimits": "Some trains are missing from the live feed and show their timetable.",
                 "attribution": "Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0) and data.renfe.com (CC-BY 4.0)"
             }
