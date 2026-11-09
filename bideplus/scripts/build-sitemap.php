@@ -78,7 +78,11 @@ foreach ($aNetworks as $sSlug => $sDb) {
     foreach ($Pdo->query('SELECT id FROM lines ORDER BY id') as $aRow) {
         $aPages[] = urlEntry($aSite['url'] . '/lines/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.7');
     }
+    $aListed = \Core\Networks::listedStops(\Core\Networks::get($sSlug));
     foreach ($Pdo->query('SELECT id FROM stops ORDER BY id') as $aRow) {
+        if ($aListed !== null && !isset($aListed[(string)$aRow['id']])) {
+            continue;
+        }
         $aPages[] = urlEntry($aSite['url'] . '/stops/' . rawurlencode((string)$aRow['id']) . $sSuffix, $sLastModified, 'weekly', '0.6');
     }
 }

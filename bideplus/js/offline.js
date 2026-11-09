@@ -464,8 +464,9 @@ const BideOffline = (() => {
         const normalized = normalize(query);
         const areas = data.areas || {};
         const stops = [];
+        const unlisted = new Set(data.unlisted || []);
         for (const [stopId, entry] of Object.entries(data.stops)) {
-            if (entry.length > 1) continue;
+            if (entry.length > 1 || unlisted.has(stopId)) continue;
             const name = normalize(entry[0]);
             const haystack = name + ' ' + normalize(areas[stopId]);
             if (!found.every((word) => haystack.includes(word))) continue;

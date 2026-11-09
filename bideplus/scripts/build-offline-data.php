@@ -101,6 +101,7 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'lon' => (object)$aLon,
         'stops' => $aStopsOut,
         'areas' => (object)offlineAreas($aStopsOut, $aAllStops),
+        'unlisted' => unlistedStops($aNetwork, $aStopsOut),
         'lines' => $aLines,
         'hiddenLineCodes' => $aNetwork['hidden_line_codes'] ?? [],
         'calendars' => $aCalendars,
@@ -268,6 +269,16 @@ function offlineStops(PDO $Pdo, array $aUsed): array
         }
     }
     return [$aStops, $aAll];
+}
+
+// Las paradas que solo son destino de un tren (las que no están en gtfs.keep_stops): no se buscan.
+function unlistedStops(array $aNetwork, array $aStops): array
+{
+    $aListed = \Core\Networks::listedStops($aNetwork);
+    if ($aListed === null) {
+        return [];
+    }
+    return array_values(array_map('strval', array_diff(array_keys($aStops), array_keys($aListed))));
 }
 
 // El pueblo de cada parada que se puede buscar (las que no son andén de una estación), para el buscador sin conexión.

@@ -1,6 +1,6 @@
 <?php
 
-// Trenes de larga y media distancia de Renfe que pasan por Euskadi y Pamplona (Alvia, Intercity, Media Distancia,
+// Trenes de larga y media distancia de Renfe que pasan por Euskadi y Navarra (Alvia, Intercity, Media Distancia,
 // Regional, AVE…). El horario es el que publica Moveuskadi y el directo, el GTFS-Realtime de Renfe para esos trenes.
 return [
     'slug' => 'renfe-ld',
@@ -14,8 +14,8 @@ return [
         'icons' => 'icons-renfe-ld',
         'theme_color' => '#3F4E63',
         'title' => ['RENFE LD', ''],
-        'logomark' => '<img src="/icons-renfe-ld/glyph.png" alt="Renfe Larga Distancia+" aria-hidden="true">',
-        'card_logomark' => '<img src="/icons-renfe-ld/icon-192.png" alt="Renfe Larga Distancia+" aria-hidden="true">',
+        'logomark' => '<img src="/icons-renfe-ld/glyph.png" alt="Renfe LD+" aria-hidden="true">',
+        'card_logomark' => '<img src="/icons-renfe-ld/icon-192.png" alt="Renfe LD+" aria-hidden="true">',
         'tile_color' => '#3F4E63',
         'swatch_color' => '#3F4E63',
         'palette' => [
@@ -33,8 +33,8 @@ return [
 
     'texts' => [
         'es' => [
-            'name' => 'Renfe Larga Distancia+',
-            'tile' => 'Larga y media distancia en Euskadi y Pamplona',
+            'name' => 'Renfe LD+',
+            'tile' => 'Larga y media distancia en Euskadi y Navarra',
             'switcher' => 'Horarios y tiempo real de los trenes de larga y media distancia',
             'subtitle' => 'Larga y media distancia en tiempo real',
             'liveEmpty' => 'Busca una estación para ver el próximo tren.',
@@ -44,8 +44,8 @@ return [
             'dataLimits' => 'Algunos trenes no salen en su directo y van con su horario.',
         ],
         'eu' => [
-            'name' => 'Renfe Distantzia Luzea+',
-            'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Iruñean',
+            'name' => 'Renfe LD+',
+            'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan',
             'switcher' => 'Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean',
             'subtitle' => 'Distantzia luzeko eta ertaineko trenak denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
@@ -56,8 +56,8 @@ return [
             'attribution' => 'Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0) eta data.renfe.com (CC-BY 4.0)',
         ],
         'en' => [
-            'name' => 'Renfe Long Distance+',
-            'tile' => 'Long and medium distance trains in the Basque Country and Pamplona',
+            'name' => 'Renfe LD+',
+            'tile' => 'Long and medium distance trains in the Basque Country and Navarre',
             'switcher' => 'Long and medium distance train timetables and real time',
             'subtitle' => 'Long and medium distance trains in real time',
             'liveEmpty' => 'Search for a station to see the next train.',
@@ -70,8 +70,8 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Renfe Larga Distancia+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
-        'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Pamplona, con su retraso en tiempo real.',
+        'title' => 'Renfe LD+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
+        'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
     ],
     'attribution' => 'Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) y data.renfe.com (CC-BY 4.0)',
 
@@ -104,6 +104,15 @@ return [
         'trip_date_suffix' => true,
     ],
 
+    // Los avisos de Renfe (uno para todos sus trenes): los de sus estaciones de aquí y los trenes cancelados, como en
+    // Renfe Cercanías.
+    'renfe_alerts' => [
+        'url' => 'https://gtfsrt.renfe.com/alerts.json',
+        'cache_ttl_seconds' => 120,
+        'http_timeout_seconds' => 8,
+        'max_age_seconds' => 2 * 86400,
+    ],
+
     'gtfs' => [
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/renfe_media/gtfs_renfe_media.zip',
         'fallback_source' => null,
@@ -111,8 +120,8 @@ return [
         'stops' => 'generic',
         'skip_geocode' => true,
         'name_lines_from_stops' => true,
-        // Solo las llegadas y salidas de aquí: los trenes en los que se sube en estas estaciones de Euskadi y de Pamplona,
-        // con esas estaciones y su destino. El horario de Renfe es el de toda España.
+        // Las estaciones de la red: las de Euskadi y Navarra. Al construir la base quedan solo los trenes en los que se
+        // sube en ellas, con esas estaciones y su destino; el destino de fuera no se busca ni sale en el mapa ni en avisos.
         'keep_stops' => [
             '11600', // Irun
             '11515', // Pasaia
@@ -162,6 +171,19 @@ return [
             '80100', // Pamplona/Iruña
             '11205', // Nanclares-Langraiz
             '11203', // Manzanos
+            '11300', // Altsasu
+            '81202', // Tudela de Navarra
+            '81200', // Castejón de Ebro
+            '80108', // Tafalla
+            '81205', // Cortes de Navarra
+            '81203', // Ribaforada
+            '80115', // Villafranca de Navarra
+            '80114', // Marcilla de Navarra
+            '80109', // Olite-Erriberri
+            '80005', // Uharte-Arakil
+            '80003', // Etxarri-Aranatz
+            '80001', // Altsasu-Pueblo
+            '81106', // Féculas-Navarra
         ],
         // Cada viaje, con las fechas exactas del periodo que publica el operador (y una comprobación contra el GTFS).
         'feed_window' => true,
