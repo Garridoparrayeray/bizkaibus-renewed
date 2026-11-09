@@ -203,7 +203,8 @@ for name, cfg in NETS.items():
         dep = get(net(f'/api/stops/{sid}/departures?limit=8', s), 'departures', name) or {}
         departures_seen += len(dep.get('departures') or [])
         if not dep.get('platforms'):
-            etas = [x['etaAt'] for x in dep.get('departures') or []]
+            # En los trenes, la que ya debería haber pasado y no está en el feed va al final («Sin datos del tren»).
+            etas = [x['etaAt'] for x in dep.get('departures') or [] if x.get('status') != 'likely_departed']
             if etas != sorted(etas):
                 fails.append(f'{name} {sid}: las salidas no vienen ordenadas por hora de llegada prevista')
         # Hoy ya no sale ninguna más: las de mañana, detrás de las de hoy y con su horario, sin el directo de hoy.

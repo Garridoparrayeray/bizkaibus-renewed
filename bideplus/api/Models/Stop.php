@@ -72,6 +72,19 @@ class Stop
         return array_map(fn($aRow) => ['id' => Ids::forOutput($aRow['id']), 'label' => $aRow['platform_label']], $aRows);
     }
 
+    // ¿Está el punto en la zona de la red? La de sus paradas, con unos 5 km de margen: Renfe llega a León y Renfe larga
+    // distancia, a toda España.
+    public function covers(float $dLat, float $dLon): bool
+    {
+        $aBox = $this->Pdo->query('SELECT MIN(lat) AS min_lat, MAX(lat) AS max_lat, MIN(lon) AS min_lon, MAX(lon) AS max_lon FROM stops')->fetch();
+        if (empty($aBox) || $aBox['min_lat'] === null) {
+            return false;
+        }
+        $dMargin = 0.05;
+        return $dLat >= $aBox['min_lat'] - $dMargin && $dLat <= $aBox['max_lat'] + $dMargin
+            && $dLon >= $aBox['min_lon'] - $dMargin && $dLon <= $aBox['max_lon'] + $dMargin;
+    }
+
     public function nearest(float $dLat, float $dLon, int $iLimit = 5, int $iRadiusMeters = 2000): array
     {
         $dLatDelta = $iRadiusMeters / 111320;
