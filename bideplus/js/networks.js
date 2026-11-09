@@ -663,6 +663,106 @@
                 "attribution": "Data: Renfe"
             }
         }
+    },
+    "txiktxak": {
+        "kind": "bus",
+        "icons": "icons-txiktxak",
+        "themeColor": "#E2001A",
+        "title": [
+            "TXIK TXAK",
+            ""
+        ],
+        "favoritesKey": "txiktxak_favorites",
+        "live": true,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": false,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Txik Txak+",
+                "tile": "Horarios del autobús de Iparralde",
+                "switcher": "Horarios del autobús de Iparralde",
+                "subtitle": "Horarios del autobús de Iparralde",
+                "liveEmpty": "Busca una parada para ver el próximo autobús.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Syndicat des Mobilités Pays Basque-Adour. Los tiempos en directo son una previsión del operador.",
+                "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+            },
+            "eu": {
+                "name": "Txik Txak+",
+                "tile": "Autobusaren ordutegiak",
+                "switcher": "Autobusaren ordutegiak",
+                "subtitle": "Autobusaren ordutegiak",
+                "liveEmpty": "Bilatu geraleku bat hurrengo autobusa ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Syndicat des Mobilités Pays Basque-Adour erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
+                "attribution": "Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+            },
+            "en": {
+                "name": "Txik Txak+",
+                "tile": "Iparralde bus timetables",
+                "switcher": "Iparralde bus timetables",
+                "subtitle": "Iparralde bus timetables",
+                "liveEmpty": "Search for a stop to see the next bus.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator's forecast.",
+                "attribution": "Data: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+            }
+        }
+    },
+    "sncf": {
+        "kind": "train",
+        "icons": "icons-sncf",
+        "themeColor": "#0C131F",
+        "title": [
+            "SNCF",
+            ""
+        ],
+        "favoritesKey": "sncf_favorites",
+        "live": true,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": true,
+            "stop_hints": false,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "SNCF+",
+                "tile": "Horarios del tren de Iparralde",
+                "switcher": "Horarios del tren de Iparralde",
+                "subtitle": "Horarios del tren de Iparralde",
+                "liveEmpty": "Busca una parada para ver el próximo tren.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con SNCF. Los tiempos en directo son una previsión del operador.",
+                "attribution": "Datos: SNCF (GTFS)"
+            },
+            "eu": {
+                "name": "SNCF+",
+                "tile": "Trenaren ordutegiak",
+                "switcher": "Trenaren ordutegiak",
+                "subtitle": "Trenaren ordutegiak",
+                "liveEmpty": "Bilatu geraleku bat hurrengo trena ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, SNCF erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
+                "attribution": "Datuak: SNCF (GTFS)"
+            },
+            "en": {
+                "name": "SNCF+",
+                "tile": "Iparralde train timetables",
+                "switcher": "Iparralde train timetables",
+                "subtitle": "Iparralde train timetables",
+                "liveEmpty": "Search for a stop to see the next train.",
+                "disclaimer": "An independent, unofficial project, not affiliated with SNCF. Live times are the operator's forecast.",
+                "attribution": "Data: SNCF (GTFS)"
+            }
+        }
     }
 };
     const order = Object.keys(networks);

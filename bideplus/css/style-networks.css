@@ -45,6 +45,12 @@
 .tile--renfe-ld {
     --c: #3F4E63;
 }
+.tile--txiktxak {
+    --c: #E2001A;
+}
+.tile--sncf {
+    --c: #0C131F;
+}
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
@@ -82,6 +88,12 @@ html.bide .bide-swatch--launion {
 }
 html.bide .bide-swatch--renfe-ld {
     background: #3F4E63;
+}
+html.bide .bide-swatch--txiktxak {
+    background: #E2001A;
+}
+html.bide .bide-swatch--sncf {
+    background: #0C131F;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -216,4 +228,26 @@ html.is-renfe-ld {
     --text: #202122;
     --text-secondary: #5d5f60;
     --backdrop: rgba(6, 8, 10, .5);
+}
+html.is-txiktxak {
+    --bg: #f4eeee;
+    --border: #e0d3d4;
+    --primary: #E2001A;
+    --primary-light: #f28c98;
+    --primary-dark: #8c0010;
+    --primary-tint: #fdebed;
+    --text: #2a1c1e;
+    --text-secondary: #6a585a;
+    --backdrop: rgba(23, 0, 3, .5);
+}
+html.is-sncf {
+    --bg: #eeeeef;
+    --border: #d3d4d4;
+    --primary: #0C131F;
+    --primary-light: #92959a;
+    --primary-dark: #070c13;
+    --primary-tint: #ececed;
+    --text: #1d1d1e;
+    --text-secondary: #595a5b;
+    --backdrop: rgba(1, 2, 3, .5);
 }

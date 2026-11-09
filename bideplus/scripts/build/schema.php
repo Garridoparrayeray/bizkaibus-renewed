@@ -184,6 +184,9 @@ class Schema
               AND seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = journey_pattern_stops.journey_pattern_id)
         ');
         $Pdo->exec('DELETE FROM lines WHERE id NOT IN (SELECT line_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM service_calendars WHERE id NOT IN (SELECT calendar_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM service_calendar_exceptions WHERE calendar_id NOT IN (SELECT id FROM service_calendars)');
+        $Pdo->exec('DELETE FROM shapes WHERE id NOT IN (SELECT shape_id FROM service_journeys WHERE shape_id IS NOT NULL)');
         $Pdo->exec('
             UPDATE service_journeys SET first_departure_seconds = (
                 SELECT pt.departure_seconds FROM passing_times pt WHERE pt.service_journey_id = service_journeys.id

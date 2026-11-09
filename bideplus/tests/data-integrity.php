@@ -57,16 +57,14 @@ foreach ($aDatabases as $sName) {
     $iJourneys = $Count('SELECT COUNT(*) FROM service_journeys');
     $Expect($sName . ': hay paradas, líneas y viajes', $iStops > 0 && $iLines > 0 && $iJourneys > 0, "$iStops paradas, $iLines líneas, $iJourneys viajes");
 
-    $sBounds = 'lat NOT BETWEEN 41.5 AND 44.0 OR lon NOT BETWEEN -6.5 AND -1.0';
-    $sBoundsLabel = 'el norte peninsular (Renfe llega a León)';
-    $iMaxHours = 10;
-    $sMaxHoursLabel = 'Bilbao-León tarda ~8 h';
-    if ($sName === 'renfe-ld') {
-        $sBounds = 'lat NOT BETWEEN 35.0 AND 46.0 OR lon NOT BETWEEN -10.0 AND 6.0';
-        $sBoundsLabel = 'España y el sur de Francia (Renfe larga distancia es nacional)';
-        $iMaxHours = 16;
-        $sMaxHoursLabel = 'el viaje más largo, ~14 h';
-    }
+    // Cada red puede dar en su ficha (checks) la zona de sus paradas [lat mín, lat máx, lon mín, lon máx] y cuánto dura
+    // como mucho un viaje; sin eso valen los del norte peninsular.
+    $aChecks = \Core\Networks::get($sName)['checks'] ?? [];
+    $aBounds = $aChecks['bounds'] ?? [41.5, 44.0, -6.5, -1.0];
+    $iMaxHours = $aChecks['max_trip_hours'] ?? 10;
+    $sBounds = sprintf('lat NOT BETWEEN %F AND %F OR lon NOT BETWEEN %F AND %F', ...$aBounds);
+    $sBoundsLabel = 'su zona (' . implode(', ', $aBounds) . ')';
+    $sMaxHoursLabel = 'el tope de su ficha';
     $iBadCoords = $Count('SELECT COUNT(*) FROM stops WHERE ' . $sBounds);
     $Expect($sName . ': todas las paradas están en ' . $sBoundsLabel, $iBadCoords === 0, $iBadCoords . ' fuera');
 

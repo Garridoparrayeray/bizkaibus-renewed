@@ -66,6 +66,9 @@ return [
     ],
     'attribution' => 'Datos: Renfe',
 
+    // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
+    'checks' => ['bounds' => [35.0, 46.0, -10.0, 6.0], 'max_trip_hours' => 16],
+
     'features' => [
         'platforms' => false,
         'headsign_from_last_stop' => false,

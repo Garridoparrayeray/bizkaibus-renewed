@@ -171,6 +171,9 @@ function main(array $aArgv): void
 
     echo "Building indexes...\n";
     Schema::createIndexes($Pdo);
+    if (!empty($aGtfs['keep_stops'])) {
+        $Pdo->exec('VACUUM');
+    }
 
     $Zip->close();
 
