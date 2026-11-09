@@ -832,3 +832,22 @@ main {
                 grid-row: span 3;
             }
 }
+
+/* Redes locales: el botón para añadir las urbanas de cada pueblo (apagado mientras no haya ninguna) */
+.nets-local {
+    gap: 10px;
+}
+    .nets-local > span:first-child {
+        margin-right: auto;
+    }
+    .nets-local:disabled {
+        background: #F4F6F5;
+        color: #6B7770;
+        cursor: default;
+    }
+        .nets-local:disabled svg {
+            display: none;
+        }
+#tiles-local {
+    margin-top: 12px;
+}

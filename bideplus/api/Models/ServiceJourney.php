@@ -184,7 +184,7 @@ class ServiceJourney
         $iWeekdayBit = Calendar::weekdayBitFor($Date);
         $sDateStr = $Date->format('Y-m-d');
 
-        $sStopCondition = 'pt.seq_order = 1';
+        $sStopCondition = 'pt.seq_order = (SELECT MIN(first.seq_order) FROM passing_times first WHERE first.service_journey_id = pt.service_journey_id)';
         if ($iStopId !== null) {
             $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)
                 AND EXISTS (

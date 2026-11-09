@@ -185,7 +185,7 @@ $aJsonLd = [
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');
     $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
-                <li>
+                <li data-scope="<?= htmlspecialchars($aNetwork['scope'] ?? 'main') ?>">
                     <a class="tile tile--<?= $sSlug ?>" data-app="<?= $sSlug ?>" data-name="<?= htmlspecialchars($sName) ?>" href="/?red=<?= $sSlug ?>">
                         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
                         <img class="mark" src="<?= $sIcon ?>" alt="<?= htmlspecialchars($sName) ?>" aria-hidden="true">
@@ -210,6 +210,12 @@ $aJsonLd = [
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9L12 15L18 9"/></svg>
             </button>
             <ul class="tiles" id="tiles-rest" hidden></ul>
+            <button type="button" id="nets-local" class="nets-all nets-local" aria-expanded="false" aria-controls="tiles-local" disabled>
+                <span><strong data-i18n="menu.nets.local">Redes locales</strong><span data-i18n="menu.nets.localText">Los autobuses urbanos de tu pueblo</span></span>
+                <span class="planner-soon" id="nets-local-soon" data-i18n="bide.upcoming.title">Próximamente</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9L12 15L18 9"/></svg>
+            </button>
+            <ul class="tiles" id="tiles-local" hidden></ul>
             <div class="menu-links">
                 <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
                 <a class="menu-map-link" href="/estado"><?= BIDE_ICONS['estado'] ?><span><strong data-i18n="status.title">Estado de las redes</strong><span data-i18n="status.subtitle">Qué va en directo ahora en cada red</span></span><?= BIDE_ICONS['next'] ?></a>

@@ -6,6 +6,9 @@
     const section = document.getElementById('tr');
     const favList = document.getElementById('tiles-fav');
     const restList = document.getElementById('tiles-rest');
+    const localList = document.getElementById('tiles-local');
+    const localButton = document.getElementById('nets-local');
+    const localSoon = document.getElementById('nets-local-soon');
     const editButton = document.getElementById('nets-edit');
     const allButton = document.getElementById('nets-all');
     const allCount = document.getElementById('nets-all-count');
@@ -13,8 +16,12 @@
     const empty = document.getElementById('nets-empty');
     const items = Array.from(favList.children);
     const order = items.map(slugOf);
+    const localSlugs = items.filter(function (item) {
+        return item.getAttribute('data-scope') === 'local';
+    }).map(slugOf);
     let editing = false;
     let open = false;
+    let localOpen = false;
 
     function slugOf(item) {
         return item.querySelector('a.tile').getAttribute('data-app');
@@ -32,7 +39,11 @@
         } catch (e) {
             saved = null;
         }
-        if (!Array.isArray(saved)) return order.slice(0, DEFAULT_COUNT);
+        if (!Array.isArray(saved)) {
+            return order.filter(function (slug) {
+                return !localSlugs.includes(slug);
+            }).slice(0, DEFAULT_COUNT);
+        }
         return saved.filter(function (slug) {
             return order.includes(slug);
         });
@@ -49,6 +60,9 @@
     function render() {
         const favorites = readFavorites();
         const rest = order.filter(function (slug) {
+            return !favorites.includes(slug) && !localSlugs.includes(slug);
+        });
+        const local = localSlugs.filter(function (slug) {
             return !favorites.includes(slug);
         });
         favorites.forEach(function (slug) {
@@ -57,6 +71,14 @@
         rest.forEach(function (slug) {
             restList.appendChild(items[order.indexOf(slug)]);
         });
+        local.forEach(function (slug) {
+            localList.appendChild(items[order.indexOf(slug)]);
+        });
+        const showLocal = (editing || localOpen) && local.length > 0;
+        localButton.disabled = localSlugs.length === 0;
+        localSoon.hidden = localSlugs.length > 0;
+        localButton.setAttribute('aria-expanded', String(showLocal));
+        localList.hidden = !showLocal;
         items.forEach(function (item) {
             const pin = item.querySelector('.tile-pin');
             const isFavorite = favorites.includes(slugOf(item));
@@ -99,6 +121,10 @@
     });
     allButton.addEventListener('click', function () {
         open = !open;
+        render();
+    });
+    localButton.addEventListener('click', function () {
+        localOpen = !localOpen;
         render();
     });
     section.addEventListener('click', function (event) {
