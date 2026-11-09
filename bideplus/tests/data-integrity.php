@@ -65,7 +65,13 @@ foreach ($aDatabases as $sName) {
     $sBounds = sprintf('lat NOT BETWEEN %F AND %F OR lon NOT BETWEEN %F AND %F', ...$aBounds);
     $sBoundsLabel = 'su zona (' . implode(', ', $aBounds) . ')';
     $sMaxHoursLabel = 'el tope de su ficha';
-    $iBadCoords = $Count('SELECT COUNT(*) FROM stops WHERE ' . $sBounds);
+    // Con gtfs.keep_stops la zona es la de las paradas de la red: un destino de fuera puede estar en cualquier sitio.
+    $aListed = \Core\Networks::listedStops(\Core\Networks::get($sName));
+    $sOwnStops = '';
+    if ($aListed !== null) {
+        $sOwnStops = ' AND id IN (' . implode(', ', array_map(fn($sId) => $Pdo->quote((string)$sId), array_keys($aListed))) . ')';
+    }
+    $iBadCoords = $Count('SELECT COUNT(*) FROM stops WHERE (' . $sBounds . ')' . $sOwnStops);
     $Expect($sName . ': todas las paradas están en ' . $sBoundsLabel, $iBadCoords === 0, $iBadCoords . ' fuera');
 
     $iEmptyNames = $Count("SELECT COUNT(*) FROM stops WHERE TRIM(name) = '' OR TRIM(name_normalized) = ''");

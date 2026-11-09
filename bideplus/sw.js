@@ -65,6 +65,7 @@ const SHELL_FILES = [
     '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',
+    '/js/menu-favorites.js',
     '/js/i18n.js',
     '/css/style-menu.css',
     '/css/style-splash.css',

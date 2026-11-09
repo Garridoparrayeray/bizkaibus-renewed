@@ -687,27 +687,27 @@
         "texts": {
             "es": {
                 "name": "Txik Txak+",
-                "tile": "Horarios del autobús de Iparralde",
-                "switcher": "Horarios del autobús de Iparralde",
-                "subtitle": "Horarios del autobús de Iparralde",
+                "tile": "Autobuses de Iparralde",
+                "switcher": "Horarios y tiempo real de los autobuses de Iparralde",
+                "subtitle": "Horarios y tiempo real",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Syndicat des Mobilités Pays Basque-Adour. Los tiempos en directo son una previsión del operador.",
-                "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+                "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour / transport.data.gouv.fr"
             },
             "eu": {
                 "name": "Txik Txak+",
-                "tile": "Autobusaren ordutegiak",
-                "switcher": "Autobusaren ordutegiak",
-                "subtitle": "Autobusaren ordutegiak",
+                "tile": "Iparraldeko autobusak",
+                "switcher": "Iparraldeko autobusen ordutegiak eta denbora errealean",
+                "subtitle": "Ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Syndicat des Mobilités Pays Basque-Adour erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
             },
             "en": {
                 "name": "Txik Txak+",
-                "tile": "Iparralde bus timetables",
-                "switcher": "Iparralde bus timetables",
-                "subtitle": "Iparralde bus timetables",
+                "tile": "Buses in the Northern Basque Country",
+                "switcher": "Timetables and real time for buses in the Northern Basque Country",
+                "subtitle": "Timetables and real time",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator's forecast.",
                 "attribution": "Data: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
@@ -737,27 +737,27 @@
         "texts": {
             "es": {
                 "name": "SNCF+",
-                "tile": "Horarios del tren de Iparralde",
-                "switcher": "Horarios del tren de Iparralde",
-                "subtitle": "Horarios del tren de Iparralde",
-                "liveEmpty": "Busca una parada para ver el próximo tren.",
+                "tile": "Trenes de Iparralde",
+                "switcher": "Horarios y tiempo real de los trenes de Iparralde",
+                "subtitle": "TGV, Intercités y TER en tiempo real",
+                "liveEmpty": "Busca una estación para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con SNCF. Los tiempos en directo son una previsión del operador.",
                 "attribution": "Datos: SNCF (GTFS)"
             },
             "eu": {
                 "name": "SNCF+",
-                "tile": "Trenaren ordutegiak",
-                "switcher": "Trenaren ordutegiak",
-                "subtitle": "Trenaren ordutegiak",
+                "tile": "Iparraldeko trenak",
+                "switcher": "Iparraldeko trenen ordutegiak eta denbora errealean",
+                "subtitle": "TGV, Intercités eta TER denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, SNCF erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
                 "attribution": "Datuak: SNCF (GTFS)"
             },
             "en": {
                 "name": "SNCF+",
-                "tile": "Iparralde train timetables",
-                "switcher": "Iparralde train timetables",
-                "subtitle": "Iparralde train timetables",
+                "tile": "Trains in the Northern Basque Country",
+                "switcher": "Timetables and real time for trains in the Northern Basque Country",
+                "subtitle": "TGV, Intercités and TER in real time",
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with SNCF. Live times are the operator's forecast.",
                 "attribution": "Data: SNCF (GTFS)"

@@ -34,26 +34,26 @@ return [
     'texts' => [
         'es' => [
             'name' => 'SNCF+',
-            'tile' => 'Horarios del tren de Iparralde',
-            'switcher' => 'Horarios del tren de Iparralde',
-            'subtitle' => 'Horarios del tren de Iparralde',
-            'liveEmpty' => 'Busca una parada para ver el próximo tren.',
+            'tile' => 'Trenes de Iparralde',
+            'switcher' => 'Horarios y tiempo real de los trenes de Iparralde',
+            'subtitle' => 'TGV, Intercités y TER en tiempo real',
+            'liveEmpty' => 'Busca una estación para ver el próximo tren.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con SNCF. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
             'name' => 'SNCF+',
-            'tile' => 'Trenaren ordutegiak',
-            'switcher' => 'Trenaren ordutegiak',
-            'subtitle' => 'Trenaren ordutegiak',
+            'tile' => 'Iparraldeko trenak',
+            'switcher' => 'Iparraldeko trenen ordutegiak eta denbora errealean',
+            'subtitle' => 'TGV, Intercités eta TER denbora errealean',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, SNCF erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'attribution' => 'Datuak: SNCF (GTFS)',
         ],
         'en' => [
             'name' => 'SNCF+',
-            'tile' => 'Iparralde train timetables',
-            'switcher' => 'Iparralde train timetables',
-            'subtitle' => 'Iparralde train timetables',
+            'tile' => 'Trains in the Northern Basque Country',
+            'switcher' => 'Timetables and real time for trains in the Northern Basque Country',
+            'subtitle' => 'TGV, Intercités and TER in real time',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with SNCF. Live times are the operator\'s forecast.',
             'attribution' => 'Data: SNCF (GTFS)',
@@ -61,13 +61,13 @@ return [
     ],
 
     'seo' => [
-        'title' => 'SNCF+ · Horarios del tren de Iparralde',
-        'description' => 'Consulta los horarios del tren de Iparralde por parada y línea.',
+        'title' => 'SNCF+ · Horarios y tiempo real de los trenes de Iparralde',
+        'description' => 'Consulta los horarios de los trenes de SNCF (TGV, Intercités y TER) en Hendaia, Donibane Lohizune, Biarritz, Baiona, Kanbo y Donibane Garazi, con su retraso en tiempo real.',
     ],
     'attribution' => 'Datos: SNCF (GTFS)',
 
     // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
-    'checks' => ['bounds' => [42.5, 51.5, -5.0, 8.5], 'max_trip_hours' => 16],
+    'checks' => ['bounds' => [42.9, 43.8, -1.9, -0.7], 'max_trip_hours' => 16],
 
     'features' => [
         'platforms' => false,
