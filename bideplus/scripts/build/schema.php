@@ -156,6 +156,44 @@ class Schema
         return $iNamed;
     }
 
+    // Deja solo los viajes en los que se sube en alguna de esas paradas, y de cada uno, esas paradas y su destino (para
+    // saber a dónde va): el resto de paradas se quitan después con pruneUnservedStops. Devuelve los viajes que quedan.
+    public static function keepStops(PDO $Pdo, array $aStopIds): int
+    {
+        $Pdo->exec('CREATE TEMP TABLE keep_stops (stop_id TEXT PRIMARY KEY)');
+        $Insert = $Pdo->prepare('INSERT OR IGNORE INTO keep_stops VALUES (?)');
+        foreach ($aStopIds as $sStopId) {
+            $Insert->execute([(string)$sStopId]);
+        }
+        $Pdo->exec('
+            DELETE FROM service_journeys WHERE id NOT IN (
+                SELECT pt.service_journey_id FROM passing_times pt JOIN keep_stops k ON k.stop_id = pt.stop_id
+                WHERE EXISTS (SELECT 1 FROM passing_times later WHERE later.service_journey_id = pt.service_journey_id AND later.seq_order > pt.seq_order)
+            )
+        ');
+        $Pdo->exec('DELETE FROM passing_times WHERE service_journey_id NOT IN (SELECT id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM trip_aliases WHERE service_journey_id NOT IN (SELECT id FROM service_journeys)');
+        $Pdo->exec('
+            DELETE FROM passing_times WHERE stop_id NOT IN (SELECT stop_id FROM keep_stops)
+              AND seq_order < (SELECT MAX(last.seq_order) FROM passing_times last WHERE last.service_journey_id = passing_times.service_journey_id)
+        ');
+        $Pdo->exec('DELETE FROM journey_patterns WHERE id NOT IN (SELECT journey_pattern_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM journey_pattern_stops WHERE journey_pattern_id NOT IN (SELECT id FROM journey_patterns)');
+        $Pdo->exec('
+            DELETE FROM journey_pattern_stops WHERE stop_id NOT IN (SELECT stop_id FROM keep_stops)
+              AND seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = journey_pattern_stops.journey_pattern_id)
+        ');
+        $Pdo->exec('DELETE FROM lines WHERE id NOT IN (SELECT line_id FROM service_journeys)');
+        $Pdo->exec('
+            UPDATE service_journeys SET first_departure_seconds = (
+                SELECT pt.departure_seconds FROM passing_times pt WHERE pt.service_journey_id = service_journeys.id
+                ORDER BY pt.seq_order LIMIT 1
+            )
+        ');
+        $Pdo->exec('DROP TABLE keep_stops');
+        return (int)$Pdo->query('SELECT COUNT(*) FROM service_journeys')->fetchColumn();
+    }
+
     public static function pruneUnservedStops(PDO $Pdo): int
     {
         $iDeletedQuays = $Pdo->exec('

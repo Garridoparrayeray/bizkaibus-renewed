@@ -153,6 +153,9 @@ function main(array $aArgv): void
     if (!empty($aGtfs['name_lines_from_stops'])) {
         echo '  ' . Schema::nameLinesFromStops($Pdo) . " lines named after their end stops\n";
     }
+    if (!empty($aGtfs['keep_stops'])) {
+        echo '  ' . Schema::keepStops($Pdo, $aGtfs['keep_stops']) . " journeys boarding at the network's own stops\n";
+    }
 
     $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
