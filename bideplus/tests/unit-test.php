@@ -9,6 +9,7 @@ use Core\TripKey;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\CancelledTrains;
+use Services\FeedStopOrder;
 use Services\GtfsRealtimeClient;
 use Services\RenfeAlertsClient;
 use Services\ScheduleRange;
@@ -411,6 +412,43 @@ $aMetro = (new TripDelayMatcher($aMetroTrip, new ServiceJourney($PdoRenfe), 0))-
 $Expect('Metro: la hora de la estación es la del feed y el retraso, lo que se aparta del horario (15 min)', $aMetro[0]['status'] === 'live' && $aMetro[0]['etaSeconds'] === T0 + 1020 && $aMetro[0]['delaySeconds'] === 900, json_encode($aMetro[0]));
 $aMetroAhead = (new TripDelayMatcher([['tripId' => '6005L1C1', 'stops' => [['A', T0 + 300], ['C', T0 + 840]]]], new ServiceJourney($PdoRenfe), 0))->enrich('B', [$RenfeRow('J1', 0)]);
 $Expect('Metro: si el feed se salta la estación, la hora de la siguiente menos lo que se tarda hasta ella', $aMetroAhead[0]['etaSeconds'] === T0 + 720, json_encode($aMetroAhead[0]));
+
+// Metro Bilbao manda Urduliz con el id de Gobela («20.0» por «29.0») en los viajes del ramal de Plentzia: el 8 de
+// noviembre de 2026, el tren de las 19:32 salía en Areeta «por llegar, +17 min» después de haber pasado en hora.
+$aPlentzia = ['19', '20', '21', '22', '28', '29', '30'];
+$Expect('FeedStopOrder: la última parada con el id de otra toma el del hueco que queda (Urduliz)', FeedStopOrder::align([['21', 1], ['22', 2], ['28', 3], ['20', 4]], $aPlentzia) === [['21', 1], ['22', 2], ['28', 3], ['29', 4]]);
+$Expect('FeedStopOrder: hacia Etxebarri, la segunda', FeedStopOrder::align([['30', 1], ['20', 2], ['28', 3], ['22', 4]], array_reverse($aPlentzia)) === [['30', 1], ['29', 2], ['28', 3], ['22', 4]]);
+$Expect('FeedStopOrder: con Gobela de verdad también en el feed, se arregla la que sobra', FeedStopOrder::align([['20', 1], ['21', 2], ['28', 3], ['20', 4]], $aPlentzia) === [['20', 1], ['21', 2], ['28', 3], ['29', 4]]);
+$Expect('FeedStopOrder: con dos paradas no se adivina, se quita la que va hacia atrás', FeedStopOrder::fit([['28', 1], ['20', 2]], $aPlentzia) === [['28', 1]]);
+$Expect('FeedStopOrder: en orden, todo igual', FeedStopOrder::fit([['21', 1], ['22', 2]], $aPlentzia) === [['21', 1], ['22', 2]]);
+
+$PdoMetroB = new PDO('sqlite::memory:');
+$PdoMetroB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$PdoMetroB->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoMetroB->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT)');
+$PdoMetroB->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT, arrival_seconds INTEGER, departure_seconds INTEGER)');
+$PdoMetroB->exec('CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT)');
+$PdoMetroB->exec('CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT)');
+$PdoMetroB->exec('CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, line_id TEXT)');
+$PdoMetroB->exec('CREATE TABLE service_journeys (id TEXT PRIMARY KEY, journey_pattern_id TEXT)');
+foreach ($aPlentzia as $iSeq => $sStop) {
+    $PdoMetroB->exec("INSERT INTO stops VALUES ('$sStop', 'Estación $sStop')");
+    $PdoMetroB->exec("INSERT INTO passing_times VALUES ('JP', $iSeq, '$sStop', " . (T0 + $iSeq * 120) . ', ' . (T0 + $iSeq * 120) . ')');
+}
+$PdoMetroB->exec("INSERT INTO trip_aliases VALUES ('903232', 'JP')");
+$PdoMetroB->exec("INSERT INTO lines VALUES ('MB', 'MB')");
+$PdoMetroB->exec("INSERT INTO journey_patterns VALUES ('PP', 'MB')");
+$PdoMetroB->exec("INSERT INTO service_journeys VALUES ('JP', 'PP')");
+$MetroRow = fn(string $sStop) => ['service_journey_id' => 'JP', 'trip_number' => '903232', 'stop_seq' => array_search($sStop, $aPlentzia, true), 'arrival_seconds' => T0 + array_search($sStop, $aPlentzia, true) * 120, 'status' => 'scheduled', 'etaSeconds' => T0 + array_search($sStop, $aPlentzia, true) * 120, 'delaySeconds' => 0];
+// Ya ha pasado por 19, 20 y 21 con minuto y medio de retraso; el feed le quedan 22, 28 y «20» (que es Urduliz).
+$iPassedMidnight = time() - (T0 + 330);
+$aPassed = [['tripId' => '903232', 'stops' => [['22', $iPassedMidnight + T0 + 360 + 90], ['28', $iPassedMidnight + T0 + 480 + 90], ['20', $iPassedMidnight + T0 + 600 + 90]]]];
+$Expect('Metro: un tren que ya pasó por la estación no vuelve a salir «por llegar» por la parada mal etiquetada', (new TripDelayMatcher($aPassed, new ServiceJourney($PdoMetroB), $iPassedMidnight))->enrich('19', [$MetroRow('19')]) === []);
+// Aún va hacia Gobela (20): su hora en Gobela es la de Gobela, no la de Urduliz que llega con el mismo id.
+$iComingMidnight = time() - (T0 + 60);
+$aComing = [['tripId' => '903232', 'stops' => [['20', $iComingMidnight + T0 + 120 + 90], ['21', $iComingMidnight + T0 + 240 + 90], ['22', $iComingMidnight + T0 + 360 + 90], ['28', $iComingMidnight + T0 + 480 + 90], ['20', $iComingMidnight + T0 + 600 + 90]]]];
+$aGobela = (new TripDelayMatcher($aComing, new ServiceJourney($PdoMetroB), $iComingMidnight))->enrich('20', [$MetroRow('20')]);
+$Expect('Metro: en Gobela, la hora de Gobela (1,5 min de retraso), no la de Urduliz', ($aGobela[0]['etaSeconds'] ?? null) === T0 + 120 + 90 && $aGobela[0]['delaySeconds'] === 90, json_encode($aGobela));
 // De madrugada, un tren del horario de ayer anotado a las 26:00 (las 02:00 de hoy) con 3 min de retraso.
 $PdoNight = new PDO('sqlite::memory:');
 $PdoNight->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
