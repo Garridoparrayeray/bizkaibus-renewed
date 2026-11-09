@@ -30,6 +30,8 @@ class TripDelayMatcher
     private int $iMatched = 0;
     private bool $bCopiesSchedule = false;
     private bool $bContradictsVehicles = false;
+    // Viajes cuyo GPS da más de MAX_GPS_DELAY_SECONDS: el autobús lleva el número de otro viaje.
+    private array $aGpsRejected = [];
     private JourneyStops $Stops;
     private FeedTrust $Trust;
 
@@ -50,7 +52,10 @@ class TripDelayMatcher
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
-            if ($sJourneyId === null || !$this->ofToday($aTrip) || ($bPreferVehicles && isset($aFromVehicles[$sJourneyId]))) {
+            if ($sJourneyId === null || !$this->ofToday($aTrip)) {
+                continue;
+            }
+            if ($bPreferVehicles && $this->hasGps((string)$sJourneyId, $aFromVehicles)) {
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
@@ -110,14 +115,30 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // En las redes con gtfs_rt.max_feed_gap_seconds (Álavabus, 2 h), unas horas que se apartan más de su horario son
-    // de otro viaje con ese número (da a veces el de hace horas): no valen, el viaje sale con su horario. Las demás no
-    // tienen tope: un tren de Renfe con más de 2 h de retraso sigue saliendo con su retraso.
+    // Con gtfs_rt.prefer_vehicles, un viaje con GPS va con el GPS; si su GPS no vale (otro viaje), tampoco sus horas.
+    private function hasGps(string $sJourneyId, array $aFromVehicles): bool
+    {
+        return isset($aFromVehicles[$sJourneyId]) || isset($this->aGpsRejected[$sJourneyId]);
+    }
+
+    // Con gtfs_rt.max_feed_gap_seconds (Álavabus, 45 min), un retraso de más es de otro viaje con ese número (da a
+    // veces el de hace horas): no vale y el viaje sale con su horario. Cuenta también el de la parada a la que va, con
+    // lo que lleva de más si no ha llegado. Las demás redes no tienen tope: Renfe con +2 h sale con su retraso.
     private function implausible(string $sJourneyId, array $aLive): bool
     {
         $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;
         if ($iMaxGap === null) {
             return false;
+        }
+        $iNextOrder = null;
+        if ($aLive['nextStopId'] !== null) {
+            $iNextOrder = $this->Stops->orderOf($sJourneyId, (string)$aLive['nextStopId']);
+        }
+        if ($iNextOrder !== null) {
+            $iNextArrival = $this->Stops->arrivalAt($sJourneyId, $iNextOrder);
+            if (abs($this->etaAt($sJourneyId, $iNextOrder, $iNextArrival, $aLive) - $iNextArrival) > $iMaxGap) {
+                return true;
+            }
         }
         foreach ($this->Stops->of($sJourneyId) as $aStop) {
             $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
@@ -162,9 +183,16 @@ class TripDelayMatcher
             }
             $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
             $iShift = $this->shiftFromNow($iArrival);
-            $iDelay = max(0, $this->nowSeconds() + $iShift - $this->vehicleScheduled($sJourneyId, $iOrder, $iArrival, $aVehicle));
+            $iScheduled = $this->vehicleScheduled($sJourneyId, $iOrder, $iArrival, $aVehicle);
+            $iDelay = max(0, $this->nowSeconds() + $iShift - $iScheduled);
             if ($iDelay > self::MAX_GPS_DELAY_SECONDS) {
+                $this->aGpsRejected[$sJourneyId] = true;
                 continue;
+            }
+            // El GPS lo pone pasada la parada del feed (la que acaba de dejar atrás): va a la siguiente. Si no, se
+            // sumaría lo que lleva desde la hora de la que ya pasó, como si aún no hubiera llegado a ella.
+            if ($iScheduled > $iArrival) {
+                $sStopId = $this->Stops->after($sJourneyId, $iOrder) ?? $sStopId;
             }
             $aEntries[$sJourneyId] = ['delay' => $iDelay, 'times' => [], 'nextStopId' => $sStopId, 'canceled' => false, 'shift' => $iShift];
         }
