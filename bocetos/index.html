@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bide+ · Bocetos del enrutador</title>
+    <link rel="stylesheet" href="bocetos.css">
+</head>
+<body>
+    <h1>Bide+ · Bocetos del enrutador</h1>
+    <p class="lead">Pantallas que faltan por construir, dibujadas con la estética de la app. Son bocetos estáticos: no calculan nada. Los datos (paradas, horas, líneas) son de ejemplo. Cada pantalla lleva una nota con lo que hace y lo que necesita para funcionar.</p>
+
+    <h2 class="group">1. Buscar la ruta</h2>
+    <div class="board">
+
+        <div class="shot">
+            <h3>1.1 Enrutador en el inicio</h3>
+            <p class="note">El mismo bloque de hoy, ya activo. Origen por defecto: tu ubicación.</p>
+            <div class="phone">
+                <div class="bar"><span class="brand">BIDE<span>+</span></span><span class="round">ES</span></div>
+                <div class="card">
+                    <h2>¿A dónde vas?</h2>
+                    <div class="places">
+                        <div class="place"><span class="dot"></span>Tu ubicación</div>
+                        <div class="place empty"><span class="dot to"></span>Destino: parada, calle o sitio</div>
+                        <span class="round swap">⇅</span>
+                    </div>
+                    <div class="seg"><span class="on">Ahora</span><span>Salir a</span><span>Llegar a</span></div>
+                    <div class="btn">Buscar ruta</div>
+                </div>
+                <p class="h2">Últimas rutas</p>
+                <div class="list">
+                    <div class="item"><span class="ico grey">↻</span><div><b>Casa → Trabajo</b><span>Getxo · Bilbao, Abando</span></div></div>
+                    <div class="item"><span class="ico grey">↻</span><div><b>Bilbao → Vitoria-Gasteiz</b><span>Ayer, 18:40</span></div></div>
+                    <div class="item"><span class="ico grey">★</span><div><b>Aeropuerto de Loiu</b><span>Guardado</span></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>1.2 Elegir el destino</h3>
+            <p class="note">Busca paradas de todas las redes y, si se añade, calles y sitios. Cada resultado dice de qué red es.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Destino</span></div>
+                <div class="search">🔍 donosti|</div>
+                <div class="list">
+                    <div class="item"><span class="ico" style="--c:var(--eusko)">E</span><div><b>Donostia · Amara</b><span>Euskotren · estación</span></div></div>
+                    <div class="item"><span class="ico" style="--c:var(--renfe)">R</span><div><b>San Sebastián-Donostia</b><span>Renfe · estación</span></div></div>
+                    <div class="item"><span class="ico" style="--c:#0038A8">d</span><div><b>Boulevard 9</b><span>Dbus · parada</span></div></div>
+                    <div class="item"><span class="ico" style="--c:#2D9AB7">L</span><div><b>Donostia · Geltokia</b><span>Lurraldebus · parada</span></div></div>
+                    <div class="item"><span class="ico grey">📍</span><div><b>Donostia / San Sebastián</b><span>Ciudad · elige un punto</span></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>1.3 Qué redes usar</h3>
+            <p class="note">«Todas» o solo las tuyas. Es un filtro sobre los mismos datos: no cambia cómo se calcula.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Redes de la ruta</span></div>
+                <div class="seg" style="background:#EEF1EF"><span style="color:var(--muted)">Todas</span><span class="on" style="background:var(--green);color:#fff">Mis redes</span><span style="color:var(--muted)">Elegir</span></div>
+                <div class="list">
+                    <div class="item"><span class="ico" style="--c:var(--bus)">B</span><div><b>Bizkaibus+</b><span>Autobuses de Bizkaia</span></div><span class="tick on">✓</span></div>
+                    <div class="item"><span class="ico" style="--c:var(--metro)">M</span><div><b>Metro+</b><span>Metro Bilbao</span></div><span class="tick on">✓</span></div>
+                    <div class="item"><span class="ico" style="--c:var(--eusko)">E</span><div><b>Euskotren+</b><span>Trenes y tranvía</span></div><span class="tick on">✓</span></div>
+                    <div class="item"><span class="ico" style="--c:var(--renfe)">R</span><div><b>Renfe Cercanías+</b><span>Bilbao y Donostia</span></div><span class="tick"></span></div>
+                    <div class="item"><span class="ico" style="--c:#2D9AB7">L</span><div><b>Lurraldebus+</b><span>Autobuses de Gipuzkoa</span></div><span class="tick"></span></div>
+                </div>
+                <div class="spacer"></div>
+                <div class="btn green">Usar estas 3 redes</div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>1.4 Resultados</h3>
+            <p class="note">Ordenados por hora de llegada. Cada opción enseña sus tramos, transbordos y si va con dato en directo.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Getxo → Vitoria-Gasteiz</span></div>
+                <p class="sub">Salir ahora · 3 redes · <b style="color:var(--green)">Cambiar</b></p>
+                <div class="box best">
+                    <div class="row"><span class="big">1 h 32 min</span><span class="tag green">Llega antes</span></div>
+                    <div class="legs"><span class="leg walk">🚶 4</span><i>›</i><span class="leg metro">L1</span><i>›</i><span class="leg walk">🚶 3</span><i>›</i><span class="leg bus">A3915</span></div>
+                    <div class="row"><span class="small">Sale 08:12 · llega 09:44 · 1 transbordo</span><span class="tag live">En directo</span></div>
+                </div>
+                <div class="box">
+                    <div class="row"><span class="big">1 h 47 min</span><span class="tag">Menos andar</span></div>
+                    <div class="legs"><span class="leg walk">🚶 2</span><i>›</i><span class="leg bus">A3411</span><i>›</i><span class="leg walk">🚶 1</span><i>›</i><span class="leg" style="background:#31609E">U1</span></div>
+                    <span class="small">Sale 08:05 · llega 09:52 · 1 transbordo</span>
+                </div>
+                <div class="box">
+                    <div class="row"><span class="big">2 h 05 min</span><span class="tag">Sin transbordo</span></div>
+                    <div class="legs"><span class="leg walk">🚶 9</span><i>›</i><span class="leg" style="background:#31609E">U3</span></div>
+                    <span class="small">Sale 08:30 · llega 10:35 · directo</span>
+                </div>
+                <p class="sub">Las horas son las del horario oficial; donde hay directo, con el retraso real.</p>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>1.5 Detalle de la ruta</h3>
+            <p class="note">Tramo a tramo, con la hora de cada cambio y lo que se anda. Desde aquí se empieza el viaje.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ 1 h 32 min</span><span class="round">⤴</span></div>
+                <div class="steps">
+                    <div class="step walk"><time>08:12</time><span class="rail"></span><div><strong>Tu ubicación</strong><span>Anda 4 min hasta Algorta</span></div></div>
+                    <div class="step" style="--c:var(--metro)"><time>08:17</time><span class="rail"></span><div><strong>Algorta · Metro L1</strong><span>Hacia Etxebarri · 11 paradas · 24 min<br><b style="color:#0B6B43">En directo · va 1 min tarde</b></span></div></div>
+                    <div class="step walk"><time>08:42</time><span class="rail"></span><div><strong>Abando</strong><span>Transbordo: anda 3 min a Termibus</span></div></div>
+                    <div class="step" style="--c:var(--bus)"><time>08:50</time><span class="rail"></span><div><strong>Bilbao Intermodal · A3915</strong><span>Hacia Vitoria-Gasteiz · directo · 54 min<br>Tienes 5 min de margen</span></div></div>
+                    <div class="step" style="--c:var(--red)"><time>09:44</time><span class="rail"></span><div><strong>Vitoria-Gasteiz · Estación de autobuses</strong><span>Has llegado</span></div></div>
+                </div>
+                <div class="spacer"></div>
+                <div class="btn green">Empezar el viaje</div>
+                <div class="btn line">Avisarme antes de cada transbordo</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="group">2. Durante el viaje</h2>
+    <div class="board">
+
+        <div class="shot">
+            <h3>2.1 Viaje en curso</h3>
+            <p class="note">Dónde vas, cuántas paradas faltan y cuánto queda para el transbordo. Usa tu GPS y el horario del tren.</p>
+            <div class="phone">
+                <div class="map"><span class="path"></span><span class="me"></span><span class="pin"></span></div>
+                <div class="sheet">
+                    <div class="row"><span class="tag live">En directo</span><span class="small">Llegas a las 09:44</span></div>
+                    <div class="row"><span class="big">Metro L1</span><span class="leg metro">Etxebarri</span></div>
+                    <p class="sub">Próxima parada: <b>Areeta</b> · faltan 8 paradas para bajarte</p>
+                    <div class="progress" style="--c:var(--metro)"><i style="width:28%"></i></div>
+                    <div class="box soft"><div class="row"><div><b>Bájate en Abando</b><br><span class="small">En 17 min · luego 3 min andando</span></div><span class="big">17′</span></div></div>
+                    <div class="btn line">Ver todos los pasos</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.2 ¿Has cogido el metro?</h3>
+            <p class="note">Cuando la app no puede saberlo sola (sin GPS, o dos trenes juntos), pregunta. Una respuesta y sigue.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Tu viaje</span></div>
+                <div class="ask">
+                    <span class="tag warn">Necesito confirmarlo</span>
+                    <span class="big">¿Has cogido el metro de las 08:17?</span>
+                    <p class="sub" style="margin:0">Salía de Algorta hacia Etxebarri. No tengo tu posición desde que entraste en la estación.</p>
+                    <div class="btn green">Sí, voy en él</div>
+                    <div class="btn line">No, lo he perdido</div>
+                    <div class="btn line">Voy en otro</div>
+                </div>
+                <p class="sub">Si lo has perdido, busco la siguiente combinación que llegue antes.</p>
+                <div class="box"><div class="row"><div><b>Siguiente metro</b><br><span class="small">08:23 · llegarías 6 min más tarde</span></div><span class="leg metro">L1</span></div></div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.3 Aviso de transbordo</h3>
+            <p class="note">Notificación y pantalla una parada antes de bajarte. Es el mismo mecanismo que «Avísame cuando llegue».</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Tu viaje</span></div>
+                <div class="alert" style="--c:var(--metro)">
+                    <span class="tag" style="align-self:flex-start">La siguiente es la tuya</span>
+                    <span class="big">Bájate en Abando</span>
+                    <span>Llegas en 2 min</span>
+                </div>
+                <div class="box soft">
+                    <b>Después</b>
+                    <div class="legs"><span class="leg walk">🚶 3 min</span><i>›</i><span class="leg bus">A3915 · 08:50</span></div>
+                    <span class="small">Tienes 5 min de margen. Sales por la salida de Termibus.</span>
+                </div>
+                <div class="spacer"></div>
+                <div class="btn green">Ya me he bajado</div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.4 Transbordo a pie</h3>
+            <p class="note">Entre dos redes: por dónde ir, cuánto se tarda y si llegas al siguiente. Necesita la tabla de enlaces a pie.</p>
+            <div class="phone">
+                <div class="map"><span class="path dash" style="background:repeating-linear-gradient(90deg,#8A9690 0 10px,transparent 10px 18px)"></span><span class="me" style="left:60px;top:108px"></span><span class="pin"></span></div>
+                <div class="sheet">
+                    <div class="row"><span class="big">Anda a Termibus</span><span class="big" style="color:var(--green)">3′</span></div>
+                    <p class="sub">250 m · sal por la salida «Termibus» y cruza la plaza</p>
+                    <div class="box soft"><div class="row"><div><b>A3915 hacia Vitoria-Gasteiz</b><br><span class="small">Sale a las 08:50 · dársena 12</span></div><span class="tag live">En 5 min</span></div></div>
+                    <div class="progress"><i style="width:40%"></i></div>
+                    <span class="small">Vas bien de tiempo: llegas 2 min antes de que salga.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.5 En un túnel, sin GPS</h3>
+            <p class="note">Sin señal, la posición se estima con el horario del tren y el tiempo desde la última parada. Se marca como estimada.</p>
+            <div class="phone">
+                <div class="map"><span class="path dash"></span><span class="me guess"></span><span class="pin"></span></div>
+                <div class="sheet">
+                    <div class="row"><span class="tag warn">Posición estimada</span><span class="small">Sin señal desde hace 3 min</span></div>
+                    <div class="row"><span class="big">Metro L1</span><span class="leg metro">Etxebarri</span></div>
+                    <p class="sub">Deberías estar entre <b>San Mamés</b> e <b>Indautxu</b>, según el horario del tren.</p>
+                    <div class="progress" style="--c:var(--walk)"><i style="width:72%"></i></div>
+                    <div class="box soft"><div class="row"><div><b>Bájate en Abando</b><br><span class="small">En unos 4 min · te aviso aunque no haya señal</span></div><span class="big">≈4′</span></div></div>
+                    <span class="small">En cuanto vuelva la señal, se corrige sola.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.6 Has perdido el enlace</h3>
+            <p class="note">Si el primer tramo se retrasa y no llegas, se recalcula sin que tengas que pedirlo.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Tu viaje</span></div>
+                <div class="alert" style="--c:#7A4B00">
+                    <span class="tag" style="align-self:flex-start">Cambio de plan</span>
+                    <span class="big">No llegas al A3915 de las 08:50</span>
+                    <span>Tu metro va 7 min tarde.</span>
+                </div>
+                <p class="h2">Nueva ruta</p>
+                <div class="box best">
+                    <div class="row"><span class="big">Llegas 10:14</span><span class="tag warn">+30 min</span></div>
+                    <div class="legs"><span class="leg walk">🚶 3</span><i>›</i><span class="leg bus">A3915 · 09:20</span></div>
+                    <span class="small">Esperas 23 min en Termibus</span>
+                </div>
+                <div class="box">
+                    <div class="row"><span class="big">Llegas 10:02</span><span class="tag">2 transbordos</span></div>
+                    <div class="legs"><span class="leg renfe">C3</span><i>›</i><span class="leg" style="background:#31609E">U1</span></div>
+                </div>
+                <div class="spacer"></div>
+                <div class="btn green">Seguir con la nueva ruta</div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>2.7 Has llegado</h3>
+            <p class="note">Cierre del viaje. Se puede guardar la ruta para repetirla.</p>
+            <div class="phone">
+                <div class="center">
+                    <span class="okmark">✓</span>
+                    <span class="big">Has llegado</span>
+                    <p class="sub">Vitoria-Gasteiz · 09:46<br>1 h 34 min · 2 min más de lo previsto</p>
+                </div>
+                <div class="btn green">Guardar esta ruta</div>
+                <div class="btn line">Volver al inicio</div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="group">3. Redes locales</h2>
+    <div class="board">
+
+        <div class="shot">
+            <h3>3.1 Añadir una red local</h3>
+            <p class="note">Detrás del botón «Redes locales» del inicio. Se busca por pueblo; las grandes siguen a la vista.</p>
+            <div class="phone">
+                <div class="bar"><span class="back">‹ Redes locales</span></div>
+                <div class="search">🔍 Busca tu pueblo</div>
+                <div class="seg" style="background:#EEF1EF"><span class="on" style="background:var(--green);color:#fff">Bizkaia</span><span style="color:var(--muted)">Gipuzkoa</span><span style="color:var(--muted)">Araba</span></div>
+                <div class="list">
+                    <div class="item"><span class="ico" style="--c:#245C4A">L</span><div><b>Lejoan Busa</b><span>Leioa · urbano</span></div><span class="plus">+</span></div>
+                    <div class="item"><span class="ico" style="--c:#B5121B">K</span><div><b>Kbus</b><span>Barakaldo · urbano</span></div><span class="plus">+</span></div>
+                    <div class="item"><span class="ico" style="--c:#1D6FB8">S</span><div><b>Sopelbus</b><span>Sopela · urbano</span></div><span class="plus">+</span></div>
+                    <div class="item"><span class="ico" style="--c:#6B3FA0">E</span><div><b>Erandio! busa</b><span>Erandio · urbano</span></div><span class="plus">+</span></div>
+                    <div class="item"><span class="ico" style="--c:#0F7F8C">B</span><div><b>Bermibusa</b><span>Bermeo · urbano</span></div><span class="plus">+</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="shot">
+            <h3>3.2 Sugerencia por ubicación</h3>
+            <p class="note">Si estás en un pueblo con urbano, el inicio lo propone una vez. Se puede descartar.</p>
+            <div class="phone">
+                <div class="bar"><span class="brand">BIDE<span>+</span></span><span class="round">ES</span></div>
+                <div class="box soft">
+                    <div class="row"><div><b>Estás en Eibar.</b> <span class="small">Tiene autobús urbano, Udalbus.</span></div><span class="btn green" style="min-height:40px;font-size:14px">Añadir</span></div>
+                </div>
+                <p class="h2">Tus redes</p>
+                <div class="two">
+                    <span style="background:var(--bus);color:#fff;min-height:110px;align-items:flex-end;font-weight:800">Bizkaibus+</span>
+                    <span style="background:var(--metro);color:#fff;min-height:110px;align-items:flex-end;font-weight:800">Metro+</span>
+                </div>
+                <div class="box"><div class="row"><div><b>Todas las redes</b><br><span class="small">12 más</span></div><span>⌄</span></div></div>
+                <div class="box"><div class="row"><div><b>Redes locales</b><br><span class="small">Los autobuses urbanos de tu pueblo</span></div><span>›</span></div></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
