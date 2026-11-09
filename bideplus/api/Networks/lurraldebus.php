@@ -85,7 +85,7 @@ return [
     ],
 
     // Motor propio en engine/lurraldebus, que hereda el de Bizkaibus. Los feeds de los operadores llegan vacíos
-    // (2/11/2026): mientras tanto la app enseña el horario oficial y el mapa no dice que siga a nadie.
+    // (9/11/2026, los 8): mientras tanto la app enseña el horario oficial y el mapa no dice que siga a nadie.
     'live' => ['vehicle-monitoring'],
     // El feed llega vacío a ratos aunque haya servicio: «Vigilar el directo» lo apunta como aviso, no como fallo.
     'live_often_empty' => true,
@@ -98,6 +98,9 @@ return [
             'gipuzkoana' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_vehicle_monitoring.xml',
             'pesa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_vehicle_monitoring.xml',
             'tbh' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_vehicle_monitoring.xml',
+            'euskotrenbus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/siri_euskobus_vehicle_monitoring.xml',
+            'tolosaldea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/siri_tolosaldea_vehicle_monitoring.xml',
+            'tolosa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/siri_tolosa_vehicle_monitoring.xml',
         ],
         'alerts_urls' => [
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_situation_exchange.xml',
@@ -105,6 +108,9 @@ return [
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_situation_exchange.xml',
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_situation_exchange.xml',
             'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/siri_euskobus_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/siri_tolosaldea_situation_exchange.xml',
+            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/siri_tolosa_situation_exchange.xml',
         ],
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 4,

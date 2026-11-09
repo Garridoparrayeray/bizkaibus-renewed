@@ -123,6 +123,39 @@ class Schema
         }
     }
 
+    // Nombra "Origen – Destino" las líneas que el operador publica sin nombre, con las paradas extremas de su patrón con
+    // más viajes.
+    public static function nameLinesFromStops(PDO $Pdo): int
+    {
+        $aLines = $Pdo->query("SELECT id FROM lines WHERE name = ''")->fetchAll(PDO::FETCH_COLUMN);
+        $Pattern = $Pdo->prepare('
+            SELECT journey_pattern_id FROM service_journeys WHERE line_id = ?
+            GROUP BY journey_pattern_id ORDER BY COUNT(*) DESC LIMIT 1
+        ');
+        $Ends = $Pdo->prepare('
+            SELECT s.name FROM journey_pattern_stops p JOIN stops s ON s.id = p.stop_id
+            WHERE p.journey_pattern_id = ? ORDER BY p.seq_order
+        ');
+        $Update = $Pdo->prepare('UPDATE lines SET name = ?, name_normalized = ? WHERE id = ?');
+        $iNamed = 0;
+        foreach ($aLines as $sLineId) {
+            $Pattern->execute([$sLineId]);
+            $sPatternId = $Pattern->fetchColumn();
+            if ($sPatternId === false) {
+                continue;
+            }
+            $Ends->execute([$sPatternId]);
+            $aNames = $Ends->fetchAll(PDO::FETCH_COLUMN);
+            if (count($aNames) < 2) {
+                continue;
+            }
+            $sName = $aNames[0] . ' – ' . end($aNames);
+            $Update->execute([$sName, Search::normalize($sName), $sLineId]);
+            $iNamed++;
+        }
+        return $iNamed;
+    }
+
     public static function pruneUnservedStops(PDO $Pdo): int
     {
         $iDeletedQuays = $Pdo->exec('

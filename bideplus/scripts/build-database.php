@@ -150,6 +150,10 @@ function main(array $aArgv): void
 
     $Pdo->commit();
 
+    if (!empty($aGtfs['name_lines_from_stops'])) {
+        echo '  ' . Schema::nameLinesFromStops($Pdo) . " lines named after their end stops\n";
+    }
+
     $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
         echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";

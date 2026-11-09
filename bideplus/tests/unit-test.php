@@ -662,6 +662,20 @@ $aParsedAlerts = GtfsRealtimeClient::parseAlerts($sAlertsPb)['alerts'];
 $Expect('incidencias: el titular y el texto en castellano, y la parada o la línea a la que afectan', count($aParsedAlerts) === 2 && $aParsedAlerts[0]['summary'] === 'Parada trasladada' && $aParsedAlerts[0]['description'] === 'Por obras' && $aParsedAlerts[0]['stopRefs'] === ['1325'] && $aParsedAlerts[1]['lineRefs'] === ['L3'], json_encode($aParsedAlerts));
 $Expect('solo las vigentes: la que ya acabó no sale', array_column(GtfsRealtimeClient::activeAlerts($aParsedAlerts, 3000), 'summary') === ['Parada trasladada'] && count(GtfsRealtimeClient::activeAlerts($aParsedAlerts, 1500)) === 2);
 
+$Stale = new ReflectionMethod(GtfsRealtimeClient::class, 'stale');
+$aOldFeed = ['generatedAt' => time() - 3600];
+$Expect('un feed con la hora atrasada una hora es viejo sin desfase', $Stale->invoke(null, $aOldFeed, ['max_age_seconds' => 300]) === true);
+$Expect('con clock_offset_seconds la hora corregida lo da por fresco', $Stale->invoke(null, $aOldFeed, ['max_age_seconds' => 300, 'clock_offset_seconds' => 3600]) === false);
+$Expect('con clock_offset_seconds un feed realmente viejo sigue siéndolo', $Stale->invoke(null, ['generatedAt' => time() - 9000], ['max_age_seconds' => 300, 'clock_offset_seconds' => 3600]) === true);
+
+$sToday = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->format('Y-m-d');
+$sOldDay = (new DateTime('now', new DateTimeZone('Europe/Madrid')))->modify('-3 day')->format('Y-m-d');
+$aDated = [['tripId' => '123' . $sToday], ['tripId' => '123' . $sOldDay], ['tripId' => 'sinFecha']];
+$OfServiceDay = new ReflectionMethod(GtfsRealtimeClient::class, 'ofServiceDay');
+$WithSuffix = new GtfsRealtimeClient(['gtfs_rt' => ['trip_date_suffix' => true]]);
+$Expect('trip_date_suffix deja los viajes de hoy y los sin fecha', array_column($OfServiceDay->invoke($WithSuffix, $aDated), 'tripId') === ['123' . $sToday, 'sinFecha']);
+$Expect('sin trip_date_suffix no se filtra nada', count($OfServiceDay->invoke(new GtfsRealtimeClient(['gtfs_rt' => []]), $aDated)) === 3);
+
 
 /* ------------------------------------------------------------------ */
 $Section('Salidas de una parada: orden y filas repetidas');
