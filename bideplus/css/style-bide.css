@@ -7,6 +7,16 @@
     --bide-surface: #ffffff;
     --bide-bg: #f4f6f4;
     --bide-ease: cubic-bezier(.2, .8, .2, 1);
+    --text-scale: 1;
+}
+/* En el ordenador todo el texto va un 20 % más grande: cada font-size se multiplica por --text-scale. */
+@media (min-width: 1024px) {
+    :root {
+        --text-scale: 1.2;
+    }
+}
+html.bide body {
+    font-size: calc(16px * var(--text-scale, 1));
 }
 
 html.bide [hidden] {
@@ -65,7 +75,7 @@ html.bide .bide-seg {
         background: transparent;
         color: var(--bide-green);
         font-family: inherit;
-        font-size: 13.6px;
+        font-size: calc(13.6px * var(--text-scale, 1));
         font-weight: 800;
         cursor: pointer;
         transition: background-color .18s ease, color .18s ease, transform .12s ease;
@@ -161,7 +171,7 @@ html.bide body.page-menu .bide-view-head {
     html.bide .bide-view-head > h2 {
         margin: 0;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 25.6px;
+        font-size: calc(25.6px * var(--text-scale, 1));
         font-weight: 800;
         color: var(--bide-ink);
         outline: none;
@@ -196,7 +206,7 @@ html.bide .bide-group {
     gap: 8px;
     margin: 10px 4px 2px;
     color: #3d4640;
-    font-size: 12.48px;
+    font-size: calc(12.48px * var(--text-scale, 1));
     font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -226,18 +236,18 @@ html.bide .bide-fav {
         min-width: 0;
     }
         html.bide .bide-fav-text > strong {
-            font-size: 15.2px;
+            font-size: calc(15.2px * var(--text-scale, 1));
             overflow-wrap: anywhere;
         }
         html.bide .bide-fav-text > span {
             color: var(--bide-muted);
-            font-size: 12.8px;
+            font-size: calc(12.8px * var(--text-scale, 1));
         }
 html.bide .bide-empty,
 html.bide .bide-note {
     margin: 6px 4px;
     color: var(--bide-muted);
-    font-size: 14.4px;
+    font-size: calc(14.4px * var(--text-scale, 1));
     line-height: 1.45;
 }
 html.bide .bide-card {
@@ -256,19 +266,19 @@ html.bide .bide-card {
     html.bide .bide-card > h3 {
         margin: 0;
         color: var(--bide-muted);
-        font-size: 12px;
+        font-size: calc(12px * var(--text-scale, 1));
         font-weight: 800;
         letter-spacing: .06em;
         text-transform: uppercase;
     }
     html.bide .bide-card p {
         margin: 0;
-        font-size: 14.72px;
+        font-size: calc(14.72px * var(--text-scale, 1));
         line-height: 1.5;
     }
     html.bide .bide-alert strong {
         color: #B34A14;
-        font-size: 15.2px;
+        font-size: calc(15.2px * var(--text-scale, 1));
     }
     html.bide .bide-alert p {
         color: var(--bide-muted);
@@ -290,7 +300,7 @@ html.bide .bide-card-link {
     justify-content: space-between;
     width: 100%;
     color: var(--bide-green);
-    font-size: 16px;
+    font-size: calc(16px * var(--text-scale, 1));
     font-weight: 800;
     cursor: pointer;
 }
@@ -306,14 +316,14 @@ html.bide .bide-upcoming-head {
 }
     html.bide .bide-upcoming-head > strong {
         color: var(--bide-ink);
-        font-size: 15.2px;
+        font-size: calc(15.2px * var(--text-scale, 1));
     }
     html.bide .bide-upcoming-badge {
         padding: 2px 8px;
         border-radius: 999px;
         background: var(--bide-tint);
         color: var(--bide-green);
-        font-size: 12px;
+        font-size: calc(12px * var(--text-scale, 1));
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: .04em;
@@ -339,7 +349,7 @@ html.bide .bide-footer-donate {
     border: 1.5px solid rgba(255, 255, 255, .85);
     border-radius: 999px;
     color: #fff;
-    font-size: 13.12px;
+    font-size: calc(13.12px * var(--text-scale, 1));
     font-weight: 700;
     text-decoration: none;
 }
@@ -367,13 +377,13 @@ html.bide .bide-changelog-head {
 }
     html.bide .bide-changelog-head > time {
         color: var(--bide-muted);
-        font-size: 12.48px;
+        font-size: calc(12.48px * var(--text-scale, 1));
         font-weight: 700;
         font-variant-numeric: tabular-nums;
     }
     html.bide .bide-changelog-head > strong {
         color: var(--bide-ink);
-        font-size: 15.2px;
+        font-size: calc(15.2px * var(--text-scale, 1));
     }
 html.bide .bide-changelog-more > .bide-changelog-entry {
     margin-top: 14px;
@@ -444,16 +454,16 @@ html.bide .bide-offline-list {
             gap: 2px 10px;
         }
             html.bide .bide-offline-text > strong {
-                font-size: 15.2px;
+                font-size: calc(15.2px * var(--text-scale, 1));
             }
             html.bide .bide-offline-detail {
                 grid-column: 2;
                 color: var(--bide-muted);
-                font-size: 12.8px;
+                font-size: calc(12.8px * var(--text-scale, 1));
             }
     html.bide .bide-offline-unsupported {
         color: var(--bide-muted);
-        font-size: 14.4px;
+        font-size: calc(14.4px * var(--text-scale, 1));
     }
     html.bide .bide-offline-all {
         padding: 4px 0 12px;
@@ -466,7 +476,7 @@ html.bide .bide-offline-list {
             background: var(--bide-ink);
             color: #fff;
             font: inherit;
-            font-size: 14.72px;
+            font-size: calc(14.72px * var(--text-scale, 1));
             font-weight: 700;
             cursor: pointer;
         }
@@ -527,7 +537,7 @@ html.bide .bide-faq-item {
         gap: 12px;
         min-height: 48px;
         color: var(--bide-ink);
-        font-size: 15.2px;
+        font-size: calc(15.2px * var(--text-scale, 1));
         font-weight: 700;
         list-style: none;
         cursor: pointer;
@@ -574,7 +584,7 @@ html.bide .bide-feedback {
             background: var(--bide-surface);
             color: var(--bide-ink);
             font: inherit;
-            font-size: 16px;
+            font-size: calc(16px * var(--text-scale, 1));
             resize: vertical;
         }
             html.bide .bide-feedback-field > textarea:focus-visible {
@@ -586,7 +596,7 @@ html.bide .bide-feedback {
             right: 12px;
             bottom: 8px;
             color: var(--bide-muted);
-            font-size: 12px;
+            font-size: calc(12px * var(--text-scale, 1));
             font-variant-numeric: tabular-nums;
         }
     html.bide .bide-feedback-tech {
@@ -608,11 +618,11 @@ html.bide .bide-feedback {
             gap: 2px;
         }
             html.bide .bide-feedback-tech strong {
-                font-size: 14.72px;
+                font-size: calc(14.72px * var(--text-scale, 1));
             }
             html.bide .bide-feedback-tech small {
                 color: var(--bide-muted);
-                font-size: 12.8px;
+                font-size: calc(12.8px * var(--text-scale, 1));
             }
     html.bide .bide-feedback-actions {
         display: grid;
@@ -623,7 +633,7 @@ html.bide .bide-feedback {
     }
     html.bide .bide-feedback-status {
         color: var(--bide-muted);
-        font-size: 13.6px;
+        font-size: calc(13.6px * var(--text-scale, 1));
     }
 html.bide .bide-button {
     min-height: 46px;
@@ -633,7 +643,7 @@ html.bide .bide-button {
     background: var(--primary, var(--bide-green));
     color: #fff;
     font: inherit;
-    font-size: 14.72px;
+    font-size: calc(14.72px * var(--text-scale, 1));
     font-weight: 800;
     cursor: pointer;
 }
@@ -655,7 +665,7 @@ html.bide .bide-button {
 /* Ajustes: notificaciones */
 html.bide .bide-settings-notifications > h4 {
     margin: 16px 0 8px;
-    font-size: 15.2px;
+    font-size: calc(15.2px * var(--text-scale, 1));
 }
 html.bide .alerts-toggle {
     display: flex;
@@ -663,7 +673,7 @@ html.bide .alerts-toggle {
     gap: 10px;
     margin: 0 0 8px;
     color: var(--bide-ink);
-    font-size: 14.72px;
+    font-size: calc(14.72px * var(--text-scale, 1));
     font-weight: 600;
     line-height: 1.35;
     cursor: pointer;
@@ -678,7 +688,7 @@ html.bide .alerts-toggle {
 html.bide .alerts-note {
     margin: 0 0 8px;
     color: var(--bide-muted);
-    font-size: 13.12px;
+    font-size: calc(13.12px * var(--text-scale, 1));
     line-height: 1.4;
 }
 html.bide .bide-settings-arrivals {
@@ -708,7 +718,7 @@ html.bide .bide-settings-arrival {
     }
     html.bide .bide-settings-arrival span span {
         color: var(--bide-muted);
-        font-size: 13.12px;
+        font-size: calc(13.12px * var(--text-scale, 1));
     }
     html.bide .bide-settings-arrival .bide-button {
         flex: none;
@@ -727,7 +737,7 @@ html.bide .bide-settings-app .bide-button {
 }
 html.bide .bide-settings-app > h4 {
     margin: 0 0 8px;
-    font-size: 15.2px;
+    font-size: calc(15.2px * var(--text-scale, 1));
 }
 html.bide .bide-settings-app .bide-feedback-status {
     margin: 8px 0 0;
@@ -735,7 +745,7 @@ html.bide .bide-settings-app .bide-feedback-status {
 html.bide .bide-settings-version {
     margin: 16px 0 0;
     color: var(--bide-muted);
-    font-size: 13.12px;
+    font-size: calc(13.12px * var(--text-scale, 1));
 }
     html.bide .bide-settings-version [data-settings-version] {
         font-variant-numeric: tabular-nums;
@@ -747,7 +757,7 @@ html.bide .bide-sources {
     padding: 0;
     list-style: none;
     color: var(--bide-muted);
-    font-size: 14.08px;
+    font-size: calc(14.08px * var(--text-scale, 1));
     line-height: 1.4;
 }
     html.bide .bide-sources strong {
@@ -765,7 +775,7 @@ html.bide .bide-update-badge {
     border-radius: 9px;
     background: var(--bide-red);
     color: #fff;
-    font-size: 11.2px;
+    font-size: calc(11.2px * var(--text-scale, 1));
     font-weight: 800;
     line-height: 1;
 }
@@ -815,7 +825,7 @@ html.bide .bide-update[hidden] {
         html.bide .bide-update-notes p {
             margin: 2px 0 0;
             color: var(--bide-muted);
-            font-size: 14.08px;
+            font-size: calc(14.08px * var(--text-scale, 1));
             line-height: 1.4;
         }
 html.bide .bide-update-action {
@@ -876,11 +886,11 @@ html.bide .bide-install {
     }
         html.bide .bide-install-text > strong {
             font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-            font-size: 16px;
+            font-size: calc(16px * var(--text-scale, 1));
         }
         html.bide .bide-install-text > span {
             color: var(--bide-muted);
-            font-size: 12.8px;
+            font-size: calc(12.8px * var(--text-scale, 1));
             line-height: 1.35;
         }
     html.bide .bide-install-accept {
@@ -890,7 +900,7 @@ html.bide .bide-install {
         background: var(--bide-green);
         color: #fff;
         font-family: inherit;
-        font-size: 14.08px;
+        font-size: calc(14.08px * var(--text-scale, 1));
         font-weight: 700;
         cursor: pointer;
     }
@@ -921,15 +931,15 @@ html.bide .bide-rail-brand {
     border-radius: 18px;
     background: var(--bide-surface);
     color: var(--bide-muted);
-    font-size: 13.12px;
+    font-size: calc(13.12px * var(--text-scale, 1));
     text-decoration: none;
 }
     html.bide .bide-rail-brand .bide-wordmark {
-        font-size: 33.6px;
+        font-size: calc(33.6px * var(--text-scale, 1));
         line-height: 1;
     }
         html.bide .bide-rail-brand .bide-wordmark > span {
-            font-size: 20.8px;
+            font-size: calc(20.8px * var(--text-scale, 1));
             vertical-align: top;
         }
 html.bide .bide-rail-nav {
@@ -948,7 +958,7 @@ html.bide .bide-rail-item {
     background: transparent;
     color: var(--bide-ink);
     font-family: inherit;
-    font-size: 14.72px;
+    font-size: calc(14.72px * var(--text-scale, 1));
     font-weight: 600;
     text-align: left;
     text-decoration: none;
@@ -1015,7 +1025,7 @@ html.bide .bide-rail-favorites {
     html.bide .bide-rail-favorites > h2 {
         margin: 0 0 10px;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 16px;
+        font-size: calc(16px * var(--text-scale, 1));
         font-weight: 700;
         color: var(--bide-ink);
     }
@@ -1024,7 +1034,7 @@ html.bide .bide-rail-favorites {
     }
     html.bide .bide-rail-favorites .bide-empty {
         margin: 0;
-        font-size: 13.6px;
+        font-size: calc(13.6px * var(--text-scale, 1));
     }
 
 /* ===== Pie de Bide+ ===== */
@@ -1037,13 +1047,13 @@ html.bide .bide-footer-links {
 }
 html.bide .bide-footer-copyright {
     margin: 14px 0 0;
-    font-size: 12.8px;
+    font-size: calc(12.8px * var(--text-scale, 1));
     opacity: .75;
 }
 html.bide .bide-footer-title {
     flex-basis: 100%;
     margin: 0;
-    font-size: 11.52px;
+    font-size: calc(11.52px * var(--text-scale, 1));
     font-weight: 700;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -1067,7 +1077,7 @@ html.bide body.page-app .app-footer {
     }
     html.bide body.page-app .bide-footer-brand .bide-wordmark {
         color: #fff;
-        font-size: 22.4px;
+        font-size: calc(22.4px * var(--text-scale, 1));
     }
     html.bide body.page-app .bide-footer-brand > p {
         display: none;
@@ -1088,7 +1098,7 @@ html.bide body.page-app .app-footer {
             min-height: 24px;
             margin: 0;
             color: #fff;
-            font-size: 13.12px;
+            font-size: calc(13.12px * var(--text-scale, 1));
             font-weight: 700;
             text-decoration: none;
         }
@@ -1103,12 +1113,12 @@ html.bide body.page-app .bide-menu-apps {
     width: 100%;
     justify-content: flex-start;
     margin: 44px 0 10px;
-    font-size: 14.4px;
+    font-size: calc(14.4px * var(--text-scale, 1));
     text-decoration: none;
 }
     html.bide body.page-app .bide-menu-apps + .menu-favorites-open {
         margin: 0 0 10px;
-        font-size: 14.4px;
+        font-size: calc(14.4px * var(--text-scale, 1));
     }
     /* Ajustes e Info, debajo y del mismo ancho que las de arriba. */
     html.bide body.page-app .side-menu > :is(.pill[data-bide-tab], .bide-menu-donate) {
@@ -1116,7 +1126,7 @@ html.bide body.page-app .bide-menu-apps {
         width: 100%;
         justify-content: flex-start;
         margin: 0 0 10px;
-        font-size: 14.4px;
+        font-size: calc(14.4px * var(--text-scale, 1));
     }
         html.bide body.page-app .side-menu > .bide-menu-donate {
             margin-bottom: 24px;
@@ -1205,7 +1215,7 @@ html.bide:not(.is-standalone) body.page-menu {
     html.bide body.page-menu .menu-footer .bide-wordmark {
         display: block;
         color: #fff;
-        font-size: 22.4px;
+        font-size: calc(22.4px * var(--text-scale, 1));
     }
     html.bide body.page-menu .menu-footer .bide-footer-brand > p {
         color: #e3efe0;
@@ -1252,12 +1262,12 @@ html.bide body.page-menu .legal-panel {
         margin: 10px 0 16px;
         padding-right: 48px;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 19.2px;
+        font-size: calc(19.2px * var(--text-scale, 1));
         font-weight: 700;
     }
     html.bide body.page-menu .legal-panel > p {
         margin: 0 0 12px;
-        font-size: 13.6px;
+        font-size: calc(13.6px * var(--text-scale, 1));
         line-height: 1.55;
     }
     html.bide body.page-menu .legal-panel strong {
@@ -1318,7 +1328,7 @@ html.bide body.page-menu .legal-close {
         background: none;
         color: var(--bide-muted);
         font-family: inherit;
-        font-size: 11.52px;
+        font-size: calc(11.52px * var(--text-scale, 1));
         font-weight: 600;
         cursor: pointer;
         transition: color .15s ease, transform .12s ease;
@@ -1570,14 +1580,14 @@ html.bide body.page-menu .legal-close {
         padding: 30px max(16px, calc((100vw - 1400px) / 2)) 26px;
         background: var(--bide-green);
         color: #e3efe0;
-        font-size: 13.44px;
+        font-size: calc(13.44px * var(--text-scale, 1));
         line-height: 1.4;
         text-align: left;
     }
         html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-wordmark {
             display: block;
             color: #fff;
-            font-size: 22.4px;
+            font-size: calc(22.4px * var(--text-scale, 1));
         }
         html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand {
             display: flex;
@@ -1591,7 +1601,7 @@ html.bide body.page-menu .legal-close {
             html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-brand > p {
                 display: block;
                 color: #e3efe0;
-                font-size: 13.44px;
+                font-size: calc(13.44px * var(--text-scale, 1));
                 line-height: 1.5;
             }
         html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) .bide-footer-title {
@@ -1630,7 +1640,7 @@ html.bide body.page-menu .legal-close {
         html.bide :is(body.page-app .app-footer, body.page-menu .menu-footer) :is(.bide-apps-links, .bide-footer-links) :is(a, button, .legal-open) {
             margin: 0;
             color: #fff;
-            font-size: 13.44px;
+            font-size: calc(13.44px * var(--text-scale, 1));
             font-weight: 600;
             text-decoration: none;
         }
@@ -1714,7 +1724,7 @@ html.bide .is-new::after {
     border-radius: 999px;
     background: var(--primary, var(--bide-green));
     color: #fff;
-    font-size: 10.5px;
+    font-size: calc(10.5px * var(--text-scale, 1));
     font-weight: 800;
     letter-spacing: .06em;
     line-height: 1.4;
@@ -1802,7 +1812,7 @@ html.bide dialog.bide-menu-sheet {
         background: var(--bide-surface);
         color: var(--bide-ink);
         font-family: inherit;
-        font-size: 14.4px;
+        font-size: calc(14.4px * var(--text-scale, 1));
         font-weight: 600;
         text-align: left;
         cursor: pointer;

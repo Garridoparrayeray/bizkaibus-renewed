@@ -19,7 +19,7 @@ body {
     background: var(--paper);
     color: var(--ink);
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
-    font-size: 16px;
+    font-size: calc(16px * var(--text-scale, 1));
     line-height: 1.4;
     padding: calc(20px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
 }
@@ -54,20 +54,20 @@ main {
             flex-basis: 100%;
             margin: 0;
             color: var(--muted);
-            font-size: 15.2px;
+            font-size: calc(15.2px * var(--text-scale, 1));
             line-height: 1.25;
         }
     h2 {
         margin: 0 0 10px 4px;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: 15.68px;
+        font-size: calc(15.68px * var(--text-scale, 1));
         font-weight: 700;
         color: var(--muted);
         letter-spacing: -0.005em;
     }
     footer {
         color: var(--muted);
-        font-size: 13.12px;
+        font-size: calc(13.12px * var(--text-scale, 1));
         padding: 6px 4px 0;
         max-width: 60ch;
     }
@@ -174,7 +174,7 @@ main {
         .tile strong {
             display: block;
             font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-            font-size: 22.4px;
+            font-size: calc(22.4px * var(--text-scale, 1));
             font-weight: 800;
             letter-spacing: -0.02em;
             line-height: 1.1;
@@ -182,7 +182,7 @@ main {
         .tile .txt span {
             display: block;
             margin-top: 4px;
-            font-size: 13.76px;
+            font-size: calc(13.76px * var(--text-scale, 1));
             line-height: 1.3;
             opacity: .88;
         }
@@ -198,7 +198,7 @@ main {
         /* Ciudad bajo el nombre (Tranvía+ Bilbao) */
         .tile .txt .tile-city {
             margin-top: -2px;
-            font-size: 12.8px;
+            font-size: calc(12.8px * var(--text-scale, 1));
             line-height: 1.2;
             font-weight: 700;
             letter-spacing: 1.5px;
@@ -217,7 +217,7 @@ main {
     border-radius: 999px;
     background: rgba(255, 255, 255, .95);
     color: #14181c;
-    font-size: 11px;
+    font-size: calc(11px * var(--text-scale, 1));
     font-weight: 800;
     letter-spacing: .06em;
     line-height: 1.3;
@@ -253,7 +253,7 @@ main {
     color: var(--ink);
     font-family: 'Hanken Grotesk', system-ui, sans-serif;
     font-weight: 700;
-    font-size: 13.76px;
+    font-size: calc(13.76px * var(--text-scale, 1));
     text-align: center;
     cursor: pointer;
 }
@@ -343,7 +343,7 @@ main {
             [data-view="list"] .tile .txt span {
                 color: var(--muted);
                 opacity: 1;
-                font-size: 14.72px;
+                font-size: calc(14.72px * var(--text-scale, 1));
             }
             [data-view="list"] .tile .txt strong > span {
                 color: inherit;
@@ -353,14 +353,14 @@ main {
             [data-view="list"] .tile .txt .tile-city {
                 color: var(--c);
                 opacity: .8;
-                font-size: 12.8px;
+                font-size: calc(12.8px * var(--text-scale, 1));
                 text-align: left;
             }
             [data-view="list"] .tile.is-last .txt .last {
                 display: block;
                 margin-top: 4px;
                 color: var(--bide-green);
-                font-size: 12.48px;
+                font-size: calc(12.48px * var(--text-scale, 1));
                 font-weight: 600;
             }
             [data-view="list"] .tile.is-launching.is-last .txt .last {
@@ -386,7 +386,7 @@ main {
     .notfound h1 {
         margin: 0;
         font-family: 'Bricolage Grotesque', system-ui, sans-serif;
-        font-size: clamp(32px, 7vw, 51.2px);
+        font-size: calc(clamp(32px, 7vw, 51.2px) * var(--text-scale, 1));
         font-weight: 800;
         letter-spacing: -0.025em;
         line-height: 1.05;
@@ -438,6 +438,12 @@ main {
         }
     .tile {
         min-height: 200px;
+    }
+}
+/* En el ordenador las tarjetas son estrechas hasta unos 1250 px: el nombre crece con el ancho y «Lurraldebus+» cabe. */
+@media (min-width: 1024px) {
+    .tile strong {
+        font-size: min(calc(22.4px * var(--text-scale, 1)), 2.19vw);
     }
 }
 
@@ -527,9 +533,9 @@ main {
         gap: 2px;
     }
     .menu-map-link strong {
-        font-size: 16.32px;
+        font-size: calc(16.32px * var(--text-scale, 1));
     }
     .menu-map-link span span {
         color: var(--muted);
-        font-size: 14.08px;
+        font-size: calc(14.08px * var(--text-scale, 1));
     }
