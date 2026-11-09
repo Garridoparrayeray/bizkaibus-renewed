@@ -6,6 +6,7 @@ use Core\Cache;
 use Core\Database;
 use Core\Http;
 use Core\Live;
+use Core\Networks;
 use Models\ServiceJourney;
 
 // Avisos de Renfe Cercanías: el feed de Renfe trae texto libre y aquí se reparten por línea y por estación, buscando
@@ -30,8 +31,13 @@ class RenfeAlertsClient
         $aCfg = $this->aConfig['renfe_alerts'];
         $Pdo = Database::connection();
         $aStops = $Pdo->query('SELECT id, name FROM stops')->fetchAll(\PDO::FETCH_KEY_PAIR);
+        $aListed = Networks::listedStops($this->aConfig);
+        if ($aListed !== null) {
+            $aStops = array_intersect_key($aStops, $aListed);
+        }
 
-        $aAll = Cache::remember('renfe_alerts', $aCfg['cache_ttl_seconds'], function () use ($aCfg, $aStops) {
+        // Una copia por red: cada una se queda con los avisos de sus estaciones.
+        $aAll = Cache::remember('renfe_alerts_' . ($this->aConfig['slug'] ?? ''), $aCfg['cache_ttl_seconds'], function () use ($aCfg, $aStops) {
             return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']), $aStops, $aCfg['max_age_seconds'] ?? null);
         });
 

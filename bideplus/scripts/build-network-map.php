@@ -69,7 +69,13 @@ function buildNetwork(string $sSlug, array $aNetwork): array
         $aLines = operatorLines($aNetwork, $sThemeColor, $Source, $aStopsUsed);
     }
     $aLines = namedByEnds(mergeDirections($aLines), $Source->aStops);
-    return ['network' => $sSlug, 'hasLearnedMins' => $Segments !== null, 'lines' => $aLines, 'stops' => usedStops($aStopsUsed, $Source->aStops)];
+    $aStops = usedStops($aStopsUsed, $Source->aStops);
+    $aListed = \Core\Networks::listedStops($aNetwork);
+    $aUnlisted = [];
+    if ($aListed !== null) {
+        $aUnlisted = array_values(array_map('strval', array_diff(array_keys($aStops), array_keys($aListed))));
+    }
+    return ['network' => $sSlug, 'hasLearnedMins' => $Segments !== null, 'lines' => $aLines, 'stops' => $aStops, 'unlisted' => $aUnlisted];
 }
 
 // Lo que tarda de verdad cada tramo, aprendido por el motor, si la red lo usa y está a mano (engine/).

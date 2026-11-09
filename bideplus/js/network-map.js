@@ -119,7 +119,9 @@
                 network.lineLayers.push(polyline);
             }
         }
+        const unlisted = new Set(network.data.unlisted || []);
         for (const [stopId, stop] of Object.entries(network.data.stops)) {
+            if (unlisted.has(stopId)) continue;
             const lines = [...(network.stopLines[stopId] || [])];
             let color = '#1c211d';
             if (lines.length === 1) color = lines[0].color;
@@ -509,7 +511,9 @@
     function searchStops(tokens, normQuery) {
         const matches = [];
         for (const [slug, net] of Object.entries(state.networks)) {
+            const unlisted = new Set(net.data.unlisted || []);
             for (const [stopId, stop] of Object.entries(net.data.stops)) {
+                if (unlisted.has(stopId)) continue;
                 const normStop = normalize(stop[0]);
                 if (tokens.every((token) => normStop.includes(token))) {
                     let score = 1;

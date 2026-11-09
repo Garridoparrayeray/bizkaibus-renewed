@@ -288,6 +288,31 @@ $aTotals = Shapes::align($Pdo);
 $Expect('unos metros del GTFS que no caen sobre la parada se miden de nuevo sobre el trazado', $aTotals['remeasured'] === 1 && $Distances($Pdo) === [0, 1000, 2000, 3000]);
 
 
+// Un tren publicado en varios viajes: el contenido en otro más largo del mismo número y calendario se junta con él.
+$MergePdo = new PDO('sqlite::memory:');
+Build\Schema::createSchema($MergePdo);
+$InsertJourney = $MergePdo->prepare('INSERT INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id) VALUES (?, ?, ?, ?, ?)');
+$InsertTime = $MergePdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+$aJourneys = [
+    ['0001112026-11-09', 'c1', [['A', 100], ['B', 200], ['C', 300]]],
+    ['0001122026-11-09', 'c1', [['B', 200], ['C', 300]]],
+    ['0001132026-11-09', 'c1', [['A', 100], ['B', 200]]],
+    ['0001142026-11-09', 'c1', [['B', 250], ['C', 300]]],
+    ['0001212026-11-09', 'c1', [['B', 200], ['C', 300]]],
+    ['0001162026-11-09', 'c2', [['B', 200], ['C', 300]]],
+];
+foreach ($aJourneys as [$sId, $sCalendar, $aStops]) {
+    $InsertJourney->execute([$sId, 'L', 'P', $sId, $sCalendar]);
+    foreach ($aStops as $iSeq => [$sStop, $iTime]) {
+        $InsertTime->execute([$sId, $iSeq + 1, $sStop, $iTime, $iTime]);
+    }
+}
+$iMerged = Build\Schema::mergeSameTrains($MergePdo, 5);
+$aLeft = $MergePdo->query('SELECT id FROM service_journeys ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+$aAliases = $MergePdo->query('SELECT trip_id, service_journey_id FROM trip_aliases ORDER BY trip_id')->fetchAll(PDO::FETCH_KEY_PAIR);
+$Expect('mismo tren: los tramos contenidos en el largo se juntan con él', $iMerged === 2 && $aAliases === ['0001122026-11-09' => '0001112026-11-09', '0001132026-11-09' => '0001112026-11-09']);
+$Expect('otra hora, otro número de tren u otro calendario: viaje aparte', $aLeft === ['0001112026-11-09', '0001142026-11-09', '0001162026-11-09', '0001212026-11-09']);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

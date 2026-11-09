@@ -25,12 +25,30 @@ class GtfsRealtimeClient
 
     public function fetchTripUpdates(): array
     {
-        return $this->feed('trip_updates_url', [self::class, 'parseTripUpdates'])['trips'] ?? [];
+        return $this->ofServiceDay($this->feed('trip_updates_url', [self::class, 'parseTripUpdates'])['trips'] ?? []);
     }
 
     public function fetchVehiclePositions(): array
     {
-        return $this->feed('vehicle_positions_url', [self::class, 'parseVehiclePositions'])['vehicles'] ?? [];
+        return $this->ofServiceDay($this->feed('vehicle_positions_url', [self::class, 'parseVehiclePositions'])['vehicles'] ?? []);
+    }
+
+    // Con gtfs_rt.trip_date_suffix (Renfe larga distancia: el id del viaje acaba con su fecha de servicio, y el feed
+    // arrastra los de ayer) sólo valen los de hoy y, de madrugada, los de ayer que aún circulan.
+    private function ofServiceDay(array $aEntries): array
+    {
+        if (empty($this->aConfig['gtfs_rt']['trip_date_suffix'])) {
+            return $aEntries;
+        }
+        $Now = new \DateTime('now', new \DateTimeZone('Europe/Madrid'));
+        $aValid = [$Now->format('Y-m-d')];
+        if ((int)$Now->format('G') < 6) {
+            $aValid[] = (clone $Now)->modify('-1 day')->format('Y-m-d');
+        }
+        return array_values(array_filter($aEntries, function ($aEntry) use ($aValid) {
+            $sTripId = (string)($aEntry['tripId'] ?? '');
+            return !preg_match('/(\d{4}-\d{2}-\d{2})$/', $sTripId, $aMatch) || in_array($aMatch[1], $aValid, true);
+        }));
     }
 
     // Las incidencias vigentes ahora.
@@ -52,10 +70,22 @@ class GtfsRealtimeClient
         $aFeed = Cache::remember($sCacheKey, $aGtfsRt['cache_ttl_seconds'], function () use ($sUrl, $aGtfsRt, $Parser) {
             return $Parser(Http::get($sUrl, $aGtfsRt['http_timeout_seconds']));
         });
-        if (empty($aFeed) || time() - (int)$aFeed['generatedAt'] > $aGtfsRt['max_age_seconds']) {
+        if (empty($aFeed) || self::stale($aFeed, $aGtfsRt)) {
             return [];
         }
         return $aFeed;
+    }
+
+    // ¿Es viejo el dato? Con gtfs_rt.clock_offset_seconds (un feed que pone mal la hora de su cabecera, Renfe larga
+    // distancia) vale la hora de la cabecera y también la corregida con ese desfase.
+    private static function stale(array $aFeed, array $aGtfsRt): bool
+    {
+        $iAge = time() - (int)$aFeed['generatedAt'];
+        if ($iAge <= $aGtfsRt['max_age_seconds']) {
+            return false;
+        }
+        $iOffset = (int)($aGtfsRt['clock_offset_seconds'] ?? 0);
+        return $iOffset === 0 || abs($iAge - $iOffset) > $aGtfsRt['max_age_seconds'];
     }
 
     public static function parseVehiclePositions(string $sBody): array
