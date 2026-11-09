@@ -30,6 +30,17 @@ class JourneyStops
         return null;
     }
 
+    // La parada que viene después de la de orden $iOrder, o null si es la última.
+    public function after(string $sServiceJourneyId, int $iOrder): string|null
+    {
+        foreach ($this->of($sServiceJourneyId) as $aStop) {
+            if ((int)$aStop['seq_order'] > $iOrder) {
+                return (string)$aStop['stop_id'];
+            }
+        }
+        return null;
+    }
+
     public function arrivalAt(string $sServiceJourneyId, int $iOrder): int
     {
         $aStops = $this->of($sServiceJourneyId);
