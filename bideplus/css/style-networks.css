@@ -42,6 +42,9 @@
 .tile--launion {
     --c: #30609D;
 }
+.tile--renfe-ld {
+    --c: #3F4E63;
+}
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
@@ -76,6 +79,9 @@ html.bide .bide-swatch--alavabus {
 }
 html.bide .bide-swatch--launion {
     background: #30609D;
+}
+html.bide .bide-swatch--renfe-ld {
+    background: #3F4E63;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -199,4 +205,15 @@ html.is-launion {
     --text: #1f2226;
     --text-secondary: #5c6065;
     --backdrop: rgba(5, 10, 16, .5);
+}
+html.is-renfe-ld {
+    --bg: #f0f0f1;
+    --border: #d6d7d9;
+    --primary: #3F4E63;
+    --primary-light: #a9afb9;
+    --primary-dark: #27303d;
+    --primary-tint: #f0f1f3;
+    --text: #202122;
+    --text-secondary: #5d5f60;
+    --backdrop: rgba(6, 8, 10, .5);
 }

@@ -613,6 +613,56 @@
                 "attribution": "Data: Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
+    },
+    "renfe-ld": {
+        "kind": "train",
+        "icons": "icons-renfe-ld",
+        "themeColor": "#3F4E63",
+        "title": [
+            "RENFE LD",
+            ""
+        ],
+        "favoritesKey": "renfe-ld_favorites",
+        "live": true,
+        "features": {
+            "platforms": false,
+            "headsign_from_last_stop": false,
+            "stop_hints": false,
+            "line_map": true,
+            "schedule_text": false,
+            "trip_detail": "vehicle",
+            "alerts": "network",
+            "alerts_detail": true
+        },
+        "texts": {
+            "es": {
+                "name": "Renfe Larga Distancia+",
+                "tile": "Larga y media distancia en Euskadi y Navarra",
+                "switcher": "Horarios y tiempo real de los trenes de larga y media distancia",
+                "subtitle": "Larga y media distancia en tiempo real",
+                "liveEmpty": "Busca una estación para ver el próximo tren.",
+                "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.",
+                "attribution": "Datos: Renfe"
+            },
+            "eu": {
+                "name": "Renfe Distantzia Luzea+",
+                "tile": "Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan",
+                "switcher": "Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean",
+                "subtitle": "Distantzia luzeko eta ertaineko trenak denbora errealean",
+                "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
+                "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.",
+                "attribution": "Datuak: Renfe"
+            },
+            "en": {
+                "name": "Renfe Long Distance+",
+                "tile": "Long and medium distance trains in the Basque Country and Navarre",
+                "switcher": "Long and medium distance train timetables and real time",
+                "subtitle": "Long and medium distance trains in real time",
+                "liveEmpty": "Search for a station to see the next train.",
+                "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.",
+                "attribution": "Data: Renfe"
+            }
+        }
     }
 };
     const order = Object.keys(networks);

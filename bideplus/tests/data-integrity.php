@@ -57,8 +57,18 @@ foreach ($aDatabases as $sName) {
     $iJourneys = $Count('SELECT COUNT(*) FROM service_journeys');
     $Expect($sName . ': hay paradas, líneas y viajes', $iStops > 0 && $iLines > 0 && $iJourneys > 0, "$iStops paradas, $iLines líneas, $iJourneys viajes");
 
-    $iBadCoords = $Count('SELECT COUNT(*) FROM stops WHERE lat NOT BETWEEN 41.5 AND 44.0 OR lon NOT BETWEEN -6.5 AND -1.0');
-    $Expect($sName . ': todas las paradas están en el norte peninsular (Renfe llega a León)', $iBadCoords === 0, $iBadCoords . ' fuera');
+    $sBounds = 'lat NOT BETWEEN 41.5 AND 44.0 OR lon NOT BETWEEN -6.5 AND -1.0';
+    $sBoundsLabel = 'el norte peninsular (Renfe llega a León)';
+    $iMaxHours = 10;
+    $sMaxHoursLabel = 'Bilbao-León tarda ~8 h';
+    if ($sName === 'renfe-ld') {
+        $sBounds = 'lat NOT BETWEEN 35.0 AND 46.0 OR lon NOT BETWEEN -10.0 AND 6.0';
+        $sBoundsLabel = 'España y el sur de Francia (Renfe larga distancia es nacional)';
+        $iMaxHours = 16;
+        $sMaxHoursLabel = 'el viaje más largo, ~14 h';
+    }
+    $iBadCoords = $Count('SELECT COUNT(*) FROM stops WHERE ' . $sBounds);
+    $Expect($sName . ': todas las paradas están en ' . $sBoundsLabel, $iBadCoords === 0, $iBadCoords . ' fuera');
 
     $iEmptyNames = $Count("SELECT COUNT(*) FROM stops WHERE TRIM(name) = '' OR TRIM(name_normalized) = ''");
     $Expect($sName . ': ninguna parada sin nombre', $iEmptyNames === 0, (string)$iEmptyNames);
@@ -107,8 +117,8 @@ foreach ($aDatabases as $sName) {
     ');
     $Expect($sName . ': first_departure_seconds coincide con la primera salida', $iFirstMismatch === 0, (string)$iFirstMismatch);
 
-    $iLong = $Count('SELECT COUNT(*) FROM (SELECT service_journey_id FROM passing_times GROUP BY service_journey_id HAVING MAX(arrival_seconds) - MIN(departure_seconds) > 10 * 3600)');
-    $Expect($sName . ': ningún viaje dura más de 10 h (Bilbao-León tarda ~8 h)', $iLong === 0, (string)$iLong);
+    $iLong = $Count('SELECT COUNT(*) FROM (SELECT service_journey_id FROM passing_times GROUP BY service_journey_id HAVING MAX(arrival_seconds) - MIN(departure_seconds) > ' . $iMaxHours . ' * 3600)');
+    $Expect($sName . ': ningún viaje dura más de ' . $iMaxHours . ' h (' . $sMaxHoursLabel . ')', $iLong === 0, (string)$iLong);
 
     $iBadMask = $Count('SELECT COUNT(*) FROM service_calendars WHERE weekday_mask < 0 OR weekday_mask > 127 OR from_date > to_date');
     $Expect($sName . ': calendarios con días y fechas válidos', $iBadMask === 0, (string)$iBadMask);
