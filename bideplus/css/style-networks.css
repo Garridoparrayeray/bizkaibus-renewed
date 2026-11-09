@@ -51,6 +51,9 @@
 .tile--sncf {
     --c: #0C131F;
 }
+.tile--villavesas {
+    --c: #0A7A3E;
+}
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
@@ -94,6 +97,9 @@ html.bide .bide-swatch--txiktxak {
 }
 html.bide .bide-swatch--sncf {
     background: #0C131F;
+}
+html.bide .bide-swatch--villavesas {
+    background: #0A7A3E;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -250,4 +256,15 @@ html.is-sncf {
     --text: #1d1d1e;
     --text-secondary: #595a5b;
     --backdrop: rgba(1, 2, 3, .5);
+}
+html.is-villavesas {
+    --bg: #eef1f0;
+    --border: #d3dad6;
+    --primary: #0A7A3E;
+    --primary-light: #91c3a8;
+    --primary-dark: #064c26;
+    --primary-tint: #ebf4f0;
+    --text: #1d2420;
+    --text-secondary: #59625d;
+    --backdrop: rgba(1, 12, 6, .5);
 }
