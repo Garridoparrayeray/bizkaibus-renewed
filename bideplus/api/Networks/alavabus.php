@@ -78,6 +78,10 @@ return [
     ],
 
     'live' => ['trip-updates', 'vehicle-positions'],
+
+    // El workflow «Ritmo de los buses» guarda este directo (capturas-alavabus-AAAA-MM) para que el motor aprenda de él
+    // con el GPS de cada autobús. La app todavía no lo usa: primero se mide si acierta más que lo de ahora.
+    'capture' => 'gtfs-rt',
     // El feed llega vacío a ratos aunque haya servicio (4 y 5/11/2026, con más de 30 buses en marcha): «Vigilar el
     // directo» lo apunta como aviso, no como fallo.
     'live_often_empty' => true,
