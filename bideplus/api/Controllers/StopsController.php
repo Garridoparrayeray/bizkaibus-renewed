@@ -47,14 +47,14 @@ class StopsController
         }
         $dLat = (float)$sLat;
         $dLon = (float)$sLon;
-        if ($dLat < 42.3 || $dLat > 43.7 || $dLon < -3.7 || $dLon > -1.0) {
+        $Pdo = Database::connection();
+        $StopModel = new Stop($Pdo);
+        if (!$StopModel->covers($dLat, $dLon)) {
             Response::error('Location outside the covered area', 422);
             return;
         }
         $iLimit = max(1, min(10, $Req->queryInt('limit', 5)));
 
-        $Pdo = Database::connection();
-        $StopModel = new Stop($Pdo);
         $JourneyModel = new ServiceJourney($Pdo);
         $bUseLastStopHeadsign = (bool)Config::feature('headsign_from_last_stop');
 
