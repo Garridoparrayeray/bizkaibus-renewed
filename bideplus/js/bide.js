@@ -234,6 +234,23 @@
         return alerts;
     }
 
+    // El aviso general va siempre el primero, tenga la persona favoritos o no y haya cerrado el cartel o no.
+    function noticeCard(notice) {
+        const card = createNode('article', 'bide-card bide-alert');
+        card.append(createNode('strong', null, translate('bide.notice.title', 'Aviso')));
+        const text = createNode('p', null);
+        BideLinks.append(text, BideNotice.textFor(notice));
+        card.append(text);
+        const more = BideNotice.linkFor(notice, 'bide-notice-link');
+        if (more) card.append(more);
+        return card;
+    }
+
+    async function generalNotice() {
+        if (typeof BideNotice === 'undefined') return null;
+        return BideNotice.active();
+    }
+
     async function renderAlerts(quiet = false) {
         const list = document.querySelector('[data-bide-alerts]');
         if (!quiet) list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
@@ -242,8 +259,12 @@
             const alerts = await fetchAlerts(app);
             if (alerts.length) groups.push({ app, alerts });
         }
+        const notice = await generalNotice();
         list.replaceChildren();
-        if (!groups.length) {
+        if (notice) {
+            list.append(createNode('p', 'bide-group', translate('bide.notice.group', 'Aviso general')), noticeCard(notice));
+        }
+        if (!groups.length && !notice) {
             list.append(createNode('p', 'bide-empty', translate('bide.alerts.none', 'No hay avisos activos en tus favoritos.')));
             return;
         }

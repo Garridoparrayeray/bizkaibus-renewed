@@ -40,6 +40,11 @@ check('publicar: el identificador es la fecha y hora en UTC', notice['id'] == '2
 check('publicar: «notificar» solo con true', notice['notify'] is True and aviso.build({**GOOD, 'NOTIFICAR': 'false'}, NOW)['notify'] is False and aviso.build({**GOOD, 'NOTIFICAR': ''}, NOW)['notify'] is False)
 check('publicar: sin enlace no hay clave url', 'url' not in aviso.build({**GOOD, 'ENLACE': ''}, NOW))
 check('quitar: archivo vacío', aviso.build({'ACCION': 'quitar'}, NOW) == {})
+WINTER_UNTIL = 1800111600
+check('«Hasta»: caduca a esa hora de Madrid (16:00 en invierno son las 15:00 UTC)', aviso.build({**GOOD, 'HASTA': '2027-01-16 16:00'}, NOW)['expiresAt'] == WINTER_UNTIL, aviso.build({**GOOD, 'HASTA': '2027-01-16 16:00'}, NOW)['expiresAt'])
+check('«Hasta» manda sobre las horas', aviso.build({**GOOD, 'HORAS': '1', 'HASTA': '2027-01-16 16:00'}, NOW)['expiresAt'] == WINTER_UNTIL)
+check('«Hasta» en verano usa la hora de verano de Madrid (16:00 son las 14:00 UTC)', aviso.build({**GOOD, 'HASTA': '2027-07-01 16:00'}, 1814342400)['expiresAt'] == 1814450400)
+check('«Hasta» mal escrito, pasado o a más de 720 horas', all(fails({**GOOD, 'HASTA': h}) is not None for h in ('mañana a las 4', '2027-01-16', '16/01/2027 16:00', '2027-01-15 08:00', '2027-01-14 16:00', '2027-03-01 16:00')))
 check('falta el castellano', fails({**GOOD, 'TEXTO_ES': '   '}) is not None)
 check('texto de más de 400 caracteres', fails({**GOOD, 'TEXTO_ES': 'a' * 401}) is not None and fails({**GOOD, 'TEXTO_ES': 'a' * 400}) is None)
 check('horas fuera de 1 a 720 o que no son un número', all(fails({**GOOD, 'HORAS': h}) is not None for h in ('0', '721', 'muchas', '', '1.5')) and all(fails({**GOOD, 'HORAS': h}) is None for h in ('1', '720')))

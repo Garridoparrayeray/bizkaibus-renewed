@@ -4,7 +4,7 @@ name: Aviso a los usuarios
 # Actions, «Aviso a los usuarios», Run workflow (también desde la app de GitHub del móvil).
 #
 # Guarda notice.json en la release pública «avisos». La app lo lee a través de /api/notice (un minuto de caché) y deja
-# de enseñarlo sola a la hora que se indique. Con «notificar», el cron de cada minuto manda además una notificación,
+# de enseñarlo sola a la hora que se indique (unas horas desde ahora, o una fecha y hora de Madrid). Con «notificar», el cron de cada minuto manda además una notificación,
 # una sola vez, a los móviles con los avisos activados. Quitar el aviso deja el archivo vacío.
 
 on:
@@ -30,8 +30,11 @@ on:
         description: 'Enlace «Más información» (opcional, empieza por https://)'
         default: ''
       horas:
-        description: 'Horas que se muestra (de 1 a 720)'
+        description: 'Horas que se muestra desde ahora (de 1 a 720)'
         default: '36'
+      hasta:
+        description: 'O hasta cuándo, en hora de Madrid: AAAA-MM-DD HH:MM (si se rellena, manda sobre las horas)'
+        default: ''
       notificar:
         description: 'Mandar también una notificación a los móviles con los avisos activados'
         type: boolean
@@ -65,6 +68,7 @@ jobs:
           TEXTO_EN: ${{ inputs.texto_en }}
           ENLACE: ${{ inputs.enlace }}
           HORAS: ${{ inputs.horas }}
+          HASTA: ${{ inputs.hasta }}
           NOTIFICAR: ${{ inputs.notificar }}
         run: python3 .github/scripts/aviso.py "$RUNNER_TEMP/notice.json" | tee -a "$GITHUB_STEP_SUMMARY"
 

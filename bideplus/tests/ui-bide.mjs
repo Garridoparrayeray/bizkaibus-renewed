@@ -597,6 +597,16 @@ check('aviso general · al cerrarlo desaparece', await waitTrue("!document.query
 await go('/');
 await sleep(1500);
 check('aviso general · cerrado, no vuelve a salir', await ev("!document.querySelector('.bide-notice')"));
+await desktop();
+await go('/');
+await ev("document.querySelector('.bide-rail [data-bide-tab=avisos]').click(); true");
+check('aviso general · en Avisos, el primero, aunque se cerrara el cartel y no haya favoritos', await waitTrue("(() => { const card = document.querySelector('[data-bide-alerts] .bide-alert'); return !!card && card.textContent.includes('reducciones de servicio'); })()"));
+check('aviso general · en Avisos, con su enlace «Más información» y su título', await ev("(() => { const card = document.querySelector('[data-bide-alerts] .bide-alert'); return !!card.querySelector('.bide-notice-link') && !!document.querySelector('[data-bide-alerts] .bide-group'); })()"));
+await phone();
+await go('/?red=bus');
+await ev("document.getElementById('menu-open').click(); true");
+check('aviso general · en las incidencias de cada app, el primero y sin el «no hay incidencias»', await waitTrue("(() => { const first = document.querySelector('#menu-alerts-list li'); return !!first && first.textContent.includes('reducciones de servicio') && document.getElementById('menu-alerts-empty').hidden; })()"));
+await ev("document.getElementById('menu-close').click(); true");
 fakeNotice = { notice: { ...fakeNotice.notice, id: 'prueba-2' } };
 await go('/');
 check('aviso general · uno nuevo sí sale aunque se cerrara el anterior', await waitTrue(shown('.bide-notice')));
