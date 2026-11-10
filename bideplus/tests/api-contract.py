@@ -59,10 +59,7 @@ SCHEMAS = {
     'vehicle': {'lineCode': str, 'lineName': str, 'headsign': opt(str), 'status': 'status', 'vehicleRef': opt(str),
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
-    'live': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}],
-             'vehicles': [{'vehicleRef': opt(str), 'delayMinutes': opt(int), 'headsign': opt(str), 'currentStop': STOP_REF,
-                           'position': opt({'lat': NUM, 'lon': NUM}), 'stopStatus': opt(str)}],
-             'tracked': bool},
+    'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert']},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
@@ -220,7 +217,7 @@ for name, cfg in NETS.items():
                 break
             lid = enc(line['id'])
             get(net(f'/api/lines/{lid}', s), 'line', name)
-            get(net(f'/api/lines/{lid}/live', s), 'live', name)
+            get(net(f'/api/lines/{lid}/route', s), 'route', name)
             tt = get(net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s), 'timetable', name) or {}
             entries_seen += len(tt.get('entries') or [])
             if tt.get('beyondPublished'):

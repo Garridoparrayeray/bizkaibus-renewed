@@ -55,7 +55,7 @@ $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], CacheSeconds
 
 $Realtime = new RealtimeController();
 $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], CacheSeconds::LIVE);
-$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], CacheSeconds::LIVE);
+$Router->get('/lines/{id}/route', [$Lines, 'route'], CacheSeconds::STATIC);
 $Router->get('/status', [$Realtime, 'status'], CacheSeconds::STATUS);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);

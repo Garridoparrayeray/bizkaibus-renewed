@@ -15,7 +15,6 @@ use Services\RenfeAlertsClient;
 use Services\ScheduleRange;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
-use Services\VehiclePositions;
 $Section('Sin motor: las salidas llevan los campos del horario');
 $aOnly = (new \Services\ScheduleOnlyMatcher())->enrich([['line_id' => '1', 'trip_number' => 'a', 'first_departure_seconds' => 100, 'arrival_seconds' => 460]]);
 $Expect('sin vehículos, cada salida sale como scheduled con su hora', $aOnly[0]['status'] === 'scheduled' && $aOnly[0]['etaSeconds'] === 460 && $aOnly[0]['delaySeconds'] === 0 && array_key_exists('vehicleRef', $aOnly[0]));
@@ -597,7 +596,7 @@ $Expect('avisos de Renfe recientes: salen', count(RenfeAlertsClient::parse($Aler
 $Expect('avisos de Renfe de hace días (el fichero dejó de actualizarse): no salen', RenfeAlertsClient::parse($AlertsFeed(time() - 26 * 86400), ['A' => 'Abando'], 2 * 86400) === []);
 
 /* ------------------------------------------------------------------ */
-$Section('Trenes en el mapa de la línea (posiciones GPS de Renfe y Metro)');
+$Section('Posiciones GPS de Renfe y Metro');
 
 $sVpFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
     . pbField(2, pbField(1, 'v1') . pbField(4, pbField(1, pbField(1, 'R1')) . pbField(2, pbFloat(1, 43.25) . pbFloat(2, -2.94)) . pbField(4, 1) . pbField(7, 'B') . pbField(8, pbField(1, '26175') . pbField(2, 'C1-26175'))))
@@ -627,16 +626,6 @@ $PdoMap->exec("INSERT INTO trip_aliases VALUES ('R1', 'J1'), ('R2', 'J2')");
 $PdoMap->exec("INSERT INTO lines VALUES ('C1-ida', 'C1'), ('C1-vuelta', 'C1')");
 $PdoMap->exec("INSERT INTO journey_patterns VALUES ('P1', 'C1-ida'), ('P2', 'C1-vuelta')");
 $PdoMap->exec("INSERT INTO service_journeys VALUES ('J1', 'P1'), ('J2', 'P2')");
-$Train = fn(string $sTrip, string $sStop, string|null $sStatus) => ['tripId' => $sTrip, 'lat' => 43.25, 'lon' => -2.94, 'stopId' => $sStop, 'stopStatus' => $sStatus, 'vehicleId' => 'T-' . $sTrip];
-$aRenfeTrains = [$Train('R1', 'B', 'at'), $Train('R2', 'A', 'towards'), $Train('de-otro-nucleo', 'B', 'at')];
-$aOnC1 = VehiclePositions::onLine($PdoMap, 'C1-ida', [], $aRenfeTrains, [['tripId' => 'R1', 'stops' => [['B', 0]], 'delay' => 180]], true);
-$Expect('Renfe: en el mapa de la línea, solo sus trenes (el de vuelta y los de otros núcleos, no)', count($aOnC1) === 1 && $aOnC1[0]['vehicleRef'] === 'T-R1', json_encode($aOnC1));
-$Expect('Renfe: destino, retraso, estación y posición GPS de cada tren', ($aOnC1[0]['headsign'] ?? null) === 'Santurtzi' && $aOnC1[0]['delayMinutes'] === 3 && $aOnC1[0]['stopStatus'] === 'at' && $aOnC1[0]['currentStop']['name'] === 'Ametzola' && $aOnC1[0]['position'] === ['lat' => 43.25, 'lon' => -2.94], json_encode($aOnC1[0] ?? null));
-$aOnReturn = VehiclePositions::onLine($PdoMap, 'C1-vuelta', [], $aRenfeTrains, [], true);
-$Expect('Renfe: sin su retraso en el directo, el tren sale sin retraso', count($aOnReturn) === 1 && $aOnReturn[0]['headsign'] === 'Abando' && $aOnReturn[0]['delayMinutes'] === null && $aOnReturn[0]['stopStatus'] === 'towards');
-$aMetroPatterns = [['id' => 'P9', 'stops' => [['id' => 5], ['id' => 6]]]];
-$aOnMetro = VehiclePositions::onLine($PdoMap, 'MB', $aMetroPatterns, [$Train('m1', '5', null), $Train('m2', 'C', null)], [['tripId' => 'm1', 'stops' => [['5', 0], ['6', 0]]]], false);
-$Expect('Metro: los trenes que van hacia una estación de la línea, con su destino (la última de su previsión)', count($aOnMetro) === 1 && $aOnMetro[0]['headsign'] === 'Basauri' && $aOnMetro[0]['currentStop']['name'] === 'Santutxu' && $aOnMetro[0]['stopStatus'] === null && $aOnMetro[0]['delayMinutes'] === null, json_encode($aOnMetro));
 
 /* ------------------------------------------------------------------ */
 $Section('Directo por viaje con retraso por parada (Tuvisa, Dbus) e incidencias GTFS-Realtime');

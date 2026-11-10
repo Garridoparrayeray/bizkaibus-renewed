@@ -38,6 +38,18 @@ class LinesController
         Response::json($aLine);
     }
 
+    // El recorrido de la línea para su mapa: cada sentido con sus paradas, en orden y con sus coordenadas.
+    public function route(Request $Req, array $aParams): void
+    {
+        $LineModel = new LineModel(Database::connection());
+        $aLine = $LineModel->find($aParams['id']);
+        if ($aLine === null) {
+            Response::error('Line not found', 404);
+            return;
+        }
+        Response::json(['line' => $aLine, 'patterns' => $LineModel->patternsWithStops($aParams['id'])]);
+    }
+
     public function scheduleText(Request $Req, array $aParams): void
     {
         if (Config::feature('schedule_text')) {

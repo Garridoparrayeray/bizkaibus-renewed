@@ -229,7 +229,6 @@ use Core\Networks;
             <p id="timetable-line" class="timetable-line"></p>
 
             <div id="line-map" class="line-map"></div>
-            <p id="line-map-empty" class="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
 
             <div class="filters">
                 <input id="filter-date" class="filter-date" type="date" aria-label="Fecha">
