@@ -753,4 +753,7 @@ $Expect('el día siguiente, ya no', !Core\NewBadge::isNew('2026-11-02', (clone $
 $Expect('sin fecha o con una que no es fecha, no', !Core\NewBadge::isNew(null) && !Core\NewBadge::isNew('pronto'));
 $Expect('una red sin «added» no es nueva', !Core\Networks::isNew(['slug' => 'x']));
 
+$aUncited = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && empty($aNet['texts']['es']['liveSource'])));
+$Expect('cada red con horas previstas en directo cita a quien las publica (texts.liveSource)', empty($aUncited));
+
 $Finish('unitarias');

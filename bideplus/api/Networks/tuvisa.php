@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Tuvisa',
             'name' => 'Tuvisa+',
             'tile' => 'Autobuses de Vitoria-Gasteiz',
             'switcher' => 'Horarios y tiempo real de Tuvisa en Vitoria-Gasteiz',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Tuvisa ni con el Ayuntamiento de Vitoria-Gasteiz. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Tuvisak',
             'name' => 'Tuvisa+',
             'tile' => 'Gasteizko autobusak',
             'switcher' => 'Tuvisaren ordutegiak eta denbora errealean Gasteizen',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Tuvisa',
             'name' => 'Tuvisa+',
             'tile' => 'Vitoria-Gasteiz buses',
             'switcher' => 'Tuvisa timetables and real time in Vitoria-Gasteiz',

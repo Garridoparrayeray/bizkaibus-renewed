@@ -30,6 +30,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'el Consorcio de Transportes de Bizkaia',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Horarios y tiempo real de Metro Bilbao',
@@ -38,6 +39,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Bizkaiko Garraio Partzuergoak',
             'name' => 'Metro+',
             'tile' => 'Bilboko Metroa',
             'switcher' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
@@ -47,6 +49,7 @@ return [
             'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean',
         ],
         'en' => [
+            'liveSource' => 'the Bizkaia Transport Consortium',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Metro Bilbao timetables and real time',

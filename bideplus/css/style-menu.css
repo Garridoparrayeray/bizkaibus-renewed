@@ -539,3 +539,374 @@ main {
         color: var(--muted);
         font-size: calc(14.08px * var(--text-scale, 1));
     }
+
+/* ===== Enrutador (próximamente): solo la forma, sin función ===== */
+.planner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 14px 14px;
+    border-radius: 24px;
+    background: var(--bide-green);
+    color: #fff;
+}
+    .planner-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 4px;
+    }
+        .planner-head h2 {
+            margin: 0;
+            font-family: 'Hanken Grotesk', system-ui, sans-serif;
+            font-size: calc(22px * var(--text-scale, 1));
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: #fff;
+        }
+        .planner-soon {
+            flex: none;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: #E7EBE9;
+            color: #4A5650;
+            font-size: calc(12px * var(--text-scale, 1));
+            font-weight: 800;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+    .planner-body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        cursor: default;
+        user-select: none;
+    }
+        .planner-places {
+            position: relative;
+            border-radius: 16px;
+            background: #EEF1EF;
+        }
+            .planner-place {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-height: 52px;
+                margin: 0;
+                padding: 0 60px 0 14px;
+                color: #4A5650;
+                font-size: calc(15px * var(--text-scale, 1));
+                font-weight: 600;
+            }
+            .planner-place--to {
+                border-top: 1px solid #DDE2DF;
+                color: #757575;
+                font-weight: 400;
+            }
+            .planner-dot {
+                flex: none;
+                width: 14px;
+                height: 14px;
+                border: 2px solid #8A9690;
+                border-radius: 999px;
+            }
+            .planner-dot--to {
+                width: 10px;
+                height: 10px;
+                margin: 0 2px;
+                border: 0;
+                border-radius: 3px;
+                background: #8A9690;
+            }
+            .planner-swap {
+                position: absolute;
+                top: 50%;
+                right: 8px;
+                display: grid;
+                place-items: center;
+                width: 44px;
+                height: 44px;
+                border: 1px solid #DDE2DF;
+                border-radius: 999px;
+                background: #F6F8F7;
+                color: #8A9690;
+                transform: translateY(-50%);
+            }
+                .planner-swap svg {
+                    width: 20px;
+                    height: 20px;
+                }
+        .planner-when {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 4px;
+            padding: 4px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .14);
+        }
+            .planner-when span {
+                display: grid;
+                place-items: center;
+                min-height: 40px;
+                border-radius: 999px;
+                color: rgba(255, 255, 255, .8);
+                font-size: calc(14px * var(--text-scale, 1));
+                font-weight: 700;
+            }
+            .planner-when .is-on {
+                background: #E7EBE9;
+                color: #4A5650;
+            }
+        .planner-time {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+            .planner-time > span {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                min-height: 48px;
+                padding: 0 14px;
+                border-radius: 14px;
+                background: #EEF1EF;
+                color: #4A5650;
+                font-size: calc(15px * var(--text-scale, 1));
+                font-weight: 600;
+            }
+        .planner-go {
+            display: grid;
+            place-items: center;
+            min-height: 50px;
+            border-radius: 999px;
+            background: #E7EBE9;
+            color: #6B7770;
+            font-size: calc(16px * var(--text-scale, 1));
+            font-weight: 800;
+        }
+
+/* ===== Tus redes, Editar y Todas las redes ===== */
+.nets-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+    .nets-head h2 {
+        margin: 0;
+        font-family: 'Hanken Grotesk', system-ui, sans-serif;
+        font-size: calc(20px * var(--text-scale, 1));
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: var(--ink);
+    }
+    .nets-edit {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid #C9D3CE;
+        border-radius: 999px;
+        background: var(--paper);
+        color: var(--bide-green);
+        font-family: inherit;
+        font-size: calc(14px * var(--text-scale, 1));
+        font-weight: 700;
+        cursor: pointer;
+    }
+        .nets-edit[aria-pressed="true"] {
+            border-color: var(--bide-green);
+            background: var(--bide-green);
+            color: #fff;
+        }
+        .nets-edit:focus-visible,
+        .nets-all:focus-visible,
+        .tile-pin:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 2px;
+        }
+.nets-hint,
+.nets-empty {
+    margin: 0 4px 12px;
+    color: var(--ink);
+    font-size: calc(15.5px * var(--text-scale, 1));
+    line-height: 1.4;
+}
+.nets-all {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 60px;
+    margin-top: 12px;
+    padding: 0 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+    .nets-all > span {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+        .nets-all strong {
+            font-size: calc(16px * var(--text-scale, 1));
+            font-weight: 800;
+        }
+        .nets-all span span {
+            color: var(--muted);
+            font-size: calc(13px * var(--text-scale, 1));
+        }
+    .nets-all svg {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        transition: transform .15s ease;
+    }
+    .nets-all[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+    }
+#tiles-rest {
+    margin-top: 12px;
+}
+.tiles > li {
+    position: relative;
+}
+.tile-pin {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
+    padding: 0 11px 0 8px;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--bide-green);
+    font-family: inherit;
+    font-size: calc(13.5px * var(--text-scale, 1));
+    font-weight: 800;
+    cursor: pointer;
+}
+    .tile-pin[hidden] {
+        display: none;
+    }
+    .tile-pin svg {
+        width: 18px;
+        height: 18px;
+    }
+    .tile-pin.is-fav {
+        color: var(--bide-red);
+    }
+        .tile-pin.is-fav .tile-pin-plus {
+            display: none;
+        }
+
+/* Aviso de lo que se acaba de hacer, con vuelta atrás: encima de la barra de pestañas */
+.nets-toast {
+    position: fixed;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 12px 12px 12px 18px;
+    border-radius: 16px;
+    background: var(--ink);
+    color: #fff;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5);
+    font-size: calc(15px * var(--text-scale, 1));
+    font-weight: 600;
+    line-height: 1.3;
+}
+    .nets-toast[hidden] {
+        display: none;
+    }
+    .nets-toast button {
+        flex: none;
+        min-height: 44px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        font-family: inherit;
+        font-size: calc(15px * var(--text-scale, 1));
+        font-weight: 800;
+        cursor: pointer;
+    }
+html.is-standalone .nets-toast {
+    bottom: calc(92px + min(env(safe-area-inset-bottom), 34px));
+}
+.menu-apps.is-editing .tile .go,
+.menu-apps.is-editing .tile .tile-new {
+    display: none;
+}
+.menu-apps.is-editing .tile .appicon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+}
+[data-view="list"] .tile-pin {
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid var(--line);
+}
+[data-view="list"] .menu-apps.is-editing .tile .chev {
+    display: none;
+}
+[data-view="list"] .menu-apps.is-editing .tile {
+    padding-right: 118px;
+}
+@media (min-width: 720px) {
+    .planner {
+        padding: 22px 20px 20px;
+    }
+        .planner-body {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+            gap: 12px 16px;
+            align-items: start;
+        }
+            .planner-places {
+                grid-row: span 3;
+            }
+}
+
+/* Redes locales: el botón para añadir las urbanas de cada pueblo (apagado mientras no haya ninguna) */
+.nets-local {
+    gap: 10px;
+}
+    .nets-local > span:first-child {
+        margin-right: auto;
+    }
+    .nets-local:disabled {
+        background: #F4F6F5;
+        color: #6B7770;
+        cursor: default;
+    }
+        .nets-local:disabled svg {
+            display: none;
+        }
+#tiles-local {
+    margin-top: 12px;
+}
+
+/* «Nuevo» bajo la flecha: junto a ella tapaba el icono de la red en las fichas estrechas */
+.tiles .tile .tile-new {
+    top: 46px;
+    right: 14px;
+}

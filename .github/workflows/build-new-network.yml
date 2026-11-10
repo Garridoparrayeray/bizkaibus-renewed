@@ -1,0 +1,64 @@
+name: Build new network database
+
+# Una red recién añadida en una rama (su ficha en bideplus/api/Networks) todavía no tiene base de datos. Este flujo la
+# construye aquí, donde está NAP_API_KEY (los GTFS del NAP la piden), y la deja en la misma rama. Solo construye las
+# que faltan: las que ya tienen base las mantiene «Rebuild schedule data» cada día.
+
+on:
+  push:
+    branches-ignore:
+      - master
+    paths:
+      - 'bideplus/api/Networks/*.php'
+      - '.github/workflows/build-new-network.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-new-network-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+      GEOCODE_MAX_NEW: '0'
+      GEOCODE_MAX_RETRIES: '0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - name: Build the databases that are missing
+        run: |
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            f="bideplus/data/$db.sqlite"
+            [ -s "$f" ] && continue
+            echo "Construyendo $network"
+            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
+              mv "$RUNNER_TEMP/$db.sqlite" "$f"
+              echo "OK: $network ($(du -h "$f" | cut -f1))" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::No se pudo construir $network"
+              exit 1
+            fi
+          done
+
+      - name: Commit the new databases
+        run: |
+          git add bideplus/data/*.sqlite
+          if git diff --cached --quiet; then
+            echo "Ninguna base nueva"
+            exit 0
+          fi
+          git config user.name "Garridoparrayeray"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git commit -m "Base de datos de las redes nuevas"
+          git push

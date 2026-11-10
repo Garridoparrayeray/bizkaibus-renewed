@@ -313,6 +313,17 @@ $aAliases = $MergePdo->query('SELECT trip_id, service_journey_id FROM trip_alias
 $Expect('mismo tren: los tramos contenidos en el largo se juntan con él', $iMerged === 2 && $aAliases === ['0001122026-11-09' => '0001112026-11-09', '0001132026-11-09' => '0001112026-11-09']);
 $Expect('otra hora, otro número de tren u otro calendario: viaje aparte', $aLeft === ['0001112026-11-09', '0001142026-11-09', '0001162026-11-09', '0001212026-11-09']);
 
+// Una errata del operador (un paso antes que el anterior) se deja a la hora del anterior, y lo de detrás no se toca.
+$TimesPdo = new PDO('sqlite::memory:');
+Build\Schema::createSchema($TimesPdo);
+$InsertBack = $TimesPdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+foreach ([[1, 'A', 100, 100], [2, 'B', 400, 420], [3, 'C', 60, 60], [4, 'D', 500, 500]] as [$iSeq, $sStop, $iArrival, $iDeparture]) {
+    $InsertBack->execute(['J', $iSeq, $sStop, $iArrival, $iDeparture]);
+}
+$iBackFixed = Build\Schema::fixBackwardTimes($TimesPdo);
+$aBackTimes = $TimesPdo->query('SELECT arrival_seconds, departure_seconds FROM passing_times ORDER BY seq_order')->fetchAll(PDO::FETCH_NUM);
+$Expect('una hora que va hacia atrás se deja a la de la parada anterior', $iBackFixed === 1 && $aBackTimes === [[100, 100], [400, 420], [420, 420], [500, 500]]);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

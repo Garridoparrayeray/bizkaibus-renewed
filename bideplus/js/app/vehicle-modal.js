@@ -83,7 +83,7 @@ export function renderModalHeader(data) {
     } else if (data.status === 'finished') {
         el.modalVehicle.textContent = I18n.t('app.tripFinished');
     } else if (data.status === 'live') {
-        el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed');
+        el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed', { source: I18n.t('net.' + NETWORK_SLUG + '.liveSource') });
     } else if (data.status === 'estimated') {
         el.modalVehicle.textContent = I18n.t('app.estimatedNoGps');
     } else if (data.awaitingVehicle) {

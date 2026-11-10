@@ -12,27 +12,28 @@ return [
 
     'brand' => [
         'icons' => 'icons-renfe-ld',
-        'theme_color' => '#3F4E63',
+        'theme_color' => '#74349A',
         'title' => ['RENFE LD', ''],
         'logomark' => '<img src="/icons-renfe-ld/glyph.png" alt="Renfe LD+" aria-hidden="true">',
         'card_logomark' => '<img src="/icons-renfe-ld/icon-192.png" alt="Renfe LD+" aria-hidden="true">',
-        'tile_color' => '#3F4E63',
-        'swatch_color' => '#3F4E63',
+        'tile_color' => '#74349A',
+        'swatch_color' => '#74349A',
         'palette' => [
-            'bg' => '#f0f0f1',
-            'border' => '#d6d7d9',
-            'primary' => '#3F4E63',
-            'primary-light' => '#a9afb9',
-            'primary-dark' => '#27303d',
-            'primary-tint' => '#f0f1f3',
-            'text' => '#202122',
-            'text-secondary' => '#5d5f60',
-            'backdrop' => 'rgba(6, 8, 10, .5)',
+            'bg' => '#f8f4fa',
+            'border' => '#e6dbec',
+            'primary' => '#74349A',
+            'primary-light' => '#B98BD1',
+            'primary-dark' => '#4A1D66',
+            'primary-tint' => '#F3EAF8',
+            'text' => '#24192b',
+            'text-secondary' => '#65596c',
+            'backdrop' => 'rgba(18, 10, 22, .5)',
         ],
     ],
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe LD+',
             'tile' => 'Larga y media distancia en Euskadi y Navarra',
             'switcher' => 'Horarios y tiempo real de los trenes de larga y media distancia',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
         ],
         'eu' => [
+            'liveSource' => 'Renfek',
             'name' => 'Renfe LD+',
             'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan',
             'switcher' => 'Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Renfe',
         ],
         'en' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe LD+',
             'tile' => 'Long and medium distance trains in the Basque Country and Navarre',
             'switcher' => 'Long and medium distance train timetables and real time',
@@ -65,6 +68,9 @@ return [
         'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
     ],
     'attribution' => 'Datos: Renfe',
+
+    // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
+    'checks' => ['max_trip_hours' => 16],
 
     'features' => [
         'platforms' => false,

@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Álavabus',
             'name' => 'Álavabus+',
             'tile' => 'Autobuses de Álava',
             'switcher' => 'Horarios y tiempo real de Álavabus en Álava',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Álavabus ni con la Diputación Foral de Álava. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Álavabusek',
             'name' => 'Álavabus+',
             'tile' => 'Arabako autobusak',
             'switcher' => 'Álavabusen ordutegiak eta denbora errealean Araban',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Álavabus',
             'name' => 'Álavabus+',
             'tile' => 'Álava buses',
             'switcher' => 'Álavabus timetables and real time in Álava',

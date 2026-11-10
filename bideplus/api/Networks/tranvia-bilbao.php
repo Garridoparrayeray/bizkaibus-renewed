@@ -31,6 +31,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Bilbao+',
             'tile' => 'Horarios y tiempo real',
             'tile_title' => 'Tranvía',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Euskotrenek',
             'name' => 'Tranbia Bilbo+',
             'tile_title' => 'Tranbia',
             'tile' => 'Ordutegiak eta zuzenekoa',
@@ -52,6 +54,7 @@ return [
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Bilbao+',
             'tile' => 'Timetables and real time',
             'tile_title' => 'Tranvía',

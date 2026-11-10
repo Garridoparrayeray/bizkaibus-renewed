@@ -184,6 +184,9 @@ class Schema
               AND seq_order < (SELECT MAX(last.seq_order) FROM journey_pattern_stops last WHERE last.journey_pattern_id = journey_pattern_stops.journey_pattern_id)
         ');
         $Pdo->exec('DELETE FROM lines WHERE id NOT IN (SELECT line_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM service_calendars WHERE id NOT IN (SELECT calendar_id FROM service_journeys)');
+        $Pdo->exec('DELETE FROM service_calendar_exceptions WHERE calendar_id NOT IN (SELECT id FROM service_calendars)');
+        $Pdo->exec('DELETE FROM shapes WHERE id NOT IN (SELECT shape_id FROM service_journeys WHERE shape_id IS NOT NULL)');
         $Pdo->exec('
             UPDATE service_journeys SET first_departure_seconds = (
                 SELECT pt.departure_seconds FROM passing_times pt WHERE pt.service_journey_id = service_journeys.id
@@ -242,6 +245,33 @@ class Schema
         $Pdo->exec('DELETE FROM journey_pattern_stops WHERE journey_pattern_id NOT IN (SELECT id FROM journey_patterns)');
         $Pdo->exec('DELETE FROM lines WHERE id NOT IN (SELECT line_id FROM service_journeys)');
         return count($aDuplicates);
+    }
+
+    // Erratas del operador: un paso con hora anterior a la salida de la parada de antes se deja a esa hora, para que
+    // dentro de un viaje el reloj nunca vaya hacia atrás. Devuelve cuántos pasos ha tocado.
+    public static function fixBackwardTimes(PDO $Pdo): int
+    {
+        $sBackwards = '
+            SELECT service_journey_id, seq_order, prev_departure FROM (
+                SELECT service_journey_id, seq_order, arrival_seconds,
+                       LAG(departure_seconds) OVER (PARTITION BY service_journey_id ORDER BY seq_order) AS prev_departure
+                FROM passing_times
+            ) WHERE prev_departure IS NOT NULL AND arrival_seconds < prev_departure
+        ';
+        $Update = $Pdo->prepare('
+            UPDATE passing_times SET arrival_seconds = :at, departure_seconds = MAX(departure_seconds, :at)
+            WHERE service_journey_id = :journey AND seq_order = :seq
+        ');
+        $iFixed = 0;
+        $aRows = $Pdo->query($sBackwards)->fetchAll(PDO::FETCH_ASSOC);
+        while (!empty($aRows)) {
+            foreach ($aRows as $aRow) {
+                $Update->execute(['at' => $aRow['prev_departure'], 'journey' => $aRow['service_journey_id'], 'seq' => $aRow['seq_order']]);
+                $iFixed++;
+            }
+            $aRows = $Pdo->query($sBackwards)->fetchAll(PDO::FETCH_ASSOC);
+        }
+        return $iFixed;
     }
 
     public static function pruneUnservedStops(PDO $Pdo): int
