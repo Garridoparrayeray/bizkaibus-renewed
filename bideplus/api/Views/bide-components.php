@@ -342,6 +342,36 @@ function bideSources(): string
     return $sHtml . '</ul></section>';
 }
 
+// Lo que publica cada operador, cómo calcula Bide+ sus llegadas y sus límites: dataPublished, dataMethod y dataLimits
+// de cada ficha (api/Networks). Una red sin esos textos no sale. Info y Estado de las redes.
+function bideNetworkData(): string
+{
+    $aLabels = [
+        'dataPublished' => ['bide.data.published', 'Publica'],
+        'dataMethod' => ['bide.data.method', 'Bide+'],
+        'dataLimits' => ['bide.data.limits', 'Límites'],
+    ];
+    $sHtml = '<ul class="bide-data">';
+    foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
+        if (\Core\Networks::text($aNetwork, 'dataPublished') === '') {
+            continue;
+        }
+        $sHtml .= '<li><strong data-i18n="net.' . $sSlug . '.name">' . htmlspecialchars(\Core\Networks::text($aNetwork, 'name')) . '</strong><dl>';
+        foreach ($aLabels as $sKey => [$sLabelKey, $sLabel]) {
+            $sHtml .= '<dt data-i18n="' . $sLabelKey . '">' . $sLabel . '</dt>';
+            $sHtml .= '<dd data-i18n="net.' . $sSlug . '.' . $sKey . '">' . htmlspecialchars(\Core\Networks::text($aNetwork, $sKey)) . '</dd>';
+        }
+        $sHtml .= '</dl></li>';
+    }
+    return $sHtml . '</ul>';
+}
+
+// El texto que acompaña a la lista de bideNetworkData.
+function bideNetworkDataLead(string $sClass): string
+{
+    return '<p class="' . $sClass . '" data-i18n="bide.data.lead">Cada operador publica datos distintos. Si alguno publica más (la posición GPS de sus vehículos o sus tiempos en directo), Bide+ los incorporará.</p>';
+}
+
 function bideViews(): string
 {
     $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
@@ -369,6 +399,7 @@ function bideViews(): string
     $sHtml .= bideFaq();
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
+    $sHtml .= '<section class="bide-card bide-data-card"><h3 data-i18n="bide.data.title">Los datos de cada red</h3>' . bideNetworkDataLead('bide-note') . bideNetworkData() . '</section>';
     $sHtml .= '<section class="bide-card bide-author"><h3><span data-i18n="app.madeBy">Hecho por</span> ' . htmlspecialchars(bideSite()['author']) . '</h3><p class="bide-links">' . bideAuthorLinks() . '</p></section>';
     $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
