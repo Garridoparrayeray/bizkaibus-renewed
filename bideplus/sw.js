@@ -201,6 +201,13 @@ function staleWhileRevalidate(event) {
     });
 }
 
+// Una página de una versión que este service worker aún no ha bajado: con sus ficheros guardados saldría descuadrada
+// y con textos sin traducir. Se enseña la guardada hasta que llega la versión nueva, que recarga sola (sw-register.js).
+function fromOtherVersion(response) {
+    const shell = response.headers.get('X-Bide-Shell');
+    return SHELL_HASH !== '' && !!shell && shell !== SHELL_HASH;
+}
+
 // Páginas: la red manda, pero si tarda más de `timeoutMs` y hay copia, se usa la copia y la red la renueva.
 function networkFirst(request, timeoutMs) {
     return new Promise((resolve) => {
@@ -220,6 +227,11 @@ function networkFirst(request, timeoutMs) {
         fetch(request)
             .then((response) => {
                 clearTimeout(timer);
+                if (fromOtherVersion(response)) {
+                    self.registration.update().catch(() => {});
+                    caches.match(request).then((hit) => settle(hit || response));
+                    return;
+                }
                 if (serverFailed(response)) {
                     savedPage().then((hit) => settle(hit || response));
                     return;

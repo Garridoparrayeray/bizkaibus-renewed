@@ -244,6 +244,7 @@ $aJsonLd = [
 <?= bideTabbar() ?>
 <?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>
+    <script src="/js/sw-register.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/alerts-store.js"></script>

@@ -86,7 +86,7 @@
         if (view === 'favoritos') renderFavorites();
         if (view === 'avisos') renderAlerts();
         if (addToHistory && view && wasOpen) history.replaceState({ ...history.state, bideView: view }, '', '#' + view);
-        else if (addToHistory && view) history.pushState({ ...history.state, bideView: view }, '', '#' + view);
+        else if (addToHistory && view) history.pushState({ ...history.state, bideView: view, bidePushed: true }, '', '#' + view);
         window.scrollTo(0, 0);
         if (view) {
             const heading = document.querySelector(`[data-bide-view="${view}"] h2`);
@@ -97,8 +97,13 @@
 
     function closeView() {
         if (!currentView) return;
-        if (history.state && history.state.bideView) history.back();
-        else showView(null, false);
+        if (history.state && history.state.bidePushed) {
+            history.back();
+            return;
+        }
+        // Abierta por su dirección (#ajustes), sin página anterior a la que volver.
+        showView(null, false);
+        history.replaceState(null, '', location.pathname + location.search);
     }
 
     function selectTab(tab) {
