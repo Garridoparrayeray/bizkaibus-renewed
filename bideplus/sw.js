@@ -16,7 +16,7 @@ const SLOW_NETWORK_MS = 1500;
 // El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 // Lo que nunca sale de la caché.
-const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|app\/version)(\/|\?|$)/;
+const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|notice|app\/version)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
     '/css/style-networks.css',
@@ -57,6 +57,7 @@ const SHELL_FILES = [
     '/js/networks.js',
     '/js/alerts-store.js',
     '/js/linkify.js',
+    '/js/notice.js',
     '/js/push.js',
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',

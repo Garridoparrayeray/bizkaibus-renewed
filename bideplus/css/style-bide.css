@@ -1,5 +1,7 @@
 :root {
     --bide-red: #C8102E;
+    --bide-warn: #B34A14;
+    --bide-warn-tint: #FBE9E1;
     --bide-ink: #1c211d;
     --bide-muted: #5c665e;
     --bide-line: #dde3dc;
@@ -325,6 +327,75 @@ html.bide .bide-card {
         color: var(--bide-muted);
         white-space: pre-line;
     }
+.bide-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 0 0 14px;
+    padding: 12px 8px 12px 14px;
+    border: 1px solid var(--bide-warn);
+    border-radius: 12px;
+    background: var(--bide-warn-tint);
+    color: var(--bide-ink);
+}
+    .bide-notice-badge {
+        flex: none;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--bide-warn);
+        color: var(--bide-surface);
+        font-weight: 800;
+        line-height: 24px;
+        text-align: center;
+    }
+    .bide-notice-body {
+        flex: 1;
+        min-width: 0;
+    }
+    .bide-notice-title {
+        display: block;
+        color: var(--bide-warn);
+        font-size: calc(12.8px * var(--text-scale, 1));
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+    .bide-notice-text {
+        margin: 2px 0 0;
+        font-size: calc(14.4px * var(--text-scale, 1));
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        white-space: pre-line;
+    }
+    .bide-notice-link {
+        display: inline-block;
+        margin-top: 6px;
+        color: var(--bide-warn);
+        font-size: calc(14px * var(--text-scale, 1));
+        font-weight: 700;
+        text-decoration: underline;
+    }
+    .bide-notice-close {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--bide-warn);
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+    }
+@media (min-width: 1024px) {
+    .bide-notice {
+        box-sizing: border-box;
+        width: calc(100% - 48px);
+        max-width: 1352px;
+        margin: 16px auto 0;
+    }
+}
 .alert-link {
     color: inherit;
     font-weight: 600;

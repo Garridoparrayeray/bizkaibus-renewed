@@ -14,6 +14,7 @@ use Core\Store;
 use Services\ArrivalAlerts;
 use Services\Changelog;
 use Services\IncidentAlerts;
+use Services\NoticeAlerts;
 use Services\UpdateAlerts;
 use Services\Push;
 use Services\WebPush;
@@ -444,6 +445,49 @@ try {
     $Expect('versión: darse de baja', UpdateAlerts::remove($Device('baja')['endpoint']) === true && Store::pipeline([['SMEMBERS', 'bide:update:subs']])[0] === []);
     IncidentAlerts::remove($Device('las-dos')['endpoint']);
     IncidentAlerts::remove($Device('solo-incidencias')['endpoint']);
+
+    $aNotice = ['id' => 'prueba-aviso-1', 'text' => ['es' => 'Huelga: servicio reducido', 'en' => 'Strike: reduced service'], 'url' => null, 'expiresAt' => time() + 3600, 'notify' => true];
+    $NoticeAgain = function (): void {
+        Store::pipeline([['DEL', 'bide:notice:done'], ['DEL', 'bide:notice:sent:prueba-aviso-1'], ['DEL', 'bide:notice:run']]);
+        @unlink(NoticeAlerts::doneMarker());
+    };
+    UpdateAlerts::save($Device('aviso-es'), 'es');
+    UpdateAlerts::save($Device('aviso-en'), 'en');
+    IncidentAlerts::save($Device('aviso-eu'), ['bus' => ['lines' => ['3513'], 'stops' => []]], 'eu');
+    $NoticeAgain();
+    $aSent = [];
+    $Expect('aviso general: sin aviso o sin «notificar», no manda nada', NoticeAlerts::process(null, $Sender) === ['skipped' => true] && NoticeAlerts::process(['notify' => false] + $aNotice, $Sender) === ['skipped' => true] && count($aSent) === 0);
+    $aRun = NoticeAlerts::process($aNotice, $Sender);
+    $Expect('aviso general: llega a todos los apuntados, a las novedades y a las incidencias', $aRun['sent'] === 3 && $aRun['pending'] === 0 && count($aSent) === 3, json_encode($aRun));
+    $aTitles = array_column($aSent, 'title');
+    sort($aTitles);
+    $Expect('aviso general: cada uno en su idioma', $aTitles === ['Bide+ notice', 'Bide+-en oharra', 'Aviso de Bide+'] || $aTitles === ['Aviso de Bide+', 'Bide+ notice', 'Bide+-en oharra'], json_encode($aTitles, JSON_UNESCAPED_UNICODE));
+    $aBodies = array_column($aSent, 'body');
+    sort($aBodies);
+    $Expect('aviso general: el idioma sin texto cae en castellano', $aBodies === ['Huelga: servicio reducido', 'Huelga: servicio reducido', 'Strike: reduced service'], json_encode($aBodies, JSON_UNESCAPED_UNICODE));
+    $Expect('aviso general: abre la app', count(array_filter($aSent, fn($aMessage) => $aMessage['url'] === '/' && $aMessage['tag'] === 'bide-notice')) === 3);
+    $Expect('aviso general: la vuelta siguiente no manda nada', NoticeAlerts::process($aNotice, $Sender) === ['skipped' => true] && count($aSent) === 3);
+    Store::pipeline([['DEL', 'bide:notice:done']]);
+    $Expect('aviso general: repartido una vez, este servidor ya no pregunta al almacén', NoticeAlerts::process($aNotice, $Sender) === ['skipped' => true] && count($aSent) === 3);
+    $Expect('aviso general: el cuerpo se corta a 160 caracteres', mb_strlen(NoticeAlerts::message(['text' => ['es' => str_repeat('á', 400)]], 'es')['body']) === 160);
+
+    $NoticeAgain();
+    Store::pipeline([['SET', 'bide:notice:run', '1']]);
+    $Expect('aviso general: si otra vuelta está mandando, esta no se mete', NoticeAlerts::process($aNotice, $Sender) === ['busy' => true]);
+    Store::pipeline([['DEL', 'bide:notice:run']]);
+    $NoticeAgain();
+    $iAnswer = 503;
+    $aSent = [];
+    $aRun = NoticeAlerts::process($aNotice, $Sender);
+    $Expect('aviso general: si el servicio de push falla, se queda pendiente', $aRun['sent'] === 0 && $aRun['pending'] === 3, json_encode($aRun));
+    $iAnswer = 201;
+    $aRun = NoticeAlerts::process($aNotice, $Sender);
+    $Expect('aviso general: y se manda en la vuelta siguiente, y ya queda repartido', $aRun['sent'] === 3 && $aRun['pending'] === 0 && Store::pipeline([['GET', 'bide:notice:done']])[0] === 'prueba-aviso-1', json_encode($aRun));
+    $NoticeAgain();
+    foreach (['aviso-es', 'aviso-en'] as $sName) {
+        UpdateAlerts::remove($Device($sName)['endpoint']);
+    }
+    IncidentAlerts::remove($Device('aviso-eu')['endpoint']);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);

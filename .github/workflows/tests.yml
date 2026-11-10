@@ -109,6 +109,9 @@ jobs:
       - name: Enlaces de los avisos (direcciones web en los textos)
         run: node tests/linkify.mjs
 
+      - name: Aviso general (el script del workflow y lo que acepta la app)
+        run: python tests/aviso-script.py
+
       - name: UI battery
         env:
           CHROME_PATH: google-chrome

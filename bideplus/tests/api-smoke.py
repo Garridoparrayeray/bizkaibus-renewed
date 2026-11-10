@@ -120,6 +120,12 @@ if not isinstance(version.get('version'), int) or not version.get('notes') or no
     fails.append(f'/api/app/version: sin versión o sin novedades {version}')
 if (get(f"/api/app/version?desde={version.get('version', 0)}") or {}).get('notes') != []:
     fails.append('/api/app/version: con la versión al día no debería haber novedades pendientes')
+# Aviso general: sin aviso publicado (o sin salida a GitHub) responde {"notice": null}; si hay, trae lo que usa el cartel.
+notice = get('/api/notice') or {}
+if 'notice' not in notice:
+    fails.append(f'/api/notice: sin la clave notice {notice}')
+elif notice['notice'] is not None and not all(k in notice['notice'] for k in ('id', 'text', 'expiresAt')):
+    fails.append(f"/api/notice: al aviso le faltan campos {notice['notice']}")
 # El endpoint del cron del registro de pasos no existe sin su clave secreta.
 get('/api/live/record', 404)
 get('/api/live/record?key=adivina', 404)

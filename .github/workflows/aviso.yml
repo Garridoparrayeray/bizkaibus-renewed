@@ -1,0 +1,76 @@
+name: Aviso a los usuarios
+
+# Publica o quita el aviso general que sale en un cartel arriba de Bide+ (huelgas, obras, cortes). Se lanza a mano:
+# Actions, «Aviso a los usuarios», Run workflow (también desde la app de GitHub del móvil).
+#
+# Guarda notice.json en la release pública «avisos». La app lo lee a través de /api/notice (un minuto de caché) y deja
+# de enseñarlo sola a la hora que se indique. Con «notificar», el cron de cada minuto manda además una notificación,
+# una sola vez, a los móviles con los avisos activados. Quitar el aviso deja el archivo vacío.
+
+on:
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: 'Qué hacer'
+        type: choice
+        options:
+          - publicar
+          - quitar
+        default: publicar
+      texto_es:
+        description: 'Texto en castellano (obligatorio al publicar, máximo 400 caracteres)'
+        default: ''
+      texto_eu:
+        description: 'Texto en euskera (opcional: si falta, sale el castellano)'
+        default: ''
+      texto_en:
+        description: 'Texto en inglés (opcional: si falta, sale el castellano)'
+        default: ''
+      enlace:
+        description: 'Enlace «Más información» (opcional, empieza por https://)'
+        default: ''
+      horas:
+        description: 'Horas que se muestra (de 1 a 720)'
+        default: '36'
+      notificar:
+        description: 'Mandar también una notificación a los móviles con los avisos activados'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Dos avisos a la vez se pisarían: el segundo espera su turno.
+concurrency:
+  group: aviso
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  RELEASE: avisos
+
+jobs:
+  aviso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # Lo escrito en el formulario llega por variables de entorno, nunca pegado en la orden.
+      - name: Preparar el aviso
+        env:
+          ACCION: ${{ inputs.accion }}
+          TEXTO_ES: ${{ inputs.texto_es }}
+          TEXTO_EU: ${{ inputs.texto_eu }}
+          TEXTO_EN: ${{ inputs.texto_en }}
+          ENLACE: ${{ inputs.enlace }}
+          HORAS: ${{ inputs.horas }}
+          NOTIFICAR: ${{ inputs.notificar }}
+        run: python3 .github/scripts/aviso.py "$RUNNER_TEMP/notice.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # La subida no deja nunca la release sin una copia completa (ver pace-data.sh).
+      - name: Publicar en la release
+        run: |
+          source .github/scripts/pace-data.sh
+          gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Aviso general (no es una version)" --notes "Aviso general de Bide+ (notice.json). Lo escribe el workflow Aviso a los usuarios."
+          subir_acumulado "$RUNNER_TEMP/notice.json"

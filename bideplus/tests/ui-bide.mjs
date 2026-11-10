@@ -24,10 +24,13 @@ let fakeAppVersion = null;
 let fakeDepartures = null;
 // El recorrido en el mapa de una línea: con fakeLineRoute, la respuesta de /lines/{id}/route la da la prueba.
 let fakeLineRoute = null;
+// El aviso general: con fakeNotice, la respuesta de /api/notice la da la prueba.
+let fakeNotice = null;
 const answerPaused = (requestId, url) => {
     let fake = fakeAppVersion;
     if (url.includes('/departures')) fake = fakeDepartures;
     if (/\/lines\/[^/]+\/route/.test(url)) fake = fakeLineRoute;
+    if (url.includes('/api/notice')) fake = fakeNotice;
     if (!fake) {
         send('Fetch.continueRequest', { requestId });
         return;
@@ -567,6 +570,46 @@ await send('Fetch.disable');
 await go('/');
 await sleep(1500);
 check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
+
+// ===== Aviso general: el cartel que publica el dueño desde GitHub =====
+const inAnHour = Math.floor(Date.now() / 1000) + 3600;
+const noticeTexts = { es: 'Atención: se prevén reducciones de servicio por huelga. Revisa las páginas de tus operadores.', eu: 'Adi: zerbitzu murrizketak espero dira greba dela eta.', en: 'Heads up: reduced services are expected because of a strike.' };
+fakeNotice = { notice: { id: 'prueba-1', text: noticeTexts, url: 'https://www.bizkaia.eus/avisos', expiresAt: inAnHour } };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/notice*' }] });
+await setStandalone(false);
+await phone();
+await go('/');
+check('aviso general · móvil: sale el cartel con su texto', await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice-text').textContent.includes('reducciones de servicio')`));
+check('aviso general · móvil: debajo de la cabecera y sin desbordar a lo ancho', (await ev("document.querySelector('.bide-notice').previousElementSibling === document.querySelector('main > header')")) && (await ev(noOverflow)));
+check('aviso general · «Más información» se abre aparte, solo con el enlace del aviso', await ev("(() => { const a = document.querySelector('.bide-notice-link'); return a.href === 'https://www.bizkaia.eus/avisos' && a.target === '_blank' && a.rel === 'noopener noreferrer'; })()"));
+await go('/?red=bus');
+check('aviso general · también en cada app', await waitTrue(shown('.bide-notice')));
+await desktop();
+await go('/');
+check('aviso general · ordenador: encima de toda la página', await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice').nextElementSibling === document.querySelector('main')`));
+await go('/?red=bus');
+check('aviso general · ordenador: también encima de cada app, sin desbordar', (await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice').nextElementSibling === document.querySelector('main')`)) && (await ev(noOverflow)));
+await phone();
+await go('/');
+await waitTrue(shown('.bide-notice'));
+await ev("document.querySelector('.bide-notice-close').click(); true");
+check('aviso general · al cerrarlo desaparece', await waitTrue("!document.querySelector('.bide-notice')"));
+await go('/');
+await sleep(1500);
+check('aviso general · cerrado, no vuelve a salir', await ev("!document.querySelector('.bide-notice')"));
+fakeNotice = { notice: { ...fakeNotice.notice, id: 'prueba-2' } };
+await go('/');
+check('aviso general · uno nuevo sí sale aunque se cerrara el anterior', await waitTrue(shown('.bide-notice')));
+fakeNotice = { notice: { ...fakeNotice.notice, id: 'prueba-3', expiresAt: Math.floor(Date.now() / 1000) - 5 } };
+await go('/');
+await sleep(1500);
+check('aviso general · pasada su hora de fin, no sale', await ev("!document.querySelector('.bide-notice')"));
+fakeNotice = { notice: null };
+await go('/');
+await sleep(1500);
+check('aviso general · sin aviso, no sale nada', await ev("!document.querySelector('.bide-notice')"));
+fakeNotice = null;
+await send('Fetch.disable');
 
 // ===== Renfe: un tren cancelado no es la salida grande y en la lista dice «cancelado» con su hora =====
 await setStandalone(false);

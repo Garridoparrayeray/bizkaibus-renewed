@@ -43,6 +43,7 @@ use Core\Networks;
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/js/linkify.js"></script>
+    <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
     <script src="/js/new-badge.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
