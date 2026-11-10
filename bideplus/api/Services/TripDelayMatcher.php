@@ -14,6 +14,7 @@ class TripDelayMatcher
     private const ON_TIME_SECONDS = 60;
     private const DUE_SECONDS = 60;
     private const STALE_PREDICTION_SECONDS = 60;
+    private const OFF_OPERATOR_SECONDS = 120;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
     private const EARLY_MORNING_SECONDS = 4 * 3600;
 
@@ -178,6 +179,7 @@ class TripDelayMatcher
                 $aDelays[] = $iDelay;
             }
         }
+        [$iCompared, $iOff] = $this->offOperator();
         $aOut = [
             'matched' => $this->iMatched,
             'clockShifted' => $this->iShifted,
@@ -185,6 +187,8 @@ class TripDelayMatcher
             'contradictsVehicles' => $this->bContradictsVehicles,
             'live' => \count($aDelays),
             'cancelled' => \count($this->cancelledJourneyIds()),
+            'compared' => $iCompared,
+            'offOperator' => $iOff,
         ];
         $aSummary = DelayStats::summary($aDelays);
         if ($aSummary !== null) {
@@ -204,6 +208,30 @@ class TripDelayMatcher
         }
         $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
         return $this->etaAt($sJourneyId, $iOrder, $iArrival, $aLive) - $iArrival;
+    }
+
+    // Comprobación de que lo que se enseña es lo que publica el operador: de los viajes con horas del feed, en cuántos
+    // la llegada a su primera parada con hora por venir se aparta dos minutos o más de esa hora.
+    private function offOperator(): array
+    {
+        $iCompared = 0;
+        $iOff = 0;
+        foreach ($this->aByJourney as $sJourneyId => $aLive) {
+            if ($aLive['canceled'] || empty($aLive['times'])) {
+                continue;
+            }
+            foreach ($this->Stops->of((string)$sJourneyId) as $aStop) {
+                $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
+                if ($iTime === null || $iTime < $this->nowSeconds() + $aLive['shift']) {
+                    continue;
+                }
+                $iCompared++;
+                $iEta = $this->etaAt((string)$sJourneyId, (int)$aStop['seq_order'], (int)$aStop['arrival_seconds'], $aLive);
+                $iOff += (int)(abs($iEta - $iTime) >= self::OFF_OPERATOR_SECONDS);
+                break;
+            }
+        }
+        return [$iCompared, $iOff];
     }
 
     public function isCancelled(string $sServiceJourneyId): bool
