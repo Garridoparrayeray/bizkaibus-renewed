@@ -1,3 +1,6 @@
 
 # Carteles para imprimir (scripts/render-images.mjs): se generan en local, no se suben.
 /carteles/
+
+# La caché de Python (la deja el script de los avisos al probarse).
+__pycache__/

@@ -9,10 +9,23 @@ function alertItem(lines, summary, description) {
         if (text === null) continue;
         const span = document.createElement('span');
         span.className = className;
-        span.textContent = text;
+        BideLinks.append(span, text);
         item.append(span);
     }
     el.menuAlertsList.appendChild(item);
+    return item;
+}
+
+// El aviso general va siempre el primero de las incidencias, cerrado el cartel o no.
+async function addGeneralNotice() {
+    if (typeof BideNotice === 'undefined') return;
+    const notice = await BideNotice.active();
+    if (!notice) return;
+    const item = alertItem(null, I18n.t('bide.notice.title'), BideNotice.textFor(notice));
+    const more = BideNotice.linkFor(notice, 'alert-link');
+    if (more) item.append(more);
+    el.menuAlertsList.prepend(item);
+    el.menuAlertsEmpty.hidden = true;
 }
 
 function showEmpty(key) {
@@ -129,6 +142,7 @@ async function showSideMenu(onlyIncidents) {
     } else {
         await renderLineAlerts();
     }
+    await addGeneralNotice();
 }
 
 export function openSideMenu() {

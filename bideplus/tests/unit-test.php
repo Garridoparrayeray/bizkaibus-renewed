@@ -766,4 +766,20 @@ $Expect('una red sin «added» no es nueva', !Core\Networks::isNew(['slug' => 'x
 $aUncited = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && empty($aNet['texts']['es']['liveSource'])));
 $Expect('cada red con horas previstas en directo cita a quien las publica (texts.liveSource)', empty($aUncited));
 
+$Section('Aviso general (Services\\Notice)');
+$iNow = 1800000000;
+$aGood = ['id' => '20261110T203000Z', 'text' => ['es' => '  Huelga mañana  ', 'eu' => 'Greba bihar', 'en' => ''], 'url' => 'https://www.bizkaia.eus/avisos', 'expiresAt' => $iNow + 3600, 'notify' => true];
+$aNotice = \Services\Notice::fromArray($aGood, $iNow);
+$Expect('un aviso bien escrito sale con su texto sin espacios de más', $aNotice !== null && $aNotice['text']['es'] === 'Huelga mañana' && $aNotice['id'] === '20261110T203000Z', json_encode($aNotice));
+$Expect('los idiomas sin texto no salen: caen en castellano', array_keys($aNotice['text']) === ['es', 'eu']);
+$Expect('trae su enlace y si hay que notificar', $aNotice['url'] === 'https://www.bizkaia.eus/avisos' && $aNotice['notify'] === true);
+$Expect('pasada su hora de fin ya no sale', \Services\Notice::fromArray(['expiresAt' => $iNow] + $aGood, $iNow) === null && \Services\Notice::fromArray(['expiresAt' => $iNow - 1] + $aGood, $iNow) === null);
+$Expect('sin texto en castellano no sale', \Services\Notice::fromArray(['text' => ['eu' => 'Greba']] + $aGood, $iNow) === null && \Services\Notice::fromArray(['text' => 'Huelga'] + $aGood, $iNow) === null);
+$Expect('sin identificador válido no sale', \Services\Notice::fromArray(['id' => 'a b'] + $aGood, $iNow) === null && \Services\Notice::fromArray(['id' => ''] + $aGood, $iNow) === null && \Services\Notice::fromArray(['id' => str_repeat('a', 41)] + $aGood, $iNow) === null);
+$Expect('la hora de fin tiene que ser un número entero', \Services\Notice::fromArray(['expiresAt' => '1800003600'] + $aGood, $iNow) === null);
+$Expect('vacío (aviso quitado), sin aviso', \Services\Notice::fromArray([], $iNow) === null);
+$Expect('un enlace que no es http o https se descarta, pero el aviso sale', \Services\Notice::fromArray(['url' => 'javascript:alert(1)'] + $aGood, $iNow)['url'] === null && \Services\Notice::fromArray(['url' => 'no es un enlace'] + $aGood, $iNow)['url'] === null);
+$Expect('«notificar» solo vale con true', \Services\Notice::fromArray(['notify' => 'true'] + $aGood, $iNow)['notify'] === false && \Services\Notice::fromArray(['notify' => null] + $aGood, $iNow)['notify'] === false);
+$Expect('el texto se corta a 400 caracteres', mb_strlen(\Services\Notice::fromArray(['text' => ['es' => str_repeat('á', 900)]] + $aGood, $iNow)['text']['es']) === 400);
+
 $Finish('unitarias');
