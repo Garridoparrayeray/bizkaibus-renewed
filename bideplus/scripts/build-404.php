@@ -28,7 +28,7 @@ $sHtml = <<<HTML
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Página no encontrada · Bide+</title>
-    <meta name="description" content="La página que buscas no existe o ha cambiado de sitio. Vuelve a Bide+ para consultar los horarios y el tiempo real del bus, el metro, el tren y el tranvía de Euskadi.">
+    <meta name="description" content="La página que buscas no existe o ha cambiado de sitio. Vuelve a Bide+ para consultar los horarios y el tiempo real del bus, el metro, el tren y el tranvía de Euskal Herria.">
     <meta name="robots" content="noindex, follow">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">

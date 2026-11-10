@@ -45,7 +45,7 @@ function ogPage() {
         li{display:flex;align-items:center;gap:14px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:${size.text}px;white-space:nowrap}
         li img{width:${size.icon}px;height:${size.icon}px;border-radius:15px;flex:none}
     </style></head><body><main><img class="mark" src="${wordmark}" alt="Bide+">
-        <h1>Bus, metro, tren y tranvía de Euskadi<br>en un solo sitio</h1><ul>${tiles}</ul></main></body></html>`;
+        <h1>Bus, metro, tren y tranvía de Euskal Herria<br>en un solo sitio</h1><ul>${tiles}</ul></main></body></html>`;
 }
 
 // A5 a 300 ppp: 1748 × 2480. El hueco blanco del centro es para el QR de la parada.

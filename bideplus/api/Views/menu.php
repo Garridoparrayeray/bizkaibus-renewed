@@ -134,7 +134,7 @@ $aJsonLd = [
         <header>
             <div class="menu-brand">
                 <h1><?= $sWordmark ?></h1>
-                <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
+                <p data-i18n="menu.tagline">Movilidad en Euskal Herria</p>
             </div>
             <div class="header-controls">
                 <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle" hidden>Euskaraz</button>

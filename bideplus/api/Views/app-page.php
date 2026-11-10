@@ -80,7 +80,7 @@ if ($bMiamorDomain) {
     $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
     $iImageWidth = 1200;
     $iImageHeight = 630;
-    $sImageAlt = 'Bide+: bus, metro, tren y tranvía de Euskadi en un solo sitio';
+    $sImageAlt = 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio';
     $sFaviconFolder = $aNetwork['brand']['icons'];
 }
 // Imagen apaisada: vista previa grande en las redes que lo distinguen.

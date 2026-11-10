@@ -73,7 +73,7 @@ function bideLangSwitch(): string
 function bideRail(string|null $sCurrentApp): string
 {
     $sHtml = '<aside class="bide-rail">';
-    $sHtml .= '<a class="bide-rail-brand" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><span class="bide-wordmark">BIDE<span>+</span></span><span data-i18n="menu.tagline">Movilidad en Euskadi</span></a>';
+    $sHtml .= '<a class="bide-rail-brand" href="/" data-i18n-attr="aria-label:bide.home" aria-label="Bide+, todas las apps"><span class="bide-wordmark">BIDE<span>+</span></span><span data-i18n="menu.tagline">Movilidad en Euskal Herria</span></a>';
     $sHtml .= '<nav class="bide-rail-nav" data-i18n-attr="aria-label:bide.nav" aria-label="Navegación de Bide+">';
     $sHtml .= '<button type="button" class="bide-rail-item bide-rail-apps" aria-expanded="false">' . BIDE_ICONS['apps'] . '<span data-i18n="bide.allApps">Todas las apps</span><span class="bide-rail-chevron">' . BIDE_ICONS['down'] . '</span></button>';
     $sHtml .= '<div class="bide-rail-applist" hidden>';
@@ -360,7 +360,7 @@ function bideViews(): string
     $sHtml .= '<section class="bide-view" data-bide-view="info" hidden>';
     $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
-    $sHtml .= '<section class="bide-card bide-about"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
+    $sHtml .= '<section class="bide-card bide-about"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskal Herria en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
     $sHtml .= bideFaq();
     $sHtml .= bideFeedback();
     $sHtml .= bideSources();
