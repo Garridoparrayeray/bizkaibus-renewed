@@ -1,7 +1,7 @@
 <?php
 
 // Genera llms.txt, el resumen de Bide+ para los modelos de IA, con cada app de api/Networks: qué cubre, si tiene
-// tiempo real y de dónde salen sus datos. Es un fichero estático, así que se vuelve a generar al añadir o cambiar una red.
+// tiempo real y de dónde salen sus datos. Es un fichero estático: se vuelve a generar al añadir o cambiar una red.
 // Uso: php scripts/build-llms.php [--output=ruta]
 
 declare(strict_types=1);

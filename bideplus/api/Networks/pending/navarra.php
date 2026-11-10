@@ -58,6 +58,15 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Gobierno de Navarra. Official scheduled timetable: it does not reflect delays or cancellations.',
             'attribution' => 'Data: Gobierno de Navarra (GTFS)',
         ],
+        'fr' => [
+            'name' => 'Navarra bus+',
+            'tile' => 'Horaires des bus de Navarre',
+            'switcher' => 'Horaires des bus de Navarre',
+            'subtitle' => 'Horaires des bus de Navarre',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec le Gobierno de Navarra. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.',
+            'attribution' => 'Données : Gobierno de Navarra (GTFS)',
+        ],
     ],
 
     'seo' => [

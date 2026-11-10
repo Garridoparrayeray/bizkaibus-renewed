@@ -2,7 +2,7 @@
 
 namespace Core;
 
-// El idioma de una página para los buscadores: con ?lang=eu, ?lang=en o ?lang=fr el servidor la entrega ya traducida (los mismos
+// El idioma de una página para los buscadores: con ?lang=eu, en o fr el servidor la entrega ya traducida (los mismos
 // textos de js/i18n.js y de las fichas de las redes), con su lang, su canónica y los enlaces a las otras versiones.
 // Sin ?lang, en castellano, como siempre; en el navegador manda el idioma elegido (js/i18n.js).
 class Lang

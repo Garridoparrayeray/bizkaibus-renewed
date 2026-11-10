@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
             'attribution' => 'Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Renfe',
+            'name' => 'Renfe LD+',
+            'tile' => 'Longue et moyenne distance en Euskadi et en Navarre',
+            'switcher' => 'Horaires et temps réel des trains de longue et moyenne distance',
+            'subtitle' => 'Longue et moyenne distance en temps réel',
+            'liveEmpty' => 'Cherchez une gare pour voir le prochain train.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Renfe. Les retards et les trains supprimés sont ceux que Renfe publie en direct.',
+            'attribution' => 'Données : Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

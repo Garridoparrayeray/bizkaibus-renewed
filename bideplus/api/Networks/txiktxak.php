@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
         ],
+        'fr' => [
+            'liveSource' => 'le Syndicat des Mobilités Pays Basque-Adour',
+            'name' => 'Txik Txak+',
+            'tile' => 'Bus d’Iparralde',
+            'switcher' => 'Horaires et temps réel des bus d’Iparralde',
+            'subtitle' => 'Horaires et temps réel',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec le Syndicat des Mobilités Pays Basque-Adour. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
+        ],
     ],
 
     'seo' => [

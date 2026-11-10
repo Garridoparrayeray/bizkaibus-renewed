@@ -58,6 +58,15 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Mancomunidad de la Comarca de Pamplona (TCC). Official scheduled timetable: it does not reflect delays or cancellations.',
             'attribution' => 'Data: Mancomunidad de la Comarca de Pamplona (TCC), via the Spanish National Access Point for Multimodal Transport (Open Data Licence of the Ministry of Transport and Sustainable Mobility)',
         ],
+        'fr' => [
+            'name' => 'Villavesas+',
+            'tile' => 'Bus de Pampelune',
+            'switcher' => 'Horaires des villavesas de l’agglomération de Pampelune',
+            'subtitle' => 'Horaires de l’agglomération de Pampelune',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec la Mancomunidad de la Comarca de Pamplona (TCC). Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.',
+            'attribution' => 'Données : Mancomunidad de la Comarca de Pamplona (TCC), via le Point d’accès national espagnol aux données de transport multimodal (licence de données ouvertes du ministère des Transports et de la Mobilité durable)',
+        ],
     ],
 
     'seo' => [

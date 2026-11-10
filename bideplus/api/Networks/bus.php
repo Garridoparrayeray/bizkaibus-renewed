@@ -46,6 +46,15 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia.',
             'attribution' => 'Data: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'Bizkaibus+',
+            'tile' => 'Horaires et temps réel',
+            'switcher' => 'Horaires et temps réel de Bizkaibus',
+            'subtitle' => 'Horaires et temps réel de Bizkaibus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Bizkaibus ni avec la Députation forale de Bizkaia.',
+            'attribution' => 'Données : Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

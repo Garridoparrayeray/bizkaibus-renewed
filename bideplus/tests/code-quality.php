@@ -861,12 +861,12 @@ foreach ($aNetworkFiles as $sFile) {
     // Todos los idiomas con las mismas claves: lo que falte sale en castellano sin avisar. La atribución en castellano
     // es la clave attribution de la ficha.
     $aLangKeys = [];
-    foreach (\Core\Lang::LANGS as $sLang) {
+    foreach (['es', 'eu', 'en', 'fr'] as $sLang) {
         $aLangKeys[$sLang] = array_keys($aNetwork['texts'][$sLang] ?? []);
     }
     $aLangKeys['es'][] = 'attribution';
     $aAll = array_unique(array_merge(...array_values($aLangKeys)));
-    foreach (\Core\Lang::LANGS as $sLang) {
+    foreach (['es', 'eu', 'en', 'fr'] as $sLang) {
         foreach (array_diff($aAll, $aLangKeys[$sLang]) as $sKey) {
             $Report('Redes: texto que falta en un idioma', $sFile . ' ' . $sLang . '.' . $sKey);
         }
