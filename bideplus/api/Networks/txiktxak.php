@@ -101,6 +101,8 @@ return [
         'trip_updates_url' => 'https://www.data.gouv.fr/api/1/datasets/r/a228fac6-b0ab-44f5-b2e8-a6e47b9c1b98',
         'alerts_url' => 'https://www.data.gouv.fr/api/1/datasets/r/29c3470e-5846-42d2-a9d6-e1168287143e',
         'matching' => 'trip',
+        // El feed sigue dando las paradas por las que el bus ya ha pasado: la siguiente es la primera con hora por venir.
+        'keeps_passed_stops' => true,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,

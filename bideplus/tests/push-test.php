@@ -257,6 +257,8 @@ try {
     $aMessage = ArrivalAlerts::message(['id' => 'x', 'network' => 'metro', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'MB-1-2', 'lineCode' => 'MB', 'headsign' => 'Basauri', 'lang' => 'eu'], 3);
     $Expect('mensaje: en euskera y con la red en el enlace', $aMessage['title'] === 'MB: 3 min barru' && str_starts_with($aMessage['url'], '/stops/7?red=metro&viaje=MB-1-2&aviso=x-') && $aMessage['body'] === '→ Basauri · Abando', json_encode($aMessage, JSON_UNESCAPED_UNICODE));
     $Expect('mensaje: lleva el id y si es de una vez, para que la app lo quite de su lista', $aMessage['alertId'] === 'x' && $aMessage['repeat'] === false);
+    $aCancelled = ArrivalAlerts::message(['id' => 'x', 'network' => 'renfe', 'stopId' => '7', 'stopName' => 'Abando', 'tripKey' => 'C1-1-2', 'lineCode' => 'C1', 'headsign' => 'Santurtzi', 'lang' => 'es'], 12, true);
+    $Expect('mensaje: un viaje cancelado lo dice, falten los minutos que falten', $aCancelled['title'] === 'C1 cancelado' && $aCancelled['body'] === '→ Santurtzi · Abando', json_encode($aCancelled, JSON_UNESCAPED_UNICODE));
 
     // ===== Avisos de incidencias de los favoritos =====
 

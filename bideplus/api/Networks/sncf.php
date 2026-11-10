@@ -100,6 +100,8 @@ return [
         'vehicle_positions_url' => null,
         'trip_updates_url' => 'https://proxy.transport.data.gouv.fr/resource/sncf-gtfs-rt-trip-updates',
         'matching' => 'trip',
+        // El feed sigue dando las estaciones por las que el tren ya ha pasado: la siguiente es la primera con hora por venir.
+        'keeps_passed_stops' => true,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
