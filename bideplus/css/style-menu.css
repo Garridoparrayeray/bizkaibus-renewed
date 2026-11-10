@@ -791,7 +791,6 @@ main {
     border-radius: 999px;
     background: #fff;
     color: var(--bide-green);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, .22);
     font-family: inherit;
     font-size: calc(13.5px * var(--text-scale, 1));
     font-weight: 800;
@@ -864,11 +863,13 @@ html.is-standalone .nets-toast {
 [data-view="list"] .tile-pin {
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: none;
     border: 1px solid var(--line);
 }
 [data-view="list"] .menu-apps.is-editing .tile .chev {
-    visibility: hidden;
+    display: none;
+}
+[data-view="list"] .menu-apps.is-editing .tile {
+    padding-right: 118px;
 }
 @media (min-width: 720px) {
     .planner {
