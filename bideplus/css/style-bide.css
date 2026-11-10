@@ -96,6 +96,47 @@ html.bide .bide-seg {
             color: #fff;
         }
 
+html.bide .bide-lang {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    border: 1px solid var(--bide-line);
+    border-radius: 14px;
+    background: var(--bide-surface);
+    color: var(--bide-green);
+}
+    html.bide .bide-lang > svg {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        pointer-events: none;
+    }
+        html.bide .bide-lang > svg:first-child {
+            left: 12px;
+        }
+        html.bide .bide-lang > svg:last-child {
+            right: 10px;
+            width: 16px;
+            height: 16px;
+        }
+    html.bide .bide-lang > select {
+        height: 100%;
+        padding: 0 32px 0 38px;
+        border: none;
+        border-radius: 14px;
+        background: transparent;
+        color: inherit;
+        font-family: inherit;
+        font-size: calc(13.6px * var(--text-scale, 1));
+        font-weight: 800;
+        cursor: pointer;
+        appearance: none;
+    }
+        html.bide .bide-lang > select option {
+            color: #17212b;
+            font-weight: 400;
+        }
 html.bide :is(.bide-tab, .bide-rail-item, .bide-seg button, .bide-fav, .bide-card-link, .bide-view-back, .nearby-btn, .pill, .bide-install-accept):active {
     transform: scale(.95);
 }

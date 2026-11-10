@@ -58,6 +58,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Euskotren does not publish live data for its trains: times are from the official timetable.',
             'attribution' => 'Data: Euskotren / Open Data Euskadi (CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Euskotren',
+            'name' => 'Euskotren+',
+            'tile' => 'Horaires',
+            'switcher' => 'Horaires d’Euskotren',
+            'subtitle' => 'Horaires d’Euskotren',
+            'liveEmpty' => 'Cherchez une gare pour voir le prochain train.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Euskotren S.A. Euskotren ne publie pas le temps réel de ses trains : les heures sont celles de l’horaire officiel.',
+            'attribution' => 'Données : Euskotren / Open Data Euskadi (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

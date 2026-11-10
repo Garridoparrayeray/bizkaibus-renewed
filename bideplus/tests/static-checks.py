@@ -148,6 +148,17 @@ print('404.html:', notfound_result)
 if stale_404:
     failures.append('404.html desactualizado')
 
+# llms.txt: el resumen para los modelos de IA, generado por scripts/build-llms.php desde api/Networks.
+fresh_llms = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check-llms.txt')
+r = subprocess.run([PHP, ROOT + 'scripts/build-llms.php', '--output=' + fresh_llms], capture_output=True, text=True)
+stale_llms = r.returncode != 0 or open(fresh_llms, encoding='utf-8').read() != open(ROOT + 'llms.txt', encoding='utf-8').read()
+llms_result = 'al día (' + r.stdout.strip() + ')'
+if stale_llms:
+    llms_result = 'desactualizado, ejecuta php scripts/build-llms.php'
+print('llms.txt:', llms_result)
+if stale_llms:
+    failures.append('llms.txt desactualizado')
+
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
 for slug, net in registry.items():

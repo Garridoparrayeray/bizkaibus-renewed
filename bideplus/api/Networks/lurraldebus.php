@@ -56,6 +56,15 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
             'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'Lurraldebus+',
+            'tile' => 'Bus du Gipuzkoa',
+            'switcher' => 'Horaires de Lurraldebus au Gipuzkoa',
+            'subtitle' => 'Horaires de Lurraldebus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Lurraldebus ni avec la Députation forale du Gipuzkoa. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions, sauf les alertes de perturbations publiées par l’opérateur.',
+            'attribution' => 'Données : Lurraldebus / Députation forale du Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

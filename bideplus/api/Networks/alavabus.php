@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Álavabus or with the Provincial Council of Álava. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Álavabus',
+            'name' => 'Álavabus+',
+            'tile' => 'Bus d’Álava',
+            'switcher' => 'Horaires et temps réel d’Álavabus en Álava',
+            'subtitle' => 'Horaires et temps réel d’Álavabus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Álavabus ni avec la Députation forale d’Álava. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : Álavabus / Députation forale d’Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

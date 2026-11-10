@@ -59,6 +59,15 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Bilbobus or with Bilbao City Council. Official scheduled timetable: it does not reflect delays or cancellations.',
             'attribution' => 'Data: Bilbobus / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'Bilbobus+',
+            'tile' => 'Bus de Bilbao',
+            'switcher' => 'Horaires de Bilbobus à Bilbao',
+            'subtitle' => 'Horaires de Bilbobus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Bilbobus ni avec la mairie de Bilbao. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.',
+            'attribution' => 'Données : Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

@@ -9,11 +9,13 @@ $aTitles = [
     'es' => 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+',
     'eu' => 'Sarearen mapa · Euskadiko garraio-linea guztiak | Bide+',
     'en' => 'Network map · Every public transport line in the Basque Country | Bide+',
+    'fr' => 'Plan du réseau · Toutes les lignes de transport du Pays basque | Bide+',
 ];
 $aDescriptions = [
     'es' => 'Mapa del transporte público de Euskal Herria: todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesas y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.',
     'eu' => 'Euskal Herriko garraio publikoaren mapa: Bilboko Metroa, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesak eta Bilbo eta Gasteizko tranbien linea guztiak, geltokiekin, loturekin eta linea bakoitzaren eskemarekin.',
     'en' => 'Public transport map of the Basque Country: every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesas and the Bilbao and Vitoria trams, with their stops, transfers and each line\'s diagram.',
+    'fr' => 'Plan des transports en commun d’Euskal Herria : toutes les lignes de Txik Txak, Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Villavesas et des tramways de Bilbao et Vitoria-Gasteiz, avec leurs arrêts, correspondances et le schéma de chaque ligne.',
 ];
 $sTitle = $aTitles[$sLang];
 $sDescription = $aDescriptions[$sLang];

@@ -59,6 +59,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
             'attribution' => 'Data: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Renfe',
+            'name' => 'Renfe Cercanías+',
+            'tile' => 'Trains de banlieue à Bilbao et Donostia',
+            'switcher' => 'Horaires et temps réel des Cercanías à Bilbao et Donostia',
+            'subtitle' => 'Horaires et temps réel des Cercanías',
+            'liveEmpty' => 'Cherchez une gare pour voir le prochain train.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Renfe. Les retards et les trains supprimés sont ceux que Renfe publie en direct.',
+            'attribution' => 'Données : Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

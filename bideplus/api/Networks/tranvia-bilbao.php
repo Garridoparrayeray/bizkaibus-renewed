@@ -65,6 +65,18 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Euskotren',
+            'name' => 'Tranvía Bilbao+',
+            'tile' => 'Horaires et temps réel',
+            'tile_title' => 'Tranvía',
+            'tile_city' => 'Bilbao',
+            'switcher' => 'Horaires et temps réel du tramway de Bilbao',
+            'subtitle' => 'Horaires et temps réel du tramway',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain tramway.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Euskotren S.A. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

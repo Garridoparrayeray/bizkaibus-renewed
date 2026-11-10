@@ -48,6 +48,15 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Bizkaibus or with the Provincial Council of Bizkaia.",
                 "attribution": "Data: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
+            },
+            "fr": {
+                "name": "Bizkaibus+",
+                "tile": "Horaires et temps réel",
+                "switcher": "Horaires et temps réel de Bizkaibus",
+                "subtitle": "Horaires et temps réel de Bizkaibus",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Bizkaibus ni avec la Députation forale de Bizkaia.",
+                "attribution": "Données : Bizkaibus / Open Data Bizkaia (CC-BY 4.0)"
             }
         }
     },
@@ -101,6 +110,16 @@
                 "liveEmpty": "Search for a station to see the next metro.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator's forecast.",
                 "attribution": "Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time"
+            },
+            "fr": {
+                "liveSource": "le Consorcio de Transportes de Bizkaia",
+                "name": "Metro+",
+                "tile": "Metro Bilbao",
+                "switcher": "Horaires et temps réel de Metro Bilbao",
+                "subtitle": "Horaires et temps réel de Metro Bilbao",
+                "liveEmpty": "Cherchez une station pour voir le prochain métro.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Metro Bilbao S.A. ni avec le Consorcio de Transportes de Bizkaia. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0) : horaires et temps réel"
             }
         }
     },
@@ -154,6 +173,16 @@
                 "liveEmpty": "Search for a station to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Euskotren does not publish live data for its trains: times are from the official timetable.",
                 "attribution": "Data: Euskotren / Open Data Euskadi (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Euskotren",
+                "name": "Euskotren+",
+                "tile": "Horaires",
+                "switcher": "Horaires d’Euskotren",
+                "subtitle": "Horaires d’Euskotren",
+                "liveEmpty": "Cherchez une gare pour voir le prochain train.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Euskotren S.A. Euskotren ne publie pas le temps réel de ses trains : les heures sont celles de l’horaire officiel.",
+                "attribution": "Données : Euskotren / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     },
@@ -208,6 +237,16 @@
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
                 "attribution": "Data: Renfe Cercanías / data.renfe.com (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Renfe",
+                "name": "Renfe Cercanías+",
+                "tile": "Trains de banlieue à Bilbao et Donostia",
+                "switcher": "Horaires et temps réel des Cercanías à Bilbao et Donostia",
+                "subtitle": "Horaires et temps réel des Cercanías",
+                "liveEmpty": "Cherchez une gare pour voir le prochain train.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Renfe. Les retards et les trains supprimés sont ceux que Renfe publie en direct.",
+                "attribution": "Données : Renfe Cercanías / data.renfe.com (CC-BY 4.0)"
             }
         }
     },
@@ -258,6 +297,15 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
                 "attribution": "Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "fr": {
+                "name": "Lurraldebus+",
+                "tile": "Bus du Gipuzkoa",
+                "switcher": "Horaires de Lurraldebus au Gipuzkoa",
+                "subtitle": "Horaires de Lurraldebus",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Lurraldebus ni avec la Députation forale du Gipuzkoa. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions, sauf les alertes de perturbations publiées par l’opérateur.",
+                "attribution": "Données : Lurraldebus / Députation forale du Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -317,6 +365,18 @@
                 "liveEmpty": "Search for a stop to see the next tram.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
                 "attribution": "Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Euskotren",
+                "name": "Tranvía Bilbao+",
+                "tile": "Horaires et temps réel",
+                "tile_title": "Tranvía",
+                "tile_city": "Bilbao",
+                "switcher": "Horaires et temps réel du tramway de Bilbao",
+                "subtitle": "Horaires et temps réel du tramway",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain tramway.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Euskotren S.A. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     },
@@ -376,6 +436,18 @@
                 "liveEmpty": "Search for a stop to see the next tram.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Euskotren S.A. Live times are the operator's forecast.",
                 "attribution": "Data: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Euskotren",
+                "name": "Tranvía Vitoria+",
+                "tile": "Horaires et temps réel",
+                "tile_title": "Tranvía",
+                "tile_city": "Vitoria",
+                "switcher": "Horaires et temps réel du tramway de Vitoria-Gasteiz",
+                "subtitle": "Horaires et temps réel du tramway",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain tramway.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Euskotren S.A. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             }
         }
     },
@@ -426,6 +498,15 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Bilbobus or with Bilbao City Council. Official scheduled timetable: it does not reflect delays or cancellations.",
                 "attribution": "Data: Bilbobus / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0)"
+            },
+            "fr": {
+                "name": "Bilbobus+",
+                "tile": "Bus de Bilbao",
+                "switcher": "Horaires de Bilbobus à Bilbao",
+                "subtitle": "Horaires de Bilbobus",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Bilbobus ni avec la mairie de Bilbao. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.",
+                "attribution": "Données : Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)"
             }
         }
     },
@@ -479,6 +560,16 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Tuvisa or with Vitoria-Gasteiz City Council. Live times are the operator's forecast.",
                 "attribution": "Data: Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Tuvisa",
+                "name": "Tuvisa+",
+                "tile": "Bus de Vitoria-Gasteiz",
+                "switcher": "Horaires et temps réel de Tuvisa à Vitoria-Gasteiz",
+                "subtitle": "Horaires et temps réel de Tuvisa",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Tuvisa ni avec la mairie de Vitoria-Gasteiz. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
             }
         }
     },
@@ -532,6 +623,16 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Dbus or with Donostia / San Sebastián City Council. Live times are the operator's forecast.",
                 "attribution": "Data: Dbus / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Dbus",
+                "name": "Dbus+",
+                "tile": "Bus de Donostia",
+                "switcher": "Horaires et temps réel de Dbus à Donostia",
+                "subtitle": "Horaires et temps réel de Dbus",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Dbus ni avec la mairie de Donostia / Saint-Sébastien. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Dbus / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)"
             }
         }
     },
@@ -585,6 +686,16 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Álavabus or with the Provincial Council of Álava. Live times are the operator's forecast.",
                 "attribution": "Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Álavabus",
+                "name": "Álavabus+",
+                "tile": "Bus d’Álava",
+                "switcher": "Horaires et temps réel d’Álavabus en Álava",
+                "subtitle": "Horaires et temps réel d’Álavabus",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Álavabus ni avec la Députation forale d’Álava. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Álavabus / Députation forale d’Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -635,6 +746,15 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Autobuses La Unión. Official scheduled timetable: it does not reflect delays or cancellations.",
                 "attribution": "Data: Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "fr": {
+                "name": "La Unión+",
+                "tile": "Bus Bilbao - Vitoria",
+                "switcher": "Horaires de La Unión entre la Bizkaia et Vitoria-Gasteiz",
+                "subtitle": "Horaires de La Unión",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Autobuses La Unión. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.",
+                "attribution": "Données : Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -688,6 +808,16 @@
                 "liveEmpty": "Search for a station to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
                 "attribution": "Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
+            },
+            "fr": {
+                "liveSource": "Renfe",
+                "name": "Renfe LD+",
+                "tile": "Longue et moyenne distance en Euskadi et en Navarre",
+                "switcher": "Horaires et temps réel des trains de longue et moyenne distance",
+                "subtitle": "Longue et moyenne distance en temps réel",
+                "liveEmpty": "Cherchez une gare pour voir le prochain train.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec Renfe. Les retards et les trains supprimés sont ceux que Renfe publie en direct.",
+                "attribution": "Données : Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -741,6 +871,16 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator's forecast.",
                 "attribution": "Data: Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
+            },
+            "fr": {
+                "liveSource": "le Syndicat des Mobilités Pays Basque-Adour",
+                "name": "Txik Txak+",
+                "tile": "Bus d’Iparralde",
+                "switcher": "Horaires et temps réel des bus d’Iparralde",
+                "subtitle": "Horaires et temps réel",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec le Syndicat des Mobilités Pays Basque-Adour. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             }
         }
     },
@@ -794,6 +934,16 @@
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with SNCF. Live times are the operator's forecast.",
                 "attribution": "Data: SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
+            },
+            "fr": {
+                "liveSource": "SNCF",
+                "name": "SNCF+",
+                "tile": "Trains d’Iparralde",
+                "switcher": "Horaires et temps réel des trains d’Iparralde",
+                "subtitle": "TGV, Intercités et TER en temps réel",
+                "liveEmpty": "Cherchez une gare pour voir le prochain train.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec SNCF. Les temps en direct sont une prévision de l’opérateur.",
+                "attribution": "Données : SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             }
         }
     },
@@ -844,6 +994,15 @@
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Mancomunidad de la Comarca de Pamplona (TCC). Official scheduled timetable: it does not reflect delays or cancellations.",
                 "attribution": "Data: Mancomunidad de la Comarca de Pamplona (TCC), via the Spanish National Access Point for Multimodal Transport (Open Data Licence of the Ministry of Transport and Sustainable Mobility)"
+            },
+            "fr": {
+                "name": "Villavesas+",
+                "tile": "Bus de Pampelune",
+                "switcher": "Horaires des villavesas de l’agglomération de Pampelune",
+                "subtitle": "Horaires de l’agglomération de Pampelune",
+                "liveEmpty": "Cherchez un arrêt pour voir le prochain bus.",
+                "disclaimer": "Projet indépendant et non officiel, sans lien avec la Mancomunidad de la Comarca de Pamplona (TCC). Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.",
+                "attribution": "Données : Mancomunidad de la Comarca de Pamplona (TCC), via le Point d’accès national espagnol aux données de transport multimodal (licence de données ouvertes du ministère des Transports et de la Mobilité durable)"
             }
         }
     }

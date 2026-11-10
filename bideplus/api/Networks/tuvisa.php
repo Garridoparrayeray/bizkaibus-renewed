@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Tuvisa or with Vitoria-Gasteiz City Council. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Tuvisa',
+            'name' => 'Tuvisa+',
+            'tile' => 'Bus de Vitoria-Gasteiz',
+            'switcher' => 'Horaires et temps réel de Tuvisa à Vitoria-Gasteiz',
+            'subtitle' => 'Horaires et temps réel de Tuvisa',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Tuvisa ni avec la mairie de Vitoria-Gasteiz. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [
