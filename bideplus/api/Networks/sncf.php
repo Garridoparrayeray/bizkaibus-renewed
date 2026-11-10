@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with SNCF. Live times are the operator\'s forecast.',
             'attribution' => 'Data: SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
         ],
+        'fr' => [
+            'liveSource' => 'SNCF',
+            'name' => 'SNCF+',
+            'tile' => 'Trains d’Iparralde',
+            'switcher' => 'Horaires et temps réel des trains d’Iparralde',
+            'subtitle' => 'TGV, Intercités et TER en temps réel',
+            'liveEmpty' => 'Cherchez une gare pour voir le prochain train.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec SNCF. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
+        ],
     ],
 
     'seo' => [

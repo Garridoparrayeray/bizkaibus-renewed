@@ -11,7 +11,7 @@ use Core\Store;
  */
 class Push
 {
-    public const LANGS = ['es', 'eu', 'en'];
+    public const LANGS = ['es', 'eu', 'en', 'fr'];
     private const VAPID_KEY = 'bide:vapid';
     private const MAX_ENDPOINT_LENGTH = 1000;
 

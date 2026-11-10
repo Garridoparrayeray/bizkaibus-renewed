@@ -48,6 +48,16 @@ $aPageTexts = [
         'line' => 'Line {code}', 'linesAt' => 'Lines stopping at {stop}', 'stopsOf' => 'Stops on line {code}',
         'appDescription' => '{app} timetables.',
     ],
+    'fr' => [
+        'networkDescription' => '{switcher} : prochains départs, horaires et alertes de chaque arrêt et de chaque ligne.',
+        'stopTitle' => '{stop} · Horaires et prochains départs | {app}',
+        'stopDescription' => 'Prochains départs et horaires de {app} à {place}.', 'lines' => ' Lignes : {list}.',
+        'live' => ' Arrivées en temps réel.', 'lineTitle' => 'Ligne {code} {name} · Horaires | {app}',
+        'lineDescription' => 'Horaires, itinéraire et arrêts de la ligne {code} ({name}) de {app}.',
+        'busMap' => ' Carte avec les bus en temps réel.', 'trainMap' => ' Carte avec les trains en temps réel.',
+        'line' => 'Ligne {code}', 'linesAt' => 'Lignes desservant {stop}', 'stopsOf' => 'Arrêts de la ligne {code}',
+        'appDescription' => 'Horaires de {app}.',
+    ],
 ];
 $PageText = function (string $sKey, array $aVars = []) use ($aPageTexts, $sLang): string {
     $aReplace = [];

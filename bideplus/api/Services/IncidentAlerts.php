@@ -46,6 +46,7 @@ class IncidentAlerts
         'es' => ['moreTitle' => 'Más incidencias en tus favoritos', 'moreBody' => '{n} avisos más. Ábrelos en la app.'],
         'eu' => ['moreTitle' => 'Intzidentzia gehiago zure gogokoetan', 'moreBody' => 'Beste {n} abisu. Ireki aplikazioan.'],
         'en' => ['moreTitle' => 'More disruptions on your favourites', 'moreBody' => '{n} more alerts. Open them in the app.'],
+        'fr' => ['moreTitle' => 'D’autres perturbations sur vos favoris', 'moreBody' => '{n} alertes de plus. Ouvrez-les dans l’application.'],
     ];
 
     // Guarda o actualiza un suscriptor. Estados: saved y unavailable (sin almacén o demasiados suscriptores).

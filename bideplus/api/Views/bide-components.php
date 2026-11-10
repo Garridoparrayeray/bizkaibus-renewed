@@ -22,6 +22,8 @@ const BIDE_ICONS = [
     'cafe' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9z"/><path d="M17 11h1.5a2.5 2.5 0 0 1 0 5H17"/><line x1="8" y1="3.5" x2="8" y2="6"/><line x1="12" y1="3.5" x2="12" y2="6"/></svg>',
     'info' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.5" x2="12.01" y2="7.5"/></svg>',
     'back' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 6 9 12 15 18"/></svg>',
+    'lang' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 3.9 5.5 3.9 9s-1.3 6.5-3.9 9c-2.6-2.5-3.9-5.5-3.9-9s1.3-6.5 3.9-9Z"/></svg>',
+    'down' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
     'next' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>',
     'down' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
     'share' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>',
@@ -61,13 +63,16 @@ function bideTabbar(): string
     return $sHtml . '</nav>';
 }
 
+// Cada idioma, con su propio nombre: quien no entiende el idioma de la página encuentra igual el suyo.
+const BIDE_LANG_NAMES = ['es' => 'Castellano', 'eu' => 'Euskara', 'en' => 'English', 'fr' => 'Français'];
+
 function bideLangSwitch(): string
 {
-    return '<div class="bide-seg bide-lang" role="group" data-i18n-attr="aria-label:bide.lang" aria-label="Idioma">'
-        . '<button type="button" data-bide-lang="es" aria-pressed="true">ES</button>'
-        . '<button type="button" data-bide-lang="eu" aria-pressed="false">EU</button>'
-        . '<button type="button" data-bide-lang="en" aria-pressed="false">EN</button>'
-        . '</div>';
+    $sHtml = '<label class="bide-lang">' . BIDE_ICONS['lang'] . '<select data-bide-lang-select data-i18n-attr="aria-label:bide.lang" aria-label="Idioma">';
+    foreach (BIDE_LANG_NAMES as $sLang => $sName) {
+        $sHtml .= '<option value="' . $sLang . '">' . $sName . '</option>';
+    }
+    return $sHtml . '</select>' . BIDE_ICONS['down'] . '</label>';
 }
 
 function bideRail(string|null $sCurrentApp): string

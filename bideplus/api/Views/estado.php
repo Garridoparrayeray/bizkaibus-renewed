@@ -10,11 +10,13 @@ $aTitles = [
     'es' => 'Estado del transporte en Euskadi, en directo | Bide+',
     'eu' => 'Euskadiko garraioaren egoera, zuzenean | Bide+',
     'en' => 'Basque Country public transport status, live | Bide+',
+    'fr' => 'État des transports au Pays basque, en direct | Bide+',
 ];
 $aDescriptions = [
     'es' => 'Cuántos trenes, metros, tranvías y autobuses van en directo ahora en cada red de Euskal Herria (Euskadi, Navarra e Iparralde), cuántos van en hora y cuánto acierta Bide+ frente al horario.',
     'eu' => 'Zenbat tren, metro, tranbia eta autobus dabiltzan zuzenean orain Euskal Herriko sare bakoitzean (Euskadi, Nafarroa eta Iparraldea), zenbat doazen orduan eta Bide+-k ordutegiak baino zenbat gehiago asmatzen duen.',
     'en' => 'How many trains, metros, trams and buses are live right now on each Basque network (Euskadi, Navarre and the Northern Basque Country), how many are on time and how much better Bide+ does than the timetable.',
+    'fr' => 'Combien de trains, métros, tramways et bus circulent en direct sur chaque réseau d’Euskal Herria (Euskadi, Navarre et Pays basque nord), combien sont à l’heure et la précision de Bide+ par rapport aux horaires.',
 ];
 $sTitle = $aTitles[$sLang];
 $sDescription = $aDescriptions[$sLang];

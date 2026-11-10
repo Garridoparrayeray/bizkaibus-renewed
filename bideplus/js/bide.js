@@ -259,8 +259,8 @@
     }
 
     function syncLangSwitch() {
-        document.querySelectorAll('[data-bide-lang]').forEach((button) => {
-            button.setAttribute('aria-pressed', String(button.getAttribute('data-bide-lang') === I18n.getLang()));
+        document.querySelectorAll('[data-bide-lang-select]').forEach((select) => {
+            select.value = I18n.getLang();
         });
     }
 
@@ -344,15 +344,17 @@
 
     document.addEventListener('click', (e) => {
         const tab = e.target.closest('[data-bide-tab]');
-        const lang = e.target.closest('[data-bide-lang]');
         const dialog = e.target.closest('dialog[open]');
         if (tab && dialog) selectTabFromDialog(dialog, tab.getAttribute('data-bide-tab'));
         else if (tab) selectTab(tab.getAttribute('data-bide-tab'));
-        else if (lang) selectLang(lang.getAttribute('data-bide-lang'));
         else if (e.target.closest('[data-bide-close]')) closeView();
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();
         else if (e.target.closest('[data-bide-menu-open]')) document.getElementById('bide-menu-sheet').showModal();
         else if (e.target.closest('[data-bide-menu-close]') || e.target.id === 'bide-menu-sheet') dialog.close();
+    });
+
+    document.addEventListener('change', (e) => {
+        if (e.target.matches('[data-bide-lang-select]')) selectLang(e.target.value);
     });
 
     const closedByHistory = new Set();

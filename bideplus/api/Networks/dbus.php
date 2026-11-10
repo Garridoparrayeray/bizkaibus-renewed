@@ -61,6 +61,16 @@ return [
             'disclaimer' => 'An independent, unofficial project, not affiliated with Dbus or with Donostia / San Sebastián City Council. Live times are the operator\'s forecast.',
             'attribution' => 'Data: Dbus / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
         ],
+        'fr' => [
+            'liveSource' => 'Dbus',
+            'name' => 'Dbus+',
+            'tile' => 'Bus de Donostia',
+            'switcher' => 'Horaires et temps réel de Dbus à Donostia',
+            'subtitle' => 'Horaires et temps réel de Dbus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Dbus ni avec la mairie de Donostia / Saint-Sébastien. Les temps en direct sont une prévision de l’opérateur.',
+            'attribution' => 'Données : Dbus / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [
