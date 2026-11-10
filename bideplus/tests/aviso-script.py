@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 
+sys.dont_write_bytecode = True
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/'
 PHP = os.environ.get('PHP_PATH', 'php')
 spec = importlib.util.spec_from_file_location('aviso', ROOT + '../.github/scripts/aviso.py')
