@@ -14,6 +14,12 @@
     const allCount = document.getElementById('nets-all-count');
     const hint = document.getElementById('nets-hint');
     const empty = document.getElementById('nets-empty');
+    const toast = document.getElementById('nets-toast');
+    const toastText = document.getElementById('nets-toast-text');
+    const toastUndo = document.getElementById('nets-toast-undo');
+    const TOAST_MS = 7000;
+    let toastTimer = null;
+    let undoFavorites = null;
     const items = Array.from(favList.children);
     const order = items.map(slugOf);
     const localSlugs = items.filter(function (item) {
@@ -85,9 +91,12 @@
             const name = item.querySelector('a.tile').getAttribute('data-name');
             let label = translate('menu.nets.add', 'Añadir {name} a tus redes', { name: name });
             if (isFavorite) label = translate('menu.nets.remove', 'Quitar {name} de tus redes', { name: name });
+            let word = translate('menu.nets.addShort', 'Añadir');
+            if (isFavorite) word = translate('menu.nets.removeShort', 'Quitar');
             pin.hidden = !editing;
             pin.classList.toggle('is-fav', isFavorite);
             pin.setAttribute('aria-label', label);
+            pin.querySelector('.tile-pin-text').textContent = word;
         });
         const showRest = editing || open;
         empty.hidden = favorites.length > 0;
@@ -103,16 +112,46 @@
         editButton.textContent = editLabel;
     }
 
-    function toggleFavorite(slug) {
-        const favorites = readFavorites();
+    function nameOf(slug) {
+        return items[order.indexOf(slug)].querySelector('a.tile').getAttribute('data-name');
+    }
+
+    // Lo que se acaba de hacer, dicho con palabras y con vuelta atrás: la ficha cambia de lista y, sin esto, desaparece
+    // de donde se tocó sin más.
+    function announce(text, previous) {
+        undoFavorites = previous;
+        toastText.textContent = text;
+        toast.hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, TOAST_MS);
+    }
+
+    function hideToast() {
+        toast.hidden = true;
+        undoFavorites = null;
+    }
+
+    // La pantalla no salta: lo que había bajo el dedo sigue en su sitio aunque la lista de arriba crezca o encoja.
+    function keepInPlace(anchor, change) {
+        const before = anchor.getBoundingClientRect().top;
+        change();
+        window.scrollBy(0, anchor.getBoundingClientRect().top - before);
+    }
+
+    function toggleFavorite(slug, anchor) {
+        const previous = readFavorites();
+        const favorites = previous.slice();
         const at = favorites.indexOf(slug);
+        let text = translate('menu.nets.added', '{name} añadida a tus redes', { name: nameOf(slug) });
         if (at === -1) {
             favorites.push(slug);
         } else {
             favorites.splice(at, 1);
+            text = translate('menu.nets.removed', '{name} quitada de tus redes', { name: nameOf(slug) });
         }
         saveFavorites(favorites);
-        render();
+        keepInPlace(anchor, render);
+        announce(text, previous);
     }
 
     editButton.addEventListener('click', function () {
@@ -130,7 +169,7 @@
     section.addEventListener('click', function (event) {
         const pin = event.target.closest('.tile-pin');
         if (pin) {
-            toggleFavorite(pin.getAttribute('data-pin'));
+            toggleFavorite(pin.getAttribute('data-pin'), pin.closest('ul'));
             return;
         }
         if (editing && event.target.closest('a.tile')) {
@@ -138,6 +177,12 @@
             event.stopImmediatePropagation();
         }
     }, true);
+    toastUndo.addEventListener('click', function () {
+        if (undoFavorites === null) return;
+        saveFavorites(undoFavorites);
+        hideToast();
+        render();
+    });
     window.addEventListener('bide:lang', render);
 
     render();

@@ -180,7 +180,7 @@ $aJsonLd = [
                 <h2 data-i18n="menu.nets.title">Tus redes</h2>
                 <button type="button" id="nets-edit" class="nets-edit" aria-pressed="false" data-i18n="menu.nets.edit">Editar</button>
             </div>
-            <p id="nets-hint" class="nets-hint" data-i18n="menu.nets.hint" hidden>Toca + para añadir una red a tus redes y − para quitarla.</p>
+            <p id="nets-hint" class="nets-hint" data-i18n="menu.nets.hint" hidden>Toca «Añadir» en las redes que uses. Con «Quitar» dejan de salir aquí arriba.</p>
             <ul class="tiles" id="tiles-fav">
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');
@@ -200,7 +200,7 @@ $aJsonLd = [
                         <span class="txt"><strong data-i18n="net.<?= $sSlug ?>.name"><?= htmlspecialchars($sName) ?></strong><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
 <?php endif; ?>
                     </a>
-                    <button type="button" class="tile-pin" data-pin="<?= $sSlug ?>" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="12" x2="18" y2="12"/><line class="tile-pin-plus" x1="12" y1="6" x2="12" y2="18"/></svg></button>
+                    <button type="button" class="tile-pin" data-pin="<?= $sSlug ?>" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="12" x2="18" y2="12"/><line class="tile-pin-plus" x1="12" y1="6" x2="12" y2="18"/></svg><span class="tile-pin-text"></span></button>
                 </li>
 <?php endforeach; ?>
             </ul>
@@ -221,6 +221,10 @@ $aJsonLd = [
                 <a class="menu-map-link" href="/estado"><?= BIDE_ICONS['estado'] ?><span><strong data-i18n="status.title">Estado de las redes</strong><span data-i18n="status.subtitle">Qué va en directo ahora en cada red</span></span><?= BIDE_ICONS['next'] ?></a>
             </div>
         </section>
+        <div id="nets-toast" class="nets-toast" role="status" aria-live="polite" hidden>
+            <span id="nets-toast-text"></span>
+            <button type="button" id="nets-toast-undo" data-i18n="menu.nets.undo">Deshacer</button>
+        </div>
         <script src="/js/menu-favorites.js"></script>
 
 <?= bideViews() ?>
