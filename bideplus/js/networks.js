@@ -641,7 +641,7 @@
     "renfe-ld": {
         "kind": "train",
         "icons": "icons-renfe-ld",
-        "themeColor": "#3F4E63",
+        "themeColor": "#74349A",
         "title": [
             "RENFE LD",
             ""
@@ -694,7 +694,7 @@
     "txiktxak": {
         "kind": "bus",
         "icons": "icons-txiktxak",
-        "themeColor": "#E2001A",
+        "themeColor": "#268991",
         "title": [
             "TXIK TXAK",
             ""
