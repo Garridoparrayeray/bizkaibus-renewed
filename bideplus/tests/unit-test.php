@@ -676,6 +676,23 @@ $WithSuffix = new GtfsRealtimeClient(['gtfs_rt' => ['trip_date_suffix' => true]]
 $Expect('trip_date_suffix deja los viajes de hoy y los sin fecha', array_column($OfServiceDay->invoke($WithSuffix, $aDated), 'tripId') === ['123' . $sToday, 'sinFecha']);
 $Expect('sin trip_date_suffix no se filtra nada', count($OfServiceDay->invoke(new GtfsRealtimeClient(['gtfs_rt' => []]), $aDated)) === 3);
 
+// gtfs_rt.keeps_passed_stops (Txik Txak): el feed sigue dando las paradas ya pasadas.
+$NextFeedStop = new ReflectionMethod(\Services\TripDelayMatcher::class, 'nextFeedStop');
+$Finished = new ReflectionMethod(\Services\TripDelayMatcher::class, 'finished');
+$MatcherShell = (new ReflectionClass(\Services\TripDelayMatcher::class))->newInstanceWithoutConstructor();
+$iShellMidnight = (new DateTime('today', new DateTimeZone('Europe/Madrid')))->getTimestamp();
+(new ReflectionProperty(\Services\TripDelayMatcher::class, 'iMidnight'))->setValue($MatcherShell, $iShellMidnight);
+$iShellNow = time() - $iShellMidnight;
+$aEnRoute = [['A', time() - 900], ['B', time() - 60], ['C', time() + 240], ['D', time() + 600]];
+$aLiveEnRoute = ['times' => ['A' => $iShellNow - 900, 'C' => $iShellNow + 240], 'shift' => 0];
+$aLiveEnded = ['times' => ['A' => $iShellNow - 1800, 'B' => $iShellNow - 900], 'shift' => 0];
+\Core\Config::set('txiktxak');
+$Expect('keeps_passed_stops: la siguiente parada es la primera con hora por venir', $NextFeedStop->invoke(null, $aEnRoute) === 'C');
+$Expect('keeps_passed_stops: un viaje con todas sus horas pasadas ha terminado', $Finished->invoke($MatcherShell, $aLiveEnded) && !$Finished->invoke($MatcherShell, $aLiveEnRoute));
+\Core\Config::set('metro');
+$Expect('sin keeps_passed_stops la siguiente parada es la primera del feed y ningún viaje se descarta', $NextFeedStop->invoke(null, $aEnRoute) === 'A' && !$Finished->invoke($MatcherShell, $aLiveEnded));
+\Core\Config::set('bus');
+
 
 /* ------------------------------------------------------------------ */
 $Section('Salidas de una parada: orden y filas repetidas');

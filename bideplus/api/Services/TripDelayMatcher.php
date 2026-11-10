@@ -50,7 +50,7 @@ class TripDelayMatcher
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
-            if (!$this->implausible((string)$sJourneyId, $aLive)) {
+            if (!$this->finished($aLive) && !$this->implausible((string)$sJourneyId, $aLive)) {
                 $this->aByJourney[(string)$sJourneyId] = $aLive;
             }
         }
@@ -71,7 +71,7 @@ class TripDelayMatcher
         $aFeedStops = FeedStopOrder::fit($aTrip['stops'] ?? [], array_map(fn(array $aStop) => (string)$aStop['stop_id'], $aStops));
         $sNextStopId = $aTrip['nextStopId'] ?? null;
         if (!empty($aFeedStops)) {
-            $sNextStopId = (string)$aFeedStops[0][0];
+            $sNextStopId = self::nextFeedStop($aFeedStops);
         }
         $iShift = ServiceDay::shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0), $this->nowSeconds());
         $aTimes = [];
@@ -90,6 +90,31 @@ class TripDelayMatcher
             }
         }
         return ['delay' => (int)($aTrip['delay'] ?? 0), 'times' => $aTimes, 'nextStopId' => $sNextStopId, 'canceled' => !empty($aTrip['canceled']), 'shift' => $iShift];
+    }
+
+    // Con gtfs_rt.keeps_passed_stops, un viaje con todas las horas de sus paradas ya pasadas ha terminado (o ha salido
+    // de las estaciones de la red) y sigue en el feed: no cuenta.
+    private function finished(array $aLive): bool
+    {
+        if (empty(\Core\Config::current()['gtfs_rt']['keeps_passed_stops']) || empty($aLive['times'])) {
+            return false;
+        }
+        return max($aLive['times']) - $aLive['shift'] < $this->nowSeconds() - self::STALE_PREDICTION_SECONDS;
+    }
+
+    // La parada a la que va: la primera del feed. Con gtfs_rt.keeps_passed_stops (Txik Txak sigue dando las paradas por
+    // las que el bus ya ha pasado, con la hora a la que pasó), la primera cuya hora aún no ha llegado.
+    private static function nextFeedStop(array $aFeedStops): string
+    {
+        if (empty(\Core\Config::current()['gtfs_rt']['keeps_passed_stops'])) {
+            return (string)$aFeedStops[0][0];
+        }
+        foreach ($aFeedStops as [$sStopId, $iTime]) {
+            if ((int)$iTime >= time()) {
+                return (string)$sStopId;
+            }
+        }
+        return (string)end($aFeedStops)[0];
     }
 
     // Un viaje de otro día (Álavabus deja en su feed viajes de días pasados, alguno de hace más de un año) no vale; de
