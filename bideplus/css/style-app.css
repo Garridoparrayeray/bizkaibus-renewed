@@ -1086,10 +1086,8 @@ tbody tr {
         display: none;
     }
     .stop-alerts-summary {
-        display: -webkit-box;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        max-width: 100%;
+        overflow-wrap: anywhere;
         font-size: calc(13.6px * var(--text-scale, 1));
         font-weight: 600;
         line-height: 1.4;
