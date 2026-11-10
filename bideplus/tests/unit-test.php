@@ -144,6 +144,10 @@ $aSynthetic = GtfsRealtimeClient::parseTripUpdates($sSynthetic);
 $Expect('lee la hora de generación de la cabecera', $aSynthetic['generatedAt'] === 1000);
 $Expect('usa la salida si no hay llegada y descarta las paradas saltadas', $aSynthetic['trips'] === [['tripId' => 'T1', 'stops' => [['7', 2000], ['8', 2100]]]], json_encode($aSynthetic['trips']));
 $Expect('ignora entidades sin previsiones (solo posición) y lee retrasos negativos sin romperse', count($aSynthetic['trips']) === 1);
+$sWaiting = pbField(1, pbField(1, '2.0') . pbField(3, 1000))
+    . pbField(2, pbField(1, 'e1') . pbField(3, pbField(1, pbField(1, 'T2')) . pbField(2, pbStopTime('1', 2000, 2900)) . pbField(2, pbStopTime('2', 3000, 3020))));
+$aWaitingStops = GtfsRealtimeClient::parseTripUpdates($sWaiting)['trips'][0]['stops'];
+$Expect('una parada con espera (sale un minuto o más después de llegar) guarda también cuándo sale', $aWaitingStops === [['1', 2000, 2900], ['2', 3000]], json_encode($aWaitingStops));
 $bTruncated = false;
 try {
     GtfsRealtimeClient::parseTripUpdates(substr($sSynthetic, 0, 20));
