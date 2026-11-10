@@ -49,7 +49,7 @@ return [
             'subtitle' => 'Distantzia luzeko eta ertaineko trenak denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.',
-            'attribution' => 'Datuak: Renfe',
+            'attribution' => 'Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
             'liveSource' => 'Renfe',
@@ -59,7 +59,7 @@ return [
             'subtitle' => 'Long and medium distance trains in real time',
             'liveEmpty' => 'Search for a station to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
-            'attribution' => 'Data: Renfe',
+            'attribution' => 'Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
     ],
 
@@ -67,7 +67,7 @@ return [
         'title' => 'Renfe LD+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
         'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
     ],
-    'attribution' => 'Datos: Renfe',
+    'attribution' => 'Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
     'checks' => ['max_trip_hours' => 16],

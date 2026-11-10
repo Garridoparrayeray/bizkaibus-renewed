@@ -45,7 +45,7 @@ return [
             'subtitle' => 'Lurraldebusen ordutegiak',
             'liveEmpty' => 'Bilatu parada bat hurrengo autobusa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Lurraldebusekin eta Gipuzkoako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen, operadoreak argitaratutako gorabehera-abisuak izan ezik.',
-            'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)',
+            'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Lurraldebus+',
@@ -54,7 +54,7 @@ return [
             'subtitle' => 'Lurraldebus timetables',
             'liveEmpty' => 'Search for a stop to see the next bus.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.',
-            'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)',
+            'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
     ],
 
@@ -62,7 +62,7 @@ return [
         'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa por línea y parada | Bide+',
         'description' => 'Consulta los horarios de Lurraldebus en Gipuzkoa por línea y parada: Ekialdebus, Gipuzkoana, Goierrialdea, Pesa, TBH, Tolosaldea y Euskotren bus.',
     ],
-    'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)',
+    'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     'features' => [
         'platforms' => false,

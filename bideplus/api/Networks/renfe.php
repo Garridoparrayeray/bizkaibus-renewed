@@ -47,7 +47,7 @@ return [
             'subtitle' => 'Aldirien ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.',
-            'attribution' => 'Datuak: Renfe Aldiriak',
+            'attribution' => 'Datuak: Renfe Aldiriak / data.renfe.com (CC-BY 4.0)',
         ],
         'en' => [
             'liveSource' => 'Renfe',
@@ -57,7 +57,7 @@ return [
             'subtitle' => 'Commuter train timetables and real time',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
-            'attribution' => 'Data: Renfe Cercanías',
+            'attribution' => 'Data: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
         ],
     ],
 
@@ -65,7 +65,7 @@ return [
         'title' => 'Renfe Cercanías+ · Horarios y retrasos en tiempo real de Cercanías en Bilbao y Donostia',
         'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, con los retrasos y los trenes cancelados en tiempo real.',
     ],
-    'attribution' => 'Datos: Renfe Cercanías',
+    'attribution' => 'Datos: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
 
     'features' => [
         'platforms' => true,
