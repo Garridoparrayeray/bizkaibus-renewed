@@ -271,7 +271,7 @@ use Core\Networks;
     <footer id="app-footer" class="app-footer">
         <div class="bide-footer-brand">
             <span class="bide-wordmark">BIDE<span>+</span></span>
-            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskal Herria. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
         </div>
         <?= bideAppsLinks() ?>
         <?= bideFooterAuthor('<button id="legal-open" class="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>

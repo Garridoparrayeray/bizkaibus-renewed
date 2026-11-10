@@ -49,7 +49,7 @@ return [
             'subtitle' => 'TGV, Intercités eta TER denbora errealean',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo trena ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, SNCF erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
-            'attribution' => 'Datuak: SNCF (GTFS)',
+            'attribution' => 'Datuak: SNCF, transport.data.gouv.fr-en bidez (Open Database License, ODbL 1.0)',
         ],
         'en' => [
             'liveSource' => 'SNCF',
@@ -59,7 +59,7 @@ return [
             'subtitle' => 'TGV, Intercités and TER in real time',
             'liveEmpty' => 'Search for a stop to see the next train.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with SNCF. Live times are the operator\'s forecast.',
-            'attribution' => 'Data: SNCF (GTFS)',
+            'attribution' => 'Data: SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
         ],
     ],
 
@@ -67,7 +67,7 @@ return [
         'title' => 'SNCF+ · Horarios y tiempo real de los trenes de Iparralde',
         'description' => 'Consulta los horarios de los trenes de SNCF (TGV, Intercités y TER) en Hendaia, Donibane Lohizune, Biarritz, Baiona, Kanbo y Donibane Garazi, con su retraso en tiempo real.',
     ],
-    'attribution' => 'Datos: SNCF (GTFS)',
+    'attribution' => 'Datos: SNCF, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)',
 
     // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
     'checks' => ['bounds' => [42.9, 43.8, -1.9, -0.7], 'max_trip_hours' => 16],

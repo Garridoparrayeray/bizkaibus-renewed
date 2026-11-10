@@ -66,4 +66,9 @@ if ($iCount !== 1) {
     exit(1);
 }
 file_put_contents($sWorkerPath, $sStamped);
+// La misma huella para las páginas (cabecera X-Bide-Shell): sw.js sabe con ella si una página es de otra versión.
+$sConfigPath = $sRoot . '/api/Config/shell-hash.php';
+if (is_file($sConfigPath)) {
+    file_put_contents($sConfigPath, "<?php\n\nreturn '" . $sHash . "';\n");
+}
 echo 'sw.js: huella ' . $sHash . ' (' . \count($aFiles) . " ficheros)\n";

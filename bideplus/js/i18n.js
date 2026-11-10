@@ -5,7 +5,7 @@
 
     const dict = {
         es: {
-            'menu.tagline': 'Movilidad en Euskadi',
+            'menu.tagline': 'Movilidad en Euskal Herria',
             'menu.section': 'Apps de movilidad',
             'menu.planner.title': '¿A dónde vas?',
             'menu.planner.from': 'Tu ubicación',
@@ -41,7 +41,7 @@
             'app.last': 'Última que abriste',
             'bide.nav': 'Navegación de Bide+',
             'detail.empty': 'Elige una línea para ver aquí su mapa y su horario.',
-            'bide.footer.text': 'Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.',
+            'bide.footer.text': 'Horarios y tiempo real del transporte público de Euskal Herria. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.',
             'bide.tab.apps': 'Apps',
             'bide.tab.favorites': 'Favoritos',
             'bide.footer.rights': 'Todos los derechos reservados',
@@ -111,7 +111,7 @@
             'info.title': 'Información',
             'info.source': 'Código en GitHub',
             'bide.info.about': 'Sobre Bide+',
-            'bide.info.aboutText': 'Horarios y tiempo real del transporte público de Euskadi en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.',
+            'bide.info.aboutText': 'Horarios y tiempo real del transporte público de Euskal Herria en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.',
             'bide.info.sources': 'Fuentes de datos',
             'bide.donate.title': 'Apoya Bide+',
             'bide.donate.text': 'Bide+ es gratis y sin anuncios. Si te ayuda, puedes invitarme a un café para mantener el servidor.',
@@ -485,7 +485,7 @@
             'app.noneOfYourLinesHaveIncidents': 'Ninguna de esas líneas tiene incidencias activas ahora mismo.',
         },
         eu: {
-            'menu.tagline': 'Mugikortasuna Euskadin',
+            'menu.tagline': 'Mugikortasuna Euskal Herrian',
             'menu.section': 'Mugikortasun aplikazioak',
             'menu.planner.title': 'Nora zoaz?',
             'menu.planner.from': 'Zure kokapena',
@@ -521,7 +521,7 @@
             'app.last': 'Azken irekitakoa',
             'bide.nav': 'Bide+ nabigazioa',
             'detail.empty': 'Aukeratu linea bat haren mapa eta ordutegia hemen ikusteko.',
-            'bide.footer.text': 'Euskadiko garraio publikoaren ordutegiak eta denbora errealean. Proiektu independentea eta ez ofiziala, operadoreekin eta datuak argitaratzen dituzten administrazioekin loturarik gabea.',
+            'bide.footer.text': 'Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean. Proiektu independentea eta ez ofiziala, operadoreekin eta datuak argitaratzen dituzten administrazioekin loturarik gabea.',
             'bide.tab.apps': 'Aplikazioak',
             'bide.tab.favorites': 'Gogokoak',
             'bide.footer.rights': 'Eskubide guztiak erreserbatuta',
@@ -591,7 +591,7 @@
             'info.title': 'Informazioa',
             'info.source': 'Kodea GitHub-en',
             'bide.info.about': 'Bide+-ri buruz',
-            'bide.info.aboutText': 'Euskadiko garraio publikoaren ordutegiak eta denbora errealean aplikazio bakarrean. Bizkaibus+-en, iritsierak autobus bakoitzaren GPS kokapenarekin kalkulatzen dira. Proiektu independentea eta ez ofiziala, operadoreekin loturarik gabea.',
+            'bide.info.aboutText': 'Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean aplikazio bakarrean. Bizkaibus+-en, iritsierak autobus bakoitzaren GPS kokapenarekin kalkulatzen dira. Proiektu independentea eta ez ofiziala, operadoreekin loturarik gabea.',
             'bide.info.sources': 'Datu-iturriak',
             'bide.donate.title': 'Lagundu Bide+',
             'bide.donate.text': 'Bide+ doakoa da eta ez du iragarkirik. Baliagarria bazaizu, kafe bat ordain diezadakezu zerbitzariari eusteko.',

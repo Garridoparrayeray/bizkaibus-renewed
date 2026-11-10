@@ -47,7 +47,7 @@ return [
             'subtitle' => 'Iruñerriko ordutegiak',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo autobusa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Mancomunidad de la Comarca de Pamplona (TCC) erakundearekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.',
-            'attribution' => 'Datuak: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)',
+            'attribution' => 'Datuak: Mancomunidad de la Comarca de Pamplona (TCC), Garraio Multimodalaren Sarbide Puntu Nazionalaren bidez (Garraio eta Mugikortasun Jasangarriaren Ministerioaren datu irekien lizentzia)',
         ],
         'en' => [
             'name' => 'Villavesas+',
@@ -56,7 +56,7 @@ return [
             'subtitle' => 'Pamplona area timetables',
             'liveEmpty' => 'Search for a stop to see the next bus.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Mancomunidad de la Comarca de Pamplona (TCC). Official scheduled timetable: it does not reflect delays or cancellations.',
-            'attribution' => 'Data: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)',
+            'attribution' => 'Data: Mancomunidad de la Comarca de Pamplona (TCC), via the Spanish National Access Point for Multimodal Transport (Open Data Licence of the Ministry of Transport and Sustainable Mobility)',
         ],
     ],
 
@@ -64,7 +64,7 @@ return [
         'title' => 'Villavesas+ · Horarios de las villavesas de Pamplona por línea y parada',
         'description' => 'Consulta los horarios de las villavesas (Transporte Urbano Comarcal de Pamplona) por parada y línea.',
     ],
-    'attribution' => 'Datos: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)',
+    'attribution' => 'Datos: Mancomunidad de la Comarca de Pamplona (TCC), vía el Punto de Acceso Nacional de Transporte Multimodal (Licencia de datos abiertos del Ministerio de Transportes y Movilidad Sostenible)',
 
     'features' => [
         'platforms' => false,
@@ -97,7 +97,7 @@ return [
         'fallback_source' => null,
         'agency_id' => null,
         'stops' => 'generic',
-        'skip_geocode' => false,
+        'skip_geocode' => true,
         // Cada viaje, con las fechas exactas del periodo que publica el operador (y una comprobación contra el GTFS).
         'feed_window' => true,
         'required' => false,

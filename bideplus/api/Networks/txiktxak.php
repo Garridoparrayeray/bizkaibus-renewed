@@ -49,7 +49,7 @@ return [
             'subtitle' => 'Ordutegiak eta denbora errealean',
             'liveEmpty' => 'Bilatu geraleku bat hurrengo autobusa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Syndicat des Mobilités Pays Basque-Adour erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
-            'attribution' => 'Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)',
+            'attribution' => 'Datuak: Syndicat des Mobilités Pays Basque-Adour, transport.data.gouv.fr-en bidez (Open Database License, ODbL 1.0)',
         ],
         'en' => [
             'liveSource' => 'the Syndicat des Mobilités Pays Basque-Adour',
@@ -59,7 +59,7 @@ return [
             'subtitle' => 'Timetables and real time',
             'liveEmpty' => 'Search for a stop to see the next bus.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator\'s forecast.',
-            'attribution' => 'Data: Syndicat des Mobilités Pays Basque-Adour (GTFS)',
+            'attribution' => 'Data: Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)',
         ],
     ],
 
@@ -67,7 +67,7 @@ return [
         'title' => 'Txik Txak+ · Horarios y tiempo real de los autobuses de Iparralde',
         'description' => 'Consulta los horarios de los autobuses Txik Txak de Iparralde (Baiona, Biarritz, Angelu, Donibane Lohizune, Hendaia) por parada y línea, con su retraso en tiempo real.',
     ],
-    'attribution' => 'Datos: Syndicat des Mobilités Pays Basque-Adour / transport.data.gouv.fr',
+    'attribution' => 'Datos: Syndicat des Mobilités Pays Basque-Adour, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)',
 
     // Para la prueba de integridad: la zona de sus paradas y, si hace falta, lo que dura como mucho un viaje.
     'checks' => ['bounds' => [42.9, 43.8, -1.9, -0.7]],
@@ -101,7 +101,7 @@ return [
         'fallback_source' => null,
         'agency_id' => null,
         'stops' => 'generic',
-        'skip_geocode' => false,
+        'skip_geocode' => true,
         // Cada viaje, con las fechas exactas del periodo que publica el operador (y una comprobación contra el GTFS).
         'feed_window' => true,
         'required' => false,

@@ -125,6 +125,8 @@ $Expect('sw.js va al repositorio sin huella (la pone el despliegue)', preg_match
 
 $sStampDir = sys_get_temp_dir() . '/bide-stamp-' . getmypid();
 mkdir($sStampDir . '/js', 0777, true);
+mkdir($sStampDir . '/api/Config', 0777, true);
+file_put_contents($sStampDir . '/api/Config/shell-hash.php', "<?php\n\nreturn '';\n");
 copy(__DIR__ . '/../sw.js', $sStampDir . '/sw.js');
 file_put_contents($sStampDir . '/js/a.js', 'uno');
 file_put_contents($sStampDir . '/style-a.css', 'a {}');
@@ -132,11 +134,15 @@ $Stamp($sStampDir);
 $sFirstHash = $ReadHash($sStampDir);
 $Stamp($sStampDir);
 $Expect('huella: 12 caracteres y la misma si no cambia nada', \strlen($sFirstHash) === 12 && $ReadHash($sStampDir) === $sFirstHash);
+$Expect('huella: las páginas llevan la misma que sw.js', (require $sStampDir . '/api/Config/shell-hash.php') === $sFirstHash);
+$Expect('la huella de las páginas va al repositorio vacía', (require __DIR__ . '/../api/Config/shell-hash.php') === '');
 file_put_contents($sStampDir . '/js/a.js', 'dos');
 $Stamp($sStampDir);
 $Expect('huella: cambia si cambia un fichero de la app', $ReadHash($sStampDir) !== $sFirstHash);
-array_map('unlink', [$sStampDir . '/sw.js', $sStampDir . '/js/a.js', $sStampDir . '/style-a.css']);
+array_map('unlink', [$sStampDir . '/sw.js', $sStampDir . '/js/a.js', $sStampDir . '/style-a.css', $sStampDir . '/api/Config/shell-hash.php']);
 rmdir($sStampDir . '/js');
+rmdir($sStampDir . '/api/Config');
+rmdir($sStampDir . '/api');
 rmdir($sStampDir);
 
 $aStamped = array_flip(array_filter(explode("\n", $Stamp(__DIR__ . '/..', '--list'))));

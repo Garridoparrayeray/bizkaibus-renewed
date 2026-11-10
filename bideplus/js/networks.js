@@ -187,7 +187,7 @@
                 "subtitle": "Horarios y tiempo real de Cercanías",
                 "liveEmpty": "Busca una parada para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.",
-                "attribution": "Datos: Renfe Cercanías"
+                "attribution": "Datos: Renfe Cercanías / data.renfe.com (CC-BY 4.0)"
             },
             "eu": {
                 "liveSource": "Renfek",
@@ -197,7 +197,7 @@
                 "subtitle": "Aldirien ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.",
-                "attribution": "Datuak: Renfe Aldiriak"
+                "attribution": "Datuak: Renfe Aldiriak / data.renfe.com (CC-BY 4.0)"
             },
             "en": {
                 "liveSource": "Renfe",
@@ -207,7 +207,7 @@
                 "subtitle": "Commuter train timetables and real time",
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
-                "attribution": "Data: Renfe Cercanías"
+                "attribution": "Data: Renfe Cercanías / data.renfe.com (CC-BY 4.0)"
             }
         }
     },
@@ -239,7 +239,7 @@
                 "subtitle": "Horarios de Lurraldebus",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Lurraldebus ni con la Diputación Foral de Gipuzkoa. Horario programado oficial: no refleja retrasos ni cancelaciones, salvo los avisos de incidencias que publique el operador.",
-                "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)"
+                "attribution": "Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             },
             "eu": {
                 "name": "Lurraldebus+",
@@ -248,7 +248,7 @@
                 "subtitle": "Lurraldebusen ordutegiak",
                 "liveEmpty": "Bilatu parada bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Lurraldebusekin eta Gipuzkoako Foru Aldundiarekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen, operadoreak argitaratutako gorabehera-abisuak izan ezik.",
-                "attribution": "Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)"
+                "attribution": "Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
             },
             "en": {
                 "name": "Lurraldebus+",
@@ -257,7 +257,7 @@
                 "subtitle": "Lurraldebus timetables",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Lurraldebus or with the Provincial Council of Gipuzkoa. Official scheduled timetable: it does not reflect delays or cancellations, except for the disruption alerts the operator publishes.",
-                "attribution": "Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)"
+                "attribution": "Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -667,7 +667,7 @@
                 "subtitle": "Larga y media distancia en tiempo real",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.",
-                "attribution": "Datos: Renfe"
+                "attribution": "Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             },
             "eu": {
                 "liveSource": "Renfek",
@@ -677,7 +677,7 @@
                 "subtitle": "Distantzia luzeko eta ertaineko trenak denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.",
-                "attribution": "Datuak: Renfe"
+                "attribution": "Datuak: Renfe, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
             },
             "en": {
                 "liveSource": "Renfe",
@@ -687,7 +687,7 @@
                 "subtitle": "Long and medium distance trains in real time",
                 "liveEmpty": "Search for a station to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.",
-                "attribution": "Data: Renfe"
+                "attribution": "Data: Renfe, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             }
         }
     },
@@ -720,7 +720,7 @@
                 "subtitle": "Horarios y tiempo real",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Syndicat des Mobilités Pays Basque-Adour. Los tiempos en directo son una previsión del operador.",
-                "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour / transport.data.gouv.fr"
+                "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             },
             "eu": {
                 "liveSource": "Syndicat des Mobilités Pays Basque-Adour erakundeak",
@@ -730,7 +730,7 @@
                 "subtitle": "Ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Syndicat des Mobilités Pays Basque-Adour erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
-                "attribution": "Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+                "attribution": "Datuak: Syndicat des Mobilités Pays Basque-Adour, transport.data.gouv.fr-en bidez (Open Database License, ODbL 1.0)"
             },
             "en": {
                 "liveSource": "the Syndicat des Mobilités Pays Basque-Adour",
@@ -740,7 +740,7 @@
                 "subtitle": "Timetables and real time",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Syndicat des Mobilités Pays Basque-Adour. Live times are the operator's forecast.",
-                "attribution": "Data: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
+                "attribution": "Data: Syndicat des Mobilités Pays Basque-Adour, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             }
         }
     },
@@ -773,7 +773,7 @@
                 "subtitle": "TGV, Intercités y TER en tiempo real",
                 "liveEmpty": "Busca una estación para ver el próximo tren.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con SNCF. Los tiempos en directo son una previsión del operador.",
-                "attribution": "Datos: SNCF (GTFS)"
+                "attribution": "Datos: SNCF, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             },
             "eu": {
                 "liveSource": "SNCFk",
@@ -783,7 +783,7 @@
                 "subtitle": "TGV, Intercités eta TER denbora errealean",
                 "liveEmpty": "Bilatu geraleku bat hurrengo trena ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, SNCF erakundearekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
-                "attribution": "Datuak: SNCF (GTFS)"
+                "attribution": "Datuak: SNCF, transport.data.gouv.fr-en bidez (Open Database License, ODbL 1.0)"
             },
             "en": {
                 "liveSource": "SNCF",
@@ -793,7 +793,7 @@
                 "subtitle": "TGV, Intercités and TER in real time",
                 "liveEmpty": "Search for a stop to see the next train.",
                 "disclaimer": "An independent, unofficial project, not affiliated with SNCF. Live times are the operator's forecast.",
-                "attribution": "Data: SNCF (GTFS)"
+                "attribution": "Data: SNCF, via transport.data.gouv.fr (Open Database License, ODbL 1.0)"
             }
         }
     },
@@ -825,7 +825,7 @@
                 "subtitle": "Horarios de la Comarca de Pamplona",
                 "liveEmpty": "Busca una parada para ver el próximo autobús.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Mancomunidad de la Comarca de Pamplona (TCC). Horario programado oficial: no refleja retrasos ni cancelaciones.",
-                "attribution": "Datos: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
+                "attribution": "Datos: Mancomunidad de la Comarca de Pamplona (TCC), vía el Punto de Acceso Nacional de Transporte Multimodal (Licencia de datos abiertos del Ministerio de Transportes y Movilidad Sostenible)"
             },
             "eu": {
                 "name": "Villavesas+",
@@ -834,7 +834,7 @@
                 "subtitle": "Iruñerriko ordutegiak",
                 "liveEmpty": "Bilatu geraleku bat hurrengo autobusa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Mancomunidad de la Comarca de Pamplona (TCC) erakundearekin loturarik gabea. Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.",
-                "attribution": "Datuak: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
+                "attribution": "Datuak: Mancomunidad de la Comarca de Pamplona (TCC), Garraio Multimodalaren Sarbide Puntu Nazionalaren bidez (Garraio eta Mugikortasun Jasangarriaren Ministerioaren datu irekien lizentzia)"
             },
             "en": {
                 "name": "Villavesas+",
@@ -843,7 +843,7 @@
                 "subtitle": "Pamplona area timetables",
                 "liveEmpty": "Search for a stop to see the next bus.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Mancomunidad de la Comarca de Pamplona (TCC). Official scheduled timetable: it does not reflect delays or cancellations.",
-                "attribution": "Data: Mancomunidad de la Comarca de Pamplona (TCC) (GTFS)"
+                "attribution": "Data: Mancomunidad de la Comarca de Pamplona (TCC), via the Spanish National Access Point for Multimodal Transport (Open Data Licence of the Ministry of Transport and Sustainable Mobility)"
             }
         }
     }
