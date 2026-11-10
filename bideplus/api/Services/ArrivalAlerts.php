@@ -28,6 +28,7 @@ class ArrivalAlerts
         'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'body' => '→ {headsign} · {stop}'],
         'eu' => ['minutes' => '{line}: {min} min barru', 'now' => '{line} iristen ari da', 'body' => '→ {headsign} · {stop}'],
         'en' => ['minutes' => '{line} arrives in {min} min', 'now' => '{line} is arriving', 'body' => '→ {headsign} · {stop}'],
+        'fr' => ['minutes' => '{line} arrive dans {min} min', 'now' => '{line} arrive', 'body' => '→ {headsign} · {stop}'],
     ];
 
     // Estados: created, now, gone, unknown y unavailable. Uno de todos los días se crea siempre, con «today».

@@ -2,13 +2,13 @@
 
 namespace Core;
 
-// El idioma de una página para los buscadores: con ?lang=eu o ?lang=en el servidor la entrega ya traducida (los mismos
-// textos de js/i18n.js y de las fichas de las redes), con su lang, su canónica y los enlaces a las otras dos versiones.
+// El idioma de una página para los buscadores: con ?lang=eu, ?lang=en o ?lang=fr el servidor la entrega ya traducida (los mismos
+// textos de js/i18n.js y de las fichas de las redes), con su lang, su canónica y los enlaces a las otras versiones.
 // Sin ?lang, en castellano, como siempre; en el navegador manda el idioma elegido (js/i18n.js).
 class Lang
 {
-    public const LANGS = ['es', 'eu', 'en'];
-    public const LOCALES = ['es' => 'es_ES', 'eu' => 'eu_ES', 'en' => 'en_GB'];
+    public const LANGS = ['es', 'eu', 'en', 'fr'];
+    public const LOCALES = ['es' => 'es_ES', 'eu' => 'eu_ES', 'en' => 'en_GB', 'fr' => 'fr_FR'];
     private const I18N_FILE = __DIR__ . '/../../js/i18n.js';
 
     private static array $aDictionaries = [];
@@ -37,7 +37,7 @@ class Lang
         return $sBase . $sGlue . 'lang=' . $sLang;
     }
 
-    // Los <link rel="alternate" hreflang> de las tres versiones de una página, y la del castellano como x-default.
+    // Los <link rel="alternate" hreflang> de las versiones de una página, y la del castellano como x-default.
     public static function alternates(string $sCanonical): string
     {
         $sHtml = '';
@@ -100,7 +100,7 @@ class Lang
         $aTexts = [];
         $bInside = false;
         foreach (file(self::I18N_FILE) as $sLine) {
-            if (preg_match('/^\s*(es|eu|en): \{\s*$/', $sLine, $aMatch)) {
+            if (preg_match('/^\s*(' . implode('|', self::LANGS) . '): \{\s*$/', $sLine, $aMatch)) {
                 $bInside = $aMatch[1] === $sLang;
                 continue;
             }

@@ -373,10 +373,10 @@ foreach ($aJsCode as $sFile => [$sCode]) {
     }
 }
 
-// ===== 4. Textos en castellano, euskera e inglés =====
+// ===== 4. Textos en castellano, euskera, inglés y francés =====
 
 $sI18n = $aSources['js/i18n.js'];
-preg_match_all('/^ {8}(es|eu|en): \{$/m', $sI18n, $aLangMatches, PREG_OFFSET_CAPTURE);
+preg_match_all('/^ {8}(es|eu|en|fr): \{$/m', $sI18n, $aLangMatches, PREG_OFFSET_CAPTURE);
 $aKeys = [];
 $aLangStarts = $aLangMatches[1];
 foreach ($aLangStarts as $iIndex => [$sLang, $iStart]) {
@@ -392,10 +392,10 @@ foreach ($aLangStarts as $iIndex => [$sLang, $iStart]) {
     }
     $aKeys[$sLang] = array_unique($aKeyMatches[1]);
 }
-if (array_keys($aKeys) !== ['es', 'eu', 'en']) {
-    $Report('Textos: js/i18n.js tiene que tener los idiomas es, eu y en', 'js/i18n.js');
+if (array_keys($aKeys) !== ['es', 'eu', 'en', 'fr']) {
+    $Report('Textos: js/i18n.js tiene que tener los idiomas es, eu, en y fr', 'js/i18n.js');
 }
-foreach (['eu', 'en'] as $sLang) {
+foreach (['eu', 'en', 'fr'] as $sLang) {
     foreach (array_diff($aKeys['es'] ?? [], $aKeys[$sLang] ?? []) as $sKey) {
         $Report('Textos: falta la traducción', $sLang . ' ' . $sKey);
     }
@@ -858,15 +858,15 @@ foreach ($aNetworkFiles as $sFile) {
         $Report('Redes: dos redes con el mismo order', $sFile . ' y ' . $aOrders[$iOrder]);
     }
     $aOrders[$iOrder] = $sFile;
-    // Los tres idiomas con las mismas claves: lo que falte sale en castellano sin avisar. La atribución en castellano
+    // Todos los idiomas con las mismas claves: lo que falte sale en castellano sin avisar. La atribución en castellano
     // es la clave attribution de la ficha.
     $aLangKeys = [];
-    foreach (['es', 'eu', 'en'] as $sLang) {
+    foreach (\Core\Lang::LANGS as $sLang) {
         $aLangKeys[$sLang] = array_keys($aNetwork['texts'][$sLang] ?? []);
     }
     $aLangKeys['es'][] = 'attribution';
-    $aAll = array_unique(array_merge($aLangKeys['es'], $aLangKeys['eu'], $aLangKeys['en']));
-    foreach (['es', 'eu', 'en'] as $sLang) {
+    $aAll = array_unique(array_merge(...array_values($aLangKeys)));
+    foreach (\Core\Lang::LANGS as $sLang) {
         foreach (array_diff($aAll, $aLangKeys[$sLang]) as $sKey) {
             $Report('Redes: texto que falta en un idioma', $sFile . ' ' . $sLang . '.' . $sKey);
         }

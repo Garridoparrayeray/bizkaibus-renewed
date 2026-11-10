@@ -25,6 +25,7 @@ class UpdateAlerts
         'es' => ['title' => 'Bide+ se ha actualizado', 'body' => 'Novedades: {titles}. Toca para actualizar la app.'],
         'eu' => ['title' => 'Bide+ eguneratu da', 'body' => 'Berritasunak: {titles}. Sakatu aplikazioa eguneratzeko.'],
         'en' => ['title' => 'Bide+ has been updated', 'body' => 'What\'s new: {titles}. Tap to update the app.'],
+        'fr' => ['title' => 'Bide+ a été mis à jour', 'body' => 'Nouveautés : {titles}. Touchez pour mettre à jour l’application.'],
     ];
 
     // Estados: saved y unavailable.

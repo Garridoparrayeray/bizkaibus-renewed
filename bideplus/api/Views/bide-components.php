@@ -67,6 +67,7 @@ function bideLangSwitch(): string
         . '<button type="button" data-bide-lang="es" aria-pressed="true">ES</button>'
         . '<button type="button" data-bide-lang="eu" aria-pressed="false">EU</button>'
         . '<button type="button" data-bide-lang="en" aria-pressed="false">EN</button>'
+        . '<button type="button" data-bide-lang="fr" aria-pressed="false">FR</button>'
         . '</div>';
 }
 
