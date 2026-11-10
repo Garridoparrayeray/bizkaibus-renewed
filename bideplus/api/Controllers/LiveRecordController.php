@@ -9,6 +9,8 @@ use Core\Response;
 use Core\Store;
 use Services\ArrivalAlerts;
 use Services\IncidentAlerts;
+use Services\Notice;
+use Services\NoticeAlerts;
 use Services\UpdateAlerts;
 
 // Cron externo de cada minuto: apunta por dónde va cada bus de todas las redes con motor y manda las notificaciones.
@@ -30,6 +32,7 @@ class LiveRecordController
             'arrivalAlerts' => self::safely('avisos de llegada', fn() => ArrivalAlerts::process()),
             'incidentAlerts' => self::safely('avisos de incidencias', fn() => IncidentAlerts::process()),
             'updateAlerts' => self::safely('aviso de versión nueva', fn() => UpdateAlerts::process()),
+            'noticeAlerts' => self::safely('aviso general', fn() => NoticeAlerts::process(Notice::published(time()))),
         ];
         if (in_array(null, $aRecorded, true)) {
             Response::json(['recorded' => $aRecorded, 'error' => 'store write failed'] + $aNotifications, 502);

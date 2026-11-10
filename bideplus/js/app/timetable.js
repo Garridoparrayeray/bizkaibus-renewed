@@ -1,7 +1,7 @@
 // Horario de una línea con los filtros de fecha y hora.
 import { FEATURES, el, networkQuery, savedSchedule, state } from './core.js';
 import { toggleFavorite, updateFavoriteButton } from './favorites.js';
-import { loadLineMap, startLineMapRefresh } from './line-map.js';
+import { loadLineMap } from './line-map.js';
 import { statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
 import { openVehicleModal } from './vehicle-modal.js';
@@ -47,7 +47,6 @@ export async function selectLine(lineId, scopeToCurrentStop = false) {
     await loadTimetable();
     if (FEATURES.line_map) {
         await loadLineMap(line.id);
-        startLineMapRefresh(line.id);
     }
 }
 

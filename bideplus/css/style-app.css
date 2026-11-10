@@ -995,25 +995,6 @@ header p {
     border-radius: var(--radius-sm);
     isolation: isolate;
 }
-.line-map-empty {
-    margin: 0 0 14px;
-    color: var(--text-secondary);
-    font-size: calc(13.6px * var(--text-scale, 1));
-    text-align: center;
-}
-.bus-marker {
-    display: flex;
-    color: var(--primary);
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
-}
-    .bus-marker > svg {
-        width: 28px;
-        height: 28px;
-    }
 .leaflet-popup-content-wrapper {
     border-radius: 10px;
 }
@@ -1105,10 +1086,8 @@ tbody tr {
         display: none;
     }
     .stop-alerts-summary {
-        display: -webkit-box;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        max-width: 100%;
+        overflow-wrap: anywhere;
         font-size: calc(13.6px * var(--text-scale, 1));
         font-weight: 600;
         line-height: 1.4;

@@ -68,6 +68,18 @@ return [
             'dataLimits' => 'No delays or cancellations.',
             'attribution' => 'Data: Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'La Unión+',
+            'tile' => 'Bus Bilbao - Vitoria',
+            'switcher' => 'Horaires de La Unión entre la Bizkaia et Vitoria-Gasteiz',
+            'subtitle' => 'Horaires de La Unión',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Autobuses La Unión. Horaire théorique officiel : il ne reflète ni les retards ni les suppressions.',
+            'dataPublished' => 'Seulement son horaire.',
+            'dataMethod' => 'Horaire officiel.',
+            'dataLimits' => 'Ni retards ni suppressions.',
+            'attribution' => 'Données : Autobuses La Unión, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

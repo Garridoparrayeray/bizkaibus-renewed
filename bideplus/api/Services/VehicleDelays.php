@@ -15,6 +15,8 @@ final class VehicleDelays
     private array $aEntries = [];
     // Viajes cuyo GPS da más de MAX_DELAY_SECONDS: el vehículo lleva el número de otro viaje.
     private array $aRejected = [];
+    // Viajes cuyo vehículo está ya en la última parada: han terminado, digan lo que digan las horas del feed.
+    private array $aFinished = [];
     private bool $bByPosition;
 
     public function __construct(array $aVehicles, array $aJourneyIds, private JourneyStops $Stops, private ServiceJourney $JourneyModel, private int $iNowSeconds)
@@ -34,8 +36,12 @@ final class VehicleDelays
     }
 
     // Con gtfs_rt.prefer_vehicles, un viaje con GPS va con el GPS; si su GPS no vale (otro viaje), tampoco sus horas.
+    // Y en cualquier red, un viaje con el vehículo en su última parada no va en directo.
     public function overrides(string $sJourneyId): bool
     {
+        if (isset($this->aFinished[$sJourneyId])) {
+            return true;
+        }
         return $this->bByPosition && (isset($this->aEntries[$sJourneyId]) || isset($this->aRejected[$sJourneyId]));
     }
 
@@ -45,7 +51,11 @@ final class VehicleDelays
         $sStopId = (string)($aVehicle['stopId'] ?? '');
         $iOrder = $this->Stops->orderOf($sJourneyId, $sStopId);
         $aStops = $this->Stops->of($sJourneyId);
-        if ($sStopId === '' || $iOrder === null || $iOrder === (int)end($aStops)['seq_order']) {
+        if ($sStopId === '' || $iOrder === null) {
+            return;
+        }
+        if ($iOrder === (int)end($aStops)['seq_order']) {
+            $this->aFinished[$sJourneyId] = true;
             return;
         }
         $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);

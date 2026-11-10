@@ -5,7 +5,9 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
 - el feed de una red con directo no responde o viene vacío (salvo las que lo publican vacío a ratos aunque haya
   servicio: «live_often_empty» en su ficha de api/Networks, que /api/status devuelve como «oftenEmpty»);
 - una red que se empareja por viaje no encuentra ningún viaje del feed en su horario;
-- los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60.
+- los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60;
+- lo que se enseña no es lo que publica el operador: de las llegadas con hora suya por venir («compared»), más del
+  15 % se apartan dos minutos o más de esa hora («offOperator»).
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
 /api/status; sin él, de 00:30 a 06:00 no cuentan): de noche o con un feed compartido (Euskotren publica uno para sus
 trenes y los dos tranvías), que no haya nada de la red es lo normal.
@@ -26,6 +28,8 @@ MIN_LIVE = 5
 MIN_SCHEDULED = 3
 MAX_MEDIAN_MINUTES = 30
 MAX_P95_MINUTES = 60
+MIN_COMPARED = 10
+MAX_OFF_OPERATOR_SHARE = 0.15
 RETRY_SECONDS = 60
 
 
@@ -81,8 +85,12 @@ def check(network, report):
     if delays and report.get('live', 0) >= MIN_LIVE:
         if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:
             errors.append(f"retrasos no creíbles: mediana {delays['median']} min, p95 {delays['p95']} min")
+    compared = report.get('compared', 0)
+    off_operator = report.get('offOperator', 0)
+    if compared >= MIN_COMPARED and off_operator / compared > MAX_OFF_OPERATOR_SHARE:
+        errors.append(f'{off_operator} de {compared} llegadas se apartan de la hora que publica el operador')
     summary = []
-    for key in ('scheduled', 'vehicles', 'feedTrips', 'matched', 'live'):
+    for key in ('scheduled', 'vehicles', 'feedTrips', 'matched', 'live', 'compared', 'offOperator'):
         if key in report:
             summary.append(f'{key} {report[key]}')
     if delays:

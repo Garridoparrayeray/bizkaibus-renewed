@@ -281,9 +281,13 @@ const BideOffline = (() => {
     // Próximas salidas de una parada (o de los andenes de una estación) desde «now», en las 24 horas siguientes.
     function departures(data, stopId, now, limit) {
         const id = String(stopId);
-        const platforms = data.platformsByStation.get(id) || [];
+        const quays = data.platformsByStation.get(id) || [];
         let targets = [id];
-        if (platforms.length > 0) targets = platforms.map((platform) => platform.id);
+        if (quays.length > 0) targets = quays.map((platform) => platform.id);
+        // Las paradas de una estación solo son andenes si la red los tiene; si no, sus salidas van juntas, por hora.
+        let platforms = quays;
+        if (data.stationPlatforms === false) platforms = [];
+        const merged = quays.length > 0 && platforms.length === 0;
         const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const days = [-1, 0, 1].map((offset) => {
@@ -295,8 +299,9 @@ const BideOffline = (() => {
         const found = [];
         const hidden = [];
         const marks = readMarks();
+        let items = [];
         for (const target of targets) {
-            const items = [];
+            if (!merged) items = [];
             for (const [patternIndex, position] of data.byStop.get(target) || []) {
                 const pattern = data.patterns[patternIndex];
                 for (const trip of data.tripsByPattern[patternIndex]) {
@@ -317,13 +322,18 @@ const BideOffline = (() => {
                         if (userMark && userMark.coming !== undefined && position >= userMark.coming && timing.status === 'likely_departed') {
                             finalTiming = { status: 'scheduled', etaSeconds: seconds };
                         }
-                        items.push({ seconds, trip, pattern, position, serviceDay, tripKey, ...finalTiming });
+                        items.push({ seconds, trip, pattern, position, serviceDay, tripKey, target, ...finalTiming });
                     }
                 }
             }
+            if (merged) continue;
             // Por hora prevista; los que probablemente ya pasaron, al final (como la API).
             items.sort((a, b) => rank(a) - rank(b) || a.etaSeconds - b.etaSeconds);
             for (const item of limited(items, limit)) found.push(departureItem(data, item, target, platforms.length > 0, now, nowSeconds));
+        }
+        if (merged) {
+            items.sort((a, b) => rank(a) - rank(b) || a.etaSeconds - b.etaSeconds);
+            for (const item of limited(items, limit)) found.push(departureItem(data, item, item.target, false, now, nowSeconds));
         }
         found.sort((a, b) => rank(a) - rank(b) || a.etaAt - b.etaAt);
 

@@ -30,6 +30,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'el Consorcio de Transportes de Bizkaia',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Horarios y tiempo real de Metro Bilbao',
@@ -41,6 +42,7 @@ return [
             'dataLimits' => 'Sin limitaciones conocidas.',
         ],
         'eu' => [
+            'liveSource' => 'Bizkaiko Garraio Partzuergoak',
             'name' => 'Metro+',
             'tile' => 'Bilboko Metroa',
             'switcher' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
@@ -53,6 +55,7 @@ return [
             'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean',
         ],
         'en' => [
+            'liveSource' => 'the Bizkaia Transport Consortium',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Metro Bilbao timetables and real time',
@@ -63,6 +66,19 @@ return [
             'dataMethod' => 'The operator\'s forecast; if it sends a station with another one\'s number, it is corrected.',
             'dataLimits' => 'No known limitations.',
             'attribution' => 'Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time',
+        ],
+        'fr' => [
+            'liveSource' => 'le Consorcio de Transportes de Bizkaia',
+            'name' => 'Metro+',
+            'tile' => 'Metro Bilbao',
+            'switcher' => 'Horaires et temps réel de Metro Bilbao',
+            'subtitle' => 'Horaires et temps réel de Metro Bilbao',
+            'liveEmpty' => 'Cherchez une station pour voir le prochain métro.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Metro Bilbao S.A. ni avec le Consorcio de Transportes de Bizkaia. Les temps en direct sont une prévision de l’opérateur.',
+            'dataPublished' => 'L’heure prévue de chaque train à chaque station et sa position.',
+            'dataMethod' => 'La prévision de l’opérateur ; s’il envoie une station avec le numéro d’une autre, c’est corrigé.',
+            'dataLimits' => 'Aucune limite connue.',
+            'attribution' => 'Données : Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0) : horaires et temps réel',
         ],
     ],
 

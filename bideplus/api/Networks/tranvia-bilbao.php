@@ -31,6 +31,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Bilbao+',
             'tile' => 'Horarios y tiempo real',
             'tile_title' => 'Tranvía',
@@ -44,6 +45,7 @@ return [
             'dataLimits' => 'Muchos viajes llegan sin directo y salen con su horario.',
         ],
         'eu' => [
+            'liveSource' => 'Euskotrenek',
             'name' => 'Tranbia Bilbo+',
             'tile_title' => 'Tranbia',
             'tile' => 'Ordutegiak eta zuzenekoa',
@@ -58,6 +60,7 @@ return [
             'attribution' => 'Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Bilbao+',
             'tile' => 'Timetables and real time',
             'tile_title' => 'Tranvía',
@@ -70,6 +73,21 @@ return [
             'dataMethod' => 'The operator\'s forecast when it is real; otherwise, the official timetable.',
             'dataLimits' => 'Many trips come without live data and show their timetable.',
             'attribution' => 'Data: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
+        ],
+        'fr' => [
+            'liveSource' => 'Euskotren',
+            'name' => 'Tranvía Bilbao+',
+            'tile' => 'Horaires et temps réel',
+            'tile_title' => 'Tranvía',
+            'tile_city' => 'Bilbao',
+            'switcher' => 'Horaires et temps réel du tramway de Bilbao',
+            'subtitle' => 'Horaires et temps réel du tramway',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain tramway.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Euskotren S.A. Les temps en direct sont une prévision de l’opérateur.',
+            'dataPublished' => 'L’heure prévue de certains tramways, dans le flux d’Euskotren.',
+            'dataMethod' => 'La prévision de l’opérateur quand elle est réelle ; sinon, horaire officiel.',
+            'dataLimits' => 'Beaucoup de trajets arrivent sans temps réel et suivent leur horaire.',
+            'attribution' => 'Données : Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)',
         ],
     ],
 

@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Tuvisa',
             'name' => 'Tuvisa+',
             'tile' => 'Autobuses de Vitoria-Gasteiz',
             'switcher' => 'Horarios y tiempo real de Tuvisa en Vitoria-Gasteiz',
@@ -44,6 +45,7 @@ return [
             'dataLimits' => 'Sin limitaciones conocidas.',
         ],
         'eu' => [
+            'liveSource' => 'Tuvisak',
             'name' => 'Tuvisa+',
             'tile' => 'Gasteizko autobusak',
             'switcher' => 'Tuvisaren ordutegiak eta denbora errealean Gasteizen',
@@ -56,6 +58,7 @@ return [
             'attribution' => 'Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Tuvisa',
             'name' => 'Tuvisa+',
             'tile' => 'Vitoria-Gasteiz buses',
             'switcher' => 'Tuvisa timetables and real time in Vitoria-Gasteiz',
@@ -66,6 +69,19 @@ return [
             'dataMethod' => 'The operator\'s forecast.',
             'dataLimits' => 'No known limitations.',
             'attribution' => 'Data: Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
+        ],
+        'fr' => [
+            'liveSource' => 'Tuvisa',
+            'name' => 'Tuvisa+',
+            'tile' => 'Bus de Vitoria-Gasteiz',
+            'switcher' => 'Horaires et temps réel de Tuvisa à Vitoria-Gasteiz',
+            'subtitle' => 'Horaires et temps réel de Tuvisa',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Tuvisa ni avec la mairie de Vitoria-Gasteiz. Les temps en direct sont une prévision de l’opérateur.',
+            'dataPublished' => 'L’heure prévue et la position GPS de chaque bus.',
+            'dataMethod' => 'La prévision de l’opérateur.',
+            'dataLimits' => 'Aucune limite connue.',
+            'attribution' => 'Données : Tuvisa / Open Data Euskadi, via Moveuskadi (CC-BY 4.0)',
         ],
     ],
 

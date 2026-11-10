@@ -14,6 +14,7 @@ class TripDelayMatcher
     private const ON_TIME_SECONDS = 60;
     private const DUE_SECONDS = 60;
     private const STALE_PREDICTION_SECONDS = 60;
+    private const OFF_OPERATOR_SECONDS = 120;
     private const MAX_STALE_PREDICTION_SECONDS = 3600;
     private const EARLY_MORNING_SECONDS = 4 * 3600;
 
@@ -50,7 +51,7 @@ class TripDelayMatcher
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
-            if (!$this->implausible((string)$sJourneyId, $aLive)) {
+            if (!$this->finished($aLive) && !$this->implausible((string)$sJourneyId, $aLive)) {
                 $this->aByJourney[(string)$sJourneyId] = $aLive;
             }
         }
@@ -70,8 +71,15 @@ class TripDelayMatcher
         // se arregla o se quita, para que no ponga su hora a una estación por la que el tren ya ha pasado.
         $aFeedStops = FeedStopOrder::fit($aTrip['stops'] ?? [], array_map(fn(array $aStop) => (string)$aStop['stop_id'], $aStops));
         $sNextStopId = $aTrip['nextStopId'] ?? null;
+        // En la cabecera cuenta cuándo sale el vehículo, no cuándo llega a esperar su hora.
+        $sOrigin = (string)($aStops[0]['stop_id'] ?? '');
+        foreach ($aFeedStops as $iIndex => $aFeedStop) {
+            if ((string)$aFeedStop[0] === $sOrigin && isset($aFeedStop[2])) {
+                $aFeedStops[$iIndex][1] = $aFeedStop[2];
+            }
+        }
         if (!empty($aFeedStops)) {
-            $sNextStopId = (string)$aFeedStops[0][0];
+            $sNextStopId = self::nextFeedStop($aFeedStops);
         }
         $iShift = ServiceDay::shiftFromNow((int)($aStops[0]['arrival_seconds'] ?? 0), $this->nowSeconds());
         $aTimes = [];
@@ -90,6 +98,31 @@ class TripDelayMatcher
             }
         }
         return ['delay' => (int)($aTrip['delay'] ?? 0), 'times' => $aTimes, 'nextStopId' => $sNextStopId, 'canceled' => !empty($aTrip['canceled']), 'shift' => $iShift];
+    }
+
+    // Con gtfs_rt.keeps_passed_stops, un viaje con todas las horas de sus paradas ya pasadas ha terminado (o ha salido
+    // de las estaciones de la red) y sigue en el feed: no cuenta.
+    private function finished(array $aLive): bool
+    {
+        if (empty(\Core\Config::current()['gtfs_rt']['keeps_passed_stops']) || empty($aLive['times'])) {
+            return false;
+        }
+        return max($aLive['times']) - $aLive['shift'] < $this->nowSeconds() - self::STALE_PREDICTION_SECONDS;
+    }
+
+    // La parada a la que va: la primera del feed. Con gtfs_rt.keeps_passed_stops (Txik Txak sigue dando las paradas por
+    // las que el bus ya ha pasado, con la hora a la que pasó), la primera cuya hora aún no ha llegado.
+    private static function nextFeedStop(array $aFeedStops): string
+    {
+        if (empty(\Core\Config::current()['gtfs_rt']['keeps_passed_stops'])) {
+            return (string)$aFeedStops[0][0];
+        }
+        foreach ($aFeedStops as [$sStopId, $iTime]) {
+            if ((int)$iTime >= time()) {
+                return (string)$sStopId;
+            }
+        }
+        return (string)end($aFeedStops)[0];
     }
 
     // Un viaje de otro día (Álavabus deja en su feed viajes de días pasados, alguno de hace más de un año) no vale; de
@@ -153,6 +186,7 @@ class TripDelayMatcher
                 $aDelays[] = $iDelay;
             }
         }
+        [$iCompared, $iOff] = $this->offOperator();
         $aOut = [
             'matched' => $this->iMatched,
             'clockShifted' => $this->iShifted,
@@ -160,6 +194,8 @@ class TripDelayMatcher
             'contradictsVehicles' => $this->bContradictsVehicles,
             'live' => \count($aDelays),
             'cancelled' => \count($this->cancelledJourneyIds()),
+            'compared' => $iCompared,
+            'offOperator' => $iOff,
         ];
         $aSummary = DelayStats::summary($aDelays);
         if ($aSummary !== null) {
@@ -179,6 +215,30 @@ class TripDelayMatcher
         }
         $iArrival = $this->Stops->arrivalAt($sJourneyId, $iOrder);
         return $this->etaAt($sJourneyId, $iOrder, $iArrival, $aLive) - $iArrival;
+    }
+
+    // Comprobación de que lo que se enseña es lo que publica el operador: de los viajes con horas del feed, en cuántos
+    // la llegada a su primera parada con hora por venir se aparta dos minutos o más de esa hora.
+    private function offOperator(): array
+    {
+        $iCompared = 0;
+        $iOff = 0;
+        foreach ($this->aByJourney as $sJourneyId => $aLive) {
+            if ($aLive['canceled'] || empty($aLive['times'])) {
+                continue;
+            }
+            foreach ($this->Stops->of((string)$sJourneyId) as $aStop) {
+                $iTime = $aLive['times'][(string)$aStop['stop_id']] ?? null;
+                if ($iTime === null || $iTime < $this->nowSeconds() + $aLive['shift']) {
+                    continue;
+                }
+                $iCompared++;
+                $iEta = $this->etaAt((string)$sJourneyId, (int)$aStop['seq_order'], (int)$aStop['arrival_seconds'], $aLive);
+                $iOff += (int)(abs($iEta - $iTime) >= self::OFF_OPERATOR_SECONDS);
+                break;
+            }
+        }
+        return [$iCompared, $iOff];
     }
 
     public function isCancelled(string $sServiceJourneyId): bool

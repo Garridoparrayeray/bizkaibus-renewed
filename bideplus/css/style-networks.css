@@ -43,7 +43,16 @@
     --c: #30609D;
 }
 .tile--renfe-ld {
-    --c: #3F4E63;
+    --c: #74349A;
+}
+.tile--txiktxak {
+    --c: #268991;
+}
+.tile--sncf {
+    --c: #0C131F;
+}
+.tile--villavesas {
+    --c: #0A7A3E;
 }
 
 /* ===== Cuadradito de cada red en Bide+ ===== */
@@ -81,7 +90,16 @@ html.bide .bide-swatch--launion {
     background: #30609D;
 }
 html.bide .bide-swatch--renfe-ld {
-    background: #3F4E63;
+    background: #74349A;
+}
+html.bide .bide-swatch--txiktxak {
+    background: #268991;
+}
+html.bide .bide-swatch--sncf {
+    background: #0C131F;
+}
+html.bide .bide-swatch--villavesas {
+    background: #0A7A3E;
 }
 
 /* ===== Paleta de la app de cada red ===== */
@@ -207,13 +225,46 @@ html.is-launion {
     --backdrop: rgba(5, 10, 16, .5);
 }
 html.is-renfe-ld {
-    --bg: #f0f0f1;
-    --border: #d6d7d9;
-    --primary: #3F4E63;
-    --primary-light: #a9afb9;
-    --primary-dark: #27303d;
-    --primary-tint: #f0f1f3;
-    --text: #202122;
-    --text-secondary: #5d5f60;
-    --backdrop: rgba(6, 8, 10, .5);
+    --bg: #f8f4fa;
+    --border: #e6dbec;
+    --primary: #74349A;
+    --primary-light: #B98BD1;
+    --primary-dark: #4A1D66;
+    --primary-tint: #F3EAF8;
+    --text: #24192b;
+    --text-secondary: #65596c;
+    --backdrop: rgba(18, 10, 22, .5);
+}
+html.is-txiktxak {
+    --bg: #eef4f4;
+    --border: #d3e0e1;
+    --primary: #268991;
+    --primary-light: #8cc7cc;
+    --primary-dark: #14555b;
+    --primary-tint: #e8f5f6;
+    --text: #1c292a;
+    --text-secondary: #586a6b;
+    --backdrop: rgba(0, 20, 22, .5);
+}
+html.is-sncf {
+    --bg: #eeeeef;
+    --border: #d3d4d4;
+    --primary: #0C131F;
+    --primary-light: #92959a;
+    --primary-dark: #070c13;
+    --primary-tint: #ececed;
+    --text: #1d1d1e;
+    --text-secondary: #595a5b;
+    --backdrop: rgba(1, 2, 3, .5);
+}
+html.is-villavesas {
+    --bg: #eef1f0;
+    --border: #d3dad6;
+    --primary: #0A7A3E;
+    --primary-light: #91c3a8;
+    --primary-dark: #064c26;
+    --primary-tint: #ebf4f0;
+    --text: #1d2420;
+    --text-secondary: #59625d;
+    --backdrop: rgba(1, 12, 6, .5);
 }

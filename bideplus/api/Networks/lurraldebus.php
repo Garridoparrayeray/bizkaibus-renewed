@@ -51,7 +51,7 @@ return [
             'dataPublished' => 'Autobus bakoitzaren GPS kokapena bere 8 operadoreetan, nahiz eta askotan hutsik iritsi.',
             'dataMethod' => 'Bizkaibusen algoritmo bera.',
             'dataLimits' => 'Jarioa hutsik datorrenean, ordutegi ofiziala.',
-            'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi)',
+            'attribution' => 'Datuak: Lurraldebus / Gipuzkoako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
             'name' => 'Lurraldebus+',
@@ -63,7 +63,19 @@ return [
             'dataPublished' => 'The GPS position of every bus for its 8 operators, although it often comes empty.',
             'dataMethod' => 'The same algorithm as Bizkaibus.',
             'dataLimits' => 'When its feed comes empty, the official timetable.',
-            'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi)',
+            'attribution' => 'Data: Lurraldebus / Provincial Council of Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
+        'fr' => [
+            'name' => 'Lurraldebus+',
+            'tile' => 'Bus du Gipuzkoa',
+            'switcher' => 'Horaires de Lurraldebus au Gipuzkoa',
+            'subtitle' => 'Horaires de Lurraldebus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Lurraldebus ni avec la Députation forale du Gipuzkoa. Les arrivées sont calculées avec la position GPS de chaque bus ; sans données du bus, horaire officiel.',
+            'dataPublished' => 'La position GPS de chaque bus de ses 8 opérateurs, même si elle arrive souvent vide.',
+            'dataMethod' => 'Le même algorithme que Bizkaibus.',
+            'dataLimits' => 'Quand son flux arrive vide, horaire officiel.',
+            'attribution' => 'Données : Lurraldebus / Députation forale du Gipuzkoa, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
     ],
 
@@ -71,7 +83,7 @@ return [
         'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa por línea y parada | Bide+',
         'description' => 'Consulta los horarios de Lurraldebus en Gipuzkoa por línea y parada: Ekialdebus, Gipuzkoana, Goierrialdea, Pesa, TBH, Tolosaldea y Euskotren bus.',
     ],
-    'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi)',
+    'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     'features' => [
         'platforms' => false,

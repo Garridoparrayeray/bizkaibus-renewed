@@ -184,7 +184,7 @@ class ServiceJourney
         $iWeekdayBit = Calendar::weekdayBitFor($Date);
         $sDateStr = $Date->format('Y-m-d');
 
-        $sStopCondition = 'pt.seq_order = 1';
+        $sStopCondition = 'pt.seq_order = (SELECT MIN(first.seq_order) FROM passing_times first WHERE first.service_journey_id = pt.service_journey_id)';
         if ($iStopId !== null) {
             $sStopCondition = 'pt.stop_id IN (SELECT id FROM stops WHERE id = :stopId OR station_id = :stopIdAsStation)
                 AND EXISTS (
@@ -478,33 +478,6 @@ class ServiceJourney
             $aSequences[$aRow['journey_pattern_id']][] = (string)$aRow['stop_id'];
         }
         return $aSequences;
-    }
-
-    // De los viajes del directo que son de la línea, su última parada: [viaje del directo => nombre].
-    public function lastStopNamesOnLine(string $sLineId, array $aTripRefs): array
-    {
-        if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
-            return [];
-        }
-        $aResult = [];
-        foreach (array_chunk(array_values(array_unique($aTripRefs)), 500) as $aChunk) {
-            $Stmt = $this->Pdo->prepare('
-                SELECT ta.trip_id, (
-                    SELECT s.name FROM passing_times pt JOIN stops s ON s.id = pt.stop_id
-                    WHERE pt.service_journey_id = ta.service_journey_id
-                    ORDER BY pt.seq_order DESC LIMIT 1
-                ) AS last_stop_name
-                FROM trip_aliases ta
-                JOIN service_journeys sj ON sj.id = ta.service_journey_id
-                JOIN journey_patterns jp ON jp.id = sj.journey_pattern_id
-                WHERE jp.line_id = ? AND ta.trip_id IN (' . implode(',', array_fill(0, \count($aChunk), '?')) . ')
-            ');
-            $Stmt->execute(array_merge([$sLineId], $aChunk));
-            foreach ($Stmt->fetchAll() as $aRow) {
-                $aResult[(string)$aRow['trip_id']] = $aRow['last_stop_name'];
-            }
-        }
-        return $aResult;
     }
 
     public function lineOfJourney(string $sServiceJourneyId): array|null

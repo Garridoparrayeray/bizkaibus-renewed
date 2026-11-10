@@ -80,7 +80,7 @@ for name, cfg in NETS.items():
                 get(with_net(f'/api/vehicles/{trip}', s))
                 get(with_net(f'/api/trips/{trip}?stopId={sid}', s))
             get(with_net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=22:00&hourTo=05:00', s))
-            get(with_net(f'/api/lines/{lid}/live', s))
+            get(with_net(f'/api/lines/{lid}/route', s))
     get(with_net('/api/lines', s))
     get(with_net('/api/alerts', s))
     get(with_net('/api/search?q=x', s))
@@ -120,6 +120,12 @@ if not isinstance(version.get('version'), int) or not version.get('notes') or no
     fails.append(f'/api/app/version: sin versión o sin novedades {version}')
 if (get(f"/api/app/version?desde={version.get('version', 0)}") or {}).get('notes') != []:
     fails.append('/api/app/version: con la versión al día no debería haber novedades pendientes')
+# Aviso general: sin aviso publicado (o sin salida a GitHub) responde {"notice": null}; si hay, trae lo que usa el cartel.
+notice = get('/api/notice') or {}
+if 'notice' not in notice:
+    fails.append(f'/api/notice: sin la clave notice {notice}')
+elif notice['notice'] is not None and not all(k in notice['notice'] for k in ('id', 'text', 'expiresAt')):
+    fails.append(f"/api/notice: al aviso le faltan campos {notice['notice']}")
 # El endpoint del cron del registro de pasos no existe sin su clave secreta.
 get('/api/live/record', 404)
 get('/api/live/record?key=adivina', 404)
@@ -223,13 +229,13 @@ print('sitemap ok')
 
 # Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.
 for path, lang, text in (('/?lang=eu', 'eu', 'Aplikazio guztiak'), ('/?lang=en', 'en', 'All the apps'),
-                         ('/mapa?lang=eu', 'eu', None), ('/?red=metro&lang=en', 'en', None)):
+                         ('/mapa?lang=eu', 'eu', None), ('/?red=metro&lang=en', 'en', None), ('/?lang=fr', 'fr', None)):
     code, page = fetch_text(path)
     canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
     hreflangs = set(_re.findall(r'hreflang="([a-z-]+)"', page))
     if code != 200 or f'<html lang="{lang}"' not in page or not canonical.endswith('lang=' + lang):
         fails.append(f'{path}: {code}, sin lang="{lang}" o con canónica {canonical!r}')
-    if hreflangs != {'es', 'eu', 'en', 'x-default'}:
+    if hreflangs != {'es', 'eu', 'en', 'fr', 'x-default'}:
         fails.append(f'{path}: hreflang {sorted(hreflangs)}')
     if text and text not in page:
         fails.append(f'{path}: no sale traducido («{text}»)')

@@ -15,7 +15,6 @@ use Services\RenfeAlertsClient;
 use Services\ScheduleRange;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
-use Services\VehiclePositions;
 $Section('Sin motor: las salidas llevan los campos del horario');
 $aOnly = (new \Services\ScheduleOnlyMatcher())->enrich([['line_id' => '1', 'trip_number' => 'a', 'first_departure_seconds' => 100, 'arrival_seconds' => 460]]);
 $Expect('sin vehículos, cada salida sale como scheduled con su hora', $aOnly[0]['status'] === 'scheduled' && $aOnly[0]['etaSeconds'] === 460 && $aOnly[0]['delaySeconds'] === 0 && array_key_exists('vehicleRef', $aOnly[0]));
@@ -145,6 +144,10 @@ $aSynthetic = GtfsRealtimeClient::parseTripUpdates($sSynthetic);
 $Expect('lee la hora de generación de la cabecera', $aSynthetic['generatedAt'] === 1000);
 $Expect('usa la salida si no hay llegada y descarta las paradas saltadas', $aSynthetic['trips'] === [['tripId' => 'T1', 'stops' => [['7', 2000], ['8', 2100]]]], json_encode($aSynthetic['trips']));
 $Expect('ignora entidades sin previsiones (solo posición) y lee retrasos negativos sin romperse', count($aSynthetic['trips']) === 1);
+$sWaiting = pbField(1, pbField(1, '2.0') . pbField(3, 1000))
+    . pbField(2, pbField(1, 'e1') . pbField(3, pbField(1, pbField(1, 'T2')) . pbField(2, pbStopTime('1', 2000, 2900)) . pbField(2, pbStopTime('2', 3000, 3020))));
+$aWaitingStops = GtfsRealtimeClient::parseTripUpdates($sWaiting)['trips'][0]['stops'];
+$Expect('una parada con espera (sale un minuto o más después de llegar) guarda también cuándo sale', $aWaitingStops === [['1', 2000, 2900], ['2', 3000]], json_encode($aWaitingStops));
 $bTruncated = false;
 try {
     GtfsRealtimeClient::parseTripUpdates(substr($sSynthetic, 0, 20));
@@ -597,7 +600,7 @@ $Expect('avisos de Renfe recientes: salen', count(RenfeAlertsClient::parse($Aler
 $Expect('avisos de Renfe de hace días (el fichero dejó de actualizarse): no salen', RenfeAlertsClient::parse($AlertsFeed(time() - 26 * 86400), ['A' => 'Abando'], 2 * 86400) === []);
 
 /* ------------------------------------------------------------------ */
-$Section('Trenes en el mapa de la línea (posiciones GPS de Renfe y Metro)');
+$Section('Posiciones GPS de Renfe y Metro');
 
 $sVpFeed = pbField(1, pbField(1, '2.0') . pbField(3, 5000))
     . pbField(2, pbField(1, 'v1') . pbField(4, pbField(1, pbField(1, 'R1')) . pbField(2, pbFloat(1, 43.25) . pbFloat(2, -2.94)) . pbField(4, 1) . pbField(7, 'B') . pbField(8, pbField(1, '26175') . pbField(2, 'C1-26175'))))
@@ -627,16 +630,6 @@ $PdoMap->exec("INSERT INTO trip_aliases VALUES ('R1', 'J1'), ('R2', 'J2')");
 $PdoMap->exec("INSERT INTO lines VALUES ('C1-ida', 'C1'), ('C1-vuelta', 'C1')");
 $PdoMap->exec("INSERT INTO journey_patterns VALUES ('P1', 'C1-ida'), ('P2', 'C1-vuelta')");
 $PdoMap->exec("INSERT INTO service_journeys VALUES ('J1', 'P1'), ('J2', 'P2')");
-$Train = fn(string $sTrip, string $sStop, string|null $sStatus) => ['tripId' => $sTrip, 'lat' => 43.25, 'lon' => -2.94, 'stopId' => $sStop, 'stopStatus' => $sStatus, 'vehicleId' => 'T-' . $sTrip];
-$aRenfeTrains = [$Train('R1', 'B', 'at'), $Train('R2', 'A', 'towards'), $Train('de-otro-nucleo', 'B', 'at')];
-$aOnC1 = VehiclePositions::onLine($PdoMap, 'C1-ida', [], $aRenfeTrains, [['tripId' => 'R1', 'stops' => [['B', 0]], 'delay' => 180]], true);
-$Expect('Renfe: en el mapa de la línea, solo sus trenes (el de vuelta y los de otros núcleos, no)', count($aOnC1) === 1 && $aOnC1[0]['vehicleRef'] === 'T-R1', json_encode($aOnC1));
-$Expect('Renfe: destino, retraso, estación y posición GPS de cada tren', ($aOnC1[0]['headsign'] ?? null) === 'Santurtzi' && $aOnC1[0]['delayMinutes'] === 3 && $aOnC1[0]['stopStatus'] === 'at' && $aOnC1[0]['currentStop']['name'] === 'Ametzola' && $aOnC1[0]['position'] === ['lat' => 43.25, 'lon' => -2.94], json_encode($aOnC1[0] ?? null));
-$aOnReturn = VehiclePositions::onLine($PdoMap, 'C1-vuelta', [], $aRenfeTrains, [], true);
-$Expect('Renfe: sin su retraso en el directo, el tren sale sin retraso', count($aOnReturn) === 1 && $aOnReturn[0]['headsign'] === 'Abando' && $aOnReturn[0]['delayMinutes'] === null && $aOnReturn[0]['stopStatus'] === 'towards');
-$aMetroPatterns = [['id' => 'P9', 'stops' => [['id' => 5], ['id' => 6]]]];
-$aOnMetro = VehiclePositions::onLine($PdoMap, 'MB', $aMetroPatterns, [$Train('m1', '5', null), $Train('m2', 'C', null)], [['tripId' => 'm1', 'stops' => [['5', 0], ['6', 0]]]], false);
-$Expect('Metro: los trenes que van hacia una estación de la línea, con su destino (la última de su previsión)', count($aOnMetro) === 1 && $aOnMetro[0]['headsign'] === 'Basauri' && $aOnMetro[0]['currentStop']['name'] === 'Santutxu' && $aOnMetro[0]['stopStatus'] === null && $aOnMetro[0]['delayMinutes'] === null, json_encode($aOnMetro));
 
 /* ------------------------------------------------------------------ */
 $Section('Directo por viaje con retraso por parada (Tuvisa, Dbus) e incidencias GTFS-Realtime');
@@ -675,6 +668,23 @@ $OfServiceDay = new ReflectionMethod(GtfsRealtimeClient::class, 'ofServiceDay');
 $WithSuffix = new GtfsRealtimeClient(['gtfs_rt' => ['trip_date_suffix' => true]]);
 $Expect('trip_date_suffix deja los viajes de hoy y los sin fecha', array_column($OfServiceDay->invoke($WithSuffix, $aDated), 'tripId') === ['123' . $sToday, 'sinFecha']);
 $Expect('sin trip_date_suffix no se filtra nada', count($OfServiceDay->invoke(new GtfsRealtimeClient(['gtfs_rt' => []]), $aDated)) === 3);
+
+// gtfs_rt.keeps_passed_stops (Txik Txak): el feed sigue dando las paradas ya pasadas.
+$NextFeedStop = new ReflectionMethod(\Services\TripDelayMatcher::class, 'nextFeedStop');
+$Finished = new ReflectionMethod(\Services\TripDelayMatcher::class, 'finished');
+$MatcherShell = (new ReflectionClass(\Services\TripDelayMatcher::class))->newInstanceWithoutConstructor();
+$iShellMidnight = (new DateTime('today', new DateTimeZone('Europe/Madrid')))->getTimestamp();
+(new ReflectionProperty(\Services\TripDelayMatcher::class, 'iMidnight'))->setValue($MatcherShell, $iShellMidnight);
+$iShellNow = time() - $iShellMidnight;
+$aEnRoute = [['A', time() - 900], ['B', time() - 60], ['C', time() + 240], ['D', time() + 600]];
+$aLiveEnRoute = ['times' => ['A' => $iShellNow - 900, 'C' => $iShellNow + 240], 'shift' => 0];
+$aLiveEnded = ['times' => ['A' => $iShellNow - 1800, 'B' => $iShellNow - 900], 'shift' => 0];
+\Core\Config::set('txiktxak');
+$Expect('keeps_passed_stops: la siguiente parada es la primera con hora por venir', $NextFeedStop->invoke(null, $aEnRoute) === 'C');
+$Expect('keeps_passed_stops: un viaje con todas sus horas pasadas ha terminado', $Finished->invoke($MatcherShell, $aLiveEnded) && !$Finished->invoke($MatcherShell, $aLiveEnRoute));
+\Core\Config::set('metro');
+$Expect('sin keeps_passed_stops la siguiente parada es la primera del feed y ningún viaje se descarta', $NextFeedStop->invoke(null, $aEnRoute) === 'A' && !$Finished->invoke($MatcherShell, $aLiveEnded));
+\Core\Config::set('bus');
 
 
 /* ------------------------------------------------------------------ */
@@ -752,5 +762,24 @@ $Expect("el día $iDays, todavía nueva", Core\NewBadge::isNew('2026-11-02', (cl
 $Expect('el día siguiente, ya no', !Core\NewBadge::isNew('2026-11-02', (clone $Since)->modify("+$iDays days")));
 $Expect('sin fecha o con una que no es fecha, no', !Core\NewBadge::isNew(null) && !Core\NewBadge::isNew('pronto'));
 $Expect('una red sin «added» no es nueva', !Core\Networks::isNew(['slug' => 'x']));
+
+$aUncited = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && empty($aNet['texts']['es']['liveSource'])));
+$Expect('cada red con horas previstas en directo cita a quien las publica (texts.liveSource)', empty($aUncited));
+
+$Section('Aviso general (Services\\Notice)');
+$iNow = 1800000000;
+$aGood = ['id' => '20261110T203000Z', 'text' => ['es' => '  Huelga mañana  ', 'eu' => 'Greba bihar', 'en' => ''], 'url' => 'https://www.bizkaia.eus/avisos', 'expiresAt' => $iNow + 3600, 'notify' => true];
+$aNotice = \Services\Notice::fromArray($aGood, $iNow);
+$Expect('un aviso bien escrito sale con su texto sin espacios de más', $aNotice !== null && $aNotice['text']['es'] === 'Huelga mañana' && $aNotice['id'] === '20261110T203000Z', json_encode($aNotice));
+$Expect('los idiomas sin texto no salen: caen en castellano', array_keys($aNotice['text']) === ['es', 'eu']);
+$Expect('trae su enlace y si hay que notificar', $aNotice['url'] === 'https://www.bizkaia.eus/avisos' && $aNotice['notify'] === true);
+$Expect('pasada su hora de fin ya no sale', \Services\Notice::fromArray(['expiresAt' => $iNow] + $aGood, $iNow) === null && \Services\Notice::fromArray(['expiresAt' => $iNow - 1] + $aGood, $iNow) === null);
+$Expect('sin texto en castellano no sale', \Services\Notice::fromArray(['text' => ['eu' => 'Greba']] + $aGood, $iNow) === null && \Services\Notice::fromArray(['text' => 'Huelga'] + $aGood, $iNow) === null);
+$Expect('sin identificador válido no sale', \Services\Notice::fromArray(['id' => 'a b'] + $aGood, $iNow) === null && \Services\Notice::fromArray(['id' => ''] + $aGood, $iNow) === null && \Services\Notice::fromArray(['id' => str_repeat('a', 41)] + $aGood, $iNow) === null);
+$Expect('la hora de fin tiene que ser un número entero', \Services\Notice::fromArray(['expiresAt' => '1800003600'] + $aGood, $iNow) === null);
+$Expect('vacío (aviso quitado), sin aviso', \Services\Notice::fromArray([], $iNow) === null);
+$Expect('un enlace que no es http o https se descarta, pero el aviso sale', \Services\Notice::fromArray(['url' => 'javascript:alert(1)'] + $aGood, $iNow)['url'] === null && \Services\Notice::fromArray(['url' => 'no es un enlace'] + $aGood, $iNow)['url'] === null);
+$Expect('«notificar» solo vale con true', \Services\Notice::fromArray(['notify' => 'true'] + $aGood, $iNow)['notify'] === false && \Services\Notice::fromArray(['notify' => null] + $aGood, $iNow)['notify'] === false);
+$Expect('el texto se corta a 400 caracteres', mb_strlen(\Services\Notice::fromArray(['text' => ['es' => str_repeat('á', 900)]] + $aGood, $iNow)['text']['es']) === 400);
 
 $Finish('unitarias');

@@ -4,23 +4,31 @@ use Core\Lang;
 $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sLang = Lang::current();
-// Lo que se busca: horarios y tiempo real, los nombres de las redes y Euskadi.
+// Lo que se busca: horarios y tiempo real, los nombres de las redes y el territorio (Euskadi, Navarra, Iparralde).
 $aTitles = [
     'es' => 'Bide+ · Horarios y tiempo real de Bizkaibus, Metro, Renfe y más en Euskadi',
     'eu' => 'Bide+ · Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak eta denbora errealean Euskadin',
     'en' => 'Bide+ · Bizkaibus, Metro Bilbao, Renfe and more: Basque Country timetables and real time',
+    'fr' => 'Bide+ · Horaires et temps réel au Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao…',
 ];
 $aDescriptions = [
-    'es' => 'Horarios de Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión y los tranvías de Bilbao y Vitoria, y llegadas en tiempo real donde el operador las publica, en una sola app gratis.',
-    'eu' => 'Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión eta Bilbo eta Gasteizko tranbien ordutegiak, eta iritsierak denbora errealean operadoreak argitaratzen dituenean, doako aplikazio bakarrean.',
-    'en' => 'Timetables for Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Lurraldebus, Tuvisa, Dbus, Álavabus, La Unión and the Bilbao and Vitoria trams, with real-time arrivals where the operator publishes them, in one free app.',
+    'es' => 'Horarios y tiempo real del transporte público de Euskal Herria (Euskadi, Navarra e Iparralde): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF y los tranvías de Bilbao y Vitoria, en una sola app gratis.',
+    'eu' => 'Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean (Euskadi, Nafarroa eta Iparraldea): Bizkaibus, Bilboko Metroa, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesak, Txik Txak, SNCF eta Bilbo eta Gasteizko tranbiak, doako aplikazio bakarrean.',
+    'en' => 'Timetables and real time for public transport across the Basque Country (Euskadi, Navarre and the Northern Basque Country): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF and the Bilbao and Vitoria trams, in one free app.',
+    'fr' => 'Horaires et temps réel des transports en commun d’Euskal Herria (Pays basque nord, Euskadi et Navarre) : Txik Txak, SNCF, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas et les tramways de Bilbao et Vitoria-Gasteiz, dans une seule application gratuite.',
+];
+$aKeywords = [
+    'es' => 'horarios autobús, tiempo real, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, transporte público, Euskal Herria, Euskadi, País Vasco, Navarra, Iparralde, Bilbao, Donostia, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayona',
+    'eu' => 'autobus ordutegiak, denbora errealean, Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesak, Txik Txak, SNCF, garraio publikoa, Euskal Herria, Euskadi, Nafarroa, Iparraldea, Bilbo, Donostia, Gasteiz, Iruñea, Baiona',
+    'en' => 'bus timetables, real time, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, public transport, Basque Country, Euskal Herria, Euskadi, Navarre, Bilbao, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayonne, Biarritz',
+    'fr' => 'horaires bus, temps réel, Txik Txak, SNCF, TER, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas, transports en commun, Pays basque, Euskal Herria, Iparralde, Euskadi, Navarre, Bayonne, Biarritz, Anglet, Saint-Jean-de-Luz, Hendaye, Bilbao, Saint-Sébastien, Pampelune',
 ];
 $sTitle = $aTitles[$sLang];
 $sDescription = $aDescriptions[$sLang];
 $sCanonicalEs = $aSite['url'] . '/';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
-$sOgAlt = 'Logo de Bide+ con los iconos de Bizkaibus+, Metro+ y Euskotren+';
+$sOgAlt = 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio';
 $sWordmark = require __DIR__ . '/wordmark.php';
 
 $aApps = [];
@@ -58,6 +66,14 @@ $aJsonLd = [
             'description' => $sDescription,
             'inLanguage' => $sLang,
             'publisher' => $aAuthor,
+            'keywords' => $aKeywords[$sLang],
+            'availableLanguage' => Lang::LANGS,
+            'spatialCoverage' => [
+                ['@type' => 'Place', 'name' => 'Euskal Herria'],
+                ['@type' => 'AdministrativeArea', 'name' => 'Euskadi'],
+                ['@type' => 'AdministrativeArea', 'name' => 'Navarra'],
+                ['@type' => 'Place', 'name' => 'Iparralde'],
+            ],
             'sameAs' => [$aSite['instagram_url']],
         ],
         [
@@ -76,6 +92,7 @@ $aJsonLd = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+    <meta name="keywords" content="<?= htmlspecialchars($aKeywords[$sLang]) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
@@ -119,6 +136,8 @@ $aJsonLd = [
     <script src="/js/bide-mode.js"></script>
     <script src="/js/notification-open.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/linkify.js"></script>
+    <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/css/style-menu.css">
     <link rel="stylesheet" href="/css/style-bide.css">
@@ -134,7 +153,7 @@ $aJsonLd = [
         <header>
             <div class="menu-brand">
                 <h1><?= $sWordmark ?></h1>
-                <p data-i18n="menu.tagline">Movilidad en Euskadi</p>
+                <p data-i18n="menu.tagline">Movilidad en Euskal Herria</p>
             </div>
             <div class="header-controls">
                 <button type="button" id="lang-toggle" class="lang-toggle" data-i18n="menu.lang.toggle" hidden>Euskaraz</button>
@@ -151,12 +170,41 @@ $aJsonLd = [
             </div>
         </header>
 
+        <section class="planner" aria-labelledby="planner-title">
+            <div class="planner-head">
+                <h2 id="planner-title" data-i18n="menu.planner.title">¿A dónde vas?</h2>
+                <span class="planner-soon" data-i18n="bide.upcoming.title">Próximamente</span>
+            </div>
+            <div class="planner-body" inert aria-hidden="true">
+                <div class="planner-places">
+                    <p class="planner-place"><span class="planner-dot planner-dot--from"></span><span data-i18n="menu.planner.from">Tu ubicación</span></p>
+                    <p class="planner-place planner-place--to"><span class="planner-dot planner-dot--to"></span><span data-i18n="menu.planner.to">Destino: parada, calle o sitio</span></p>
+                    <span class="planner-swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4V20M12 8L8 4L4 8M16 20V4M20 16L16 20L12 16"/></svg></span>
+                </div>
+                <div class="planner-when">
+                    <span data-i18n="menu.planner.now">Ahora</span>
+                    <span data-i18n="menu.planner.leave">Salir a</span>
+                    <span class="is-on" data-i18n="menu.planner.arrive">Llegar a</span>
+                </div>
+                <div class="planner-time">
+                    <span><span data-i18n="menu.planner.today">Hoy</span><span aria-hidden="true">▾</span></span>
+                    <span><strong data-i18n="menu.planner.arriveAt">Llegar 09:00</strong><span aria-hidden="true">▾</span></span>
+                </div>
+                <span class="planner-go" data-i18n="menu.planner.search">Buscar ruta</span>
+            </div>
+        </section>
+
         <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
-            <ul class="tiles">
+            <div class="nets-head">
+                <h2 data-i18n="menu.nets.title">Tus redes</h2>
+                <button type="button" id="nets-edit" class="nets-edit" aria-pressed="false" data-i18n="menu.nets.edit">Editar</button>
+            </div>
+            <p id="nets-hint" class="nets-hint" data-i18n="menu.nets.hint" hidden>Toca «Añadir» en las redes que uses. Con «Quitar» dejan de salir aquí arriba.</p>
+            <ul class="tiles" id="tiles-fav">
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');
     $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
-                <li>
+                <li data-scope="<?= htmlspecialchars($aNetwork['scope'] ?? 'main') ?>">
                     <a class="tile tile--<?= $sSlug ?>" data-app="<?= $sSlug ?>" data-name="<?= htmlspecialchars($sName) ?>" href="/?red=<?= $sSlug ?>">
                         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
                         <img class="mark" src="<?= $sIcon ?>" alt="<?= htmlspecialchars($sName) ?>" aria-hidden="true">
@@ -171,14 +219,32 @@ $aJsonLd = [
                         <span class="txt"><strong data-i18n="net.<?= $sSlug ?>.name"><?= htmlspecialchars($sName) ?></strong><span data-i18n="net.<?= $sSlug ?>.tile"><?= htmlspecialchars(\Core\Networks::text($aNetwork, 'tile')) ?></span><span class="last" data-i18n="app.last">Última que abriste</span></span>
 <?php endif; ?>
                     </a>
+                    <button type="button" class="tile-pin" data-pin="<?= $sSlug ?>" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="12" x2="18" y2="12"/><line class="tile-pin-plus" x1="12" y1="6" x2="12" y2="18"/></svg><span class="tile-pin-text"></span></button>
                 </li>
 <?php endforeach; ?>
             </ul>
+            <p id="nets-empty" class="nets-empty" data-i18n="menu.nets.empty" hidden>Aún no tienes redes. Pulsa Editar y añade las que uses.</p>
+            <button type="button" id="nets-all" class="nets-all" aria-expanded="false" aria-controls="tiles-rest" hidden>
+                <span><strong data-i18n="menu.nets.all">Todas las redes</strong><span id="nets-all-count"></span></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9L12 15L18 9"/></svg>
+            </button>
+            <ul class="tiles" id="tiles-rest" hidden></ul>
+            <button type="button" id="nets-local" class="nets-all nets-local" aria-expanded="false" aria-controls="tiles-local" disabled>
+                <span><strong data-i18n="menu.nets.local">Redes locales</strong><span data-i18n="menu.nets.localText">Los autobuses urbanos de tu pueblo</span></span>
+                <span class="planner-soon" id="nets-local-soon" data-i18n="bide.upcoming.title">Próximamente</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9L12 15L18 9"/></svg>
+            </button>
+            <ul class="tiles" id="tiles-local" hidden></ul>
             <div class="menu-links">
                 <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
                 <a class="menu-map-link" href="/estado"><?= BIDE_ICONS['estado'] ?><span><strong data-i18n="status.title">Estado de las redes</strong><span data-i18n="status.subtitle">Qué va en directo ahora en cada red</span></span><?= BIDE_ICONS['next'] ?></a>
             </div>
         </section>
+        <div id="nets-toast" class="nets-toast" role="status" aria-live="polite" hidden>
+            <span id="nets-toast-text"></span>
+            <button type="button" id="nets-toast-undo" data-i18n="menu.nets.undo">Deshacer</button>
+        </div>
+        <script src="/js/menu-favorites.js"></script>
 
 <?= bideViews() ?>
 <?= bideMenuSheet() ?>
@@ -197,6 +263,7 @@ $aJsonLd = [
 <?= bideTabbar() ?>
 <?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>
+    <script src="/js/sw-register.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/alerts-store.js"></script>

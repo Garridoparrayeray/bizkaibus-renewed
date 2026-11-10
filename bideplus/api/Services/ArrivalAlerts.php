@@ -25,9 +25,10 @@ class ArrivalAlerts
     private const SENT_PREFIX = 'bide:arrival:sent:';
     private const GONE_STATUSES = ['departed', 'likely_departed', 'finished'];
     private const TEXTS = [
-        'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'body' => '→ {headsign} · {stop}'],
-        'eu' => ['minutes' => '{line}: {min} min barru', 'now' => '{line} iristen ari da', 'body' => '→ {headsign} · {stop}'],
-        'en' => ['minutes' => '{line} arrives in {min} min', 'now' => '{line} is arriving', 'body' => '→ {headsign} · {stop}'],
+        'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'cancelled' => '{line} cancelado', 'body' => '→ {headsign} · {stop}'],
+        'eu' => ['minutes' => '{line}: {min} min barru', 'now' => '{line} iristen ari da', 'cancelled' => '{line} bertan behera', 'body' => '→ {headsign} · {stop}'],
+        'en' => ['minutes' => '{line} arrives in {min} min', 'now' => '{line} is arriving', 'cancelled' => '{line} is cancelled', 'body' => '→ {headsign} · {stop}'],
+        'fr' => ['minutes' => '{line} arrive dans {min} min', 'now' => '{line} arrive', 'cancelled' => '{line} supprimé', 'body' => '→ {headsign} · {stop}'],
     ];
 
     // Estados: created, now, gone, unknown y unavailable. Uno de todos los días se crea siempre, con «today».
@@ -199,18 +200,20 @@ class ArrivalAlerts
                 }
                 continue;
             }
+            // Un viaje cancelado se avisa en cuanto se sabe, sin esperar a los minutos pedidos.
+            $bCancelled = $aDeparture['status'] === 'cancelled';
             $iLeft = self::minutesLeft($aDeparture);
-            if ($iLeft > $aAlert['minutes']) {
+            if (!$bCancelled && $iLeft > $aAlert['minutes']) {
                 continue;
             }
             $bSent = false;
             if ($bRepeat) {
-                [$bSent, $bDead] = self::sendToday($aAlert, max(0, $iLeft), $Sender);
+                [$bSent, $bDead] = self::sendToday($aAlert, max(0, $iLeft), $Sender, $bCancelled);
                 if ($bDead) {
                     $aGone[] = $aAlert['id'];
                 }
             } else {
-                $bSent = self::sendOnce($aAlert, max(0, $iLeft), $Sender);
+                $bSent = self::sendOnce($aAlert, max(0, $iLeft), $Sender, $bCancelled);
             }
             if ($bSent) {
                 $iSent++;
@@ -235,13 +238,13 @@ class ArrivalAlerts
 
     // Se quita de la lista antes de enviar (SREM devuelve 1 solo a quien lo quita): dos llamadas del cron a la vez no
     // mandan el mismo aviso dos veces. Si el servicio de push falla, vuelve a la lista para el minuto siguiente.
-    private static function sendOnce(array $aAlert, int $iLeft, callable $Sender): bool
+    private static function sendOnce(array $aAlert, int $iLeft, callable $Sender, bool $bCancelled = false): bool
     {
         $aTaken = Store::pipeline([['SREM', self::PENDING_KEY, $aAlert['id']]]);
         if ($aTaken === null || (int)$aTaken[0] !== 1) {
             return false;
         }
-        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft)));
+        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft, $bCancelled)));
         $bDelivered = $iStatus >= 200 && $iStatus < 300;
         // 404 y 410: la suscripción ya no existe (se desinstaló la app o se quitó el permiso). No se reintenta.
         if ($bDelivered || $iStatus === 404 || $iStatus === 410) {
@@ -253,13 +256,13 @@ class ArrivalAlerts
     }
 
     // Devuelve [enviado, la suscripción ya no existe]. Si el push falla, se reintenta al minuto siguiente.
-    private static function sendToday(array $aAlert, int $iLeft, callable $Sender): array
+    private static function sendToday(array $aAlert, int $iLeft, callable $Sender, bool $bCancelled = false): array
     {
         $aTaken = Store::pipeline([['SET', self::SENT_PREFIX . $aAlert['id'], '1', 'NX', 'EX', self::REPEAT_SENT_SECONDS]]);
         if ($aTaken === null || $aTaken[0] !== 'OK') {
             return [false, false];
         }
-        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft)));
+        $iStatus = (int)$Sender($aAlert['subscription'], Push::json(self::message($aAlert, $iLeft, $bCancelled)));
         if ($iStatus >= 200 && $iStatus < 300) {
             Store::pipeline([['EXPIRE', self::ALERT_PREFIX . $aAlert['id'], self::REPEAT_TTL_SECONDS]]);
             return [true, false];
@@ -281,13 +284,16 @@ class ArrivalAlerts
         return $iDiff >= -self::REPEAT_WINDOW_SECONDS && $iDiff <= (int)$aAlert['minutes'] * 60 + self::REPEAT_WINDOW_SECONDS;
     }
 
-    public static function message(array $aAlert, int $iLeft): array
+    public static function message(array $aAlert, int $iLeft, bool $bCancelled = false): array
     {
         $aTexts = self::TEXTS[$aAlert['lang']] ?? self::TEXTS['es'];
         $aVars = ['{line}' => $aAlert['lineCode'], '{min}' => (string)$iLeft, '{headsign}' => $aAlert['headsign'], '{stop}' => $aAlert['stopName']];
         $sTitle = strtr($aTexts['minutes'], $aVars);
         if ($iLeft <= 0) {
             $sTitle = strtr($aTexts['now'], $aVars);
+        }
+        if ($bCancelled) {
+            $sTitle = strtr($aTexts['cancelled'], $aVars);
         }
         // Al tocarla se abre la parada con la ficha del viaje en directo.
         $sUrl = '/stops/' . rawurlencode($aAlert['stopId']) . Networks::urlSuffix($aAlert['network']);

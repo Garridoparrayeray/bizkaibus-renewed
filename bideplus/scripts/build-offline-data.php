@@ -97,6 +97,8 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'network' => $sSlug,
         'generated' => date('Y-m-d'),
         'headsignFromLastStop' => (bool)($aNetwork['features']['headsign_from_last_stop'] ?? false),
+        // Sin andenes en la red, las paradas de una estación (SNCF: una por tipo de tren) dan sus salidas juntas.
+        'stationPlatforms' => (bool)($aNetwork['features']['platforms'] ?? false),
         'directionReference' => $sReference,
         'lon' => (object)$aLon,
         'stops' => $aStopsOut,

@@ -31,6 +31,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe Cercanías+',
             'tile' => 'Cercanías en Bilbao y Donostia',
             'switcher' => 'Horarios y tiempo real de Cercanías en Bilbao y Donostia',
@@ -42,6 +43,7 @@ return [
             'dataLimits' => 'Hasta que sale de su primera estación, un tren va con su horario: Renfe lo publica sin retraso.',
         ],
         'eu' => [
+            'liveSource' => 'Renfek',
             'name' => 'Renfe Aldiriak+',
             'tile' => 'Bilbo eta Donostiako aldiriak',
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak eta denbora errealean',
@@ -51,9 +53,10 @@ return [
             'dataPublished' => 'Tren bakoitzaren atzerapena, bertan behera utzitakoak eta haren kokapena.',
             'dataMethod' => 'Renfek argitaratzen duen atzerapena.',
             'dataLimits' => 'Lehen geltokitik irten arte, trena bere ordutegiarekin doa: Renfek atzerapenik gabe argitaratzen du.',
-            'attribution' => 'Datuak: Renfe Aldiriak',
+            'attribution' => 'Datuak: Renfe Aldiriak / data.renfe.com (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe Cercanías+',
             'tile' => 'Commuter trains in Bilbao and Donostia',
             'switcher' => 'Commuter train timetables and real time in Bilbao and Donostia',
@@ -63,7 +66,20 @@ return [
             'dataPublished' => 'Each train\'s delay, cancellations and its position.',
             'dataMethod' => 'The delay Renfe publishes.',
             'dataLimits' => 'Until it leaves its first station, a train runs on its timetable: Renfe publishes it with no delay.',
-            'attribution' => 'Data: Renfe Cercanías',
+            'attribution' => 'Data: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
+        ],
+        'fr' => [
+            'liveSource' => 'Renfe',
+            'name' => 'Renfe Cercanías+',
+            'tile' => 'Trains de banlieue à Bilbao et Donostia',
+            'switcher' => 'Horaires et temps réel des Cercanías à Bilbao et Donostia',
+            'subtitle' => 'Horaires et temps réel des Cercanías',
+            'liveEmpty' => 'Cherchez une gare pour voir le prochain train.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Renfe. Les retards et les trains supprimés sont ceux que Renfe publie en direct.',
+            'dataPublished' => 'Le retard de chaque train, les trains supprimés et leur position.',
+            'dataMethod' => 'Le retard publié par Renfe.',
+            'dataLimits' => 'Tant qu’il n’a pas quitté sa première gare, un train suit son horaire : Renfe le publie sans retard.',
+            'attribution' => 'Données : Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
         ],
     ],
 
@@ -71,7 +87,7 @@ return [
         'title' => 'Renfe Cercanías+ · Horarios y retrasos en tiempo real de Cercanías en Bilbao y Donostia',
         'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, con los retrasos y los trenes cancelados en tiempo real.',
     ],
-    'attribution' => 'Datos: Renfe Cercanías',
+    'attribution' => 'Datos: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',
 
     'features' => [
         'platforms' => true,

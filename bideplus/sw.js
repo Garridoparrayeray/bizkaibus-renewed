@@ -16,7 +16,7 @@ const SLOW_NETWORK_MS = 1500;
 // El icono pequeño de la barra de estado (Android usa solo la silueta: tiene que ser blanco sobre transparente).
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 // Lo que nunca sale de la caché.
-const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|app\/version)(\/|\?|$)/;
+const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|notice|app\/version)(\/|\?|$)/;
 const SHELL_FILES = [
     '/',
     '/css/style-networks.css',
@@ -56,6 +56,8 @@ const SHELL_FILES = [
     '/js/app/arrival-alerts.js',
     '/js/networks.js',
     '/js/alerts-store.js',
+    '/js/linkify.js',
+    '/js/notice.js',
     '/js/push.js',
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',
@@ -65,6 +67,7 @@ const SHELL_FILES = [
     '/js/app-update.js',
     '/js/menu.js',
     '/js/menu-view.js',
+    '/js/menu-favorites.js',
     '/js/i18n.js',
     '/css/style-menu.css',
     '/css/style-splash.css',
@@ -200,6 +203,13 @@ function staleWhileRevalidate(event) {
     });
 }
 
+// Una página de una versión que este service worker aún no ha bajado: con sus ficheros guardados saldría descuadrada
+// y con textos sin traducir. Se enseña la guardada hasta que llega la versión nueva, que recarga sola (sw-register.js).
+function fromOtherVersion(response) {
+    const shell = response.headers.get('X-Bide-Shell');
+    return SHELL_HASH !== '' && !!shell && shell !== SHELL_HASH;
+}
+
 // Páginas: la red manda, pero si tarda más de `timeoutMs` y hay copia, se usa la copia y la red la renueva.
 function networkFirst(request, timeoutMs) {
     return new Promise((resolve) => {
@@ -219,6 +229,11 @@ function networkFirst(request, timeoutMs) {
         fetch(request)
             .then((response) => {
                 clearTimeout(timer);
+                if (fromOtherVersion(response)) {
+                    self.registration.update().catch(() => {});
+                    caches.match(request).then((hit) => settle(hit || response));
+                    return;
+                }
                 if (serverFailed(response)) {
                     savedPage().then((hit) => settle(hit || response));
                     return;

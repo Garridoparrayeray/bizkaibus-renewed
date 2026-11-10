@@ -344,7 +344,7 @@ class Journeys
                     // El calendario compacto no cuadra con el GTFS: se vuelve a construir con las fechas exactas, que no pueden fallar.
                     fwrite(STDERR, "AVISO: {$aAudit['differences']} viajes con calendario distinto al del GTFS. Se reconstruye con fechas exactas (modo literal).\n");
                     putenv('BIDEPLUS_CALENDAR_MODE=literal');
-                    $sCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' ' . implode(' ', array_map('escapeshellarg', $GLOBALS['BUILD_ARGV']));
+                    $sCommand = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($_SERVER['SCRIPT_FILENAME']) . ' ' . implode(' ', array_map('escapeshellarg', $GLOBALS['BUILD_ARGV']));
                     passthru($sCommand, $iExitCode);
                     exit($iExitCode);
                 }

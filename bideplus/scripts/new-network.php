@@ -330,7 +330,7 @@ function makeIcons(string $sSlug, string $sName, string $sColor): void
 $aOptions = options();
 makeIcons($aOptions['slug'], $aOptions['name'], $aOptions['color']);
 file_put_contents(ROOT . '/api/Networks/' . $aOptions['slug'] . '.php', config($aOptions));
-run(['build-networks-js.php', 'build-networks-css.php', 'build-404.php']);
+run(['build-networks-js.php', 'build-networks-css.php', 'build-404.php', 'build-llms.php']);
 if (!isset($aOptions['sin-datos'])) {
     run(['build-database.php --network=' . $aOptions['slug'], 'build-network-map.php', 'build-offline-data.php', 'build-sitemap.php']);
 }

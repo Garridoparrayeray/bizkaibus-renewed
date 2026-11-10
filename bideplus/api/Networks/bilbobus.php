@@ -68,6 +68,18 @@ return [
             'dataLimits' => 'When its feed comes empty, the official timetable.',
             'attribution' => 'Data: Bilbobus / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'Bilbobus+',
+            'tile' => 'Bus de Bilbao',
+            'switcher' => 'Horaires de Bilbobus à Bilbao',
+            'subtitle' => 'Horaires de Bilbobus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Bilbobus ni avec la mairie de Bilbao. Les arrivées sont calculées avec la position GPS de chaque bus ; sans données du bus, horaire officiel.',
+            'dataPublished' => 'La position GPS de chaque bus, avec des coupures fréquentes.',
+            'dataMethod' => 'Le même algorithme que Bizkaibus.',
+            'dataLimits' => 'Quand son flux arrive vide, horaire officiel.',
+            'attribution' => 'Données : Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

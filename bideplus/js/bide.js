@@ -86,7 +86,7 @@
         if (view === 'favoritos') renderFavorites();
         if (view === 'avisos') renderAlerts();
         if (addToHistory && view && wasOpen) history.replaceState({ ...history.state, bideView: view }, '', '#' + view);
-        else if (addToHistory && view) history.pushState({ ...history.state, bideView: view }, '', '#' + view);
+        else if (addToHistory && view) history.pushState({ ...history.state, bideView: view, bidePushed: true }, '', '#' + view);
         window.scrollTo(0, 0);
         if (view) {
             const heading = document.querySelector(`[data-bide-view="${view}"] h2`);
@@ -97,8 +97,13 @@
 
     function closeView() {
         if (!currentView) return;
-        if (history.state && history.state.bideView) history.back();
-        else showView(null, false);
+        if (history.state && history.state.bidePushed) {
+            history.back();
+            return;
+        }
+        // Abierta por su dirección (#ajustes), sin página anterior a la que volver.
+        showView(null, false);
+        history.replaceState(null, '', location.pathname + location.search);
     }
 
     function selectTab(tab) {
@@ -229,6 +234,23 @@
         return alerts;
     }
 
+    // El aviso general va siempre el primero, tenga la persona favoritos o no y haya cerrado el cartel o no.
+    function noticeCard(notice) {
+        const card = createNode('article', 'bide-card bide-alert');
+        card.append(createNode('strong', null, translate('bide.notice.title', 'Aviso')));
+        const text = createNode('p', null);
+        BideLinks.append(text, BideNotice.textFor(notice));
+        card.append(text);
+        const more = BideNotice.linkFor(notice, 'bide-notice-link');
+        if (more) card.append(more);
+        return card;
+    }
+
+    async function generalNotice() {
+        if (typeof BideNotice === 'undefined') return null;
+        return BideNotice.active();
+    }
+
     async function renderAlerts(quiet = false) {
         const list = document.querySelector('[data-bide-alerts]');
         if (!quiet) list.replaceChildren(createNode('p', 'bide-note', translate('app.loadingIncidents', 'Cargando incidencias…')));
@@ -237,8 +259,12 @@
             const alerts = await fetchAlerts(app);
             if (alerts.length) groups.push({ app, alerts });
         }
+        const notice = await generalNotice();
         list.replaceChildren();
-        if (!groups.length) {
+        if (notice) {
+            list.append(createNode('p', 'bide-group', translate('bide.notice.group', 'Aviso general')), noticeCard(notice));
+        }
+        if (!groups.length && !notice) {
             list.append(createNode('p', 'bide-empty', translate('bide.alerts.none', 'No hay avisos activos en tus favoritos.')));
             return;
         }
@@ -247,15 +273,19 @@
             for (const alert of alerts) {
                 const card = createNode('article', 'bide-card bide-alert');
                 card.append(createNode('strong', null, alert.title));
-                if (alert.description) card.append(createNode('p', null, alert.description));
+                if (alert.description) {
+                    const description = createNode('p', null);
+                    BideLinks.append(description, alert.description);
+                    card.append(description);
+                }
                 list.append(card);
             }
         }
     }
 
     function syncLangSwitch() {
-        document.querySelectorAll('[data-bide-lang]').forEach((button) => {
-            button.setAttribute('aria-pressed', String(button.getAttribute('data-bide-lang') === I18n.getLang()));
+        document.querySelectorAll('[data-bide-lang-select]').forEach((select) => {
+            select.value = I18n.getLang();
         });
     }
 
@@ -339,15 +369,17 @@
 
     document.addEventListener('click', (e) => {
         const tab = e.target.closest('[data-bide-tab]');
-        const lang = e.target.closest('[data-bide-lang]');
         const dialog = e.target.closest('dialog[open]');
         if (tab && dialog) selectTabFromDialog(dialog, tab.getAttribute('data-bide-tab'));
         else if (tab) selectTab(tab.getAttribute('data-bide-tab'));
-        else if (lang) selectLang(lang.getAttribute('data-bide-lang'));
         else if (e.target.closest('[data-bide-close]')) closeView();
         else if (e.target.closest('[data-bide-legal]')) document.getElementById('legal-panel').showModal();
         else if (e.target.closest('[data-bide-menu-open]')) document.getElementById('bide-menu-sheet').showModal();
         else if (e.target.closest('[data-bide-menu-close]') || e.target.id === 'bide-menu-sheet') dialog.close();
+    });
+
+    document.addEventListener('change', (e) => {
+        if (e.target.matches('[data-bide-lang-select]')) selectLang(e.target.value);
     });
 
     const closedByHistory = new Set();

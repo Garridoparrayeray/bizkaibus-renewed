@@ -140,6 +140,16 @@ class StopsController
 
         // Estación con andenes (Metro, Euskotren): las salidas de cada andén, cada una con el suyo.
         $aPlatforms = $StopModel->platformsFor($sStopId);
+        // Una estación cuyas paradas no son andenes (SNCF las separa por tipo de tren): todas sus salidas juntas, por hora.
+        if (!empty($aPlatforms) && !Config::feature('platforms')) {
+            $aDepartures = [];
+            foreach ($aPlatforms as $aPlatform) {
+                $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
+                array_push($aDepartures, ...self::departureItems($aRows, $bUseLastStopHeadsign));
+            }
+            usort($aDepartures, fn(array $aA, array $aB) => [$aA['tomorrow'], $aA['etaAt']] <=> [$aB['tomorrow'], $aB['etaAt']]);
+            return $aOut + ['platforms' => [], 'directionLabels' => null, 'departures' => self::limited($aDepartures, $iLimit), 'attribution' => $aConfig['attribution']];
+        }
         if (!empty($aPlatforms)) {
             $aDepartures = [];
             foreach ($aPlatforms as $aPlatform) {

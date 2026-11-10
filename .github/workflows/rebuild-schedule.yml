@@ -12,6 +12,11 @@ name: Rebuild schedule data
 # del repositorio son viejos y, si Vercel los desplegara por su cuenta, pisarian las bases recien reconstruidas.
 # Por eso corre a diario, a mano y en cada cambio que llega a master: cada despliegue lleva siempre los horarios
 # de hoy junto al codigo nuevo.
+#
+# Dos tipos de despliegue. Completo (cada noche, a mano, o si cambian el constructor o este flujo): reconstruye todas
+# las redes. Rapido (el resto de cambios): recupera las bases de la ultima reconstruccion y solo rehace las redes cuya
+# ficha (bideplus/api/Networks) ha cambiado en algo que afecta a sus datos (no su imagen ni sus textos). «[datos]» en
+# el mensaje del commit fuerza el completo.
 on:
   schedule:
     - cron: '0 3 * * *' # diario, 03:00 UTC
@@ -51,7 +56,60 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
+      - name: Decidir el tipo de despliegue
+        id: tipo
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTES: ${{ github.event.before }}
+          MENSAJE: ${{ github.event.head_commit.message }}
+        run: |
+          REDES=todas
+          if [ "${{ github.event_name }}" = "push" ] && ! printf '%s' "$MENSAJE" | grep -q '\[datos\]'; then
+            CAMBIOS="$(gh api "repos/${{ github.repository }}/compare/$ANTES...${{ github.sha }}" --jq '.files[].filename' || true)"
+            CONSTRUCTOR='^(bideplus/scripts/build|bideplus/scripts/networks\.php|bideplus/api/Core/Networks\.php|\.github/workflows/rebuild-schedule\.yml)'
+            if [ -n "$CAMBIOS" ] && [ "$(printf '%s\n' "$CAMBIOS" | wc -l)" -lt 300 ] && ! printf '%s\n' "$CAMBIOS" | grep -qE "$CONSTRUCTOR"; then
+              REDES=""
+              git fetch --quiet --depth=1 origin "$ANTES" || true
+              for RED in $(printf '%s\n' "$CAMBIOS" | sed -nE 's#^bideplus/api/Networks/([^/]+)\.php$#\1#p'); do
+                FICHA="bideplus/api/Networks/$RED.php"
+                [ -f "$FICHA" ] || continue
+                DESPUES="$(php bideplus/scripts/networks.php --build-hash="$FICHA")"
+                if git show "$ANTES:$FICHA" > "$RUNNER_TEMP/ficha-anterior.php" 2>/dev/null; then
+                  [ "$(php bideplus/scripts/networks.php --build-hash="$RUNNER_TEMP/ficha-anterior.php")" = "$DESPUES" ] && continue
+                fi
+                REDES="$REDES $RED"
+              done
+              REDES="$(echo $REDES | xargs)"
+            fi
+          fi
+          echo "redes=$REDES" >> "$GITHUB_OUTPUT"
+
+      - name: Recuperar las bases de la última reconstrucción
+        if: steps.tipo.outputs.redes != 'todas'
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            bideplus/data/*.sqlite
+            .bases-reconstruidas
+          key: bases-${{ github.run_id }}
+          restore-keys: bases-
+
+      # Sin bases guardadas, o con más de 36 horas, el despliegue es completo.
+      - name: Redes que se reconstruyen
+        id: modo
+        run: |
+          REDES="${{ steps.tipo.outputs.redes }}"
+          if [ "$REDES" != "todas" ]; then
+            HECHO="$(cat .bases-reconstruidas 2>/dev/null || echo 0)"
+            if [ $(( $(date +%s) - HECHO )) -gt 129600 ]; then
+              REDES=todas
+            fi
+          fi
+          echo "redes=$REDES" >> "$GITHUB_OUTPUT"
+          echo "### Redes reconstruidas en este despliegue: ${REDES:-ninguna}" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Rebuild BizkaiBus+ database
+        if: steps.modo.outputs.redes == 'todas' || contains(format(' {0} ', steps.modo.outputs.redes), ' bus ')
         run: |
           set -o pipefail
           php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
@@ -60,6 +118,7 @@ jobs:
       # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
       # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
       - name: Summarize the published schedule
+        if: steps.modo.outputs.redes == 'todas' || contains(format(' {0} ', steps.modo.outputs.redes), ' bus ')
         run: |
           python3 - <<'PY'
           import os, re, sqlite3, datetime
@@ -92,9 +151,15 @@ jobs:
       # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
       # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
       - name: Rebuild the other networks
+        if: steps.modo.outputs.redes != ''
         run: |
+          REDES="${{ steps.modo.outputs.redes }}"
           php bideplus/scripts/networks.php | while read -r network db required; do
             [ "$network" = "bus" ] && continue
+            case " $REDES " in
+              *" todas "*|*" $network "*) ;;
+              *) continue ;;
+            esac
             if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
               mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
               echo "OK: $network reconstruida"
@@ -144,6 +209,19 @@ jobs:
             sleep 1
           done
           python3 tests/api-contract.py
+
+      - name: Fecha de la reconstrucción completa
+        if: steps.modo.outputs.redes == 'todas'
+        run: date +%s > .bases-reconstruidas
+
+      - name: Guardar las bases para los despliegues rápidos
+        if: steps.modo.outputs.redes != ''
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            bideplus/data/*.sqlite
+            .bases-reconstruidas
+          key: bases-${{ github.run_id }}
 
       - name: Commit updated geocache, if it changed
         run: |

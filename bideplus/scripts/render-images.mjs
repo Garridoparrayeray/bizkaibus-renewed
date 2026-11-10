@@ -31,17 +31,21 @@ const base = `${fontFaces}*{box-sizing:border-box;margin:0}h1,p{text-wrap:balanc
 const php = 'require "api/Core/Networks.php"; $a = []; foreach (Core\\Networks::all() as $s => $n) $a[] = [$n["texts"]["es"]["name"], $n["brand"]["icons"], $s, $n["kind"], $n["brand"]["palette"]["primary"] ?? $n["brand"]["tile_color"], $n["texts"]]; echo json_encode($a);';
 const apps = JSON.parse(execFileSync('php', ['-r', php], { cwd: ROOT, encoding: 'utf8' }));
 
+// Hasta tres filas de apps, el tamaño de siempre; con más, todo se encoge lo justo para que quepan.
 function ogPage() {
     const tiles = apps.map(([name, icons]) => `<li><img src="${embed(icons + '/icon-192.png', 'image/png')}" alt=""><span>${name}</span></li>`).join('');
+    const rows = Math.ceil(apps.length / 4);
+    let size = { mark: 108, title: 46, titleMargin: '26px 0 34px', icon: 64, gap: 22, text: 20 };
+    if (rows > 3) size = { mark: 92, title: 42, titleMargin: '22px 0 28px', icon: Math.floor(312 / rows) - 18, gap: 18, text: 19 };
     return `<html><head><style>${base}
-        main{width:1200px;height:630px;padding:50px 64px 0}
-        .mark{height:108px;display:block}
-        h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:46px;line-height:1.12;margin:26px 0 34px;letter-spacing:-.01em}
-        ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:22px 14px}
-        li{display:flex;align-items:center;gap:14px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;white-space:nowrap}
-        li img{width:64px;height:64px;border-radius:15px;flex:none}
+        main{width:1200px;height:630px;padding:50px 64px 0;overflow:hidden}
+        .mark{height:${size.mark}px;display:block}
+        h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:${size.title}px;line-height:1.12;margin:${size.titleMargin};letter-spacing:-.01em}
+        ul{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:${size.gap}px 14px}
+        li{display:flex;align-items:center;gap:14px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:${size.text}px;white-space:nowrap}
+        li img{width:${size.icon}px;height:${size.icon}px;border-radius:15px;flex:none}
     </style></head><body><main><img class="mark" src="${wordmark}" alt="Bide+">
-        <h1>Bus, metro, tren y tranvía de Euskadi<br>en un solo sitio</h1><ul>${tiles}</ul></main></body></html>`;
+        <h1>Bus, metro, tren y tranvía de Euskal Herria<br>en un solo sitio</h1><ul>${tiles}</ul></main></body></html>`;
 }
 
 // A5 a 300 ppp: 1748 × 2480. El hueco blanco del centro es para el QR de la parada.

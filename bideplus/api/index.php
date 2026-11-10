@@ -55,7 +55,7 @@ $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], CacheSeconds
 
 $Realtime = new RealtimeController();
 $Router->get('/vehicles/{tripKey}', [$Realtime, 'vehicle'], CacheSeconds::LIVE);
-$Router->get('/lines/{id}/live', [$Realtime, 'lineLive'], CacheSeconds::LIVE);
+$Router->get('/lines/{id}/route', [$Lines, 'route'], CacheSeconds::STATIC);
 $Router->get('/status', [$Realtime, 'status'], CacheSeconds::STATUS);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);
@@ -75,6 +75,8 @@ $Router->post('/push/updates/remove', [$Push, 'removeUpdates']);
 // La versión solo cambia al desplegar, y cada despliegue vacía la caché de Vercel: el aviso sigue llegando al momento.
 $App = new AppController();
 $Router->get('/app/version', [$App, 'version'], CacheSeconds::VERSION);
+// El aviso general se renueva al minuto: lo que se publica en GitHub llega en uno o dos.
+$Router->get('/notice', [$App, 'notice'], CacheSeconds::MINUTE);
 
 try {
     $Router->dispatch($Req);

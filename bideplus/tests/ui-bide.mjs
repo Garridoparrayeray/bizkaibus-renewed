@@ -22,12 +22,15 @@ const problems = [];
 let fakeAppVersion = null;
 // Salidas de una parada con un tren cancelado (Renfe): con fakeDepartures, la respuesta de /departures la da la prueba.
 let fakeDepartures = null;
-// Trenes en el mapa de una línea: con fakeLineLive, la respuesta de /lines/{id}/live la da la prueba.
-let fakeLineLive = null;
+// El recorrido en el mapa de una línea: con fakeLineRoute, la respuesta de /lines/{id}/route la da la prueba.
+let fakeLineRoute = null;
+// El aviso general: con fakeNotice, la respuesta de /api/notice la da la prueba.
+let fakeNotice = null;
 const answerPaused = (requestId, url) => {
     let fake = fakeAppVersion;
     if (url.includes('/departures')) fake = fakeDepartures;
-    if (/\/lines\/[^/]+\/live/.test(url)) fake = fakeLineLive;
+    if (/\/lines\/[^/]+\/route/.test(url)) fake = fakeLineRoute;
+    if (url.includes('/api/notice')) fake = fakeNotice;
     if (!fake) {
         send('Fetch.continueRequest', { requestId });
         return;
@@ -90,7 +93,7 @@ await go('/');
 check('navegador · menú: sin barra de pestañas', (await ev(shown('.bide-tabbar'))) === false);
 check('navegador · menú: con pie', await ev(shown('.menu-footer')));
 check('navegador · menú: selectores de idioma y vista', (await ev(shown('.bide-lang'))) && (await ev(shown('.view-toggle'))));
-check('navegador · menú: ES marcado', (await ev("document.querySelector('[data-bide-lang=es]').getAttribute('aria-pressed')")) === 'true');
+check('navegador · menú: ES marcado', (await ev("document.querySelector('[data-bide-lang-select]').value")) === 'es');
 check('navegador · menú: aviso «Instala Bide+» en iPhone', await waitTrue(shown('.bide-install'), 4000));
 check('navegador · menú: sin desbordar a lo ancho', await ev(noOverflow));
 await ev("document.querySelector('.bide-install-dismiss').click()");
@@ -150,7 +153,7 @@ check('instalada · menú: el aviso legal tiene su ✕ visible', await ev("(() =
 await ev("document.getElementById('legal-close').click(); true");
 check('instalada · Info: el aviso legal se cierra', (await ev("document.getElementById('legal-panel').open")) === false);
 
-await ev("document.querySelector('[data-bide-lang=eu]').click(); true");
+await ev("(() => { const s = document.querySelector('[data-bide-lang-select]'); s.value = 'eu'; s.dispatchEvent(new Event('change', { bubbles: true })); })(); true");
 check('idioma · EU cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'eu' && document.querySelector('.bide-tabbar [data-bide-tab=favoritos] span').textContent === 'Gogokoak'"));
 check('idioma · EU traduce el menú ☰', await ev("document.querySelector('#bide-menu-sheet [data-bide-tab=ajustes] span').textContent === 'Ezarpenak' && document.querySelector('.bide-menu-button').getAttribute('aria-label') === 'Menua ireki'"));
 check('idioma · EU traduce las novedades', await waitTrue("document.querySelector('.bide-changelog h3').textContent === 'Berritasunak'"));
@@ -158,15 +161,15 @@ check('idioma · EU traduce «Próximamente»', await ev("document.querySelector
 check('idioma · EU traduce «Apoya Bide+»', await ev("document.querySelector('.bide-settings-app h4:last-of-type').textContent === 'Lagundu Bide+' && document.querySelector('.bide-donate-button').textContent === 'Kafe bat ordaindu Ko-fi-n'"));
 check('idioma · EU: el tranvía es «Tranbia» en su ficha, en los enlaces de las apps y en las fuentes', await ev("document.querySelector('.tile--tranvia-bilbao .txt strong').textContent === 'Tranbia+' && [...document.querySelectorAll('.bide-apps-links a')].some((a) => a.textContent === 'Tranbia Bilbo+') && [...document.querySelectorAll('.bide-sources li')].some((li) => li.textContent.includes('Datuak: Euskotren (Bilboko tranbia)'))"));
 check('idioma · EU traduce las preguntas frecuentes y las sugerencias', await ev("document.querySelector('.bide-faq h3').textContent === 'Ohiko galderak' && document.querySelector('.bide-feedback h3').textContent === 'Iradokizunak eta akatsak'"));
-check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang=eu]').getAttribute('aria-pressed')")) === 'true');
-await ev("document.querySelector('[data-bide-lang=en]').click(); true");
+check('idioma · EU queda marcado', (await ev("document.querySelector('[data-bide-lang-select]').value")) === 'eu');
+await ev("(() => { const s = document.querySelector('[data-bide-lang-select]'); s.value = 'en'; s.dispatchEvent(new Event('change', { bubbles: true })); })(); true");
 check('idioma · EN cambia la página y las pestañas', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('.bide-tabbar [data-bide-tab=favoritos] span').textContent === 'Favourites'"));
 check('idioma · EN traduce las novedades, las preguntas y las sugerencias', await ev("document.querySelector('.bide-changelog h3').textContent === \"What's new\" && document.querySelector('.bide-faq h3').textContent === 'Frequently asked questions' && document.querySelector('.bide-feedback h3').textContent === 'Suggestions and bugs'"));
 check('idioma · EN traduce «Próximamente»', await ev("document.querySelector('.bide-upcoming h3').textContent === 'Coming soon' && document.querySelector('.bide-upcoming-badge').textContent === 'In development'"));
 check('idioma · EN traduce «Apoya Bide+»', await ev("document.querySelector('.bide-settings-app h4:last-of-type').textContent === 'Support Bide+' && document.querySelector('.bide-donate-button').textContent === 'Buy me a coffee on Ko-fi'"));
 check('idioma · EN: el tranvía se llama como en castellano', await ev("document.querySelector('.tile--tranvia-bilbao .txt strong').textContent === 'Tranvía+' && [...document.querySelectorAll('.bide-apps-links a')].some((a) => a.textContent === 'Tranvía Bilbao+')"));
-check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang=en]').getAttribute('aria-pressed')")) === 'true');
-await ev("document.querySelector('[data-bide-lang=es]').click(); true");
+check('idioma · EN queda marcado', (await ev("document.querySelector('[data-bide-lang-select]').value")) === 'en');
+await ev("(() => { const s = document.querySelector('[data-bide-lang-select]'); s.value = 'es'; s.dispatchEvent(new Event('change', { bubbles: true })); })(); true");
 check('idioma · vuelve a castellano', await waitTrue("document.documentElement.lang === 'es'"));
 await ev("I18n.setLang('eu'); true");
 await go('/?red=tranvia-bilbao');
@@ -189,9 +192,9 @@ check('instalada · Ajustes: cancelar el aviso lo quita', await waitTrue("docume
 await ev(`(() => { localStorage.setItem('bide-arrival-alerts', JSON.stringify([{ id: '0123456789abcdef01234568', tripKey: 'x', stopId: '4255', minutes: 5, repeat: true, endpoint: 'https://fcm.googleapis.com/fcm/send/x', created: Date.now() - 86400000, lineCode: 'A3514', headsign: 'GERNIKA', stopName: 'Termibus' }])); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); return true; })()`);
 check('instalada · Ajustes: uno de todos los días lo dice y no caduca a las 3 horas', await waitTrue("(document.querySelector('[data-settings-arrivals]').textContent || '').includes('5 min antes · todos los días')"));
 await ev("localStorage.removeItem('bide-arrival-alerts'); window.dispatchEvent(new CustomEvent('bide:arrival-alerts')); true");
-await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=en]').click(); true");
+await ev("(() => { const s = document.querySelector('[data-bide-view=ajustes] [data-bide-lang-select]'); s.value = 'en'; s.dispatchEvent(new Event('change', { bubbles: true })); })(); true");
 check('instalada · Ajustes: el idioma se cambia desde aquí', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-view=ajustes] h2').textContent === 'Settings'"));
-await ev("document.querySelector('[data-bide-view=ajustes] [data-bide-lang=es]').click(); true");
+await ev("(() => { const s = document.querySelector('[data-bide-view=ajustes] [data-bide-lang-select]'); s.value = 'es'; s.dispatchEvent(new Event('change', { bubbles: true })); })(); true");
 check('instalada · Ajustes: sin desbordar a lo ancho', await ev(noOverflow));
 check('instalada · Ajustes: ubicación, la caché y la versión', await ev("['[data-settings-location]', '[data-settings-cache]', '[data-settings-version]'].every((s) => !!document.querySelector('[data-bide-view=ajustes] ' + s))"));
 check('instalada · Ajustes: la versión es la de la última novedad', await ev("(() => { const n = document.querySelector('.bide-changelog-entry strong').getAttribute('data-i18n').split('.')[2]; return document.querySelector('[data-settings-version]').textContent.startsWith(n + ' · '); })()"));
@@ -356,7 +359,7 @@ await ev("localStorage.removeItem('bide_lang'); true");
 const englishPhone = await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-GB', 'en'] });" });
 await go('/?red=bus', 3000);
 check('idioma · con el móvil en inglés, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
-check('idioma · el botón de la cabecera pasa después a castellano', await ev("document.getElementById('lang-toggle').textContent.trim() === 'ES'"));
+check('idioma · el botón de la cabecera pasa después a francés', await ev("document.getElementById('lang-toggle').textContent.trim() === 'FR'"));
 check('idioma · los textos de la red también salen en inglés', await ev("document.getElementById('app-subtitle').textContent.trim() === 'Bizkaibus timetables and real time'"));
 await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: englishPhone.identifier });
 await ev("localStorage.setItem('bide_lang', 'es'); true");
@@ -568,6 +571,56 @@ await go('/');
 await sleep(1500);
 check('al día · sin «1» ni aviso de versión nueva', await ev("document.querySelectorAll('[data-bide-tab=ajustes] .bide-update-badge').length === 0 && document.querySelector('[data-settings-update]').hidden"));
 
+// ===== Aviso general: el cartel que publica el dueño desde GitHub =====
+const inAnHour = Math.floor(Date.now() / 1000) + 3600;
+const noticeTexts = { es: 'Atención: se prevén reducciones de servicio por huelga. Revisa las páginas de tus operadores.', eu: 'Adi: zerbitzu murrizketak espero dira greba dela eta.', en: 'Heads up: reduced services are expected because of a strike.' };
+fakeNotice = { notice: { id: 'prueba-1', text: noticeTexts, url: 'https://www.bizkaia.eus/avisos', expiresAt: inAnHour } };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/notice*' }] });
+await setStandalone(false);
+await phone();
+await go('/');
+check('aviso general · móvil: sale el cartel con su texto', await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice-text').textContent.includes('reducciones de servicio')`));
+check('aviso general · móvil: debajo de la cabecera y sin desbordar a lo ancho', (await ev("document.querySelector('.bide-notice').previousElementSibling === document.querySelector('main > header')")) && (await ev(noOverflow)));
+check('aviso general · «Más información» se abre aparte, solo con el enlace del aviso', await ev("(() => { const a = document.querySelector('.bide-notice-link'); return a.href === 'https://www.bizkaia.eus/avisos' && a.target === '_blank' && a.rel === 'noopener noreferrer'; })()"));
+await go('/?red=bus');
+check('aviso general · también en cada app', await waitTrue(shown('.bide-notice')));
+await desktop();
+await go('/');
+check('aviso general · ordenador: encima de toda la página', await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice').nextElementSibling === document.querySelector('main')`));
+await go('/?red=bus');
+check('aviso general · ordenador: también encima de cada app, sin desbordar', (await waitTrue(`${shown('.bide-notice')} && document.querySelector('.bide-notice').nextElementSibling === document.querySelector('main')`)) && (await ev(noOverflow)));
+await phone();
+await go('/');
+await waitTrue(shown('.bide-notice'));
+await ev("document.querySelector('.bide-notice-close').click(); true");
+check('aviso general · al cerrarlo desaparece', await waitTrue("!document.querySelector('.bide-notice')"));
+await go('/');
+await sleep(1500);
+check('aviso general · cerrado, no vuelve a salir', await ev("!document.querySelector('.bide-notice')"));
+await desktop();
+await go('/');
+await ev("document.querySelector('.bide-rail [data-bide-tab=avisos]').click(); true");
+check('aviso general · en Avisos, el primero, aunque se cerrara el cartel y no haya favoritos', await waitTrue("(() => { const card = document.querySelector('[data-bide-alerts] .bide-alert'); return !!card && card.textContent.includes('reducciones de servicio'); })()"));
+check('aviso general · en Avisos, con su enlace «Más información» y su título', await ev("(() => { const card = document.querySelector('[data-bide-alerts] .bide-alert'); return !!card.querySelector('.bide-notice-link') && !!document.querySelector('[data-bide-alerts] .bide-group'); })()"));
+await phone();
+await go('/?red=bus');
+await ev("document.getElementById('menu-open').click(); true");
+check('aviso general · en las incidencias de cada app, el primero y sin el «no hay incidencias»', await waitTrue("(() => { const first = document.querySelector('#menu-alerts-list li'); return !!first && first.textContent.includes('reducciones de servicio') && document.getElementById('menu-alerts-empty').hidden; })()"));
+await ev("document.getElementById('menu-close').click(); true");
+fakeNotice = { notice: { ...fakeNotice.notice, id: 'prueba-2' } };
+await go('/');
+check('aviso general · uno nuevo sí sale aunque se cerrara el anterior', await waitTrue(shown('.bide-notice')));
+fakeNotice = { notice: { ...fakeNotice.notice, id: 'prueba-3', expiresAt: Math.floor(Date.now() / 1000) - 5 } };
+await go('/');
+await sleep(1500);
+check('aviso general · pasada su hora de fin, no sale', await ev("!document.querySelector('.bide-notice')"));
+fakeNotice = { notice: null };
+await go('/');
+await sleep(1500);
+check('aviso general · sin aviso, no sale nada', await ev("!document.querySelector('.bide-notice')"));
+fakeNotice = null;
+await send('Fetch.disable');
+
 // ===== Renfe: un tren cancelado no es la salida grande y en la lista dice «cancelado» con su hora =====
 await setStandalone(false);
 await phone();
@@ -597,24 +650,14 @@ check('Bizkaibus · el que puede haber pasado no es la salida grande y sale en l
 fakeDepartures = null;
 await send('Fetch.disable');
 
-// ===== Renfe y Metro: los trenes en el mapa de la línea, con su posición GPS; sin posiciones, no se dice «no circula» =====
+// ===== El mapa de la línea: su recorrido parada a parada, sin vehículos =====
 const mapStops = [{ id: 13200, name: 'Bilbao-Abando', lat: 43.2601, lon: -2.9286 }, { id: 13206, name: 'Ametzola', lat: 43.2545, lon: -2.9437 }];
-fakeLineLive = { line: { id: '60T0001C1', code: 'C1', name: 'Abando -Santurtzi' }, patterns: [{ id: 'p1', headsign: '', stops: mapStops }], tracked: true, vehicles: [
-    { vehicleRef: '26175', delayMinutes: 2, headsign: 'Santurtzi', stopStatus: 'at', position: { lat: 43.2548, lon: -2.9430 }, currentStop: mapStops[1] },
-] };
-await send('Fetch.enable', { patterns: [{ urlPattern: '*/live*' }] });
+fakeLineRoute = { line: { id: '60T0001C1', code: 'C1', name: 'Abando -Santurtzi' }, patterns: [{ id: 'p1', headsign: '', stops: mapStops }] };
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/route*' }] });
 await go('/lines/60T0001C1?red=renfe', 3000);
-check('mapa Renfe · el tren sale con el icono de tren', await waitTrue("document.querySelectorAll('#line-map .bus-marker').length === 1 && document.querySelector('#line-map .bus-marker').innerHTML.includes('y=\"7\"')"));
-check('mapa Renfe · y no se dice que no circula nada', await ev("document.getElementById('line-map-empty').hidden"));
-await ev("document.querySelector('#line-map .bus-marker').dispatchEvent(new MouseEvent('click', { bubbles: true }))");
-check('mapa Renfe · al tocarlo: destino, «En Ametzola» y su retraso', await waitTrue("(() => { const t = document.querySelector('#line-map .leaflet-popup-content')?.textContent || ''; return t.includes('Santurtzi') && t.includes(I18n.t('app.map.at', { stop: 'Ametzola' })) && t.includes(I18n.t('app.delay.late', { min: 2 })); })()"));
-fakeLineLive = { ...fakeLineLive, vehicles: [] };
-await go('/lines/60T0001C1?red=renfe', 3000);
-check('mapa Renfe · sin trenes ahora, «No hay trenes…» (no «autobuses»)', await waitTrue("!document.getElementById('line-map-empty').hidden && document.getElementById('line-map-empty').textContent === I18n.t('app.noLiveTrains')"));
-fakeLineLive = { ...fakeLineLive, tracked: false };
-await go('/lines/60T0001C1?red=renfe', 3000);
-check('mapa sin posiciones (Euskotren, tranvías) · no dice que no circula nada', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length > 0") && await ev("document.getElementById('line-map-empty').hidden"));
-fakeLineLive = null;
+check('mapa de la línea · dibuja el recorrido', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length === 1"));
+check('mapa de la línea · sin vehículos encima', await ev("document.querySelectorAll('#line-map .leaflet-marker-icon').length === 0"));
+fakeLineRoute = null;
 await send('Fetch.disable');
 
 // ===== Ajustes: borrar los datos del móvil (al final: lo borra todo) =====

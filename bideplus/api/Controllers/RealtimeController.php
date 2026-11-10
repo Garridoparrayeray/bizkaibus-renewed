@@ -11,12 +11,11 @@ use Models\LineModel;
 use Models\ServiceJourney;
 use Services\BusSheet;
 use Services\FeedStatus;
-use Services\LineVehicles;
 use Services\TrainSheet;
 use Services\TripSheet;
 
-// Directo: los vehículos de una línea en el mapa (/api/lines/{id}/live), la ficha de un viaje (/api/vehicles/{tripKey})
-// y el diagnóstico de la fuente (/api/status). Cada cosa la hace su servicio; el cálculo de llegadas está en engine/.
+// Directo: la ficha de un viaje (/api/vehicles/{tripKey}) y el diagnóstico de la fuente (/api/status). Cada cosa
+// la hace su servicio; el cálculo de llegadas está en engine/.
 class RealtimeController
 {
     public function status(Request $Req, array $aParams): void
@@ -27,25 +26,6 @@ class RealtimeController
             return;
         }
         Response::json($aReport);
-    }
-
-    public function lineLive(Request $Req, array $aParams): void
-    {
-        $sLineId = $aParams['id'];
-        $Pdo = Database::connection();
-        $LineModel = new LineModel($Pdo);
-        $aLine = $LineModel->find($sLineId);
-        if ($aLine === null) {
-            Response::error('Line not found', 404);
-            return;
-        }
-        $aPatterns = $LineModel->patternsWithStops($sLineId);
-        Response::json([
-            'line' => $aLine,
-            'patterns' => $aPatterns,
-            'vehicles' => LineVehicles::onLine($Pdo, $sLineId, $aPatterns),
-            'tracked' => LineVehicles::tracked(),
-        ]);
     }
 
     // Ficha de un viaje (?stopId=): sus paradas con la llegada prevista a cada una, la parada por la que va, su estado

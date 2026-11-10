@@ -125,6 +125,8 @@ $Expect('sw.js va al repositorio sin huella (la pone el despliegue)', preg_match
 
 $sStampDir = sys_get_temp_dir() . '/bide-stamp-' . getmypid();
 mkdir($sStampDir . '/js', 0777, true);
+mkdir($sStampDir . '/api/Config', 0777, true);
+file_put_contents($sStampDir . '/api/Config/shell-hash.php', "<?php\n\nreturn '';\n");
 copy(__DIR__ . '/../sw.js', $sStampDir . '/sw.js');
 file_put_contents($sStampDir . '/js/a.js', 'uno');
 file_put_contents($sStampDir . '/style-a.css', 'a {}');
@@ -132,11 +134,15 @@ $Stamp($sStampDir);
 $sFirstHash = $ReadHash($sStampDir);
 $Stamp($sStampDir);
 $Expect('huella: 12 caracteres y la misma si no cambia nada', \strlen($sFirstHash) === 12 && $ReadHash($sStampDir) === $sFirstHash);
+$Expect('huella: las páginas llevan la misma que sw.js', (require $sStampDir . '/api/Config/shell-hash.php') === $sFirstHash);
+$Expect('la huella de las páginas va al repositorio vacía', (require __DIR__ . '/../api/Config/shell-hash.php') === '');
 file_put_contents($sStampDir . '/js/a.js', 'dos');
 $Stamp($sStampDir);
 $Expect('huella: cambia si cambia un fichero de la app', $ReadHash($sStampDir) !== $sFirstHash);
-array_map('unlink', [$sStampDir . '/sw.js', $sStampDir . '/js/a.js', $sStampDir . '/style-a.css']);
+array_map('unlink', [$sStampDir . '/sw.js', $sStampDir . '/js/a.js', $sStampDir . '/style-a.css', $sStampDir . '/api/Config/shell-hash.php']);
 rmdir($sStampDir . '/js');
+rmdir($sStampDir . '/api/Config');
+rmdir($sStampDir . '/api');
 rmdir($sStampDir);
 
 $aStamped = array_flip(array_filter(explode("\n", $Stamp(__DIR__ . '/..', '--list'))));
@@ -312,6 +318,17 @@ $aLeft = $MergePdo->query('SELECT id FROM service_journeys ORDER BY id')->fetchA
 $aAliases = $MergePdo->query('SELECT trip_id, service_journey_id FROM trip_aliases ORDER BY trip_id')->fetchAll(PDO::FETCH_KEY_PAIR);
 $Expect('mismo tren: los tramos contenidos en el largo se juntan con él', $iMerged === 2 && $aAliases === ['0001122026-11-09' => '0001112026-11-09', '0001132026-11-09' => '0001112026-11-09']);
 $Expect('otra hora, otro número de tren u otro calendario: viaje aparte', $aLeft === ['0001112026-11-09', '0001142026-11-09', '0001162026-11-09', '0001212026-11-09']);
+
+// Una errata del operador (un paso antes que el anterior) se deja a la hora del anterior, y lo de detrás no se toca.
+$TimesPdo = new PDO('sqlite::memory:');
+Build\Schema::createSchema($TimesPdo);
+$InsertBack = $TimesPdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
+foreach ([[1, 'A', 100, 100], [2, 'B', 400, 420], [3, 'C', 60, 60], [4, 'D', 500, 500]] as [$iSeq, $sStop, $iArrival, $iDeparture]) {
+    $InsertBack->execute(['J', $iSeq, $sStop, $iArrival, $iDeparture]);
+}
+$iBackFixed = Build\Schema::fixBackwardTimes($TimesPdo);
+$aBackTimes = $TimesPdo->query('SELECT arrival_seconds, departure_seconds FROM passing_times ORDER BY seq_order')->fetchAll(PDO::FETCH_NUM);
+$Expect('una hora que va hacia atrás se deja a la de la parada anterior', $iBackFixed === 1 && $aBackTimes === [[100, 100], [400, 420], [420, 420], [500, 500]]);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";

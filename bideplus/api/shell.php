@@ -20,6 +20,14 @@ header_register_callback(function () use ($bMiamorDomain) {
     header('Vary: Host');
 });
 
+$sShellHash = '';
+if (is_file(__DIR__ . '/Config/shell-hash.php')) {
+    $sShellHash = (string)require __DIR__ . '/Config/shell-hash.php';
+}
+if ($sShellHash !== '') {
+    header('X-Bide-Shell: ' . $sShellHash);
+}
+
 // Con ?lang=eu o ?lang=en, la página sale ya traducida: así los buscadores ven la versión en euskera y en inglés.
 $sLang = \Core\Lang::current();
 if ($sLang !== 'es') {

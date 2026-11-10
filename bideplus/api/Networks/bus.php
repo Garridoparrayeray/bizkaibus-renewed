@@ -55,6 +55,18 @@ return [
             'dataLimits' => 'Without a bus\'s GPS, an estimated time from what it has learned. From 23:58 to 05:00 the operator repeats old data: official timetable.',
             'attribution' => 'Data: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
         ],
+        'fr' => [
+            'name' => 'Bizkaibus+',
+            'tile' => 'Horaires et temps réel',
+            'switcher' => 'Horaires et temps réel de Bizkaibus',
+            'subtitle' => 'Horaires et temps réel de Bizkaibus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Bizkaibus ni avec la Députation forale de Bizkaia. Les arrivées sont calculées avec la position GPS de chaque bus.',
+            'dataPublished' => 'La position GPS de chaque bus, chaque minute.',
+            'dataMethod' => 'Algorithme propre : où se trouve chaque bus et le temps que les bus mettent réellement sur chaque tronçon.',
+            'dataLimits' => 'Sans GPS d’un bus, heure estimée avec ce qui a été appris. De 23 h 58 à 5 h 00, l’opérateur répète d’anciennes données : horaire officiel.',
+            'attribution' => 'Données : Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
+        ],
     ],
 
     'seo' => [

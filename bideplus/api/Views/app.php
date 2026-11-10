@@ -42,6 +42,8 @@ use Core\Networks;
     <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/linkify.js"></script>
+    <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
     <script src="/js/new-badge.js"></script>
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
@@ -229,7 +231,6 @@ use Core\Networks;
             <p id="timetable-line" class="timetable-line"></p>
 
             <div id="line-map" class="line-map"></div>
-            <p id="line-map-empty" class="line-map-empty" data-i18n="app.noLiveBuses">No hay autobuses de esta línea circulando ahora mismo.</p>
 
             <div class="filters">
                 <input id="filter-date" class="filter-date" type="date" aria-label="Fecha">
@@ -271,7 +272,7 @@ use Core\Networks;
     <footer id="app-footer" class="app-footer">
         <div class="bide-footer-brand">
             <span class="bide-wordmark">BIDE<span>+</span></span>
-            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskadi. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
+            <p data-i18n="bide.footer.text">Horarios y tiempo real del transporte público de Euskal Herria. Proyecto independiente y no oficial, sin relación con los operadores ni con las administraciones que publican los datos.</p>
         </div>
         <?= bideAppsLinks() ?>
         <?= bideFooterAuthor('<button id="legal-open" class="legal-open" type="button" data-i18n="app.legalNotice">Aviso legal y privacidad</button>') ?>

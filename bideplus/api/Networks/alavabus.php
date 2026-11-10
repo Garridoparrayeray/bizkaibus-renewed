@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Álavabus',
             'name' => 'Álavabus+',
             'tile' => 'Autobuses de Álava',
             'switcher' => 'Horarios y tiempo real de Álavabus en Álava',
@@ -44,6 +45,7 @@ return [
             'dataLimits' => 'Con el feed vacío o parado, horario oficial. En preparación: el algoritmo de Bizkaibus.',
         ],
         'eu' => [
+            'liveSource' => 'Álavabusek',
             'name' => 'Álavabus+',
             'tile' => 'Arabako autobusak',
             'switcher' => 'Álavabusen ordutegiak eta denbora errealean Araban',
@@ -56,6 +58,7 @@ return [
             'attribution' => 'Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Álavabus',
             'name' => 'Álavabus+',
             'tile' => 'Álava buses',
             'switcher' => 'Álavabus timetables and real time in Álava',
@@ -66,6 +69,19 @@ return [
             'dataMethod' => 'Each bus\'s GPS position; the operator\'s forecast only without GPS and if it is no more than 45 min off.',
             'dataLimits' => 'With the feed empty or frozen, the official timetable. In preparation: the Bizkaibus algorithm.',
             'attribution' => 'Data: Álavabus / Provincial Council of Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
+        ],
+        'fr' => [
+            'liveSource' => 'Álavabus',
+            'name' => 'Álavabus+',
+            'tile' => 'Bus d’Álava',
+            'switcher' => 'Horaires et temps réel d’Álavabus en Álava',
+            'subtitle' => 'Horaires et temps réel d’Álavabus',
+            'liveEmpty' => 'Cherchez un arrêt pour voir le prochain bus.',
+            'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Álavabus ni avec la Députation forale d’Álava. Les temps en direct viennent de la position GPS de chaque bus ou, à défaut, de la prévision de l’opérateur.',
+            'dataPublished' => 'La position GPS et l’heure prévue de chaque bus, avec des erreurs : heures avancées d’une heure, arrêts déjà passés, trajets d’autres jours et flux vide ou figé par moments.',
+            'dataMethod' => 'La position GPS de chaque bus ; la prévision de l’opérateur, seulement sans GPS et si elle ne s’écarte pas de plus de 45 min.',
+            'dataLimits' => 'Avec le flux vide ou figé, horaire officiel. En préparation : l’algorithme de Bizkaibus.',
+            'attribution' => 'Données : Álavabus / Députation forale d’Álava, via Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
         ],
     ],
 
