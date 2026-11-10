@@ -89,7 +89,6 @@ export const el = {
     timetableLine: document.getElementById('timetable-line'),
     timetableBody: document.getElementById('timetable-body'),
     timetableEmpty: document.getElementById('timetable-empty'),
-    lineMapEmpty: document.getElementById('line-map-empty'),
     filterDate: document.getElementById('filter-date'),
     filterHourFrom: document.getElementById('filter-hour-from'),
     filterHourTo: document.getElementById('filter-hour-to'),

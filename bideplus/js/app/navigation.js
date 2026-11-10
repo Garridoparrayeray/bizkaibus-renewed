@@ -1,6 +1,6 @@
 // Cerrar la parada o la línea, el menú de redes y la navegación con el historial (atrás, enlaces /stops y /lines).
 import { el, networkQuery, state } from './core.js';
-import { clearLineMap, stopLineMapRefresh } from './line-map.js';
+import { clearLineMap } from './line-map.js';
 import { selectStop, stopDeparturesRefresh } from './stop.js';
 import { selectLine } from './timetable.js';
 import { openVehicleModal } from './vehicle-modal.js';
@@ -31,7 +31,6 @@ export function closeTimetableSection() {
     state.currentLine = null;
     state.timetableStopId = null;
     el.timetableSection.hidden = true;
-    stopLineMapRefresh();
     clearLineMap();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (window.location.pathname.startsWith('/lines/')) {

@@ -80,7 +80,7 @@ for name, cfg in NETS.items():
                 get(with_net(f'/api/vehicles/{trip}', s))
                 get(with_net(f'/api/trips/{trip}?stopId={sid}', s))
             get(with_net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=22:00&hourTo=05:00', s))
-            get(with_net(f'/api/lines/{lid}/live', s))
+            get(with_net(f'/api/lines/{lid}/route', s))
     get(with_net('/api/lines', s))
     get(with_net('/api/alerts', s))
     get(with_net('/api/search?q=x', s))

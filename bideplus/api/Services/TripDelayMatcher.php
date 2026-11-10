@@ -71,6 +71,13 @@ class TripDelayMatcher
         // se arregla o se quita, para que no ponga su hora a una estación por la que el tren ya ha pasado.
         $aFeedStops = FeedStopOrder::fit($aTrip['stops'] ?? [], array_map(fn(array $aStop) => (string)$aStop['stop_id'], $aStops));
         $sNextStopId = $aTrip['nextStopId'] ?? null;
+        // En la cabecera cuenta cuándo sale el vehículo, no cuándo llega a esperar su hora.
+        $sOrigin = (string)($aStops[0]['stop_id'] ?? '');
+        foreach ($aFeedStops as $iIndex => $aFeedStop) {
+            if ((string)$aFeedStop[0] === $sOrigin && isset($aFeedStop[2])) {
+                $aFeedStops[$iIndex][1] = $aFeedStop[2];
+            }
+        }
         if (!empty($aFeedStops)) {
             $sNextStopId = self::nextFeedStop($aFeedStops);
         }

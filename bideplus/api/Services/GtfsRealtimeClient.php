@@ -15,6 +15,7 @@ class GtfsRealtimeClient
     private const WIRE_FIXED32 = 5;
 
     private const SKIPPED = 1;
+    private const WAIT_SECONDS = 60;
     private const CANCELED = 3;
     private const STOP_STATUSES = [0 => 'arriving', 1 => 'at', 2 => 'towards'];
     private const LANGUAGE = 'es';
@@ -339,7 +340,9 @@ class GtfsRealtimeClient
                 }
             } elseif ($iField === 2) {
                 $aStop = self::parseStopTimeUpdate($Value);
-                if ($aStop !== null && $aStop['time'] !== null) {
+                if ($aStop !== null && $aStop['time'] !== null && $aStop['leaves'] !== null) {
+                    $aStops[] = [$aStop['stopId'], $aStop['time'], $aStop['leaves']];
+                } elseif ($aStop !== null && $aStop['time'] !== null) {
                     $aStops[] = [$aStop['stopId'], $aStop['time']];
                 } elseif ($aStop !== null && $sNextStopId === null) {
                     $sNextStopId = $aStop['stopId'];
@@ -371,7 +374,8 @@ class GtfsRealtimeClient
         return $aTrip;
     }
 
-    // Una parada del viaje: su hora prevista o, si no la trae, su retraso. Null si no trae ninguno o se la salta.
+    // Una parada del viaje: su hora prevista o, si no la trae, su retraso. Null si no trae ninguno o se la salta. Con
+    // «leaves», la hora a la que sale si el feed la da al menos un minuto después de la de llegada (espera en la parada).
     private static function parseStopTimeUpdate(string $sUpdate): array|null
     {
         $sStopId = null;
@@ -399,7 +403,12 @@ class GtfsRealtimeClient
         if ($aEvent['time'] === null && $aEvent['delay'] === null) {
             return null;
         }
-        return ['stopId' => $sStopId] + $aEvent;
+        $iLeaves = null;
+        if ($aArrival !== null && $aDeparture !== null && $aArrival['time'] !== null && $aDeparture['time'] !== null
+            && $aDeparture['time'] - $aArrival['time'] >= self::WAIT_SECONDS) {
+            $iLeaves = $aDeparture['time'];
+        }
+        return ['stopId' => $sStopId, 'leaves' => $iLeaves] + $aEvent;
     }
 
     private static function event(string $sEvent): array

@@ -64,7 +64,7 @@ const Api = (() => {
                 return get(path);
             },
             tripStops: (tripKey, stopId) => get(`/trips/${tripKey}?stopId=${stopId}`),
-            lineLive: (lineId) => get(`/lines/${lineId}/live`),
+            lineRoute: (lineId) => get(`/lines/${lineId}/route`),
             alerts: (lineId, stopId) => {
                 const params = new URLSearchParams();
                 if (lineId) params.set('line', lineId);
