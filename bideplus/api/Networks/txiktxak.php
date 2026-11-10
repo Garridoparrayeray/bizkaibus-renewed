@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'el Syndicat des Mobilités Pays Basque-Adour',
             'name' => 'Txik Txak+',
             'tile' => 'Autobuses de Iparralde',
             'switcher' => 'Horarios y tiempo real de los autobuses de Iparralde',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Syndicat des Mobilités Pays Basque-Adour. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Syndicat des Mobilités Pays Basque-Adour erakundeak',
             'name' => 'Txik Txak+',
             'tile' => 'Iparraldeko autobusak',
             'switcher' => 'Iparraldeko autobusen ordutegiak eta denbora errealean',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)',
         ],
         'en' => [
+            'liveSource' => 'the Syndicat des Mobilités Pays Basque-Adour',
             'name' => 'Txik Txak+',
             'tile' => 'Buses in the Northern Basque Country',
             'switcher' => 'Timetables and real time for buses in the Northern Basque Country',

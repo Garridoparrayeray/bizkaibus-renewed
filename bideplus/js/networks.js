@@ -73,6 +73,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "el Consorcio de Transportes de Bizkaia",
                 "name": "Metro+",
                 "tile": "Metro Bilbao",
                 "switcher": "Horarios y tiempo real de Metro Bilbao",
@@ -82,6 +83,7 @@
                 "attribution": "Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real"
             },
             "eu": {
+                "liveSource": "Bizkaiko Garraio Partzuergoak",
                 "name": "Metro+",
                 "tile": "Bilboko Metroa",
                 "switcher": "Bilboko Metroaren ordutegiak eta denbora errealean",
@@ -91,6 +93,7 @@
                 "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean"
             },
             "en": {
+                "liveSource": "the Bizkaia Transport Consortium",
                 "name": "Metro+",
                 "tile": "Metro Bilbao",
                 "switcher": "Metro Bilbao timetables and real time",
@@ -123,6 +126,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Euskotren",
                 "name": "Euskotren+",
                 "tile": "Horarios",
                 "switcher": "Horarios de Euskotren",
@@ -132,6 +136,7 @@
                 "attribution": "Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Euskotrenek",
                 "name": "Euskotren+",
                 "tile": "Ordutegiak",
                 "switcher": "Euskotrenen ordutegiak",
@@ -141,6 +146,7 @@
                 "attribution": "Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Euskotren",
                 "name": "Euskotren+",
                 "tile": "Timetables",
                 "switcher": "Euskotren timetables",
@@ -174,6 +180,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Renfe",
                 "name": "Renfe Cercanías+",
                 "tile": "Cercanías en Bilbao y Donostia",
                 "switcher": "Horarios y tiempo real de Cercanías en Bilbao y Donostia",
@@ -183,6 +190,7 @@
                 "attribution": "Datos: Renfe Cercanías"
             },
             "eu": {
+                "liveSource": "Renfek",
                 "name": "Renfe Aldiriak+",
                 "tile": "Bilbo eta Donostiako aldiriak",
                 "switcher": "Bilbo eta Donostiako Aldirien ordutegiak eta denbora errealean",
@@ -192,6 +200,7 @@
                 "attribution": "Datuak: Renfe Aldiriak"
             },
             "en": {
+                "liveSource": "Renfe",
                 "name": "Renfe Cercanías+",
                 "tile": "Commuter trains in Bilbao and Donostia",
                 "switcher": "Commuter train timetables and real time in Bilbao and Donostia",
@@ -274,6 +283,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Euskotren",
                 "name": "Tranvía Bilbao+",
                 "tile": "Horarios y tiempo real",
                 "tile_title": "Tranvía",
@@ -285,6 +295,7 @@
                 "attribution": "Datos: Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Euskotrenek",
                 "name": "Tranbia Bilbo+",
                 "tile_title": "Tranbia",
                 "tile": "Ordutegiak eta zuzenekoa",
@@ -296,6 +307,7 @@
                 "attribution": "Datuak: Euskotren (Bilboko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Euskotren",
                 "name": "Tranvía Bilbao+",
                 "tile": "Timetables and real time",
                 "tile_title": "Tranvía",
@@ -330,6 +342,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Euskotren",
                 "name": "Tranvía Vitoria+",
                 "tile": "Horarios y tiempo real",
                 "tile_title": "Tranvía",
@@ -341,6 +354,7 @@
                 "attribution": "Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Euskotrenek",
                 "name": "Tranbia Gasteiz+",
                 "tile_title": "Tranbia",
                 "tile": "Ordutegiak eta zuzenekoa",
@@ -352,6 +366,7 @@
                 "attribution": "Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Euskotren",
                 "name": "Tranvía Vitoria+",
                 "tile": "Timetables and real time",
                 "tile_title": "Tranvía",
@@ -436,6 +451,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Tuvisa",
                 "name": "Tuvisa+",
                 "tile": "Autobuses de Vitoria-Gasteiz",
                 "switcher": "Horarios y tiempo real de Tuvisa en Vitoria-Gasteiz",
@@ -445,6 +461,7 @@
                 "attribution": "Datos: Tuvisa / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Tuvisak",
                 "name": "Tuvisa+",
                 "tile": "Gasteizko autobusak",
                 "switcher": "Tuvisaren ordutegiak eta denbora errealean Gasteizen",
@@ -454,6 +471,7 @@
                 "attribution": "Datuak: Tuvisa / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Tuvisa",
                 "name": "Tuvisa+",
                 "tile": "Vitoria-Gasteiz buses",
                 "switcher": "Tuvisa timetables and real time in Vitoria-Gasteiz",
@@ -486,6 +504,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Dbus",
                 "name": "Dbus+",
                 "tile": "Autobuses de Donostia",
                 "switcher": "Horarios y tiempo real de Dbus en Donostia",
@@ -495,6 +514,7 @@
                 "attribution": "Datos: Dbus / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Dbusek",
                 "name": "Dbus+",
                 "tile": "Donostiako autobusak",
                 "switcher": "Dbusen ordutegiak eta denbora errealean Donostian",
@@ -504,6 +524,7 @@
                 "attribution": "Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Dbus",
                 "name": "Dbus+",
                 "tile": "Donostia buses",
                 "switcher": "Dbus timetables and real time in Donostia",
@@ -536,6 +557,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Álavabus",
                 "name": "Álavabus+",
                 "tile": "Autobuses de Álava",
                 "switcher": "Horarios y tiempo real de Álavabus en Álava",
@@ -545,6 +567,7 @@
                 "attribution": "Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)"
             },
             "eu": {
+                "liveSource": "Álavabusek",
                 "name": "Álavabus+",
                 "tile": "Arabako autobusak",
                 "switcher": "Álavabusen ordutegiak eta denbora errealean Araban",
@@ -554,6 +577,7 @@
                 "attribution": "Datuak: Álavabus / Arabako Foru Aldundia, Moveuskadiren bidez (Open Data Euskadi, CC-BY 4.0)"
             },
             "en": {
+                "liveSource": "Álavabus",
                 "name": "Álavabus+",
                 "tile": "Álava buses",
                 "switcher": "Álavabus timetables and real time in Álava",
@@ -636,6 +660,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "Renfe",
                 "name": "Renfe LD+",
                 "tile": "Larga y media distancia en Euskadi y Navarra",
                 "switcher": "Horarios y tiempo real de los trenes de larga y media distancia",
@@ -645,6 +670,7 @@
                 "attribution": "Datos: Renfe"
             },
             "eu": {
+                "liveSource": "Renfek",
                 "name": "Renfe LD+",
                 "tile": "Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan",
                 "switcher": "Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean",
@@ -654,6 +680,7 @@
                 "attribution": "Datuak: Renfe"
             },
             "en": {
+                "liveSource": "Renfe",
                 "name": "Renfe LD+",
                 "tile": "Long and medium distance trains in the Basque Country and Navarre",
                 "switcher": "Long and medium distance train timetables and real time",
@@ -686,6 +713,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "el Syndicat des Mobilités Pays Basque-Adour",
                 "name": "Txik Txak+",
                 "tile": "Autobuses de Iparralde",
                 "switcher": "Horarios y tiempo real de los autobuses de Iparralde",
@@ -695,6 +723,7 @@
                 "attribution": "Datos: Syndicat des Mobilités Pays Basque-Adour / transport.data.gouv.fr"
             },
             "eu": {
+                "liveSource": "Syndicat des Mobilités Pays Basque-Adour erakundeak",
                 "name": "Txik Txak+",
                 "tile": "Iparraldeko autobusak",
                 "switcher": "Iparraldeko autobusen ordutegiak eta denbora errealean",
@@ -704,6 +733,7 @@
                 "attribution": "Datuak: Syndicat des Mobilités Pays Basque-Adour (GTFS)"
             },
             "en": {
+                "liveSource": "the Syndicat des Mobilités Pays Basque-Adour",
                 "name": "Txik Txak+",
                 "tile": "Buses in the Northern Basque Country",
                 "switcher": "Timetables and real time for buses in the Northern Basque Country",
@@ -736,6 +766,7 @@
         },
         "texts": {
             "es": {
+                "liveSource": "SNCF",
                 "name": "SNCF+",
                 "tile": "Trenes de Iparralde",
                 "switcher": "Horarios y tiempo real de los trenes de Iparralde",
@@ -745,6 +776,7 @@
                 "attribution": "Datos: SNCF (GTFS)"
             },
             "eu": {
+                "liveSource": "SNCFk",
                 "name": "SNCF+",
                 "tile": "Iparraldeko trenak",
                 "switcher": "Iparraldeko trenen ordutegiak eta denbora errealean",
@@ -754,6 +786,7 @@
                 "attribution": "Datuak: SNCF (GTFS)"
             },
             "en": {
+                "liveSource": "SNCF",
                 "name": "SNCF+",
                 "tile": "Trains in the Northern Basque Country",
                 "switcher": "Timetables and real time for trains in the Northern Basque Country",

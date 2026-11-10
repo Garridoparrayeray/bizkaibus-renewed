@@ -31,6 +31,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe Cercanías+',
             'tile' => 'Cercanías en Bilbao y Donostia',
             'switcher' => 'Horarios y tiempo real de Cercanías en Bilbao y Donostia',
@@ -39,6 +40,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
         ],
         'eu' => [
+            'liveSource' => 'Renfek',
             'name' => 'Renfe Aldiriak+',
             'tile' => 'Bilbo eta Donostiako aldiriak',
             'switcher' => 'Bilbo eta Donostiako Aldirien ordutegiak eta denbora errealean',
@@ -48,6 +50,7 @@ return [
             'attribution' => 'Datuak: Renfe Aldiriak',
         ],
         'en' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe Cercanías+',
             'tile' => 'Commuter trains in Bilbao and Donostia',
             'switcher' => 'Commuter train timetables and real time in Bilbao and Donostia',

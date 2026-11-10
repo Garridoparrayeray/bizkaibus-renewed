@@ -31,6 +31,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Vitoria+',
             'tile' => 'Horarios y tiempo real',
             'tile_title' => 'Tranvía',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Euskotrenek',
             'name' => 'Tranbia Gasteiz+',
             'tile_title' => 'Tranbia',
             'tile' => 'Ordutegiak eta zuzenekoa',
@@ -52,6 +54,7 @@ return [
             'attribution' => 'Datuak: Euskotren (Gasteizko tranbia) / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Tranvía Vitoria+',
             'tile' => 'Timetables and real time',
             'tile_title' => 'Tranvía',

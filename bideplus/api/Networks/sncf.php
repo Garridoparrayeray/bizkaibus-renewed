@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'SNCF',
             'name' => 'SNCF+',
             'tile' => 'Trenes de Iparralde',
             'switcher' => 'Horarios y tiempo real de los trenes de Iparralde',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con SNCF. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'SNCFk',
             'name' => 'SNCF+',
             'tile' => 'Iparraldeko trenak',
             'switcher' => 'Iparraldeko trenen ordutegiak eta denbora errealean',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: SNCF (GTFS)',
         ],
         'en' => [
+            'liveSource' => 'SNCF',
             'name' => 'SNCF+',
             'tile' => 'Trains in the Northern Basque Country',
             'switcher' => 'Timetables and real time for trains in the Northern Basque Country',

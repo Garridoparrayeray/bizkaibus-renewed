@@ -30,6 +30,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Euskotren+',
             'tile' => 'Horarios',
             'switcher' => 'Horarios de Euskotren',
@@ -38,6 +39,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Euskotren S.A. Euskotren no publica el directo de sus trenes: las horas son las del horario oficial.',
         ],
         'eu' => [
+            'liveSource' => 'Euskotrenek',
             'name' => 'Euskotren+',
             'tile' => 'Ordutegiak',
             'switcher' => 'Euskotrenen ordutegiak',
@@ -47,6 +49,7 @@ return [
             'attribution' => 'Datuak: Euskotren / Open Data Euskadi (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Euskotren',
             'name' => 'Euskotren+',
             'tile' => 'Timetables',
             'switcher' => 'Euskotren timetables',

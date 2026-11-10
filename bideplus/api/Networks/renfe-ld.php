@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe LD+',
             'tile' => 'Larga y media distancia en Euskadi y Navarra',
             'switcher' => 'Horarios y tiempo real de los trenes de larga y media distancia',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
         ],
         'eu' => [
+            'liveSource' => 'Renfek',
             'name' => 'Renfe LD+',
             'tile' => 'Distantzia luzeko eta ertaineko trenak Euskadin eta Nafarroan',
             'switcher' => 'Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Renfe',
         ],
         'en' => [
+            'liveSource' => 'Renfe',
             'name' => 'Renfe LD+',
             'tile' => 'Long and medium distance trains in the Basque Country and Navarre',
             'switcher' => 'Long and medium distance train timetables and real time',

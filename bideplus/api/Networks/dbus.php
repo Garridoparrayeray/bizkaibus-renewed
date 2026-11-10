@@ -33,6 +33,7 @@ return [
 
     'texts' => [
         'es' => [
+            'liveSource' => 'Dbus',
             'name' => 'Dbus+',
             'tile' => 'Autobuses de Donostia',
             'switcher' => 'Horarios y tiempo real de Dbus en Donostia',
@@ -41,6 +42,7 @@ return [
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Dbus ni con el Ayuntamiento de Donostia / San Sebastián. Los tiempos en directo son una previsión del operador.',
         ],
         'eu' => [
+            'liveSource' => 'Dbusek',
             'name' => 'Dbus+',
             'tile' => 'Donostiako autobusak',
             'switcher' => 'Dbusen ordutegiak eta denbora errealean Donostian',
@@ -50,6 +52,7 @@ return [
             'attribution' => 'Datuak: Dbus / Open Data Euskadi, Moveuskadiren bidez (CC-BY 4.0)',
         ],
         'en' => [
+            'liveSource' => 'Dbus',
             'name' => 'Dbus+',
             'tile' => 'Donostia buses',
             'switcher' => 'Dbus timetables and real time in Donostia',
