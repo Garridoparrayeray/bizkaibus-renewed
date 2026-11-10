@@ -1,7 +1,10 @@
 name: Tests
 
 on:
+  # Una rama se prueba por su PR; el push solo prueba lo que llega a master (así cada commit corre una vez, no dos).
   push:
+    branches:
+      - master
     paths:
       - 'bideplus/**'
       - '.github/workflows/tests.yml'
@@ -10,6 +13,10 @@ on:
       - 'bideplus/**'
       - '.github/workflows/tests.yml'
   workflow_dispatch: {}
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   tests:

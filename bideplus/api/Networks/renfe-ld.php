@@ -38,7 +38,7 @@ return [
             'switcher' => 'Horarios y tiempo real de los trenes de larga y media distancia',
             'subtitle' => 'Larga y media distancia en tiempo real',
             'liveEmpty' => 'Busca una estación para ver el próximo tren.',
-            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos son los que publica Renfe en directo.',
+            'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Renfe. Los retrasos y los trenes cancelados son los que publica Renfe en directo.',
             'dataPublished' => 'El retraso de cada tren, los cancelados y su posición, en un directo de toda España.',
             'dataMethod' => 'El retraso que publica Renfe, en los trenes que salen de Euskadi y Navarra.',
             'dataLimits' => 'Algunos trenes no salen en su directo y van con su horario.',
@@ -49,7 +49,7 @@ return [
             'switcher' => 'Distantzia luzeko eta ertaineko trenen ordutegiak eta denbora errealean',
             'subtitle' => 'Distantzia luzeko eta ertaineko trenak denbora errealean',
             'liveEmpty' => 'Bilatu geltoki bat hurrengo trena ikusteko.',
-            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak Renfek zuzenean argitaratzen dituenak dira.',
+            'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Renferekin loturarik gabea. Atzerapenak eta bertan behera utzitako trenak Renfek zuzenean argitaratzen dituenak dira.',
             'dataPublished' => 'Tren bakoitzaren atzerapena, bertan behera utzitakoak eta haren kokapena, Espainia osoko zuzeneko batean.',
             'dataMethod' => 'Renfek argitaratzen duen atzerapena, Euskaditik eta Nafarroatik ateratzen diren trenetan.',
             'dataLimits' => 'Tren batzuk ez daude zuzenekoan eta beren ordutegiarekin doaz.',
@@ -61,7 +61,7 @@ return [
             'switcher' => 'Long and medium distance train timetables and real time',
             'subtitle' => 'Long and medium distance trains in real time',
             'liveEmpty' => 'Search for a station to see the next train.',
-            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays are those Renfe publishes live.',
+            'disclaimer' => 'An independent, unofficial project, not affiliated with Renfe. Delays and cancelled trains are those Renfe publishes live.',
             'dataPublished' => 'Each train\'s delay, cancellations and its position, in a live feed for all of Spain.',
             'dataMethod' => 'The delay Renfe publishes, for the trains leaving the Basque Country and Navarre.',
             'dataLimits' => 'Some trains are missing from the live feed and show their timetable.',
@@ -82,11 +82,14 @@ return [
         'line_map' => true,
         'schedule_text' => false,
         'trip_detail' => 'vehicle',
-        'alerts' => 'network',
+        'alerts' => 'stops',
         'alerts_detail' => true,
     ],
 
     'live' => ['trip-updates', 'vehicle-positions'],
+
+    // El workflow «Ritmo de los buses» guarda este directo para que el motor aprenda de él, como en Renfe Cercanías.
+    'capture' => 'gtfs-rt',
 
     // Directo de Renfe para estos trenes (GTFS-Realtime): el retraso de cada uno y dónde va. Sus viajes son los del
     // horario (con su fecha), así que se empareja por viaje.
@@ -120,6 +123,8 @@ return [
         'stops' => 'generic',
         'skip_geocode' => true,
         'name_lines_from_stops' => true,
+        // Un tren con varios orígenes o destinos viene en un viaje por cada uno: se juntan por el número de tren (5 cifras).
+        'merge_same_train_number' => 5,
         // Las estaciones de la red: las de Euskadi y Navarra. Al construir la base quedan solo los trenes en los que se
         // sube en ellas, con esas estaciones y su destino; el destino de fuera no se busca ni sale en el mapa ni en avisos.
         'keep_stops' => [
