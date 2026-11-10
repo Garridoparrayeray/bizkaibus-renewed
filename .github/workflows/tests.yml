@@ -106,6 +106,9 @@ jobs:
       - name: Periodos del horario oficial (sin años pasados, días sueltos juntos)
         run: node tests/schedule-periods.mjs
 
+      - name: Enlaces de los avisos (direcciones web en los textos)
+        run: node tests/linkify.mjs
+
       - name: UI battery
         env:
           CHROME_PATH: google-chrome

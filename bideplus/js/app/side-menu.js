@@ -9,7 +9,7 @@ function alertItem(lines, summary, description) {
         if (text === null) continue;
         const span = document.createElement('span');
         span.className = className;
-        span.textContent = text;
+        BideLinks.append(span, text);
         item.append(span);
     }
     el.menuAlertsList.appendChild(item);

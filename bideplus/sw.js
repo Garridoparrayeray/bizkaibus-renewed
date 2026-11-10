@@ -56,6 +56,7 @@ const SHELL_FILES = [
     '/js/app/arrival-alerts.js',
     '/js/networks.js',
     '/js/alerts-store.js',
+    '/js/linkify.js',
     '/js/push.js',
     '/js/incident-alerts.js',
     '/js/arrival-alerts-store.js',

@@ -24,6 +24,7 @@ STEPS = [
     ('Contrato de la API', [PY, 'tests/api-contract.py']),
     ('Horarios sin conexión', ['node', 'tests/offline-schedule.mjs']),
     ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
+    ('Enlaces de los avisos', ['node', 'tests/linkify.mjs']),
 ]
 if not QUICK:
     STEPS += [

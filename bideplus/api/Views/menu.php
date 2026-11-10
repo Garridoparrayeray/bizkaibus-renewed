@@ -136,6 +136,7 @@ $aJsonLd = [
     <script src="/js/bide-mode.js"></script>
     <script src="/js/notification-open.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/linkify.js"></script>
     <script src="/js/networks.js"></script>
     <link rel="stylesheet" href="/css/style-menu.css">
     <link rel="stylesheet" href="/css/style-bide.css">

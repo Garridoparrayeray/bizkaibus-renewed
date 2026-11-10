@@ -252,7 +252,11 @@
             for (const alert of alerts) {
                 const card = createNode('article', 'bide-card bide-alert');
                 card.append(createNode('strong', null, alert.title));
-                if (alert.description) card.append(createNode('p', null, alert.description));
+                if (alert.description) {
+                    const description = createNode('p', null);
+                    BideLinks.append(description, alert.description);
+                    card.append(description);
+                }
                 list.append(card);
             }
         }

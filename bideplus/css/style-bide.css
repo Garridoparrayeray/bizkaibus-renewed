@@ -325,6 +325,13 @@ html.bide .bide-card {
         color: var(--bide-muted);
         white-space: pre-line;
     }
+.alert-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    overflow-wrap: anywhere;
+}
 html.bide .bide-links {
     display: flex;
     flex-wrap: wrap;

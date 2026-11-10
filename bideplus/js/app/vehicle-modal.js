@@ -236,7 +236,7 @@ async function loadModalAlerts() {
     } else {
         for (const alert of alerts) {
             const li = document.createElement('li');
-            li.textContent = `${alert.summary}: ${alert.description}`;
+            BideLinks.append(li, `${alert.summary}: ${alert.description}`);
             el.modalAlerts.appendChild(li);
         }
     }
