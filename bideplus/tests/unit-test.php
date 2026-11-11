@@ -782,4 +782,46 @@ $Expect('un enlace que no es http o https se descarta, pero el aviso sale', \Ser
 $Expect('«notificar» solo vale con true', \Services\Notice::fromArray(['notify' => 'true'] + $aGood, $iNow)['notify'] === false && \Services\Notice::fromArray(['notify' => null] + $aGood, $iNow)['notify'] === false);
 $Expect('el texto se corta a 400 caracteres', mb_strlen(\Services\Notice::fromArray(['text' => ['es' => str_repeat('á', 900)]] + $aGood, $iNow)['text']['es']) === 400);
 
+$Section('Trenes armados con las llegadas del SIRI (feed sin número de viaje)');
+$sSiri = '<?xml version="1.0"?><Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery>'
+    . '<VehicleActivity><RecordedAtTime>2026-11-11T19:55:00+01:00</RecordedAtTime><MonitoredVehicleJourney><DirectionRef>1</DirectionRef>'
+    . '<DestinationRef>1.0</DestinationRef><DestinationAimedArrivalTime>2026-11-11T20:00:00+01:00</DestinationAimedArrivalTime>'
+    . '<VehicleJourneyRef>0</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
+    . '<VehicleActivity><RecordedAtTime>2026-11-11T19:55:00+01:00</RecordedAtTime><MonitoredVehicleJourney><DirectionRef>1</DirectionRef>'
+    . '<DestinationRef>2.0</DestinationRef><DestinationAimedArrivalTime>2026-11-11T20:02:00+01:00</DestinationAimedArrivalTime>'
+    . '<VehicleJourneyRef>0</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
+    . '</VehicleMonitoringDelivery></ServiceDelivery></Siri>';
+$aParsed = \Services\StopArrivalTrips::parseArrivals($sSiri);
+$Expect('lee la parada (sin «.0») y la hora de cada llegada', \count($aParsed) === 2 && $aParsed[0]['stop'] === '1' && $aParsed[1]['time'] - $aParsed[0]['time'] === 120, json_encode($aParsed));
+$Expect('un XML roto no da llegadas', \Services\StopArrivalTrips::parseArrivals('<Siri') === []);
+$Expect('un feed parado (lecturas antiguas) no vale', \Services\StopArrivalTrips::recent($aParsed, $aParsed[0]['recorded'] + 1) === [] && \count(\Services\StopArrivalTrips::recent($aParsed, $aParsed[0]['recorded'] - 1)) === 2);
+
+$aSegments = ['1|2' => 120, '2|3' => 60, '3|2' => 60, '2|1' => 120, '2|4' => 90];
+$Arrival = fn(string $sStop, int $iTime) => ['stop' => $sStop, 'time' => T0 + $iTime, 'recorded' => T0];
+$aChained = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 120), $Arrival('3', 180)], $aSegments);
+$Expect('une las llegadas que cuadran con lo que tarda el tren entre paradas', \count($aChained) === 1 && array_column($aChained[0]['stops'], 0) === ['1', '2', '3'], json_encode($aChained));
+$aTwo = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('1', 300), $Arrival('2', 125), $Arrival('2', 415)], ['1|2' => 120]);
+$Expect('con dos trenes en la misma parada, cada llegada va con la suya', \count($aTwo) === 2 && $aTwo[0]['stops'][1][1] === T0 + 125 && $aTwo[1]['stops'][1][1] === T0 + 415, json_encode($aTwo));
+$Expect('una llegada que no cuadra con el tiempo del tramo no se une', \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 400)], $aSegments) === []);
+$aFork = \Services\StopArrivalTrips::chain([$Arrival('2', 0), $Arrival('2', 300), $Arrival('3', 60), $Arrival('4', 390)], ['2|3' => 60, '2|4' => 90]);
+$Expect('en una bifurcación, cada tren sigue por la rama cuya hora cuadra', \count($aFork) === 2 && array_column($aFork[0]['stops'], 0) === ['2', '3'] && array_column($aFork[1]['stops'], 0) === ['2', '4'], json_encode($aFork));
+$aTurn = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 120), $Arrival('3', 180), $Arrival('2', 240), $Arrival('1', 360)], $aSegments);
+$Expect('al volver de la terminal, el viaje acaba allí y la vuelta es otro', \count($aTurn) === 2 && array_column($aTurn[0]['stops'], 0) === ['1', '2', '3'] && array_column($aTurn[1]['stops'], 0) === ['3', '2', '1'], json_encode($aTurn));
+
+$PdoSeg = new PDO('sqlite::memory:');
+$PdoSeg->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoSeg->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INT, stop_id TEXT, arrival_seconds INT, departure_seconds INT)');
+$PdoSeg->exec("INSERT INTO passing_times VALUES ('a',1,'1',0,0),('a',2,'2',100,110),('b',1,'1',500,500),('b',2,'2',640,650)");
+$Expect('lo que tarda un tren entre paradas es la media del horario', (new ServiceJourney($PdoSeg))->segmentSeconds() === ['1|2' => 120]);
+
+$Section('Respaldo con el SIRI: solo si la ficha lo pide');
+$Expect('sin siri_fallback en la ficha no se usa', !(new \Services\StopArrivalTrips(['gtfs_rt' => [], 'siri' => ['vehicle_monitoring_url' => 'https://x']], new ServiceJourney($PdoSeg)))->enabled());
+$Expect('con siri_fallback pero sin SIRI de directo tampoco', !(new \Services\StopArrivalTrips(['gtfs_rt' => ['siri_fallback' => true], 'siri' => []], new ServiceJourney($PdoSeg)))->enabled());
+$Expect('con las dos cosas sí', (new \Services\StopArrivalTrips(['gtfs_rt' => ['siri_fallback' => true], 'siri' => ['vehicle_monitoring_url' => 'https://x']], new ServiceJourney($PdoSeg)))->enabled());
+foreach (\Core\Networks::all() as $sSlug => $aNet) {
+    if (!empty($aNet['gtfs_rt']['siri_fallback'])) {
+        $Expect("$sSlug: siri_fallback pide también el SIRI de directo y emparejar por viaje", !empty($aNet['siri']['vehicle_monitoring_url']) && ($aNet['gtfs_rt']['matching'] ?? '') === 'trip');
+    }
+}
+
 $Finish('unitarias');

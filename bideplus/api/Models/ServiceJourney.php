@@ -480,6 +480,23 @@ class ServiceJourney
         return $aSequences;
     }
 
+    // Lo que tarda un tren de una parada a la siguiente de su recorrido, en segundos, media de todos los viajes del
+    // horario: ['paradaA|paradaB' => segundos]. Sirve para unir las llegadas sueltas de un feed en trenes completos.
+    public function segmentSeconds(): array
+    {
+        $Stmt = $this->Pdo->query('
+            SELECT a.stop_id AS from_stop, b.stop_id AS to_stop, AVG(b.arrival_seconds - a.arrival_seconds) AS seconds
+            FROM passing_times a
+            JOIN passing_times b ON b.service_journey_id = a.service_journey_id AND b.seq_order = a.seq_order + 1
+            GROUP BY a.stop_id, b.stop_id
+        ');
+        $aSegments = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aSegments[$aRow['from_stop'] . '|' . $aRow['to_stop']] = (int)round((float)$aRow['seconds']);
+        }
+        return $aSegments;
+    }
+
     public function lineOfJourney(string $sServiceJourneyId): array|null
     {
         $Stmt = $this->Pdo->prepare('

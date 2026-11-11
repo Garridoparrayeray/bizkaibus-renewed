@@ -5,6 +5,7 @@ namespace Core;
 use Models\ServiceJourney;
 use Services\GtfsRealtimeClient;
 use Services\ScheduleOnlyMatcher;
+use Services\StopArrivalTrips;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
 
@@ -101,8 +102,27 @@ class Live
             if ($TripMatcher->matchedJourneys() > 0 || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
                 return $TripMatcher;
             }
+            $aReconstructed = self::reconstructedTrips($aConfig, $JourneyModel);
+            if (!empty($aReconstructed)) {
+                return new TripUpdatesMatcher($aReconstructed, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight, 'siri-arrivals');
+            }
         }
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
+    }
+
+    // Cuando el feed no sirve para emparejar por viaje, los trenes que se arman con las llegadas del SIRI de la red
+    // (solo si su ficha lo pide con gtfs_rt.siri_fallback). Vacío si no lo pide o si el SIRI no responde.
+    private static function reconstructedTrips(array $aConfig, ServiceJourney $JourneyModel): array
+    {
+        $Arrivals = new StopArrivalTrips($aConfig, $JourneyModel);
+        if (!$Arrivals->enabled()) {
+            return [];
+        }
+        try {
+            return $Arrivals->trips(time());
+        } catch (\Throwable $Ex) {
+            return [];
+        }
     }
 
     // El emparejador de los autobuses para los viajes de hoy o, con $iDaysAgo = 1, para los de ayer que pasan de las

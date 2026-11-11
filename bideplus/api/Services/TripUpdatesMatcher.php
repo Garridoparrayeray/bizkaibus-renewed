@@ -14,12 +14,23 @@ class TripUpdatesMatcher
 
     private int $iMidnight;
 
-    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null)
+    // $sSource dice de dónde salen los trenes: «trip-updates» del GTFS-Realtime o «siri-arrivals» armados con el SIRI.
+    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null, private string $sSource = 'trip-updates')
     {
         if ($iMidnight === null) {
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
         }
         $this->iMidnight = $iMidnight;
+    }
+
+    public function source(): string
+    {
+        return $this->sSource;
+    }
+
+    public function trainCount(): int
+    {
+        return \count($this->aTrips);
     }
 
     public function hasData(): bool

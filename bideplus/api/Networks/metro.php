@@ -122,6 +122,7 @@ return [
         'max_age_seconds' => 300,
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
+        'siri_fallback' => true,
     ],
 
     'direction_reference_stop_id' => 7,
