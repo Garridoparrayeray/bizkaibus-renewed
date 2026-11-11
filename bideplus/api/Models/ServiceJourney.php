@@ -503,6 +503,25 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
+    // Las paradas donde acaba algún recorrido: [id => nombre normalizado]. Con ellas se sabe a qué terminal se refiere
+    // el código de destino que el feed de posiciones pone en el identificador de cada tren.
+    public function terminalStops(): array
+    {
+        $Stmt = $this->Pdo->query('
+            SELECT DISTINCT s.id, s.name_normalized
+            FROM journey_patterns jp
+            JOIN stops s ON s.id = (
+                SELECT jl.stop_id FROM journey_pattern_stops jl
+                WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1
+            )
+        ');
+        $aTerminals = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aTerminals[(string)$aRow['id']] = (string)$aRow['name_normalized'];
+        }
+        return $aTerminals;
+    }
+
     // Lo que tarda un tren de una parada a la siguiente de su recorrido, en segundos, media de todos los viajes del
     // horario: ['paradaA|paradaB' => segundos]. Sirve para unir las llegadas sueltas de un feed en trenes completos.
     public function segmentSeconds(): array

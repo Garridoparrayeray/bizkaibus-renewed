@@ -191,6 +191,10 @@ class TripUpdatesMatcher
             if (\count($aTrip['stops']) < 2) {
                 continue;
             }
+            // Un tren con destino conocido solo cabe en los recorridos que acaban allí.
+            if (isset($aTrip['destStopId']) && end($aSequence) !== $aTrip['destStopId']) {
+                continue;
+            }
             $aAligned = FeedStopOrder::align($aTrip['stops'], $aSequence);
             if ($aAligned === null) {
                 continue;

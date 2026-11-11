@@ -19,6 +19,8 @@ class StopArrivalTrips
     private const LINK_SLACK_SECONDS = 90;
     private const MIN_STOPS = 2;
     private const SEGMENTS_CACHE_SECONDS = 3600;
+    // Cuánto puede apartarse la llegada de un tren de donde dice el GPS que está para darlos por el mismo.
+    private const ANCHOR_SLACK_SECONDS = 150;
 
     // El feed pone la parada en uno de estos elementos y la hora de llegada en uno de estos otros.
     private const STOP_ELEMENTS = ['StopPointRef', 'DestinationRef'];
@@ -33,7 +35,8 @@ class StopArrivalTrips
         return !empty($this->aConfig['gtfs_rt']['siri_fallback']) && !empty($this->aConfig['siri']['vehicle_monitoring_url']);
     }
 
-    public function trips(int $iNow): array
+    // $aVehicles: las posiciones del GPS, para saber adónde va cada tren (gtfs_rt.vehicle_destination en la ficha).
+    public function trips(int $iNow, array $aVehicles = []): array
     {
         if (!$this->enabled()) {
             return [];
@@ -46,7 +49,101 @@ class StopArrivalTrips
         $aSegments = Cache::remember('segments_' . $this->aConfig['network'], self::SEGMENTS_CACHE_SECONDS, function () {
             return $this->JourneyModel->segmentSeconds();
         });
-        return self::chain($aArrivals, $aSegments);
+        $aTrips = self::chain($aArrivals, $aSegments);
+        $sPattern = $this->aConfig['gtfs_rt']['vehicle_destination'] ?? null;
+        if ($sPattern === null || empty($aVehicles)) {
+            return $aTrips;
+        }
+        $aTerminals = Cache::remember('terminals_' . $this->aConfig['network'], self::SEGMENTS_CACHE_SECONDS, function () {
+            return $this->JourneyModel->terminalStops();
+        });
+        return self::anchor($aTrips, $aVehicles, $aSegments, $aTerminals, $sPattern);
+    }
+
+    // Pone a cada tren el destino que dice el GPS: cada tren del GPS (parada, hora) se une al armado que llega a esa
+    // parada, o a la siguiente a lo que tarda ir de una a otra. El destino es la terminal que abrevia el código del
+    // identificador ($sPattern, grupo «destination»); sin una sola terminal que encaje, el tren sigue sin destino.
+    public static function anchor(array $aTrips, array $aVehicles, array $aSegments, array $aTerminals, string $sPattern): array
+    {
+        $aPairs = [];
+        foreach ($aVehicles as $iVehicle => $aVehicle) {
+            $iTime = $aVehicle['timestamp'] ?? null;
+            if ($iTime === null || !preg_match($sPattern, (string)($aVehicle['entityId'] ?? ''), $aMatch)) {
+                continue;
+            }
+            $sTerminal = self::terminalFor($aMatch['destination'] ?? '', $aTerminals);
+            if ($sTerminal === null) {
+                continue;
+            }
+            foreach ($aTrips as $iTrip => $aTrip) {
+                $iError = self::anchorError($aTrip['stops'][0], (string)$aVehicle['stopId'], $iTime, $aSegments);
+                if ($iError !== null) {
+                    $aPairs[] = [$iError, $iVehicle, $iTrip, $sTerminal];
+                }
+            }
+        }
+        usort($aPairs, fn($aA, $aB) => $aA[0] <=> $aB[0]);
+        $aUsedVehicles = [];
+        foreach ($aPairs as [$iError, $iVehicle, $iTrip, $sTerminal]) {
+            if (isset($aUsedVehicles[$iVehicle]) || isset($aTrips[$iTrip]['destStopId'])) {
+                continue;
+            }
+            $aUsedVehicles[$iVehicle] = true;
+            $aTrips[$iTrip]['destStopId'] = $sTerminal;
+        }
+        return $aTrips;
+    }
+
+    // Cuánto se aparta la primera llegada de un tren de donde el GPS dice que estaba (parada $sStop a las $iTime), o null
+    // si no puede ser el mismo: llegada en la propia parada o en la siguiente de su recorrido.
+    private static function anchorError(array $aFirst, string $sStop, int $iTime, array $aSegments): int|null
+    {
+        [$sFirstStop, $iFirstTime] = $aFirst;
+        $iExpected = $iTime;
+        if ($sFirstStop !== $sStop) {
+            if (!isset($aSegments[$sStop . '|' . $sFirstStop])) {
+                return null;
+            }
+            $iExpected += $aSegments[$sStop . '|' . $sFirstStop];
+        }
+        $iError = abs($iFirstTime - $iExpected);
+        if ($iError > self::ANCHOR_SLACK_SECONDS) {
+            return null;
+        }
+        return $iError;
+    }
+
+    // La terminal cuyo nombre se abrevia con el código («BSR» es Basauri, «KAB» es Kabiezes), o null si no hay una sola.
+    public static function terminalFor(string $sCode, array $aTerminals): string|null
+    {
+        $sCode = strtolower($sCode);
+        $aFound = [];
+        foreach ($aTerminals as $sStopId => $sName) {
+            if (self::abbreviates($sCode, preg_replace('/[^a-z0-9]/', '', strtolower($sName)))) {
+                $aFound[] = (string)$sStopId;
+            }
+        }
+        if ($sCode === '' || \count($aFound) !== 1) {
+            return null;
+        }
+        return $aFound[0];
+    }
+
+    // Las letras del código están en el nombre, en orden, y la primera es la inicial.
+    private static function abbreviates(string $sCode, string $sName): bool
+    {
+        if ($sCode === '' || $sName === '' || $sCode[0] !== $sName[0]) {
+            return false;
+        }
+        $iAt = 0;
+        foreach (str_split($sCode) as $sLetter) {
+            $iAt = strpos($sName, $sLetter, $iAt);
+            if ($iAt === false) {
+                return false;
+            }
+            $iAt++;
+        }
+        return true;
     }
 
     // Las llegadas del feed: [['stop' => id, 'time' => hora unix, 'recorded' => hora de la lectura], ...].

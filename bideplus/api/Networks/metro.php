@@ -123,6 +123,8 @@ return [
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
         'siri_fallback' => true,
+        // El feed de posiciones pone en el id de cada tren su estación, su andén y su destino (BSR_BSR1_PLE_1794…).
+        'vehicle_destination' => '/^[A-Z0-9]+_[A-Z0-9]+_(?<destination>[A-Z]+)_\\d+$/',
     ],
 
     'direction_reference_stop_id' => 7,

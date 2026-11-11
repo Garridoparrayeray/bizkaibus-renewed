@@ -860,4 +860,23 @@ $Expect('sin ninguna salida en el horario, los trenes del feed salen igual', \co
 $aFar = (new TripUpdatesMatcher(array_merge([['stops' => [['A', T0 + 9000], ['B', T0 + 9070]]]], $aFeedX), $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
 $Expect('más allá de la última salida del horario cargada no se inventan refuerzos', \count($aFar) === 3, json_encode(array_column($aFar, 'etaSeconds')));
 
+$Section('Destino de cada tren con el GPS (código en el identificador)');
+$aTerminals = ['51' => 'basauri', '2' => 'etxebarri', '30' => 'plentzia', '42' => 'kabiezes', '25' => 'ibarbengoa', '28' => 'sopela'];
+$Terminal = fn(string $sCode) => \Services\StopArrivalTrips::terminalFor($sCode, $aTerminals);
+$Expect('el código es la abreviatura del nombre de una terminal', $Terminal('BSR') === '51' && $Terminal('ETX') === '2' && $Terminal('PLE') === '30' && $Terminal('IBB') === '25');
+$Expect('un código que no encaja con ninguna terminal, o con varias, no da destino', $Terminal('XXX') === null && $Terminal('') === null && \Services\StopArrivalTrips::terminalFor('BA', ['1' => 'basauri', '2' => 'barakaldo']) === null);
+$sDestination = '/^[A-Z0-9]+_[A-Z0-9]+_(?<destination>[A-Z]+)_\d+$/';
+$aSegmentsGps = ['5|6' => 100];
+$aTripsGps = [['stops' => [['6', T0 + 400], ['7', T0 + 480]]], ['stops' => [['6', T0 + 900], ['7', T0 + 980]]]];
+$aVehiclesGps = [['entityId' => 'SAN_SAN1_PLE_1', 'stopId' => '5', 'timestamp' => T0 + 295]];
+$aAnchored = \Services\StopArrivalTrips::anchor($aTripsGps, $aVehiclesGps, $aSegmentsGps, $aTerminals, $sDestination);
+$Expect('el tren del GPS se une al armado que llega a la siguiente parada cuando toca y le pone destino', ($aAnchored[0]['destStopId'] ?? null) === '30' && !isset($aAnchored[1]['destStopId']), json_encode($aAnchored));
+$aFarGps = [['entityId' => 'SAN_SAN1_PLE_1', 'stopId' => '5', 'timestamp' => T0 - 5000]];
+$Expect('si ninguna llegada cuadra con la hora del GPS no se une', !isset(\Services\StopArrivalTrips::anchor($aTripsGps, $aFarGps, $aSegmentsGps, $aTerminals, $sDestination)[0]['destStopId']));
+$Expect('un identificador que no sigue el patrón no pone destino', !isset(\Services\StopArrivalTrips::anchor($aTripsGps, [['entityId' => 'raro', 'stopId' => '5', 'timestamp' => T0 + 295]], $aSegmentsGps, $aTerminals, $sDestination)[0]['destStopId']));
+$aSameStart = \Services\StopArrivalTrips::anchor([['stops' => [['5', T0 + 300], ['6', T0 + 400]]]], $aVehiclesGps, $aSegmentsGps, $aTerminals, $sDestination);
+$Expect('también se une al tren que llega a la propia parada donde el GPS lo ve', ($aSameStart[0]['destStopId'] ?? null) === '30');
+$aDest = (new TripUpdatesMatcher([['stops' => [['A', T0 + 1030], ['B', T0 + 1100]], 'destStopId' => 'B']], $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
+$Expect('un tren con destino solo se empareja con los recorridos que acaban allí (el largo acaba en C)', empty($aDest[0]['status']) || $aDest[0]['status'] === 'scheduled', json_encode(array_column($aDest, 'status')));
+
 $Finish('unitarias');
