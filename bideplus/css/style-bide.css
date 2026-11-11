@@ -393,7 +393,11 @@ html.bide .bide-card {
         box-sizing: border-box;
         width: calc(100% - 48px);
         max-width: 1352px;
-        margin: 16px auto 0;
+        margin: 8px auto 16px;
+    }
+    /* La página del menú ya deja 48px de relleno arriba: se compensan para que el cartel quede a 8px del borde. */
+    body.page-menu .bide-notice {
+        margin-top: -40px;
     }
 }
 .alert-link {
