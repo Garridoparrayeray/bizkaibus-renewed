@@ -503,6 +503,22 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
+    // Los nombres de las paradas: [id => nombre].
+    public function stopNames(array $aStopIds): array
+    {
+        if (empty($aStopIds)) {
+            return [];
+        }
+        $sPlaceholders = implode(',', array_fill(0, \count($aStopIds), '?'));
+        $Stmt = $this->Pdo->prepare("SELECT id, name FROM stops WHERE id IN ($sPlaceholders)");
+        $Stmt->execute(array_values($aStopIds));
+        $aNames = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aNames[(string)$aRow['id']] = $aRow['name'];
+        }
+        return $aNames;
+    }
+
     // Las paradas donde acaba algún recorrido: [id => nombre normalizado]. Con ellas se sabe a qué terminal se refiere
     // el código de destino que el feed de posiciones pone en el identificador de cada tren.
     public function terminalStops(): array

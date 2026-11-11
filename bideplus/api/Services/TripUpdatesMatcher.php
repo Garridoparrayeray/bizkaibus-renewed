@@ -15,6 +15,8 @@ class TripUpdatesMatcher
     private const USUAL_PATTERN_SHARE = 4;
     // Una salida a punto de salir no se quita aunque su tren ya no figure en el feed: puede estar en la estación.
     private const BOARDING_GRACE_SECONDS = 120;
+    // Cuánto puede apartarse la hora de la clave de un refuerzo de la que el feed da ahora para ser el mismo tren.
+    private const EXTRA_KEY_TOLERANCE_SECONDS = 120;
 
     private int $iMidnight;
 
@@ -122,7 +124,7 @@ class TripUpdatesMatcher
         }
         $aRows = [];
         foreach ($aFound as $aTrain) {
-            $aRows[] = self::unscheduledRow($aTrain['seconds'], $aTrain['patterns']);
+            $aRows[] = self::unscheduledRow($aTrain['seconds'], $aTrain['patterns'], $sStopId);
         }
         return $aRows;
     }
@@ -139,6 +141,45 @@ class TripUpdatesMatcher
         return array_values(array_filter($aExtras, fn($aRow) => $aRow['arrival_seconds'] <= $iLast));
     }
 
+    // El refuerzo que llega a la parada a esa hora (la de la clave del tren), con el recorrido donde mejor cabe y sus
+    // paradas con hora en el feed: ['stops', 'sequence', 'line_code', 'line_name', 'headsign']. Null si ya no está.
+    public function unscheduledTrain(string $sStopId, int $iArrivalTime): array|null
+    {
+        if (!$this->bFeedIsComplete || empty($this->aTrips)) {
+            return null;
+        }
+        $aPatterns = $this->JourneyModel->patternsAtStop($sStopId);
+        $aSequences = $this->JourneyModel->stopSequencesForPatterns(array_column($aPatterns, 'journey_pattern_id'));
+        $aFits = [];
+        foreach ($aPatterns as $aPattern) {
+            $aSequence = $aSequences[$aPattern['journey_pattern_id']] ?? [];
+            foreach ($this->tripsAtStop($sStopId, $aSequence) as $iTrip => [$iSeconds, $aAligned]) {
+                $iGap = abs($iSeconds + $this->iMidnight - $iArrivalTime);
+                if ($iGap <= self::EXTRA_KEY_TOLERANCE_SECONDS) {
+                    $aFits[$iTrip] = ($aFits[$iTrip] ?? ['gap' => $iGap, 'options' => []]);
+                    $aFits[$iTrip]['options'][] = [$aPattern, $aSequence, $aAligned];
+                }
+            }
+        }
+        if (empty($aFits)) {
+            return null;
+        }
+        uasort($aFits, fn($aA, $aB) => $aA['gap'] <=> $aB['gap']);
+        $aOptions = reset($aFits)['options'];
+        $aUsual = self::usualPatterns(array_column($aOptions, 0));
+        usort($aUsual, fn($aA, $aB) => $aB['trips'] <=> $aA['trips']);
+        $aHeadsigns = array_values(array_unique(array_column($aUsual, 'headsign')));
+        foreach ($aOptions as [$aPattern, $aSequence, $aAligned]) {
+            if ($aPattern['journey_pattern_id'] === $aUsual[0]['journey_pattern_id']) {
+                return [
+                    'stops' => $aAligned, 'sequence' => $aSequence, 'line_code' => $aPattern['line_code'],
+                    'line_name' => $aPattern['line_name'], 'headsign' => implode(' · ', $aHeadsigns),
+                ];
+            }
+        }
+        return null;
+    }
+
     // De los recorridos donde cabe el tren, los que hace de verdad el horario: un recorrido con muy pocos viajes
     // (una vuelta corta) no se cuenta como posible destino de un tren que aún no ha dejado claro adónde va.
     private static function usualPatterns(array $aPatterns): array
@@ -147,7 +188,7 @@ class TripUpdatesMatcher
         return array_values(array_filter($aPatterns, fn($aPattern) => $aPattern['trips'] * self::USUAL_PATTERN_SHARE >= $iMost));
     }
 
-    private static function unscheduledRow(int $iSeconds, array $aPatterns): array
+    private static function unscheduledRow(int $iSeconds, array $aPatterns, string $sStopId): array
     {
         $aPatterns = self::usualPatterns($aPatterns);
         $aHeadsigns = array_values(array_unique(array_column($aPatterns, 'headsign')));
@@ -161,7 +202,7 @@ class TripUpdatesMatcher
             'headsign' => $sHeadsign, 'last_stop_name' => $sLastStop, 'journey_pattern_id' => $aFirst['journey_pattern_id'],
             'trip_number' => null, 'service_journey_id' => null, 'first_departure_seconds' => null,
             'arrival_seconds' => $iSeconds, 'departure_seconds' => $iSeconds,
-            'status' => 'live', 'etaSeconds' => $iSeconds, 'delaySeconds' => null, 'unscheduled' => true,
+            'status' => 'live', 'etaSeconds' => $iSeconds, 'delaySeconds' => null, 'unscheduled' => true, 'stop_id' => $sStopId,
         ];
     }
 

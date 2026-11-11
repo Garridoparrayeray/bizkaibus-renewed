@@ -129,6 +129,9 @@ function asTomorrow(data) {
     return { ...data, stops, tomorrow: true, status: 'scheduled', vehicleRef: null, awaitingVehicle: false, delayMinutes: null };
 }
 
+// La clave de un tren que el horario no tiene (refuerzo) empieza así: tiene ficha, pero no avisos ni enlace.
+const EXTRA_TRIP_PREFIX = 'extra-';
+
 export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
     if (!tripKey) return;
     if (FEATURES.trip_detail === 'stops') {
@@ -148,24 +151,26 @@ export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
 
     stopModalFollow();
     modalState.signature = '';
+    const isExtra = tripKey.startsWith(EXTRA_TRIP_PREFIX);
     modalState.tripKey = tripKey;
     modalState.data = data;
     shareState.tripKey = tripKey;
     shareState.data = data;
     showShareOptions();
+    el.modalShare.hidden = isExtra;
     el.modalVehicle.hidden = false;
     renderModalHeader(data);
 
     el.modalAlertsToggle.dataset.lineId = tripKey.split('-')[0];
     el.modalAlertsToggle.textContent = I18n.t('app.incidents.view');
     el.modalAlertsToggle.disabled = false;
-    el.modalAlertsToggle.hidden = FEATURES.alerts === 'network';
+    el.modalAlertsToggle.hidden = FEATURES.alerts === 'network' || isExtra;
     el.modalAlerts.hidden = true;
     el.modalAlerts.innerHTML = '';
 
     el.modalStops.innerHTML = '';
     renderModalStops(data);
-    showArrivalAlerts(tripKey);
+    if (!isExtra) showArrivalAlerts(tripKey);
 
     el.modal.showModal();
     // El horario de mañana no cambia: no hace falta irlo refrescando.
@@ -279,6 +284,7 @@ function shareTrip() {
 
 // «Compartir la parada» solo tiene sentido con una parada abierta (la ficha también se abre desde el mapa de la línea).
 function showShareOptions() {
+    el.modalShare.hidden = false;
     el.modalShareStop.hidden = !state.currentStop;
 }
 

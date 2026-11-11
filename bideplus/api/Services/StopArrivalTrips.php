@@ -35,6 +35,14 @@ class StopArrivalTrips
         return !empty($this->aConfig['gtfs_rt']['siri_fallback']) && !empty($this->aConfig['siri']['vehicle_monitoring_url']);
     }
 
+    // Lo que tarda un tren entre paradas según el horario de la red: ['A|B' => segundos].
+    public function segments(): array
+    {
+        return Cache::remember('segments_' . $this->aConfig['network'], self::SEGMENTS_CACHE_SECONDS, function () {
+            return $this->JourneyModel->segmentSeconds();
+        });
+    }
+
     // $aVehicles: las posiciones del GPS, para saber adónde va cada tren (gtfs_rt.vehicle_destination en la ficha).
     public function trips(int $iNow, array $aVehicles = []): array
     {
@@ -46,9 +54,7 @@ class StopArrivalTrips
             return self::parseArrivals(Http::get($aSiri['vehicle_monitoring_url'], $aSiri['http_timeout_seconds']));
         });
         $aArrivals = self::recent($aArrivals, $iNow - $this->aConfig['gtfs_rt']['max_age_seconds']);
-        $aSegments = Cache::remember('segments_' . $this->aConfig['network'], self::SEGMENTS_CACHE_SECONDS, function () {
-            return $this->JourneyModel->segmentSeconds();
-        });
+        $aSegments = $this->segments();
         $aTrips = self::chain($aArrivals, $aSegments);
         $sPattern = $this->aConfig['gtfs_rt']['vehicle_destination'] ?? null;
         if ($sPattern === null || empty($aVehicles)) {

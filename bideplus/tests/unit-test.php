@@ -896,4 +896,19 @@ $Expect('una salida a punto de salir no se quita aunque su tren ya no figure', \
 $aKept = (new TripUpdatesMatcher($aFeedReal, $JourneyX, 600, $iMid))->enrich('A', $aRowsReal);
 $Expect('sin pedir "solo reales" (feed normal) el horario no se toca', \in_array('R2', array_column($aKept, 'service_journey_id'), true));
 
+$Section('Ficha de un refuerzo');
+$Expect('la clave de un refuerzo es su parada y su hora, y se reconoce', \Core\TripKey::buildExtra('8', 1794410000) === 'extra-8-1794410000' && \Core\TripKey::parseExtra('extra-8-1794410000') === ['8', 1794410000] && \Core\TripKey::parseExtra('3514-12-27600') === null);
+$aKnownTimes = [['B', 1000]];
+$aAlong = \Services\ExtraSheet::timesAlong(['A', 'B', 'C'], $aKnownTimes, ['A|B' => 60, 'B|C' => 120]);
+$Expect('las paradas de antes se calculan restando lo que tarda el tren y las de después, sumándolo', $aAlong === ['B' => 1000, 'A' => 940, 'C' => 1120], json_encode($aAlong));
+$aCut = \Services\ExtraSheet::timesAlong(['A', 'B', 'C'], $aKnownTimes, ['B|C' => 120]);
+$Expect('si no se sabe lo que tarda un tramo, no se inventa la parada de más allá', array_keys($aCut) === ['B', 'C'], json_encode($aCut));
+$Expect('sin ninguna parada con hora no hay recorrido', \Services\ExtraSheet::timesAlong(['A', 'B'], [], ['A|B' => 60]) === []);
+$MatcherX = new TripUpdatesMatcher([['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]]], $JourneyX, 600, 0, 'siri-arrivals', true);
+$aFound = $MatcherX->unscheduledTrain('A', T0 + 1520);
+$Expect('el refuerzo se vuelve a encontrar por su parada y su hora (con margen)', $aFound !== null && $aFound['sequence'] === ['A', 'B', 'C'] && $aFound['headsign'] === 'Costa' && $aFound['line_code'] === 'MB', json_encode($aFound));
+$Expect('con otra hora, o sin pedir los refuerzos, no hay tren', $MatcherX->unscheduledTrain('A', T0 + 5000) === null && (new TripUpdatesMatcher([['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]]], $JourneyX, 600, 0))->unscheduledTrain('A', T0 + 1500) === null);
+$aExtraRows = $MatcherX->unscheduledRows('A');
+$Expect('la salida de un refuerzo lleva su parada para armar la clave', ($aExtraRows[0]['stop_id'] ?? null) === 'A');
+
 $Finish('unitarias');
