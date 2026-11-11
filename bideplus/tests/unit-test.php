@@ -879,4 +879,21 @@ $Expect('también se une al tren que llega a la propia parada donde el GPS lo ve
 $aDest = (new TripUpdatesMatcher([['stops' => [['A', T0 + 1030], ['B', T0 + 1100]], 'destStopId' => 'B']], $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
 $Expect('un tren con destino solo se empareja con los recorridos que acaban allí (el largo acaba en C)', empty($aDest[0]['status']) || $aDest[0]['status'] === 'scheduled', json_encode(array_column($aDest, 'status')));
 
+$Section('Solo trenes reales: las salidas del horario sin tren no salen donde el feed llega');
+$iMid = time() - 100;
+$aFeedReal = [
+    ['stops' => [['A', $iMid + 1030], ['B', $iMid + 1100]]],
+    ['stops' => [['A', $iMid + 3000], ['B', $iMid + 3070]]],
+];
+$Row = fn(string $sId, int $iSeconds) => ['service_journey_id' => $sId, 'trip_number' => $sId, 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => $iSeconds, 'etaSeconds' => $iSeconds, 'status' => 'scheduled', 'line_id' => 'L'];
+$aRowsReal = [$Row('R1', 1000), $Row('R2', 2000), $Row('R3', 3010), $Row('R4', 5000), $Row('R0', 150)];
+$aReal = (new TripUpdatesMatcher($aFeedReal, $JourneyX, 600, $iMid, 'siri-arrivals', true))->enrich('A', $aRowsReal);
+$aIds = array_column($aReal, 'service_journey_id');
+$Expect('la salida del horario sin tren dentro de lo que cubre el feed se quita', !\in_array('R2', $aIds, true), json_encode($aIds));
+$Expect('las emparejadas se quedan, con su hora en directo', \in_array('R1', $aIds, true) && \in_array('R3', $aIds, true));
+$Expect('más allá de donde llega el feed, el horario se queda', \in_array('R4', $aIds, true));
+$Expect('una salida a punto de salir no se quita aunque su tren ya no figure', \in_array('R0', $aIds, true));
+$aKept = (new TripUpdatesMatcher($aFeedReal, $JourneyX, 600, $iMid))->enrich('A', $aRowsReal);
+$Expect('sin pedir "solo reales" (feed normal) el horario no se toca', \in_array('R2', array_column($aKept, 'service_journey_id'), true));
+
 $Finish('unitarias');

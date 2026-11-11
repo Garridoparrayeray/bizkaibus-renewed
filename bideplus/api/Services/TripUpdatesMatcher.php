@@ -13,12 +13,15 @@ class TripUpdatesMatcher
     private const ON_TIME_SECONDS = 60;
     // Un recorrido cuenta como destino posible si tiene al menos 1 de cada 4 viajes de los del que más tiene.
     private const USUAL_PATTERN_SHARE = 4;
+    // Una salida a punto de salir no se quita aunque su tren ya no figure en el feed: puede estar en la estación.
+    private const BOARDING_GRACE_SECONDS = 120;
 
     private int $iMidnight;
 
     // $sSource dice de dónde salen los trenes: «trip-updates» del GTFS-Realtime o «siri-arrivals» armados con el SIRI.
-    // Con $bAddUnscheduled, los trenes del feed que no están en el horario (los de refuerzo) también salen.
-    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null, private string $sSource = 'trip-updates', private bool $bAddUnscheduled = false)
+    // Con $bFeedIsComplete (el feed trae todos los trenes), los que no están en el horario (refuerzos) también salen y
+    // las salidas del horario sin tren, hasta donde llega el feed, no.
+    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null, private string $sSource = 'trip-updates', private bool $bFeedIsComplete = false)
     {
         if ($iMidnight === null) {
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
@@ -54,7 +57,7 @@ class TripUpdatesMatcher
 
     public function enrich(string $sStopId, array $aRows): array
     {
-        [$aPredictions, $aMatches] = $this->pair($sStopId, $aRows);
+        [$aPredictions, $aMatches, $aHorizons] = $this->pair($sStopId, $aRows);
         foreach ($aMatches as $iRow => $iPrediction) {
             $iSeconds = $aPredictions[$iPrediction]['seconds'];
             $aRows[$iRow]['status'] = 'live';
@@ -65,6 +68,7 @@ class TripUpdatesMatcher
             }
             $aRows[$iRow]['delaySeconds'] = $iDelay;
         }
+        $aRows = $this->withoutPhantoms($aRows, $aMatches, $aHorizons);
         $aRows = array_merge($aRows, $this->unscheduledUpTo($sStopId, $aMatches, $aRows));
         if (!empty($aRows)) {
             usort($aRows, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
@@ -72,12 +76,33 @@ class TripUpdatesMatcher
         return $aRows;
     }
 
+    // Quita las salidas del horario sin tren en el feed, hasta la hora a la que el feed llega en su recorrido: el SIRI
+    // lista todas las llegadas hasta esa hora, así que un tren que no sale ahí no existe.
+    private function withoutPhantoms(array $aRows, array $aMatches, array $aHorizons): array
+    {
+        if (!$this->bFeedIsComplete) {
+            return $aRows;
+        }
+        $iNow = time() - $this->iMidnight;
+        $aKept = [];
+        foreach ($aRows as $iRow => $aRow) {
+            $iHorizon = $aHorizons[(string)($aRow['journey_pattern_id'] ?? '')] ?? null;
+            $bUnseen = !isset($aMatches[$iRow]) && ($aRow['status'] ?? 'scheduled') === 'scheduled';
+            $bCovered = $iHorizon !== null && (int)$aRow['arrival_seconds'] <= $iHorizon;
+            if ($bUnseen && $bCovered && (int)$aRow['arrival_seconds'] > $iNow + self::BOARDING_GRACE_SECONDS) {
+                continue;
+            }
+            $aKept[] = $aRow;
+        }
+        return $aKept;
+    }
+
     // Los trenes del feed que pasan por la parada y no son ninguna salida del horario (refuerzos), como salidas sin
     // viaje: con la línea y el destino de los recorridos donde caben, y sin hora teórica ni retraso. Vacío si no se
-    // pidió con $bAddUnscheduled.
+    // pidió con $bFeedIsComplete.
     public function unscheduledRows(string $sStopId, array $aMatches = []): array
     {
-        if (!$this->bAddUnscheduled || empty($this->aTrips)) {
+        if (!$this->bFeedIsComplete || empty($this->aTrips)) {
             return [];
         }
         $aPatterns = $this->JourneyModel->patternsAtStop($sStopId);
@@ -143,7 +168,7 @@ class TripUpdatesMatcher
     private function pair(string $sStopId, array $aRows): array
     {
         if (empty($this->aTrips) || empty($aRows)) {
-            return [[], []];
+            return [[], [], []];
         }
 
         $aPatternIds = array_values(array_unique(array_column($aRows, 'journey_pattern_id')));
@@ -179,7 +204,13 @@ class TripUpdatesMatcher
             $aUsedPredictions[$iTrip] = true;
             $aPredictions[$iTrip] = ['seconds' => $iSeconds, 'stopIds' => array_column($aAligned, 0), 'stops' => $aAligned];
         }
-        return [$aPredictions, $aMatches];
+        $aHorizons = [];
+        foreach ($aTripsByPattern as $sPattern => $aAtStop) {
+            if (!empty($aAtStop)) {
+                $aHorizons[$sPattern] = max(array_column($aAtStop, 0));
+            }
+        }
+        return [$aPredictions, $aMatches, $aHorizons];
     }
 
     // Los trenes del feed que, alineados con la secuencia de un recorrido, pasan por la parada: [tren => [segundos desde
