@@ -883,6 +883,38 @@ html.bide .bide-sources {
         color: var(--bide-ink);
     }
 
+/* Los datos de cada red: qué publica el operador, cómo calcula Bide+ y sus límites */
+html.bide .bide-data {
+    display: grid;
+    align-items: start;
+    gap: 14px;
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+}
+    html.bide .bide-data li {
+        display: grid;
+        gap: 4px;
+    }
+    html.bide .bide-data strong {
+        font-size: calc(15.2px * var(--text-scale, 1));
+    }
+    html.bide .bide-data dl {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 3px 10px;
+        margin: 0;
+        font-size: calc(14.08px * var(--text-scale, 1));
+        line-height: 1.4;
+    }
+    html.bide .bide-data dt {
+        color: var(--bide-muted);
+        font-weight: 600;
+    }
+    html.bide .bide-data dd {
+        margin: 0;
+    }
+
 /* Versión nueva de la app */
 html.bide .bide-update-badge {
     display: inline-grid;
@@ -1801,6 +1833,14 @@ html.bide body.page-menu .legal-close {
             grid-column: 2;
             order: 2;
         }
+        html.bide [data-bide-view="info"] .bide-info-grid > .bide-data-card {
+            grid-column: 1 / -1;
+            order: 2;
+        }
+            html.bide .bide-data-card .bide-data {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 18px 32px;
+            }
         html.bide [data-bide-view="info"] .bide-info-grid > .bide-changelog {
             order: 3;
         }

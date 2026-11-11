@@ -71,6 +71,7 @@ $aPrecision = [
     <link rel="stylesheet" href="/css/style-miamor.css">
     <script src="/js/theme.js"></script>
     <script src="/js/i18n.js"></script>
+    <script src="/js/networks.js"></script>
     <script src="/js/estado.js" defer></script>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
@@ -103,6 +104,12 @@ $aPrecision = [
             </li>
 <?php endforeach; ?>
         </ul>
+
+        <section class="status-data" aria-labelledby="status-data-title">
+            <h2 id="status-data-title" data-i18n="bide.data.title">Los datos de cada red</h2>
+            <?= bideNetworkDataLead('status-lead') ?>
+            <?= bideNetworkData() ?>
+        </section>
 
         <section class="status-precision" aria-labelledby="status-precision-title">
             <h2 id="status-precision-title" data-i18n="status.precision.title">Bide+ acierta 4 veces más que el horario</h2>
