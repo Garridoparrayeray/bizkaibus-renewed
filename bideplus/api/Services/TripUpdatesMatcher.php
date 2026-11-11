@@ -36,9 +36,10 @@ class TripUpdatesMatcher
         return $this->sSource;
     }
 
+    // Los trenes armados, sin las llegadas sueltas.
     public function trainCount(): int
     {
-        return \count($this->aTrips);
+        return \count(array_filter($this->aTrips, fn($aTrip) => empty($aTrip['loose'])));
     }
 
     public function hasData(): bool
@@ -70,7 +71,7 @@ class TripUpdatesMatcher
             }
             $aRows[$iRow]['delaySeconds'] = $iDelay;
         }
-        $aRows = $this->withoutPhantoms($aRows, $aMatches, $aHorizons);
+        $aRows = $this->withoutPhantoms($sStopId, $aRows, $aMatches, $aHorizons);
         $aRows = array_merge($aRows, $this->unscheduledUpTo($sStopId, $aMatches, $aRows));
         if (!empty($aRows)) {
             usort($aRows, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
@@ -80,7 +81,7 @@ class TripUpdatesMatcher
 
     // Quita las salidas del horario sin tren en el feed, hasta la hora a la que el feed llega en su recorrido: el SIRI
     // lista todas las llegadas hasta esa hora, así que un tren que no sale ahí no existe.
-    private function withoutPhantoms(array $aRows, array $aMatches, array $aHorizons): array
+    private function withoutPhantoms(string $sStopId, array $aRows, array $aMatches, array $aHorizons): array
     {
         if (!$this->bFeedIsComplete) {
             return $aRows;
@@ -91,12 +92,27 @@ class TripUpdatesMatcher
             $iHorizon = $aHorizons[(string)($aRow['journey_pattern_id'] ?? '')] ?? null;
             $bUnseen = !isset($aMatches[$iRow]) && ($aRow['status'] ?? 'scheduled') === 'scheduled';
             $bCovered = $iHorizon !== null && (int)$aRow['arrival_seconds'] <= $iHorizon;
-            if ($bUnseen && $bCovered && (int)$aRow['arrival_seconds'] > $iNow + self::BOARDING_GRACE_SECONDS) {
+            $bLooseNear = $this->looseArrivalNear($sStopId, (int)$aRow['arrival_seconds']);
+            if ($bUnseen && $bCovered && !$bLooseNear && (int)$aRow['arrival_seconds'] > $iNow + self::BOARDING_GRACE_SECONDS) {
                 continue;
             }
             $aKept[] = $aRow;
         }
         return $aKept;
+    }
+
+    // Si hay una llegada suelta (sin unir a un tren) a la parada cerca de esa hora: puede ser el tren de la salida.
+    private function looseArrivalNear(string $sStopId, int $iSeconds): bool
+    {
+        foreach ($this->aTrips as $aTrip) {
+            if (empty($aTrip['loose']) || (string)$aTrip['stops'][0][0] !== $sStopId) {
+                continue;
+            }
+            if (abs($aTrip['stops'][0][1] - $this->iMidnight - $iSeconds) <= $this->iToleranceSeconds) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Los trenes del feed que pasan por la parada y no son ninguna salida del horario (refuerzos), como salidas sin

@@ -162,10 +162,12 @@ class StopsController
 
         $aRows = self::upcomingRows($JourneyModel, $sStopId, $iLimit, self::pastSeconds($TripMatcher));
         $aDirectionLabels = null;
+        $aPatternDirections = [];
         if (isset($aConfig['direction_reference_stop_id'])) {
-            [$aRows, $aDirectionLabels] = self::withDirections($JourneyModel, $aRows, $sStopId, $aStop['name'], $aConfig['direction_reference_stop_id']);
+            [$aRows, $aDirectionLabels, $aPatternDirections] = self::withDirections($JourneyModel, $aRows, $sStopId, $aStop['name'], $aConfig['direction_reference_stop_id']);
         }
         $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, $sStopId, $aRows);
+        $aRows = self::withExtraDirections($aRows, $aPatternDirections);
         return $aOut + [
             'platforms' => [],
             'directionLabels' => $aDirectionLabels,
@@ -302,7 +304,19 @@ class StopsController
                 $aTermini[$aInfo['direction']][] = $aInfo['terminus'];
             }
         }
-        return [$aRows, array_map(fn($aNames) => implode(' · ', $aNames), $aTermini)];
+        return [$aRows, array_map(fn($aNames) => implode(' · ', $aNames), $aTermini), $aDirections];
+    }
+
+    // Los trenes que el horario no tiene (refuerzos) van en el sentido del recorrido donde caben.
+    private static function withExtraDirections(array $aRows, array $aPatternDirections): array
+    {
+        foreach ($aRows as &$aRow) {
+            if (!empty($aRow['unscheduled']) && !isset($aRow['direction'])) {
+                $aRow['direction'] = $aPatternDirections[$aRow['journey_pattern_id']]['direction'] ?? null;
+            }
+        }
+        unset($aRow);
+        return $aRows;
     }
 
     private static function departureItems(array $aRows, bool $bUseLastStopHeadsign, array|null $aPlatform = null): array

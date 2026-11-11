@@ -802,7 +802,8 @@ $aChained = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 1
 $Expect('une las llegadas que cuadran con lo que tarda el tren entre paradas', \count($aChained) === 1 && array_column($aChained[0]['stops'], 0) === ['1', '2', '3'], json_encode($aChained));
 $aTwo = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('1', 300), $Arrival('2', 125), $Arrival('2', 415)], ['1|2' => 120]);
 $Expect('con dos trenes en la misma parada, cada llegada va con la suya', \count($aTwo) === 2 && $aTwo[0]['stops'][1][1] === T0 + 125 && $aTwo[1]['stops'][1][1] === T0 + 415, json_encode($aTwo));
-$Expect('una llegada que no cuadra con el tiempo del tramo no se une', \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 400)], $aSegments) === []);
+$aNotLinked = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 400)], $aSegments);
+$Expect('una llegada que no cuadra con el tiempo del tramo no se une: queda suelta', \count($aNotLinked) === 2 && !empty($aNotLinked[0]['loose']) && !empty($aNotLinked[1]['loose']), json_encode($aNotLinked));
 $aFork = \Services\StopArrivalTrips::chain([$Arrival('2', 0), $Arrival('2', 300), $Arrival('3', 60), $Arrival('4', 390)], ['2|3' => 60, '2|4' => 90]);
 $Expect('en una bifurcación, cada tren sigue por la rama cuya hora cuadra', \count($aFork) === 2 && array_column($aFork[0]['stops'], 0) === ['2', '3'] && array_column($aFork[1]['stops'], 0) === ['2', '4'], json_encode($aFork));
 $aTurn = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 120), $Arrival('3', 180), $Arrival('2', 240), $Arrival('1', 360)], $aSegments);
@@ -910,5 +911,10 @@ $Expect('el refuerzo se vuelve a encontrar por su parada y su hora (con margen)'
 $Expect('con otra hora, o sin pedir los refuerzos, no hay tren', $MatcherX->unscheduledTrain('A', T0 + 5000) === null && (new TripUpdatesMatcher([['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]]], $JourneyX, 600, 0))->unscheduledTrain('A', T0 + 1500) === null);
 $aExtraRows = $MatcherX->unscheduledRows('A');
 $Expect('la salida de un refuerzo lleva su parada para armar la clave', ($aExtraRows[0]['stop_id'] ?? null) === 'A');
+
+$aLooseFeed = [['stops' => [['A', $iMid + 2000]], 'loose' => true], ['stops' => [['A', $iMid + 3000], ['B', $iMid + 3070]]]];
+$aLoose = (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arrivals', true))->enrich('A', $aRowsReal);
+$Expect('una salida con una llegada suelta cerca no se quita: puede ser su tren', \in_array('R2', array_column($aLoose, 'service_journey_id'), true));
+$Expect('las llegadas sueltas no cuentan como trenes ni salen como refuerzos', (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arrivals', true))->trainCount() === 1 && \count(array_filter($aLoose, fn($aRow) => !empty($aRow['unscheduled']))) === 0);
 
 $Finish('unitarias');

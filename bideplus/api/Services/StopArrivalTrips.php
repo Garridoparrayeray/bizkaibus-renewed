@@ -11,7 +11,8 @@ use Models\ServiceJourney;
 // junta en uno solo): cada llegada se une a la de la parada siguiente de su recorrido que llega justo cuando el
 // horario dice que un tren tarda en ir de una a otra. Solo usa el feed y el horario de la propia red; lo que cambia
 // de una red a otra va en su ficha (siri.vehicle_monitoring_url, gtfs_rt.siri_fallback).
-// Devuelve lo mismo que GtfsRealtimeClient::fetchTripUpdates(): [['stops' => [[parada, hora unix], ...]], ...].
+// Devuelve lo mismo que GtfsRealtimeClient::fetchTripUpdates(): [['stops' => [[parada, hora unix], ...]], ...], más las
+// llegadas sueltas (una sola parada, con 'loose').
 class StopArrivalTrips
 {
     // Cuánto puede apartarse lo que tarda un tren de lo que dice el horario para unir dos llegadas, y cuántas
@@ -82,6 +83,9 @@ class StopArrivalTrips
                 continue;
             }
             foreach ($aTrips as $iTrip => $aTrip) {
+                if (!empty($aTrip['loose'])) {
+                    continue;
+                }
                 $iError = self::anchorError($aTrip['stops'][0], (string)$aVehicle['stopId'], $iTime, $aSegments);
                 if ($iError !== null) {
                     $aPairs[] = [$iError, $iVehicle, $iTrip, $sTerminal];
@@ -243,7 +247,14 @@ class StopArrivalTrips
             }
             $aTrips[] = ['stops' => $aStops];
         }
-        return array_values(array_filter($aTrips, fn($aTrip) => \count($aTrip['stops']) >= self::MIN_STOPS));
+        // Las llegadas que no se han podido unir a ninguna otra salen solas, marcadas: no valen para emparejar, pero
+        // dicen que a esa hora hay un tren en esa parada.
+        return array_map(function ($aTrip) {
+            if (\count($aTrip['stops']) < self::MIN_STOPS) {
+                $aTrip['loose'] = true;
+            }
+            return $aTrip;
+        }, $aTrips);
     }
 
     private static function firstText(\DOMElement $Parent, array $aNames): string

@@ -356,7 +356,6 @@ function renderPlatformColumn(direction, departures) {
                 when = likelyPastText(departure);
                 li.className = 'is-likely-past';
             }
-            if (departure.unscheduled) when = I18n.t('app.list.unscheduled', { time: departure.scheduledTime });
             if (departure.status === 'cancelled') {
                 when = I18n.t('app.list.cancelled', { time: departure.scheduledTime });
                 li.className = 'is-cancelled';
