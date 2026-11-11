@@ -824,4 +824,40 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     }
 }
 
+$Section('Trenes de refuerzo: los del feed que el horario no tiene');
+$PdoX = new PDO('sqlite::memory:');
+$PdoX->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoX->exec("
+    CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT);
+    CREATE TABLE lines (id TEXT PRIMARY KEY, code TEXT, name TEXT);
+    CREATE TABLE journey_patterns (id TEXT PRIMARY KEY, line_id TEXT, headsign TEXT);
+    CREATE TABLE journey_pattern_stops (journey_pattern_id TEXT, seq_order INTEGER, stop_id TEXT);
+    CREATE TABLE service_journeys (id TEXT PRIMARY KEY, journey_pattern_id TEXT);
+    INSERT INTO stops VALUES ('A', 'Aldea'), ('B', 'Bosque'), ('C', 'Costa');
+    INSERT INTO lines VALUES ('L', 'MB', 'Metro');
+    INSERT INTO journey_patterns VALUES ('LARGO', 'L', 'Costa'), ('CORTO', 'L', 'Bosque');
+    INSERT INTO journey_pattern_stops VALUES ('LARGO', 1, 'A'), ('LARGO', 2, 'B'), ('LARGO', 3, 'C'), ('CORTO', 1, 'A'), ('CORTO', 2, 'B');
+");
+for ($iTrip = 1; $iTrip <= 8; $iTrip++) {
+    $PdoX->exec("INSERT INTO service_journeys VALUES ('l$iTrip', 'LARGO')");
+}
+$PdoX->exec("INSERT INTO service_journeys VALUES ('c1', 'CORTO')");
+$JourneyX = new ServiceJourney($PdoX);
+$aPatternsX = $JourneyX->patternsAtStop('A');
+$Expect('los recorridos que pasan por una parada sin acabar en ella', array_column($aPatternsX, 'journey_pattern_id') === ['LARGO', 'CORTO'] && \count($JourneyX->patternsAtStop('C')) === 0, json_encode($aPatternsX));
+$aFeedX = [
+    ['stops' => [['A', T0 + 1030], ['B', T0 + 1100]]],
+    ['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]],
+];
+$aScheduledX = [['service_journey_id' => 'S1', 'trip_number' => '1', 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => T0 + 1000, 'etaSeconds' => T0 + 1000, 'status' => 'scheduled', 'line_id' => 'L'],
+    ['service_journey_id' => 'S2', 'trip_number' => '2', 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => T0 + 3000, 'etaSeconds' => T0 + 3000, 'status' => 'scheduled', 'line_id' => 'L']];
+$aWithExtras = (new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
+$Expect('el tren del horario sale emparejado y el otro, como refuerzo', \count($aWithExtras) === 3 && empty($aWithExtras[0]['unscheduled']) && $aWithExtras[0]['status'] === 'live' && !empty($aWithExtras[1]['unscheduled']), json_encode($aWithExtras));
+$Expect('el refuerzo lleva su línea, su hora en directo y ningún viaje del horario ni retraso', $aWithExtras[1]['line_code'] === 'MB' && $aWithExtras[1]['etaSeconds'] === T0 + 1500 && $aWithExtras[1]['service_journey_id'] === null && $aWithExtras[1]['delaySeconds'] === null);
+$Expect('su destino es el de los recorridos que hace el horario, no el de una vuelta corta', $aWithExtras[1]['headsign'] === 'Costa', (string)$aWithExtras[1]['headsign']);
+$Expect('sin pedir los refuerzos, el tren sin horario no sale', \count((new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0))->enrich('A', $aScheduledX)) === 2);
+$Expect('sin ninguna salida en el horario, los trenes del feed salen igual', \count((new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0, 'siri-arrivals', true))->unscheduledRows('A')) === 2);
+$aFar = (new TripUpdatesMatcher(array_merge([['stops' => [['A', T0 + 9000], ['B', T0 + 9070]]]], $aFeedX), $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
+$Expect('más allá de la última salida del horario cargada no se inventan refuerzos', \count($aFar) === 3, json_encode(array_column($aFar, 'etaSeconds')));
+
 $Finish('unitarias');

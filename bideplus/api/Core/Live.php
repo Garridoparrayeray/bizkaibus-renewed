@@ -104,7 +104,7 @@ class Live
             }
             $aReconstructed = self::reconstructedTrips($aConfig, $JourneyModel);
             if (!empty($aReconstructed)) {
-                return new TripUpdatesMatcher($aReconstructed, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight, 'siri-arrivals');
+                return new TripUpdatesMatcher($aReconstructed, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight, 'siri-arrivals', true);
             }
         }
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);

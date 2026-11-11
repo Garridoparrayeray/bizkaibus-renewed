@@ -13,6 +13,7 @@ use Models\ServiceJourney;
 use Services\Calendar;
 use Services\ScheduleOnlyMatcher;
 use Services\TripDelayMatcher;
+use Services\TripUpdatesMatcher;
 use Core\Live;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
@@ -233,7 +234,7 @@ class StopsController
     private static function withLiveToday(array $aMatchers, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
         if (empty($aRows)) {
-            return [];
+            return self::unscheduledOnly($TripMatcher, $sStopId);
         }
         $aRows = self::withEngine($aMatchers, $aRows);
         if ($TripMatcher === null) {
@@ -244,6 +245,15 @@ class StopsController
             $aRows = $TripMatcher->withoutDeparted($aRows, Calendar::nowSecondsSinceMidnight());
         }
         return $aRows;
+    }
+
+    // Sin ninguna salida en el horario, los trenes del feed que aun así pasan por la parada (refuerzos).
+    private static function unscheduledOnly(object|null $TripMatcher, string $sStopId): array
+    {
+        if (!($TripMatcher instanceof TripUpdatesMatcher)) {
+            return [];
+        }
+        return $TripMatcher->withoutDeparted($TripMatcher->unscheduledRows($sStopId), Calendar::nowSecondsSinceMidnight());
     }
 
     // El algoritmo de los autobuses sobre las salidas. Las de ayer, con el emparejador de ayer y las horas de su horario
@@ -317,7 +327,8 @@ class StopsController
                 'lineCode' => $aRow['line_code'],
                 'lineName' => $aRow['line_name'],
                 'headsign' => self::headsign($aRow, $bUseLastStopHeadsign),
-                'tripKey' => TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']),
+                'tripKey' => self::tripKey($aRow),
+                'unscheduled' => !empty($aRow['unscheduled']),
                 'scheduledTime' => Calendar::secondsToHm((int)$aRow['arrival_seconds']),
                 'etaMinutes' => $iEtaMinutes,
                 'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
@@ -331,6 +342,15 @@ class StopsController
             ];
         }
         return $aDepartures;
+    }
+
+    // Null en un tren que el horario no tiene (refuerzo): no hay viaje del que dar el recorrido ni al que avisar.
+    private static function tripKey(array $aRow): string|null
+    {
+        if (!empty($aRow['unscheduled'])) {
+            return null;
+        }
+        return TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']);
     }
 
     // Las primeras que vienen y, detrás, las que puede que ya hayan pasado: el límite no las deja fuera.

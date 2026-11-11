@@ -11,11 +11,14 @@ class TripUpdatesMatcher
     use DepartedRows;
 
     private const ON_TIME_SECONDS = 60;
+    // Un recorrido cuenta como destino posible si tiene al menos 1 de cada 4 viajes de los del que más tiene.
+    private const USUAL_PATTERN_SHARE = 4;
 
     private int $iMidnight;
 
     // $sSource dice de dónde salen los trenes: «trip-updates» del GTFS-Realtime o «siri-arrivals» armados con el SIRI.
-    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null, private string $sSource = 'trip-updates')
+    // Con $bAddUnscheduled, los trenes del feed que no están en el horario (los de refuerzo) también salen.
+    public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null, private string $sSource = 'trip-updates', private bool $bAddUnscheduled = false)
     {
         if ($iMidnight === null) {
             $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
@@ -62,10 +65,79 @@ class TripUpdatesMatcher
             }
             $aRows[$iRow]['delaySeconds'] = $iDelay;
         }
-        if (!empty($aPredictions) && !empty($aRows)) {
+        $aRows = array_merge($aRows, $this->unscheduledUpTo($sStopId, $aMatches, $aRows));
+        if (!empty($aRows)) {
             usort($aRows, fn($aA, $aB) => $aA['etaSeconds'] <=> $aB['etaSeconds']);
         }
         return $aRows;
+    }
+
+    // Los trenes del feed que pasan por la parada y no son ninguna salida del horario (refuerzos), como salidas sin
+    // viaje: con la línea y el destino de los recorridos donde caben, y sin hora teórica ni retraso. Vacío si no se
+    // pidió con $bAddUnscheduled.
+    public function unscheduledRows(string $sStopId, array $aMatches = []): array
+    {
+        if (!$this->bAddUnscheduled || empty($this->aTrips)) {
+            return [];
+        }
+        $aPatterns = $this->JourneyModel->patternsAtStop($sStopId);
+        $aSequences = $this->JourneyModel->stopSequencesForPatterns(array_column($aPatterns, 'journey_pattern_id'));
+        $aPairedTrips = [];
+        foreach ($aMatches as $iPrediction) {
+            $aPairedTrips[$iPrediction] = true;
+        }
+        $aFound = [];
+        foreach ($aPatterns as $aPattern) {
+            foreach ($this->tripsAtStop($sStopId, $aSequences[$aPattern['journey_pattern_id']] ?? []) as $iTrip => [$iSeconds]) {
+                if (!isset($aPairedTrips[$iTrip])) {
+                    $aFound[$iTrip]['seconds'] = $iSeconds;
+                    $aFound[$iTrip]['patterns'][] = $aPattern;
+                }
+            }
+        }
+        $aRows = [];
+        foreach ($aFound as $aTrain) {
+            $aRows[] = self::unscheduledRow($aTrain['seconds'], $aTrain['patterns']);
+        }
+        return $aRows;
+    }
+
+    // Las salidas sin horario hasta la última del horario que se está mirando: más allá, un tren sin pareja puede ser
+    // solo uno cuya salida del horario no se ha cargado.
+    private function unscheduledUpTo(string $sStopId, array $aMatches, array $aRows): array
+    {
+        $aExtras = $this->unscheduledRows($sStopId, $aMatches);
+        if (empty($aRows)) {
+            return $aExtras;
+        }
+        $iLast = max(array_column($aRows, 'arrival_seconds'));
+        return array_values(array_filter($aExtras, fn($aRow) => $aRow['arrival_seconds'] <= $iLast));
+    }
+
+    // De los recorridos donde cabe el tren, los que hace de verdad el horario: un recorrido con muy pocos viajes
+    // (una vuelta corta) no se cuenta como posible destino de un tren que aún no ha dejado claro adónde va.
+    private static function usualPatterns(array $aPatterns): array
+    {
+        $iMost = max(array_column($aPatterns, 'trips'));
+        return array_values(array_filter($aPatterns, fn($aPattern) => $aPattern['trips'] * self::USUAL_PATTERN_SHARE >= $iMost));
+    }
+
+    private static function unscheduledRow(int $iSeconds, array $aPatterns): array
+    {
+        $aPatterns = self::usualPatterns($aPatterns);
+        $aHeadsigns = array_values(array_unique(array_column($aPatterns, 'headsign')));
+        $aLastStops = array_values(array_unique(array_column($aPatterns, 'last_stop_name')));
+        $aFirst = $aPatterns[0];
+        // Si el tren aún no ha dejado claro adónde va, los destinos posibles, como en las cabeceras de la parada.
+        $sHeadsign = implode(' · ', $aHeadsigns);
+        $sLastStop = implode(' · ', $aLastStops);
+        return [
+            'line_id' => $aFirst['line_id'], 'line_code' => $aFirst['line_code'], 'line_name' => $aFirst['line_name'],
+            'headsign' => $sHeadsign, 'last_stop_name' => $sLastStop, 'journey_pattern_id' => $aFirst['journey_pattern_id'],
+            'trip_number' => null, 'service_journey_id' => null, 'first_departure_seconds' => null,
+            'arrival_seconds' => $iSeconds, 'departure_seconds' => $iSeconds,
+            'status' => 'live', 'etaSeconds' => $iSeconds, 'delaySeconds' => null, 'unscheduled' => true,
+        ];
     }
 
     private function pair(string $sStopId, array $aRows): array

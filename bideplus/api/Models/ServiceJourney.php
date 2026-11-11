@@ -480,6 +480,29 @@ class ServiceJourney
         return $aSequences;
     }
 
+    // Los recorridos que pasan por la parada sin acabar en ella, uno por recorrido, con los datos de línea y destino que
+    // lleva una salida del horario. Sirven para dar línea y destino a un tren que el horario no tiene.
+    public function patternsAtStop(int|string $iStopId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT jp.id AS journey_pattern_id, jp.headsign, jp.line_id, l.code AS line_code, l.name AS line_name,
+                   (SELECT COUNT(*) FROM service_journeys sj WHERE sj.journey_pattern_id = jp.id) AS trips,
+                   (SELECT s2.name FROM journey_pattern_stops jl
+                    JOIN stops s2 ON s2.id = jl.stop_id
+                    WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1) AS last_stop_name
+            FROM journey_patterns jp
+            JOIN lines l ON l.id = jp.line_id
+            WHERE EXISTS (
+                SELECT 1 FROM journey_pattern_stops j
+                WHERE j.journey_pattern_id = jp.id AND j.stop_id = :stop
+                  AND EXISTS (SELECT 1 FROM journey_pattern_stops later
+                              WHERE later.journey_pattern_id = jp.id AND later.seq_order > j.seq_order)
+            )
+        ');
+        $Stmt->execute(['stop' => $iStopId]);
+        return $Stmt->fetchAll();
+    }
+
     // Lo que tarda un tren de una parada a la siguiente de su recorrido, en segundos, media de todos los viajes del
     // horario: ['paradaA|paradaB' => segundos]. Sirve para unir las llegadas sueltas de un feed en trenes completos.
     public function segmentSeconds(): array
