@@ -26,6 +26,7 @@ STEPS = [
     ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
     ('Enlaces de los avisos', ['node', 'tests/linkify.mjs']),
     ('Aviso general (script del workflow)', [PY, 'tests/aviso-script.py']),
+    ('Vigilante del directo (retrasos)', [PY, 'tests/live-health.py']),
 ]
 if not QUICK:
     STEPS += [

@@ -8,8 +8,8 @@ declare(strict_types=1);
 // Uso: php scripts/compare-metro.php [--base=https://www.bideplus.eus] [--raw] [ORIGEN/DESTINO ...]
 //   ORIGEN y DESTINO son los códigos de tres letras que usa la web de Metro (MOY/SIN). Sin pares, un puñado del tronco.
 //   --raw enseña lo que contesta Metro sin interpretar (para ajustar el script si cambia su forma).
-// Por cada par: los trenes de Metro y los de Bide+ en esa estación, y para cada tren de Metro el de Bide+ que más se le
-// acerca en minutos. Al final: cuántos coinciden a ±1 min, cuántos a ±2, cuántos faltan en Bide+ y cuántos sobran.
+// Cada tren de Metro se empareja con la salida de Bide+ del mismo destino cuya hora exacta (con segundos) más se le
+// acerca, y se dice cuánto se apartan. Al final: cuántos coinciden a ±60 s y a ±120 s, y cuáles faltan o sobran.
 
 date_default_timezone_set('Europe/Madrid');
 
@@ -17,8 +17,11 @@ const METRO_API = 'https://api.metrobilbao.eus/metro/real-time/';
 const GTFS_URL = 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip';
 const DEFAULT_PAIRS = ['MOY/SIN', 'SIN/MOY', 'ABA/IND', 'IND/ABA', 'BOL/SAN', 'SAN/BOL'];
 const HTTP_TIMEOUT_SECONDS = 20;
-const MINUTES_KEYS = ['time', 'minutes', 'eta', 'arrival', 'waitTime'];
 const DESTINATION_KEYS = ['direction', 'destination', 'destiny', 'headsign'];
+const MAX_MATCH_SECONDS = 240;
+const WITHIN_SECONDS = 60;
+const NEAR_SECONDS = 120;
+const EXTRA_MAX_MINUTES = 20;
 
 function get(string $sUrl): string
 {
@@ -65,25 +68,6 @@ function argument(array $aArgv, string $sName, string $sDefault): string
     return explode('=', reset($aFound), 2)[1];
 }
 
-// Minutos que dice un tren de Metro (un número, o una hora «HH:MM»), o null si no se entiende.
-function metroMinutes(array $aTrain): int|null
-{
-    foreach (MINUTES_KEYS as $sKey) {
-        if (!isset($aTrain[$sKey])) {
-            continue;
-        }
-        $Value = $aTrain[$sKey];
-        if (is_numeric($Value)) {
-            return (int)$Value;
-        }
-        if (is_string($Value) && preg_match('/^(\d{1,2}):(\d{2})/', $Value, $aMatch)) {
-            $iTarget = (new DateTime('today'))->setTime((int)$aMatch[1], (int)$aMatch[2])->getTimestamp();
-            return (int)round(($iTarget - time()) / 60);
-        }
-    }
-    return null;
-}
-
 function metroDestination(array $aTrain): string
 {
     foreach (DESTINATION_KEYS as $sKey) {
@@ -98,16 +82,47 @@ function metroDestination(array $aTrain): string
     return '?';
 }
 
-// El tren de la lista que más se acerca en minutos al pedido: [posición, diferencia], o null si la lista está vacía.
-function closest(int $iMinutes, array $aMinutesList, array $aTaken): array|null
+// La hora exacta de llegada que da Metro («2026-11-12T12:22:08», hora de Madrid), o null si no la trae.
+function metroTime(array $aTrain): int|null
+{
+    $iTime = strtotime((string)($aTrain['time'] ?? ''));
+    if ($iTime === false) {
+        return null;
+    }
+    return $iTime;
+}
+
+// Las salidas de Bide+ del sentido que va a los destinos que da Metro: el grupo de sentido con más destinos en común.
+function sameDirection(array $aOurs, array $aMetro): array
+{
+    $aDestinations = array_map(fn($aTrain) => mb_strtolower(metroDestination((array)$aTrain)), $aMetro);
+    $aScore = [];
+    foreach ($aOurs as $aDeparture) {
+        $sGroup = (string)($aDeparture['direction'] ?? '');
+        $aScore[$sGroup] ??= 0;
+        foreach (explode(' · ', mb_strtolower((string)($aDeparture['headsign'] ?? ''))) as $sPart) {
+            $aScore[$sGroup] += (int)in_array($sPart, $aDestinations, true);
+        }
+    }
+    if (empty($aScore) || max($aScore) === 0) {
+        return $aOurs;
+    }
+    $sBest = (string)array_search(max($aScore), $aScore, true);
+    return array_values(array_filter($aOurs, fn($aDeparture) => (string)($aDeparture['direction'] ?? '') === $sBest));
+}
+
+// La salida de Bide+ del mismo destino cuya hora más se acerca a la de Metro: [posición, segundos de diferencia con
+// signo (Bide+ menos Metro)], o null si no hay ninguna a menos de MAX_MATCH_SECONDS.
+function closest(int $iTime, string $sDestination, array $aOurs, array $aTaken): array|null
 {
     $aBest = null;
-    foreach ($aMinutesList as $iAt => $iOther) {
-        if (isset($aTaken[$iAt])) {
+    foreach ($aOurs as $iAt => $aDeparture) {
+        $aHeadsigns = explode(' · ', mb_strtolower((string)($aDeparture['headsign'] ?? '')));
+        if (isset($aTaken[$iAt]) || !in_array(mb_strtolower($sDestination), $aHeadsigns, true)) {
             continue;
         }
-        $iGap = abs($iOther - $iMinutes);
-        if ($aBest === null || $iGap < $aBest[1]) {
+        $iGap = (int)$aDeparture['etaAt'] - $iTime;
+        if (abs($iGap) <= MAX_MATCH_SECONDS && ($aBest === null || abs($iGap) < abs($aBest[1]))) {
             $aBest = [$iAt, $iGap];
         }
     }
@@ -122,7 +137,8 @@ if (empty($aPairs)) {
     $aPairs = DEFAULT_PAIRS;
 }
 $aIds = stationIds();
-$aTotal = ['metro' => 0, 'within1' => 0, 'within2' => 0, 'missing' => 0, 'extra' => 0];
+$aGaps = [];
+$aTotal = ['metro' => 0, 'missing' => 0, 'extra' => 0];
 
 foreach ($aPairs as $sPair) {
     $sMetro = get(METRO_API . $sPair);
@@ -137,37 +153,52 @@ foreach ($aPairs as $sPair) {
         continue;
     }
     $aMetro = $aAnswer['trains'] ?? [];
-    $aOurs = json_decode(get($sBase . '/api/stops/' . $sStop . '/departures?red=metro&limit=20'), true)['departures'] ?? [];
-    $aOursMinutes = array_column($aOurs, 'etaMinutes');
+    $aOurs = sameDirection(json_decode(get($sBase . '/api/stops/' . $sStop . '/departures?red=metro&limit=20'), true)['departures'] ?? [], $aMetro);
     echo "\n$sPair (parada $sStop): Metro " . count($aMetro) . " trenes, Bide+ " . count($aOurs) . " salidas\n";
 
+    // Bide+ lista unas pocas salidas: lo que Metro anuncia más allá de la última no cuenta como falta.
+    $iHorizon = 0;
+    if (!empty($aOurs)) {
+        $iHorizon = max(array_column($aOurs, 'etaAt')) + MAX_MATCH_SECONDS;
+    }
     $aTaken = [];
     foreach ($aMetro as $aTrain) {
-        $iMinutes = metroMinutes((array)$aTrain);
-        if ($iMinutes === null) {
-            echo '  Metro: tren que no entiendo: ' . json_encode($aTrain, JSON_UNESCAPED_UNICODE) . "\n";
+        $iTime = metroTime((array)$aTrain);
+        if ($iTime === null || $iTime > $iHorizon) {
             continue;
         }
         $aTotal['metro']++;
-        $aFound = closest($iMinutes, $aOursMinutes, $aTaken);
-        if ($aFound === null || $aFound[1] > 2) {
+        $aFound = closest($iTime, metroDestination((array)$aTrain), $aOurs, $aTaken);
+        if ($aFound === null) {
             $aTotal['missing']++;
-            echo sprintf("  FALTA  Metro %2d min → %s\n", $iMinutes, metroDestination((array)$aTrain));
+            echo sprintf("  FALTA  Metro %s → %s\n", date('H:i:s', $iTime), metroDestination((array)$aTrain));
             continue;
         }
         $aTaken[$aFound[0]] = true;
-        $aTotal['within1'] += (int)($aFound[1] <= 1);
-        $aTotal['within2']++;
-        echo sprintf("  ok     Metro %2d min → %s | Bide+ %2d min → %s (%s)\n", $iMinutes, metroDestination((array)$aTrain),
-            $aOursMinutes[$aFound[0]], $aOurs[$aFound[0]]['headsign'] ?? '?', $aOurs[$aFound[0]]['status'] ?? '?');
+        $aGaps[] = $aFound[1];
+        echo sprintf("  ok     Metro %s → %s (%s vagones) | Bide+ %+d s (%s)\n", date('H:i:s', $iTime), metroDestination((array)$aTrain),
+            $aTrain['wagons'] ?? '?', $aFound[1], $aOurs[$aFound[0]]['status'] ?? '?');
     }
     foreach ($aOurs as $iAt => $aDeparture) {
-        if (!isset($aTaken[$iAt]) && $aDeparture['etaMinutes'] <= 20) {
+        $iMinutes = (int)$aDeparture['etaMinutes'];
+        if (!isset($aTaken[$iAt]) && $iMinutes >= 1 && $iMinutes <= EXTRA_MAX_MINUTES) {
             $aTotal['extra']++;
-            echo sprintf("  SOBRA  Bide+ %2d min → %s (%s)\n", $aDeparture['etaMinutes'], $aDeparture['headsign'] ?? '?', $aDeparture['status']);
+            echo sprintf("  SOBRA  Bide+ %2d min → %s (%s)\n", $iMinutes, $aDeparture['headsign'] ?? '?', $aDeparture['status']);
         }
     }
 }
 
-echo "\nResumen: {$aTotal['metro']} trenes de Metro; a ±1 min {$aTotal['within1']}, a ±2 min {$aTotal['within2']}, "
-    . "faltan en Bide+ {$aTotal['missing']}, sobran en Bide+ (hasta 20 min) {$aTotal['extra']}\n";
+$iMatched = count($aGaps);
+$iWithin = count(array_filter($aGaps, fn($iGap) => abs($iGap) <= WITHIN_SECONDS));
+$iNear = count(array_filter($aGaps, fn($iGap) => abs($iGap) <= NEAR_SECONDS));
+$aAbsolute = array_map('abs', $aGaps);
+sort($aAbsolute);
+$iMedian = 0;
+$iNinetieth = 0;
+if ($iMatched > 0) {
+    $iMedian = $aAbsolute[intdiv($iMatched, 2)];
+    $iNinetieth = $aAbsolute[(int)floor($iMatched * 0.9)];
+}
+echo "\nResumen: {$aTotal['metro']} trenes de Metro, {$iMatched} con su pareja en Bide+ (mismo destino); "
+    . "a ±" . WITHIN_SECONDS . " s $iWithin, a ±" . NEAR_SECONDS . " s $iNear; diferencia mediana $iMedian s, p90 $iNinetieth s; "
+    . "faltan en Bide+ {$aTotal['missing']}, sobran en Bide+ (de 1 a " . EXTRA_MAX_MINUTES . " min) {$aTotal['extra']}\n";
