@@ -17,7 +17,7 @@ const METRO_API = 'https://api.metrobilbao.eus/metro/real-time/';
 const GTFS_URL = 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip';
 const DEFAULT_PAIRS = ['MOY/SIN', 'SIN/MOY', 'ABA/IND', 'IND/ABA', 'BOL/SAN', 'SAN/BOL'];
 const HTTP_TIMEOUT_SECONDS = 20;
-const MINUTES_KEYS = ['time', 'minutes', 'eta', 'arrival', 'waitTime'];
+const MINUTES_KEYS = ['estimated', 'minutes', 'eta', 'arrival', 'waitTime'];
 const DESTINATION_KEYS = ['direction', 'destination', 'destiny', 'headsign'];
 
 function get(string $sUrl): string
@@ -84,6 +84,25 @@ function metroMinutes(array $aTrain): int|null
     return null;
 }
 
+// Las salidas de Bide+ del sentido que va a los destinos que da Metro: el grupo de sentido con más destinos en común.
+function sameDirection(array $aOurs, array $aMetro): array
+{
+    $aDestinations = array_map(fn($aTrain) => mb_strtolower(metroDestination((array)$aTrain)), $aMetro);
+    $aScore = [];
+    foreach ($aOurs as $aDeparture) {
+        $sGroup = (string)($aDeparture['direction'] ?? '');
+        $aScore[$sGroup] ??= 0;
+        foreach (explode(' · ', mb_strtolower((string)($aDeparture['headsign'] ?? ''))) as $sPart) {
+            $aScore[$sGroup] += (int)in_array($sPart, $aDestinations, true);
+        }
+    }
+    if (empty($aScore) || max($aScore) === 0) {
+        return $aOurs;
+    }
+    $sBest = (string)array_search(max($aScore), $aScore, true);
+    return array_values(array_filter($aOurs, fn($aDeparture) => (string)($aDeparture['direction'] ?? '') === $sBest));
+}
+
 function metroDestination(array $aTrain): string
 {
     foreach (DESTINATION_KEYS as $sKey) {
@@ -137,10 +156,15 @@ foreach ($aPairs as $sPair) {
         continue;
     }
     $aMetro = $aAnswer['trains'] ?? [];
-    $aOurs = json_decode(get($sBase . '/api/stops/' . $sStop . '/departures?red=metro&limit=20'), true)['departures'] ?? [];
+    $aOurs = sameDirection(json_decode(get($sBase . '/api/stops/' . $sStop . '/departures?red=metro&limit=20'), true)['departures'] ?? [], $aMetro);
     $aOursMinutes = array_column($aOurs, 'etaMinutes');
     echo "\n$sPair (parada $sStop): Metro " . count($aMetro) . " trenes, Bide+ " . count($aOurs) . " salidas\n";
 
+    // Bide+ lista unas pocas salidas: lo que Metro anuncia más allá de la última no cuenta como falta.
+    $iOursHorizon = 0;
+    if (!empty($aOursMinutes)) {
+        $iOursHorizon = max($aOursMinutes);
+    }
     $aTaken = [];
     foreach ($aMetro as $aTrain) {
         $iMinutes = metroMinutes((array)$aTrain);
@@ -150,6 +174,10 @@ foreach ($aPairs as $sPair) {
         }
         $aTotal['metro']++;
         $aFound = closest($iMinutes, $aOursMinutes, $aTaken);
+        if ($iMinutes > $iOursHorizon + 1) {
+            $aTotal['metro']--;
+            continue;
+        }
         if ($aFound === null || $aFound[1] > 2) {
             $aTotal['missing']++;
             echo sprintf("  FALTA  Metro %2d min → %s\n", $iMinutes, metroDestination((array)$aTrain));
@@ -158,11 +186,11 @@ foreach ($aPairs as $sPair) {
         $aTaken[$aFound[0]] = true;
         $aTotal['within1'] += (int)($aFound[1] <= 1);
         $aTotal['within2']++;
-        echo sprintf("  ok     Metro %2d min → %s | Bide+ %2d min → %s (%s)\n", $iMinutes, metroDestination((array)$aTrain),
+        echo sprintf("  ok     Metro %2d min → %s (%s vagones) | Bide+ %2d min → %s (%s)\n", $iMinutes, metroDestination((array)$aTrain), $aTrain['wagons'] ?? '?',
             $aOursMinutes[$aFound[0]], $aOurs[$aFound[0]]['headsign'] ?? '?', $aOurs[$aFound[0]]['status'] ?? '?');
     }
     foreach ($aOurs as $iAt => $aDeparture) {
-        if (!isset($aTaken[$iAt]) && $aDeparture['etaMinutes'] <= 20) {
+        if (!isset($aTaken[$iAt]) && $aDeparture['etaMinutes'] >= 1 && $aDeparture['etaMinutes'] <= 20) {
             $aTotal['extra']++;
             echo sprintf("  SOBRA  Bide+ %2d min → %s (%s)\n", $aDeparture['etaMinutes'], $aDeparture['headsign'] ?? '?', $aDeparture['status']);
         }
@@ -170,4 +198,4 @@ foreach ($aPairs as $sPair) {
 }
 
 echo "\nResumen: {$aTotal['metro']} trenes de Metro; a ±1 min {$aTotal['within1']}, a ±2 min {$aTotal['within2']}, "
-    . "faltan en Bide+ {$aTotal['missing']}, sobran en Bide+ (hasta 20 min) {$aTotal['extra']}\n";
+    . "faltan en Bide+ {$aTotal['missing']}, sobran en Bide+ (de 1 a 20 min) {$aTotal['extra']}\n";
