@@ -5,7 +5,9 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
 - el feed de una red con directo no responde o viene vacío (salvo las que lo publican vacío a ratos aunque haya
   servicio: «live_often_empty» en su ficha de api/Networks, que /api/status devuelve como «oftenEmpty»);
 - una red que se empareja por viaje no encuentra ningún viaje del feed en su horario;
-- los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60;
+- los retrasos que se enseñan no son creíbles: mediana de más de 30 min o percentil 95 de más de 60 (si lo que se
+  enseña es lo que publica el operador, con diez o más llegadas comparadas y ninguna fuera de su hora, el retraso es
+  suyo y sale tal cual: aviso, no error);
 - lo que se enseña no es lo que publica el operador: de las llegadas con hora suya por venir («compared»), más del
   15 % se apartan dos minutos o más de esa hora («offOperator»).
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
@@ -84,11 +86,16 @@ def check(network, report):
     if report.get('vehicles') and report.get('fresh', report.get('withTime')) == 0:
         notices.append('el feed repite datos sin hora de hoy: sale con el horario')
     delays = report.get('delayMinutes')
-    if delays and report.get('live', 0) >= MIN_LIVE:
-        if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:
-            errors.append(f"retrasos no creíbles: mediana {delays['median']} min, p95 {delays['p95']} min")
     compared = report.get('compared', 0)
     off_operator = report.get('offOperator', 0)
+    shows_operator_times = compared >= MIN_COMPARED and off_operator / compared <= MAX_OFF_OPERATOR_SHARE
+    if delays and report.get('live', 0) >= MIN_LIVE:
+        if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:
+            message = f"retrasos grandes: mediana {delays['median']} min, p95 {delays['p95']} min"
+            if shows_operator_times:
+                notices.append(message + '; son los que publica el operador y salen tal cual')
+            else:
+                errors.append(message.replace('retrasos grandes', 'retrasos no creíbles'))
     if compared >= MIN_COMPARED and off_operator / compared > MAX_OFF_OPERATOR_SHARE:
         errors.append(f'{off_operator} de {compared} llegadas se apartan de la hora que publica el operador')
     summary = []
@@ -129,4 +136,5 @@ def main():
         sys.exit(1)
 
 
-main()
+if __name__ == '__main__':
+    main()
