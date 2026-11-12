@@ -549,7 +549,12 @@ main {
     border-radius: 24px;
     background: var(--bide-green);
     color: #fff;
+    text-decoration: none;
 }
+    .planner:focus-visible {
+        outline: 3px solid var(--bide-green);
+        outline-offset: 3px;
+    }
     .planner-head {
         display: flex;
         align-items: center;

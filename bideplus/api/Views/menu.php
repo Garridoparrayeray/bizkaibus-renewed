@@ -170,10 +170,9 @@ $aJsonLd = [
             </div>
         </header>
 
-        <section class="planner" aria-labelledby="planner-title">
+        <a class="planner" href="/planificador/" aria-labelledby="planner-title">
             <div class="planner-head">
                 <h2 id="planner-title" data-i18n="menu.planner.title">¿A dónde vas?</h2>
-                <span class="planner-soon" data-i18n="bide.upcoming.title">Próximamente</span>
             </div>
             <div class="planner-body" inert aria-hidden="true">
                 <div class="planner-places">
@@ -192,7 +191,7 @@ $aJsonLd = [
                 </div>
                 <span class="planner-go" data-i18n="menu.planner.search">Buscar ruta</span>
             </div>
-        </section>
+        </a>
 
         <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
             <div class="nets-head">
