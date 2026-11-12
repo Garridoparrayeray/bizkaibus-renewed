@@ -10,6 +10,7 @@ use Core\TripKey;
 use Models\LineModel;
 use Models\ServiceJourney;
 use Services\BusSheet;
+use Services\ExtraSheet;
 use Services\FeedStatus;
 use Services\TrainSheet;
 use Services\TripSheet;
@@ -38,6 +39,16 @@ class RealtimeController
             return;
         }
         $JourneyModel = new ServiceJourney(Database::connection());
+        $aExtra = TripKey::parseExtra($aParams['tripKey']);
+        if ($aExtra !== null) {
+            $aSheet = ExtraSheet::build($JourneyModel, $aExtra[0], $aExtra[1], $Req->query('stopId'));
+            if ($aSheet === null) {
+                Response::error('Trip not found', 404);
+                return;
+            }
+            Response::json($aSheet);
+            return;
+        }
         $aVariants = $JourneyModel->variantsByLineAndTrip(...$aTripKey);
         if (empty($aVariants)) {
             Response::error('Trip not found', 404);

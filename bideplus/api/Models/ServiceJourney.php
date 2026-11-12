@@ -480,6 +480,81 @@ class ServiceJourney
         return $aSequences;
     }
 
+    // Los recorridos que pasan por la parada sin acabar en ella, uno por recorrido, con los datos de línea y destino que
+    // lleva una salida del horario. Sirven para dar línea y destino a un tren que el horario no tiene.
+    public function patternsAtStop(int|string $iStopId): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT jp.id AS journey_pattern_id, jp.headsign, jp.line_id, l.code AS line_code, l.name AS line_name,
+                   (SELECT COUNT(*) FROM service_journeys sj WHERE sj.journey_pattern_id = jp.id) AS trips,
+                   (SELECT s2.name FROM journey_pattern_stops jl
+                    JOIN stops s2 ON s2.id = jl.stop_id
+                    WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1) AS last_stop_name
+            FROM journey_patterns jp
+            JOIN lines l ON l.id = jp.line_id
+            WHERE EXISTS (
+                SELECT 1 FROM journey_pattern_stops j
+                WHERE j.journey_pattern_id = jp.id AND j.stop_id = :stop
+                  AND EXISTS (SELECT 1 FROM journey_pattern_stops later
+                              WHERE later.journey_pattern_id = jp.id AND later.seq_order > j.seq_order)
+            )
+        ');
+        $Stmt->execute(['stop' => $iStopId]);
+        return $Stmt->fetchAll();
+    }
+
+    // Los nombres de las paradas: [id => nombre].
+    public function stopNames(array $aStopIds): array
+    {
+        if (empty($aStopIds)) {
+            return [];
+        }
+        $sPlaceholders = implode(',', array_fill(0, \count($aStopIds), '?'));
+        $Stmt = $this->Pdo->prepare("SELECT id, name FROM stops WHERE id IN ($sPlaceholders)");
+        $Stmt->execute(array_values($aStopIds));
+        $aNames = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aNames[(string)$aRow['id']] = $aRow['name'];
+        }
+        return $aNames;
+    }
+
+    // Las paradas donde acaba algún recorrido: [id => nombre normalizado]. Con ellas se sabe a qué terminal se refiere
+    // el código de destino que el feed de posiciones pone en el identificador de cada tren.
+    public function terminalStops(): array
+    {
+        $Stmt = $this->Pdo->query('
+            SELECT DISTINCT s.id, s.name_normalized
+            FROM journey_patterns jp
+            JOIN stops s ON s.id = (
+                SELECT jl.stop_id FROM journey_pattern_stops jl
+                WHERE jl.journey_pattern_id = jp.id ORDER BY jl.seq_order DESC LIMIT 1
+            )
+        ');
+        $aTerminals = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aTerminals[(string)$aRow['id']] = (string)$aRow['name_normalized'];
+        }
+        return $aTerminals;
+    }
+
+    // Lo que tarda un tren de una parada a la siguiente de su recorrido, en segundos, media de todos los viajes del
+    // horario: ['paradaA|paradaB' => segundos]. Sirve para unir las llegadas sueltas de un feed en trenes completos.
+    public function segmentSeconds(): array
+    {
+        $Stmt = $this->Pdo->query('
+            SELECT a.stop_id AS from_stop, b.stop_id AS to_stop, AVG(b.arrival_seconds - a.arrival_seconds) AS seconds
+            FROM passing_times a
+            JOIN passing_times b ON b.service_journey_id = a.service_journey_id AND b.seq_order = a.seq_order + 1
+            GROUP BY a.stop_id, b.stop_id
+        ');
+        $aSegments = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aSegments[$aRow['from_stop'] . '|' . $aRow['to_stop']] = (int)round((float)$aRow['seconds']);
+        }
+        return $aSegments;
+    }
+
     public function lineOfJourney(string $sServiceJourneyId): array|null
     {
         $Stmt = $this->Pdo->prepare('

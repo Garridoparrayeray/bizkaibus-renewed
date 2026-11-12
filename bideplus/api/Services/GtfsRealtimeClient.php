@@ -99,6 +99,7 @@ class GtfsRealtimeClient
             } elseif ($iField === 2) {
                 $aVehicle = self::entityField($Value, 4, [self::class, 'parseVehicle']);
                 if ($aVehicle !== null) {
+                    $aVehicle['entityId'] = self::entityId($Value);
                     $aVehicles[] = $aVehicle;
                 }
             }
@@ -117,6 +118,17 @@ class GtfsRealtimeClient
         return 0;
     }
 
+    // El identificador de una entidad (campo 1). Metro Bilbao pone en el suyo la estación, el andén y el destino del tren.
+    private static function entityId(string $sEntity): string
+    {
+        foreach (self::fields($sEntity) as [$iField, $Value]) {
+            if ($iField === 1) {
+                return $Value;
+            }
+        }
+        return '';
+    }
+
     // Lo que trae una entidad en el campo pedido (3, trip update; 4, vehículo; 5, incidencia), ya parseado, o null si
     // no lo lleva.
     private static function entityField(string $sEntity, int $iWanted, callable $Parser): array|null
@@ -130,7 +142,7 @@ class GtfsRealtimeClient
     }
 
     // Un tren: su viaje, dónde está (GPS), la estación en la que está, a la que llega o hacia la que va (null si no lo
-    // dice, como Metro), y su número.
+    // dice, como Metro), su número y la hora de la lectura.
     private static function parseVehicle(string $sVehicle): array|null
     {
         $sTripId = null;
@@ -139,6 +151,7 @@ class GtfsRealtimeClient
         $sStopId = '';
         $sStopStatus = null;
         $sVehicleId = '';
+        $iTimestamp = null;
         foreach (self::fields($sVehicle) as [$iField, $Value]) {
             if ($iField === 1) {
                 foreach (self::fields($Value) as [$iTripField, $TripValue]) {
@@ -156,6 +169,8 @@ class GtfsRealtimeClient
                 }
             } elseif ($iField === 4) {
                 $sStopStatus = self::STOP_STATUSES[$Value] ?? null;
+            } elseif ($iField === 5) {
+                $iTimestamp = (int)$Value;
             } elseif ($iField === 7) {
                 $sStopId = self::normalizeStopId($Value);
             } elseif ($iField === 8) {
@@ -169,7 +184,7 @@ class GtfsRealtimeClient
         if ($sTripId === null || $dLat === null || $dLon === null) {
             return null;
         }
-        return ['tripId' => $sTripId, 'lat' => round($dLat, 6), 'lon' => round($dLon, 6), 'stopId' => $sStopId, 'stopStatus' => $sStopStatus, 'vehicleId' => $sVehicleId];
+        return ['tripId' => $sTripId, 'lat' => round($dLat, 6), 'lon' => round($dLon, 6), 'stopId' => $sStopId, 'stopStatus' => $sStopStatus, 'vehicleId' => $sVehicleId, 'timestamp' => $iTimestamp];
     }
 
     private static function float(mixed $Value): float|null

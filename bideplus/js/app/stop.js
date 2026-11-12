@@ -251,7 +251,7 @@ function renderLiveCard(departures) {
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
     el.liveOpenDetail.disabled = false;
-    el.liveOpenDetail.dataset.tripKey = departure.tripKey;
+    el.liveOpenDetail.dataset.tripKey = departure.tripKey ?? '';
     el.liveOpenDetail.dataset.tomorrow = String(Boolean(departure.tomorrow));
     renderLineButtons(departures, el.liveTimetableLink, el.liveTimetableLines, FEATURES.line_buttons === true, FEATURES.line_buttons === true, departure.lineId);
 

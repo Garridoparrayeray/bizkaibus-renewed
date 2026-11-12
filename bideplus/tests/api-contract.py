@@ -40,7 +40,7 @@ SCHEMAS = {
     'departures': {
         'stop': {'id': ID, 'name': str},
         'departures': [{
-            'lineId': ID, 'lineCode': str, 'lineName': str, 'headsign': opt(str), 'tripKey': str,
+            'lineId': ID, 'lineCode': str, 'lineName': str, 'headsign': opt(str), 'tripKey': str, 'unscheduled': bool,
             'scheduledTime': 'hm', 'etaMinutes': int, 'etaAt': int, 'status': 'status', 'delayMinutes': opt(int),
             'tomorrow': bool, 'passedTime': opt('hm'),
         }],
