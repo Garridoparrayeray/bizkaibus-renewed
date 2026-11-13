@@ -101,7 +101,7 @@ return [
     ],
 
     'schedule_text' => [
-        'url' => 'http://apps.bizkaia.eus/BBOA000M/rest/BBOA/GetLineasHorarios',
+        'url' => 'https://apps.bizkaia.eus/BBOA000M/rest/BBOA/GetLineasHorarios',
         'cache_ttl_seconds' => 3600,
         'http_timeout_seconds' => 8,
     ],
