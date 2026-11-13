@@ -462,6 +462,9 @@ html.bide .bide-donate-button {
         width: 18px;
         height: 18px;
     }
+html.bide .menu-donate {
+    display: none;
+}
 html.bide .bide-footer-donate {
     display: inline-flex;
     align-items: center;
@@ -1520,6 +1523,11 @@ html.bide body.page-menu .legal-close {
     html.bide.is-standalone body.page-menu .menu-footer,
     html.bide.is-standalone .menu-open {
         display: none;
+    }
+    html.bide.is-standalone .menu-donate {
+        display: flex;
+        width: 100%;
+        margin-top: 12px;
     }
     html.bide.is-standalone body.page-app .header-actions .btn-lang {
         display: none;

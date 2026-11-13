@@ -239,6 +239,7 @@ $aJsonLd = [
                 <a class="menu-map-link" href="/mapa"><?= BIDE_ICONS['mapa'] ?><span><strong data-i18n="map.title">Mapa de la red</strong><span data-i18n="map.subtitle">Todas las líneas, sus paradas y transbordos</span></span><?= BIDE_ICONS['next'] ?></a>
                 <a class="menu-map-link" href="/estado"><?= BIDE_ICONS['estado'] ?><span><strong data-i18n="status.title">Estado de las redes</strong><span data-i18n="status.subtitle">Qué va en directo ahora en cada red</span></span><?= BIDE_ICONS['next'] ?></a>
             </div>
+            <?= bideDonateLink($aSite['donate_url'] ?? '', 'bide-button bide-donate-button menu-donate', BIDE_ICONS['cafe'] . '<span data-i18n="bide.donate.button">Invitar a un café en Ko-fi</span>') ?>
         </section>
         <div id="nets-toast" class="nets-toast" role="status" aria-live="polite" hidden>
             <span id="nets-toast-text"></span>
