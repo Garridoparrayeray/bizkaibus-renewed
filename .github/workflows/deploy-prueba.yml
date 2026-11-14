@@ -1,0 +1,314 @@
+name: Desplegar la prueba
+
+# La copia de prueba para móviles en https://bideplusmiamor.vercel.app: la app de producción entera con el
+# planificador, como «preview» de Vercel. No toca producción, ni las releases, ni git, y queda fuera de los buscadores
+# (paso «Modo prueba»). Solo la rama prueba, al subirla o a mano.
+on:
+  push:
+    branches: [prueba]
+  workflow_dispatch:
+    inputs:
+      aceptar_planificador:
+        description: 'Aceptar el planificador aunque tarde más que el de producción (un recorte real de horarios)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-prueba
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  desplegar:
+    if: github.ref == 'refs/heads/prueba'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+      # Las mismas redes fuera del planificador y los mismos mapas que «Rebuild schedule data».
+      REDES_RESERVADAS: villavesas
+      OSM_ORIGEN: https://download.openstreetmap.fr/extracts/europe
+      MAPAS_OSM: >-
+        spain/euskadi spain/comunidad_foral_de_navarra france/aquitaine/pyrenees_atlantiques
+      MAPAS_ALREDEDOR: >-
+        spain/cantabria spain/la_rioja spain/castilla_y_leon/burgos france/aquitaine/landes
+      DOMINIO_PRUEBA: bideplusmiamor.vercel.app
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Traer el algoritmo (repositorio privado, rama planificador)
+        uses: actions/checkout@v4
+        with:
+          repository: Garridoparrayeray/bideplus-engine
+          ref: planificador
+          token: ${{ secrets.ENGINE_REPO_TOKEN }}
+          path: bideplus/engine
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Todas desde su GTFS. Si falla una obligatoria, se para; si falla una opcional, va la de producción, solo leída:
+      # la de la release «bases» o, si aún no la hay, la de master.
+      - name: Bases de todas las redes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
+              mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
+              echo "OK: $network reconstruida"
+              continue
+            fi
+            if [ "$required" = "1" ]; then
+              echo "::error::No se pudo reconstruir $network (obligatoria)"
+              exit 1
+            fi
+            if ! php bideplus/scripts/fetch-databases.php --red="$network"; then
+              git fetch --quiet --depth=1 origin master
+              git show "origin/master:bideplus/data/$db.sqlite" > "bideplus/data/$db.sqlite" || true
+            fi
+            echo "::warning::No se pudo reconstruir $network; va la de producción"
+          done
+
+      - name: Comprobar que están todas las bases
+        run: |
+          php bideplus/scripts/networks.php | while read -r network db required; do
+            f="bideplus/data/$db.sqlite"
+            if [ ! -s "$f" ]; then
+              echo "ERROR: $f is missing or empty"
+              exit 1
+            fi
+            echo "OK: $f ($(du -h "$f" | cut -f1))"
+          done
+
+      - name: Rebuild network map data
+        run: php bideplus/scripts/build-network-map.php
+
+      - name: Rebuild offline timetables
+        run: php bideplus/scripts/build-offline-data.php
+
+      # Lo de producción (release «planificador») solo se lee, para no rehacer la tabla de andar si vale.
+      - name: Planificador de producción (release «planificador»)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: planificador
+        run: |
+          mkdir -p "$RUNNER_TEMP/ayer"
+          source .github/scripts/pace-data.sh
+          if descargar_acumulado planificador.tar.gz "$RUNNER_TEMP/ayer"; then
+            tar -xzf "$RUNNER_TEMP/ayer/planificador.tar.gz" -C "$RUNNER_TEMP/ayer"
+            descargar_acumulado resultados.json "$RUNNER_TEMP/ayer" || echo "Sin las consultas de producción"
+          else
+            echo "Sin planificador de producción: se hace entero"
+          fi
+
+      - name: Planificador, paquetes de horarios
+        id: plan
+        timeout-minutes: 10
+        run: |
+          php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --databases=bideplus/data \
+            --except="$REDES_RESERVADAS" --previous="$RUNNER_TEMP/ayer"
+          echo "clave=osm-$(date -u +%G-%V)-$(printf '%s' "$MAPAS_OSM $MAPAS_ALREDEDOR" | sha1sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
+
+      - name: Mapas de OSM de esta semana
+        id: osm
+        if: steps.plan.outputs.andar == '1'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/osm
+          key: ${{ steps.plan.outputs.clave }}
+
+      - name: Bajar los mapas de OSM
+        id: bajar-osm
+        if: steps.plan.outputs.andar == '1' && steps.osm.outputs.cache-hit != 'true'
+        timeout-minutes: 20
+        run: |
+          mkdir -p "$RUNNER_TEMP/osm/alrededor"
+          for MAPA in $MAPAS_OSM; do
+            FICHERO="$RUNNER_TEMP/osm/$(basename "$MAPA")-latest.osm.pbf"
+            curl -fsSL --retry 4 --retry-delay 15 -o "$FICHERO.bajando" "$OSM_ORIGEN/$MAPA-latest.osm.pbf"
+            mv "$FICHERO.bajando" "$FICHERO"
+          done
+          for MAPA in $MAPAS_ALREDEDOR; do
+            FICHERO="$RUNNER_TEMP/osm/alrededor/$(basename "$MAPA")-latest.osm.pbf"
+            curl -fsSL --retry 4 --retry-delay 15 -o "$FICHERO.bajando" "$OSM_ORIGEN/$MAPA-latest.osm.pbf"
+            mv "$FICHERO.bajando" "$FICHERO"
+          done
+          du -sh "$RUNNER_TEMP/osm"
+
+      - name: Guardar los mapas de OSM de esta semana
+        if: steps.bajar-osm.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/osm
+          key: ${{ steps.plan.outputs.clave }}
+
+      - name: Planificador, andar y lugares
+        if: steps.plan.outputs.andar == '1'
+        timeout-minutes: 30
+        run: |
+          php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --walk \
+            --osm="$(ls "$RUNNER_TEMP"/osm/*.osm.pbf | paste -sd, -)" \
+            --near="$(ls "$RUNNER_TEMP"/osm/alrededor/*.osm.pbf | paste -sd, -)"
+
+      # La misma puerta que producción, frente a las consultas del planificador de producción si las hay. Si no pasa,
+      # no se despliega.
+      - name: Planificador, consultas fijas
+        timeout-minutes: 10
+        env:
+          ACEPTAR: ${{ inputs.aceptar_planificador }}
+        run: |
+          ANTES="$RUNNER_TEMP/ayer/resultados.json"
+          if [ "$ACEPTAR" = true ]; then
+            ANTES=""
+          fi
+          php bideplus/tests/planner-check.php \
+            --data="$RUNNER_TEMP/plan/planificador/build/data" --engine=bideplus/engine/planner \
+            --except="$REDES_RESERVADAS" --previous="$ANTES" --out="$RUNNER_TEMP/plan/resultados.json"
+          cp -a "$RUNNER_TEMP/plan/planificador" "$RUNNER_TEMP/plan/docs" bideplus/
+          echo "### Planificador de la prueba: $(du -sh bideplus/planificador | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comprobar los datos antes de desplegar
+        working-directory: bideplus
+        run: |
+          php tests/unit-test.php
+          php tests/data-integrity.php
+          PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs -o /dev/null http://localhost:8011/; then break; fi
+            sleep 1
+          done
+          python3 tests/api-contract.py
+
+      # Solo en la copia del runner (.github/scripts/modo-prueba.py): si un parche ya no encaja, se para aquí.
+      - name: Modo prueba
+        run: python3 .github/scripts/modo-prueba.py bideplus
+
+      - name: Stamp the app files fingerprint in sw.js
+        continue-on-error: true
+        run: php bideplus/scripts/stamp-sw.php
+
+      # El dominio de prueba sigue a la rama prueba (si es del proyecto), las previews se abren sin cuenta de Vercel y
+      # la función grande (VERCEL_SUPPORT_LARGE_FUNCTIONS) vale también en preview.
+      - name: Preparar Vercel
+        run: |
+          source .github/scripts/vercel-api.sh
+          P="/v9/projects/$VERCEL_PROJECT_ID"
+          vercel_api GET "$P/domains/$DOMINIO_PRUEBA" "" "200 404"
+          if [ "$VERCEL_CODIGO" = 404 ]; then
+            echo "$DOMINIO_PRUEBA no es un dominio del proyecto: basta con el alias"
+          elif [ "$(jq -r '.gitBranch // ""' "$VERCEL_RESPUESTA")" != prueba ]; then
+            vercel_api PATCH "$P/domains/$DOMINIO_PRUEBA" '{"gitBranch":"prueba"}'
+            echo "### $DOMINIO_PRUEBA pasa a la rama prueba: producción ya no lo coge" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          vercel_api GET "$P"
+          cp "$VERCEL_RESPUESTA" "$RUNNER_TEMP/proyecto.json"
+          if [ "$(jq -r '.ssoProtection // "" | tostring' "$RUNNER_TEMP/proyecto.json")" != "" ]; then
+            vercel_api PATCH "$P" '{"ssoProtection":null}'
+            echo "### Quitada la protección de las previews (ssoProtection)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$(jq -r '.passwordProtection // "" | tostring' "$RUNNER_TEMP/proyecto.json")" != "" ]; then
+            echo "::warning::El proyecto tiene contraseña (passwordProtection): no se toca y la prueba la pedirá"
+            echo "### El proyecto tiene protección con contraseña: no se ha tocado" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          vercel_api GET "$P/env"
+          GRANDES='[.envs[] | select(.key == "VERCEL_SUPPORT_LARGE_FUNCTIONS")]'
+          if [ "$(jq "$GRANDES | length" "$VERCEL_RESPUESTA")" = 0 ]; then
+            vercel_api POST "/v10/projects/$VERCEL_PROJECT_ID/env" \
+              '{"key":"VERCEL_SUPPORT_LARGE_FUNCTIONS","value":"1","type":"plain","target":["preview"]}' "200 201"
+            echo "### Creada VERCEL_SUPPORT_LARGE_FUNCTIONS=1 para preview" >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$(jq "$GRANDES | map(select(.target | index(\"preview\"))) | length" "$VERCEL_RESPUESTA")" = 0 ]; then
+            ID=$(jq -r "$GRANDES | .[0].id" "$VERCEL_RESPUESTA")
+            DESTINOS=$(jq -c "$GRANDES | .[0].target + [\"preview\"] | unique | {target: .}" "$VERCEL_RESPUESTA")
+            vercel_api PATCH "$P/env/$ID" "$DESTINOS"
+            echo "### VERCEL_SUPPORT_LARGE_FUNCTIONS vale también para preview" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # Como en producción (bideplus/scripts/vercel-launcher.py), pero «preview»: sin --prod y luego el alias.
+      - name: Desplegar la prueba
+        id: desplegar
+        run: |
+          vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+          rm -rf bideplus/engine/.git
+          vercel build --yes --token="$VERCEL_TOKEN"
+          OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
+          python3 bideplus/scripts/vercel-launcher.py "$OUT"
+          rm -f .vercelignore bideplus/.vercelignore
+          URL=$(vercel deploy --prebuilt --yes --token="$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          vercel alias set "$URL" "$DOMINIO_PRUEBA" --token="$VERCEL_TOKEN"
+          echo "### Prueba desplegada: https://$DOMINIO_PRUEBA ($URL)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comprobar la prueba
+        env:
+          URL: ${{ steps.desplegar.outputs.url }}
+        run: |
+          source .github/scripts/vercel-api.sh
+          SITIO="https://$DOMINIO_PRUEBA"
+          vercel_api GET "/v13/deployments/${URL#https://}"
+          NUEVO=$(jq -r '.id' "$VERCEL_RESPUESTA")
+          vercel_api GET "/v4/aliases/$DOMINIO_PRUEBA"
+          if [ "$(jq -r '.deploymentId' "$VERCEL_RESPUESTA")" != "$NUEVO" ]; then
+            echo "::error::$DOMINIO_PRUEBA no apunta al despliegue nuevo ($NUEVO)"
+            exit 1
+          fi
+          for i in $(seq 1 6); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO/api/lines")
+            echo "prueba /api/lines -> $CODE"
+            [ "$CODE" = "200" ] && break
+            if [ "$CODE" = "401" ]; then
+              echo "::error::La prueba pide cuenta de Vercel (401): la protección de las previews sigue puesta"
+              exit 1
+            fi
+            if [ "$i" = 6 ]; then
+              echo "::error::La prueba no responde (/api/lines da $CODE)"
+              exit 1
+            fi
+            sleep 10
+          done
+          FALLOS=0
+          for RUTA in /planificador/pantallas/ /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$RUTA")
+            echo "prueba $RUTA -> $CODE"
+            if [ "$CODE" != "200" ]; then
+              echo "::error::$RUTA da $CODE"
+              FALLOS=1
+            fi
+          done
+          if ! curl -sI "$SITIO/" | grep -qi '^x-robots-tag:.*noindex'; then
+            echo "::error::La portada no lleva X-Robots-Tag noindex"
+            FALLOS=1
+          fi
+          if ! curl -s "$SITIO/robots.txt" | grep -qx 'Disallow: /'; then
+            echo "::error::robots.txt no dice Disallow: /"
+            FALLOS=1
+          fi
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO/sitemap.xml")
+          if [ "$CODE" = "200" ]; then
+            echo "::error::La prueba tiene sitemap.xml"
+            FALLOS=1
+          fi
+          if ! curl -s "$SITIO/api/push/key" | jq -e '.publicKey == null' > /dev/null; then
+            echo "::error::/api/push/key da una clave: las notificaciones no están apagadas"
+            FALLOS=1
+          fi
+          exit "$FALLOS"
