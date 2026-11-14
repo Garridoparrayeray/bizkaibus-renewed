@@ -1,4 +1,4 @@
-// La pantalla del viaje elegido: cuándo salir y a qué hora llegas, el reparto del tiempo, cada tramo (a pie, en
+// La pantalla del viaje elegido: cuándo salir y a qué hora llegas, el reparto del tiempo, el mapa, cada tramo (a pie, en
 // vehículo con el color de su red, transbordo con su margen y qué hacer si pierdes el enlace) y «Empezar».
 import * as engine from '/planificador/pantallas/engine.js';
 import { transfersOf } from '/planificador/pantallas/journey.js';
@@ -7,6 +7,7 @@ import { SECONDS_PER_MINUTE, clock, dayNote, distance, duration, minutesOf, spar
 import { inkOn } from '/planificador/pantallas/dom.js';
 import { byId, colorOf, countText, el, namesOf, ridesIn, svgIcon } from './common.js';
 import { liveOf } from './options.js';
+import { closeTripMap, tripMapNode } from './trip-map.js';
 
 // «Sal en N min» solo si es hoy y falta poco; si no, la hora de salida.
 const SOON_SECONDS = 90 * SECONDS_PER_MINUTE;
@@ -251,8 +252,8 @@ const lostNotice = (chosen, option, journey) => {
 const paint = (app, chosen, journey) => {
     const option = currentOption(chosen.option, journey);
     const shown = Object.assign({}, chosen, { option });
-    byId('route-trip-body').replaceChildren(hero(app, shown), ...lostNotice(chosen, option, journey), legsList(app, shown, option, journey),
-        startLink(option));
+    byId('route-trip-body').replaceChildren(hero(app, shown), ...lostNotice(chosen, option, journey),
+        tripMapNode(app, chosen, option, journey), legsList(app, shown, option, journey), startLink(option));
 };
 
 const repaint = async (iRender) => {
@@ -300,6 +301,7 @@ export const closeTrip = () => {
         return;
     }
     byId('route-trip').hidden = true;
+    closeTripMap();
     document.documentElement.classList.remove('route-trip-open');
     if (trip.opener && document.contains(trip.opener)) {
         trip.opener.focus({ preventScroll: false });

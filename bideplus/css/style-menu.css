@@ -1728,6 +1728,114 @@ html.route-trip-open body {
                 text-align: center;
             }
 
+/* ===== El mapa del viaje (js/route/trip-map.js) y su fondo propio de Bizkaia (js/route/basemap.js) ===== */
+.route-trip-map {
+    --map-land: #f2f0ea;
+    --map-water: #b7d6e6;
+    --map-green: #d3e8c4;
+    --map-wood: #c3ddb2;
+    --map-urban: #e9e6df;
+    --map-sand: #f2e8c9;
+    --map-building: #ddd8ce;
+    --map-road: var(--bide-surface);
+    --map-road-casing: #d2ccc0;
+    --map-path: #8a6f52;
+    --map-steps: var(--bide-red);
+    --map-rail: #9aa39d;
+    --map-label: var(--bide-muted);
+    --map-label-halo: var(--bide-surface);
+    --map-walk: var(--bide-ink);
+    --map-casing: var(--bide-surface);
+    --map-origin: var(--bide-green);
+    --map-target: var(--bide-red);
+}
+    .route-trip-map[hidden] {
+        display: none;
+    }
+    .route-trip-map-frame {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--bide-line);
+        border-radius: 20px;
+    }
+        .route-trip-map-canvas {
+            height: 240px;
+            background: var(--map-land);
+        }
+        /* «Toca para mover el mapa» (map-guard.js del planificador): el botón encima del mapa y su texto. */
+        .route-trip-map-frame > button {
+            position: absolute;
+            inset: 0;
+            z-index: 999;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 8px 8px;
+            border: 0;
+            background: transparent;
+            color: var(--bide-ink);
+            font-weight: 800;
+        }
+            .route-trip-map-frame > button[hidden] {
+                display: none;
+            }
+            .route-trip-map-frame > button > span {
+                max-width: 100%;
+                padding: 6px 12px;
+                border-radius: 999px;
+                background: var(--bide-surface);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+                font-size: calc(13px * var(--text-scale, 1));
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        .route-map-dot {
+            box-sizing: border-box;
+            border-radius: 50%;
+        }
+            .route-map-dot--end {
+                width: 18px;
+                height: 18px;
+                margin: -9px 0 0 -9px;
+                border: 3px solid var(--map-casing);
+                background: var(--dot);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+            }
+            .route-map-dot--stop {
+                width: 14px;
+                height: 14px;
+                margin: -7px 0 0 -7px;
+                border: 3px solid var(--dot);
+                background: var(--map-casing);
+            }
+@media (prefers-color-scheme: dark) {
+    .route-trip-map {
+        --map-land: #1d2320;
+        --map-water: #233847;
+        --map-green: #23352a;
+        --map-wood: #213226;
+        --map-urban: #252b28;
+        --map-sand: #39352a;
+        --map-building: #343b37;
+        --map-road: #4a524d;
+        --map-road-casing: #151a17;
+        --map-path: #c9a97f;
+        --map-steps: #ff8a8a;
+        --map-rail: #6f7a73;
+        --map-label: #c6cec8;
+        --map-label-halo: #1d2320;
+        --map-walk: #f4f6f4;
+        --map-casing: #1d2320;
+    }
+}
+@media (min-width: 720px) {
+    .route-trip-map-canvas {
+        height: 360px;
+    }
+}
+
 /* ===== Tus redes, Editar y Todas las redes ===== */
 .nets-head {
     display: flex;

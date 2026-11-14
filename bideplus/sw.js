@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v58';
+const CACHE_VERSION = 'v59';
 // Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
 // cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
 const SHELL_HASH = '';
@@ -26,6 +26,8 @@ const SLOW_NETWORK_MS = 1500;
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 // Lo que nunca sale de la caché.
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|notice|app\/version)(\/|\?|$)/;
+// El mapa base (PMTiles) se lee a trozos (peticiones Range): directo de la red, sin pasar por la caché.
+const BASEMAP = /[.]pmtiles$/;
 const SHELL_FILES = [
     '/',
     '/css/style-networks.css',
@@ -42,6 +44,7 @@ const SHELL_FILES = [
     '/lib/leaflet/images/marker-icon.png',
     '/lib/leaflet/images/marker-icon-2x.png',
     '/lib/leaflet/images/marker-shadow.png',
+    '/lib/protomaps-leaflet/protomaps-leaflet.js',
     '/js/api.js',
     '/js/offline.js',
     '/js/bide-info.js',
@@ -85,6 +88,8 @@ const SHELL_FILES = [
     '/js/route/options.js',
     '/js/route/share.js',
     '/js/route/trip.js',
+    '/js/route/trip-map.js',
+    '/js/route/basemap.js',
     '/js/planner-link.js',
     '/js/i18n.js',
     '/css/style-menu.css',
@@ -153,7 +158,7 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
         return;
     }
-    if (url.pathname.startsWith('/offline-data/')) {
+    if (url.pathname.startsWith('/offline-data/') || BASEMAP.test(url.pathname)) {
         return;
     }
     if (PLANNER_DATA.test(url.pathname)) {

@@ -137,6 +137,33 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
     await ev("document.querySelector('.route-option.is-open .route-choose').click(); true");
     check(`${sLang} · «${sChoose}» abre la pantalla del viaje`, await waitTrue(`${shown('#route-trip .route-hero')} && document.getElementById('route-trip-title').textContent.startsWith(${JSON.stringify(sTrip)})`));
     check(`${sLang} · el viaje: salida, llegada, reparto y cada vehículo con su red`, await ev("!!document.querySelector('.route-hero-big') && /\\d\\d:\\d\\d/.test(document.querySelector('.route-hero-clock').textContent) && document.querySelectorAll('.route-split-part').length > 1 && document.querySelectorAll('.route-ride').length > 0"));
+    if (sLang === 'es') {
+        // Sin el mapa base (lo hace el despliegue: .github/scripts/mapa-base.sh), el fondo son las teselas de OSM.
+        const bBasemap = (await fetch(BASE + '/map-data/bizkaia.pmtiles', { method: 'HEAD' }).catch(() => null))?.ok;
+        let sTiles = "document.querySelectorAll('.route-trip-map canvas.leaflet-tile').length > 0 && !document.querySelector('.route-trip-map img.leaflet-tile')";
+        let sBase = 'el mapa base propio (PMTiles)';
+        if (!bBasemap) {
+            sTiles = "!!document.querySelector('.route-trip-map img.leaflet-tile')";
+            sBase = 'las teselas de OSM (no hay PMTiles)';
+        }
+        check(`mapa del viaje: con el viaje dibujado y de fondo ${sBase}`,
+            await waitTrue(`!!document.querySelector('.route-trip-map .leaflet-overlay-pane path') && ${sTiles}`, PLANNER_MS));
+        check('mapa del viaje: atribución «© OpenStreetMap»', /© OpenStreetMap/.test(await text('.route-trip-map .leaflet-control-attribution')));
+        check('mapa del viaje: entre el resumen y los tramos', await ev("(() => { const m = document.querySelector('.route-trip-map'); return m.previousElementSibling.classList.contains('route-hero') || m.previousElementSibling.classList.contains('route-notice'); })()"));
+        check('mapa del viaje: fuera de Bizkaia, las teselas de siempre', await ev(`(async () => {
+            const { addBasemap } = await import('/js/route/basemap.js');
+            const box = document.createElement('div');
+            box.className = 'route-trip-map';
+            document.body.append(box);
+            const bounds = L.latLngBounds([[40.41, -3.71], [40.42, -3.70]]);
+            const map = L.map(box).fitBounds(bounds);
+            await addBasemap(L, map, bounds);
+            const bRaster = Object.values(map._layers).some((layer) => layer instanceof L.TileLayer && !!layer._url);
+            map.remove();
+            box.remove();
+            return bRaster;
+        })()`));
+    }
     check(`${sLang} · «Empezar» lleva a la parada donde subes`, /^\/stops\/.+\?red=/.test(await ev("document.querySelector('.route-start-button').getAttribute('href')")));
     check(`${sLang} · el viaje queda en la dirección`, /[?&]viaje=/.test(await ev('location.search')));
     await ev('history.back(); true');

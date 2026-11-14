@@ -58,7 +58,29 @@ if ($sUri !== '/' && $sFile !== false && is_file($sFile) && str_starts_with($sFi
         return true;
     }
     header('Content-Type: ' . ($aTypes[$sExtension] ?? 'application/octet-stream'));
-    header('Content-Length: ' . filesize($sFile));
+    header('Accept-Ranges: bytes');
+    $iSize = (int)filesize($sFile);
+    // Un tramo (Range), como Vercel: el mapa base PMTiles se lee a trozos. «bytes=-N» son los N últimos.
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', (string)($_SERVER['HTTP_RANGE'] ?? ''), $aRange) && $aRange[1] . $aRange[2] !== '') {
+        $iFirst = (int)$aRange[1];
+        $iLast = $iSize - 1;
+        if ($aRange[1] === '') {
+            $iFirst = max(0, $iSize - (int)$aRange[2]);
+        } elseif ($aRange[2] !== '') {
+            $iLast = min($iLast, (int)$aRange[2]);
+        }
+        if ($iFirst > $iLast) {
+            http_response_code(416);
+            header('Content-Range: bytes */' . $iSize);
+            return true;
+        }
+        http_response_code(206);
+        header('Content-Range: bytes ' . $iFirst . '-' . $iLast . '/' . $iSize);
+        header('Content-Length: ' . ($iLast - $iFirst + 1));
+        echo (string)file_get_contents($sFile, false, null, $iFirst, $iLast - $iFirst + 1);
+        return true;
+    }
+    header('Content-Length: ' . $iSize);
     readfile($sFile);
     return true;
 }

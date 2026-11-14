@@ -34,6 +34,9 @@ jobs:
         spain/euskadi spain/comunidad_foral_de_navarra france/aquitaine/pyrenees_atlantiques
       MAPAS_ALREDEDOR: >-
         spain/cantabria spain/la_rioja spain/castilla_y_leon/burgos france/aquitaine/landes
+      # Los que tocan el recuadro de Bizkaia, para el mapa base del mapa del viaje (.github/scripts/mapa-base.sh).
+      MAPAS_FONDO: spain/euskadi spain/cantabria spain/castilla_y_leon/burgos
+      MAR_ORIGEN: https://osmdata.openstreetmap.de/download/water-polygons-split-4326.zip
       DOMINIO_PRUEBA: bideplusmiamor.vercel.app
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
@@ -125,6 +128,7 @@ jobs:
           php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --databases=bideplus/data \
             --except="$REDES_RESERVADAS" --previous="$RUNNER_TEMP/ayer"
           echo "clave=osm-$(date -u +%G-%V)-$(printf '%s' "$MAPAS_OSM $MAPAS_ALREDEDOR" | sha1sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
+          echo "anio=$(date -u +%Y)" >> "$GITHUB_OUTPUT"
 
       - name: Mapas de OSM de esta semana
         id: osm
@@ -166,6 +170,75 @@ jobs:
           php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --walk \
             --osm="$(ls "$RUNNER_TEMP"/osm/*.osm.pbf | paste -sd, -)" \
             --near="$(ls "$RUNNER_TEMP"/osm/alrededor/*.osm.pbf | paste -sd, -)"
+
+      # El mapa base de Bizkaia (PMTiles) para el mapa del viaje, uno por semana de OSM. Va en el propio despliegue
+      # (map-data/): Vercel sirve los ficheros a trozos (Range) y es el mismo origen, sin CORS. Si falla, no se para:
+      # sin el fichero, el mapa usa las teselas de OSM. El mar (osmdata, 900 MB) se recorta una vez al año.
+      - name: Mapa base de esta semana
+        id: fondo
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/fondo
+          key: fondo-${{ steps.plan.outputs.clave }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+
+      - name: Mar de Bizkaia de este año
+        id: mar
+        if: steps.fondo.outputs.cache-hit != 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/mar
+          key: mar-${{ steps.plan.outputs.anio }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+
+      - name: Hacer el mapa base
+        id: hacer-fondo
+        if: steps.fondo.outputs.cache-hit != 'true'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends osmium-tool gdal-bin tippecanoe
+          mkdir -p "$RUNNER_TEMP/fondo" "$RUNNER_TEMP/mar" "$RUNNER_TEMP/fondo-osm"
+          aMapas=()
+          for MAPA in $MAPAS_FONDO; do
+            NOMBRE="$(basename "$MAPA")-latest.osm.pbf"
+            FICHERO=$(ls "$RUNNER_TEMP/osm/$NOMBRE" "$RUNNER_TEMP/osm/alrededor/$NOMBRE" 2>/dev/null | head -1 || true)
+            if [ -z "$FICHERO" ]; then
+              FICHERO="$RUNNER_TEMP/fondo-osm/$NOMBRE"
+              curl -fsSL --retry 4 --retry-delay 15 -o "$FICHERO" "$OSM_ORIGEN/$MAPA-latest.osm.pbf"
+            fi
+            aMapas+=("$FICHERO")
+          done
+          if [ ! -s "$RUNNER_TEMP/mar/mar.geojson" ]; then
+            curl -fsSL --retry 4 --retry-delay 15 -o "$RUNNER_TEMP/agua.zip" "$MAR_ORIGEN"
+          fi
+          INICIO=$(date +%s)
+          MAR_ZIP="$RUNNER_TEMP/agua.zip" .github/scripts/mapa-base.sh "$RUNNER_TEMP/fondo/bizkaia.pmtiles" \
+            "$RUNNER_TEMP/mar/mar.geojson" "${aMapas[@]}"
+          rm -f "$RUNNER_TEMP/agua.zip"
+          echo "### Mapa base: $(du -h "$RUNNER_TEMP/fondo/bizkaia.pmtiles" | cut -f1) en $(( $(date +%s) - INICIO )) s" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar el mar de Bizkaia de este año
+        if: steps.hacer-fondo.outcome == 'success' && steps.mar.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/mar
+          key: mar-${{ steps.plan.outputs.anio }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+
+      - name: Guardar el mapa base de esta semana
+        if: steps.hacer-fondo.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/fondo
+          key: fondo-${{ steps.plan.outputs.clave }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+
+      - name: Poner el mapa base en la app
+        run: |
+          if [ -s "$RUNNER_TEMP/fondo/bizkaia.pmtiles" ]; then
+            cp "$RUNNER_TEMP/fondo/bizkaia.pmtiles" bideplus/map-data/
+          else
+            echo "::warning::Sin mapa base: el mapa del viaje usa las teselas de OSM"
+          fi
 
       # La misma puerta que producción, frente a las consultas del planificador de producción si las hay. Si no pasa,
       # no se despliega.
@@ -294,6 +367,11 @@ jobs:
               FALLOS=1
             fi
           done
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-126' "$SITIO/map-data/bizkaia.pmtiles")
+          echo "prueba /map-data/bizkaia.pmtiles (Range) -> $CODE"
+          if [ "$CODE" != "206" ]; then
+            echo "::warning::El mapa base no se sirve a trozos ($CODE): el mapa del viaje usa las teselas de OSM"
+          fi
           if ! curl -sI "$SITIO/" | grep -qi '^x-robots-tag:.*noindex'; then
             echo "::error::La portada no lleva X-Robots-Tag noindex"
             FALLOS=1
