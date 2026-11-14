@@ -34,7 +34,7 @@ def opt(*schema):
 
 LINE = {'id': ID, 'code': str, 'name': str}
 # Servicio reducido de la red (huelga, servicios mínimos): hoy, los días (AAAA-MM-DD), de dónde sale y el aviso.
-REDUCED = {'today': bool, 'days': ['date'], 'sources': [str], 'alert': opt(str)}
+REDUCED = {'today': bool, 'days': ['date'], 'sources': [str], 'alert': opt(str), 'cause': opt(str), 'lines': opt([ID]), 'lineCodes': opt([str])}
 STOP_REF = {'id': ID, 'name': str, 'lat': NUM, 'lon': NUM}
 
 SCHEMAS = {
@@ -63,9 +63,10 @@ SCHEMAS = {
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'plannerLive': {'day': int, 'generated': int,
-                    'updates': [{'network': str, 'trip': str, 'delay': int, 'cancelled': bool}], 'reduced': 'reducedDays'},
+                    'updates': [{'network': str, 'trip': str, 'delay': int, 'cancelled': bool}]},
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
+    'reduced': REDUCED,
     'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'reducedService': REDUCED},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
@@ -90,13 +91,6 @@ def check(value, schema, path, where):
     if schema == 'date':
         if not isinstance(value, str) or not DATE.match(value):
             fails.append(f'{where} {path}: fecha AAAA-MM-DD esperada, llegó {value!r}')
-        return
-    if schema == 'reducedDays':
-        if not isinstance(value, dict):
-            fails.append(f'{where} {path}: objeto red => días esperado, llegó {type(value).__name__}')
-            return
-        for network, days in value.items():
-            check(days, ['date'], f'{path}.{network}', where)
         return
     if schema == 'status':
         if value not in STATUS:
@@ -210,6 +204,7 @@ for name, cfg in NETS.items():
     res = get(net('/api/search?q=' + q, s), 'search', name) or {}
     get(net('/api/lines', s), 'lines', name)
     get(net('/api/alerts', s), 'alerts', name)
+    get(net('/api/reduced', s), 'reduced', name)
     if cfg.get('live'):
         get(net('/api/status', s), 'netStatus', name)
     get(net(f'/api/nearby?lat={lat}&lon={lon}&limit=5', s), 'nearby', name)
@@ -266,7 +261,7 @@ for name, cfg in NETS.items():
 # El directo del planificador: los tramos vistos (vayan o no en directo) y uno mal escrito.
 get('/api/planner/live?legs=' + urllib.parse.quote(','.join(planner_legs[:40]), safe=''), 'plannerLive', 'planificador')
 get('/api/planner/live?legs=a%7Cb', 'error', 'planificador', expect=422)
-get('/api/planner/live?legs=&networks=' + ','.join(NETS) + ',no-existe', 'plannerLive', 'planificador')
+
 print('planificador', 'OK')
 
 print(f'RESULTADO contrato: {checked} comprobaciones, {len(fails)} fallos')

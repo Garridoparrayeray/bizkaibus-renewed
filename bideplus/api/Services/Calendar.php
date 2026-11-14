@@ -6,7 +6,7 @@ namespace Services;
 class Calendar
 {
     public const DAY_SECONDS = 86400;
-    private const TIME_ZONE = 'Europe/Madrid';
+    public const TIME_ZONE = 'Europe/Madrid';
 
     public static function todayMadrid(): \DateTime
     {

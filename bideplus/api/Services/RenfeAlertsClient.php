@@ -18,8 +18,9 @@ class RenfeAlertsClient
     private const GENERIC_SUMMARY = 'Aviso de Renfe';
 
     private array $aConfig;
-    // Los cancelados, una vez por petición: el cron de notificaciones pide los avisos de cada estación guardada.
-    private static array|null $aCancellations = null;
+    // Los cancelados de cada red, una vez por petición: el cron de notificaciones pide los avisos de cada estación
+    // guardada, y Renfe y Renfe LD los tienen distintos.
+    private static array $aCancellations = [];
 
     public function __construct(array $aConfig)
     {
@@ -57,21 +58,21 @@ class RenfeAlertsClient
             }
             $aAlerts[] = $aAlert;
         }
-        return array_merge($aAlerts, self::cancellations($Pdo));
+        return array_merge($aAlerts, self::cancellations($Pdo, (string)($this->aConfig['slug'] ?? '')));
     }
 
-    private static function cancellations(\PDO $Pdo): array
+    private static function cancellations(\PDO $Pdo, string $sNetwork): array
     {
-        if (self::$aCancellations !== null) {
-            return self::$aCancellations;
+        if (isset(self::$aCancellations[$sNetwork])) {
+            return self::$aCancellations[$sNetwork];
         }
-        self::$aCancellations = [];
+        self::$aCancellations[$sNetwork] = [];
         $JourneyModel = new ServiceJourney($Pdo);
         $Matcher = Live::tripMatcher($JourneyModel);
         if ($Matcher instanceof TripDelayMatcher) {
-            self::$aCancellations = CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
+            self::$aCancellations[$sNetwork] = CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
         }
-        return self::$aCancellations;
+        return self::$aCancellations[$sNetwork];
     }
 
     public function alertsByLine(): array

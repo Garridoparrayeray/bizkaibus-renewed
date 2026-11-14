@@ -89,8 +89,8 @@ return [
     // Fuentes en directo: 'vehicle-monitoring' (SIRI, con el motor de engine/<engine>) y 'trip-updates' (GTFS-RT).
     'live' => ['vehicle-monitoring'],
 
-    // Servicio reducido por el directo (Services\ReducedService): de los viajes en marcha según el horario, falta en el
-    // feed el 60 % o más (lo normal ronda el 10 %) durante 15 min, con 40 o más en marcha.
+    // Servicio reducido por el directo (Services\ReducedService): de los viajes en marcha según el horario,
+    // falta en el feed el 60 % o más (lo normal ronda el 10 %) durante 15 min, con 40 o más en marcha.
     'reduced_service' => [
         'live' => ['min_expected' => 40, 'missing_share' => 0.6, 'confirm_seconds' => 900],
     ],
