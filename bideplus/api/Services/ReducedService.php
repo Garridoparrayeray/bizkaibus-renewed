@@ -434,7 +434,7 @@ class ReducedService
     }
 
     // Si otra red lee los mismos avisos (Euskotren y los dos tranvías, Renfe y Renfe LD).
-    private static function sharesAlerts(array $aConfig): bool
+    public static function sharesAlerts(array $aConfig): bool
     {
         $aOwn = self::alertUrls($aConfig);
         foreach (Networks::all() as $sSlug => $aOther) {
@@ -449,7 +449,8 @@ class ReducedService
     {
         $aUrls = [];
         foreach (self::ALERT_URL_KEYS as [$sGroup, $sKey]) {
-            array_push($aUrls, ...(array)($aConfig[$sGroup][$sKey] ?? []));
+            // array_values: las de Lurraldebus van por operador y array_push no admite claves con nombre.
+            array_push($aUrls, ...array_values((array)($aConfig[$sGroup][$sKey] ?? [])));
         }
         return array_values(array_filter($aUrls));
     }

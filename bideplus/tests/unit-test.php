@@ -1035,6 +1035,8 @@ $aShared = $Reduced([['summary' => 'Greba gaur', 'lineRefs' => []], ['summary' =
 $Expect('feed compartido (Euskotren y tranvías): sin líneas o con las de otra red, no cuenta', $aShared['days'] === [], json_encode($aShared));
 $aOperatorAlerts = \Services\SiriAlertsClient::withOperator([['summary' => 'Greba', 'lineRefs' => ['110']]], 'ekialdebus');
 $Expect('Lurraldebus: las líneas de los avisos de cada operador llevan delante el suyo, como en la base', $aOperatorAlerts[0]['lineRefs'] === ['ekialdebus:110'] && $Reduced($aOperatorAlerts, ['ekialdebus:110' => ['ekialdebus:110']])['lines'] === ['ekialdebus:110']);
+$aSharing = array_map(fn(string $sSlug) => \Services\ReducedService::sharesAlerts(\Core\Networks::get($sSlug)), ['euskotren', 'tranvia-bilbao', 'metro', 'renfe', 'lurraldebus']);
+$Expect('avisos compartidos: Euskotren y el tranvía leen el mismo feed, Metro y Lurraldebus (avisos por operador) no', $aSharing[0] && $aSharing[1] && !$aSharing[2] && !$aSharing[4], json_encode($aSharing));
 $aDatesCases = [
     'huelga del 17 al 19 de noviembre' => ['2026-11-17', '2026-11-18', '2026-11-19'],
     'huelga los dias 17, 18 y 19 de noviembre' => ['2026-11-17', '2026-11-18', '2026-11-19'],
