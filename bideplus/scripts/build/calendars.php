@@ -13,9 +13,11 @@ class Calendars
 {
     private const SUNDAY_ONLY_MASK = 0b1000000;
     private const SUNDAY_WEEKDAY = 7;
+    // Las semanas de antes y de después con las que se compara un día para saber lo normal.
+    private const NEIGHBOUR_WEEKS = [-2, -1, 1, 2];
 
-    // Festivos de la zona según otras redes (gtfs.holidays_from de la ficha): las fechas de lunes a sábado, desde
-    // $sFrom, con excepciones en el calendario y en las que al menos $iQuorum de esas bases van como un domingo.
+    // Festivos de la zona según otras redes (respaldo de Build\Holidays): las fechas de lunes a sábado, desde $sFrom,
+    // con excepciones en el calendario y en las que al menos $iQuorum de esas bases van como un domingo.
     public static function referenceHolidays(array $aDbPaths, int $iQuorum, string $sFrom): array
     {
         $aCounts = [];
@@ -37,8 +39,8 @@ class Calendars
         return $aHolidays;
     }
 
-    // Un día de lunes a sábado con tantos viajes como el domingo de esa semana, más cerca de él que del mismo día de
-    // la semana anterior o la siguiente (Nochebuena, con su servicio especial, no lo es).
+    // Un día de lunes a sábado más cerca, en viajes, del domingo de esa semana que de lo normal (la mediana de ese día
+    // dos semanas antes y después; Nochebuena, con servicio especial, no lo es), o sin viajes y con anulaciones.
     private static function runsLikeSunday(PDO $Pdo, DateTime $Day): bool
     {
         $iWeekday = (int)$Day->format('N');
@@ -47,8 +49,16 @@ class Calendars
         }
         $iDay = self::journeysOn($Pdo, $Day);
         $iSunday = self::journeysOn($Pdo, (clone $Day)->modify('+' . (self::SUNDAY_WEEKDAY - $iWeekday) . ' days'));
-        $iUsual = max(self::journeysOn($Pdo, (clone $Day)->modify('-7 days')), self::journeysOn($Pdo, (clone $Day)->modify('+7 days')));
-        return $iDay > 0 && $iUsual > $iSunday && abs($iDay - $iSunday) < abs($iDay - $iUsual);
+        $aNear = array_map(fn(int $iWeeks) => self::journeysOn($Pdo, (clone $Day)->modify(sprintf('%+d days', 7 * $iWeeks))), self::NEIGHBOUR_WEEKS);
+        sort($aNear);
+        $iMiddle = intdiv(\count($aNear), 2);
+        $iUsual = intdiv($aNear[$iMiddle - 1] + $aNear[$iMiddle], 2);
+        if ($iDay === 0) {
+            $Stmt = $Pdo->prepare('SELECT 1 FROM service_calendar_exceptions WHERE date = ? AND available = 0 LIMIT 1');
+            $Stmt->execute([$Day->format('Y-m-d')]);
+            return $iUsual > 0 && $Stmt->fetchColumn() !== false;
+        }
+        return $iUsual > $iSunday && abs($iDay - $iSunday) < abs($iDay - $iUsual);
     }
 
     // Los viajes que circulan un día, como lo cuenta la app (Models\ServiceJourney).

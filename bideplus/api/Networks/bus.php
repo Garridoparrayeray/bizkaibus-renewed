@@ -114,9 +114,13 @@ return [
     ],
 
     'gtfs' => [
-        // Los festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio de domingo,
-        // como los publican al menos dos de estas redes de la zona (Build\Calendars::applyHolidays).
-        'holidays_from' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Bizkaia', 'municipality' => null,
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1061',
         'fallback_source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bizkaibus.zip',
         'agency_id' => '200',

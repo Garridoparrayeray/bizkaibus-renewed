@@ -126,9 +126,13 @@ return [
     ],
 
     'gtfs' => [
-        // Los festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio de domingo,
-        // como los publican al menos dos de estas redes de la zona (Build\Calendars::applyHolidays).
-        'holidays_from' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Álava - Araba', 'municipality' => 'Vitoria-Gasteiz',
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/tuvisa/gtfs_tuvisa.zip',
         'fallback_source' => null,
         'agency_id' => null,

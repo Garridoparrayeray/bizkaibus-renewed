@@ -351,18 +351,43 @@ $CalendarDb = function (string $sPath, array $aCalendars, array $aExceptions): P
 $aRefPaths = [];
 foreach (['a', 'b'] as $sRef) {
     $aRefPaths[] = $sRefPath = sys_get_temp_dir() . '/bide-festivos-' . $sRef . '-' . getmypid() . '.sqlite';
-    $CalendarDb($sRefPath, ['lv' => [31, 10], 'd' => [64, 4], 'nochebuena' => [0, 2]], [['lv', '2026-12-08', 0], ['d', '2026-12-08', 1], ['nochebuena', '2026-12-24', 1]]);
+    $CalendarDb($sRefPath, ['lv' => [31, 10], 'd' => [64, 4], 'nochebuena' => [0, 2], 'reyes' => [0, 1]], [['lv', '2026-12-08', 0], ['d', '2026-12-08', 1], ['nochebuena', '2026-12-24', 1], ['lv', '2027-01-06', 0]]);
 }
 $aHolidays = Calendars::referenceHolidays($aRefPaths, 2, '2026-11-14');
+$aOneRef = Calendars::referenceHolidays([$aRefPaths[0], sys_get_temp_dir() . '/bide-no-existe.sqlite'], 2, '2026-11-14');
 array_map('unlink', $aRefPaths);
-$Expect('festivo: las redes de la zona dan el martes 8 de diciembre y no Nochebuena', $aHolidays === ['2026-12-08']);
+$Expect('festivo de respaldo: el martes 8 de diciembre y Reyes sin viajes y con anulaciones, no Nochebuena', $aHolidays === ['2026-12-08', '2027-01-06']);
+$Expect('festivo de respaldo: con una sola red no hay quórum', $aOneRef === []);
+// El calendario laboral de Euskadi tal como lo publica (fechas «2026/12/08» y «2027/1/6»): los de toda Euskadi, los
+// del territorio y los del municipio de la red; los de otros municipios y los domingos, no.
+$aEuskadiRows = [
+    ['date' => '2026/12/08', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2027/1/6', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2027/7/31', 'territory' => 'Gipuzkoa', 'municipalityEs' => 'Gipuzkoa'],
+    ['date' => '2027/1/20', 'territory' => 'Gipuzkoa', 'municipalityEs' => 'Donostia-San Sebastian  '],
+    ['date' => '2027/4/28', 'territory' => 'Álava - Araba', 'municipalityEs' => 'Álava - Araba'],
+    ['date' => '2026/12/06', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2026/01/01', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+];
+$aEuskadi = ['url' => 'prueba-{year}', 'date' => 'date', 'territory' => 'territory', 'municipality' => 'municipalityEs', 'everywhere' => 'Todos/denak'];
+$Expect('calendario laboral: toda la comunidad y el territorio para una red de Gipuzkoa', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, 'Gipuzkoa', null, '2026-11-14') === ['2026-12-08', '2027-01-06', '2027-07-31']);
+$Expect('calendario laboral: y el del municipio para la red de Donostia', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, 'Gipuzkoa', 'Donostia-San Sebastian', '2026-11-14') === ['2026-12-08', '2027-01-06', '2027-07-31', '2027-01-20']);
+$Expect('calendario laboral: una red de toda Euskadi, solo los de toda la comunidad', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, null, null, '2026-11-14') === ['2026-12-08', '2027-01-06']);
+array_map('unlink', glob(sys_get_temp_dir() . '/bizkaibusplus_holidays_prueba_*.json'));
+$aHolidayConfig = ['calendars' => ['prueba' => $aEuskadi], 'cache_seconds' => 3600, 'http_timeout_seconds' => 1];
+$aFetched = Build\Holidays::forNetwork('prueba', ['calendar' => 'prueba', 'territory' => 'Gipuzkoa', 'municipality' => null, 'fallback' => ['networks' => [], 'quorum' => 1]], '2026-11-14', fn(string $sUrl) => match ($sUrl) {
+    'prueba-2026' => json_encode(array_slice($aEuskadiRows, 0, 1)),
+    default => null,
+}, $aHolidayConfig);
+array_map('unlink', glob(sys_get_temp_dir() . '/bizkaibusplus_holidays_prueba_*.json'));
+$Expect('calendario laboral: se baja año a año; el que no está sale del respaldo (aquí, sin redes: ninguno)', $aFetched === ['2026-12-08']);
 $Target = fn() => $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'todos' => [127, 1]], []);
 $Silent = $Target();
-$iApplied = Calendars::applyHolidays($Silent, $aHolidays, '2027-02-08', false);
+$iApplied = Calendars::applyHolidays($Silent, ['2026-12-08'], '2027-02-08', false);
 $Expect('festivo: sin calendar_dates, ese martes va con el de domingo y lo diario sigue', $iApplied === 1
     && Calendars::journeysOn($Silent, new DateTime('2026-12-08')) === 5 && Calendars::journeysOn($Silent, new DateTime('2026-12-01')) === 11);
-$Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), $aHolidays, '2026-12-23', true) === 0);
-$Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), $aHolidays, '2026-12-01', true) === 1);
+$Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-23', true) === 0);
+$Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-01', true) === 1);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
