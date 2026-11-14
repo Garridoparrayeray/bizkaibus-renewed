@@ -24,7 +24,7 @@ jobs:
   desplegar:
     if: github.ref == 'refs/heads/prueba'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     env:
       NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
       # Las mismas redes fuera del planificador y los mismos mapas que «Rebuild schedule data».
@@ -161,7 +161,7 @@ jobs:
 
       - name: Planificador, andar y lugares
         if: steps.plan.outputs.andar == '1'
-        timeout-minutes: 30
+        timeout-minutes: 75
         run: |
           php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --walk \
             --osm="$(ls "$RUNNER_TEMP"/osm/*.osm.pbf | paste -sd, -)" \

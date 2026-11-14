@@ -60,7 +60,7 @@ jobs:
     needs: decidir
     if: needs.decidir.outputs.hacer == '1'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
     # Escribe en las releases «bases» y «planificador», sube geocache.json y deja los avisos en una incidencia.
     permissions:
       contents: write
@@ -340,7 +340,7 @@ jobs:
         id: andar
         if: steps.plan.outputs.andar == '1' && steps.bajar-osm.outcome != 'failure'
         continue-on-error: true
-        timeout-minutes: 30
+        timeout-minutes: 75
         run: |
           php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --walk \
             --osm="$(ls "$RUNNER_TEMP"/osm/*.osm.pbf | paste -sd, -)" \
