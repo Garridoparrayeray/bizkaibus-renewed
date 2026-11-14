@@ -34,10 +34,13 @@ Necesitas PHP 8.2 o superior con las extensiones `sqlite3`, `pdo_sqlite`, `curl`
 
 ```
 cd bideplus
+php scripts/fetch-databases.php
 php -S localhost:8011 dev-router.php
 ```
 
-Después abre <http://localhost:8011>. Las pruebas están en [bideplus/tests/README.md](bideplus/tests/README.md).
+`fetch-databases.php` baja las bases de las redes (no están en git) de la release `bases`, las mismas que producción, y comprueba su tamaño y su huella SHA-256; con `--red=metro` baja solo una. Después abre <http://localhost:8011>.
+
+El planificador (`/planificador/`) necesita el motor en `bideplus/engine`: `php scripts/build-planner.php --out=. --databases=data --except=villavesas` hace los paquetes y los recorridos del mapa sin las redes de `--except` (las villavesas, fuera del planificador hasta que se resuelvan sus datos; en «Rebuild schedule data» es la línea `REDES_RESERVADAS`) y, la primera vez, `php scripts/build-planner.php --out=. --walk --osm=euskadi-latest.osm.pbf,… --near=cantabria-latest.osm.pbf,…` las tablas de andar, los lugares y las calles del mapa con los mapas de OpenStreetMap (los de `--near`, los de alrededor, solo dan lugares cerca de una parada). Las pruebas están en [bideplus/tests/README.md](bideplus/tests/README.md).
 
 ## Participar
 

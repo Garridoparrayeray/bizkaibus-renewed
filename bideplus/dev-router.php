@@ -30,31 +30,13 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     }
 }
 
-// Solo en local: el planificador del repositorio del motor (pantallas, WebAssembly, envoltorios, datos generados y
-// tipografías) bajo /planificador/. En producción esta ruta no existe.
+// El planificador que deja scripts/build-planner.php en planificador/: las mismas dos rutas que en vercel.json.
 if ($sUri === '/planificador' || $sUri === '/planificador/') {
-    header('Location: /planificador/pantallas/');
+    header('Location: /planificador/pantallas/', true, 308);
     return true;
 }
 if ($sUri === '/planificador/pantallas/') {
     $sUri = '/planificador/pantallas/index.html';
-}
-$aPlannerFolders = [
-    '#^/planificador/((pantallas|js|dist|build/data)/[\w.-]+)$#' => '/engine/planner/',
-    '#^/docs/manual/hoja-de-ruta/fonts/([\w.-]+[.]woff2)$#' => '/engine/docs/manual/hoja-de-ruta/fonts/',
-];
-$aPlannerTypes = [
-    'html' => 'text/html; charset=utf-8', 'css' => 'text/css; charset=utf-8', 'js' => 'text/javascript; charset=utf-8',
-    'json' => 'application/json', 'wasm' => 'application/wasm', 'woff2' => 'font/woff2',
-];
-foreach ($aPlannerFolders as $sPattern => $sFolder) {
-    if (preg_match($sPattern, $sUri, $aMatch) && is_file(__DIR__ . $sFolder . $aMatch[1])) {
-        $sPlannerFile = __DIR__ . $sFolder . $aMatch[1];
-        header('Content-Type: ' . ($aPlannerTypes[strtolower(pathinfo($sPlannerFile, PATHINFO_EXTENSION))] ?? 'application/octet-stream'));
-        header('Content-Length: ' . filesize($sPlannerFile));
-        readfile($sPlannerFile);
-        return true;
-    }
 }
 
 if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|engine)(/|$)#', $sUri) || preg_match('#^/api/[A-Z][^/]*/#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
@@ -69,7 +51,7 @@ if ($sUri !== '/' && $sFile !== false && is_file($sFile) && str_starts_with($sFi
         'html' => 'text/html; charset=utf-8', 'css' => 'text/css; charset=utf-8', 'js' => 'text/javascript; charset=utf-8',
         'json' => 'application/json', 'webmanifest' => 'application/manifest+json', 'xml' => 'application/xml', 'txt' => 'text/plain; charset=utf-8',
         'png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'svg' => 'image/svg+xml', 'ico' => 'image/x-icon', 'webp' => 'image/webp',
-        'woff2' => 'font/woff2', 'woff' => 'font/woff', 'pdf' => 'application/pdf',
+        'woff2' => 'font/woff2', 'woff' => 'font/woff', 'pdf' => 'application/pdf', 'wasm' => 'application/wasm',
     ];
     $sExtension = strtolower(pathinfo($sFile, PATHINFO_EXTENSION));
     if ($sExtension === 'php') {

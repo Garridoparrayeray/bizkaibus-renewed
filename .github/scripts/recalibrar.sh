@@ -46,9 +46,14 @@ for RED in $REDES; do
     continue
   fi
 
-  # Con la base del día están todos los viajes de las muestras recientes; si no se puede construir, la del repositorio.
+  # Con la base del día están todos los viajes de las muestras recientes; si no se puede construir, la de producción.
   if php bideplus/scripts/build-database.php --network="$RED" --output="$RUNNER_TEMP/$DB.sqlite" && [ -s "$RUNNER_TEMP/$DB.sqlite" ]; then
     mv "$RUNNER_TEMP/$DB.sqlite" "bideplus/data/$DB.sqlite"
+  elif [ ! -s "bideplus/data/$DB.sqlite" ]; then
+    if ! php bideplus/scripts/fetch-databases.php --red="$RED"; then
+      echo "Sin base de $RED: no se recalibra" | tee -a "$RESUMEN"
+      continue
+    fi
   fi
 
   if [ -s "$DATOS/pace-samples.jsonl" ]; then

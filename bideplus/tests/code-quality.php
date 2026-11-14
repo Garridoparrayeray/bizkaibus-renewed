@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 const ROOT = __DIR__ . '/../';
 // Lo que no es nuestro o no es código: librerías de terceros, datos generados y capturas.
-const SKIPPED_PATHS = '#^(lib|data|offline-data|map-data|screenshots|engine)/|^scripts/geocache\.json$|^sitemap\.xml$#';
+const SKIPPED_PATHS = '#^(lib|data|offline-data|map-data|screenshots|engine|planificador|docs)/|^scripts/geocache\.json$|^sitemap\.xml$#';
 const TEXT_EXTENSIONS = ['php', 'js', 'mjs', 'css', 'py', 'md', 'html', 'yml', 'yaml'];
 const INDENTED_EXTENSIONS = ['php', 'js', 'mjs', 'css'];
 require_once __DIR__ . '/../api/Core/Networks.php';
@@ -73,7 +73,7 @@ if ($bEngine) {
     exec('git -C ' . escapeshellarg(ROOT . 'engine') . ' ls-files --cached --others --exclude-standard', $aEngineListed);
     foreach ($aEngineListed as $sPath) {
         $bText = in_array(pathinfo($sPath, PATHINFO_EXTENSION), TEXT_EXTENSIONS, true);
-        if ($bText && !preg_match('#^lab/|(^|/)data/#', $sPath) && is_file(ROOT . 'engine/' . $sPath)) {
+        if ($bText && !preg_match('#^lab/|(^|/)(data|lib)/#', $sPath) && is_file(ROOT . 'engine/' . $sPath)) {
             $aEngineSources['engine/' . $sPath] = file_get_contents(ROOT . 'engine/' . $sPath);
         }
     }

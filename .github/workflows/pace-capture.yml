@@ -125,6 +125,12 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
+      # Las bases no están en git: la de producción (release «bases») cuenta los vehículos y sirve si no se construye.
+      - name: Bajar la base de producción de la red
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: php bideplus/scripts/fetch-databases.php --red=${{ matrix.red }} || echo "::warning::Sin la base de ${{ matrix.red }} en la release «bases»"
+
       # Bizkaibus captura siempre; las demás, solo si su feed trae vehículos ahora mismo.
       - name: ¿Trae vehículos el feed?
         id: feed

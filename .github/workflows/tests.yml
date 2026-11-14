@@ -21,7 +21,8 @@ concurrency:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Sin la release «bases» se construyen todas desde los GTFS (unos 6 minutos más).
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: bideplus
@@ -70,6 +71,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # Las bases no están en git: las de producción (release «bases»). Las que falten (una red nueva de la rama, o
+      # todas antes de la primera reconstrucción con la release) se construyen desde los GTFS.
+      - name: Bajar las bases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+          GEOCODE_MAX_NEW: '0'
+        run: |
+          php scripts/fetch-databases.php || echo "::warning::No se han podido bajar todas las bases: se construyen las que falten"
+          php scripts/networks.php | while read -r network db required; do
+            if [ ! -s "data/$db.sqlite" ]; then
+              echo "Construyendo $network desde su GTFS"
+              php scripts/build-database.php --network="$network"
+            fi
+          done
 
       # El mapa de la red (/mapa) lee map-data/*.json, que se generan con las bases como en la reconstrucción diaria.
       - name: Datos del mapa de la red

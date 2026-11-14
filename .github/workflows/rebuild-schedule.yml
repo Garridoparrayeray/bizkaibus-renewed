@@ -1,42 +1,82 @@
 name: Rebuild schedule data
 
-# Reconstruye y redespliega a diario la base de datos de cada red de
-# bideplus/api/Networks desde su GTFS oficial. Los .sqlite no se comitean (solo
-# geocache.json si cambia): se regeneran en el runner y se suben tal cual con el
-# deploy de Vercel.
-#
-# Fuentes: las de cada ficha de bideplus/api/Networks (gtfs.source y, si falla, gtfs.fallback_source). Las del NAP
-# (nap.transportes.gob.es) piden NAP_API_KEY.
-
-# Es la UNICA via de despliegue a produccion (vercel.json desactiva los despliegues de master por Git): los .sqlite
-# del repositorio son viejos y, si Vercel los desplegara por su cuenta, pisarian las bases recien reconstruidas.
-# Por eso corre a diario, a mano y en cada cambio que llega a master: cada despliegue lleva siempre los horarios
-# de hoy junto al codigo nuevo.
-#
-# Dos tipos de despliegue. Completo (cada noche, a mano, o si cambian el constructor o este flujo): reconstruye todas
-# las redes. Rapido (el resto de cambios): recupera las bases de la ultima reconstruccion y solo rehace las redes cuya
-# ficha (bideplus/api/Networks) ha cambiado en algo que afecta a sus datos (no su imagen ni sus textos). «[datos]» en
-# el mensaje del commit fuerza el completo.
+# Cada día rehace las bases de las redes (desde su GTFS) y el planificador y despliega en Vercel: es la ÚNICA vía de
+# despliegue. Las bases van a la release «bases» y el planificador a «planificador», no a git. Completo: cada noche, a
+# mano, «[datos]» o cambios en el constructor; rápido (otros pushes): solo las redes cuya ficha cambia sus datos.
 on:
+  # GitHub arranca los programados con horas de retraso: el de respaldo solo trabaja si hoy no hay aún una completa.
   schedule:
-    - cron: '0 3 * * *' # diario, 03:00 UTC
+    - cron: '17 1 * * *'
+    - cron: '47 4 * * *'
   push:
     branches: [master]
     paths:
       - 'bideplus/**'
       - '.github/workflows/rebuild-schedule.yml'
-  workflow_dispatch: {} # allows manually clicking "Run workflow" too
+  workflow_dispatch:
+    inputs:
+      aceptar_planificador:
+        description: 'Aceptar el planificador de hoy aunque tarde más que el de ayer (un recorte real de horarios)'
+        type: boolean
+        default: false
 
 # Un despliegue cada vez; si llegan varios, el ultimo espera su turno y los intermedios se saltan.
 concurrency:
   group: rebuild-and-deploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
-  rebuild-and-deploy:
+  # Un programado no hace nada si hoy (UTC) ya hay una completa de este mismo commit: si un programado cancela un
+  # push que esperaba turno, el commit no coincide y despliega.
+  decidir:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      hacer: ${{ steps.hoy.outputs.hacer }}
+    steps:
+      - name: Ver si ya hay una reconstrucción completa de hoy
+        id: hoy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HACER=1
+          if [ "${{ github.event_name }}" = "schedule" ] && gh release download bases --repo "${{ github.repository }}" -p 'bases.json*' -D bases; then
+            # A medio sustituir, bases.json.nuevo es el más reciente.
+            FICHA=bases/bases.json
+            if [ -f bases/bases.json.nuevo ]; then
+              FICHA=bases/bases.json.nuevo
+            fi
+            if [ "$(date -u -d "@$(jq -r '.rebuilt // 0' "$FICHA")" +%F)" = "$(date -u +%F)" ] && [ "$(jq -r '.commit // ""' "$FICHA")" = "${{ github.sha }}" ]; then
+              HACER=0
+              echo "### Hoy ya hay una reconstrucción completa de este commit: este programado no hace nada" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+          echo "hacer=$HACER" >> "$GITHUB_OUTPUT"
+
+  rebuild-and-deploy:
+    needs: decidir
+    if: needs.decidir.outputs.hacer == '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # Escribe en las releases «bases» y «planificador», sube geocache.json y deja los avisos en una incidencia.
+    permissions:
+      contents: write
+      issues: write
     env:
       NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
+      # Decisión del dueño: estas redes no van a las releases públicas ni al planificador (siguen en la app). Las
+      # villavesas, hasta que se resuelvan sus datos: dejar la línea vacía las devuelve a las dos.
+      REDES_RESERVADAS: villavesas
+      # Mapas de las tablas de andar, los lugares y las calles del mapa: Euskal Herria. Los de alrededor solo dan
+      # lugares a 1500 m de una parada (Santander, Logroño, Miranda, Dax); nada de mapas lejanos.
+      OSM_ORIGEN: https://download.openstreetmap.fr/extracts/europe
+      MAPAS_OSM: >-
+        spain/euskadi spain/comunidad_foral_de_navarra france/aquitaine/pyrenees_atlantiques
+      MAPAS_ALREDEDOR: >-
+        spain/cantabria spain/la_rioja spain/castilla_y_leon/burgos france/aquitaine/landes
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +95,11 @@ jobs:
         with:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
+
+      # La consola del planificador (comprobación de las consultas fijas).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Decidir el tipo de despliegue
         id: tipo
@@ -84,23 +129,26 @@ jobs:
           fi
           echo "redes=$REDES" >> "$GITHUB_OUTPUT"
 
-      - name: Recuperar las bases de la última reconstrucción
-        if: steps.tipo.outputs.redes != 'todas'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            bideplus/data/*.sqlite
-            .bases-reconstruidas
-          key: bases-${{ github.run_id }}
-          restore-keys: bases-
+      # Las de producción (release «bases»): el modo rápido parte de ellas y, si falla una opcional, queda la de ayer.
+      - name: Bajar las bases de producción
+        id: bajar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if php bideplus/scripts/fetch-databases.php; then
+            echo "rebuilt=$(jq -r '.rebuilt' bideplus/data/bases.json)" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::No se han podido bajar las bases de la release «bases»: el despliegue es completo"
+            echo "rebuilt=0" >> "$GITHUB_OUTPUT"
+          fi
 
-      # Sin bases guardadas, o con más de 36 horas, el despliegue es completo.
+      # Sin bases de la release, o de una completa de hace más de 36 horas, el despliegue es completo.
       - name: Redes que se reconstruyen
         id: modo
         run: |
           REDES="${{ steps.tipo.outputs.redes }}"
           if [ "$REDES" != "todas" ]; then
-            HECHO="$(cat .bases-reconstruidas 2>/dev/null || echo 0)"
+            HECHO="${{ steps.bajar.outputs.rebuilt }}"
             if [ $(( $(date +%s) - HECHO )) -gt 129600 ]; then
               REDES=todas
             fi
@@ -146,10 +194,9 @@ jobs:
               print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
           PY
 
-      # El resto de redes salen de bideplus/api/Networks. Cada base se genera en un fichero
-      # temporal y solo sustituye a la del repositorio si el build termina bien y no está
-      # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
-      # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
+      # Cada base se genera aparte y solo sustituye a la de ayer si termina bien y no está vacía. Si falla una
+      # obligatoria (gtfs.required), el flujo se para y producción sigue como estaba; si falla una opcional, va la
+      # de ayer.
       - name: Rebuild the other networks
         if: steps.modo.outputs.redes != ''
         run: |
@@ -163,12 +210,19 @@ jobs:
             if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
               mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
               echo "OK: $network reconstruida"
-            elif [ "$required" = "1" ]; then
+              continue
+            fi
+            echo "$network" >> "$RUNNER_TEMP/redes-fallidas"
+            if [ "$required" = "1" ]; then
               echo "::error::No se pudo reconstruir $network (obligatoria)"
               exit 1
-            else
-              echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
             fi
+            # Sin la de ayer (no se bajó al principio), se intenta otra vez solo esa.
+            if [ ! -s "bideplus/data/$db.sqlite" ]; then
+              php bideplus/scripts/fetch-databases.php --red="$network" || true
+            fi
+            echo "::warning::No se pudo reconstruir $network; se mantiene la de ayer (release «bases»)"
+            echo "- No se pudo reconstruir $network: va la de ayer" >> "$RUNNER_TEMP/avisos.md"
           done
 
       - name: Verify databases exist and are non-empty
@@ -210,18 +264,161 @@ jobs:
           done
           python3 tests/api-contract.py
 
-      - name: Fecha de la reconstrucción completa
-        if: steps.modo.outputs.redes == 'todas'
-        run: date +%s > .bases-reconstruidas
+      # Solo cuenta como completa si se han rehecho todas: si no, el de respaldo y el siguiente push lo reintentan.
+      - name: Preparar las bases para la release «bases»
+        run: |
+          REHECHA="${{ steps.bajar.outputs.rebuilt }}"
+          if [ "${{ steps.modo.outputs.redes }}" = "todas" ] && [ ! -s "$RUNNER_TEMP/redes-fallidas" ]; then
+            REHECHA="$(date +%s)"
+          fi
+          php bideplus/scripts/prepare-databases.php --out="$RUNNER_TEMP/release-bases" --except="$REDES_RESERVADAS" \
+            --rebuilt="$REHECHA" --commit="${{ github.sha }}"
 
-      - name: Guardar las bases para los despliegues rápidos
-        if: steps.modo.outputs.redes != ''
+      # Planificador (bideplus/scripts/build-planner.php): si algo falla o se cuelga, va el de ayer y no se para.
+      - name: Planificador de ayer (release «planificador»)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: planificador
+        run: |
+          mkdir -p "$RUNNER_TEMP/ayer"
+          source .github/scripts/pace-data.sh
+          if descargar_acumulado planificador.tar.gz "$RUNNER_TEMP/ayer"; then
+            tar -xzf "$RUNNER_TEMP/ayer/planificador.tar.gz" -C "$RUNNER_TEMP/ayer"
+            descargar_acumulado resultados.json "$RUNNER_TEMP/ayer" || echo "Sin las consultas de ayer"
+          else
+            echo "Sin planificador de ayer: se hace entero"
+          fi
+
+      - name: Planificador, paquetes de horarios
+        id: plan
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --databases=bideplus/data \
+            --except="$REDES_RESERVADAS" --previous="$RUNNER_TEMP/ayer"
+          echo "clave=osm-$(date -u +%G-%V)-$(printf '%s' "$MAPAS_OSM $MAPAS_ALREDEDOR" | sha1sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
+
+      # Las tablas de andar, los lugares y las calles del mapa, cuando no valen los de ayer (cada semana o si cambian
+      # paradas).
+      - name: Mapas de OSM de esta semana
+        id: osm
+        if: steps.plan.outputs.andar == '1'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/osm
+          key: ${{ steps.plan.outputs.clave }}
+
+      - name: Bajar los mapas de OSM
+        id: bajar-osm
+        if: steps.plan.outputs.andar == '1' && steps.osm.outputs.cache-hit != 'true'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          mkdir -p "$RUNNER_TEMP/osm/alrededor"
+          for MAPA in $MAPAS_OSM; do
+            FICHERO="$RUNNER_TEMP/osm/$(basename "$MAPA")-latest.osm.pbf"
+            curl -fsSL --retry 4 --retry-delay 15 -o "$FICHERO.bajando" "$OSM_ORIGEN/$MAPA-latest.osm.pbf"
+            mv "$FICHERO.bajando" "$FICHERO"
+          done
+          for MAPA in $MAPAS_ALREDEDOR; do
+            FICHERO="$RUNNER_TEMP/osm/alrededor/$(basename "$MAPA")-latest.osm.pbf"
+            curl -fsSL --retry 4 --retry-delay 15 -o "$FICHERO.bajando" "$OSM_ORIGEN/$MAPA-latest.osm.pbf"
+            mv "$FICHERO.bajando" "$FICHERO"
+          done
+          du -sh "$RUNNER_TEMP/osm"
+
+      - name: Guardar los mapas de OSM de esta semana
+        if: steps.bajar-osm.outcome == 'success'
         uses: actions/cache/save@v4
         with:
-          path: |
-            bideplus/data/*.sqlite
-            .bases-reconstruidas
-          key: bases-${{ github.run_id }}
+          path: ${{ runner.temp }}/osm
+          key: ${{ steps.plan.outputs.clave }}
+
+      - name: Planificador, andar y lugares
+        id: andar
+        if: steps.plan.outputs.andar == '1' && steps.bajar-osm.outcome != 'failure'
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --walk \
+            --osm="$(ls "$RUNNER_TEMP"/osm/*.osm.pbf | paste -sd, -)" \
+            --near="$(ls "$RUNNER_TEMP"/osm/alrededor/*.osm.pbf | paste -sd, -)"
+
+      # Puerta del planificador (bideplus/tests/planner-check.php): si falla, va el de ayer. Compara con las consultas
+      # del último planificador desplegado; un recorte real de horarios se acepta a mano (aceptar_planificador).
+      - name: Planificador, consultas fijas
+        id: comprobar
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          PAQUETES: ${{ steps.plan.outcome }}
+          FALTA_ANDAR: ${{ steps.plan.outputs.andar }}
+          ANDAR_VIEJO: ${{ steps.plan.outputs.andar_viejo }}
+          ANDAR: ${{ steps.andar.outcome }}
+          ACEPTAR: ${{ inputs.aceptar_planificador }}
+        run: |
+          NUEVO=0
+          LISTO=0
+          if [ "$PAQUETES" = success ]; then
+            LISTO=1
+          fi
+          if [ "$FALTA_ANDAR" = 1 ] && [ "$ANDAR" != success ]; then
+            LISTO=0
+            # Una tabla de andar de hace una semana sigue valiendo: mejor eso que dejar los horarios de ayer.
+            if [ "$ANDAR_VIEJO" = 1 ]; then
+              LISTO=1
+              echo "::warning::No se ha podido rehacer la tabla de andar: va la de la semana pasada"
+              echo "- No se ha podido rehacer la tabla de andar (¿mapas de OSM?): va la de la semana pasada" >> "$RUNNER_TEMP/avisos.md"
+            fi
+          fi
+          ANTES="$RUNNER_TEMP/ayer/resultados.json"
+          if [ "$ACEPTAR" = true ]; then
+            ANTES=""
+            echo "### Planificador aceptado a mano: no se compara con el de ayer" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$LISTO" = 1 ] && php bideplus/tests/planner-check.php \
+            --data="$RUNNER_TEMP/plan/planificador/build/data" --engine=bideplus/engine/planner \
+            --except="$REDES_RESERVADAS" --previous="$ANTES" --out="$RUNNER_TEMP/plan/resultados.json" 2> "$RUNNER_TEMP/puerta.txt"; then
+            NUEVO=1
+          else
+            echo "::warning::El planificador nuevo no se ha podido hacer o no pasa las consultas fijas: va el de ayer"
+            echo "- El planificador nuevo no se ha podido hacer o no pasa las consultas fijas: va el de ayer. $(cat "$RUNNER_TEMP/puerta.txt" 2>/dev/null)" >> "$RUNNER_TEMP/avisos.md"
+          fi
+          echo "nuevo=$NUEVO" >> "$GITHUB_OUTPUT"
+
+      # Sin el de hoy ni el de ayer solo se despliega la primera vez (aún no hay release «planificador»): si no, se para
+      # y producción sigue con el planificador que tiene.
+      - name: Planificador al despliegue
+        id: planificador
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUEVO: ${{ steps.comprobar.outputs.nuevo }}
+        run: |
+          ORIGEN="$RUNNER_TEMP/plan"
+          if [ "$NUEVO" != 1 ]; then
+            ORIGEN="$RUNNER_TEMP/ayer"
+          fi
+          if [ -f "$ORIGEN/planificador/origen.json" ]; then
+            cp -a "$ORIGEN/planificador" "$ORIGEN/docs" bideplus/
+            echo "hay=1" >> "$GITHUB_OUTPUT"
+            DIAS=$(( ($(date +%s) - $(jq -r '.generated' "$ORIGEN/planificador/origen.json")) / 86400 ))
+            echo "### Planificador desplegado: $(basename "$ORIGEN"), de hace $DIAS días ($(du -sh bideplus/planificador | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$DIAS" -ge 3 ]; then
+              echo "::warning::El planificador desplegado es de hace $DIAS días"
+              echo "- El planificador desplegado es de hace $DIAS días" >> "$RUNNER_TEMP/avisos.md"
+            fi
+            exit 0
+          fi
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/planificador")
+          if [ "$CODE" != 404 ]; then
+            echo "::error::No hay planificador que desplegar, ni el de hoy ni el de ayer (release «planificador»: HTTP $CODE)"
+            exit 1
+          fi
+          echo "::warning::Primer despliegue sin planificador: no hay ni el de hoy ni release «planificador»"
+          echo "- Primer despliegue sin planificador: no hay ni el de hoy ni release «planificador»" >> "$RUNNER_TEMP/avisos.md"
 
       - name: Commit updated geocache, if it changed
         run: |
@@ -283,17 +480,112 @@ jobs:
           echo "::error::Producción no responde con el despliegue nuevo"
           exit 1
 
+      - name: Comprobar el planificador en producción
+        if: steps.planificador.outputs.hay == '1'
+        run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
+          for RUTA in /planificador/pantallas/ /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$RUTA")
+            echo "producción $RUTA -> $CODE"
+            if [ "$CODE" != "200" ]; then
+              echo "::warning::El planificador no responde en producción: $RUTA da $CODE"
+              echo "- El planificador no responde en producción: $RUTA da $CODE" >> "$RUNNER_TEMP/avisos.md"
+            fi
+          done
+
+      # Lo desplegado queda en la release. Cada base lleva su huella en el nombre y solo se sube si no está; bases.json
+      # va el último (nunca falta: ver pace-data.sh) y luego se borran las que no citan ni el nuevo ni el de ayer.
+      - name: Guardar las bases en la release «bases»
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: bases
+        run: |
+          source .github/scripts/pace-data.sh
+          gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Bases de las redes (no es una versión)" --notes "Las bases .sqlite de producción, comprimidas. Las sustituye cada día «Rebuild schedule data»; se bajan con bideplus/scripts/fetch-databases.php."
+          FALLO=0
+          if ! EN_RELEASE=$(ficheros_release); then
+            FALLO=1
+          fi
+          for FICHERO in "$RUNNER_TEMP"/release-bases/*.sqlite.gz; do
+            if [ "$FALLO" = 0 ] && ! grep -qxF "$(basename "$FICHERO")" <<<"$EN_RELEASE"; then
+              reintentar 3 gh release upload "$RELEASE" --repo "$REPO_APP" "$FICHERO" --clobber || FALLO=1
+            fi
+          done
+          if [ "$FALLO" = 0 ]; then
+            subir_acumulado "$RUNNER_TEMP/release-bases/bases.json" || FALLO=1
+          fi
+          if [ "$FALLO" = 0 ]; then
+            CITADAS=$(jq -r '.networks[].file' "$RUNNER_TEMP/release-bases/bases.json")
+            if [ -f bideplus/data/bases.json ]; then
+              CITADAS="$CITADAS"$'\n'"$(jq -r '.networks[].file' bideplus/data/bases.json)"
+            fi
+            gh api "repos/$REPO_APP/releases/tags/$RELEASE" --jq '.assets[] | "\(.name) \(.id)"' > "$RUNNER_TEMP/ficheros-bases" || true
+            while read -r NOMBRE ID; do
+              case "$NOMBRE" in
+                bases.json*) continue ;;
+              esac
+              if ! grep -qxF "$NOMBRE" <<<"$CITADAS"; then
+                gh api -X DELETE "repos/$REPO_APP/releases/assets/$ID" >/dev/null || echo "No se ha podido borrar $NOMBRE"
+              fi
+            done < "$RUNNER_TEMP/ficheros-bases"
+          fi
+          if [ "$FALLO" = 1 ]; then
+            echo "::warning::No se han podido subir las bases a la release «bases»: se queda la de antes"
+            echo "- No se han podido subir las bases a la release «bases»: la release se queda con las de antes" >> "$RUNNER_TEMP/avisos.md"
+          fi
+
+      # Solo el que pasa la puerta, con sus consultas: mañana se compara con lo que de verdad está desplegado.
+      - name: Guardar el planificador en la release «planificador»
+        if: steps.comprobar.outputs.nuevo == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: planificador
+        run: |
+          source .github/scripts/pace-data.sh
+          gh release view "$RELEASE" >/dev/null 2>&1 || gh release create "$RELEASE" --prerelease --title "Datos del planificador (no es una versión)" --notes "El planificador de producción y sus consultas fijas. Lo sustituye cada día «Rebuild schedule data»."
+          tar -czf "$RUNNER_TEMP/planificador.tar.gz" -C "$RUNNER_TEMP/plan" planificador docs
+          if ! subir_acumulado "$RUNNER_TEMP/planificador.tar.gz" || ! subir_acumulado "$RUNNER_TEMP/plan/resultados.json"; then
+            echo "::warning::No se ha podido guardar el planificador en su release"
+            echo "- No se ha podido guardar el planificador en su release: mañana se parte del anterior" >> "$RUNNER_TEMP/avisos.md"
+          fi
+
       # IndexNow: avisa a Bing (y a los buscadores que lo comparten) de las páginas principales en los tres idiomas.
       # Si falla, solo lo dice: el despliegue ya está hecho.
       - name: Avisar a los buscadores (IndexNow)
         run: php bideplus/scripts/indexnow.php || echo "::warning::IndexNow no ha respondido bien"
 
-      # El directo de cada red en producción (.github/scripts/live-health.py): si algo no cuadra, el flujo sale en rojo.
+      # El directo de cada red en producción (.github/scripts/live-health.py): si algo no cuadra, avisa y sigue.
       - name: Vigilar el directo
-        run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
+        run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
+          if ! python3 .github/scripts/live-health.py "$SITIO" $(php bideplus/scripts/networks.php --slugs); then
+            echo "::warning::El directo de alguna red no cuadra en producción (ver «Vigilar el directo»)"
+            echo "### El directo de alguna red no cuadra (ver «Vigilar el directo»)" >> "$GITHUB_STEP_SUMMARY"
+            echo "- El directo de alguna red no cuadra en producción (ver «Vigilar el directo»)" >> "$RUNNER_TEMP/avisos.md"
+          fi
 
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
         run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
+
+      # GitHub no avisa de los ::warning::: los avisos del día van a una incidencia abierta (un comentario cada vez).
+      - name: Avisar al dueño
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s "$RUNNER_TEMP/avisos.md" ]; then
+            exit 0
+          fi
+          TITULO="Avisos de la reconstrucción diaria"
+          CUERPO="$(printf 'Ejecución: %s/%s/actions/runs/%s\n\n' "${{ github.server_url }}" "${{ github.repository }}" "${{ github.run_id }}"; cat "$RUNNER_TEMP/avisos.md")"
+          NUMERO=$(gh issue list --repo "${{ github.repository }}" --state open --search "in:title \"$TITULO\"" --json number,title \
+            --jq "map(select(.title == \"$TITULO\"))[0].number // empty")
+          if [ -n "$NUMERO" ]; then
+            gh issue comment "$NUMERO" --repo "${{ github.repository }}" --body "$CUERPO"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "$TITULO" --body "$CUERPO"
+          fi

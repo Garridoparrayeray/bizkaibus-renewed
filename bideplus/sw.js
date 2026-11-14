@@ -138,6 +138,10 @@ self.addEventListener('fetch', (event) => {
     if (url.pathname.startsWith('/offline-data/')) {
         return;
     }
+    // El planificador cambia sus datos cada día con los mismos nombres: siempre de la red, nunca de esta caché.
+    if (url.pathname.startsWith('/planificador/')) {
+        return;
+    }
     if (url.pathname.startsWith('/api/')) {
         if (!LIVE_API.test(url.pathname)) {
             event.respondWith(

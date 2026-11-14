@@ -1,8 +1,8 @@
 name: Build new network database
 
-# Una red recién añadida en una rama (su ficha en bideplus/api/Networks) todavía no tiene base de datos. Este flujo la
-# construye aquí, donde está NAP_API_KEY (los GTFS del NAP la piden), y la deja en la misma rama. Solo construye las
-# que faltan: las que ya tienen base las mantiene «Rebuild schedule data» cada día.
+# Una red recién añadida en una rama (su ficha en bideplus/api/Networks) todavía no está en la release «bases». Este
+# flujo la construye aquí, donde está NAP_API_KEY, y la deja como artefacto para probarla; no la sube a git.
+# Al llegar a master, «Rebuild schedule data» la construye y la publica en la release.
 
 on:
   push:
@@ -13,7 +13,7 @@ on:
       - '.github/workflows/build-new-network.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: build-new-network-${{ github.ref }}
@@ -36,29 +36,33 @@ jobs:
           php-version: '8.3'
           extensions: sqlite3, pdo_sqlite, curl, zip, mbstring
 
+      - name: Bajar las bases de producción
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          php bideplus/scripts/fetch-databases.php || echo "::warning::Sin la release «bases»: se construyen todas las que falten"
+
       - name: Build the databases that are missing
         run: |
+          mkdir -p "$RUNNER_TEMP/nuevas"
           php bideplus/scripts/networks.php | while read -r network db required; do
             f="bideplus/data/$db.sqlite"
             [ -s "$f" ] && continue
             echo "Construyendo $network"
             if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
-              mv "$RUNNER_TEMP/$db.sqlite" "$f"
-              echo "OK: $network ($(du -h "$f" | cut -f1))" | tee -a "$GITHUB_STEP_SUMMARY"
+              mv "$RUNNER_TEMP/$db.sqlite" "$RUNNER_TEMP/nuevas/$db.sqlite"
+              echo "OK: $network ($(du -h "$RUNNER_TEMP/nuevas/$db.sqlite" | cut -f1))" | tee -a "$GITHUB_STEP_SUMMARY"
             else
               echo "::error::No se pudo construir $network"
               exit 1
             fi
           done
 
-      - name: Commit the new databases
-        run: |
-          git add bideplus/data/*.sqlite
-          if git diff --cached --quiet; then
-            echo "Ninguna base nueva"
-            exit 0
-          fi
-          git config user.name "Garridoparrayeray"
-          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-          git commit -m "Base de datos de las redes nuevas"
-          git push
+      # Siete días para bajarla y probarla en local (en bideplus/data); no hace falta subirla a ningún sitio.
+      - name: Dejar las bases nuevas como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: bases-nuevas
+          path: ${{ runner.temp }}/nuevas/*.sqlite
+          retention-days: 7
+          if-no-files-found: ignore
