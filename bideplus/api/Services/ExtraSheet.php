@@ -15,7 +15,7 @@ class ExtraSheet
     {
         $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
         $Matcher = Live::tripMatcher($JourneyModel, $iMidnight);
-        if (!($Matcher instanceof TripUpdatesMatcher)) {
+        if (!($Matcher instanceof TripUpdatesMatcher) && !($Matcher instanceof StationArrivalsMatcher)) {
             return null;
         }
         $aTrain = $Matcher->unscheduledTrain($sStopId, $iArrivalTime);

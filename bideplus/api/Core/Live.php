@@ -5,6 +5,8 @@ namespace Core;
 use Models\ServiceJourney;
 use Services\GtfsRealtimeClient;
 use Services\ScheduleOnlyMatcher;
+use Services\StationArrivalsClient;
+use Services\StationArrivalsMatcher;
 use Services\StopArrivalTrips;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
@@ -85,13 +87,24 @@ class Live
     }
 
     // Horas previstas (GTFS-Realtime) de la red, o null si no tiene: Renfe se empareja por viaje y aplica el retraso de
-    // cada tren; Metro, Euskotren y los tranvías, por paradas y hora.
+    // cada tren; Metro, Euskotren y los tranvías, por paradas y hora. Con llegadas oficiales por andén
+    // (station_arrivals en la ficha), mandan ellas en cada estación y el feed queda de apoyo.
     public static function tripMatcher(ServiceJourney $JourneyModel, int|null $iMidnight = null): object|null
     {
         if (!Config::hasLive('trip-updates')) {
             return null;
         }
         $aConfig = Config::current();
+        $Matcher = self::feedMatcher($aConfig, $JourneyModel, $iMidnight);
+        if (!isset($aConfig['station_arrivals'])) {
+            return $Matcher;
+        }
+        $iMidnight ??= (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        return new StationArrivalsMatcher($Matcher, new StationArrivalsClient($aConfig), $JourneyModel, $iMidnight, $aConfig['station_arrivals']['max_delay_seconds']);
+    }
+
+    private static function feedMatcher(array $aConfig, ServiceJourney $JourneyModel, int|null $iMidnight): object
+    {
         $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
         if (($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip') {
             $aVehicles = [];

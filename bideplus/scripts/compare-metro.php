@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 // Compara las salidas que enseña Bide+ con las que enseña la web de Metro Bilbao, estación por estación. Solo para
-// medir, a mano y en horas de servicio: la app no usa esa web, solo datos abiertos.
+// medir, a mano y en horas de servicio: la app lee esa misma API por andén (station_arrivals en su ficha).
 //
 // Uso: php scripts/compare-metro.php [--base=https://www.bideplus.eus] [--raw] [ORIGEN/DESTINO ...]
 //   ORIGEN y DESTINO son los códigos de tres letras que usa la web de Metro (MOY/SIN). Sin pares, un puñado del tronco.
