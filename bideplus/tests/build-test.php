@@ -330,6 +330,40 @@ $iBackFixed = Build\Schema::fixBackwardTimes($TimesPdo);
 $aBackTimes = $TimesPdo->query('SELECT arrival_seconds, departure_seconds FROM passing_times ORDER BY seq_order')->fetchAll(PDO::FETCH_NUM);
 $Expect('una hora que va hacia atrás se deja a la de la parada anterior', $iBackFixed === 1 && $aBackTimes === [[100, 100], [400, 420], [420, 420], [500, 500]]);
 
+// Festivo entre semana: el martes 2026-12-08 dos redes de la zona van como un domingo (quitan el laborable y añaden
+// el de domingo) y en Nochebuena, con servicio especial, no. Una red cuyo GTFS no dice nada de festivos lo coge.
+$CalendarDb = function (string $sPath, array $aCalendars, array $aExceptions): PDO {
+    $Pdo = new PDO('sqlite:' . $sPath);
+    $Pdo->exec('CREATE TABLE service_calendars (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, weekday_mask INTEGER NOT NULL);
+        CREATE TABLE service_calendar_exceptions (calendar_id TEXT NOT NULL, date TEXT NOT NULL, available INTEGER NOT NULL);
+        CREATE TABLE service_journeys (id TEXT PRIMARY KEY, calendar_id TEXT NOT NULL)');
+    foreach ($aCalendars as $sId => [$iMask, $iJourneys]) {
+        $Pdo->prepare('INSERT INTO service_calendars VALUES (?, \'\', \'\', ?)')->execute([$sId, $iMask]);
+        for ($iJourney = 0; $iJourney < $iJourneys; $iJourney++) {
+            $Pdo->prepare('INSERT INTO service_journeys VALUES (?, ?)')->execute([$sId . $iJourney, $sId]);
+        }
+    }
+    foreach ($aExceptions as [$sId, $sDate, $iAvailable]) {
+        $Pdo->prepare('INSERT INTO service_calendar_exceptions VALUES (?, ?, ?)')->execute([$sId, $sDate, $iAvailable]);
+    }
+    return $Pdo;
+};
+$aRefPaths = [];
+foreach (['a', 'b'] as $sRef) {
+    $aRefPaths[] = $sRefPath = sys_get_temp_dir() . '/bide-festivos-' . $sRef . '-' . getmypid() . '.sqlite';
+    $CalendarDb($sRefPath, ['lv' => [31, 10], 'd' => [64, 4], 'nochebuena' => [0, 2]], [['lv', '2026-12-08', 0], ['d', '2026-12-08', 1], ['nochebuena', '2026-12-24', 1]]);
+}
+$aHolidays = Calendars::referenceHolidays($aRefPaths, 2, '2026-11-14');
+array_map('unlink', $aRefPaths);
+$Expect('festivo: las redes de la zona dan el martes 8 de diciembre y no Nochebuena', $aHolidays === ['2026-12-08']);
+$Target = fn() => $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'todos' => [127, 1]], []);
+$Silent = $Target();
+$iApplied = Calendars::applyHolidays($Silent, $aHolidays, '2027-02-08', false);
+$Expect('festivo: sin calendar_dates, ese martes va con el de domingo y lo diario sigue', $iApplied === 1
+    && Calendars::journeysOn($Silent, new DateTime('2026-12-08')) === 5 && Calendars::journeysOn($Silent, new DateTime('2026-12-01')) === 11);
+$Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), $aHolidays, '2026-12-23', true) === 0);
+$Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), $aHolidays, '2026-12-01', true) === 1);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

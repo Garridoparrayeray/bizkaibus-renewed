@@ -164,6 +164,15 @@ function main(array $aArgv): void
         echo '  ' . Schema::mergeSameTrains($Pdo, $iMergeLength) . " journeys left identical inside the network merged\n";
     }
 
+    if (!empty($aGtfs['holidays_from'])) {
+        $aHolidayDbs = array_map(fn(string $sSlug) => \Core\Networks::get($sSlug)['db_path'], $aGtfs['holidays_from']['networks']);
+        $aHolidays = Calendars::referenceHolidays($aHolidayDbs, $aGtfs['holidays_from']['quorum'], date('Y-m-d'));
+        $aPublished = Calendars::publishedWindow($aFeedInfo, $aCalendars);
+        $bPublishesDates = !empty(array_filter($aCalendars, fn(array $aCal) => !empty($aCal['exact']['available']) || !empty($aCal['exact']['excluded'])));
+        $iBorrowed = Calendars::applyHolidays($Pdo, $aHolidays, (string)end($aPublished), $bPublishesDates);
+        echo "  $iBorrowed festivos de otras redes de la zona con el servicio de domingo (el GTFS no dice nada de ellos)\n";
+    }
+
     $iBackwards = Schema::fixBackwardTimes($Pdo);
     if ($iBackwards > 0) {
         echo "  AVISO: $iBackwards pasos con la hora anterior a la parada de antes (errata del GTFS), puestos a la hora de esa parada\n";

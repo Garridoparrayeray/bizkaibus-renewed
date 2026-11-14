@@ -130,6 +130,9 @@ return [
     ],
 
     'gtfs' => [
+        // Los festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio de domingo,
+        // como los publican al menos dos de estas redes de la zona (Build\Calendars::applyHolidays).
+        'holidays_from' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/gtfs_alavabus.zip',
         'fallback_source' => null,
         'agency_id' => null,

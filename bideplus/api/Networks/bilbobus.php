@@ -114,6 +114,9 @@ return [
 
     // El GTFS del CTB es la versión más reciente; el de Open Data Euskadi, la misma con un par de días de retraso.
     'gtfs' => [
+        // Los festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio de domingo,
+        // como los publican al menos dos de estas redes de la zona (Build\Calendars::applyHolidays).
+        'holidays_from' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
         'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/bilbobus.zip',
         'fallback_source' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/gtfs_bilbobus.zip',
         'agency_id' => null,

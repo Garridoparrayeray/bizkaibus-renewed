@@ -11,6 +11,82 @@ use DateTime;
 
 class Calendars
 {
+    private const SUNDAY_ONLY_MASK = 0b1000000;
+    private const SUNDAY_WEEKDAY = 7;
+
+    // Festivos de la zona según otras redes (gtfs.holidays_from de la ficha): las fechas de lunes a sábado, desde
+    // $sFrom, con excepciones en el calendario y en las que al menos $iQuorum de esas bases van como un domingo.
+    public static function referenceHolidays(array $aDbPaths, int $iQuorum, string $sFrom): array
+    {
+        $aCounts = [];
+        foreach ($aDbPaths as $sPath) {
+            if (!is_file($sPath)) {
+                continue;
+            }
+            $Ref = new PDO('sqlite:' . $sPath);
+            $Stmt = $Ref->prepare('SELECT DISTINCT date FROM service_calendar_exceptions WHERE date >= ?');
+            $Stmt->execute([$sFrom]);
+            foreach ($Stmt->fetchAll(PDO::FETCH_COLUMN) as $sDate) {
+                if (self::runsLikeSunday($Ref, new DateTime($sDate))) {
+                    $aCounts[$sDate] = ($aCounts[$sDate] ?? 0) + 1;
+                }
+            }
+        }
+        $aHolidays = array_keys(array_filter($aCounts, fn(int $iCount) => $iCount >= $iQuorum));
+        sort($aHolidays);
+        return $aHolidays;
+    }
+
+    // Un día de lunes a sábado con tantos viajes como el domingo de esa semana, más cerca de él que del mismo día de
+    // la semana anterior o la siguiente (Nochebuena, con su servicio especial, no lo es).
+    private static function runsLikeSunday(PDO $Pdo, DateTime $Day): bool
+    {
+        $iWeekday = (int)$Day->format('N');
+        if ($iWeekday === self::SUNDAY_WEEKDAY) {
+            return false;
+        }
+        $iDay = self::journeysOn($Pdo, $Day);
+        $iSunday = self::journeysOn($Pdo, (clone $Day)->modify('+' . (self::SUNDAY_WEEKDAY - $iWeekday) . ' days'));
+        $iUsual = max(self::journeysOn($Pdo, (clone $Day)->modify('-7 days')), self::journeysOn($Pdo, (clone $Day)->modify('+7 days')));
+        return $iDay > 0 && $iUsual > $iSunday && abs($iDay - $iSunday) < abs($iDay - $iUsual);
+    }
+
+    // Los viajes que circulan un día, como lo cuenta la app (Models\ServiceJourney).
+    public static function journeysOn(PDO $Pdo, DateTime $Day): int
+    {
+        $sDay = $Day->format('Y-m-d');
+        $Stmt = $Pdo->prepare('SELECT COUNT(*) FROM service_journeys sj JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE ((sc.weekday_mask & ?) != 0 OR EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = ? AND e.available = 1))
+            AND NOT EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = ? AND e.available = 0)');
+        $Stmt->execute([1 << ((int)$Day->format('N') - 1), $sDay, $sDay]);
+        return (int)$Stmt->fetchColumn();
+    }
+
+    /*
+     * Los festivos de los que el GTFS no dice nada (no publica calendar_dates, o caen después de su periodo) van con
+     * el servicio de domingo: ese día no circulan los calendarios de ese día de la semana y sí los de domingo. Lo que
+     * circula los dos días no cambia. Devuelve cuántos festivos se han puesto.
+     */
+    public static function applyHolidays(PDO $Pdo, array $aHolidays, string $sPublishedEnd, bool $bPublishesDates): int
+    {
+        $iApplied = 0;
+        $sMissing = 'NOT EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = ?)';
+        $Exclude = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) SELECT sc.id, ?, 0
+            FROM service_calendars sc WHERE (sc.weekday_mask & ?) != 0 AND (sc.weekday_mask & ?) = 0 AND ' . $sMissing);
+        $Include = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) SELECT sc.id, ?, 1
+            FROM service_calendars sc WHERE (sc.weekday_mask & ?) != 0 AND (sc.weekday_mask & ?) = 0 AND ' . $sMissing);
+        foreach ($aHolidays as $sDate) {
+            if ($bPublishesDates && ($sPublishedEnd === '' || $sDate <= $sPublishedEnd)) {
+                continue;
+            }
+            $iWeekday = 1 << ((int)(new DateTime($sDate))->format('N') - 1);
+            $Exclude->execute([$sDate, $iWeekday, self::SUNDAY_ONLY_MASK, $sDate]);
+            $Include->execute([$sDate, self::SUNDAY_ONLY_MASK, $iWeekday, $sDate]);
+            $iApplied++;
+        }
+        return $iApplied;
+    }
+
     /*
      * Con $bLiteralDates (Metro Bilbao) las fechas de calendar_dates.txt valen exactamente por esas fechas:
      * no se deduce un patrón semanal de ellas. El CTB publica las obras de vía como un calendario Lun-Jue
