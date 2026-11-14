@@ -16,7 +16,7 @@ class TrainSheet
         $aStops = $JourneyModel->stopsForJourney($aJourney['id']);
         $iShift = $iDaysAgo * Calendar::DAY_SECONDS;
         $iNow = Calendar::nowSecondsSinceMidnight() + $iShift;
-        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $iMidnight = Calendar::wallMidnight();
         $TripMatcher = Live::tripMatcher($JourneyModel, $iMidnight);
         $aPredicted = self::predictedSeconds($JourneyModel, $TripMatcher, $aJourney, $aStops, $sPreferredStopId, $iNow, $iMidnight - $iShift);
         $iFirstPredictedOrder = null;

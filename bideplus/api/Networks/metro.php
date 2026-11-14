@@ -121,7 +121,6 @@ return [
         'http_timeout_seconds' => 6,
         'max_age_seconds' => 300,
         'matching' => 'trip',
-        'match_tolerance_seconds' => 600,
         // Sin el GTFS-Realtime, los trenes salen del SIRI de llegadas (cada fila lleva el número del tren).
         'siri_fallback' => true,
         // Un retraso de más de 1 h en el GTFS-Realtime es de otro viaje con ese id (llegaron a salir de 5 h): no vale.
@@ -129,7 +128,8 @@ return [
         // Los ids del feed son de viajes de otra generación del horario: cada tren se casa por andén y destino
         // (Services\PlatformMatcher).
         'platform_matching' => [
-            // Hasta 10 min tarde o 3 min antes, un tren es el de su salida; si no, sale sin horario (minutos y destino).
+            // Hasta 10 min tarde o 3 min antes, un tren es el de su salida; si no, sale sin horario (sus minutos y su
+            // destino).
             'max_delay_seconds' => 600,
             'max_early_seconds' => 180,
             // Hasta dónde trae el feed todos los trenes de un andén: más allá no se quita ninguna salida del horario.
@@ -138,11 +138,11 @@ return [
             'truncated_after_seconds' => 2400,
             // El feed da las paradas de cada tren menos la terminal: la que sigue a su última parada es su destino.
             'omits_terminal' => true,
-            // Un tren no puede ir a menos de la mitad de lo que tarda el horario entre dos paradas: si lo hace, es que una
-            // parada viene con el id de otra y el tren no va por ese sentido.
+            // Un tren no puede ir a menos de la mitad de lo que tarda el horario entre dos paradas: si lo hace,
+            // es que una parada viene con el id de otra y el tren no va por ese sentido.
             'min_travel_share' => 0.5,
-            // Un recorrido con menos de 1 de cada 4 viajes del que más tiene (Urduliz, Bidezabal) solo es el destino si
-            // nada más encaja: el feed corta a veces la lista justo antes.
+            // Un recorrido con menos de 1 de cada 4 viajes del que más tiene (Urduliz, Bidezabal) es raro: si el
+            // tren encaja en él, el feed puede haber cortado la lista justo antes, y decide el horario.
             'usual_pattern_share' => 4,
         ],
     ],

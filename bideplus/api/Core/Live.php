@@ -3,6 +3,7 @@
 namespace Core;
 
 use Models\ServiceJourney;
+use Services\Calendar;
 use Services\GtfsRealtimeClient;
 use Services\ScheduleOnlyMatcher;
 use Services\PlatformMatcher;
@@ -101,13 +102,14 @@ class Live
                 $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
             }
             $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
-            if ($TripMatcher->matchedJourneys() > 0 || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
+            if ($TripMatcher->matchedJourneys() > 0) {
                 return $TripMatcher;
             }
             if (isset($aConfig['gtfs_rt']['platform_matching'])) {
-                return self::platformMatcher($aConfig, $JourneyModel, $aTrips, $iMidnight) ?? $TripMatcher;
+                return self::platformMatcher($aConfig, $JourneyModel, $aTrips) ?? $TripMatcher;
             }
-            if (empty($aTrips)) {
+            // Sin match_tolerance_seconds en la ficha (Renfe) no se casa por paradas: sin viajes casados, el horario.
+            if (empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
                 return $TripMatcher;
             }
         }
@@ -116,17 +118,18 @@ class Live
 
     // Los trenes del GTFS-Realtime casados por andén o, si no trae ninguno, los del SIRI de llegadas (con
     // gtfs_rt.siri_fallback). Null si no hay trenes de ninguno.
-    private static function platformMatcher(array $aConfig, ServiceJourney $JourneyModel, array $aTrips, int|null $iMidnight): PlatformMatcher|null
+    // Con la medianoche por reloj de pared, como las horas del horario (el día del cambio de hora no es la real).
+    private static function platformMatcher(array $aConfig, ServiceJourney $JourneyModel, array $aTrips): PlatformMatcher|null
     {
-        $sSource = 'trip-updates';
+        $sSource = PlatformMatcher::SOURCE_TRIP_UPDATES;
         if (empty($aTrips)) {
             $aTrips = self::siriTrains($aConfig, $JourneyModel);
-            $sSource = 'siri-arrivals';
+            $sSource = PlatformMatcher::SOURCE_SIRI;
         }
         if (empty($aTrips)) {
             return null;
         }
-        $iMidnight ??= (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $iMidnight = Calendar::wallMidnight();
         $aSegments = (new StopArrivalTrips($aConfig, $JourneyModel))->segments();
         return new PlatformMatcher($aTrips, $sSource, $JourneyModel, $iMidnight, $aConfig['gtfs_rt']['platform_matching'], $aSegments);
     }

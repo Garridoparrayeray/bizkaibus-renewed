@@ -11,14 +11,14 @@ use Models\ServiceJourney;
 // las que ya pasó (de dónde viene); hacia delante, las que le quedan tras las que el feed da.
 class ExtraSheet
 {
-    public static function build(ServiceJourney $JourneyModel, string $sStopId, int $iArrivalTime, string|null $sPreferredStopId): array|null
+    public static function build(ServiceJourney $JourneyModel, string $sStopId, int $iArrivalTime, string|null $sPlatformStopId, string|null $sPreferredStopId): array|null
     {
-        $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $iMidnight = Calendar::wallMidnight();
         $Matcher = Live::tripMatcher($JourneyModel, $iMidnight);
         if (!($Matcher instanceof PlatformMatcher)) {
             return null;
         }
-        $aTrain = $Matcher->unscheduledTrain($sStopId, $iArrivalTime);
+        $aTrain = $Matcher->unscheduledTrain($sStopId, $iArrivalTime, $sPlatformStopId);
         if ($aTrain === null) {
             return null;
         }

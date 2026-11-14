@@ -128,6 +128,7 @@ jobs:
           php bideplus/scripts/build-planner.php --out="$RUNNER_TEMP/plan" --databases=bideplus/data \
             --except="$REDES_RESERVADAS" --previous="$RUNNER_TEMP/ayer"
           echo "clave=osm-$(date -u +%G-%V)-$(printf '%s' "$MAPAS_OSM $MAPAS_ALREDEDOR" | sha1sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
+          echo "fondo=$(printf '%s' "$MAPAS_FONDO" | sha1sum | cut -c1-8)" >> "$GITHUB_OUTPUT"
           echo "anio=$(date -u +%Y)" >> "$GITHUB_OUTPUT"
 
       - name: Mapas de OSM de esta semana
@@ -179,7 +180,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/fondo
-          key: fondo-${{ steps.plan.outputs.clave }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+          key: fondo-${{ steps.plan.outputs.clave }}-${{ steps.plan.outputs.fondo }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
 
       - name: Mar de Bizkaia de este año
         id: mar
@@ -230,7 +231,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/fondo
-          key: fondo-${{ steps.plan.outputs.clave }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
+          key: fondo-${{ steps.plan.outputs.clave }}-${{ steps.plan.outputs.fondo }}-${{ hashFiles('.github/scripts/mapa-base.sh') }}
 
       - name: Poner el mapa base en la app
         run: |

@@ -13,6 +13,10 @@ class PlatformMatcher
 {
     use DepartedRows;
 
+    // De dónde salen los trenes: el GTFS-Realtime o, si no responde, el SIRI de llegadas.
+    public const SOURCE_TRIP_UPDATES = 'trip-updates';
+    public const SOURCE_SIRI = 'siri-arrivals';
+
     private const ON_TIME_SECONDS = 60;
     // Un tren con menos paradas no dice por qué andén va.
     private const MIN_STOPS = 2;
@@ -25,15 +29,10 @@ class PlatformMatcher
 
     private array $aViews = [];
 
-    // $aTrains: los trenes del feed, [['tripId', 'stops' => [[parada, hora unix], ...]]]. $sSource: «trip-updates» o
-    // «siri-arrivals». $aSegments: lo que tarda un tren entre paradas según el horario (['A|B' => segundos]).
+    // $aTrains: los trenes del feed, [['tripId', 'stops' => [[parada, hora unix], ...]]]. $sSource: SOURCE_TRIP_UPDATES
+    // o SOURCE_SIRI. $aSegments: lo que tarda un tren entre paradas según el horario (['A|B' => segundos]).
     public function __construct(private array $aTrains, private string $sSource, private ServiceJourney $JourneyModel, private int $iMidnight, private array $aSettings, private array $aSegments)
     {
-    }
-
-    public function source(): string
-    {
-        return $this->sSource;
     }
 
     public function trainCount(): int
@@ -84,26 +83,35 @@ class PlatformMatcher
         return null;
     }
 
-    // Un tren sin horario por la parada y la hora de su clave: sus paradas, el recorrido donde mejor cabe, su línea y
-    // su destino. Null si ya no está.
-    public function unscheduledTrain(string $sStopId, int $iArrivalTime): array|null
+    // Un tren sin horario por la parada, el andén (null: cualquiera) y la hora de su clave: el más cercano a esa hora,
+    // con sus paradas, el recorrido donde mejor cabe, su línea y su destino. Null si ya no está.
+    public function unscheduledTrain(string $sStopId, int $iArrivalTime, string|null $sPlatformStopId): array|null
     {
         $aView = $this->view($sStopId);
+        $iBest = null;
+        $iBestGap = self::EXTRA_KEY_TOLERANCE_SECONDS + 1;
         foreach ($aView['extras'] as $iExtra => $aExtra) {
-            if (abs($this->iMidnight + $aExtra['etaSeconds'] - $iArrivalTime) <= self::EXTRA_KEY_TOLERANCE_SECONDS) {
-                $sPattern = $aExtra['journey_pattern_id'];
-                $aFits = $aView['unmatched'][$iExtra]['fits'];
-                return [
-                    'stops' => ($aFits[$aView['terminals'][$sPattern]] ?? reset($aFits))['stops'],
-                    'sequence' => $aView['sequences'][$sPattern], 'line_code' => $aExtra['line_code'],
-                    'line_name' => $aExtra['line_name'], 'headsign' => $aExtra['headsign'],
-                ];
+            $iGap = abs($this->iMidnight + $aExtra['etaSeconds'] - $iArrivalTime);
+            $bPlatform = $sPlatformStopId === null || $aExtra['platform_stop_id'] === $sPlatformStopId;
+            if ($bPlatform && $iGap < $iBestGap) {
+                $iBest = $iExtra;
+                $iBestGap = $iGap;
             }
         }
-        return null;
+        if ($iBest === null) {
+            return null;
+        }
+        $aExtra = $aView['extras'][$iBest];
+        $sPattern = $aExtra['journey_pattern_id'];
+        $aFits = $aView['unmatched'][$iBest]['fits'];
+        return [
+            'stops' => ($aFits[$aView['terminals'][$sPattern]] ?? reset($aFits))['stops'],
+            'sequence' => $aView['sequences'][$sPattern], 'line_code' => $aExtra['line_code'],
+            'line_name' => $aExtra['line_name'], 'headsign' => $aExtra['headsign'],
+        ];
     }
 
-    // Diagnóstico de /api/status: de dónde salen los trenes, cuántos hay y de cuántos se sabe ya el destino.
+    // Diagnóstico de /api/status: de dónde salen los trenes y cuántos hay.
     public function diagnostics(): array
     {
         return ['matching' => 'platform', 'trainSource' => $this->sSource, 'trains' => $this->trainCount()];
@@ -143,8 +151,8 @@ class PlatformMatcher
     }
 
     // Los trenes del feed que pasan por la parada: [['train', 'time', 'next' (el andén), 'fits' => [terminal =>
-    // ['stops']]]]. Sus destinos: las terminales de los recorridos donde caben sus paradas a un ritmo posible, solo la
-    // que sigue a la última si el feed no da la terminal (exacta) y, si esa es de un recorrido raro, las de los usuales.
+    // ['stops']]]]. Sus destinos son las terminales de los recorridos donde caben sus paradas a un ritmo posible,
+    // elegidas con likely() (el feed no da la terminal: con omits_terminal, la exacta es la que sigue a la última).
     public static function arrivalsAt(string $sStopId, array $aTrains, array $aSequences, array $aTrips, array $aSegments, int $iNow, array $aSettings): array
     {
         $iOmitted = (int)!empty($aSettings['omits_terminal']);
@@ -163,6 +171,8 @@ class PlatformMatcher
             if (empty($aFits)) {
                 continue;
             }
+            // En una bifurcación, si el tren cabe en las dos ramas, el andén es el del recorrido con más viajes.
+            usort($aFits, fn(array $aA, array $aB) => $aB['trips'] <=> $aA['trips']);
             $sNext = $aFits[0]['next'];
             $aFits = array_values(array_filter($aFits, fn(array $aFit) => $aFit['next'] === $sNext));
             $aByTerminal = [];
@@ -174,22 +184,27 @@ class PlatformMatcher
         return $aArrivals;
     }
 
-    // De los recorridos donde cabe un tren, a los que puede ir: los usuales (con al menos 1 de cada $iShare viajes del
-    // que más tiene) y, de ellos, los que acaban justo tras su última parada si los hay y su lista no está cortada.
-    private static function likely(array $aFits, bool $bTruncated, int $iShare): array
+    // A qué recorridos puede ir un tren. Con la lista cortada o sin ninguno que acabe justo tras su última parada, a
+    // todos donde cabe. Si alguno así es usual (1 de cada $iShare viajes del que más tiene), a esos; si solo son raros
+    // (Bidezabal, Urduliz: el feed corta a veces justo antes), a ellos y a los usuales, y decide el horario.
+    public static function likely(array $aFits, bool $bTruncated, int $iShare): array
     {
+        $aExact = array_values(array_filter($aFits, fn(array $aFit) => $aFit['exact']));
+        if ($bTruncated || empty($aExact)) {
+            return $aFits;
+        }
         $iMost = max(array_column($aFits, 'trips'));
         $aUsual = array_values(array_filter($aFits, fn(array $aFit) => $aFit['trips'] * $iShare >= $iMost));
-        $aExact = array_values(array_filter($aUsual, fn(array $aFit) => $aFit['exact']));
-        if (!$bTruncated && !empty($aExact)) {
-            return $aExact;
+        $aUsualExact = array_values(array_filter($aUsual, fn(array $aFit) => $aFit['exact']));
+        if (!empty($aUsualExact)) {
+            return $aUsualExact;
         }
-        return $aUsual;
+        return array_merge($aExact, $aUsual);
     }
 
     // Cómo cabe un tren en un recorrido que pasa por la parada: su hora en ella, la parada siguiente, la terminal y si
-    // su lista acaba justo antes de ella ('exact'). Null si no cabe, si su lista pasa de la terminal o si va más rápido
-    // de lo posible (con un id cambiado, «Urduliz» como «Gobela», cabría en el otro sentido).
+    // su lista acaba justo antes de ella ('exact'). Null si no cabe, si su lista pasa de la terminal, si ya dejó atrás
+    // la parada o si va más rápido de lo posible (con un id cambiado, «Urduliz» como «Gobela», cabría al revés).
     private static function fit(string $sStopId, array $aStops, array $aSequence, int $iOmitted, array $aSegments, float $dMinShare): array|null
     {
         $aAligned = FeedStopOrder::align($aStops, $aSequence);
@@ -197,16 +212,48 @@ class PlatformMatcher
             return null;
         }
         $aIds = array_map('strval', array_column($aAligned, 0));
-        $iAt = array_search($sStopId, $aIds, true);
         $iGap = \count($aSequence) - 1 - (int)array_search(end($aIds), $aSequence, true);
-        if ($iAt === false || $iGap < $iOmitted) {
-            return null;
-        }
+        $iTime = self::timeAt($sStopId, $aAligned, $aSequence, $aSegments);
         $sNext = $aSequence[array_search($sStopId, $aSequence, true) + 1] ?? null;
-        if ($sNext === null) {
+        if ($iTime === null || $iGap < $iOmitted || $sNext === null) {
             return null;
         }
-        return ['time' => (int)$aAligned[$iAt][1], 'next' => (string)$sNext, 'terminal' => (string)end($aSequence), 'exact' => $iGap === $iOmitted, 'stops' => $aAligned];
+        return ['time' => $iTime, 'next' => (string)$sNext, 'terminal' => (string)end($aSequence), 'exact' => $iGap === $iOmitted, 'stops' => $aAligned];
+    }
+
+    // La hora del tren en la parada. Si su lista se la salta (el feed de Metro da una sola parada con el id «20»: en
+    // el ramal de Plentzia, Gobela o Urduliz), la que toca entre la de antes y la de después según el horario.
+    private static function timeAt(string $sStopId, array $aAligned, array $aSequence, array $aSegments): int|null
+    {
+        $aPositions = array_flip(array_map('strval', $aSequence));
+        $iTarget = $aPositions[$sStopId];
+        for ($iStop = 0; $iStop < \count($aAligned); $iStop++) {
+            $iAt = $aPositions[(string)$aAligned[$iStop][0]];
+            if ($iAt === $iTarget) {
+                return (int)$aAligned[$iStop][1];
+            }
+            if ($iAt > $iTarget && $iStop > 0) {
+                $iFrom = $aPositions[(string)$aAligned[$iStop - 1][0]];
+                $iWhole = self::scheduledBetween($aSequence, $iFrom, $iAt, $aSegments);
+                $iPart = self::scheduledBetween($aSequence, $iFrom, $iTarget, $aSegments);
+                $iTaken = (int)$aAligned[$iStop][1] - (int)$aAligned[$iStop - 1][1];
+                return (int)$aAligned[$iStop - 1][1] + intdiv($iTaken * $iPart, max($iWhole, 1));
+            }
+            if ($iAt > $iTarget) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    // Lo que tarda el horario de la posición $iFrom a la $iTo del recorrido.
+    private static function scheduledBetween(array $aSequence, int $iFrom, int $iTo, array $aSegments): int
+    {
+        $iSeconds = 0;
+        for ($iAt = $iFrom; $iAt < $iTo; $iAt++) {
+            $iSeconds += $aSegments[$aSequence[$iAt] . '|' . $aSequence[$iAt + 1]] ?? 0;
+        }
+        return $iSeconds;
     }
 
     // Si entre cada dos paradas seguidas del tren pasa al menos $dMinShare de lo que tarda el horario en ese tramo.
@@ -214,10 +261,7 @@ class PlatformMatcher
     {
         $aPositions = array_flip(array_map('strval', $aSequence));
         for ($iStop = 1; $iStop < \count($aAligned); $iStop++) {
-            $iScheduled = 0;
-            for ($iAt = $aPositions[(string)$aAligned[$iStop - 1][0]]; $iAt < $aPositions[(string)$aAligned[$iStop][0]]; $iAt++) {
-                $iScheduled += $aSegments[$aSequence[$iAt] . '|' . $aSequence[$iAt + 1]] ?? 0;
-            }
+            $iScheduled = self::scheduledBetween($aSequence, $aPositions[(string)$aAligned[$iStop - 1][0]], $aPositions[(string)$aAligned[$iStop][0]], $aSegments);
             if ($aAligned[$iStop][1] - $aAligned[$iStop - 1][1] < $iScheduled * $dMinShare) {
                 return false;
             }
@@ -243,14 +287,19 @@ class PlatformMatcher
         return array_map(fn(array $aSequence) => (string)end($aSequence), $aSequences);
     }
 
-    // Casa los trenes de la parada ($aArrivals, de arrivalsAt()) con las salidas del horario ($aRows), andén por andén:
-    // primero los de destino seguro, cada destino en orden; luego los demás, en orden, con las salidas que les quedan
-    // de alguno de sus destinos. Da 'live' y 'trainOf' (salida => segundos y tren), 'horizons' y 'unmatched'.
+    // Casa los trenes de la parada ($aArrivals, de arrivalsAt()) con las salidas del horario ($aRows), andén por andén
+    // y en orden (inOrder()): un tren de destino seguro solo con una salida de ese destino. Da 'live' y 'trainOf'
+    // (salida => segundos y tren), 'horizons' y 'unmatched'.
     public static function assign(array $aArrivals, array $aRows, array $aNext, array $aTerminals, int $iMidnight, int $iNow, array $aSettings): array
     {
         $aPlatforms = [];
         foreach ($aArrivals as $iAt => $aArrival) {
-            // Un tren que el feed aún da con la hora pasada no ha salido: llega ahora, como el «0 min» de la app.
+            // Con la hora ya pasada hace más de LIVE_DEPARTED_AFTER_SECONDS el tren ha salido de la parada; dentro de
+            // ese margen, aún no: llega ahora, como el «0 min» de la app.
+            if ($aArrival['time'] < $iNow - self::LIVE_DEPARTED_AFTER_SECONDS) {
+                unset($aArrivals[$iAt]);
+                continue;
+            }
             $aArrivals[$iAt]['seconds'] = max($aArrival['time'], $iNow) - $iMidnight;
             $aArrivals[$iAt]['terminals'] = array_map('strval', array_keys($aArrival['fits']));
             $aPlatforms[$aArrival['next']]['trains'][] = $iAt;
@@ -261,37 +310,23 @@ class PlatformMatcher
                 $aPlatforms[$sNext]['rows'][] = $aRow + ['terminal' => $aTerminals[(string)$aRow['journey_pattern_id']]];
             }
         }
-        $aView = ['live' => [], 'trainOf' => [], 'horizons' => [], 'next' => $aNext, 'terminals' => $aTerminals];
+        $aView = ['live' => [], 'trainOf' => [], 'horizons' => [], 'next' => $aNext, 'terminals' => $aTerminals, 'now' => $iNow - $iMidnight];
         $iCovered = $iNow + $aSettings['covered_seconds'] - $iMidnight;
         foreach ($aPlatforms as $sNext => $aPlatform) {
             $aTrains = array_map(fn(int $iAt) => $aArrivals[$iAt] + ['at' => $iAt], $aPlatform['trains']);
             usort($aTrains, fn(array $aA, array $aB) => $aA['seconds'] <=> $aB['seconds']);
             $aPlatformRows = $aPlatform['rows'] ?? [];
             usort($aPlatformRows, fn(array $aA, array $aB) => (int)$aA['arrival_seconds'] <=> (int)$aB['arrival_seconds']);
-            $aSure = array_filter($aTrains, fn(array $aTrain) => \count($aTrain['terminals']) === 1);
-            foreach (array_unique(array_map(fn(array $aTrain) => $aTrain['terminals'][0], $aSure)) as $sTerminal) {
-                $aGroup = array_filter($aSure, fn(array $aTrain) => $aTrain['terminals'][0] === $sTerminal);
-                self::pairInOrder($aView, $aGroup, $aPlatformRows, $aSettings);
+            foreach (self::inOrder($aTrains, $aPlatformRows, $aSettings['max_early_seconds'], $aSettings['max_delay_seconds']) as $iTrain => $iRow) {
+                $sKey = self::key($aPlatformRows[$iRow]);
+                $aView['live'][$sKey] = $aTrains[$iTrain]['seconds'];
+                $aView['trainOf'][$sKey] = $aTrains[$iTrain]['at'];
             }
-            self::pairInOrder($aView, $aTrains, $aPlatformRows, $aSettings);
             $aView['horizons'][$sNext] = min(max(array_column($aTrains, 'seconds')), $iCovered);
         }
         $aUsed = array_flip($aView['trainOf']);
         $aView['unmatched'] = array_values(array_filter($aArrivals, fn(array $aArrival, int $iAt) => !isset($aUsed[$iAt]), ARRAY_FILTER_USE_BOTH));
         return $aView;
-    }
-
-    // Casa en orden los trenes que aún no tienen salida con las salidas libres y apunta las parejas en $aView.
-    private static function pairInOrder(array &$aView, array $aTrains, array $aRows, array $aSettings): void
-    {
-        $aUsed = array_flip($aView['trainOf']);
-        $aTrains = array_values(array_filter($aTrains, fn(array $aTrain) => !isset($aUsed[$aTrain['at']])));
-        $aRows = array_values(array_filter($aRows, fn(array $aRow) => !isset($aView['trainOf'][self::key($aRow)])));
-        foreach (self::inOrder($aTrains, $aRows, $aSettings['max_early_seconds'], $aSettings['max_delay_seconds']) as $iTrain => $iRow) {
-            $sKey = self::key($aRows[$iRow]);
-            $aView['live'][$sKey] = $aTrains[$iTrain]['seconds'];
-            $aView['trainOf'][$sKey] = $aTrains[$iTrain]['at'];
-        }
     }
 
     // Casa en orden los trenes (['seconds', 'terminals']) con las salidas (['arrival_seconds', 'terminal']), los dos
@@ -345,12 +380,17 @@ class PlatformMatcher
         return ($aRow['service_journey_id'] ?? $aRow['trip_number'] ?? '') . '|' . (int)$aRow['arrival_seconds'];
     }
 
-    // Una salida sin tren que la ventana del feed en su andén ya cubre: no existe.
+    // Una salida sin tren que la ventana del feed en su andén ya cubre y cuyo viaje ya ha salido de cabecera según el
+    // horario: no existe. Un viaje que aún no ha salido puede no estar en el feed (los de Basauri, en Etxebarri).
     private static function covered(array $aRow, array $aView): bool
     {
         $sNext = $aView['next'][(string)($aRow['journey_pattern_id'] ?? '')] ?? '';
         $iHorizon = $aView['horizons'][$sNext] ?? null;
-        return $iHorizon !== null && (int)$aRow['arrival_seconds'] <= $iHorizon;
+        $iStart = (int)($aRow['first_departure_seconds'] ?? 0);
+        if (!empty($aRow['yesterday'])) {
+            $iStart -= Calendar::DAY_SECONDS;
+        }
+        return $iHorizon !== null && (int)$aRow['arrival_seconds'] <= $iHorizon && $iStart <= $aView['now'];
     }
 
     private static function liveRow(array $aRow, int $iSeconds): array
@@ -378,6 +418,7 @@ class PlatformMatcher
             'trip_number' => null, 'service_journey_id' => null, 'first_departure_seconds' => null,
             'arrival_seconds' => $iSeconds, 'departure_seconds' => $iSeconds,
             'status' => 'live', 'etaSeconds' => $iSeconds, 'delaySeconds' => null, 'unscheduled' => true, 'stop_id' => $sStopId,
+            'platform_stop_id' => $aArrival['next'],
         ];
     }
 }

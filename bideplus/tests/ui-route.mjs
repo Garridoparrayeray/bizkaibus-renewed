@@ -72,6 +72,21 @@ const fulfilLive = (params) => {
         body: Buffer.from(sBody).toString('base64'),
     });
 };
+// Espera a que pasen QUIET_MS sin ninguna petición del directo (como mucho QUIET_MAX_MS).
+const QUIET_MS = 3000;
+const QUIET_MAX_MS = 20000;
+const waitQuiet = async () => {
+    const iStart = Date.now();
+    let iSeen = live.count;
+    let iSince = Date.now();
+    while (Date.now() - iSince < QUIET_MS && Date.now() - iStart < QUIET_MAX_MS) {
+        await sleep(250);
+        if (live.count !== iSeen) {
+            iSeen = live.count;
+            iSince = Date.now();
+        }
+    }
+};
 const results = [];
 const check = (name, ok, extra = '') => {
     let line = `MAL ${name}`;
@@ -89,6 +104,24 @@ const typeInto = async (sel, value) => {
 // La primera sugerencia de lo escrito (no la de «Tu ubicación» que sale con el campo vacío).
 const firstSuggestion = (list, word) => `[...document.querySelectorAll('${list} li[role=option]:not([aria-disabled])')].find((li) => li.textContent.includes('${word}'))`;
 const optionsReady = "document.querySelectorAll('#route-options .route-option').length > 0 && document.getElementById('route-searching').hidden";
+// Las opciones ya pintadas y quietas: la búsqueda que lanza cerrar los filtros puede empezar un poco después, y tocar
+// una opción que se va a repintar no abre nada. Quietas es la misma primera opción durante SETTLED_MS.
+const SETTLED_MS = 1500;
+const waitOptionsSettled = async () => {
+    const iStart = Date.now();
+    let iSince = Date.now();
+    await ev('window.__routeFirst = null; true');
+    while (Date.now() - iStart < PLANNER_MS) {
+        const bSame = await ev(`(() => { const o = document.querySelector('#route-options .route-option'); const b = ${optionsReady} && o === window.__routeFirst; window.__routeFirst = o; return b; })()`);
+        if (!bSame) {
+            iSince = Date.now();
+        } else if (Date.now() - iSince >= SETTLED_MS) {
+            return true;
+        }
+        await sleep(250);
+    }
+    return false;
+};
 
 await send('Runtime.enable'); await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -132,7 +165,7 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
     check(`${sLang} · quitar una red la marca y lo cuenta`, (await ev("document.querySelector('#route-networks-others .route-check').getAttribute('aria-checked')")) === 'false' && (await text('#route-filters-count')) === '1');
     await ev("document.getElementById('route-networks-all').click(); document.getElementById('route-networks-done').click(); document.getElementById('route-filters-done').click(); true");
     check(`${sLang} · «Ver las opciones» cierra la hoja`, await waitTrue("!document.getElementById('route-filters').open"));
-    await waitTrue(optionsReady, PLANNER_MS);
+    await waitOptionsSettled();
 
     await ev("document.querySelector('.route-option.is-open .route-choose').click(); true");
     check(`${sLang} · «${sChoose}» abre la pantalla del viaje`, await waitTrue(`${shown('#route-trip .route-hero')} && document.getElementById('route-trip-title').textContent.startsWith(${JSON.stringify(sTrip)})`));
@@ -220,8 +253,10 @@ if (!(await liveSearch('mixed'))) {
         await waitTrue("document.getElementById('route-trip').hidden");
     }
 
-    // En segundo plano no se pide nada; al volver, enseguida.
+    // En segundo plano no se pide nada; al volver, enseguida. Antes, que acabe lo que se pidió con la pestaña a la vista
+    // (con el servidor local, la respuesta y la búsqueda que la sigue pueden tardar unos segundos).
     live.mode = 'mixed';
+    await waitQuiet();
     await ev("Object.defineProperty(document, 'hidden', { configurable: true, get: () => window.__hidden === true }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); true");
     const iHidden = live.count;
     await sleep(32000);

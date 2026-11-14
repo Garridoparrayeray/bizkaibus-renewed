@@ -3,7 +3,8 @@
 namespace Services;
 
 // Quita las salidas que ya pasaron: con un margen corto si iban en directo y algo más si solo eran horario. Lo
-// comparten los dos emparejadores de horas previstas: TripUpdatesMatcher (por paradas) y TripDelayMatcher (por viaje).
+// comparten los tres emparejadores de horas previstas: TripUpdatesMatcher (por paradas), TripDelayMatcher (por viaje)
+// y PlatformMatcher (por andén).
 trait DepartedRows
 {
     public const LIVE_DEPARTED_AFTER_SECONDS = 45;

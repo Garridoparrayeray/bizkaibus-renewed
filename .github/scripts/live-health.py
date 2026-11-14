@@ -77,6 +77,8 @@ def check(network, report):
             notices.append(message)
         else:
             errors.append(message)
+    if report.get('trainSource') == 'siri-arrivals':
+        notices.append('el GTFS-Realtime no trae trenes: salen del SIRI, que va un par de minutos por detrás')
     if report.get('copiesSchedule'):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):

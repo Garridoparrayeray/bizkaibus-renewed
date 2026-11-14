@@ -254,8 +254,12 @@ const liveChanged = async () => {
     }
 };
 
-// Pide el directo sin esperarlo y repinta si cambia algo, salvo que mientras tanto se haya buscado otra cosa.
+// Pide el directo sin esperarlo y repinta si cambia algo, salvo que mientras tanto se haya buscado otra cosa. Con la
+// pestaña oculta no se pide: al volver se pregunta por todo lo que se ve.
 const liveLater = (sKey) => {
+    if (document.hidden) {
+        return;
+    }
     refreshLive().then((bChanged) => {
         if (bChanged && app.answerKey === sKey) {
             liveChanged();

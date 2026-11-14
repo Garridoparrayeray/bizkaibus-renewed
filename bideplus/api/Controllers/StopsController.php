@@ -391,11 +391,12 @@ class StopsController
         return $aDepartures;
     }
 
-    // Un tren que el horario no tiene (refuerzo) lleva la clave de su parada y su hora: ExtraSheet lo vuelve a buscar.
+    // Un tren que el horario no tiene (refuerzo) lleva la clave de su parada, su andén y su hora: ExtraSheet lo vuelve
+    // a buscar.
     private static function tripKey(array $aRow): string
     {
         if (!empty($aRow['unscheduled'])) {
-            return TripKey::buildExtra((string)$aRow['stop_id'], time() + ($aRow['etaSeconds'] - Calendar::nowSecondsSinceMidnight()));
+            return TripKey::buildExtra((string)$aRow['stop_id'], Calendar::wallMidnight() + $aRow['etaSeconds'], $aRow['platform_stop_id'] ?? null);
         }
         return TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']);
     }
