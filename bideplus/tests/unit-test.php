@@ -263,6 +263,11 @@ $Expect('un viaje en dos calendarios devuelve las dos variantes', count($aVarian
 $Expect('la variante que circula hoy va la primera, aunque su id sea posterior', $aVariants[0]['id'] === 'B_TODAY' && (int)$aVariants[0]['runs_today'] === 1 && (int)$aVariants[1]['runs_today'] === 0);
 $Expect('findByLineAndTrip da la variante de hoy', $JourneyVar->findByLineAndTrip('L1', '721', 79200)['id'] === 'B_TODAY');
 $Expect('un viaje que no existe da null', $JourneyVar->findByLineAndTrip('L1', '999', 79200) === null && $JourneyVar->variantsByLineAndTrip('L1', '999', 79200) === []);
+$Expect('de unos viajes, circulan hoy los de un calendario de hoy', $JourneyVar->runningOf(['A_OTHER_DAY', 'B_TODAY'], Calendar::todayMadrid()) === ['B_TODAY']);
+// El feed de Metro trae a veces ids que en el horario son de otro calendario: no se casan con ese viaje.
+$PdoVar->exec("CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT); INSERT INTO trip_aliases VALUES ('A_OTHER_DAY', 'A_OTHER_DAY'), ('B_TODAY', 'B_TODAY')");
+$MatcherVar = new TripDelayMatcher([['tripId' => 'A_OTHER_DAY', 'stops' => [], 'delay' => 120], ['tripId' => 'B_TODAY', 'stops' => [], 'delay' => 120]], $JourneyVar);
+$Expect('un viaje del feed que según el horario no circula hoy no se casa', $MatcherVar->diagnostics()['matched'] === 1, json_encode($MatcherVar->diagnostics()));
 
 // De madrugada, la ficha de un viaje de ayer que pasa de las 24:00 es la de ayer mientras no haya terminado; y el
 // diagnóstico del directo cuenta los viajes en marcha según el horario (los de hoy y los de ayer pasadas las 24:00).
