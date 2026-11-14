@@ -7,16 +7,17 @@ use Core\Request;
 use Core\Response;
 use Services\GtfsRealtimeClient;
 use Services\MetroAlertsClient;
+use Services\ReducedService;
 use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
-// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=). Las fuentes son los clientes de
-// Services (Metro, Renfe, GTFS-Realtime y SIRI).
+// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=), con el servicio reducido de la red
+// (Services\ReducedService). Las fuentes son los clientes de Services (Metro, Renfe, GTFS-Realtime y SIRI).
 class AlertsController
 {
     public function index(Request $Req): void
     {
-        Response::json(['alerts' => $this->alerts($Req->query('line'), $Req->query('stop'))]);
+        Response::json(['alerts' => $this->alerts($Req->query('line'), $Req->query('stop')), 'reducedService' => ReducedService::current()]);
     }
 
     // Avisos de la red actual: todos, los de una línea (?line=) o, en Renfe, los de una estación (?stop=).

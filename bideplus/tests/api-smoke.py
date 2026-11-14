@@ -114,6 +114,11 @@ get('/api/status?red=launion', 404)
 metro_status = get('/api/status?red=metro') or {}
 if metro_status.get('ok') is None or 'feedTrips' not in metro_status or 'matching' not in metro_status:
     fails.append(f'/api/status?red=metro: sin el diagnóstico del directo {metro_status}')
+if not isinstance(metro_status.get('reducedService'), dict) or 'today' not in metro_status['reducedService']:
+    fails.append(f'/api/status?red=metro: sin el servicio reducido {metro_status.get("reducedService")}')
+planner_reduced = get('/api/planner/live?legs=&networks=metro,renfe') or {}
+if not isinstance(planner_reduced.get('reduced'), dict):
+    fails.append(f'/api/planner/live?networks=: sin los días con servicio reducido {planner_reduced}')
 # Aviso de versión nueva.
 version = get('/api/app/version?desde=0&lang=eu') or {}
 if not isinstance(version.get('version'), int) or not version.get('notes') or not all(n.get('title') and n.get('text') for n in version['notes']):

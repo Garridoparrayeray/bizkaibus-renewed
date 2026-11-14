@@ -999,4 +999,85 @@ $Expect('más de 40 tramos no vale', \Controllers\PlannerController::legsByNetwo
 $aPlannerUpdates = \Controllers\PlannerController::updatesOf('metro', ['a' => ['status' => 'live', 'delaySeconds' => 245], 'b' => ['status' => 'live', 'delaySeconds' => -600], 'c' => ['status' => 'cancelled', 'delaySeconds' => 0], 'd' => ['status' => 'scheduled', 'delaySeconds' => 0], 'e' => ['status' => 'estimated', 'delaySeconds' => 0]]);
 $Expect('en directo va el retraso entero y el adelanto hasta 2 min; cancelado, cancelado; lo estimado o del horario no sale', $aPlannerUpdates === [['network' => 'metro', 'trip' => 'a', 'delay' => 245, 'cancelled' => false], ['network' => 'metro', 'trip' => 'b', 'delay' => -120, 'cancelled' => false], ['network' => 'metro', 'trip' => 'c', 'delay' => 0, 'cancelled' => true]], json_encode($aPlannerUpdates));
 
+$Section('Servicio reducido (huelgas, servicios mínimos)');
+$aReducedRules = \Services\ReducedService::rules();
+$TodayStrike = new DateTimeImmutable('2026-11-14');
+// Avisos reales de Renfe del 14/11/2026: la huelga del 17 de noviembre y dos avisos que no son de huelga.
+$aRenfeStrike = RenfeAlertsClient::parse((string)file_get_contents(__DIR__ . '/fixtures/renfe-alerts-huelga-20261114.json'), [], null);
+$aStrike = \Services\ReducedService::fromAlerts($aRenfeStrike, $aReducedRules, $TodayStrike);
+$Expect('avisos reales de Renfe: la huelga marca el 17 de noviembre y hoy no', $aStrike['days'] === ['2026-11-17'] && \count($aRenfeStrike) === 4 && str_contains((string)$aStrike['alert'], 'huelga'), json_encode($aStrike));
+$aStrikeDay = \Services\ReducedService::fromAlerts($aRenfeStrike, $aReducedRules, new DateTimeImmutable('2026-11-17'));
+$Expect('el mismo aviso el día 17: hoy hay servicio reducido', \Services\ReducedService::verdict($aStrikeDay, false, '2026-11-17') === ['today' => true, 'days' => ['2026-11-17'], 'sources' => ['alerts'], 'alert' => $aStrikeDay['alert']]);
+$aBasque = \Services\ReducedService::fromAlerts([
+    ['summary' => 'Greba: gutxieneko zerbitzuak', 'description' => '', 'startTime' => null],
+    ['summary' => 'Huelga desconvocada', 'description' => 'Se desconvoca la huelga del día 20 de noviembre', 'startTime' => null],
+    ['summary' => 'Ascensor de Santutxu fuera de servicio', 'description' => '', 'startTime' => null],
+    ['summary' => 'Paros parciales', 'description' => 'Servicio reducido', 'startTime' => '2026-11-21T06:00:00+01:00'],
+], $aReducedRules, $TodayStrike);
+$Expect('un aviso en euskera sin fechas es de hoy; uno desconvocado, uno de ascensores o uno que empieza otro día, no', $aBasque['days'] === ['2026-11-14'], json_encode($aBasque));
+$aDatesCases = [
+    'huelga del 17 al 19 de noviembre' => ['2026-11-17', '2026-11-18', '2026-11-19'],
+    'huelga los dias 17 y 20 de noviembre' => ['2026-11-17', '2026-11-20'],
+    'greba azaroaren 17tik 19ra' => ['2026-11-17', '2026-11-18', '2026-11-19'],
+    'azaroaren 17an greba, 24 orduko' => ['2026-11-17'],
+    'greve du 17/11 au 18/11' => ['2026-11-17', '2026-11-18'],
+    'huelga el 3 de enero' => ['2027-01-03'],
+    'mas informacion: https://grupo.renfe.com/2026/11/huelga-del-26-de-noviembre' => [],
+];
+$aDatesSeen = array_map(fn(string $sText) => \Services\ReducedService::datesIn($sText, $aReducedRules['months'], $TodayStrike, 31), array_combine(array_keys($aDatesCases), array_keys($aDatesCases)));
+$Expect('fechas de los avisos: rangos, días sueltos, euskera, francés, cambio de año y sin mirar en los enlaces', $aDatesSeen === $aDatesCases, json_encode($aDatesSeen));
+
+// Día de huelga simulado en el directo: en las paradas de muestra solo pasa 1 de cada 4 trenes que tocaban.
+$aLiveRules = ['window_seconds' => 1200, 'min_expected' => 8, 'missing_share' => 0.6, 'confirm_seconds' => 900];
+$iNowStrike = 12 * 3600;
+$StrikeJourneys = new class (new PDO('sqlite::memory:')) extends ServiceJourney {
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0, int|null $iPastSeconds = null): array
+    {
+        $aRows = [];
+        for ($iTrain = 0; $iTrain < 8; $iTrain++) {
+            $aRows[] = ['service_journey_id' => $iStopId . '-' . $iTrain, 'line_id' => 'L1', 'trip_number' => (string)$iTrain, 'first_departure_seconds' => 12 * 3600 - 600 + $iTrain * 60, 'arrival_seconds' => 12 * 3600 + $iTrain * 150, 'departure_seconds' => 12 * 3600 + $iTrain * 150];
+        }
+        $aRows[] = ['service_journey_id' => $iStopId . '-later', 'line_id' => 'L1', 'trip_number' => 'x', 'first_departure_seconds' => 12 * 3600 + 900, 'arrival_seconds' => 12 * 3600 + 1100, 'departure_seconds' => 12 * 3600 + 1100];
+        return $aRows;
+    }
+};
+$FeedOf = fn(int $iEvery) => new class ($iEvery) {
+    public function __construct(private int $iEvery)
+    {
+    }
+
+    public function enrich(string $sStopId, array $aRows): array
+    {
+        $aOut = [];
+        foreach ($aRows as $iRow => $aRow) {
+            if ($iRow % $this->iEvery === 0) {
+                $aOut[] = ['status' => 'live'] + $aRow;
+            }
+        }
+        return $aOut;
+    }
+};
+$aStrikeSample = \Services\ReducedService::missingAtStops($StrikeJourneys, $FeedOf(4), ['A', 'B'], 1200, $iNowStrike);
+$aNormalSample = \Services\ReducedService::missingAtStops($StrikeJourneys, $FeedOf(1), ['A', 'B'], 1200, $iNowStrike);
+$Expect('huelga simulada: de 16 trenes que tocaban (los que aún no han salido de cabecera no cuentan), faltan 12', $aStrikeSample === [16, 12] && $aNormalSample === [16, 0], json_encode([$aStrikeSample, $aNormalSample]));
+$aSamples = [];
+for ($iMinute = 0; $iMinute <= 20; $iMinute++) {
+    $aSamples = \Services\ReducedService::withSample($aSamples, $aStrikeSample, 1000000 + $iMinute * 60, $aLiveRules);
+}
+$Expect('huelga simulada: con 20 min de muestras así, la red sale como reducida', \Services\ReducedService::confirmed($aSamples, 1000000 + 1200, $aLiveRules));
+$Expect('una sola muestra así no basta', !\Services\ReducedService::confirmed(\Services\ReducedService::withSample([], $aStrikeSample, 1000000, $aLiveRules), 1000000, $aLiveRules));
+$aEmptyFeed = \Services\ReducedService::withSample($aSamples, null, 1000000 + 1260, $aLiveRules);
+$Expect('feed vacío (Bilbobus, Lurraldebus a ratos): borra las muestras y no dispara el aviso', $aEmptyFeed === [] && !\Services\ReducedService::confirmed($aEmptyFeed, 1000000 + 1260, $aLiveRules));
+$aNormal = [];
+for ($iMinute = 0; $iMinute <= 20; $iMinute++) {
+    $aNormal = \Services\ReducedService::withSample($aNormal, [54, 4], 1000000 + $iMinute * 60, $aLiveRules);
+}
+$Expect('un día normal (4 de 54 sin pasar, lo medido en Metro) no sale como reducido', !\Services\ReducedService::confirmed($aNormal, 1000000 + 1200, $aLiveRules));
+$aFew = [];
+for ($iMinute = 0; $iMinute <= 20; $iMinute++) {
+    $aFew = \Services\ReducedService::withSample($aFew, [5, 5], 1000000 + $iMinute * 60, $aLiveRules);
+}
+$Expect('de madrugada, con muy pocos viajes que tocaban, no se juzga', !\Services\ReducedService::confirmed($aFew, 1000000 + 1200, $aLiveRules));
+$Expect('planificador: las redes de los tramos y las de ?networks=, una vez y solo las que existen', \Controllers\PlannerController::askedNetworks('metro,renfe,nadie,metro', ['bus']) === ['bus', 'metro', 'renfe']);
+
 $Finish('unitarias');

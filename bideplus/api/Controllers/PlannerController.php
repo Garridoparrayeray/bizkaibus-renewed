@@ -7,10 +7,12 @@ use Core\Networks;
 use Core\Request;
 use Core\Response;
 use Services\Calendar;
+use Services\ReducedService;
 
 // El directo del planificador del inicio (/api/planner/live?legs=red|parada|línea|hora|viaje,...): el retraso de
 // los vehículos de las opciones que se ven, con el emparejado de las próximas salidas de cada red, en el formato de la
-// operación «live» del núcleo. Lo que no va en directo no sale: el planificador lo deja con su horario.
+// operación «live» del núcleo. Lo que no va en directo no sale: el planificador lo deja con su horario. En «reduced»,
+// los días con servicio reducido de esas redes y de las de ?networks= (las de las opciones que se ven).
 class PlannerController
 {
     private const MAX_LEGS = 40;
@@ -29,15 +31,30 @@ class PlannerController
             return;
         }
         $aUpdates = [];
+        $aReduced = [];
         $sCurrent = Config::network();
         try {
             foreach ($aByNetwork as $sNetwork => $aLegs) {
                 array_push($aUpdates, ...self::networkUpdates($sNetwork, $aLegs));
             }
+            foreach (self::askedNetworks((string)$Req->query('networks', ''), array_keys($aByNetwork)) as $sNetwork) {
+                Config::set($sNetwork);
+                $aDays = ReducedService::current()['days'];
+                if (!empty($aDays)) {
+                    $aReduced[$sNetwork] = $aDays;
+                }
+            }
         } finally {
             Config::set($sCurrent);
         }
-        Response::json(['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates]);
+        Response::json(['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates, 'reduced' => (object)$aReduced]);
+    }
+
+    // Las redes de los tramos y las de ?networks= (separadas por comas) que tiene la app, cada una una vez.
+    public static function askedNetworks(string $sNetworks, array $aFromLegs): array
+    {
+        $aAsked = array_merge($aFromLegs, explode(self::LEG_SEPARATOR, $sNetworks));
+        return array_values(array_unique(array_filter($aAsked, fn(string $sNetwork) => Networks::exists($sNetwork))));
     }
 
     // red => parada => [[línea, hora en la parada, viaje]], de «red|parada|línea|hora|viaje» separados por comas (cada

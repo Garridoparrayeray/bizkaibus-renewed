@@ -107,6 +107,12 @@ return [
 
     'live' => ['trip-updates'],
 
+    // Servicio reducido por el directo (Services\ReducedService): en las 6 paradas con más pasos, de las salidas de los
+    // próximos 20 min cuyo viaje ya ha salido, falta el 60 % o más (lo normal no llega al 20 %) durante 15 min.
+    'reduced_service' => [
+        'live' => ['sample_stops' => 6, 'window_seconds' => 1200, 'min_expected' => 8, 'missing_share' => 0.6, 'confirm_seconds' => 900],
+    ],
+
     'gtfs_rt' => [
         // Sin posiciones publicadas: cuando las haya, su dirección va aquí y 'vehicle-positions' se añade a live.
         'vehicle_positions_url' => null,

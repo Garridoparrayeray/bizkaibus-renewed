@@ -7,8 +7,8 @@ use Core\Database;
 use Core\Live;
 use Models\ServiceJourney;
 
-// Diagnóstico del directo de la red (/api/status): lo pide el servidor como lo hace la app y cuenta qué trae. Lo revisa
-// cada hora .github/scripts/live-health.py.
+// Diagnóstico del directo de la red (/api/status): lo pide el servidor como lo hace la app y cuenta qué trae, con el
+// servicio reducido de hoy. Lo revisa cada hora .github/scripts/live-health.py.
 class FeedStatus
 {
     // Null si la red no tiene vehículos en directo.
@@ -32,6 +32,7 @@ class FeedStatus
         }
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
+        $aOut['reducedService'] = ReducedService::current();
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
     }
@@ -62,6 +63,7 @@ class FeedStatus
         }
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
+        $aOut['reducedService'] = ReducedService::current();
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
     }
