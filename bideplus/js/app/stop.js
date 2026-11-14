@@ -239,7 +239,7 @@ function renderLiveCard(departures) {
 
     el.liveTimetableLink.hidden = false;
 
-    const { text, className } = statusLabel(departure.status, departure.delayMinutes);
+    const { text, className } = statusLabel(departure.status, departure.delayMinutes, departure);
     el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
@@ -339,7 +339,7 @@ function renderPlatformColumn(direction, departures) {
     badge.textContent = liveBadgeText(next.status, next.etaMinutes, next.atOrigin);
     if (next.tomorrow) badge.textContent = I18n.t('app.badge.tomorrow');
 
-    const { text, className } = statusLabel(next.status, next.delayMinutes);
+    const { text, className } = statusLabel(next.status, next.delayMinutes, next);
     const dot = document.createElement('span');
     dot.className = `status-dot ${className}`;
     const scheduled = document.createElement('p');

@@ -1,7 +1,7 @@
 // El directo del planificador del inicio: pide a /api/planner/live el retraso de los vehículos de las opciones que se
 // ven y del viaje elegido, se lo pasa al núcleo (operación live) y avisa para repetir la búsqueda. Se refresca cada
-// 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario. También dice qué redes
-// tienen servicio reducido (huelga, servicios mínimos) y qué días.
+// 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario. Aparte, sin esperar,
+// pide a /api/reduced, red a red, si las redes de lo que se ve tienen servicio reducido (huelga, servicios mínimos).
 import * as engine from '/planificador/pantallas/engine.js';
 import { nowHere } from '/planificador/pantallas/query.js';
 import { ridesIn } from './common.js';
@@ -19,7 +19,10 @@ const LEG_SEPARATOR = ',';
 const PART_SEPARATOR = '|';
 
 const live = { entries: new Map(), asked: new Map(), sent: '', running: null, timer: 0, last: 0, sources: null, changed: null,
-    reduced: {} };
+    reduced: new Map(), reducedChanged: null };
+// El servicio reducido de cada red se vuelve a pedir pasado este tiempo.
+const REDUCED_URL = '/api/reduced?red=';
+const REDUCED_MS = 5 * 60 * 1000;
 
 const keyOf = (sNetwork, sTrip, iDay) => sNetwork + PART_SEPARATOR + sTrip + PART_SEPARATOR + iDay;
 
@@ -51,17 +54,48 @@ const wantedLegs = () => {
     return Array.from(wanted.values()).slice(0, MAX_LEGS);
 };
 
-// Las redes de lo que se ve, aunque salga más tarde o otro día: de ellas se pregunta si hay servicio reducido.
+// Las redes de lo que se ve, aunque salga más tarde o otro día.
 const wantedNetworks = () => {
     const networks = new Set();
     live.sources().forEach((source) => ridesIn(source.legs).forEach((leg) => networks.add(leg.network)));
     return Array.from(networks);
 };
 
-// Si la red tiene servicio reducido el día del planificador iDay (días desde el 1 de enero de 1970).
-export const reducedOn = (sNetwork, iDay) => {
+// El servicio reducido de una red (lo de /api/reduced), o null si no se sabe.
+export const reducedOf = (sNetwork) => (live.reduced.get(sNetwork) || {}).value || null;
+
+// Si la línea (su id) de esa red tiene servicio reducido el día del planificador iDay (días desde el 1 de enero de 1970).
+export const reducedOn = (sNetwork, iDay, sLine) => {
+    const reduced = reducedOf(sNetwork);
     const sDate = new Date(iDay * SECONDS_PER_DAY * 1000).toISOString().slice(0, 10);
-    return (live.reduced[sNetwork] || []).includes(sDate);
+    if (!reduced || !reduced.days.includes(sDate)) {
+        return false;
+    }
+    return !Array.isArray(reduced.lines) || reduced.lines.map(String).includes(String(sLine));
+};
+
+// Pide, sin esperar, el servicio reducido de las redes que se ven y no se han pedido hace poco: cada una por su lado,
+// y al llegar una que cambia, reducedChanged() repinta.
+export const refreshReduced = () => {
+    wantedNetworks().filter((sNetwork) => !live.reduced.has(sNetwork) || Date.now() - live.reduced.get(sNetwork).at > REDUCED_MS)
+        .forEach(async (sNetwork) => {
+            const entry = { at: Date.now(), value: reducedOf(sNetwork) };
+            live.reduced.set(sNetwork, entry);
+            const abort = new AbortController();
+            const iTimer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+            try {
+                const response = await fetch(REDUCED_URL + encodeURIComponent(sNetwork), { signal: abort.signal });
+                const value = await response.json();
+                if (response.ok && Array.isArray(value.days) && JSON.stringify(value) !== JSON.stringify(entry.value)) {
+                    entry.value = value;
+                    live.reducedChanged();
+                }
+            } catch (error) {
+                entry.at = 0;
+            } finally {
+                clearTimeout(iTimer);
+            }
+        });
 };
 
 // Si hay tramos por los que aún no se ha preguntado (o hace mucho): pasa al repetir la búsqueda con el directo.
@@ -70,12 +104,11 @@ export const unaskedLegs = () => wantedLegs().some((leg) => !live.asked.has(leg.
 const legsParam = (aLegs) => aLegs.map((leg) => [leg.network, leg.stop, leg.line, leg.depart, leg.trip].map(encodeURIComponent).join(PART_SEPARATOR))
     .join(LEG_SEPARATOR);
 
-const download = async (aLegs, aNetworks) => {
+const download = async (aLegs) => {
     const abort = new AbortController();
     const iTimer = setTimeout(() => abort.abort(), TIMEOUT_MS);
-    const sQuery = '?legs=' + encodeURIComponent(legsParam(aLegs)) + '&networks=' + encodeURIComponent(aNetworks.join(LEG_SEPARATOR));
     try {
-        const response = await fetch(LIVE_URL + sQuery, { signal: abort.signal });
+        const response = await fetch(LIVE_URL + '?legs=' + encodeURIComponent(legsParam(aLegs)), { signal: abort.signal });
         if (!response.ok) {
             return null;
         }
@@ -91,11 +124,9 @@ const download = async (aLegs, aNetworks) => {
     }
 };
 
-// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. true si cambia el servicio reducido.
+// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora.
 const remember = (aLegs, answer) => {
     const iNow = Date.now();
-    const sReduced = JSON.stringify(live.reduced);
-    live.reduced = answer.reduced || {};
     aLegs.forEach((leg) => {
         live.asked.set(leg.key, iNow);
         live.entries.delete(leg.key);
@@ -103,7 +134,6 @@ const remember = (aLegs, answer) => {
     answer.updates.forEach((update) => {
         live.entries.set(keyOf(update.network, update.trip, answer.day), { at: iNow, update: Object.assign({ day: answer.day }, update) });
     });
-    return JSON.stringify(live.reduced) !== sReduced;
 };
 
 // Manda al núcleo lo que vale ahora. true si ha cambiado algo de lo que había.
@@ -126,16 +156,14 @@ const apply = async () => {
 
 const refresh = async () => {
     const aLegs = wantedLegs();
-    const aNetworks = wantedNetworks();
-    let bReduced = false;
-    if (aNetworks.length > 0) {
-        const answer = await download(aLegs, aNetworks);
+    if (aLegs.length > 0) {
+        const answer = await download(aLegs);
         if (answer) {
-            bReduced = remember(aLegs, answer);
+            remember(aLegs, answer);
         }
     }
     live.last = Date.now();
-    return (await apply()) || bReduced;
+    return apply();
 };
 
 // Pide el directo de lo que se ve y lo aplica: true si ha cambiado. Si ya hay una petición en marcha, es esa.
@@ -153,6 +181,7 @@ const tick = async () => {
     if (document.hidden) {
         return;
     }
+    refreshReduced();
     if (await refreshLive()) {
         await live.changed();
     }
@@ -167,9 +196,10 @@ export const scheduleLive = () => {
     }
 };
 
-// sources() da lo que se ve ([{ legs, day }]); changed() repite la búsqueda y repinta cuando cambia el directo.
-export const initLive = (sources, changed) => {
-    Object.assign(live, { sources, changed });
+// sources() da lo que se ve ([{ legs, day }]); changed() repite la búsqueda y repinta cuando cambia el directo;
+// reducedChanged() solo repinta, cuando cambia el servicio reducido de alguna red.
+export const initLive = (sources, changed, reducedChanged) => {
+    Object.assign(live, { sources, changed, reducedChanged });
     document.addEventListener('visibilitychange', () => {
         clearTimeout(live.timer);
         if (document.hidden || live.last === 0) {

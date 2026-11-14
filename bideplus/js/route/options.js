@@ -5,7 +5,7 @@ import { momentOf, nowHere, ridesOf } from '/planificador/pantallas/query.js';
 import { MIN_DELAY_SECONDS, clock, dayNote, dayShift, distance, duration, spareText, transfers } from '/planificador/pantallas/texts.js';
 import { t } from '/planificador/pantallas/lang.js';
 import { byId, colorOf, countText, el, linePill, namesOf, optionTags, ridesIn, svgIcon, tagPill } from './common.js';
-import { liveEntry, reducedOn } from './live.js';
+import { liveEntry, reducedOf, reducedOn } from './live.js';
 
 const MAX_OPTIONS = 5;
 const MIN_HEADSIGN = 3;
@@ -94,7 +94,7 @@ export const rideText = (app, leg) => {
 // horario». El retraso es el que ha aplicado el planificador, el mismo de las horas que se ven.
 export const liveOf = (leg, iDay) => {
     const entry = liveEntry(leg, iDay);
-    if (!entry && reducedOn(leg.network, iDay + leg.day_shift)) {
+    if (!entry && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id)) {
         return { live: false, text: I18n.t('route.live.mayNotRun') };
     }
     if (!entry) {
@@ -119,7 +119,8 @@ const allLive = (option, iDay) => ridesIn(option.legs).every((leg) => {
 });
 
 // Si algún vehículo va solo con su horario en una red con servicio reducido ese día: puede no pasar.
-const mayNotRun = (option, iDay) => ridesIn(option.legs).some((leg) => liveEntry(leg, iDay) === null && reducedOn(leg.network, iDay + leg.day_shift));
+const mayNotRun = (option, iDay) => ridesIn(option.legs).some((leg) => liveEntry(leg, iDay) === null
+    && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id));
 
 // El hueco de un transbordo: lo que se anda (si se anda) y el margen que queda.
 export const transferText = (transfer, sStop) => {
@@ -370,23 +371,28 @@ const farNotices = (answer) => {
     return aNotices;
 };
 
-// Servicios mínimos en alguna red de las opciones ese día: lo dice y van primero las que no dependen de su horario.
-const reducedNotice = (app, answer, aOptions) => {
-    const networks = new Set();
-    aOptions.forEach((option) => ridesIn(option.legs).filter((leg) => reducedOn(leg.network, answer.day + leg.day_shift))
-        .forEach((leg) => networks.add(app.networkName(leg.network))));
+// Servicio reducido ese día en alguna red de las opciones (de todas, no solo las que se ven): lo dice encima.
+const reducedNotice = (app, answer) => {
+    const networks = new Map();
+    answer.options.forEach((option) => ridesIn(option.legs || []).filter((leg) => reducedOn(leg.network, answer.day + leg.day_shift, leg.line.id))
+        .forEach((leg) => networks.set(app.networkName(leg.network), reducedOf(leg.network).cause)));
     if (networks.size === 0) {
         return [];
     }
-    let sTitle = I18n.t('route.reduced.today', { networks: Array.from(networks).join(', ') });
-    if (answer.day !== nowHere().day) {
-        sTitle = I18n.t('route.reduced.day', { networks: Array.from(networks).join(', ') });
+    let sKind = 'reduced';
+    if (Array.from(networks.values()).includes('strike')) {
+        sKind = 'strike';
     }
+    let sWhen = 'Today';
+    if (answer.day !== nowHere().day) {
+        sWhen = 'Day';
+    }
+    const sTitle = I18n.t('route.reduced.' + sKind + sWhen, { networks: Array.from(networks.keys()).join(', ') });
     return [notice('care', sTitle, I18n.t('route.reduced.text'), [])];
 };
 
 const noticesOf = (app, answer, aOptions) => {
-    const aNotices = reducedNotice(app, answer, aOptions);
+    const aNotices = reducedNotice(app, answer);
     if (answer.diagnosis && DIAGNOSES[answer.diagnosis]) {
         aNotices.push(DIAGNOSES[answer.diagnosis](app, answer));
     }
@@ -425,8 +431,7 @@ const liveOnly = (app, answer, aOptions) => {
 export const renderResults = (app, bQuiet) => {
     const answer = app.answer;
     const shown = liveOnly(app, answer, answer.options.filter((option) => option.legs.length > 0));
-    const aOptions = shown.options.filter((option) => !mayNotRun(option, answer.day))
-        .concat(shown.options.filter((option) => mayNotRun(option, answer.day)));
+    const aOptions = shown.options;
     showSearching(app, false);
     byId('route-filters-open').hidden = false;
     byId('route-notices').replaceChildren(...noticesOf(app, answer, aOptions.slice(0, MAX_OPTIONS)), ...shown.notices,

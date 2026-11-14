@@ -59,25 +59,42 @@ const liveBody = (sUrl) => {
     let iDelay = 240;
     if (live.mode === 'late') iDelay = 1500;
     const updates = aLegs.filter((a) => a[0] === 'metro').map((a) => ({ network: a[0], trip: a[4], delay: iDelay, cancelled: false }));
-    const reduced = {};
-    if (live.mode === 'reduced') {
-        const sToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
-        (new URL(sUrl).searchParams.get('networks') || '').split(',').filter((sNet) => sNet && sNet !== 'metro').forEach((sNet) => { reduced[sNet] = [sToday]; });
-    }
-    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates, reduced });
+    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates });
 };
-const fulfilLive = (params) => {
-    live.count += 1;
-    let iCode = 200;
-    let sBody = liveBody(params.request.url);
-    if (live.mode === 'fail') {
-        iCode = 500;
-        sBody = '{"error":"Internal error"}';
+// /api/reduced: sin nada, salvo en «reduced», que da servicios mínimos hoy en las redes que no son el metro (y tarda
+// un poco, para ver que las opciones salen antes y no se mueven al llegar).
+const reducedBody = (sUrl) => {
+    const sNetwork = new URL(sUrl).searchParams.get('red');
+    const reduced = { today: false, days: [], sources: [], alert: null, cause: null, lines: null };
+    if (live.mode === 'reduced' && sNetwork !== 'metro') {
+        Object.assign(reduced, { today: true, days: [new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())], sources: ['alerts'], cause: 'strike' });
     }
-    send('Fetch.fulfillRequest', {
-        requestId: params.requestId, responseCode: iCode, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
-        body: Buffer.from(sBody).toString('base64'),
-    });
+    return JSON.stringify(reduced);
+};
+const REDUCED_DELAY_MS = 2500;
+const OPTION_ORDER = "[...document.querySelectorAll('#route-options .route-option')].map((o) => o.dataset.rides).join('/')";
+const fulfilLive = (params) => {
+    let iCode = 200;
+    let sBody;
+    let iWait = 0;
+    if (params.request.url.includes('/api/reduced')) {
+        sBody = reducedBody(params.request.url);
+        if (live.mode === 'reduced') iWait = REDUCED_DELAY_MS;
+    } else {
+        live.count += 1;
+        sBody = liveBody(params.request.url);
+        if (live.mode === 'fail') {
+            iCode = 500;
+            sBody = '{"error":"Internal error"}';
+        }
+    }
+    setTimeout(async () => {
+        if (iWait > 0) live.orderBefore = await ev(OPTION_ORDER);
+        send('Fetch.fulfillRequest', {
+            requestId: params.requestId, responseCode: iCode, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+            body: Buffer.from(sBody).toString('base64'),
+        });
+    }, iWait);
 };
 // Espera a que pasen QUIET_MS sin ninguna petición del directo (como mucho QUIET_MAX_MS).
 const QUIET_MS = 3000;
@@ -211,7 +228,10 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
 }
 
 // ===== Directo simulado =====
-await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/planner/live*' }] });
+// /api/reduced pasa por el service worker (caché de la API): sin saltárselo, el navegador no deja interceptarlo.
+await send('Network.enable');
+await send('Network.setBypassServiceWorker', { bypass: true });
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/planner/live*' }, { urlPattern: '*/api/reduced*' }] });
 const LIVE_SEARCH = '/planificador?de=parada&de_red=metro&de_id=20&de_nombre=Gobela&a_texto=Gernika';
 const LABELS = /^(En directo · (\d+ min de retraso|\d+ min adelantado|a su hora|cancelado)|Según horario)$/;
 const labels = "[...document.querySelectorAll('#route-options .route-step-live')].map((n) => n.textContent)";
@@ -271,12 +291,15 @@ if (!(await liveSearch('mixed'))) {
     await ev("window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); true");
     check('directo · al volver a la pestaña se refresca', await waitUntil(() => live.count > iHidden, 8000));
 
-    // Servicios mínimos hoy en las redes que no son el metro: se avisa, lo que va con su horario «puede no pasar» y van
-    // primero las opciones que no dependen solo de su horario.
-    check('servicios mínimos · se pide el directo', await liveSearch('reduced'));
+    // Servicios mínimos hoy en las redes que no son el metro: las opciones salen sin esperarlo y, al llegar, se avisa,
+    // lo que va con su horario «puede no pasar» y las opciones no cambian de orden.
+    live.mode = 'reduced';
+    await go(LIVE_SEARCH);
+    check('servicios mínimos · las opciones salen sin esperar al servicio reducido', await waitTrue(optionsReady, PLANNER_MS));
     check('servicios mínimos · aviso encima de las opciones', await waitTrue("[...document.querySelectorAll('#route-notices .route-notice[data-kind=care] .route-notice-title')].some((n) => /^Hoy hay servicios mínimos en /.test(n.textContent))", 15000));
-    const aMarks = await ev("[...document.querySelectorAll('#route-options .route-option')].map((o) => [...o.querySelectorAll('.route-tag[data-kind=care]')].some((n) => n.textContent === 'Puede no pasar'))");
-    check('servicios mínimos · las que dependen del horario de esa red llevan «Puede no pasar» y van detrás', Array.isArray(aMarks) && aMarks.indexOf(true) !== -1 && aMarks.slice(aMarks.indexOf(true)).every(Boolean), JSON.stringify(aMarks));
+    check('servicios mínimos · las que dependen del horario de esa red llevan «Puede no pasar»', await ev("[...document.querySelectorAll('#route-options .route-tag[data-kind=care]')].some((n) => n.textContent === 'Puede no pasar')"));
+    await sleep(500);
+    check('servicios mínimos · las opciones no cambian de orden al llegar', typeof live.orderBefore === 'string' && live.orderBefore !== '' && (await ev(OPTION_ORDER)) === live.orderBefore);
     check('servicios mínimos · su tramo con horario va «Según horario · puede no pasar»', await ev(`${labels}.some((s) => s === 'Según horario · puede no pasar')`));
 
     // Si el directo falla, todo sigue con el horario, sin avisos de error.

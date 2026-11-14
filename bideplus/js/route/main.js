@@ -12,7 +12,7 @@ import { t } from '/planificador/pantallas/lang.js';
 import { defaultOrigin, fillWhen, initCard, readWhen } from './card.js';
 import { byId } from './common.js';
 import { initFilters, refreshFilters } from './filters.js';
-import { initLive, refreshLive, scheduleLive, unaskedLegs } from './live.js';
+import { initLive, refreshLive, refreshReduced, scheduleLive, unaskedLegs } from './live.js';
 import { renderProblem, renderReceived, renderResults, sharedJourneys, showSearching } from './options.js';
 import { shareLink } from './share.js';
 import { closeTrip, initTrip, openTrip, refreshTrip, tripSource } from './trip.js';
@@ -320,6 +320,7 @@ const runSearch = async () => {
         return null;
     }
     renderResults(app);
+    refreshReduced();
     scheduleLive();
     if (app.answer.dropped_filters.length > 0) {
         findFirstOk(request, sKey);
@@ -543,7 +544,12 @@ window.addEventListener('popstate', (event) => {
 app.fields = initCard(app);
 initFilters(app);
 initTrip(app);
-initLive(liveSources, liveChanged);
+// El servicio reducido no cambia los viajes: solo se repintan las opciones (sin buscar otra vez ni moverlas).
+initLive(liveSources, liveChanged, () => {
+    if (app.answer && !app.received) {
+        renderResults(app, true);
+    }
+});
 byId('route-share').addEventListener('click', () => {
     app.share(app.answer.day, sharedJourneys(app), app.query, app.request, 'route.share.optionsTitle');
 });

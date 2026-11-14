@@ -1141,19 +1141,6 @@ tbody tr {
         font-weight: 700;
         text-decoration: underline;
     }
-.reduced-notice {
-    margin: 0 0 14px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: var(--warn-tint);
-    color: var(--status-warn);
-    font-size: calc(13.6px * var(--text-scale, 1));
-    font-weight: 600;
-    line-height: 1.4;
-}
-    .reduced-notice[hidden] {
-        display: none;
-    }
 .timetable-note {
     margin: 0 0 14px;
     padding: 10px 12px;
