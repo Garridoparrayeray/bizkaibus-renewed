@@ -8,11 +8,11 @@ declare(strict_types=1);
 
 const DEFAULT_ENGINE = __DIR__ . '/../engine';
 // Lo que se publica del motor, en las mismas rutas relativas (la página suelta del motor carga sus fuentes con
-// ../../docs/…; la de la app, /planificador, usa las de la app).
+// ../../docs/…; el inicio de la app importa sus módulos de /planificador/pantallas).
 const ENGINE_FILES = ['planner/pantallas', 'planner/js', 'planner/dist', 'docs/manual/hoja-de-ruta/fonts'];
 // Sin estos ficheros no hay planificador: si el motor los mueve, se para aquí y no se despliega uno roto.
-const REQUIRED_FILES = ['planificador/pantallas/app.js', 'planificador/pantallas/screens.html', 'planificador/pantallas/worker.js',
-    'planificador/js/bideplan.js', 'planificador/dist/bideplan.wasm'];
+const REQUIRED_FILES = ['planificador/pantallas/engine.js', 'planificador/pantallas/place-field.js', 'planificador/pantallas/link.js',
+    'planificador/pantallas/share.js', 'planificador/pantallas/worker.js', 'planificador/js/bideplan.js', 'planificador/dist/bideplan.wasm'];
 const DATA_DIR = 'planificador/build/data';
 const ORIGIN_FILE = 'planificador/origen.json';
 const WALK_FILES = ['walk.bdwk', 'walk-accesible.bdwk', 'places', 'walk'];

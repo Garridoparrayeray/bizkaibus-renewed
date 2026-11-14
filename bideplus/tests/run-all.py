@@ -35,6 +35,7 @@ if not QUICK:
         ('UI avisos', ['node', 'tests/ui-alerts.mjs']),
         ('UI cerca de mí', ['node', 'tests/ui-nearby.mjs']),
         ('UI Bide+ (pestañas, columna, páginas)', ['node', 'tests/ui-bide.mjs']),
+        ('UI planificador del inicio', ['node', 'tests/ui-route.mjs']),
     ]
 
 

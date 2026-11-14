@@ -1,6 +1,6 @@
 <?php
-// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa), el estado de las redes (/estado), el planificador
-// (/planificador), la pantalla de una parada (/pantalla/{id}) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
+// Páginas HTML: el menú de Bide+ (/, con el planificador), el mapa de la red (/mapa), el estado de las redes (/estado),
+// la pantalla de una parada (/pantalla/{id}) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
 
 require __DIR__ . '/autoload.php';
 
@@ -48,8 +48,14 @@ if ($sPath === '/estado') {
     require __DIR__ . '/Views/estado.php';
     exit;
 }
+// El planificador está en el inicio: las direcciones viejas (/planificador?a=…) llevan a él con su consulta.
 if ($sPath === '/planificador' || $sPath === '/planificador/') {
-    require __DIR__ . '/Views/planner.php';
+    $sLocation = '/';
+    $sQuery = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY);
+    if ($sQuery !== '') {
+        $sLocation .= '?' . $sQuery;
+    }
+    header('Location: ' . $sLocation, true, 308);
     exit;
 }
 if (str_starts_with($sPath, '/pantalla/')) {

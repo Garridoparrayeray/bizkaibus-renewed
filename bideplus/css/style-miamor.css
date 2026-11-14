@@ -127,23 +127,6 @@
     color: #ffe0ee;
 }
 
-/* ===== Planificador: los colores de sus pantallas, en rosa ===== */
-:root.is-miamor .page-planner [data-planner-screens] {
-    --green: #db2777;
-    --green-deep: #be185d;
-    --green-soft: #fde7f1;
-    --surface: #fffafc;
-    --background: transparent;
-    --soft: #fde7f1;
-    --yours: #ffc2dc;
-}
-:root.is-miamor .page-planner .map-top {
-    border-bottom-color: var(--miamor-glass-border);
-    background: var(--miamor-glass);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-}
-
 /* ===== Movimiento reducido ===== */
 @media (prefers-reduced-motion: reduce) {
     :root.is-miamor body,

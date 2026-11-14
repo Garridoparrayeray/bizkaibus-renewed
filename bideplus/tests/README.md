@@ -10,7 +10,7 @@ python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unit
 O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal:
 
 ```
-python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/schedule-periods.mjs && node tests/linkify.mjs && python tests/aviso-script.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs
+python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/schedule-periods.mjs && node tests/linkify.mjs && python tests/aviso-script.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs && node tests/ui-route.mjs
 ```
 
 | Script | Qué comprueba |
@@ -34,6 +34,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 | `ui-offline.mjs` | Que las cuatro páginas solo piden recursos propios (tipografías y Leaflet ya no vienen de Google ni unpkg), que las tipografías y el mapa cargan, y que con el servidor caído la app arranca desde el service worker y avisa de la falta de conexión |
 | `ui-alerts.mjs` | Avisos de incidencias por línea favorita: línea base sin notificar, aviso nuevo una sola vez, tope de 3 notificaciones más un resumen, fallos de la API, interruptor del menú (permiso concedido y denegado) y notificación real del service worker con sincronización periódica |
 | `ui-bide.mjs` | Bide+ como una sola app: en el navegador del móvil (pie, también con Ajustes, Info, Avisos o Favoritos abiertos, ☰, aviso «Instala Bide+»), instalada (4 pestañas, sin pie ni ☰, páginas de Favoritos de todas las apps, Avisos e Info, aviso legal, «atrás»), selector ES/EU, en ordenador (columna lateral, «Todas las apps» plegable, banda con idioma, pie con las apps, hueco del detalle), el aviso de versión nueva («1» en Ajustes, novedades e ir directo a actualizar) y que el tema «mi amor» no cambia |
+| `ui-route.mjs` | El planificador del inicio, en castellano y en euskera: origen y destino escritos en la tarjeta «¿A dónde vas?» con las sugerencias debajo de cada campo, las opciones debajo de la tarjeta (hasta cinco, desplegables, con horas, pastillas de línea, línea de tiempo, coste y «Elegir este viaje»), la hoja de filtros y la de redes (sin Villavesas), la pantalla del viaje (salida, llegada, reparto, cada vehículo, «Empezar» a la parada), «atrás», la dirección vieja `/planificador` y un enlace compartido. Sin `planificador/build/data` lo dice y no prueba nada |
 | `browser.mjs` | Lo que comparten las cinco `ui-*.mjs`: lanza el navegador sin ventana y en castellano y, si no responde en 20 s (en GitHub pasa a veces), lo cierra y lo vuelve a lanzar, hasta tres veces. No se lanza sola |
 | `ui-nearby.mjs` | Botón «Cerca de mí» con la ubicación simulada en Bizkaibus, Metro y Euskotren (parada más cercana, distancia, próxima salida, abrir ficha), ubicación fuera de la zona y permiso denegado |
 

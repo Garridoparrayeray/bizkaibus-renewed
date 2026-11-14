@@ -182,8 +182,8 @@ use Core\Networks;
                     <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="live-timetable-lines" class="platform-timetable-lines live-timetable-lines" hidden></div>
                     <p class="stop-plan">
-                        <a id="live-plan-to" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
-                        <a id="live-plan-from" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
+                        <a id="live-plan-to" class="stop-plan-link" href="/"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
+                        <a id="live-plan-from" class="stop-plan-link" href="/"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
                     </p>
                     <footer>
                         <p>
@@ -213,8 +213,8 @@ use Core\Networks;
                     <button id="platform-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
                     <p class="stop-plan">
-                        <a id="platform-plan-to" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
-                        <a id="platform-plan-from" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
+                        <a id="platform-plan-to" class="stop-plan-link" href="/"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
+                        <a id="platform-plan-from" class="stop-plan-link" href="/"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
                     </p>
                     <button id="platform-alerts" class="stop-alerts" type="button" hidden></button>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>

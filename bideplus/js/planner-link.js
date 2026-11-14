@@ -1,5 +1,5 @@
-// Las direcciones del planificador desde una parada de la app (su página y el mapa de la red): «Cómo llegar aquí» la
-// pone de destino (sale de «Tu ubicación») y «Salir desde aquí», de origen. Es la forma que lee planificador/pantallas.
+// Las direcciones del planificador del inicio desde una parada de la app (su página y el mapa de la red): «Cómo llegar
+// aquí» la pone de destino (sale de «Tu ubicación») y «Salir desde aquí», de origen. Las lee js/route/main.js.
 (function (global) {
     'use strict';
 
@@ -12,7 +12,7 @@
         params.set(prefix + '_red', network);
         params.set(prefix + '_id', String(stopId));
         params.set(prefix + '_nombre', name);
-        return '/planificador?' + params.toString();
+        return '/?' + params.toString();
     }
 
     global.PlannerLink = { url: url };

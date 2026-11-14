@@ -54,7 +54,7 @@
       "src": "^/planificador/pantallas/(?:index[.]html)?$",
       "status": 308,
       "headers": {
-        "Location": "/planificador"
+        "Location": "/"
       }
     },
     {

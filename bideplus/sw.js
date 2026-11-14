@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v57';
+const CACHE_VERSION = 'v58';
 // Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
 // cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
 const SHELL_HASH = '';
@@ -15,9 +15,10 @@ const OFFLINE_CACHE_NAME = 'bide-offline';
 const PLANNER_DATA_CACHE_NAME = 'bide-planner-data';
 const PLANNER_DATA = /^\/planificador\/build\/data\//;
 // El código del planificador (pantallas, envoltorio y WebAssembly) entra en la huella (scripts/stamp-sw.php), como el
-// de la app; se guarda la primera vez que se abre, no al instalar. Su página es una sola, sin mirar la consulta.
+// de la app; se guarda la primera vez que se abre, no al instalar.
 const PLANNER_CODE = /^\/planificador\/(pantallas|js|dist)\//;
-const PLANNER_PAGE = /^\/planificador\/?$/;
+// Lo que el planificador del inicio escribe en la dirección (js/route/main.js): el inicio es uno para todas.
+const PLANNER_PARAMS = /^(de|a|cuando|dia|hora|orden|viaje)(_|$)/;
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
 // página nueva hasta tenerlos, y mientras muestra el último fotograma de la anterior (con el «+» de carga parado).
 const SLOW_NETWORK_MS = 1500;
@@ -76,11 +77,16 @@ const SHELL_FILES = [
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/menu-favorites.js',
-    '/js/menu-planner.js',
+    '/js/route/main.js',
+    '/js/route/card.js',
+    '/js/route/common.js',
+    '/js/route/filters.js',
+    '/js/route/options.js',
+    '/js/route/share.js',
+    '/js/route/trip.js',
     '/js/planner-link.js',
     '/js/i18n.js',
     '/css/style-menu.css',
-    '/css/style-planner.css',
     '/css/style-splash.css',
     '/js/splash.js',
     '/js/theme.js',
@@ -209,11 +215,17 @@ async function keepPlannerData(key, response) {
     await cache.put(key, response);
 }
 
-// La copia de una página: la del planificador es una para todas sus consultas (las pantallas leen la dirección).
+// La copia de una página: la del inicio es una para todas las consultas del planificador (las lee la página).
 function pageKey(request) {
     const url = new URL(request.url);
-    if (PLANNER_PAGE.test(url.pathname)) return new Request(url.origin + '/planificador');
-    return request;
+    if (url.pathname !== '/') return request;
+    const params = new URLSearchParams(url.search);
+    const planner = Array.from(params.keys()).filter((key) => PLANNER_PARAMS.test(key));
+    if (planner.length === 0) return request;
+    planner.forEach((key) => params.delete(key));
+    let key = url.origin + '/';
+    if (params.toString() !== '') key += '?' + params.toString();
+    return new Request(key);
 }
 
 // Servidor caído, saturado o sin cuota: mejor lo guardado que una página de error.

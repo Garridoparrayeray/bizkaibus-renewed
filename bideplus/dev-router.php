@@ -30,10 +30,10 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     }
 }
 
-// El planificador es una página de la app (/planificador); la página suelta de sus pantallas lleva a ella, como en
-// vercel.json (los enlaces compartidos van detrás de «#», que el navegador conserva).
+// El planificador está en el inicio; la página suelta de sus pantallas lleva a él, como en vercel.json (los enlaces
+// compartidos van detrás de «#», que el navegador conserva).
 if ($sUri === '/planificador/pantallas/' || $sUri === '/planificador/pantallas/index.html') {
-    header('Location: /planificador', true, 308);
+    header('Location: /', true, 308);
     return true;
 }
 

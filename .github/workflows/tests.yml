@@ -154,6 +154,12 @@ jobs:
           CHROME_PATH: google-chrome
         run: node tests/ui-bide.mjs
 
+      # Sin el planificador publicado (planificador/build/data, que no se genera aquí) la prueba lo dice y no falla.
+      - name: UI planificador del inicio (tarjeta, opciones, filtros y viaje)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-route.mjs
+
       - name: Server log (on failure)
         if: failure()
         run: cat "$RUNNER_TEMP/php-server.log" || true
