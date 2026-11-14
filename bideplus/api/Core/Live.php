@@ -5,8 +5,7 @@ namespace Core;
 use Models\ServiceJourney;
 use Services\GtfsRealtimeClient;
 use Services\ScheduleOnlyMatcher;
-use Services\StationArrivalsClient;
-use Services\StationArrivalsMatcher;
+use Services\PlatformMatcher;
 use Services\StopArrivalTrips;
 use Services\TripDelayMatcher;
 use Services\TripUpdatesMatcher;
@@ -87,24 +86,14 @@ class Live
     }
 
     // Horas previstas (GTFS-Realtime) de la red, o null si no tiene: Renfe se empareja por viaje y aplica el retraso de
-    // cada tren; Metro, Euskotren y los tranvías, por paradas y hora. Con llegadas oficiales por andén
-    // (station_arrivals en la ficha), mandan ellas en cada estación y el feed queda de apoyo.
+    // cada tren; Euskotren y los tranvías, por paradas y hora. Si los ids del feed no son viajes del horario y la ficha
+    // pide gtfs_rt.platform_matching (Metro), sus trenes (o los del SIRI) se casan por andén y destino.
     public static function tripMatcher(ServiceJourney $JourneyModel, int|null $iMidnight = null): object|null
     {
         if (!Config::hasLive('trip-updates')) {
             return null;
         }
         $aConfig = Config::current();
-        $Matcher = self::feedMatcher($aConfig, $JourneyModel, $iMidnight);
-        if (!isset($aConfig['station_arrivals'])) {
-            return $Matcher;
-        }
-        $iMidnight ??= (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
-        return new StationArrivalsMatcher($Matcher, new StationArrivalsClient($aConfig), $JourneyModel, $iMidnight, $aConfig['station_arrivals']['max_delay_seconds']);
-    }
-
-    private static function feedMatcher(array $aConfig, ServiceJourney $JourneyModel, int|null $iMidnight): object
-    {
         $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
         if (($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip') {
             $aVehicles = [];
@@ -112,27 +101,41 @@ class Live
                 $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
             }
             $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
-            if ($TripMatcher->matchedJourneys() > 0 || empty($aTrips) || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
+            if ($TripMatcher->matchedJourneys() > 0 || !isset($aConfig['gtfs_rt']['match_tolerance_seconds'])) {
                 return $TripMatcher;
             }
-            $aReconstructed = self::reconstructedTrips($aConfig, $JourneyModel, $aVehicles);
-            if (!empty($aReconstructed)) {
-                return new TripUpdatesMatcher($aReconstructed, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight, 'siri-arrivals', true);
+            if (isset($aConfig['gtfs_rt']['platform_matching'])) {
+                return self::platformMatcher($aConfig, $JourneyModel, $aTrips, $iMidnight) ?? $TripMatcher;
+            }
+            if (empty($aTrips)) {
+                return $TripMatcher;
             }
         }
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
     }
 
-    // Cuando el feed no sirve para emparejar por viaje, los trenes que se arman con las llegadas del SIRI de la red
-    // (solo si su ficha lo pide con gtfs_rt.siri_fallback). Vacío si no lo pide o si el SIRI no responde.
-    private static function reconstructedTrips(array $aConfig, ServiceJourney $JourneyModel, array $aVehicles): array
+    // Los trenes del GTFS-Realtime casados por andén o, si no trae ninguno, los del SIRI de llegadas (con
+    // gtfs_rt.siri_fallback). Null si no hay trenes de ninguno.
+    private static function platformMatcher(array $aConfig, ServiceJourney $JourneyModel, array $aTrips, int|null $iMidnight): PlatformMatcher|null
     {
-        $Arrivals = new StopArrivalTrips($aConfig, $JourneyModel);
-        if (!$Arrivals->enabled()) {
-            return [];
+        $sSource = 'trip-updates';
+        if (empty($aTrips)) {
+            $aTrips = self::siriTrains($aConfig, $JourneyModel);
+            $sSource = 'siri-arrivals';
         }
+        if (empty($aTrips)) {
+            return null;
+        }
+        $iMidnight ??= (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $aSegments = (new StopArrivalTrips($aConfig, $JourneyModel))->segments();
+        return new PlatformMatcher($aTrips, $sSource, $JourneyModel, $iMidnight, $aConfig['gtfs_rt']['platform_matching'], $aSegments);
+    }
+
+    // Los trenes del SIRI de llegadas de la red. Vacío si la ficha no lo pide o si el SIRI no responde.
+    private static function siriTrains(array $aConfig, ServiceJourney $JourneyModel): array
+    {
         try {
-            return $Arrivals->trips(time(), $aVehicles);
+            return (new StopArrivalTrips($aConfig, $JourneyModel))->trains(time());
         } catch (\Throwable $Ex) {
             return [];
         }

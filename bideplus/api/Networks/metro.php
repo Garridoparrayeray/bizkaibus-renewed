@@ -30,7 +30,7 @@ return [
 
     'texts' => [
         'es' => [
-            'liveSource' => 'Metro Bilbao',
+            'liveSource' => 'el Consorcio de Transportes de Bizkaia',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Horarios y tiempo real de Metro Bilbao',
@@ -38,11 +38,11 @@ return [
             'liveEmpty' => 'Busca una estación para ver el próximo metro.',
             'disclaimer' => 'Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.',
             'dataPublished' => 'La hora prevista de cada tren en cada estación y su posición.',
-            'dataMethod' => 'La previsión de cada andén que da la app oficial de Metro Bilbao; si no responde, la del Consorcio.',
+            'dataMethod' => 'La previsión del operador; si manda una estación con el número de otra, se corrige.',
             'dataLimits' => 'Sin limitaciones conocidas.',
         ],
         'eu' => [
-            'liveSource' => 'Bilboko Metroak',
+            'liveSource' => 'Bizkaiko Garraio Partzuergoak',
             'name' => 'Metro+',
             'tile' => 'Bilboko Metroa',
             'switcher' => 'Bilboko Metroaren ordutegiak eta denbora errealean',
@@ -50,12 +50,12 @@ return [
             'liveEmpty' => 'Bilatu geltoki bat hurrengo metroa ikusteko.',
             'disclaimer' => 'Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.',
             'dataPublished' => 'Tren bakoitzaren aurreikusitako ordua geltoki bakoitzean, eta haren kokapena.',
-            'dataMethod' => 'Bilboko Metroaren aplikazio ofizialak nasa bakoitzeko ematen duen aurreikuspena; erantzuten ez badu, Partzuergoarena.',
+            'dataMethod' => 'Operadorearen aurreikuspena; geltoki bat beste baten zenbakiarekin bidaltzen badu, zuzentzen da.',
             'dataLimits' => 'Ez dago muga ezagunik.',
             'attribution' => 'Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean',
         ],
         'en' => [
-            'liveSource' => 'Metro Bilbao',
+            'liveSource' => 'the Bizkaia Transport Consortium',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Metro Bilbao timetables and real time',
@@ -63,12 +63,12 @@ return [
             'liveEmpty' => 'Search for a station to see the next metro.',
             'disclaimer' => 'An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator\'s forecast.',
             'dataPublished' => 'The predicted time of each train at each station, and its position.',
-            'dataMethod' => 'The forecast for each platform from the official Metro Bilbao app; if it does not respond, the Consortium\'s.',
+            'dataMethod' => 'The operator\'s forecast; if it sends a station with another one\'s number, it is corrected.',
             'dataLimits' => 'No known limitations.',
             'attribution' => 'Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time',
         ],
         'fr' => [
-            'liveSource' => 'Metro Bilbao',
+            'liveSource' => 'le Consorcio de Transportes de Bizkaia',
             'name' => 'Metro+',
             'tile' => 'Metro Bilbao',
             'switcher' => 'Horaires et temps réel de Metro Bilbao',
@@ -76,7 +76,7 @@ return [
             'liveEmpty' => 'Cherchez une station pour voir le prochain métro.',
             'disclaimer' => 'Projet indépendant et non officiel, sans lien avec Metro Bilbao S.A. ni avec le Consorcio de Transportes de Bizkaia. Les temps en direct sont une prévision de l’opérateur.',
             'dataPublished' => 'L’heure prévue de chaque train à chaque station et sa position.',
-            'dataMethod' => 'La prévision de chaque quai donnée par l’app officielle de Metro Bilbao ; sinon, celle du Consorcio.',
+            'dataMethod' => 'La prévision de l’opérateur ; s’il envoie une station avec le numéro d’une autre, c’est corrigé.',
             'dataLimits' => 'Aucune limite connue.',
             'attribution' => 'Données : Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0) : horaires et temps réel',
         ],
@@ -122,30 +122,28 @@ return [
         'max_age_seconds' => 300,
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
+        // Sin el GTFS-Realtime, los trenes salen del SIRI de llegadas (cada fila lleva el número del tren).
         'siri_fallback' => true,
         // Un retraso de más de 1 h en el GTFS-Realtime es de otro viaje con ese id (llegaron a salir de 5 h): no vale.
         'max_feed_gap_seconds' => 3600,
-        // El feed de posiciones pone en el id de cada tren su estación, su andén y su destino (BSR_BSR1_PLE_1794…).
-        'vehicle_destination' => '/^[A-Z0-9]+_[A-Z0-9]+_(?<destination>[A-Z]+)_\\d+$/',
-    ],
-
-    // Llegadas por estación y andén de la app oficial de Metro Bilbao, lo que manda en el directo (el GTFS-Realtime y
-    // el SIRI quedan de apoyo). Cada andén se pide como el viaje a la estación siguiente, con los códigos de su API.
-    'station_arrivals' => [
-        'url' => 'https://api.metrobilbao.eus/metro/real-time/{from}/{to}',
-        'cache_ttl_seconds' => 20,
-        'http_timeout_seconds' => 5,
-        'max_age_seconds' => 90,
-        // Hasta 10 min tarde un tren es el de su salida del horario; con más, sale sin horario (sus minutos y destino).
-        'max_delay_seconds' => 600,
-        'probe_stop_id' => 7,
-        'codes' => [
-            1 => 'ARZ', 2 => 'ETX', 3 => 'BOL', 4 => 'BAS', 5 => 'SAN', 6 => 'CAV', 7 => 'ABA', 8 => 'MOY',
-            9 => 'IND', 10 => 'SAM', 11 => 'DEU', 12 => 'SAR', 13 => 'SIN', 14 => 'LUT', 15 => 'ERA', 16 => 'AST',
-            17 => 'LEI', 18 => 'LAM', 19 => 'ARE', 20 => 'GOB', 21 => 'NEG', 22 => 'AIB', 23 => 'ALG', 24 => 'BID',
-            25 => 'IBB', 26 => 'BER', 27 => 'LAR', 28 => 'SOP', 29 => 'URD', 30 => 'PLE', 32 => 'GUR', 33 => 'ANS',
-            34 => 'BAR', 35 => 'BAG', 36 => 'URB', 37 => 'SES', 38 => 'ABT', 39 => 'POR', 40 => 'PEN', 41 => 'STZ',
-            42 => 'KAB', 51 => 'BSR',
+        // Los ids del feed son de viajes de otra generación del horario: cada tren se casa por andén y destino
+        // (Services\PlatformMatcher).
+        'platform_matching' => [
+            // Hasta 10 min tarde o 3 min antes, un tren es el de su salida; si no, sale sin horario (minutos y destino).
+            'max_delay_seconds' => 600,
+            'max_early_seconds' => 180,
+            // Hasta dónde trae el feed todos los trenes de un andén: más allá no se quita ninguna salida del horario.
+            'covered_seconds' => 1800,
+            // Una lista de paradas que acaba más allá de esto puede estar cortada: no dice el destino.
+            'truncated_after_seconds' => 2400,
+            // El feed da las paradas de cada tren menos la terminal: la que sigue a su última parada es su destino.
+            'omits_terminal' => true,
+            // Un tren no puede ir a menos de la mitad de lo que tarda el horario entre dos paradas: si lo hace, es que una
+            // parada viene con el id de otra y el tren no va por ese sentido.
+            'min_travel_share' => 0.5,
+            // Un recorrido con menos de 1 de cada 4 viajes del que más tiene (Urduliz, Bidezabal) solo es el destino si
+            // nada más encaja: el feed corta a veces la lista justo antes.
+            'usual_pattern_share' => 4,
         ],
     ],
 

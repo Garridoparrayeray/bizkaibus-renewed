@@ -12,9 +12,8 @@ use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\ScheduleOnlyMatcher;
-use Services\StationArrivalsMatcher;
+use Services\PlatformMatcher;
 use Services\TripDelayMatcher;
-use Services\TripUpdatesMatcher;
 use Core\Live;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
@@ -250,7 +249,7 @@ class StopsController
 
     private static function pastSeconds(object|null $TripMatcher): int|null
     {
-        $bByJourney = $TripMatcher instanceof TripDelayMatcher || $TripMatcher instanceof StationArrivalsMatcher;
+        $bByJourney = $TripMatcher instanceof TripDelayMatcher || $TripMatcher instanceof PlatformMatcher;
         if ($bByJourney && $TripMatcher->hasData()) {
             return self::LATE_TRAINS_LOOKBACK_SECONDS;
         }
@@ -286,7 +285,7 @@ class StopsController
     // Sin ninguna salida en el horario, los trenes del feed que aun así pasan por la parada (refuerzos).
     private static function unscheduledOnly(object|null $TripMatcher, string $sStopId): array
     {
-        if (!($TripMatcher instanceof TripUpdatesMatcher) && !($TripMatcher instanceof StationArrivalsMatcher)) {
+        if (!($TripMatcher instanceof PlatformMatcher)) {
             return [];
         }
         return $TripMatcher->withoutDeparted($TripMatcher->unscheduledRows($sStopId), Calendar::nowSecondsSinceMidnight());

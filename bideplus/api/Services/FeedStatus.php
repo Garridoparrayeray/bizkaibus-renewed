@@ -48,36 +48,21 @@ class FeedStatus
                 $aOut['vehicles'] = \count($Client->fetchVehiclePositions());
             }
             $Matcher = Live::tripMatcher(new ServiceJourney(Database::connection()));
-            if ($Matcher instanceof StationArrivalsMatcher) {
-                $aSupport = ['source' => $aOut['source']] + self::matcherReport($Matcher->inner());
-                $aOut = array_merge($aOut, $Matcher->diagnostics((string)$aConfig['station_arrivals']['probe_stop_id']));
-                $aOut['support'] = $aSupport;
-                $aOut['ok'] = $aOut['stationTrains'] > 0 || $aOut['feedTrips'] > 0;
-            } else {
-                $aOut += self::matcherReport($Matcher);
-                $aOut['ok'] = $aOut['feedTrips'] > 0;
+            $aOut['matching'] = 'stops';
+            if ($Matcher instanceof TripDelayMatcher) {
+                $aOut['matching'] = 'trip';
+                $aOut += $Matcher->diagnostics();
             }
+            if ($Matcher instanceof PlatformMatcher) {
+                $aOut = array_merge($aOut, $Matcher->diagnostics());
+            }
+            $aOut['ok'] = $aOut['feedTrips'] > 0 || ($aOut['trains'] ?? 0) > 0;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
-        return $aOut;
-    }
-
-    // Cómo se empareja el feed con el horario: por viaje (con su diagnóstico), por paradas o con los trenes del SIRI.
-    private static function matcherReport(object $Matcher): array
-    {
-        $aOut = ['matching' => 'stops'];
-        if ($Matcher instanceof TripDelayMatcher) {
-            $aOut['matching'] = 'trip';
-            $aOut += $Matcher->diagnostics();
-        }
-        if ($Matcher instanceof TripUpdatesMatcher && $Matcher->source() !== 'trip-updates') {
-            $aOut['fallback'] = $Matcher->source();
-            $aOut['reconstructedTrips'] = $Matcher->trainCount();
-        }
         return $aOut;
     }
 
