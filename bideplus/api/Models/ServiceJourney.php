@@ -25,6 +25,18 @@ class ServiceJourney
         ORDER BY pt2.seq_order DESC LIMIT 1
     )';
 
+    // El calendario de un viaje circula el día :day (con su bit de día de la semana :weekdayBit).
+    private const RUNS_ON_DAY = '
+        sc.id != \'PRUEBA\'
+        AND ((sc.weekday_mask & :weekdayBit) != 0 OR EXISTS (
+            SELECT 1 FROM service_calendar_exceptions sce_inc
+            WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :day2 AND sce_inc.available = 1
+        ))
+        AND NOT EXISTS (
+            SELECT 1 FROM service_calendar_exceptions sce
+            WHERE sce.calendar_id = sc.id AND sce.date = :day AND sce.available = 0
+        )';
+
     private array $aTableExists = [];
 
     public function __construct(private \PDO $Pdo)
@@ -311,16 +323,8 @@ class ServiceJourney
         $Stmt = $this->Pdo->prepare('
             SELECT COUNT(*) FROM service_journeys sj
             JOIN service_calendars sc ON sc.id = sj.calendar_id
-            WHERE sc.id != \'PRUEBA\'
+            WHERE ' . self::RUNS_ON_DAY . '
               AND sj.first_departure_seconds BETWEEN :from AND :now
-              AND ((sc.weekday_mask & :weekdayBit) != 0 OR EXISTS (
-                  SELECT 1 FROM service_calendar_exceptions sce_inc
-                  WHERE sce_inc.calendar_id = sc.id AND sce_inc.date = :day2 AND sce_inc.available = 1
-              ))
-              AND NOT EXISTS (
-                  SELECT 1 FROM service_calendar_exceptions sce
-                  WHERE sce.calendar_id = sc.id AND sce.date = :day AND sce.available = 0
-              )
               AND EXISTS (SELECT 1 FROM passing_times pt WHERE pt.service_journey_id = sj.id AND pt.arrival_seconds >= :now2)
         ');
         $Stmt->execute([
@@ -372,6 +376,29 @@ class ServiceJourney
             }
         }
         return $aResult;
+    }
+
+    // De unos viajes (ids), los que circulan ese día según su calendario. Una base sin calendarios no los filtra.
+    public function runningOf(array $aJourneyIds, \DateTime $Day): array
+    {
+        if (!$this->hasTable('service_calendars')) {
+            return array_map('strval', array_values($aJourneyIds));
+        }
+        $aRunning = [];
+        $sDay = $Day->format('Y-m-d');
+        foreach (array_chunk(array_values(array_unique(array_map('strval', $aJourneyIds))), 500) as $aChunk) {
+            $aMarks = [];
+            $aParams = ['weekdayBit' => Calendar::weekdayBitFor($Day), 'day' => $sDay, 'day2' => $sDay];
+            foreach ($aChunk as $iIndex => $sJourneyId) {
+                $aMarks[] = ':j' . $iIndex;
+                $aParams['j' . $iIndex] = $sJourneyId;
+            }
+            $Stmt = $this->Pdo->prepare('SELECT sj.id FROM service_journeys sj JOIN service_calendars sc ON sc.id = sj.calendar_id
+                WHERE sj.id IN (' . implode(',', $aMarks) . ') AND ' . self::RUNS_ON_DAY);
+            $Stmt->execute($aParams);
+            array_push($aRunning, ...array_map('strval', $Stmt->fetchAll(\PDO::FETCH_COLUMN)));
+        }
+        return $aRunning;
     }
 
     // Nombres con los que el directo puede llamar a cada viaje (sus alias y su propio id).

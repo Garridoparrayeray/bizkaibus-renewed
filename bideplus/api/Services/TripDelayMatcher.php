@@ -41,7 +41,7 @@ class TripDelayMatcher
         $this->bRail = \in_array(\Core\Config::current()['kind'] ?? 'bus', ['train', 'metro'], true);
         $this->Stops = new JourneyStops($JourneyModel);
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
-        $aJourneyIds = $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId'));
+        $aJourneyIds = $this->runningJourneys($JourneyModel, $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId')));
         $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
         $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds());
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
@@ -62,6 +62,18 @@ class TripDelayMatcher
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->aByJourney += $Vehicles->entries();
+    }
+
+    // Solo valen los viajes que circulan hoy (o ayer, de madrugada): el feed de Metro trae a veces ids que en el horario
+    // son de otro calendario, y casarlos pondría su hora a otro tren. Sin ninguno, la red pasa a casar por paradas.
+    private function runningJourneys(ServiceJourney $JourneyModel, array $aJourneyIds): array
+    {
+        $Today = (new \DateTime('@' . ($this->iMidnight + 12 * 3600)))->setTimezone(new \DateTimeZone('Europe/Madrid'));
+        $aRunning = $JourneyModel->runningOf($aJourneyIds, $Today);
+        if ($this->nowSeconds() < self::EARLY_MORNING_SECONDS) {
+            array_push($aRunning, ...$JourneyModel->runningOf($aJourneyIds, (clone $Today)->modify('-1 day')));
+        }
+        return array_filter($aJourneyIds, fn($JourneyId) => \in_array((string)$JourneyId, $aRunning, true));
     }
 
     private function liveFromTrip(array $aTrip, string $sJourneyId): array
