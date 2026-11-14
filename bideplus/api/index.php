@@ -24,6 +24,7 @@ use Controllers\AlertsController;
 use Controllers\LiveRecordController;
 use Controllers\PushController;
 use Controllers\AppController;
+use Controllers\PlannerController;
 
 $Req = new Request();
 
@@ -60,6 +61,9 @@ $Router->get('/status', [$Realtime, 'status'], CacheSeconds::STATUS);
 $LiveRecord = new LiveRecordController();
 $Router->get('/live/record', [$LiveRecord, 'record']);
 $Router->get('/live/history', [$LiveRecord, 'history']);
+
+$Planner = new PlannerController();
+$Router->get('/planner/live', [$Planner, 'live'], CacheSeconds::LIVE);
 
 // «Avísame cuando llegue»: el cron (/live/record) es quien manda los avisos.
 $Push = new PushController();

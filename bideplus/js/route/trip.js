@@ -2,7 +2,7 @@
 // vehículo con el color de su red, transbordo con su margen y qué hacer si pierdes el enlace) y «Empezar».
 import * as engine from '/planificador/pantallas/engine.js';
 import { transfersOf } from '/planificador/pantallas/journey.js';
-import { nowHere, ridesOf } from '/planificador/pantallas/query.js';
+import { nowHere, ridesOf, sameRides } from '/planificador/pantallas/query.js';
 import { SECONDS_PER_MINUTE, clock, dayNote, distance, duration, minutesOf, spareText } from '/planificador/pantallas/texts.js';
 import { inkOn } from '/planificador/pantallas/dom.js';
 import { byId, colorOf, countText, el, namesOf, ridesIn, svgIcon } from './common.js';
@@ -10,7 +10,7 @@ import { liveOf } from './options.js';
 
 // «Sal en N min» solo si es hoy y falta poco; si no, la hora de salida.
 const SOON_SECONDS = 90 * SECONDS_PER_MINUTE;
-const trip = { app: null, chosen: null, render: 0, opener: null };
+const trip = { app: null, chosen: null, journey: null, render: 0, opener: null };
 
 const leaveNode = (chosen) => {
     const box = el('div', 'route-hero-leave');
@@ -92,11 +92,11 @@ const row = (sIcon, sTitle, sText) => {
 };
 
 // La tarjeta de un vehículo, con el color y el icono de su red como las fichas de «Tus redes».
-const rideCard = (app, leg) => {
+const rideCard = (app, leg, iDay) => {
     const network = app.networkOf(leg.network);
     const card = el('li', 'route-ride');
     const head = el('div', 'route-ride-head');
-    const live = liveOf(leg);
+    const live = liveOf(leg, iDay);
     const badge = el('span', 'route-ride-badge', live.text);
     const facts = [I18n.t('route.trip.arrives', { time: clock(leg.arrive) }), countText('stops', leg.stops)];
     if (live.live) {
@@ -121,30 +121,34 @@ const rideCard = (app, leg) => {
 };
 
 // «Si pierdes el enlace»: el siguiente que sirve y a qué hora llegas, de la operación prepare del planificador.
-const planBRow = (journey, iRide, iEndWalk) => {
+const planBText = (journey, iRide, iEndWalk) => {
     const plan = journey && journey.plan_b[iRide - 1];
     if (!plan) {
-        return row('clock', I18n.t('route.trip.planBTitle'), I18n.t('route.trip.planBNone'));
+        return I18n.t('route.trip.planBNone');
     }
     const next = ridesIn(plan.legs)[iRide];
-    const iArrive = plan.arrive + iEndWalk;
-    return row('clock', I18n.t('route.trip.planBTitle'), I18n.t('route.trip.planB', { depart: clock(next.depart), arrive: clock(iArrive) }));
+    return I18n.t('route.trip.planB', { depart: clock(next.depart), arrive: clock(plan.arrive + iEndWalk) });
+};
+
+// Lo que se anda al bajar del último vehículo.
+const endWalkOf = (option) => {
+    const last = option.legs[option.legs.length - 1];
+    if (last.kind === 'walk' && option.rides > 0) {
+        return last.arrive - last.depart;
+    }
+    return 0;
 };
 
 const walkRow = (leg, sPlace) => row('walk', I18n.t('route.trip.walkTo', { time: clock(leg.depart), place: sPlace }),
     I18n.t('route.walk.short', { time: duration(leg.arrive - leg.depart), distance: distance(leg.meters) }));
 
-const legsList = (app, chosen, journey) => {
-    const option = chosen.option;
+const legsList = (app, chosen, option, journey) => {
     const list = el('ol', 'route-legs');
     const names = namesOf(option.legs, chosen.query);
     const aRides = ridesIn(option.legs);
     const aTransfers = transfersOf(option.legs);
     const last = option.legs[option.legs.length - 1];
-    let iEndWalk = 0;
-    if (last.kind === 'walk' && aRides.length > 0) {
-        iEndWalk = last.arrive - last.depart;
-    }
+    const iEndWalk = endWalkOf(option);
     if (option.legs[0].kind === 'walk') {
         let sPlace = names.to;
         if (aRides.length > 0) {
@@ -155,16 +159,19 @@ const legsList = (app, chosen, journey) => {
     aRides.forEach((leg, i) => {
         if (i > 0) {
             const transfer = aTransfers[i - 1];
-            const sTitle = I18n.t('route.trip.transferTitle', { time: clock(aRides[i - 1].arrive), spare: spareText(Math.max(0, transfer.spare)) });
+            let sTitle = I18n.t('route.trip.transferTitle', { time: clock(aRides[i - 1].arrive), spare: spareText(Math.max(0, transfer.spare)) });
+            if (transfer.spare < 0) {
+                sTitle = I18n.t('route.trip.transferLost', { time: clock(aRides[i - 1].arrive) });
+            }
             let sText = I18n.t('route.trip.transferSame', { network: app.networkName(leg.network) });
             if (transfer.walk > 0) {
                 sText = I18n.t('route.trip.transferWalk', { walk: duration(transfer.walk), stop: leg.from.name });
             }
             list.append(row('transfer', sTitle, sText));
         }
-        list.append(rideCard(app, leg));
+        list.append(rideCard(app, leg, chosen.day));
         if (i > 0) {
-            list.append(planBRow(journey, i, iEndWalk));
+            list.append(row('clock', I18n.t('route.trip.planBTitle'), planBText(journey, i, iEndWalk)));
         }
     });
     if (iEndWalk > 0) {
@@ -187,7 +194,7 @@ const startLink = (option) => {
 };
 
 const prepared = async (chosen) => {
-    if (chosen.option.rides < 2) {
+    if (chosen.option.rides < 1) {
         return null;
     }
     const bAccessible = Boolean(chosen.request && chosen.request.accessible);
@@ -199,8 +206,78 @@ const prepared = async (chosen) => {
     return answer;
 };
 
+// La opción con las horas de prepare, que llevan el directo de ahora: sus vehículos y lo que se anda entre ellos, con
+// el primer y el último tramo a pie de la opción (prepare no los trae). Sin prepare, la opción tal cual.
+const currentOption = (option, journey) => {
+    if (!journey) {
+        return option;
+    }
+    const aLegs = journey.journey.legs.slice();
+    const first = option.legs[0];
+    const last = option.legs[option.legs.length - 1];
+    if (first.kind === 'walk') {
+        const iWalk = first.arrive - first.depart;
+        aLegs.unshift(Object.assign({}, first, { depart: aLegs[0].depart - iWalk, arrive: aLegs[0].depart }));
+    }
+    if (last.kind === 'walk' && option.legs.length > 1) {
+        const iFrom = aLegs[aLegs.length - 1].arrive;
+        aLegs.push(Object.assign({}, last, { depart: iFrom, arrive: iFrom + last.arrive - last.depart }));
+    }
+    return Object.assign({}, option, { legs: aLegs, depart: aLegs[0].depart, arrive: aLegs[aLegs.length - 1].arrive });
+};
+
+// Con el retraso de ahora no se llega a un transbordo: el planificador ya monta el viaje con el vehículo siguiente
+// (cambia uno que no es el primero) o lo deja sin margen. Se dice arriba, con la hora del siguiente y la de llegada.
+const lostNotice = (chosen, option, journey) => {
+    const aBefore = ridesOf(chosen.option);
+    const aNow = ridesIn(option.legs);
+    const iChanged = ridesOf(option).findIndex((ride, i) => !sameRides([ride], [aBefore[i]]));
+    const iTight = transfersOf(option.legs).findIndex((transfer) => transfer.spare < 0);
+    let sText = '';
+    if (iChanged > 0) {
+        sText = I18n.t('route.trip.planB', { depart: clock(aNow[iChanged].depart), arrive: clock(option.arrive) });
+    } else if (iTight >= 0) {
+        sText = planBText(journey, iTight + 1, endWalkOf(option));
+    } else {
+        return [];
+    }
+    const box = el('div', 'route-notice');
+    box.dataset.kind = 'serious';
+    box.setAttribute('role', 'status');
+    box.append(el('strong', 'route-notice-title', I18n.t('route.trip.lost')), el('span', 'route-notice-text', sText));
+    return [box];
+};
+
 const paint = (app, chosen, journey) => {
-    byId('route-trip-body').replaceChildren(hero(app, chosen), legsList(app, chosen, journey), startLink(chosen.option));
+    const option = currentOption(chosen.option, journey);
+    const shown = Object.assign({}, chosen, { option });
+    byId('route-trip-body').replaceChildren(hero(app, shown), ...lostNotice(chosen, option, journey), legsList(app, shown, option, journey),
+        startLink(option));
+};
+
+const repaint = async (iRender) => {
+    const journey = await prepared(trip.chosen);
+    if (iRender === trip.render && !byId('route-trip').hidden) {
+        trip.journey = journey;
+        paint(trip.app, trip.chosen, journey);
+    }
+};
+
+// Con el directo nuevo, si el viaje está abierto, se vuelve a montar con sus horas de ahora.
+export const refreshTrip = async () => {
+    if (byId('route-trip').hidden || !trip.chosen) {
+        return;
+    }
+    trip.render += 1;
+    await repaint(trip.render);
+};
+
+// Lo que el directo tiene que mirar del viaje abierto: sus tramos de ahora y su día.
+export const tripSource = () => {
+    if (byId('route-trip').hidden || !trip.chosen) {
+        return [];
+    }
+    return [{ legs: currentOption(trip.chosen.option, trip.journey).legs, day: trip.chosen.day }];
 };
 
 export const openTrip = async (app, chosen) => {
@@ -214,10 +291,8 @@ export const openTrip = async (app, chosen) => {
     document.documentElement.classList.add('route-trip-open');
     window.scrollTo(0, 0);
     byId('route-trip-title').focus({ preventScroll: true });
-    const journey = await prepared(chosen);
-    if (journey && iRender === trip.render && !byId('route-trip').hidden) {
-        paint(app, chosen, journey);
-    }
+    trip.journey = null;
+    await repaint(iRender);
 };
 
 export const closeTrip = () => {

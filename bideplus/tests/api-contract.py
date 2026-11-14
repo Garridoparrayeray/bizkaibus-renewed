@@ -59,6 +59,8 @@ SCHEMAS = {
     'vehicle': {'lineCode': str, 'lineName': str, 'headsign': opt(str), 'status': 'status', 'vehicleRef': opt(str),
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
+    'plannerLive': {'day': int, 'generated': int,
+                    'updates': [{'network': str, 'trip': str, 'delay': int, 'cancelled': bool}]},
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert']},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
@@ -182,6 +184,8 @@ except Exception:
     madrid_hour = (datetime.datetime.now(datetime.timezone.utc).hour + 1) % 24
 # Las próximas salidas miran 4 h por delante: de noche una red pequeña puede no tener ninguna.
 quiet_hours = madrid_hour < 8 or madrid_hour >= 21
+# Un tramo por parada vista para el directo del planificador: «red|parada|línea|hora|viaje».
+planner_legs = []
 for name, cfg in NETS.items():
     q, s, lat, lon = cfg['q'], cfg['suffix'], cfg['lat'], cfg['lon']
     before = len(fails)
@@ -199,6 +203,10 @@ for name, cfg in NETS.items():
         stop = get(net(f'/api/stops/{sid}', s), 'stop', name) or {}
         dep = get(net(f'/api/stops/{sid}/departures?limit=8', s), 'departures', name) or {}
         departures_seen += len(dep.get('departures') or [])
+        for x in (dep.get('departures') or [])[:1]:
+            hours, minutes = x['scheduledTime'].split(':')
+            parts = (name, st['id'], x['lineCode'], int(hours) * 3600 + int(minutes) * 60, x['tripKey'])
+            planner_legs.append('|'.join(urllib.parse.quote(str(part), safe='') for part in parts))
         if not dep.get('platforms'):
             # En los trenes, la que ya debería haber pasado y no está en el feed va al final («Sin datos del tren»).
             etas = [x['etaAt'] for x in dep.get('departures') or [] if x.get('status') != 'likely_departed']
@@ -237,6 +245,11 @@ for name, cfg in NETS.items():
     if len(fails) != before:
         summary = f'{len(fails) - before} fallos'
     print(name, summary)
+
+# El directo del planificador: los tramos vistos (vayan o no en directo) y uno mal escrito.
+get('/api/planner/live?legs=' + urllib.parse.quote(','.join(planner_legs[:40]), safe=''), 'plannerLive', 'planificador')
+get('/api/planner/live?legs=a%7Cb', 'error', 'planificador', expect=422)
+print('planificador', 'OK')
 
 print(f'RESULTADO contrato: {checked} comprobaciones, {len(fails)} fallos')
 for f in fails[:60]:

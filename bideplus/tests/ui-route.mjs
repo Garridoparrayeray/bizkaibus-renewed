@@ -3,7 +3,9 @@ import { launchBrowser } from './browser.mjs';
 // El planificador del inicio, en castellano y en euskera: escribir origen y destino en la tarjeta «¿A dónde vas?» con
 // las sugerencias debajo, buscar, las opciones debajo de la tarjeta (desplegar, etiquetas, línea de tiempo), los
 // filtros y las redes, la pantalla del viaje elegido, «atrás», «Cómo llegar aquí» desde una parada y un enlace
-// compartido. Necesita el planificador publicado (planificador/build/data): sin él, lo dice y no prueba nada.
+// compartido. Con el directo simulado (/api/planner/live, interceptado): las etiquetas «En directo · N min de retraso» y
+// «Según horario», «Solo en directo», un directo que falla, el transbordo perdido y que se para en segundo plano.
+// Necesita el planificador publicado (planificador/build/data): sin él, lo dice y no prueba nada.
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
 const PORT = Number(process.env.CDP_PORT || 9378);
@@ -28,6 +30,7 @@ const problems = [];
 ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
+    if (m.method === 'Fetch.requestPaused') { fulfilLive(m.params); return; }
     if (m.method === 'Runtime.exceptionThrown') problems.push(`EXCEPCION ${m.params.exceptionDetails.exception?.description?.split('\n')[0] || m.params.exceptionDetails.text}`);
 };
 const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
@@ -44,6 +47,30 @@ const waitTrue = async (expr, ms = 10000) => {
         await sleep(250);
     }
     return false;
+};
+// El directo simulado: «mixed» retrasa 4 min los metros y deja lo demás con su horario, «late» los retrasa 25 min (el
+// transbordo se pierde) y «fail» responde con un error. Cuenta las peticiones.
+const live = { mode: 'mixed', count: 0 };
+const madridDay = () => Math.floor(Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T00:00:00Z') / 86400000);
+const liveBody = (sUrl) => {
+    const aLegs = (new URL(sUrl).searchParams.get('legs') || '').split(',').filter(Boolean).map((sLeg) => sLeg.split('|').map(decodeURIComponent));
+    let iDelay = 240;
+    if (live.mode === 'late') iDelay = 1500;
+    const updates = aLegs.filter((a) => a[0] === 'metro').map((a) => ({ network: a[0], trip: a[4], delay: iDelay, cancelled: false }));
+    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates });
+};
+const fulfilLive = (params) => {
+    live.count += 1;
+    let iCode = 200;
+    let sBody = liveBody(params.request.url);
+    if (live.mode === 'fail') {
+        iCode = 500;
+        sBody = '{"error":"Internal error"}';
+    }
+    send('Fetch.fulfillRequest', {
+        requestId: params.requestId, responseCode: iCode, responseHeaders: [{ name: 'Content-Type', value: 'application/json' }],
+        body: Buffer.from(sBody).toString('base64'),
+    });
 };
 const results = [];
 const check = (name, ok, extra = '') => {
@@ -115,6 +142,72 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
     await ev('history.back(); true');
     check(`${sLang} · «atrás» vuelve a las opciones`, await waitTrue(`document.getElementById('route-trip').hidden && ${shown('#route-options .route-option')}`));
 }
+
+// ===== Directo simulado =====
+await send('Fetch.enable', { patterns: [{ urlPattern: '*/api/planner/live*' }] });
+const LIVE_SEARCH = '/planificador?de=parada&de_red=metro&de_id=20&de_nombre=Gobela&a_texto=Gernika';
+const LABELS = /^(En directo · (\d+ min de retraso|\d+ min adelantado|a su hora|cancelado)|Según horario)$/;
+const labels = "[...document.querySelectorAll('#route-options .route-step-live')].map((n) => n.textContent)";
+const waitUntil = async (test, ms) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+        if (test()) return true;
+        await sleep(250);
+    }
+    return false;
+};
+// Busca con el directo simulado en ese modo: true si se ha pedido el directo.
+const liveSearch = async (sMode) => {
+    live.mode = sMode;
+    const iBefore = live.count;
+    await go(LIVE_SEARCH);
+    await waitTrue(optionsReady, PLANNER_MS);
+    return waitUntil(() => live.count > iBefore, 15000);
+};
+await ev("localStorage.setItem('bide_lang', 'es'); true");
+if (!(await liveSearch('mixed'))) {
+    results.push('SALTA directo: ninguna opción sale en las próximas 2 h, no se pide el directo');
+} else {
+    check('directo · las opciones piden el directo de sus vehículos y lo enseñan', await waitTrue(`${labels}.some((s) => s === 'En directo · 4 min de retraso')`, 15000));
+    check('directo · lo que no trae dato va «Según horario» y no hay otras etiquetas', await ev(`${labels}.every((s) => ${LABELS}.test(s)) && ${labels}.some((s) => s === 'Según horario')`));
+    await ev("document.getElementById('route-filters-open').click(); document.querySelector('[data-route-filter=liveOnly]').click(); document.getElementById('route-filters-done').click(); true");
+    await sleep(500);
+    await waitTrue(optionsReady, PLANNER_MS);
+    await sleep(1500);
+    const bNone = await ev("[...document.querySelectorAll('.route-notice-title')].some((n) => n.textContent === 'Ahora ninguna va entera en directo')");
+    check('directo · «Solo en directo» deja las que van enteras en directo o lo dice', bNone || (await ev(`${labels}.every((s) => s.startsWith('En directo'))`)));
+    await ev("document.getElementById('route-filters-open').click(); document.querySelector('[data-route-filter=liveOnly]').click(); document.getElementById('route-filters-done').click(); true");
+    await sleep(500);
+    await waitTrue(optionsReady, PLANNER_MS);
+
+    // Con el viaje elegido, un retraso de 25 min en el metro hace perder el transbordo: se dice y se da el plan B.
+    const iMetroFirst = await ev("[...document.querySelectorAll('.route-option')].findIndex((o) => { const s = [...o.querySelectorAll('.route-step[data-mark=ride] .route-step-sub')].map((n) => n.textContent); return s.length > 1 && /^Metro/.test(s[0]) && !/^Metro/.test(s[1]); })");
+    if (iMetroFirst < 0) {
+        results.push('SALTA directo: ninguna opción cambia del metro a otra red');
+    } else {
+        live.mode = 'late';
+        await ev(`document.querySelectorAll('.route-option .route-choose')[${iMetroFirst}].click(); true`);
+        check('directo · con el retraso se pierde el transbordo y lo dice con el plan B', await waitTrue("[...document.querySelectorAll('#route-trip .route-notice-title')].some((n) => n.textContent === 'Con el retraso de ahora pierdes un transbordo') && /Coges el de las/.test(document.querySelector('#route-trip .route-notice').textContent)", 20000));
+        check('directo · el vehículo retrasado lo dice en el viaje', await ev("[...document.querySelectorAll('.route-ride-badge')].some((n) => n.textContent === 'En directo · 25 min de retraso')"));
+        await ev('history.back(); true');
+        await waitTrue("document.getElementById('route-trip').hidden");
+    }
+
+    // En segundo plano no se pide nada; al volver, enseguida.
+    live.mode = 'mixed';
+    await ev("Object.defineProperty(document, 'hidden', { configurable: true, get: () => window.__hidden === true }); window.__hidden = true; document.dispatchEvent(new Event('visibilitychange')); true");
+    const iHidden = live.count;
+    await sleep(32000);
+    check('directo · en segundo plano no se refresca', live.count === iHidden, `${live.count - iHidden} peticiones`);
+    await ev("window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); true");
+    check('directo · al volver a la pestaña se refresca', await waitUntil(() => live.count > iHidden, 8000));
+
+    // Si el directo falla, todo sigue con el horario, sin avisos de error.
+    check('directo · si falla, se pide igual y las opciones salen', await liveSearch('fail'));
+    await sleep(1500);
+    check('directo · si falla, todo va «Según horario» y sin avisos de error', await ev(`${labels}.length > 0 && ${labels}.every((s) => s === 'Según horario') && !document.querySelector('#route-notices .route-notice[data-kind=serious]')`));
+}
+await send('Fetch.disable');
 
 // «Cómo llegar aquí» o «Salir desde aquí» (js/planner-link.js) y la dirección vieja /planificador llevan al inicio,
 // que rellena la tarjeta y busca.

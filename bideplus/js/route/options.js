@@ -5,6 +5,7 @@ import { momentOf, nowHere, ridesOf } from '/planificador/pantallas/query.js';
 import { MIN_DELAY_SECONDS, clock, dayNote, dayShift, distance, duration, spareText, transfers } from '/planificador/pantallas/texts.js';
 import { t } from '/planificador/pantallas/lang.js';
 import { byId, colorOf, countText, el, linePill, namesOf, optionTags, ridesIn, svgIcon } from './common.js';
+import { liveEntry } from './live.js';
 
 const MAX_OPTIONS = 5;
 const MIN_HEADSIGN = 3;
@@ -89,13 +90,30 @@ export const rideText = (app, leg) => {
     return [sLine, countText('stops', leg.stops), duration(leg.arrive - leg.depart)].join(' · ');
 };
 
-// «En directo · 1 min de retraso» si el planificador trae el retraso real; si no, «Según horario».
-export const liveOf = (leg) => {
-    if (Math.abs(leg.delay) >= MIN_DELAY_SECONDS) {
-        return { live: true, text: I18n.t('route.live.delay', { n: duration(Math.abs(leg.delay)) }) };
+// «En directo · 3 min de retraso», «En directo · a su hora» o, sin dato del directo para ese vehículo, «Según
+// horario». El retraso es el que ha aplicado el planificador, el mismo de las horas que se ven.
+export const liveOf = (leg, iDay) => {
+    const entry = liveEntry(leg, iDay);
+    if (!entry) {
+        return { live: false, text: I18n.t('route.live.scheduled') };
     }
-    return { live: false, text: I18n.t('route.live.scheduled') };
+    if (entry.cancelled) {
+        return { live: true, text: I18n.t('route.live.cancelled') };
+    }
+    if (leg.delay >= MIN_DELAY_SECONDS) {
+        return { live: true, text: I18n.t('route.live.delay', { n: duration(leg.delay) }) };
+    }
+    if (leg.delay <= -MIN_DELAY_SECONDS) {
+        return { live: true, text: I18n.t('route.live.early', { n: duration(-leg.delay) }) };
+    }
+    return { live: true, text: I18n.t('route.live.onTime') };
 };
+
+// Si todos sus vehículos van con dato del directo (y ninguno cancelado): lo que deja «Solo en directo».
+const allLive = (option, iDay) => ridesIn(option.legs).every((leg) => {
+    const entry = liveEntry(leg, iDay);
+    return entry !== null && !entry.cancelled;
+});
 
 // El hueco de un transbordo: lo que se anda (si se anda) y el margen que queda.
 export const transferText = (transfer, sStop) => {
@@ -108,7 +126,7 @@ export const transferText = (transfer, sStop) => {
 
 const walkLine = (leg) => I18n.t('route.walk.short', { time: duration(leg.arrive - leg.depart), distance: distance(leg.meters) });
 
-const timeline = (app, option, query) => {
+const timeline = (app, option, query, iDay) => {
     const list = el('ol', 'route-steps');
     const names = namesOf(option.legs, query);
     const aTransfers = transfersOf(option.legs);
@@ -124,7 +142,7 @@ const timeline = (app, option, query) => {
             list.append(step(clock(previous.arrive), 'transfer', '', [['route-step-title', previous.to.name],
                 ['route-step-sub', transferText(aTransfers[i - 1], leg.from.name)]]));
         }
-        const live = liveOf(leg);
+        const live = liveOf(leg, iDay);
         let sLiveClass = 'route-step-live';
         if (live.live) {
             sLiveClass += ' is-live';
@@ -195,7 +213,7 @@ const toggle = (item, bOpen) => {
     item.querySelector('.route-option-body').hidden = !bOpen;
 };
 
-const optionCard = (app, option, query, iPosition) => {
+const optionCard = (app, option, query, iDay, iPosition) => {
     const item = el('li', 'route-option');
     const head = el('button', 'route-option-head');
     const text = el('span', 'route-option-text');
@@ -210,17 +228,40 @@ const optionCard = (app, option, query, iPosition) => {
     head.addEventListener('click', () => toggle(item, !item.classList.contains('is-open') || window.matchMedia(SIDE_BY_SIDE).matches));
     choose.type = 'button';
     choose.addEventListener('click', () => app.chooseOption(option));
-    body.append(timeline(app, option, query), costRow(), choose);
+    body.append(timeline(app, option, query, iDay), costRow(), choose);
+    item.dataset.rides = JSON.stringify(ridesOf(option));
     item.append(head, body);
     toggle(item, false);
     return item;
 };
 
-const renderOptions = (app, aOptions, query) => {
+// Al repintar con el directo siguen abiertas las mismas opciones (por sus vehículos) y el foco vuelve a la suya.
+const openRides = (list) => {
+    const head = document.activeElement && document.activeElement.closest('.route-option-head');
+    const aOpen = [...list.querySelectorAll('.route-option.is-open')].map((item) => item.dataset.rides);
+    let sFocus = '';
+    if (head && list.contains(head)) {
+        sFocus = head.parentElement.dataset.rides;
+    }
+    return { open: aOpen, focus: sFocus };
+};
+
+const renderOptions = (app, aOptions, query, iDay, bKeep) => {
     const list = byId('route-options');
-    list.replaceChildren(...aOptions.slice(0, MAX_OPTIONS).map((option, i) => optionCard(app, option, query, i + 1)));
-    if (list.firstElementChild) {
-        toggle(list.firstElementChild, true);
+    let kept = { open: [], focus: '' };
+    if (bKeep) {
+        kept = openRides(list);
+    }
+    list.replaceChildren(...aOptions.slice(0, MAX_OPTIONS).map((option, i) => optionCard(app, option, query, iDay, i + 1)));
+    const aItems = [...list.children];
+    const aReopen = aItems.filter((item) => kept.open.includes(item.dataset.rides));
+    if (aReopen.length === 0 && list.firstElementChild) {
+        aReopen.push(list.firstElementChild);
+    }
+    aReopen.forEach((item) => toggle(item, true));
+    const focused = aItems.find((item) => kept.focus !== '' && item.dataset.rides === kept.focus);
+    if (focused) {
+        focused.querySelector('.route-option-head').focus({ preventScroll: true });
     }
     byId('route-share').hidden = aOptions.every((option) => option.rides === 0);
 };
@@ -342,15 +383,33 @@ const summaryOf = (app, iCount) => {
     return countText('options', iCount, { when: sWhen });
 };
 
-export const renderResults = (app) => {
+// «Solo en directo»: las opciones con todos sus vehículos en directo. Si no queda ninguna, todas con un aviso.
+const liveOnly = (app, answer, aOptions) => {
+    if (!app.filters.liveOnly || answer.dropped_filters.includes('live_only')) {
+        return { options: aOptions, notices: [] };
+    }
+    const aLive = aOptions.filter((option) => allLive(option, answer.day));
+    if (aLive.length > 0) {
+        return { options: aLive, notices: [] };
+    }
+    return { options: aOptions, notices: [notice('info', I18n.t('route.liveOnly.none'), I18n.t('route.liveOnly.noneText'),
+        [{ text: I18n.t('route.dropped.clear'), run: () => app.changeFilters({ liveOnly: false }, true) }])] };
+};
+
+// Pinta las opciones de la búsqueda. Con bQuiet (el directo ha cambiado) no se anuncia y siguen abiertas las mismas.
+export const renderResults = (app, bQuiet) => {
     const answer = app.answer;
-    const aOptions = answer.options.filter((option) => option.legs.length > 0);
+    const shown = liveOnly(app, answer, answer.options.filter((option) => option.legs.length > 0));
+    const aOptions = shown.options;
     showSearching(app, false);
     byId('route-filters-open').hidden = false;
-    byId('route-notices').replaceChildren(...noticesOf(app, answer, aOptions.slice(0, MAX_OPTIONS)), ...droppedLabel(answer));
-    renderOptions(app, aOptions, app.query);
+    byId('route-notices').replaceChildren(...noticesOf(app, answer, aOptions.slice(0, MAX_OPTIONS)), ...shown.notices,
+        ...droppedLabel(answer));
+    renderOptions(app, aOptions, app.query, answer.day, Boolean(bQuiet));
     byId('route-summary').textContent = summaryOf(app, Math.min(aOptions.length, MAX_OPTIONS));
-    app.announce(byId('route-summary').textContent);
+    if (!bQuiet) {
+        app.announce(byId('route-summary').textContent);
+    }
 };
 
 // ===== Enlace recibido =====
@@ -379,7 +438,7 @@ export const renderReceived = (app) => {
         aNotices[0].insertBefore(el('span', 'route-notice-text', names.from + ' → ' + names.to), aNotices[0].children[1]);
     }
     byId('route-notices').replaceChildren(...aNotices);
-    renderOptions(app, aOptions, null);
+    renderOptions(app, aOptions, null, app.received.day, false);
     byId('route-share').hidden = true;
     byId('route-filters-open').hidden = true;
     byId('route-summary').textContent = sTitle;

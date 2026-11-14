@@ -130,6 +130,8 @@ elif notice['notice'] is not None and not all(k in notice['notice'] for k in ('i
 get('/api/live/record', 404)
 get('/api/live/record?key=adivina', 404)
 get('/api/live/history?line=3514', 404)
+get('/api/planner/live?legs=')
+get('/api/planner/live?legs=metro%7C1', 422)
 
 # Búsqueda por palabras: pueblo y parada en cualquier orden, sin importar mayúsculas.
 for q in ('amorebieta san juan', 'SAN JUAN Amorebieta'):

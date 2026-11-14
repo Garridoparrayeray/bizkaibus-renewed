@@ -12,11 +12,14 @@ import { t } from '/planificador/pantallas/lang.js';
 import { defaultOrigin, fillWhen, initCard, readWhen } from './card.js';
 import { byId } from './common.js';
 import { initFilters, refreshFilters } from './filters.js';
+import { initLive, refreshLive, scheduleLive, unaskedLegs } from './live.js';
 import { renderProblem, renderReceived, renderResults, sharedJourneys, showSearching } from './options.js';
 import { shareLink } from './share.js';
-import { closeTrip, initTrip, openTrip } from './trip.js';
+import { closeTrip, initTrip, openTrip, refreshTrip, tripSource } from './trip.js';
 
 const POSITION_MAX_AGE_MS = 60000;
+// Lo que se espera al directo antes de enseñar las opciones; si tarda más, se enseñan y se repintan cuando llegue.
+const LIVE_WAIT_MS = 2500;
 const LINK_HASH = /^v\d+\./;
 
 const app = {
@@ -213,6 +216,71 @@ const findFirstOk = async (request, sKey) => {
     renderResults(app);
 };
 
+// ===== Directo =====
+
+// Lo que mira el directo: las opciones de la búsqueda y el viaje abierto.
+const liveSources = () => {
+    let aSources = [];
+    if (app.answer && !app.received) {
+        aSources = app.answer.options.map((option) => ({ legs: option.legs, day: app.answer.day }));
+    }
+    return aSources.concat(tripSource());
+};
+
+// Repite la búsqueda con el directo que ha llegado. «Salir ahora» sale desde la hora de ahora, no la de la búsqueda.
+const searchAgain = async (sKey) => {
+    const here = nowHere();
+    if (app.query.when === 'now' && app.request.day === here.day) {
+        app.request.time = Math.max(app.request.time, here.seconds);
+    }
+    const answer = await engine.call(app.request, 'plan').catch(() => null);
+    if (!answer || answer.status !== 'ok' || app.answerKey !== sKey) {
+        return false;
+    }
+    app.answer = answer;
+    return true;
+};
+
+// Con el directo nuevo: las opciones sin borrar lo que se ve (siguen abiertas las mismas) y el viaje abierto. Si la
+// búsqueda trae vehículos por los que no se ha preguntado, se pregunta por ellos.
+const liveChanged = async () => {
+    const sKey = app.answerKey;
+    if (app.answer && !app.received && (await searchAgain(sKey))) {
+        renderResults(app, true);
+    }
+    await refreshTrip();
+    if (unaskedLegs()) {
+        liveLater(sKey);
+    }
+};
+
+// Pide el directo sin esperarlo y repinta si cambia algo, salvo que mientras tanto se haya buscado otra cosa.
+const liveLater = (sKey) => {
+    refreshLive().then((bChanged) => {
+        if (bChanged && app.answerKey === sKey) {
+            liveChanged();
+        }
+    });
+};
+
+// El primer directo de una búsqueda, con un tope: si llega a tiempo se busca otra vez con él antes de pintar, y lo
+// que esa búsqueda trae nuevo se pide luego. Si no llega a tiempo, se pinta y se repinta cuando llegue.
+const firstLive = async (sKey) => {
+    let iTimer = 0;
+    const pending = refreshLive();
+    const bInTime = await Promise.race([pending, new Promise((resolve) => {
+        iTimer = setTimeout(() => resolve(null), LIVE_WAIT_MS);
+    })]);
+    clearTimeout(iTimer);
+    if (bInTime === null) {
+        liveLater(sKey);
+        return;
+    }
+    if (bInTime && (await searchAgain(sKey)) && unaskedLegs()) {
+        liveLater(sKey);
+    }
+};
+
 // Busca la consulta de ahora y pinta las opciones debajo de la tarjeta. Si otra búsqueda la adelanta, no pinta nada.
 const runSearch = async () => {
     const sKey = writeSearch(app.query, null);
@@ -243,11 +311,16 @@ const runSearch = async () => {
         return null;
     }
     Object.assign(app, { request, answer });
+    await firstLive(sKey);
+    if (app.answerKey !== sKey) {
+        return null;
+    }
     renderResults(app);
-    if (answer.dropped_filters.length > 0) {
+    scheduleLive();
+    if (app.answer.dropped_filters.length > 0) {
         findFirstOk(request, sKey);
     }
-    return answer;
+    return app.answer;
 };
 app.rerun = () => {
     if (app.query) {
@@ -359,6 +432,8 @@ app.chooseOption = (option) => {
     }
     history.pushState({ routeTrip: true }, '', tripUrl(option, iDay));
     openTrip(app, { option, day: iDay, query, request });
+    liveLater(app.answerKey);
+    scheduleLive();
 };
 
 app.share = (iDay, aJourneys, query, request, sTitleKey) => shareLink(iDay, aJourneys, query, request, I18n.t(sTitleKey));
@@ -464,6 +539,7 @@ window.addEventListener('popstate', (event) => {
 app.fields = initCard(app);
 initFilters(app);
 initTrip(app);
+initLive(liveSources, liveChanged);
 byId('route-share').addEventListener('click', () => {
     app.share(app.answer.day, sharedJourneys(app), app.query, app.request, 'route.share.optionsTitle');
 });

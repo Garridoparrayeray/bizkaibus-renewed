@@ -22,6 +22,9 @@ class StopsController
 {
     private const LATE_TRAINS_LOOKBACK_SECONDS = 3600;
     private const LIKELY_PAST_SHOWN = 2;
+    // Las salidas que se miran para el directo del planificador, que solo pregunta por lo que sale en 2 h.
+    private const LIVE_LEGS_LIMIT = 200;
+    private const LIVE_LEGS_WINDOW_SECONDS = 3 * 3600;
 
     public function show(Request $Req, array $aParams): void
     {
@@ -174,6 +177,35 @@ class StopsController
             'departures' => self::limited(self::departureItems($aRows, $bUseLastStopHeadsign), $iLimit),
             'attribution' => $aConfig['attribution'],
         ];
+    }
+
+    // El directo de unos viajes de hoy al salir de sus paradas, en la red actual, para el planificador, con los mismos
+    // emparejadores que las próximas salidas. Cada viaje se busca por su línea y su hora en la parada (los ids del
+    // planificador pueden ser de otra generación). $aLegs: parada => [[línea, hora, viaje]]; da viaje => salida.
+    public static function liveLegs(array $aLegs): array
+    {
+        $JourneyModel = new ServiceJourney(Database::connection());
+        $Matcher = Live::matcher($JourneyModel);
+        $TripMatcher = Live::tripMatcher($JourneyModel);
+        $aLive = [];
+        foreach ($aLegs as $StopId => $aWanted) {
+            $aTrips = [];
+            foreach ($aWanted as [$sLine, $iSeconds, $sTrip]) {
+                $aTrips[$sLine . '|' . $iSeconds] = $sTrip;
+            }
+            $aRows = $JourneyModel->upcomingAtStop((string)$StopId, self::LIVE_LEGS_LIMIT, self::LIVE_LEGS_WINDOW_SECONDS);
+            $aRows = array_values(array_filter($aRows, fn(array $aRow) => isset($aTrips[$aRow['line_code'] . '|' . $aRow['departure_seconds']])));
+            if (empty($aRows)) {
+                continue;
+            }
+            foreach (self::withLiveToday([$Matcher, fn() => $Matcher], $TripMatcher, (string)$StopId, $aRows) as $aRow) {
+                $sKey = ($aRow['line_code'] ?? '') . '|' . ($aRow['departure_seconds'] ?? '');
+                if (isset($aTrips[$sKey])) {
+                    $aLive[$aTrips[$sKey]] ??= $aRow;
+                }
+            }
+        }
+        return $aLive;
     }
 
     // De madrugada, delante de las de hoy van los viajes de ayer que pasan de las 24:00, en horas de hoy (26:00 es 02:00).

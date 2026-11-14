@@ -78,6 +78,7 @@ const SHELL_FILES = [
     '/js/menu-view.js',
     '/js/menu-favorites.js',
     '/js/route/main.js',
+    '/js/route/live.js',
     '/js/route/card.js',
     '/js/route/common.js',
     '/js/route/filters.js',

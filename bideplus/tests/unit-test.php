@@ -917,4 +917,12 @@ $aLoose = (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arri
 $Expect('una salida con una llegada suelta cerca no se quita: puede ser su tren', \in_array('R2', array_column($aLoose, 'service_journey_id'), true));
 $Expect('las llegadas sueltas no cuentan como trenes ni salen como refuerzos', (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arrivals', true))->trainCount() === 1 && \count(array_filter($aLoose, fn($aRow) => !empty($aRow['unscheduled']))) === 0);
 
+$Section('Directo del planificador');
+$aParsed = \Controllers\PlannerController::legsByNetwork('metro|20|MB|57063|903255,metro|20|L2|57100|9,bus|3950|A3515|59402|trp%7C1,nadie|1|X|60|y');
+$Expect('los tramos se agrupan por red y parada, con su línea, su hora y el viaje (con su escape), y una red que no existe se pasa por alto', $aParsed === ['metro' => ['20' => [['MB', 57063, '903255'], ['L2', 57100, '9']]], 'bus' => ['3950' => [['A3515', 59402, 'trp|1']]]], json_encode($aParsed));
+$Expect('un tramo sin hora, con partes vacías o de más no vale; sin tramos, nada', \Controllers\PlannerController::legsByNetwork('metro|20|MB|x|1') === null && \Controllers\PlannerController::legsByNetwork('metro||MB|1|1') === null && \Controllers\PlannerController::legsByNetwork('metro|20|MB|1|1|2') === null && \Controllers\PlannerController::legsByNetwork('') === []);
+$Expect('más de 40 tramos no vale', \Controllers\PlannerController::legsByNetwork(implode(',', array_fill(0, 41, 'metro|20|MB|1|1'))) === null);
+$aPlannerUpdates = \Controllers\PlannerController::updatesOf('metro', ['a' => ['status' => 'live', 'delaySeconds' => 245], 'b' => ['status' => 'live', 'delaySeconds' => -600], 'c' => ['status' => 'cancelled', 'delaySeconds' => 0], 'd' => ['status' => 'scheduled', 'delaySeconds' => 0], 'e' => ['status' => 'estimated', 'delaySeconds' => 0]]);
+$Expect('en directo va el retraso entero y el adelanto hasta 2 min; cancelado, cancelado; lo estimado o del horario no sale', $aPlannerUpdates === [['network' => 'metro', 'trip' => 'a', 'delay' => 245, 'cancelled' => false], ['network' => 'metro', 'trip' => 'b', 'delay' => -120, 'cancelled' => false], ['network' => 'metro', 'trip' => 'c', 'delay' => 0, 'cancelled' => true]], json_encode($aPlannerUpdates));
+
 $Finish('unitarias');
