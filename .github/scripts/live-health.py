@@ -73,12 +73,12 @@ def check(network, report):
             errors.append(message)
     if report.get('matching') == 'stops' and report.get('feedTrips'):
         message = 'ningún viaje del feed está en el horario: se empareja por paradas y hora'
-        if report.get('fallback'):
-            notices.append(f"el feed no identifica los viajes: se arman {report.get('reconstructedTrips', 0)} trenes con el SIRI")
-        elif little_scheduled(report):
+        if little_scheduled(report):
             notices.append(message)
         else:
             errors.append(message)
+    if report.get('trainSource') == 'siri-arrivals':
+        notices.append('el GTFS-Realtime no trae trenes: salen del SIRI, que va un par de minutos por detrás')
     if report.get('copiesSchedule'):
         notices.append('el feed copia el horario: sale con el horario')
     if report.get('contradictsVehicles'):
@@ -99,7 +99,7 @@ def check(network, report):
     if compared >= MIN_COMPARED and off_operator / compared > MAX_OFF_OPERATOR_SHARE:
         errors.append(f'{off_operator} de {compared} llegadas se apartan de la hora que publica el operador')
     summary = []
-    for key in ('scheduled', 'vehicles', 'feedTrips', 'reconstructedTrips', 'matched', 'live', 'compared', 'offOperator'):
+    for key in ('scheduled', 'vehicles', 'feedTrips', 'trains', 'matched', 'live', 'compared', 'offOperator'):
         if key in report:
             summary.append(f'{key} {report[key]}')
     if delays:

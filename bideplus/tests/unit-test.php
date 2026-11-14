@@ -583,6 +583,8 @@ $MMetroNow = new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new Servic
 $Expect('Metro: un tren que ya debería estar en la estación y no está en el feed sale al final, sin datos', $MMetroNow->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'likely_departed');
 $MMetroEarly = new TripDelayMatcher($MetroTripAt(time() - T0), new ServiceJourney($PdoRenfe), time() - T0);
 $Expect('Metro: uno que aún no toca y no está en el feed sigue con el horario', $MMetroEarly->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+$aMetroAbsurd = [['tripId' => '6005L1C1', 'stops' => [['B', time() + 5 * 3600], ['C', time() + 5 * 3600 + 120]]]];
+$Expect('Metro: un retraso de horas en el GTFS-Realtime (otro viaje con ese id) no vale: sale con el horario', !(new TripDelayMatcher($aMetroAbsurd, new ServiceJourney($PdoRenfe), time() - T0))->hasData());
 \Core\Config::set('bus');
 $Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
 
@@ -787,32 +789,24 @@ $Expect('un enlace que no es http o https se descarta, pero el aviso sale', \Ser
 $Expect('«notificar» solo vale con true', \Services\Notice::fromArray(['notify' => 'true'] + $aGood, $iNow)['notify'] === false && \Services\Notice::fromArray(['notify' => null] + $aGood, $iNow)['notify'] === false);
 $Expect('el texto se corta a 400 caracteres', mb_strlen(\Services\Notice::fromArray(['text' => ['es' => str_repeat('á', 900)]] + $aGood, $iNow)['text']['es']) === 400);
 
-$Section('Trenes armados con las llegadas del SIRI (feed sin número de viaje)');
+$Section('Trenes del SIRI de llegadas: cada fila lleva el número de su tren');
 $sSiri = '<?xml version="1.0"?><Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery>'
     . '<VehicleActivity><RecordedAtTime>2026-11-11T19:55:00+01:00</RecordedAtTime><MonitoredVehicleJourney><DirectionRef>1</DirectionRef>'
     . '<DestinationRef>1.0</DestinationRef><DestinationAimedArrivalTime>2026-11-11T20:00:00+01:00</DestinationAimedArrivalTime>'
-    . '<VehicleJourneyRef>0</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
+    . '<VehicleJourneyRef>903106</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
     . '<VehicleActivity><RecordedAtTime>2026-11-11T19:55:00+01:00</RecordedAtTime><MonitoredVehicleJourney><DirectionRef>1</DirectionRef>'
     . '<DestinationRef>2.0</DestinationRef><DestinationAimedArrivalTime>2026-11-11T20:02:00+01:00</DestinationAimedArrivalTime>'
-    . '<VehicleJourneyRef>0</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
+    . '<VehicleJourneyRef>903106</VehicleJourneyRef></MonitoredVehicleJourney></VehicleActivity>'
     . '</VehicleMonitoringDelivery></ServiceDelivery></Siri>';
 $aParsed = \Services\StopArrivalTrips::parseArrivals($sSiri);
 $Expect('lee la parada (sin «.0») y la hora de cada llegada', \count($aParsed) === 2 && $aParsed[0]['stop'] === '1' && $aParsed[1]['time'] - $aParsed[0]['time'] === 120, json_encode($aParsed));
 $Expect('un XML roto no da llegadas', \Services\StopArrivalTrips::parseArrivals('<Siri') === []);
 $Expect('un feed parado (lecturas antiguas) no vale', \Services\StopArrivalTrips::recent($aParsed, $aParsed[0]['recorded'] + 1) === [] && \count(\Services\StopArrivalTrips::recent($aParsed, $aParsed[0]['recorded'] - 1)) === 2);
 
-$aSegments = ['1|2' => 120, '2|3' => 60, '3|2' => 60, '2|1' => 120, '2|4' => 90];
-$Arrival = fn(string $sStop, int $iTime) => ['stop' => $sStop, 'time' => T0 + $iTime, 'recorded' => T0];
-$aChained = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 120), $Arrival('3', 180)], $aSegments);
-$Expect('une las llegadas que cuadran con lo que tarda el tren entre paradas', \count($aChained) === 1 && array_column($aChained[0]['stops'], 0) === ['1', '2', '3'], json_encode($aChained));
-$aTwo = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('1', 300), $Arrival('2', 125), $Arrival('2', 415)], ['1|2' => 120]);
-$Expect('con dos trenes en la misma parada, cada llegada va con la suya', \count($aTwo) === 2 && $aTwo[0]['stops'][1][1] === T0 + 125 && $aTwo[1]['stops'][1][1] === T0 + 415, json_encode($aTwo));
-$aNotLinked = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 400)], $aSegments);
-$Expect('una llegada que no cuadra con el tiempo del tramo no se une: queda suelta', \count($aNotLinked) === 2 && !empty($aNotLinked[0]['loose']) && !empty($aNotLinked[1]['loose']), json_encode($aNotLinked));
-$aFork = \Services\StopArrivalTrips::chain([$Arrival('2', 0), $Arrival('2', 300), $Arrival('3', 60), $Arrival('4', 390)], ['2|3' => 60, '2|4' => 90]);
-$Expect('en una bifurcación, cada tren sigue por la rama cuya hora cuadra', \count($aFork) === 2 && array_column($aFork[0]['stops'], 0) === ['2', '3'] && array_column($aFork[1]['stops'], 0) === ['2', '4'], json_encode($aFork));
-$aTurn = \Services\StopArrivalTrips::chain([$Arrival('1', 0), $Arrival('2', 120), $Arrival('3', 180), $Arrival('2', 240), $Arrival('1', 360)], $aSegments);
-$Expect('al volver de la terminal, el viaje acaba allí y la vuelta es otro', \count($aTurn) === 2 && array_column($aTurn[0]['stops'], 0) === ['1', '2', '3'] && array_column($aTurn[1]['stops'], 0) === ['3', '2', '1'], json_encode($aTurn));
+$aGrouped = \Services\StopArrivalTrips::grouped([$aParsed[1], $aParsed[0], ['stop' => '5', 'time' => 10, 'recorded' => 0, 'train' => '']]);
+$Expect('un tren son sus llegadas, por hora; las filas sin número de tren no valen', $aGrouped === [['tripId' => '903106', 'stops' => [['1', $aParsed[0]['time']], ['2', $aParsed[1]['time']]]]], json_encode($aGrouped));
+$aSiriReal = \Services\StopArrivalTrips::grouped(\Services\StopArrivalTrips::parseArrivals((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-siri-vm-20261114.xml')));
+$Expect('con el SIRI real, los mismos números de tren que el GTFS-Realtime (16 trenes por Moyua)', \count($aSiriReal) === 16 && \in_array('903106', array_column($aSiriReal, 'tripId'), true));
 
 $PdoSeg = new PDO('sqlite::memory:');
 $PdoSeg->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -830,7 +824,7 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
     }
 }
 
-$Section('Trenes de refuerzo: los del feed que el horario no tiene');
+$Section('Recorridos de una parada');
 $PdoX = new PDO('sqlite::memory:');
 $PdoX->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $PdoX->exec("
@@ -851,75 +845,150 @@ $PdoX->exec("INSERT INTO service_journeys VALUES ('c1', 'CORTO')");
 $JourneyX = new ServiceJourney($PdoX);
 $aPatternsX = $JourneyX->patternsAtStop('A');
 $Expect('los recorridos que pasan por una parada sin acabar en ella', array_column($aPatternsX, 'journey_pattern_id') === ['LARGO', 'CORTO'] && \count($JourneyX->patternsAtStop('C')) === 0, json_encode($aPatternsX));
-$aFeedX = [
-    ['stops' => [['A', T0 + 1030], ['B', T0 + 1100]]],
-    ['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]],
-];
-$aScheduledX = [['service_journey_id' => 'S1', 'trip_number' => '1', 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => T0 + 1000, 'etaSeconds' => T0 + 1000, 'status' => 'scheduled', 'line_id' => 'L'],
-    ['service_journey_id' => 'S2', 'trip_number' => '2', 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => T0 + 3000, 'etaSeconds' => T0 + 3000, 'status' => 'scheduled', 'line_id' => 'L']];
-$aWithExtras = (new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
-$Expect('el tren del horario sale emparejado y el otro, como refuerzo', \count($aWithExtras) === 3 && empty($aWithExtras[0]['unscheduled']) && $aWithExtras[0]['status'] === 'live' && !empty($aWithExtras[1]['unscheduled']), json_encode($aWithExtras));
-$Expect('el refuerzo lleva su línea, su hora en directo y ningún viaje del horario ni retraso', $aWithExtras[1]['line_code'] === 'MB' && $aWithExtras[1]['etaSeconds'] === T0 + 1500 && $aWithExtras[1]['service_journey_id'] === null && $aWithExtras[1]['delaySeconds'] === null);
-$Expect('su destino es el de los recorridos que hace el horario, no el de una vuelta corta', $aWithExtras[1]['headsign'] === 'Costa', (string)$aWithExtras[1]['headsign']);
-$Expect('sin pedir los refuerzos, el tren sin horario no sale', \count((new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0))->enrich('A', $aScheduledX)) === 2);
-$Expect('sin ninguna salida en el horario, los trenes del feed salen igual', \count((new TripUpdatesMatcher($aFeedX, $JourneyX, 600, 0, 'siri-arrivals', true))->unscheduledRows('A')) === 2);
-$aFar = (new TripUpdatesMatcher(array_merge([['stops' => [['A', T0 + 9000], ['B', T0 + 9070]]]], $aFeedX), $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
-$Expect('más allá de la última salida del horario cargada no se inventan refuerzos', \count($aFar) === 3, json_encode(array_column($aFar, 'etaSeconds')));
-
-$Section('Destino de cada tren con el GPS (código en el identificador)');
-$aTerminals = ['51' => 'basauri', '2' => 'etxebarri', '30' => 'plentzia', '42' => 'kabiezes', '25' => 'ibarbengoa', '28' => 'sopela'];
-$Terminal = fn(string $sCode) => \Services\StopArrivalTrips::terminalFor($sCode, $aTerminals);
-$Expect('el código es la abreviatura del nombre de una terminal', $Terminal('BSR') === '51' && $Terminal('ETX') === '2' && $Terminal('PLE') === '30' && $Terminal('IBB') === '25');
-$Expect('un código que no encaja con ninguna terminal, o con varias, no da destino', $Terminal('XXX') === null && $Terminal('') === null && \Services\StopArrivalTrips::terminalFor('BA', ['1' => 'basauri', '2' => 'barakaldo']) === null);
-$sDestination = '/^[A-Z0-9]+_[A-Z0-9]+_(?<destination>[A-Z]+)_\d+$/';
-$aSegmentsGps = ['5|6' => 100];
-$aTripsGps = [['stops' => [['6', T0 + 400], ['7', T0 + 480]]], ['stops' => [['6', T0 + 900], ['7', T0 + 980]]]];
-$aVehiclesGps = [['entityId' => 'SAN_SAN1_PLE_1', 'stopId' => '5', 'timestamp' => T0 + 295]];
-$aAnchored = \Services\StopArrivalTrips::anchor($aTripsGps, $aVehiclesGps, $aSegmentsGps, $aTerminals, $sDestination);
-$Expect('el tren del GPS se une al armado que llega a la siguiente parada cuando toca y le pone destino', ($aAnchored[0]['destStopId'] ?? null) === '30' && !isset($aAnchored[1]['destStopId']), json_encode($aAnchored));
-$aFarGps = [['entityId' => 'SAN_SAN1_PLE_1', 'stopId' => '5', 'timestamp' => T0 - 5000]];
-$Expect('si ninguna llegada cuadra con la hora del GPS no se une', !isset(\Services\StopArrivalTrips::anchor($aTripsGps, $aFarGps, $aSegmentsGps, $aTerminals, $sDestination)[0]['destStopId']));
-$Expect('un identificador que no sigue el patrón no pone destino', !isset(\Services\StopArrivalTrips::anchor($aTripsGps, [['entityId' => 'raro', 'stopId' => '5', 'timestamp' => T0 + 295]], $aSegmentsGps, $aTerminals, $sDestination)[0]['destStopId']));
-$aSameStart = \Services\StopArrivalTrips::anchor([['stops' => [['5', T0 + 300], ['6', T0 + 400]]]], $aVehiclesGps, $aSegmentsGps, $aTerminals, $sDestination);
-$Expect('también se une al tren que llega a la propia parada donde el GPS lo ve', ($aSameStart[0]['destStopId'] ?? null) === '30');
-$aDest = (new TripUpdatesMatcher([['stops' => [['A', T0 + 1030], ['B', T0 + 1100]], 'destStopId' => 'B']], $JourneyX, 600, 0, 'siri-arrivals', true))->enrich('A', $aScheduledX);
-$Expect('un tren con destino solo se empareja con los recorridos que acaban allí (el largo acaba en C)', empty($aDest[0]['status']) || $aDest[0]['status'] === 'scheduled', json_encode(array_column($aDest, 'status')));
-
-$Section('Solo trenes reales: las salidas del horario sin tren no salen donde el feed llega');
-$iMid = time() - 100;
-$aFeedReal = [
-    ['stops' => [['A', $iMid + 1030], ['B', $iMid + 1100]]],
-    ['stops' => [['A', $iMid + 3000], ['B', $iMid + 3070]]],
-];
-$Row = fn(string $sId, int $iSeconds) => ['service_journey_id' => $sId, 'trip_number' => $sId, 'journey_pattern_id' => 'LARGO', 'arrival_seconds' => $iSeconds, 'etaSeconds' => $iSeconds, 'status' => 'scheduled', 'line_id' => 'L'];
-$aRowsReal = [$Row('R1', 1000), $Row('R2', 2000), $Row('R3', 3010), $Row('R4', 5000), $Row('R0', 150)];
-$aReal = (new TripUpdatesMatcher($aFeedReal, $JourneyX, 600, $iMid, 'siri-arrivals', true))->enrich('A', $aRowsReal);
-$aIds = array_column($aReal, 'service_journey_id');
-$Expect('la salida del horario sin tren dentro de lo que cubre el feed se quita', !\in_array('R2', $aIds, true), json_encode($aIds));
-$Expect('las emparejadas se quedan, con su hora en directo', \in_array('R1', $aIds, true) && \in_array('R3', $aIds, true));
-$Expect('más allá de donde llega el feed, el horario se queda', \in_array('R4', $aIds, true));
-$Expect('una salida a punto de salir no se quita aunque su tren ya no figure', \in_array('R0', $aIds, true));
-$aKept = (new TripUpdatesMatcher($aFeedReal, $JourneyX, 600, $iMid))->enrich('A', $aRowsReal);
-$Expect('sin pedir "solo reales" (feed normal) el horario no se toca', \in_array('R2', array_column($aKept, 'service_journey_id'), true));
-
 $Section('Ficha de un refuerzo');
-$Expect('la clave de un refuerzo es su parada y su hora, y se reconoce', \Core\TripKey::buildExtra('8', 1794410000) === 'extra-8-1794410000' && \Core\TripKey::parseExtra('extra-8-1794410000') === ['8', 1794410000] && \Core\TripKey::parseExtra('3514-12-27600') === null);
+$Expect('la clave de un refuerzo es su parada, su andén y su hora, y se reconoce (también sin andén)', \Core\TripKey::buildExtra('8', 1794410000, '7') === 'extra-8@7-1794410000' && \Core\TripKey::parseExtra('extra-8@7-1794410000') === ['8', 1794410000, '7'] && \Core\TripKey::parseExtra('extra-8-1794410000') === ['8', 1794410000, null] && \Core\TripKey::parseExtra('3514-12-27600') === null);
 $aKnownTimes = [['B', 1000]];
 $aAlong = \Services\ExtraSheet::timesAlong(['A', 'B', 'C'], $aKnownTimes, ['A|B' => 60, 'B|C' => 120]);
 $Expect('las paradas de antes se calculan restando lo que tarda el tren y las de después, sumándolo', $aAlong === ['B' => 1000, 'A' => 940, 'C' => 1120], json_encode($aAlong));
 $aCut = \Services\ExtraSheet::timesAlong(['A', 'B', 'C'], $aKnownTimes, ['B|C' => 120]);
 $Expect('si no se sabe lo que tarda un tramo, no se inventa la parada de más allá', array_keys($aCut) === ['B', 'C'], json_encode($aCut));
 $Expect('sin ninguna parada con hora no hay recorrido', \Services\ExtraSheet::timesAlong(['A', 'B'], [], ['A|B' => 60]) === []);
-$MatcherX = new TripUpdatesMatcher([['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]]], $JourneyX, 600, 0, 'siri-arrivals', true);
-$aFound = $MatcherX->unscheduledTrain('A', T0 + 1520);
-$Expect('el refuerzo se vuelve a encontrar por su parada y su hora (con margen)', $aFound !== null && $aFound['sequence'] === ['A', 'B', 'C'] && $aFound['headsign'] === 'Costa' && $aFound['line_code'] === 'MB', json_encode($aFound));
-$Expect('con otra hora, o sin pedir los refuerzos, no hay tren', $MatcherX->unscheduledTrain('A', T0 + 5000) === null && (new TripUpdatesMatcher([['stops' => [['A', T0 + 1500], ['B', T0 + 1570]]]], $JourneyX, 600, 0))->unscheduledTrain('A', T0 + 1500) === null);
-$aExtraRows = $MatcherX->unscheduledRows('A');
-$Expect('la salida de un refuerzo lleva su parada para armar la clave', ($aExtraRows[0]['stop_id'] ?? null) === 'A');
 
-$aLooseFeed = [['stops' => [['A', $iMid + 2000]], 'loose' => true], ['stops' => [['A', $iMid + 3000], ['B', $iMid + 3070]]]];
-$aLoose = (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arrivals', true))->enrich('A', $aRowsReal);
-$Expect('una salida con una llegada suelta cerca no se quita: puede ser su tren', \in_array('R2', array_column($aLoose, 'service_journey_id'), true));
-$Expect('las llegadas sueltas no cuentan como trenes ni salen como refuerzos', (new TripUpdatesMatcher($aLooseFeed, $JourneyX, 600, $iMid, 'siri-arrivals', true))->trainCount() === 1 && \count(array_filter($aLoose, fn($aRow) => !empty($aRow['unscheduled']))) === 0);
+$Section('Directo por andén con los trenes del feed abierto (Metro Bilbao)');
+$aMetroNet = \Core\Networks::all()['metro'] ?? null;
+$Expect('la ficha de Metro: casado por andén con sus umbrales con nombre y tope de retraso del GTFS-Realtime', $aMetroNet === null || (isset($aMetroNet['gtfs_rt']['platform_matching']['max_delay_seconds'], $aMetroNet['gtfs_rt']['platform_matching']['covered_seconds']) && $aMetroNet['gtfs_rt']['max_feed_gap_seconds'] === 3600));
+$Expect('el andén de cada recorrido es su parada siguiente; donde acaba, ninguno', \Services\PlatformMatcher::nextStops('A', ['P1' => ['A', 'B', 'Z'], 'P3' => ['X', 'A', 'C'], 'P9' => ['X', 'A']]) === ['P1' => 'B', 'P3' => 'C']);
+
+$iMidPm = time() - 500;
+$aPmSettings = ['max_delay_seconds' => 600, 'max_early_seconds' => 180, 'covered_seconds' => 1800, 'truncated_after_seconds' => 1500, 'omits_terminal' => true, 'min_travel_share' => 0.5, 'usual_pattern_share' => 4];
+$PmPattern = fn(string $sId, string $sLast, int $iTrips) => ['journey_pattern_id' => $sId, 'headsign' => $sLast, 'line_id' => 'MB', 'line_code' => 'MB', 'line_name' => 'Metro', 'trips' => $iTrips, 'last_stop_name' => $sLast];
+$aPatternsPm = [$PmPattern('P1', 'Zeta', 10), $PmPattern('P2', 'Uve', 5), $PmPattern('P3', 'Ce', 8)];
+$aSequencesPm = ['P1' => ['X', 'A', 'B', 'Z'], 'P2' => ['X', 'A', 'B', 'Y', 'W'], 'P3' => ['Q', 'A', 'C']];
+$PmRow = fn(string $sJourney, string $sPattern, int $iArrival) => [
+    'service_journey_id' => $sJourney, 'trip_number' => $sJourney, 'line_id' => 'MB', 'line_code' => 'MB', 'journey_pattern_id' => $sPattern,
+    'arrival_seconds' => $iArrival, 'departure_seconds' => $iArrival, 'status' => 'scheduled', 'etaSeconds' => $iArrival,
+];
+$aRowsPm = [$PmRow('r1', 'P1', 1000), $PmRow('r2', 'P2', 1100), $PmRow('r5', 'P3', 1200), $PmRow('r3', 'P1', 1600), $PmRow('r6', 'P1', 2250), $PmRow('r4', 'P1', 3000)];
+$JourneyPm = new class ($aPatternsPm, $aSequencesPm, $aRowsPm) extends ServiceJourney {
+    public function __construct(private array $aPatterns, private array $aSequences, private array $aRows)
+    {
+        parent::__construct(new PDO('sqlite::memory:'));
+    }
+
+    public function patternsAtStop(int|string $iStopId): array
+    {
+        return $this->aPatterns;
+    }
+
+    public function stopSequencesForPatterns(array $aPatternIds): array
+    {
+        return array_intersect_key($this->aSequences, array_flip($aPatternIds));
+    }
+
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0, int|null $iPastSeconds = null): array
+    {
+        if ($iDaysAhead !== 0) {
+            return [];
+        }
+        return $this->aRows;
+    }
+};
+$aTrainsPm = [
+    ['tripId' => 't1', 'stops' => [['A', $iMidPm + 1090], ['B', $iMidPm + 1150]]],
+    ['tripId' => 't2', 'stops' => [['A', $iMidPm + 1100], ['B', $iMidPm + 1160], ['Y', $iMidPm + 1200]]],
+    ['tripId' => 't3', 'stops' => [['A', $iMidPm + 2000], ['B', $iMidPm + 2060], ['Y', $iMidPm + 2100]]],
+    ['tripId' => 't4', 'stops' => [['A', $iMidPm + 2200], ['B', $iMidPm + 2260]]],
+    ['tripId' => 'suelto', 'stops' => [['A', $iMidPm + 1300]]],
+];
+$aArrivalsPm = array_column(\Services\PlatformMatcher::arrivalsAt('A', $aTrainsPm, $aSequencesPm, array_column($aPatternsPm, 'trips', 'journey_pattern_id'), [], time(), $aPmSettings), null, 'train');
+$Expect('el destino sale de la secuencia: el feed no da la terminal, así que va a la que sigue a su última parada', array_keys($aArrivalsPm[0]['fits']) === ['Z'] && array_keys($aArrivalsPm[1]['fits']) === ['W'] && $aArrivalsPm[0]['next'] === 'B', json_encode($aArrivalsPm[0]));
+$Expect('una lista que acaba lejos puede estar cortada: valen todos sus destinos; un tren de una sola parada no dice su andén', array_keys($aArrivalsPm[3]['fits']) === ['Z', 'W'] && !isset($aArrivalsPm[4]), json_encode(array_keys($aArrivalsPm)));
+$MatcherPm = new \Services\PlatformMatcher($aTrainsPm, \Services\PlatformMatcher::SOURCE_TRIP_UPDATES, $JourneyPm, $iMidPm, $aPmSettings, []);
+$aPm = array_column($MatcherPm->enrich('A', $aRowsPm), null, 'trip_number');
+$Expect('cada tren va a la salida de su andén y su destino: hora del feed y su retraso', $aPm['r1']['status'] === 'live' && $aPm['r1']['etaSeconds'] === 1090 && $aPm['r1']['delaySeconds'] === 90 && $aPm['r2']['etaSeconds'] === 1100 && $aPm['r2']['delaySeconds'] === 0, json_encode($aPm['r1'] ?? null));
+$Expect('un tren con varios destinos posibles va a la salida que le queda de uno de ellos', $aPm['r6']['status'] === 'live' && $aPm['r6']['etaSeconds'] === 2200 && $aPm['r6']['delaySeconds'] === 0);
+$Expect('una salida sin tren dentro de la ventana del feed no sale (fantasma); más allá, con su horario', !isset($aPm['r3']) && $aPm['r4']['status'] === 'scheduled', json_encode(array_keys($aPm)));
+$aNotStarted = array_column($MatcherPm->enrich('A', array_merge($aRowsPm, [$PmRow('r7', 'P1', 1700) + ['first_departure_seconds' => 1650]])), null, 'trip_number');
+$Expect('una salida sin tren cuyo viaje aún no ha salido de cabecera se queda con su horario (puede no estar en el feed)', ($aNotStarted['r7']['status'] ?? null) === 'scheduled' && !isset($aNotStarted['r3']));
+$Expect('en un andén sin trenes en el feed manda el horario', $aPm['r5']['status'] === 'scheduled' && $aPm['r5']['etaSeconds'] === 1200);
+$aExtraPm = array_values(array_filter($aPm, fn($aRow) => !empty($aRow['unscheduled'])));
+$Expect('un tren sin salida sale sin horario, con el destino y la línea del recorrido de su andén', \count($aExtraPm) === 1 && $aExtraPm[0]['headsign'] === 'Uve' && $aExtraPm[0]['etaSeconds'] === 2000 && $aExtraPm[0]['journey_pattern_id'] === 'P2' && $aExtraPm[0]['stop_id'] === 'A', json_encode($aExtraPm));
+$Expect('liveTrip: las paradas que le quedan al tren casado con el viaje', $MatcherPm->liveTrip('A', $aRowsPm, 'r1') === [['A', $iMidPm + 1090], ['B', $iMidPm + 1150]], json_encode($MatcherPm->liveTrip('A', $aRowsPm, 'r1')));
+$aExtraTrainPm = $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'B');
+$Expect('el tren sin horario se vuelve a encontrar por su clave, con su recorrido', $aExtraTrainPm !== null && \count($aExtraTrainPm['stops']) === 3 && $aExtraTrainPm['sequence'] === $aSequencesPm['P2'] && $aExtraTrainPm['headsign'] === 'Uve', json_encode($aExtraTrainPm));
+$Expect('la clave de un tren sin horario lleva su andén: con otro andén no es él', $aExtraPm[0]['platform_stop_id'] === 'B' && $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'C') === null);
+$aTwoExtras = [
+    ['tripId' => 'e1', 'stops' => [['A', $iMidPm + 1900], ['B', $iMidPm + 1960], ['Y', $iMidPm + 2000]]],
+    ['tripId' => 'e3', 'stops' => [['A', $iMidPm + 2010], ['B', $iMidPm + 2070], ['Y', $iMidPm + 2110]]],
+];
+$MatcherTwo = new \Services\PlatformMatcher($aTwoExtras, \Services\PlatformMatcher::SOURCE_TRIP_UPDATES, $JourneyPm, $iMidPm, $aPmSettings, []);
+$Expect('de varios trenes sin horario cerca de la hora de la clave, el más cercano de su andén', $MatcherTwo->unscheduledTrain('A', $iMidPm + 2000, 'B')['stops'][0][1] === $iMidPm + 2010 && $MatcherTwo->unscheduledTrain('A', $iMidPm + 1950, 'B')['stops'][0][1] === $iMidPm + 1900);
+$Expect('cuántos trenes trae el feed (los de una sola parada no cuentan)', $MatcherPm->trainCount() === 4 && $MatcherPm->diagnostics()['trainSource'] === \Services\PlatformMatcher::SOURCE_TRIP_UPDATES);
+$aNoFeedPm = (new \Services\PlatformMatcher([], \Services\PlatformMatcher::SOURCE_TRIP_UPDATES, $JourneyPm, $iMidPm, $aPmSettings, []))->enrich('A', $aRowsPm);
+$Expect('sin trenes en el feed, el horario tal cual (sin errores)', array_column($aNoFeedPm, 'trip_number') === ['r1', 'r2', 'r5', 'r3', 'r6', 'r4'] && array_unique(array_column($aNoFeedPm, 'status')) === ['scheduled']);
+$Fit = fn(string $sTerminal, int $iTrips, bool $bExact) => ['terminal' => $sTerminal, 'trips' => $iTrips, 'exact' => $bExact];
+$Terminals = fn(array $aFits) => array_column($aFits, 'terminal');
+$Expect('destino exacto y usual (Etxebarri): solo ese', $Terminals(\Services\PlatformMatcher::likely([$Fit('E', 600, true), $Fit('B', 1400, false)], false, 4)) === ['E']);
+$Expect('destino exacto pero raro (Bidezabal, Urduliz): ese y los usuales, y decide el horario', $Terminals(\Services\PlatformMatcher::likely([$Fit('BID', 80, true), $Fit('PLE', 630, false), $Fit('SOP', 90, false)], false, 4)) === ['BID', 'PLE']);
+$Expect('con la lista cortada, o sin destino exacto, todos los que encajan', $Terminals(\Services\PlatformMatcher::likely([$Fit('BID', 80, true), $Fit('PLE', 630, false), $Fit('SOP', 90, false)], true, 4)) === ['BID', 'PLE', 'SOP'] && $Terminals(\Services\PlatformMatcher::likely([$Fit('PLE', 630, false), $Fit('URD', 25, false)], false, 4)) === ['PLE', 'URD']);
+$PmTrain = fn(int $iSeconds, array $aTerminals) => ['seconds' => $iSeconds, 'terminals' => $aTerminals];
+$PmSlot = fn(int $iArrival, string $sTerminal) => ['arrival_seconds' => $iArrival, 'terminal' => $sTerminal];
+$aOrderPm = \Services\PlatformMatcher::inOrder([$PmTrain(1458, ['K']), $PmTrain(1729, ['K']), $PmTrain(1966, ['K']), $PmTrain(2362, ['K'])], [$PmSlot(960, 'K'), $PmSlot(1380, 'K'), $PmSlot(1740, 'K'), $PmSlot(2160, 'K'), $PmSlot(2580, 'K')], 180, 600);
+$Expect('en orden: un tren no adelanta a otro (el de 32:46 no es el de las 16:00 con 17 min de retraso; sale sin horario)', $aOrderPm === [3 => 3, 1 => 2, 0 => 1], json_encode($aOrderPm));
+$Expect('un retraso de más del tope o un adelanto de más de 3 min no casan', \Services\PlatformMatcher::inOrder([$PmTrain(1300, ['K']), $PmTrain(2800, ['K'])], [$PmSlot(0, 'K'), $PmSlot(3000, 'K')], 180, 600) === []);
+$Expect('en el tronco (dos destinos por el mismo andén), cada tren con una salida de su destino', \Services\PlatformMatcher::inOrder([$PmTrain(1000, ['E']), $PmTrain(1010, ['B'])], [$PmSlot(1000, 'B'), $PmSlot(1005, 'E')], 180, 600) === [0 => 1]);
+$aHeldPm = \Services\PlatformMatcher::assign([['train' => 0, 'time' => 970, 'next' => 'B', 'fits' => ['Z' => ['stops' => []]]]], [$PmRow('h', 'P1', 800)], ['P1' => 'B'], ['P1' => 'Z'], 0, 1000, $aPmSettings);
+$Expect('un tren que el feed da con la hora pasada hace menos del margen no ha salido: llega ahora («0 min»)', $aHeldPm['live'] === ['h|800' => 1000], json_encode($aHeldPm['live']));
+$aGonePm = \Services\PlatformMatcher::assign([['train' => 0, 'time' => 900, 'next' => 'B', 'fits' => ['Z' => ['stops' => []]]]], [$PmRow('h', 'P1', 800)], ['P1' => 'B'], ['P1' => 'Z'], 0, 1000, $aPmSettings);
+$Expect('con la hora pasada hace más del margen ya ha salido: ni casa ni sale sin horario', $aGonePm['live'] === [] && $aGonePm['unmatched'] === [], json_encode($aGonePm));
+$Expect('un tren seguro y otro con dos destinos no se cruzan: S (Z) a 1000 se queda la de Z y U no toma la de W de antes', \Services\PlatformMatcher::inOrder([$PmTrain(1000, ['Z']), $PmTrain(1100, ['Z', 'W'])], [$PmSlot(900, 'W'), $PmSlot(1000, 'Z')], 180, 600) === [0 => 1]);
+foreach (['2026-10-25 10:00', '2026-03-29 10:00'] as $sChange) {
+    $iChangeNow = (new DateTimeImmutable($sChange, new DateTimeZone('Europe/Madrid')))->getTimestamp();
+    $iWall = Calendar::wallMidnight($iChangeNow);
+    $aChange = \Services\PlatformMatcher::assign([['train' => 0, 'time' => $iChangeNow + 300, 'next' => 'B', 'fits' => ['Z' => ['stops' => []]]]], [$PmRow('c', 'P1', 10 * 3600 + 300)], ['P1' => 'B'], ['P1' => 'Z'], $iWall, $iChangeNow, $aPmSettings);
+    $Expect("día de cambio de hora ($sChange): con la medianoche de pared, el tren de las 10:05 es el de las 10:05", $iWall === $iChangeNow - 10 * 3600 && $iWall !== (new DateTime('@' . $iChangeNow))->setTimezone(new DateTimeZone('Europe/Madrid'))->setTime(0, 0)->getTimestamp() && $aChange['live'] === ['c|36300' => 36300], json_encode($aChange['live']));
+}
+
+// Datos reales del sábado 14-11-2026 a las 18:39 en Moyua (parada 8): el GTFS-Realtime de Metro y, de referencia, lo
+// que daba a la vez la app oficial. Con el feed abierto tiene que salir el mismo destino en cada tren que lo dice.
+$aPatternsReal = json_decode((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-patterns-20261114.json'), true);
+$SequencesAt = fn(string $sStop) => array_map(fn(array $aPattern) => $aPattern['stops'], array_filter($aPatternsReal['patterns'], fn(array $aPattern) => \in_array($sStop, \array_slice($aPattern['stops'], 0, -1), true)));
+$aTripsReal = array_map(fn(array $aPattern) => $aPattern['trips'], $aPatternsReal['patterns']);
+$aSequencesReal = $SequencesAt('8');
+$aTuReal = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-trip-updates-20261114.pb'));
+$aMoy = \Services\PlatformMatcher::arrivalsAt('8', $aTuReal['trips'], $aSequencesReal, $aTripsReal, $aPatternsReal['segments'], $aTuReal['generatedAt'], $aMetroNet['gtfs_rt']['platform_matching'] ?? $aPmSettings);
+$iSure = 0;
+$aWrong = [];
+foreach (['ABA' => '7', 'IND' => '9'] as $sSide => $sPlatform) {
+    foreach (json_decode((string)file_get_contents(__DIR__ . "/fixtures/metro-bilbao-oficial-MOY-$sSide-20261114.json"), true)['trains'] as $aOfficial) {
+        $iOfficial = (new DateTimeImmutable($aOfficial['time'], new DateTimeZone('Europe/Madrid')))->getTimestamp();
+        $aSide = array_filter($aMoy, fn(array $aArrival) => $aArrival['next'] === $sPlatform);
+        usort($aSide, fn(array $aA, array $aB) => abs($aA['time'] - $iOfficial) <=> abs($aB['time'] - $iOfficial));
+        if (\count($aSide[0]['fits']) === 1) {
+            $iSure++;
+            $sOurs = $aPatternsReal['names'][array_key_first($aSide[0]['fits'])];
+            if ($sOurs !== $aOfficial['direction']) {
+                $aWrong[] = $aOfficial['direction'] . ' ≠ ' . $sOurs;
+            }
+        }
+    }
+}
+$Expect('Moyua real: de los 16 trenes de la app oficial, 13 con un solo destino del feed abierto, todos el mismo (los demás, con la lista cortada o un destino raro, los decide el horario)', $iSure === 13 && $aWrong === [], $iSure . ' ' . json_encode($aWrong));
+$aTuGobela = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-trip-updates-20261114-gobela.pb'));
+$aGobela = \Services\PlatformMatcher::arrivalsAt('20', $aTuGobela['trips'], $SequencesAt('20'), $aTripsReal, $aPatternsReal['segments'], $aTuGobela['generatedAt'], $aMetroNet['gtfs_rt']['platform_matching'] ?? $aPmSettings);
+$aGobelaById = array_column(array_map(fn(array $aArrival) => ['id' => $aTuGobela['trips'][$aArrival['train']]['tripId'], 'to' => array_map('strval', array_keys($aArrival['fits'])), 'next' => $aArrival['next']], $aGobela), null, 'id');
+$Expect('Gobela real: «27, 28, 20» (Urduliz con el id de Gobela) no es un tren hacia Etxebarri en Gobela, a ese ritmo no puede ser', !isset($aGobelaById['902940']) && \count($aGobelaById) > 10, json_encode(array_keys($aGobelaById)));
+$Expect('Gobela real: el que acaba en Sopela puede ir a Urduliz (exacto, raro) o a Plentzia (usual) y decide el horario; hacia Neguri', ($aGobelaById['903282']['to'] ?? null) === ['29', '30'] && $aGobelaById['903282']['next'] === '21', json_encode($aGobelaById['903282'] ?? null));
+// 19:43: el tren 903210 hacia Plentzia trae «19, 21, …, 28, 20» (el feed da una sola parada «20»: aquí Urduliz) y
+// se salta Gobela. La app oficial lo daba en Gobela a las 19:54:29.
+$aTuPlentzia = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/metro-bilbao-trip-updates-20261114-gobela-plentzia.pb'));
+$aSkipped = array_values(array_filter(\Services\PlatformMatcher::arrivalsAt('20', $aTuPlentzia['trips'], $SequencesAt('20'), $aTripsReal, $aPatternsReal['segments'], $aTuPlentzia['generatedAt'], $aMetroNet['gtfs_rt']['platform_matching'] ?? $aPmSettings), fn(array $aArrival) => $aTuPlentzia['trips'][$aArrival['train']]['tripId'] === '903210'));
+$iOfficialSkipped = (new DateTimeImmutable('2026-11-14 19:54:29', new DateTimeZone('Europe/Madrid')))->getTimestamp();
+$Expect('Gobela real: la parada que la lista se salta sale entre la de antes y la de después (a menos de 30 s de la oficial), hacia Plentzia', \count($aSkipped) === 1 && abs($aSkipped[0]['time'] - $iOfficialSkipped) < 30 && array_map('strval', array_keys($aSkipped[0]['fits'])) === ['30'] && $aSkipped[0]['next'] === '21', json_encode($aSkipped));
+$aMoySiri = \Services\PlatformMatcher::arrivalsAt('8', $aSiriReal, $aSequencesReal, $aTripsReal, $aPatternsReal['segments'], $aTuReal['generatedAt'], $aMetroNet['gtfs_rt']['platform_matching'] ?? $aPmSettings);
+$aBasauri = array_values(array_filter($aMoySiri, fn(array $aArrival) => $aSiriReal[$aArrival['train']]['tripId'] === '903106'));
+$aUrduliz = array_values(array_filter($aMoySiri, fn(array $aArrival) => $aSiriReal[$aArrival['train']]['tripId'] === '902928'))[0]['fits'] ?? [];
+$Expect('Moyua real con el SIRI: el tren que manda Urduliz como Gobela (20) va a Plentzia, con la parada arreglada', array_map('strval', array_keys($aUrduliz)) === ['30'] && end($aUrduliz[30]['stops'])[0] === '29', json_encode(array_keys($aUrduliz)));
+$Expect('Moyua real con el SIRI: el mismo tren, el mismo destino (Basauri)', \count($aBasauri) === 1 && array_map('strval', array_keys($aBasauri[0]['fits'])) === ['51'], json_encode($aBasauri));
 
 $Finish('unitarias');

@@ -53,11 +53,10 @@ class FeedStatus
                 $aOut['matching'] = 'trip';
                 $aOut += $Matcher->diagnostics();
             }
-            if ($Matcher instanceof TripUpdatesMatcher && $Matcher->source() !== 'trip-updates') {
-                $aOut['fallback'] = $Matcher->source();
-                $aOut['reconstructedTrips'] = $Matcher->trainCount();
+            if ($Matcher instanceof PlatformMatcher) {
+                $aOut = array_merge($aOut, $Matcher->diagnostics());
             }
-            $aOut['ok'] = $aOut['feedTrips'] > 0;
+            $aOut['ok'] = $aOut['feedTrips'] > 0 || ($aOut['trains'] ?? 0) > 0;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }

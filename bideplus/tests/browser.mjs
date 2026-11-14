@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,6 +7,9 @@ import { join } from 'node:path';
 // navegador y las pruebas comprueban los textos en castellano). En GitHub a veces no llega a responder: se le dan 20 s
 // y, si no, se cierra y se lanza otra vez, hasta tres. Devuelve el proceso y sus pestañas, o null si no hubo manera.
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Al borrar el perfil, el navegador recién cerrado puede seguir escribiendo en él un momento.
+const PROFILE_RM_RETRIES = 10;
+const PROFILE_RM_DELAY_MS = 200;
 
 export async function launchBrowser(port, profilePrefix) {
     const chrome = process.env.CHROME_PATH || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -16,6 +19,11 @@ export async function launchBrowser(port, profilePrefix) {
         if (process.env.CI) flags.unshift('--no-sandbox');
         const browser = spawn(chrome, flags, { stdio: 'ignore' });
         browser.on('error', () => { });
+        // El perfil temporal (unos 100 MB) se borra al acabar la prueba: si no, cada ejecución deja uno en /tmp.
+        process.on('exit', () => {
+            try { browser.kill('SIGKILL'); } catch (e) { }
+            try { rmSync(profileDir, { recursive: true, force: true, maxRetries: PROFILE_RM_RETRIES, retryDelay: PROFILE_RM_DELAY_MS }); } catch (e) { }
+        });
         for (let i = 0; i < 40; i++) {
             await sleep(500);
             try {

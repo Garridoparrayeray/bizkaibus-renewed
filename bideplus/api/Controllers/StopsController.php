@@ -12,8 +12,8 @@ use Models\Stop;
 use Models\ServiceJourney;
 use Services\Calendar;
 use Services\ScheduleOnlyMatcher;
+use Services\PlatformMatcher;
 use Services\TripDelayMatcher;
-use Services\TripUpdatesMatcher;
 use Core\Live;
 
 // Paradas: la ficha (/api/stops/{id}), las cercanas (/api/nearby), las próximas salidas con el directo
@@ -217,7 +217,8 @@ class StopsController
 
     private static function pastSeconds(object|null $TripMatcher): int|null
     {
-        if ($TripMatcher instanceof TripDelayMatcher && $TripMatcher->hasData()) {
+        $bByJourney = $TripMatcher instanceof TripDelayMatcher || $TripMatcher instanceof PlatformMatcher;
+        if ($bByJourney && $TripMatcher->hasData()) {
             return self::LATE_TRAINS_LOOKBACK_SECONDS;
         }
         return null;
@@ -252,7 +253,7 @@ class StopsController
     // Sin ninguna salida en el horario, los trenes del feed que aun así pasan por la parada (refuerzos).
     private static function unscheduledOnly(object|null $TripMatcher, string $sStopId): array
     {
-        if (!($TripMatcher instanceof TripUpdatesMatcher)) {
+        if (!($TripMatcher instanceof PlatformMatcher)) {
             return [];
         }
         return $TripMatcher->withoutDeparted($TripMatcher->unscheduledRows($sStopId), Calendar::nowSecondsSinceMidnight());
@@ -358,11 +359,12 @@ class StopsController
         return $aDepartures;
     }
 
-    // Un tren que el horario no tiene (refuerzo) lleva la clave de su parada y su hora: ExtraSheet lo vuelve a buscar.
+    // Un tren que el horario no tiene (refuerzo) lleva la clave de su parada, su andén y su hora: ExtraSheet lo vuelve
+    // a buscar.
     private static function tripKey(array $aRow): string
     {
         if (!empty($aRow['unscheduled'])) {
-            return TripKey::buildExtra((string)$aRow['stop_id'], time() + ($aRow['etaSeconds'] - Calendar::nowSecondsSinceMidnight()));
+            return TripKey::buildExtra((string)$aRow['stop_id'], Calendar::wallMidnight() + $aRow['etaSeconds'], $aRow['platform_stop_id'] ?? null);
         }
         return TripKey::build($aRow['line_id'], (string)$aRow['trip_number'], (int)$aRow['first_departure_seconds']);
     }

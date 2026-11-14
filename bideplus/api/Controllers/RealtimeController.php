@@ -41,7 +41,7 @@ class RealtimeController
         $JourneyModel = new ServiceJourney(Database::connection());
         $aExtra = TripKey::parseExtra($aParams['tripKey']);
         if ($aExtra !== null) {
-            $aSheet = ExtraSheet::build($JourneyModel, $aExtra[0], $aExtra[1], $Req->query('stopId'));
+            $aSheet = ExtraSheet::build($JourneyModel, $aExtra[0], $aExtra[1], $aExtra[2], $Req->query('stopId'));
             if ($aSheet === null) {
                 Response::error('Trip not found', 404);
                 return;
