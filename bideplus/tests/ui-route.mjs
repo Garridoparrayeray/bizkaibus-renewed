@@ -4,7 +4,8 @@ import { launchBrowser } from './browser.mjs';
 // las sugerencias debajo, buscar, las opciones debajo de la tarjeta (desplegar, etiquetas, línea de tiempo), los
 // filtros y las redes, la pantalla del viaje elegido, «atrás», «Cómo llegar aquí» desde una parada y un enlace
 // compartido. Con el directo simulado (/api/planner/live, interceptado): las etiquetas «En directo · N min de retraso» y
-// «Según horario», «Solo en directo», un directo que falla, el transbordo perdido y que se para en segundo plano.
+// «Según horario», «Solo en directo», un directo que falla, el transbordo perdido, que se para en segundo plano y un
+// día con servicios mínimos (aviso, «puede no pasar» y primero lo que no depende solo del horario).
 // Necesita el planificador publicado (planificador/build/data): sin él, lo dice y no prueba nada.
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
@@ -49,7 +50,8 @@ const waitTrue = async (expr, ms = 10000) => {
     return false;
 };
 // El directo simulado: «mixed» retrasa 4 min los metros y deja lo demás con su horario, «late» los retrasa 25 min (el
-// transbordo se pierde) y «fail» responde con un error. Cuenta las peticiones.
+// transbordo se pierde), «reduced» es «mixed» con servicios mínimos hoy en las demás redes y «fail» responde con un
+// error. Cuenta las peticiones.
 const live = { mode: 'mixed', count: 0 };
 const madridDay = () => Math.floor(Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T00:00:00Z') / 86400000);
 const liveBody = (sUrl) => {
@@ -57,7 +59,12 @@ const liveBody = (sUrl) => {
     let iDelay = 240;
     if (live.mode === 'late') iDelay = 1500;
     const updates = aLegs.filter((a) => a[0] === 'metro').map((a) => ({ network: a[0], trip: a[4], delay: iDelay, cancelled: false }));
-    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates });
+    const reduced = {};
+    if (live.mode === 'reduced') {
+        const sToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+        (new URL(sUrl).searchParams.get('networks') || '').split(',').filter((sNet) => sNet && sNet !== 'metro').forEach((sNet) => { reduced[sNet] = [sToday]; });
+    }
+    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates, reduced });
 };
 const fulfilLive = (params) => {
     live.count += 1;
@@ -263,6 +270,14 @@ if (!(await liveSearch('mixed'))) {
     check('directo · en segundo plano no se refresca', live.count === iHidden, `${live.count - iHidden} peticiones`);
     await ev("window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); true");
     check('directo · al volver a la pestaña se refresca', await waitUntil(() => live.count > iHidden, 8000));
+
+    // Servicios mínimos hoy en las redes que no son el metro: se avisa, lo que va con su horario «puede no pasar» y van
+    // primero las opciones que no dependen solo de su horario.
+    check('servicios mínimos · se pide el directo', await liveSearch('reduced'));
+    check('servicios mínimos · aviso encima de las opciones', await waitTrue("[...document.querySelectorAll('#route-notices .route-notice[data-kind=care] .route-notice-title')].some((n) => /^Hoy hay servicios mínimos en /.test(n.textContent))", 15000));
+    const aMarks = await ev("[...document.querySelectorAll('#route-options .route-option')].map((o) => [...o.querySelectorAll('.route-tag[data-kind=care]')].some((n) => n.textContent === 'Puede no pasar'))");
+    check('servicios mínimos · las que dependen del horario de esa red llevan «Puede no pasar» y van detrás', Array.isArray(aMarks) && aMarks.indexOf(true) !== -1 && aMarks.slice(aMarks.indexOf(true)).every(Boolean), JSON.stringify(aMarks));
+    check('servicios mínimos · su tramo con horario va «Según horario · puede no pasar»', await ev(`${labels}.some((s) => s === 'Según horario · puede no pasar')`));
 
     // Si el directo falla, todo sigue con el horario, sin avisos de error.
     check('directo · si falla, se pide igual y las opciones salen', await liveSearch('fail'));

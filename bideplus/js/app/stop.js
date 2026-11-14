@@ -476,4 +476,8 @@ export function setUpStop() {
     el.liveTimetableLink.addEventListener('click', () => {
         if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
     });
+    // Con servicio reducido, lo que va solo con su horario se marca como «puede no pasar».
+    window.addEventListener('bide:reduced', () => {
+        if (state.currentStop && state.lastDepartures) renderDepartures(state.lastDepartures);
+    });
 }

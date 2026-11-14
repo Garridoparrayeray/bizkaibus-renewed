@@ -4,8 +4,8 @@ import { sumOf, transfersOf } from '/planificador/pantallas/journey.js';
 import { momentOf, nowHere, ridesOf } from '/planificador/pantallas/query.js';
 import { MIN_DELAY_SECONDS, clock, dayNote, dayShift, distance, duration, spareText, transfers } from '/planificador/pantallas/texts.js';
 import { t } from '/planificador/pantallas/lang.js';
-import { byId, colorOf, countText, el, linePill, namesOf, optionTags, ridesIn, svgIcon } from './common.js';
-import { liveEntry } from './live.js';
+import { byId, colorOf, countText, el, linePill, namesOf, optionTags, ridesIn, svgIcon, tagPill } from './common.js';
+import { liveEntry, reducedOn } from './live.js';
 
 const MAX_OPTIONS = 5;
 const MIN_HEADSIGN = 3;
@@ -94,6 +94,9 @@ export const rideText = (app, leg) => {
 // horario». El retraso es el que ha aplicado el planificador, el mismo de las horas que se ven.
 export const liveOf = (leg, iDay) => {
     const entry = liveEntry(leg, iDay);
+    if (!entry && reducedOn(leg.network, iDay + leg.day_shift)) {
+        return { live: false, text: I18n.t('route.live.mayNotRun') };
+    }
     if (!entry) {
         return { live: false, text: I18n.t('route.live.scheduled') };
     }
@@ -114,6 +117,9 @@ const allLive = (option, iDay) => ridesIn(option.legs).every((leg) => {
     const entry = liveEntry(leg, iDay);
     return entry !== null && !entry.cancelled;
 });
+
+// Si algún vehículo va solo con su horario en una red con servicio reducido ese día: puede no pasar.
+const mayNotRun = (option, iDay) => ridesIn(option.legs).some((leg) => liveEntry(leg, iDay) === null && reducedOn(leg.network, iDay + leg.day_shift));
 
 // El hueco de un transbordo: lo que se anda (si se anda) y el margen que queda.
 export const transferText = (transfer, sStop) => {
@@ -222,7 +228,11 @@ const optionCard = (app, option, query, iDay, iPosition) => {
     head.type = 'button';
     body.id = 'route-option-' + iPosition;
     head.setAttribute('aria-controls', body.id);
-    text.append(optionTags(option, app), el('strong', 'route-option-times', timesText(option)), factsNode(app, option));
+    const tags = optionTags(option, app);
+    if (mayNotRun(option, iDay)) {
+        tags.append(tagPill(I18n.t('route.tag.mayNotRun'), 'care'));
+    }
+    text.append(tags, el('strong', 'route-option-times', timesText(option)), factsNode(app, option));
     text.setAttribute('aria-label', spokenText(app, option, iPosition));
     head.append(text, svgIcon('chevron', 'route-chevron'));
     head.addEventListener('click', () => toggle(item, !item.classList.contains('is-open') || window.matchMedia(SIDE_BY_SIDE).matches));
@@ -360,8 +370,23 @@ const farNotices = (answer) => {
     return aNotices;
 };
 
+// Servicios mínimos en alguna red de las opciones ese día: lo dice y van primero las que no dependen de su horario.
+const reducedNotice = (app, answer, aOptions) => {
+    const networks = new Set();
+    aOptions.forEach((option) => ridesIn(option.legs).filter((leg) => reducedOn(leg.network, answer.day + leg.day_shift))
+        .forEach((leg) => networks.add(app.networkName(leg.network))));
+    if (networks.size === 0) {
+        return [];
+    }
+    let sTitle = I18n.t('route.reduced.today', { networks: Array.from(networks).join(', ') });
+    if (answer.day !== nowHere().day) {
+        sTitle = I18n.t('route.reduced.day', { networks: Array.from(networks).join(', ') });
+    }
+    return [notice('care', sTitle, I18n.t('route.reduced.text'), [])];
+};
+
 const noticesOf = (app, answer, aOptions) => {
-    const aNotices = [];
+    const aNotices = reducedNotice(app, answer, aOptions);
     if (answer.diagnosis && DIAGNOSES[answer.diagnosis]) {
         aNotices.push(DIAGNOSES[answer.diagnosis](app, answer));
     }
@@ -400,7 +425,8 @@ const liveOnly = (app, answer, aOptions) => {
 export const renderResults = (app, bQuiet) => {
     const answer = app.answer;
     const shown = liveOnly(app, answer, answer.options.filter((option) => option.legs.length > 0));
-    const aOptions = shown.options;
+    const aOptions = shown.options.filter((option) => !mayNotRun(option, answer.day))
+        .concat(shown.options.filter((option) => mayNotRun(option, answer.day)));
     showSearching(app, false);
     byId('route-filters-open').hidden = false;
     byId('route-notices').replaceChildren(...noticesOf(app, answer, aOptions.slice(0, MAX_OPTIONS)), ...shown.notices,

@@ -1,6 +1,7 @@
 // El directo del planificador del inicio: pide a /api/planner/live el retraso de los vehículos de las opciones que se
 // ven y del viaje elegido, se lo pasa al núcleo (operación live) y avisa para repetir la búsqueda. Se refresca cada
-// 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario.
+// 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario. También dice qué redes
+// tienen servicio reducido (huelga, servicios mínimos) y qué días.
 import * as engine from '/planificador/pantallas/engine.js';
 import { nowHere } from '/planificador/pantallas/query.js';
 import { ridesIn } from './common.js';
@@ -17,7 +18,8 @@ const AHEAD_SECONDS = 2 * 3600;
 const LEG_SEPARATOR = ',';
 const PART_SEPARATOR = '|';
 
-const live = { entries: new Map(), asked: new Map(), sent: '', running: null, timer: 0, last: 0, sources: null, changed: null };
+const live = { entries: new Map(), asked: new Map(), sent: '', running: null, timer: 0, last: 0, sources: null, changed: null,
+    reduced: {} };
 
 const keyOf = (sNetwork, sTrip, iDay) => sNetwork + PART_SEPARATOR + sTrip + PART_SEPARATOR + iDay;
 
@@ -49,17 +51,31 @@ const wantedLegs = () => {
     return Array.from(wanted.values()).slice(0, MAX_LEGS);
 };
 
+// Las redes de lo que se ve, aunque salga más tarde o otro día: de ellas se pregunta si hay servicio reducido.
+const wantedNetworks = () => {
+    const networks = new Set();
+    live.sources().forEach((source) => ridesIn(source.legs).forEach((leg) => networks.add(leg.network)));
+    return Array.from(networks);
+};
+
+// Si la red tiene servicio reducido el día del planificador iDay (días desde el 1 de enero de 1970).
+export const reducedOn = (sNetwork, iDay) => {
+    const sDate = new Date(iDay * SECONDS_PER_DAY * 1000).toISOString().slice(0, 10);
+    return (live.reduced[sNetwork] || []).includes(sDate);
+};
+
 // Si hay tramos por los que aún no se ha preguntado (o hace mucho): pasa al repetir la búsqueda con el directo.
 export const unaskedLegs = () => wantedLegs().some((leg) => !live.asked.has(leg.key) || Date.now() - live.asked.get(leg.key) > REFRESH_MS);
 
 const legsParam = (aLegs) => aLegs.map((leg) => [leg.network, leg.stop, leg.line, leg.depart, leg.trip].map(encodeURIComponent).join(PART_SEPARATOR))
     .join(LEG_SEPARATOR);
 
-const download = async (aLegs) => {
+const download = async (aLegs, aNetworks) => {
     const abort = new AbortController();
     const iTimer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+    const sQuery = '?legs=' + encodeURIComponent(legsParam(aLegs)) + '&networks=' + encodeURIComponent(aNetworks.join(LEG_SEPARATOR));
     try {
-        const response = await fetch(LIVE_URL + '?legs=' + encodeURIComponent(legsParam(aLegs)), { signal: abort.signal });
+        const response = await fetch(LIVE_URL + sQuery, { signal: abort.signal });
         if (!response.ok) {
             return null;
         }
@@ -75,9 +91,11 @@ const download = async (aLegs) => {
     }
 };
 
-// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora.
+// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. true si cambia el servicio reducido.
 const remember = (aLegs, answer) => {
     const iNow = Date.now();
+    const sReduced = JSON.stringify(live.reduced);
+    live.reduced = answer.reduced || {};
     aLegs.forEach((leg) => {
         live.asked.set(leg.key, iNow);
         live.entries.delete(leg.key);
@@ -85,6 +103,7 @@ const remember = (aLegs, answer) => {
     answer.updates.forEach((update) => {
         live.entries.set(keyOf(update.network, update.trip, answer.day), { at: iNow, update: Object.assign({ day: answer.day }, update) });
     });
+    return JSON.stringify(live.reduced) !== sReduced;
 };
 
 // Manda al núcleo lo que vale ahora. true si ha cambiado algo de lo que había.
@@ -107,14 +126,16 @@ const apply = async () => {
 
 const refresh = async () => {
     const aLegs = wantedLegs();
-    if (aLegs.length > 0) {
-        const answer = await download(aLegs);
+    const aNetworks = wantedNetworks();
+    let bReduced = false;
+    if (aNetworks.length > 0) {
+        const answer = await download(aLegs, aNetworks);
         if (answer) {
-            remember(aLegs, answer);
+            bReduced = remember(aLegs, answer);
         }
     }
     live.last = Date.now();
-    return apply();
+    return (await apply()) || bReduced;
 };
 
 // Pide el directo de lo que se ve y lo aplica: true si ha cambiado. Si ya hay una petición en marcha, es esa.

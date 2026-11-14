@@ -12,9 +12,17 @@ export function debounce(fn, delayMs) {
     };
 }
 
+// Hoy la red tiene servicio reducido (huelga, servicios mínimos): lo que va solo con su horario puede no pasar.
+let reducedToday = false;
+
+export function setReducedToday(isReduced) {
+    reducedToday = isReduced;
+}
+
 // Cuánto falta, para las listas: «5 min» o, si hoy ya no sale ninguna más, «mañana 07:00».
 export function departureWhen(departure) {
     if (departure.tomorrow) return I18n.t('app.tomorrowAt', { time: departure.scheduledTime });
+    if (reducedToday && departure.status === 'scheduled') return `${Math.max(departure.etaMinutes, 0)} min · ${I18n.t('app.list.mayNotRun')}`;
     return `${Math.max(departure.etaMinutes, 0)} min`;
 }
 
@@ -49,6 +57,7 @@ export function statusLabel(status, delayMinutes) {
     if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
     if (status === 'likely_departed') return { text: noData('app.status.likelyDeparted', 'app.status.likelyDepartedTrain'), className: 'status-muted' };
     if (status === 'cancelled') return { text: I18n.t('app.status.cancelled'), className: 'status-warn' };
+    if (reducedToday && status === 'scheduled') return { text: I18n.t('app.status.mayNotRun'), className: 'status-warn' };
     return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
 }
 
