@@ -5,6 +5,8 @@ namespace Core;
 // Registro de redes: cada fichero de api/Networks describe una. Añadir una red es añadir su fichero.
 class Networks
 {
+    // Cuántas redes salen en «Tus redes» mientras no se ha elegido ninguna: las primeras, sin las locales.
+    private const DEFAULT_FAVORITES = 4;
     private static array|null $aAll = null;
     private static string|null $sDefault = null;
 
@@ -44,6 +46,13 @@ class Networks
     public static function slugs(): array
     {
         return array_keys(self::all());
+    }
+
+    // «Tus redes» por defecto (las del inicio y las del planificador mientras no se han elegido).
+    public static function defaultFavorites(): array
+    {
+        $aMain = array_filter(self::all(), fn($aNetwork) => ($aNetwork['scope'] ?? 'main') !== 'local');
+        return array_slice(array_keys($aMain), 0, self::DEFAULT_FAVORITES);
     }
 
     public static function exists(string|null $sSlug): bool

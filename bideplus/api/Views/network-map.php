@@ -65,6 +65,7 @@ $aJsonLd = [
     <script src="/js/theme.js"></script>
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>
+    <script src="/js/planner-link.js" defer></script>
     <script src="/js/network-map.js" defer></script>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>

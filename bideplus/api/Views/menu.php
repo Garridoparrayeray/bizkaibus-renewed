@@ -170,28 +170,45 @@ $aJsonLd = [
             </div>
         </header>
 
-        <a class="planner" href="/planificador/" aria-labelledby="planner-title">
+        <form class="planner" action="/planificador" method="get" aria-labelledby="planner-title" data-planner-card>
             <div class="planner-head">
                 <h2 id="planner-title" data-i18n="menu.planner.title">¿A dónde vas?</h2>
             </div>
-            <div class="planner-body" inert aria-hidden="true">
+            <div class="planner-body">
                 <div class="planner-places">
-                    <p class="planner-place"><span class="planner-dot planner-dot--from"></span><span data-i18n="menu.planner.from">Tu ubicación</span></p>
-                    <p class="planner-place planner-place--to"><span class="planner-dot planner-dot--to"></span><span data-i18n="menu.planner.to">Destino: parada, calle o sitio</span></p>
-                    <span class="planner-swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4V20M12 8L8 4L4 8M16 20V4M20 16L16 20L12 16"/></svg></span>
+                    <label class="planner-place">
+                        <span class="planner-dot planner-dot--from" aria-hidden="true"></span>
+                        <span class="bide-visually-hidden" data-i18n="menu.planner.fromLabel">Origen</span>
+                        <input class="planner-input" name="de_texto" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" maxlength="120" data-planner-from placeholder="Tu ubicación">
+                    </label>
+                    <label class="planner-place planner-place--to">
+                        <span class="planner-dot planner-dot--to" aria-hidden="true"></span>
+                        <span class="bide-visually-hidden" data-i18n="menu.planner.toLabel">Destino</span>
+                        <input class="planner-input" name="a_texto" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" maxlength="120" data-planner-to placeholder="Destino: parada, calle o sitio">
+                    </label>
+                    <input type="hidden" name="a" value="ubicacion" data-planner-here disabled>
+                    <button type="button" class="planner-swap" data-planner-swap data-i18n-attr="aria-label:menu.planner.swap" aria-label="Intercambiar origen y destino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4V20M12 8L8 4L4 8M16 20V4M20 16L16 20L12 16"/></svg></button>
                 </div>
-                <div class="planner-when">
-                    <span data-i18n="menu.planner.now">Ahora</span>
-                    <span data-i18n="menu.planner.leave">Salir a</span>
-                    <span class="is-on" data-i18n="menu.planner.arrive">Llegar a</span>
+                <fieldset class="planner-when">
+                    <legend class="bide-visually-hidden" data-i18n="menu.planner.when">Cuándo</legend>
+                    <label><input type="radio" name="cuando" value="ahora" checked><span data-i18n="menu.planner.now">Ahora</span></label>
+                    <label><input type="radio" name="cuando" value="salir"><span data-i18n="menu.planner.leave">Salir a</span></label>
+                    <label><input type="radio" name="cuando" value="llegar"><span data-i18n="menu.planner.arrive">Llegar a</span></label>
+                </fieldset>
+                <div class="planner-time" data-planner-time hidden>
+                    <label>
+                        <span class="bide-visually-hidden" data-i18n="menu.planner.day">Día</span>
+                        <select name="dia" data-planner-day><option value="" data-i18n="menu.planner.today">Hoy</option></select>
+                    </label>
+                    <label>
+                        <span class="bide-visually-hidden" data-i18n="menu.planner.time">Hora</span>
+                        <input type="time" name="hora" step="60" data-planner-hour>
+                    </label>
                 </div>
-                <div class="planner-time">
-                    <span><span data-i18n="menu.planner.today">Hoy</span><span aria-hidden="true">▾</span></span>
-                    <span><strong data-i18n="menu.planner.arriveAt">Llegar 09:00</strong><span aria-hidden="true">▾</span></span>
-                </div>
-                <span class="planner-go" data-i18n="menu.planner.search">Buscar ruta</span>
+                <button class="planner-go" type="submit" data-i18n="menu.planner.search">Buscar ruta</button>
             </div>
-        </a>
+        </form>
+        <script src="/js/menu-planner.js"></script>
 
         <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
             <div class="nets-head">
@@ -199,7 +216,7 @@ $aJsonLd = [
                 <button type="button" id="nets-edit" class="nets-edit" aria-pressed="false" data-i18n="menu.nets.edit">Editar</button>
             </div>
             <p id="nets-hint" class="nets-hint" data-i18n="menu.nets.hint" hidden>Toca «Añadir» en las redes que uses. Con «Quitar» dejan de salir aquí arriba.</p>
-            <ul class="tiles" id="tiles-fav">
+            <ul class="tiles" id="tiles-fav" data-default="<?= implode(',', \Core\Networks::defaultFavorites()) ?>">
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');
     $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>

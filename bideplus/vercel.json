@@ -51,18 +51,14 @@
       "dest": "/api/index.php"
     },
     {
-      "src": "^/planificador/?$",
+      "src": "^/planificador/pantallas/(?:index[.]html)?$",
       "status": 308,
       "headers": {
-        "Location": "/planificador/pantallas/"
+        "Location": "/planificador"
       }
     },
     {
       "handle": "filesystem"
-    },
-    {
-      "src": "^/planificador/pantallas/$",
-      "dest": "/planificador/pantallas/index.html"
     },
     {
       "src": "/api/(.*)",
@@ -74,6 +70,10 @@
     },
     {
       "src": "/estado",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "^/planificador/?$",
       "dest": "/api/shell.php"
     },
     {

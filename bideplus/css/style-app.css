@@ -914,6 +914,50 @@ header p {
         .live-timetable-lines .pill:hover {
             background: rgba(255, 255, 255, .18);
         }
+/* «Cómo llegar aquí» y «Salir desde aquí»: abren el planificador con esta parada (js/planner-link.js) */
+.stop-plan {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 14px;
+}
+    .stop-plan-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 44px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--primary);
+        font-size: calc(14.08px * var(--text-scale, 1));
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        text-decoration: none;
+    }
+        .stop-plan-link:hover {
+            background: var(--primary-tint);
+        }
+        .stop-plan-link svg {
+            flex: none;
+            order: 2;
+            width: 16px;
+            height: 16px;
+        }
+.live-card .stop-plan {
+    margin: 10px 0 0;
+}
+    .live-card .stop-plan-link {
+        border-color: rgba(255, 255, 255, .28);
+        background: rgba(255, 255, 255, .1);
+        color: #fff;
+    }
+        .live-card .stop-plan-link:hover {
+            background: rgba(255, 255, 255, .18);
+        }
 .platform-notice {
     margin: 0 0 14px;
     color: var(--text-secondary);

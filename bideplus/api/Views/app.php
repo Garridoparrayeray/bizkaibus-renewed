@@ -181,6 +181,10 @@ use Core\Networks;
                     </button>
                     <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="live-timetable-lines" class="platform-timetable-lines live-timetable-lines" hidden></div>
+                    <p class="stop-plan">
+                        <a id="live-plan-to" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
+                        <a id="live-plan-from" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
+                    </p>
                     <footer>
                         <p>
                             <span id="live-status-dot" class="status-dot"></span><span id="live-status-text"></span>
@@ -208,6 +212,10 @@ use Core\Networks;
                     </header>
                     <button id="platform-timetable-link" type="button" class="platform-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="platform-timetable-lines" class="platform-timetable-lines" hidden></div>
+                    <p class="stop-plan">
+                        <a id="platform-plan-to" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.howTo">Cómo llegar aquí</span></a>
+                        <a id="platform-plan-from" class="stop-plan-link" href="/planificador"><?= BIDE_ICONS['next'] ?><span data-i18n="plan.leaveFrom">Salir desde aquí</span></a>
+                    </p>
                     <button id="platform-alerts" class="stop-alerts" type="button" hidden></button>
                     <p id="platform-notice" class="platform-notice" role="status" hidden></p>
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
@@ -339,6 +347,7 @@ use Core\Networks;
     <script src="js/api.js"></script>
     <script src="js/alerts-store.js"></script>
     <script src="/js/offline.js"></script>
+    <script src="/js/planner-link.js"></script>
     <script type="module" src="/js/app/main.js"></script>
     <script type="module" src="/js/settings.js"></script>
     <script defer src="/js/bide.js"></script>

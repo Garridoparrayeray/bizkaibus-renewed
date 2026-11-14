@@ -16,7 +16,8 @@ NO_DOMAIN = 'miamor.invalid'
 DOMAIN_FILES = ('js/theme.js', 'api/shell.php', 'api/Views/app-page.php')
 INDEXED = '<meta name="robots" content="index, follow, max-image-preview:large">'
 NOT_INDEXED = '<meta name="robots" content="noindex, nofollow">'
-ROBOTS_FILES = ('api/Views/menu.php', 'api/Views/app.php', 'api/Views/estado.php', 'api/Views/network-map.php')
+ROBOTS_FILES = ('api/Views/menu.php', 'api/Views/app.php', 'api/Views/estado.php', 'api/Views/network-map.php',
+                'api/Views/planner.php')
 GOOGLE_LINE = ('    <meta name="google-site-verification" '
                'content="<?= htmlspecialchars($aSite[\'gsc_verification\']) ?>">\n')
 GOOGLE_FILES = ('api/Views/menu.php', 'api/Views/app.php')

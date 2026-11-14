@@ -30,13 +30,11 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     }
 }
 
-// El planificador que deja scripts/build-planner.php en planificador/: las mismas dos rutas que en vercel.json.
-if ($sUri === '/planificador' || $sUri === '/planificador/') {
-    header('Location: /planificador/pantallas/', true, 308);
+// El planificador es una página de la app (/planificador); la página suelta de sus pantallas lleva a ella, como en
+// vercel.json (los enlaces compartidos van detrás de «#», que el navegador conserva).
+if ($sUri === '/planificador/pantallas/' || $sUri === '/planificador/pantallas/index.html') {
+    header('Location: /planificador', true, 308);
     return true;
-}
-if ($sUri === '/planificador/pantallas/') {
-    $sUri = '/planificador/pantallas/index.html';
 }
 
 if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|engine)(/|$)#', $sUri) || preg_match('#^/api/[A-Z][^/]*/#', $sUri) || preg_match('#^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$#', $sUri)) {
@@ -70,7 +68,7 @@ if (str_starts_with($sUri, '/api/')) {
     return true;
 }
 
-if ($sUri === '/' || $sUri === '/mapa' || $sUri === '/estado' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/') || str_starts_with($sUri, '/pantalla/')) {
+if ($sUri === '/' || $sUri === '/mapa' || $sUri === '/estado' || $sUri === '/planificador' || $sUri === '/planificador/' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/') || str_starts_with($sUri, '/pantalla/')) {
     if (isset($_COOKIE['lento'])) {
         usleep((int) $_COOKIE['lento'] * 1000);
     }

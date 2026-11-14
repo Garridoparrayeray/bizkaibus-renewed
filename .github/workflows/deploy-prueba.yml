@@ -286,7 +286,7 @@ jobs:
             sleep 10
           done
           FALLOS=0
-          for RUTA in /planificador/pantallas/ /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
+          for RUTA in /planificador /planificador/pantallas/app.js /planificador/pantallas/screens.html /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
             CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$RUTA")
             echo "prueba $RUTA -> $CODE"
             if [ "$CODE" != "200" ]; then

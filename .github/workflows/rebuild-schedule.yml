@@ -484,7 +484,7 @@ jobs:
         if: steps.planificador.outputs.hay == '1'
         run: |
           SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
-          for RUTA in /planificador/pantallas/ /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
+          for RUTA in /planificador /planificador/pantallas/app.js /planificador/build/data/manifest.json /planificador/dist/bideplan.wasm; do
             CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$RUTA")
             echo "producción $RUTA -> $CODE"
             if [ "$CODE" != "200" ]; then

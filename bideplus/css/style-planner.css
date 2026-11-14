@@ -1,0 +1,65 @@
+/* Planificador (/planificador): la página de la app que aloja las pantallas del motor (planificador/pantallas) */
+
+/* ===== Página ===== */
+body.page-planner {
+    margin: 0;
+    font-size: 16px;
+    background: var(--bide-bg);
+    color: var(--bide-ink);
+    font-family: 'Hanken Grotesk', system-ui, sans-serif;
+    line-height: 1.4;
+    -webkit-text-size-adjust: 100%;
+}
+.page-planner .map-top {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    border-bottom: 1px solid var(--bide-line);
+}
+
+/* ===== Pantallas ===== */
+.planner-main {
+    padding-top: 16px;
+}
+    .planner-main:focus,
+    .planner-main [tabindex="-1"]:focus {
+        outline: none;
+    }
+    .planner-noscript {
+        margin: 0;
+        color: var(--bide-muted);
+    }
+
+/* ===== Pie ===== */
+.planner-page-foot {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 8px 16px calc(32px + env(safe-area-inset-bottom));
+    color: var(--bide-muted);
+    font-size: 13px;
+}
+    .planner-page-foot .bide-wordmark {
+        color: var(--bide-green);
+        font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+        .planner-page-foot .bide-wordmark > span {
+            color: var(--bide-red);
+        }
+    .planner-page-foot p {
+        margin: 6px 0 0;
+        max-width: 70ch;
+    }
+
+/* ===== Ordenador: el pie, tan ancho como las pantallas ===== */
+@media (min-width: 960px) {
+    .planner-main {
+        padding-top: 24px;
+    }
+    .planner-page-foot {
+        max-width: 1240px;
+        padding: 8px 24px 32px;
+    }
+}

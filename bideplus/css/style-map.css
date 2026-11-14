@@ -386,6 +386,18 @@ body.page-map {
         text-align: center;
         text-decoration: none;
     }
+    .map-plan {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+    }
+        .map-action--plan {
+            margin-top: 0;
+            border: 1px solid var(--bide-green);
+            background: var(--bide-surface);
+            color: var(--bide-green);
+        }
 
 @media (max-width: 759px) {
     .map-panel {
