@@ -281,25 +281,35 @@ jobs:
         continue-on-error: true
         run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
 
-      # Se borran los despliegues viejos menos el que sirve el dominio, el último y los KEEP_PREVIOUS anteriores de
-      # producción (.github/scripts/vercel-cleanup.py): «Rollback production» siempre tiene a cuál volver.
+      # Se borran los despliegues de producción viejos menos los que sirven un dominio, el último y los KEEP_PREVIOUS
+      # anteriores (.github/scripts/vercel-cleanup.py): «Rollback production» siempre tiene a cuál volver.
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           KEEP_PREVIOUS: 2
+          # Los dominios que se sirven desde este proyecto, además del del sitio: la copia de prueba.
+          OTHER_ALIASES: bideplusmiamor.vercel.app
         run: |
           TEAM=""
           case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
           API="https://api.vercel.com"
           AUTH="Authorization: Bearer $VERCEL_TOKEN"
           LISTA="$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
-          # El que sirve el dominio ahora; si no se puede leer, vercel-cleanup.py no borra nada.
+          # El de producción actual y el que sirve cada dominio; si alguno no se puede leer, no se borra nada.
           PROYECTO="$(curl -fsS -H "$AUTH" "$API/v9/projects/$VERCEL_PROJECT_ID?x=1$TEAM" || true)"
           CURRENT="$(printf '%s' "$PROYECTO" | python3 -c \
             'import json, sys; print(json.load(sys.stdin)["targets"]["production"]["id"])' 2>/dev/null || true)"
-          export CURRENT
+          SITIO="$(php -r 'echo parse_url((require "bideplus/api/Config/site.php")["url"], PHP_URL_HOST);')"
+          ALIASED=""
+          for DOMINIO in $SITIO $OTHER_ALIASES; do
+            ID="$(curl -fsS -H "$AUTH" "$API/v4/aliases/$DOMINIO?x=1$TEAM" | python3 -c \
+              'import json, sys; print(json.load(sys.stdin)["deploymentId"])' 2>/dev/null || true)"
+            [ -n "$ID" ] || CURRENT=""
+            ALIASED="$ALIASED $ID"
+          done
+          export CURRENT ALIASED
           printf '%s' "$LISTA" | python3 .github/scripts/vercel-cleanup.py | while read -r UID_; do
             [ -n "$UID_" ] && curl -fsS -X DELETE -H "$AUTH" "$API/v13/deployments/$UID_?x=1$TEAM" > /dev/null || true
           done
