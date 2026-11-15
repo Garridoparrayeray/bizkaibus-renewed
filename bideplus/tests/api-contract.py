@@ -254,7 +254,12 @@ for name, cfg in NETS.items():
         else:
             warnings.append(message)
     if departures_seen == 0 and not quiet_hours:
-        fails.append(f'{name}: ninguna parada muestra próximas salidas')
+        # Igual en una red opcional: un domingo a última hora sus paradas de muestra pueden no tener salidas.
+        message = f'{name}: ninguna parada muestra próximas salidas'
+        if cfg.get('required'):
+            fails.append(message)
+        else:
+            warnings.append(message)
     summary = 'OK'
     if len(fails) != before:
         summary = f'{len(fails) - before} fallos'
