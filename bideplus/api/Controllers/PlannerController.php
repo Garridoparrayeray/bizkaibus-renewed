@@ -7,10 +7,12 @@ use Core\Networks;
 use Core\Request;
 use Core\Response;
 use Services\Calendar;
+use Services\PlannerExtras;
 
 // El directo del planificador del inicio (/api/planner/live?legs=red|parada|línea|hora|viaje,...): el retraso de
 // los vehículos de las opciones que se ven, con el emparejado de las próximas salidas de cada red, en el formato de la
-// operación «live» del núcleo. Lo que no va en directo no sale: el planificador lo deja con su horario.
+// operación «live» del núcleo. Lo que no va en directo no sale: el planificador lo deja con su horario. Y los refuerzos
+// (trenes que el horario no tiene) que pasan por las paradas de los tramos en las próximas 2 h, en «extras».
 class PlannerController
 {
     private const MAX_LEGS = 40;
@@ -29,15 +31,18 @@ class PlannerController
             return;
         }
         $aUpdates = [];
+        $aExtras = [];
         $sCurrent = Config::network();
         try {
             foreach ($aByNetwork as $sNetwork => $aLegs) {
                 array_push($aUpdates, ...self::networkUpdates($sNetwork, $aLegs));
+                array_push($aExtras, ...self::networkExtras($sNetwork, array_keys($aLegs)));
             }
         } finally {
             Config::set($sCurrent);
         }
-        Response::json(['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates]);
+        $aExtras = \array_slice($aExtras, 0, PlannerExtras::MAX_EXTRAS);
+        Response::json(['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates, 'extras' => $aExtras]);
     }
 
     // red => parada => [[línea, hora en la parada, viaje]], de «red|parada|línea|hora|viaje» separados por comas (cada
@@ -73,6 +78,18 @@ class PlannerController
             return self::updatesOf($sNetwork, StopsController::liveLegs($aLegs), self::serviceDay());
         } catch (\Throwable $Ex) {
             error_log('Bide+ directo del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
+            return [];
+        }
+    }
+
+    // Los refuerzos de una red que pasan por esas paradas. Si su directo falla, sin refuerzos.
+    private static function networkExtras(string $sNetwork, array $aStopIds): array
+    {
+        try {
+            Config::set($sNetwork);
+            return PlannerExtras::atStops($sNetwork, $aStopIds);
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ refuerzos del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
             return [];
         }
     }

@@ -91,8 +91,12 @@ export const rideText = (app, leg) => {
 };
 
 // «En directo · 3 min de retraso», «En directo · a su hora» o, sin dato del directo para ese vehículo, «Según
-// horario». El retraso es el que ha aplicado el planificador, el mismo de las horas que se ven.
+// horario». El retraso es el que ha aplicado el planificador, el mismo de las horas que se ven. Un refuerzo (un
+// vehículo que el horario no tiene y da el directo): «Refuerzo · en directo».
 export const liveOf = (leg, iDay) => {
+    if (leg.extra) {
+        return { live: true, extra: true, text: I18n.t('route.live.extra') };
+    }
     const entry = liveEntry(leg, iDay);
     if (!entry && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id)) {
         return { live: false, text: I18n.t('route.live.mayNotRun') };
@@ -115,11 +119,11 @@ export const liveOf = (leg, iDay) => {
 // Si todos sus vehículos van con dato del directo (y ninguno cancelado): lo que deja «Solo en directo».
 const allLive = (option, iDay) => ridesIn(option.legs).every((leg) => {
     const entry = liveEntry(leg, iDay);
-    return entry !== null && !entry.cancelled;
+    return Boolean(leg.extra) || (entry !== null && !entry.cancelled);
 });
 
 // Si algún vehículo va solo con su horario en una red con servicio reducido ese día: puede no pasar.
-const mayNotRun = (option, iDay) => ridesIn(option.legs).some((leg) => liveEntry(leg, iDay) === null
+const mayNotRun = (option, iDay) => ridesIn(option.legs).some((leg) => !leg.extra && liveEntry(leg, iDay) === null
     && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id));
 
 // El hueco de un transbordo: lo que se anda (si se anda) y el margen que queda.
@@ -153,6 +157,9 @@ const timeline = (app, option, query, iDay) => {
         let sLiveClass = 'route-step-live';
         if (live.live) {
             sLiveClass += ' is-live';
+        }
+        if (live.extra) {
+            sLiveClass += ' is-extra';
         }
         list.append(step(clock(leg.depart), 'ride', colorOf(app.networkOf(leg.network)), [['route-step-title', leg.from.name],
             ['route-step-sub', rideText(app, leg)], [sLiveClass, live.text]]));

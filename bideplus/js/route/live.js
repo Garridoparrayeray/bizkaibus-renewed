@@ -1,5 +1,6 @@
 // El directo del planificador del inicio: pide a /api/planner/live el retraso de los vehículos de las opciones que se
-// ven y del viaje elegido, se lo pasa al núcleo (operación live) y avisa para repetir la búsqueda. Se refresca cada
+// ven y del viaje elegido y los refuerzos (trenes sin horario) que pasan por sus paradas, se lo pasa al núcleo
+// (operación live) y avisa para repetir la búsqueda. Se refresca cada
 // 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario. Aparte, sin esperar,
 // pide a /api/reduced, red a red, si las redes de lo que se ve tienen servicio reducido (huelga, servicios mínimos).
 import * as engine from '/planificador/pantallas/engine.js';
@@ -18,8 +19,8 @@ const AHEAD_SECONDS = 2 * 3600;
 const LEG_SEPARATOR = ',';
 const PART_SEPARATOR = '|';
 
-const live = { entries: new Map(), asked: new Map(), sent: '', running: null, timer: 0, last: 0, sources: null, changed: null,
-    reduced: new Map(), reducedChanged: null };
+const live = { entries: new Map(), asked: new Map(), extras: { at: 0, list: [] }, sent: '', running: null, timer: 0, last: 0,
+    sources: null, changed: null, reduced: new Map(), reducedChanged: null };
 // El servicio reducido de cada red se vuelve a pedir pasado este tiempo.
 const REDUCED_URL = '/api/reduced?red=';
 const REDUCED_MS = 5 * 60 * 1000;
@@ -127,9 +128,15 @@ const download = async (aLegs) => {
     }
 };
 
-// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora.
+// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. Los refuerzos de cada respuesta
+// sustituyen a los de la anterior.
 const remember = (aLegs, answer) => {
     const iNow = Date.now();
+    let aExtras = [];
+    if (Array.isArray(answer.extras)) {
+        aExtras = answer.extras;
+    }
+    live.extras = { at: iNow, list: aExtras };
     aLegs.forEach((leg) => {
         live.asked.set(leg.key, iNow);
         live.entries.delete(leg.key);
@@ -149,13 +156,18 @@ const apply = async () => {
             live.entries.delete(sKey);
         }
     });
+    if (iNow - live.extras.at > STALE_MS) {
+        live.extras = { at: 0, list: [] };
+    }
     const aUpdates = Array.from(live.entries.values()).map((entry) => entry.update);
-    const sSent = JSON.stringify(aUpdates.map((update) => [update.network, update.trip, update.day, update.delay, update.cancelled]).sort());
+    const sSent = JSON.stringify([aUpdates.map((update) => [update.network, update.trip, update.day, update.delay, update.cancelled]).sort(),
+        live.extras.list]);
     if (sSent === live.sent) {
         return false;
     }
     live.sent = sSent;
-    await engine.setLive(nowHere().day, aUpdates).catch(() => null);
+    const here = nowHere();
+    await engine.setLive(here.day, aUpdates, live.extras.list, here.seconds).catch(() => null);
     return true;
 };
 

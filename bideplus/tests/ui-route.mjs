@@ -6,7 +6,8 @@ import { launchBrowser } from './browser.mjs';
 // filtros y las redes, la pantalla del viaje elegido, «atrás», «Cómo llegar aquí» desde una parada y un enlace
 // compartido. Con el directo simulado (/api/planner/live, interceptado): las etiquetas «En directo · N min de retraso» y
 // «Según horario», «Solo en directo», un directo que falla, el transbordo perdido, que se para en segundo plano, un
-// día con servicios mínimos (aviso, «puede no pasar» y primero lo que no depende solo del horario) y Renfe Cercanías.
+// día con servicios mínimos (aviso, «puede no pasar» y primero lo que no depende solo del horario), Renfe Cercanías
+// y un refuerzo (un metro que el horario no tiene) que sale primero, marcado «Refuerzo · en directo».
 // Necesita el planificador publicado (planificador/build/data): sin él, lo dice y no prueba nada.
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
@@ -53,7 +54,7 @@ const waitTrue = async (expr, ms = 10000) => {
 // El directo simulado: «mixed» retrasa 4 min los metros y deja lo demás con su horario, «late» los retrasa 25 min (el
 // transbordo se pierde), «reduced» es «mixed» con servicios mínimos hoy en las demás redes y «fail» responde con un
 // error; «renfe» retrasa 3 min los trenes de Renfe y apunta sus tramos. Cuenta las peticiones.
-const live = { mode: 'mixed', count: 0, renfeLegs: [] };
+const live = { mode: 'mixed', count: 0, renfeLegs: [], extra: null };
 const madridDay = () => Math.floor(Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T00:00:00Z') / 86400000);
 const liveBody = (sUrl) => {
     const aLegs = (new URL(sUrl).searchParams.get('legs') || '').split(',').filter(Boolean).map((sLeg) => sLeg.split('|').map(decodeURIComponent));
@@ -66,7 +67,9 @@ const liveBody = (sUrl) => {
         live.renfeLegs.push(...aLegs.filter((a) => a[0] === 'renfe'));
     }
     const updates = aLegs.filter((a) => a[0] === sNetwork).map((a) => ({ network: a[0], trip: a[4], day: madridDay(), delay: iDelay, cancelled: false }));
-    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates });
+    let extras = [];
+    if (live.mode === 'extra' && live.extra) extras = [live.extra];
+    return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates, extras });
 };
 // /api/reduced: sin nada, salvo en «reduced», que da servicios mínimos hoy en las redes que no son el metro (y tarda
 // un poco, para ver que las opciones salen antes y no se mueven al llegar).
@@ -359,6 +362,35 @@ if (!(await liveSearch('mixed'))) {
     } else {
         check('directo de Renfe · cada tramo con su parada, su línea y su hora', live.renfeLegs.every((a) => a[1] === '13400' && /^C\d$/.test(a[2]) && /^\d+$/.test(a[3]) && a[4] !== ''), JSON.stringify(live.renfeLegs.slice(0, 3)));
         check('directo de Renfe · las opciones lo enseñan', await waitTrue(`${labels}.some((s) => s === 'En directo · 3 min de retraso')`, 15000));
+    }
+
+    // Un refuerzo: un metro de Gobela a San Mamés que el horario no tiene, que sale 1 min después que el primero que da
+    // el núcleo y llega 2 min antes. Sale primero, marcado, y el viaje elegido lo lleva.
+    const first = await ev(`(async () => {
+        const engine = await import('/planificador/pantallas/engine.js');
+        const here = (await import('/planificador/pantallas/query.js')).nowHere();
+        const answer = await engine.call({ op: 'plan', day: here.day, time: here.seconds, from: { network: 'metro', stop: '20' },
+            to: { network: 'metro', stop: '10' } }, 'prueba');
+        const ride = ((answer.options || [])[0] || { legs: [] }).legs.find((leg) => leg.kind === 'ride');
+        if (!ride || ride.depart > here.seconds + 3600) return null;
+        return { line: ride.line.id, depart: ride.depart, arrive: ride.arrive };
+    })()`);
+    if (!first) {
+        results.push('SALTA refuerzo: no hay metro de Gobela a San Mamés en la próxima hora');
+    } else {
+        live.extra = { network: 'metro', line: first.line, trip: 'rt:prueba-refuerzo', headsign: 'San Mamés',
+            stops: [{ stop: '20', arrive: first.depart + 60, depart: first.depart + 60 }, { stop: '10', arrive: first.arrive - 120, depart: first.arrive - 120 }] };
+        live.mode = 'extra';
+        await go('/planificador?de=parada&de_red=metro&de_id=20&de_nombre=Gobela&a=parada&a_red=metro&a_id=10&a_nombre=San%20Mam%C3%A9s');
+        await waitTrue(optionsReady, PLANNER_MS);
+        const sFirstLabel = "(document.querySelector('#route-options .route-option .route-step-live') || {}).textContent";
+        check('refuerzo · sale primero y marcado «Refuerzo · en directo»', await waitTrue(`${sFirstLabel} === 'Refuerzo · en directo'`, 20000), await ev(labels));
+        await ev("document.querySelector('.route-option .route-choose').click(); true");
+        check('refuerzo · el viaje elegido lo lleva, marcado', await waitTrue("[...document.querySelectorAll('.route-ride-badge')].some((n) => n.textContent === 'Refuerzo · en directo')", 20000));
+        await ev('history.back(); true');
+        await waitTrue("document.getElementById('route-trip').hidden");
+        live.mode = 'mixed';
+        live.extra = null;
     }
 
     // Si el directo falla, todo sigue con el horario, sin avisos de error.

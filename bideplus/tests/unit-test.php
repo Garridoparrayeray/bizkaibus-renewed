@@ -916,6 +916,7 @@ $Expect('un tren sin salida sale sin horario, con el destino y la línea del rec
 $Expect('liveTrip: las paradas que le quedan al tren casado con el viaje', $MatcherPm->liveTrip('A', $aRowsPm, 'r1') === [['A', $iMidPm + 1090], ['B', $iMidPm + 1150]], json_encode($MatcherPm->liveTrip('A', $aRowsPm, 'r1')));
 $aExtraTrainPm = $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'B');
 $Expect('el tren sin horario se vuelve a encontrar por su clave, con su recorrido', $aExtraTrainPm !== null && \count($aExtraTrainPm['stops']) === 3 && $aExtraTrainPm['sequence'] === $aSequencesPm['P2'] && $aExtraTrainPm['headsign'] === 'Uve', json_encode($aExtraTrainPm));
+$Expect('el tren sin horario trae su id del feed (lo usa el planificador para los refuerzos)', ($aExtraTrainPm['trip_id'] ?? null) === 't3', json_encode($aExtraTrainPm));
 $Expect('la clave de un tren sin horario lleva su andén: con otro andén no es él', $aExtraPm[0]['platform_stop_id'] === 'B' && $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'C') === null);
 $aTwoExtras = [
     ['tripId' => 'e1', 'stops' => [['A', $iMidPm + 1900], ['B', $iMidPm + 1960], ['Y', $iMidPm + 2000]]],
@@ -998,6 +999,12 @@ $Expect('un tramo sin hora, con partes vacías o de más no vale; sin tramos, na
 $Expect('más de 40 tramos no vale', \Controllers\PlannerController::legsByNetwork(implode(',', array_fill(0, 41, 'metro|20|MB|1|1'))) === null);
 $aPlannerUpdates = \Controllers\PlannerController::updatesOf('metro', ['a' => ['status' => 'live', 'delaySeconds' => 245], 'b' => ['status' => 'live', 'delaySeconds' => -600], 'c' => ['status' => 'cancelled', 'delaySeconds' => 0], 'd' => ['status' => 'scheduled', 'delaySeconds' => 0], 'e' => ['status' => 'estimated', 'delaySeconds' => 0], 'f' => ['status' => 'live', 'delaySeconds' => 60, 'yesterday' => true]], 20407);
 $Expect('en directo va el retraso entero y el adelanto hasta 2 min; cancelado, cancelado; lo estimado o del horario no sale; cada viaje con su día de servicio (el de ayer de madrugada, con el de ayer)', $aPlannerUpdates === [['network' => 'metro', 'trip' => 'a', 'day' => 20407, 'delay' => 245, 'cancelled' => false], ['network' => 'metro', 'trip' => 'b', 'day' => 20407, 'delay' => -120, 'cancelled' => false], ['network' => 'metro', 'trip' => 'c', 'day' => 20407, 'delay' => 0, 'cancelled' => true], ['network' => 'metro', 'trip' => 'f', 'day' => 20406, 'delay' => 60, 'cancelled' => false]], json_encode($aPlannerUpdates));
+$aRefuerzo = ['sequence' => ['A', 'B', 'C', 'D'], 'headsign' => 'Uve'];
+$aRefuerzoTimes = ['A' => $iMidPm + 1000, 'B' => $iMidPm + 1100, 'D' => $iMidPm + 1300];
+$aPlannerExtra = \Services\PlannerExtras::extraOf('metro', 'MB', 'rt:t3', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 900);
+$Expect('un refuerzo para el planificador: sus paradas en el orden del recorrido con su hora del día, sin las que no tienen hora', $aPlannerExtra === ['network' => 'metro', 'line' => 'MB', 'trip' => 'rt:t3', 'headsign' => 'Uve', 'stops' => [['stop' => 'A', 'arrive' => 1000, 'depart' => 1000], ['stop' => 'B', 'arrive' => 1100, 'depart' => 1100], ['stop' => 'D', 'arrive' => 1300, 'depart' => 1300]]], json_encode($aPlannerExtra));
+$Expect('un refuerzo que no pasa por ninguna parada en las próximas 2 h no sale (ni el que ya pasó ni el de dentro de 3 h)', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1400) === null && \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1000 - 3 * 3600) === null);
+$Expect('un refuerzo con la hora de una sola parada no sale', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, ['A' => $iMidPm + 1000], $iMidPm, 900) === null);
 
 $Section('Servicio reducido (huelgas, servicios mínimos)');
 $aReducedRules = \Services\ReducedService::rules();
