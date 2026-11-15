@@ -18,7 +18,9 @@
 // los PNG, a construir todo y a validarla.
 //
 // Con horas previstas (--trip-updates) la red sale en directo: retrasos, vehículos en el mapa (--vehicle-positions) e
-// incidencias (--alerts, que también valen solas). Lo que no se puede saber del GTFS y se pone a mano en la ficha (los
+// incidencias (--alerts, que también valen solas). Con solo posiciones, también: el retraso de cada viaje lo estima la
+// app con el GPS de su vehículo y su horario (Services\VehicleDelays). Lo que no se puede saber del GTFS y se pone a
+// mano en la ficha (los
 // bloques de metro.php sirven de modelo): reduced_service.live (servicio reducido por el directo, si es fiable) y
 // gtfs_rt.platform_matching (si los viajes del directo no son los del horario). Un feed que no sea GTFS-Realtime
 // necesita su adaptador en api/Services.
@@ -289,8 +291,8 @@ function settings(array $aOptions): array
         fail('Tipo: ' . implode(', ', KINDS) . '; --matching: trip (viajes del horario) o stops (por paradas y hora).');
     }
     if ($aSet['vehicle-positions'] !== '' && $aSet['trip-updates'] === '') {
-        notice('posiciones sin horas previstas: la app solo enseña los vehículos junto a sus horas (Trip Updates). '
-            . 'La dirección se guarda, pero la red sale con su horario.');
+        notice('posiciones sin horas previstas: la red sale en directo con el retraso que da el GPS de cada vehículo '
+            . 'sobre su horario (live = [\'vehicle-positions\']).');
     }
     $aSet['holidays'] = holidays($aSet['city']);
     if ($aSet['holidays'] === null) {
@@ -394,6 +396,15 @@ function basqueOf(string $sCity): string
     return $sCity . 'eko';
 }
 
+// «de Kbus» (posesivo) en euskera: Kbusen, Tuvisaren.
+function basqueGenitive(string $sName): string
+{
+    if (preg_match('/[aeiou]$/i', $sName)) {
+        return $sName . 'ren';
+    }
+    return $sName . 'en';
+}
+
 // «por Tuvisa» en euskera: Tuvisak, Kbusek.
 function basqueBy(string $sName): string
 {
@@ -412,9 +423,11 @@ function frenchOf(string $sCity): string
     return 'de ' . $sCity;
 }
 
-// Los textos de la ficha en los cuatro idiomas.
-function texts(array $aSet, bool $bLive): array
+// Los textos de la ficha en los cuatro idiomas. $aLive: las fuentes del directo (live de la ficha).
+function texts(array $aSet, array $aLive): array
 {
+    $bLive = $aLive !== [];
+    $bGps = $aLive === ['vehicle-positions'];
     $sName = $aSet['name'];
     $sCity = $aSet['city'];
     $sOperator = $aSet['operator'];
@@ -453,6 +466,28 @@ function texts(array $aSet, bool $bLive): array
             'eu' => ['Ibilgailu bakoitzaren aurreikusitako ordua.', 'Operadorearen aurreikuspena.', 'Ez dago muga ezagunik.'],
             'en' => ['The predicted time of each vehicle.', 'The operator\'s forecast.', 'No known limitations.'],
             'fr' => ['L’heure prévue de chaque véhicule.', 'La prévision de l’opérateur.', 'Aucune limite connue.'],
+        ];
+    }
+    if ($bGps) {
+        $aDisclaimer = [
+            'es' => 'Los tiempos en directo los estima Bide+ con la posición GPS de cada vehículo y su horario.',
+            'eu' => 'Zuzeneko denborak Bide+-ek kalkulatzen ditu, ibilgailu bakoitzaren GPS kokapenarekin eta '
+                . 'ordutegiarekin.',
+            'en' => 'Live times are estimated by Bide+ from the GPS position of each vehicle and its timetable.',
+            'fr' => 'Les temps en direct sont estimés par Bide+ à partir de la position GPS de chaque véhicule et de '
+                . 'ses horaires.',
+        ];
+        $aData = [
+            'es' => ['Dónde va cada vehículo (GPS), sin horas previstas.',
+                'Su retraso, por su posición sobre su horario.', 'Un vehículo sin GPS va con su horario.'],
+            'eu' => ['Ibilgailu bakoitza non doan (GPS), aurreikusitako ordurik gabe.',
+                'Bere atzerapena, bere kokapena ordutegiarekin alderatuta.',
+                'GPSrik gabeko ibilgailua bere ordutegiarekin doa.'],
+            'en' => ['Where each vehicle is (GPS), without predicted times.',
+                'Its delay, from its position against its timetable.', 'A vehicle without GPS runs on its timetable.'],
+            'fr' => ['La position de chaque véhicule (GPS), sans heures prévues.',
+                'Son retard, d’après sa position par rapport à ses horaires.',
+                'Un véhicule sans GPS suit ses horaires.'],
         ];
     }
     $aSwitcherEnd = ['es' => '', 'eu' => '', 'en' => '', 'fr' => ''];
@@ -495,6 +530,13 @@ function texts(array $aSet, bool $bLive): array
     if ($bLive) {
         $aTexts['eu']['liveSource'] = basqueBy($sOperator);
     }
+    // Sin horas del operador: las calcula Bide+ con su GPS («horas previstas por Bide+ con el GPS de Kbus»).
+    if ($bGps) {
+        $aTexts['es']['liveSource'] = 'Bide+ con el GPS de ' . $sOperator;
+        $aTexts['eu']['liveSource'] = 'Bide+-ek ' . basqueGenitive($sOperator) . ' GPSarekin';
+        $aTexts['en']['liveSource'] = 'Bide+ from ' . $sOperator . ' GPS data';
+        $aTexts['fr']['liveSource'] = 'Bide+ d’après le GPS ' . frenchOf($sOperator);
+    }
     return $aTexts;
 }
 
@@ -509,6 +551,10 @@ function gtfsRt(array $aSet): array|null
     }
     if ($aRt === []) {
         return null;
+    }
+    // Solo posiciones: cada vehículo se casa con su viaje por su GPS (Services\VehicleDelays), sin matching.
+    if ($aSet['trip-updates'] === '') {
+        return $aRt + ['cache_ttl_seconds' => 30, 'http_timeout_seconds' => 8, 'max_age_seconds' => 300];
     }
     $aRt['matching'] = $aSet['matching'];
     if ($aSet['matching'] === 'stops') {
@@ -533,11 +579,11 @@ function config(array $aSet): string
     $aLive = [];
     if ($aSet['trip-updates'] !== '') {
         $aLive[] = 'trip-updates';
-        if ($aSet['vehicle-positions'] !== '') {
-            $aLive[] = 'vehicle-positions';
-        }
     }
-    $aTexts = texts($aSet, $aLive !== []);
+    if ($aSet['vehicle-positions'] !== '') {
+        $aLive[] = 'vehicle-positions';
+    }
+    $aTexts = texts($aSet, $aLive);
     $aSeoWhat = ['Horarios', 'por línea y parada'];
     if ($aLive !== []) {
         $aSeoWhat = ['Horarios y tiempo real', 'en tiempo real por línea y parada'];

@@ -43,4 +43,9 @@ class Config
     {
         return Networks::hasLive(self::current(), $sSource);
     }
+
+    public static function hasFeedLive(): bool
+    {
+        return Networks::hasFeedLive(self::current());
+    }
 }

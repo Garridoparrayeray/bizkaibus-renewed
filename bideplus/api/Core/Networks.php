@@ -79,6 +79,13 @@ class Networks
         return in_array($sSource, $aNetwork['live'] ?? [], true);
     }
 
+    // Directo del GTFS-Realtime: horas previstas (Trip Updates) o, sin ellas, solo las posiciones de los vehículos, con
+    // las que la app estima el retraso de cada viaje (Services\VehicleDelays).
+    public static function hasFeedLive(array $aNetwork): bool
+    {
+        return self::hasLive($aNetwork, 'trip-updates') || self::hasLive($aNetwork, 'vehicle-positions');
+    }
+
     // Una red recién llegada (added en su ficha, el día que llegó): su ficha del menú lleva «Nuevo» unos días (NewBadge).
     public static function isNew(array $aNetwork): bool
     {

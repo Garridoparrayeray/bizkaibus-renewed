@@ -504,7 +504,7 @@ class ReducedService
     private static function sample(array $aLive): array|null
     {
         $JourneyModel = new ServiceJourney(Database::connection());
-        if (Config::hasLive('trip-updates')) {
+        if (Config::hasFeedLive()) {
             $TripMatcher = Live::tripMatcher($JourneyModel);
             if ($TripMatcher === null || !$TripMatcher->hasData()) {
                 return null;

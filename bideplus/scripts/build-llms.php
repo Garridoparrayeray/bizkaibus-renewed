@@ -25,6 +25,9 @@ function liveSummary(array $aLive): string
     if ($aLive === []) {
         return 'official timetable only (no real-time feed published by the operator)';
     }
+    if (!in_array('trip-updates', $aLive, true) && in_array('vehicle-positions', $aLive, true)) {
+        return 'real-time arrivals estimated from the GPS position of each vehicle and its timetable';
+    }
     if (in_array('vehicle-positions', $aLive, true) || in_array('vehicle-monitoring', $aLive, true)) {
         return 'real-time arrivals and vehicles on the map';
     }

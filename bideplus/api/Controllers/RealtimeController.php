@@ -57,7 +57,7 @@ class RealtimeController
         // De madrugada, el de ayer si pasa de las 24:00 y aún no ha terminado.
         [$sLineId, $sTripNumber, $iFirstDeparture] = $aTripKey;
         $aLate = $JourneyModel->lateVariants($sLineId, $sTripNumber, $iFirstDeparture, TripSheet::LATE_GRACE_SECONDS);
-        if (Config::hasLive('trip-updates')) {
+        if (Config::hasFeedLive()) {
             if (!empty($aLate)) {
                 Response::json(TrainSheet::build($JourneyModel, $aLate[0], $Req->query('stopId'), 1));
                 return;

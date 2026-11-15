@@ -3,11 +3,14 @@
 namespace Services;
 
 // La hora del horario que corresponde a dónde está un vehículo por su GPS: se sitúa en el tramo antes o después de la
-// parada que da el feed (Álavabus da a veces la que acaba de dejar atrás) y se reparte la hora del tramo según lo que
-// lleva recorrido de él.
+// parada que da el feed (Álavabus da a veces la que acaba de dejar atrás), o en el recorrido entero si no da
+// ninguna, y se reparte la hora del tramo según lo que lleva recorrido de él.
 final class RoutePosition
 {
     private const KM_PER_DEGREE = 111.32;
+    // Más lejos del recorrido, el vehículo no va por él (otra línea, en cocheras).
+    private const MAX_OFF_ROUTE_KM = 0.3;
+    private const MAX_TURN_DEGREES = 90.0;
 
     // $aStops: las paradas del viaje (stop_id, arrival_seconds), $iIndex la de la parada del feed, $aCoords [id => [lat,
     // lon]]. Null si no hay coordenadas para ningún tramo.
@@ -23,7 +26,50 @@ final class RoutePosition
         if ($aBest === null) {
             return null;
         }
-        return (int)round($aBest['from'] + $aBest['fraction'] * ($aBest['to'] - $aBest['from']));
+        return self::seconds($aBest);
+    }
+
+    // Sin parada del feed: el tramo junto al que va el vehículo (a menos de MAX_OFF_ROUTE_KM, en su sentido si el
+    // GPS da su rumbo) y, si son varios (una circular), el de hora más cercana a $iNowSeconds. ['index' de la parada
+    // a la que va, 'seconds' del horario allí, 'end' si ya está en la última] o null si va lejos del recorrido.
+    public static function locate(array $aStops, array $aCoords, float $dLat, float $dLon, int $iNowSeconds,
+        float|null $dBearing = null): array|null
+    {
+        $aStops = array_values($aStops);
+        $aBest = null;
+        foreach (array_keys($aStops) as $iFrom) {
+            $aSegment = self::onSegment($aStops, $iFrom, $aCoords, $dLat, $dLon);
+            if ($aSegment === null || $aSegment['distance'] > self::MAX_OFF_ROUTE_KM) {
+                continue;
+            }
+            if (!self::sameWay($aSegment, $dBearing)) {
+                continue;
+            }
+            $aSegment['index'] = $iFrom + 1;
+            $aSegment['seconds'] = self::seconds($aSegment);
+            if ($aBest === null || abs($iNowSeconds - $aSegment['seconds']) < abs($iNowSeconds - $aBest['seconds'])) {
+                $aBest = $aSegment;
+            }
+        }
+        if ($aBest === null) {
+            return null;
+        }
+        $bEnd = $aBest['index'] === \count($aStops) - 1 && $aBest['fraction'] >= 1.0;
+        return ['index' => $aBest['index'], 'seconds' => $aBest['seconds'], 'end' => $bEnd];
+    }
+
+    // El rumbo del GPS (grados desde el norte) va como el tramo, con menos de MAX_TURN_DEGREES de diferencia.
+    private static function sameWay(array $aSegment, float|null $dBearing): bool
+    {
+        if ($dBearing === null || $aSegment['heading'] === null) {
+            return true;
+        }
+        return abs(fmod($dBearing - $aSegment['heading'] + 540.0, 360.0) - 180.0) <= self::MAX_TURN_DEGREES;
+    }
+
+    private static function seconds(array $aSegment): int
+    {
+        return (int)round($aSegment['from'] + $aSegment['fraction'] * ($aSegment['to'] - $aSegment['from']));
     }
 
     // Lo recorrido del tramo de la parada $iFrom a la siguiente (de 0 a 1) y lo lejos que queda el vehículo de él (km).
@@ -47,9 +93,14 @@ final class RoutePosition
             $dFraction = max(0.0, min(1.0, (($dPx - $dAx) * ($dBx - $dAx) + ($dPy - $dAy) * ($dBy - $dAy)) / $dLength));
         }
         $dDistance = hypot($dPx - ($dAx + $dFraction * ($dBx - $dAx)), $dPy - ($dAy + $dFraction * ($dBy - $dAy)));
+        $dHeading = null;
+        if ($dLength > 0) {
+            $dHeading = fmod(rad2deg(atan2($dBx - $dAx, $dBy - $dAy)) + 360.0, 360.0);
+        }
         return [
             'fraction' => $dFraction,
             'distance' => $dDistance,
+            'heading' => $dHeading,
             'from' => (int)$aStops[$iFrom]['arrival_seconds'],
             'to' => (int)$aStops[$iFrom + 1]['arrival_seconds'],
         ];
