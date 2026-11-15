@@ -92,8 +92,13 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Tranvía Vitoria+ · Horarios y tiempo real del tranvía de Vitoria-Gasteiz',
-        'description' => 'Consulta los horarios y el tiempo real del tranvía de Vitoria-Gasteiz por parada.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Araba/Álava',
+        'country' => 'ES',
+        'operator' => 'Tranvía de Vitoria-Gasteiz',
+        'title' => 'Tranvía Vitoria+ · Horarios del tranvía de Vitoria-Gasteiz',
+        'description' => 'Horarios y tiempo real del tranvía de Vitoria-Gasteiz de Euskotren: próximas salidas en cada parada, sus ramales y el recorrido de cada línea.',
     ],
     'attribution' => 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)',
 
@@ -116,6 +121,9 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
+        // Un retraso de más de 1 h (el tope de Metro) es de otro viaje con ese id: no vale y el viaje sale con su
+        // horario. Renfe y SNCF no tienen tope: sus trenes de largo recorrido sí llevan retrasos así.
+        'max_feed_gap_seconds' => 3600,
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
     ],
@@ -140,6 +148,8 @@ return [
     ],
 
     'gtfs' => [
+        // Publica solo los próximos días y lo renueva a diario: el resumen del flujo avisa y falla con 2 días o menos.
+        'expiry_alert_days' => 2,
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
         // municipio; sin él, los que salen de las redes de respaldo.

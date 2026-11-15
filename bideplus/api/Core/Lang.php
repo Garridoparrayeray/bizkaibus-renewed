@@ -37,14 +37,15 @@ class Lang
         return $sBase . $sGlue . 'lang=' . $sLang;
     }
 
-    // Los <link rel="alternate" hreflang> de las versiones de una página, y la del castellano como x-default.
-    public static function alternates(string $sCanonical): string
+    // Los <link rel="alternate" hreflang> de las versiones de una página, y como x-default la del idioma de la red
+    // (seo.default_lang de su ficha: el francés en Iparralde) o la del castellano.
+    public static function alternates(string $sCanonical, string $sDefaultLang = 'es'): string
     {
         $sHtml = '';
         foreach (self::LANGS as $sLang) {
             $sHtml .= '<link rel="alternate" hreflang="' . $sLang . '" href="' . htmlspecialchars(self::url($sCanonical, $sLang)) . '">' . "\n    ";
         }
-        return $sHtml . '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars(self::url($sCanonical, 'es')) . '">' . "\n";
+        return $sHtml . '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars(self::url($sCanonical, $sDefaultLang)) . '">' . "\n";
     }
 
     // Un texto de js/i18n.js (o de la ficha de una red, net.<red>.<campo>) en el idioma pedido; sin él, en castellano.
@@ -60,7 +61,8 @@ class Lang
     public static function dictionary(string $sLang): array
     {
         if (!isset(self::$aDictionaries[$sLang])) {
-            self::$aDictionaries[$sLang] = self::readI18n($sLang) + self::networkTexts($sLang);
+            $aI18n = self::readI18n($sLang);
+            self::$aDictionaries[$sLang] = $aI18n + self::networkTexts($sLang, $aI18n['bide.and'] ?? 'y');
         }
         return self::$aDictionaries[$sLang];
     }
@@ -111,9 +113,13 @@ class Lang
         return $aTexts;
     }
 
-    private static function networkTexts(string $sLang): array
+    // Los textos de las fichas (net.<red>.<clave>) y las listas de apps (Networks::appList).
+    private static function networkTexts(string $sLang, string $sAnd): array
     {
         $aTexts = [];
+        foreach (Networks::APP_LISTS as $sList) {
+            $aTexts[$sList] = Networks::appList($sLang, $sAnd, $sList);
+        }
         foreach (Networks::all() as $sSlug => $aNetwork) {
             foreach ($aNetwork['texts'][$sLang] ?? [] as $sKey => $sText) {
                 $aTexts['net.' . $sSlug . '.' . $sKey] = $sText;

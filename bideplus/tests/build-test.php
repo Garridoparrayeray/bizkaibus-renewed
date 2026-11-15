@@ -1,8 +1,10 @@
 <?php
 
 require __DIR__ . '/../scripts/build-database.php';
+require_once __DIR__ . '/../scripts/build/expiry.php';
 
 use Build\Calendars;
+use Build\Expiry;
 use Build\Gtfs;
 use Build\Journeys;
 use Build\Shapes;
@@ -414,6 +416,62 @@ $Expect('festivo: sin calendar_dates, ese martes va con el de domingo y lo diari
     && Calendars::journeysOn($Silent, new DateTime('2026-12-08')) === 5 && Calendars::journeysOn($Silent, new DateTime('2026-12-01')) === 11);
 $Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-23', true) === 0);
 $Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-01', true) === 1);
+// Álavabus: dentro de su periodo, el GTFS solo añade el domingo el martes festivo y no quita el laborable.
+$Ambiguous = fn() => $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'todos' => [127, 1], 'lv-especial' => [31, 2]], [['d', '2026-12-08', 1], ['lv-especial', '2026-12-08', 1]]);
+$AlavaHoliday = $Ambiguous();
+$iAmbiguous = Calendars::applyHolidays($AlavaHoliday, ['2026-12-08'], '2027-01-14', true, true);
+$Expect('festivo ambiguo: solo el domingo añadido y en el calendario laboral, va como festivo (sin lo laborable sin excepción)', $iAmbiguous === 1
+    && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-08')) === 7 && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-01')) === 13);
+$Expect('festivo ambiguo: un día que no está en el calendario laboral no se toca', Calendars::applyHolidays($Ambiguous(), [], '2027-01-14', true, true) === 0);
+$Expect('festivo ambiguo: sin la opción de la ficha, dentro de su periodo manda el GTFS', Calendars::applyHolidays($Ambiguous(), ['2026-12-08'], '2027-01-14', true) === 0);
+// El 25-12 (viernes) Álavabus añade el domingo y quita uno laborable: ya dice cómo es y se deja como lo publica.
+$Christmas = $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'lv-otro' => [31, 3]], [['d', '2026-12-25', 1], ['lv', '2026-12-25', 0]]);
+$iChristmas = Calendars::applyHolidays($Christmas, ['2026-12-08', '2026-12-25'], '2027-01-14', true, true);
+$Expect('festivo ambiguo: el 25-12, con algo quitado por el GTFS, se queda como lo publica el operador', $iChristmas === 0
+    && Calendars::journeysOn($Christmas, new DateTime('2026-12-25')) === 7, (string)Calendars::journeysOn($Christmas, new DateTime('2026-12-25')));
+
+// Caducidad del horario publicado (resumen del flujo diario, scripts/published-schedule.php).
+$aRequired = ['gtfs' => ['required' => true]];
+$aOptional = ['gtfs' => ['required' => false]];
+$aRolling = ['gtfs' => ['required' => true, 'expiry_alert_days' => 2]];
+$Row = fn(string|null $sTo, string $sSource = 'primary', string $sPublished = '2026-11-10')
+    => ['to' => $sTo, 'source' => $sSource, 'published' => $sPublished];
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2026-11-21'), false, '2026-11-15');
+$Expect('caducidad: una red obligatoria con 6 días falla', count($aErr) === 1 && $aWarn === []);
+[$aErr, $aWarn] = Expiry::problems($aOptional, $Row('2026-11-21'), false, '2026-11-15');
+$Expect('caducidad: una opcional con 6 días solo avisa', $aErr === [] && count($aWarn) === 1);
+[$aErr, $aWarn] = Expiry::problems($aOptional, $Row('2026-11-21'), true, '2026-11-15');
+$Expect('caducidad: una opcional sin reconstruir hoy cuya última base caduca en 6 días: falla', count($aErr) === 1);
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-20'), false, '2026-11-15');
+$Expect('caducidad: Euskotren, que publica solo los próximos días, con 5 días no avisa', $aErr === [] && $aWarn === []);
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2027-01-09', 'fallback', '2026-11-10'), false, '2026-11-15');
+$Expect('respaldo reciente: avisa «fuente principal caída, se usa el respaldo»',
+    $aErr === [] && $aWarn === ['fuente principal caída, se usa el respaldo']);
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2027-01-09', 'fallback', '2026-09-01'), false, '2026-11-15');
+$Expect('respaldo de hace más de ' . Expiry::FALLBACK_MAX_AGE_DAYS . ' días: falla', count($aErr) === 1);
+// schedule_source_published puede ser el día de la compilación: manda el día del zip (o su feed_start_date).
+$aOldCopy = ['issued' => '2026-09-01'] + $Row('2027-01-09', 'fallback', '2026-11-15');
+[$aErr, $aWarn] = Expiry::problems($aRequired, $aOldCopy, false, '2026-11-15');
+$Expect('respaldo con zip de hace más de ' . Expiry::FALLBACK_MAX_AGE_DAYS . ' días y compilado hoy: falla', count($aErr) === 1, json_encode($aErr));
+[$aErr, $aWarn] = Expiry::problems($aRequired, ['issued' => '2026-11-12'] + $Row('2027-01-09', 'fallback', '2026-11-15'), false, '2026-11-15');
+$Expect('respaldo con zip reciente: solo el aviso', $aErr === [] && count($aWarn) === 1);
+$sZipFile = tempnam(sys_get_temp_dir(), 'bide-zip-');
+$DatedZip = new ZipArchive();
+$DatedZip->open($sZipFile, ZipArchive::OVERWRITE);
+$DatedZip->addFromString('stops.txt', "stop_id\n");
+$DatedZip->addFromString('trips.txt', "trip_id\n");
+$DatedZip->setMtimeName('stops.txt', (int)strtotime('2026-09-01 10:00'));
+$DatedZip->setMtimeName('trips.txt', (int)strtotime('2026-09-03 10:00'));
+$DatedZip->close();
+$DatedZip->open($sZipFile);
+$Expect('el día del zip es el de su fichero más nuevo', Gtfs::zipDate($DatedZip) === '2026-09-03', (string)Gtfs::zipDate($DatedZip));
+$DatedZip->close();
+unlink($sZipFile);
+// Con el cron de la 01:17 Euskotren puede bajar el fichero del día anterior (+4 días): conservado, no falla.
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-19'), true, '2026-11-15');
+$Expect('caducidad: Euskotren sin reconstruir hoy con 4 días: aviso, con el umbral de su ficha', $aErr === [] && count($aWarn) === 1, json_encode([$aErr, $aWarn]));
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-19'), false, '2026-11-15');
+$Expect('caducidad: Euskotren con el fichero del día anterior (4 días): ni aviso', $aErr === [] && $aWarn === []);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";

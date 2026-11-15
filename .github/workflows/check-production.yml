@@ -38,23 +38,31 @@ jobs:
       - name: robots.txt y llms.txt
         run: |
           set -e
-          curl -fsS "$BASE/robots.txt" | grep -q "Sitemap: $BASE/sitemap.xml"
+          curl -fsS "$BASE/robots.txt" | grep -q "Sitemap: $BASE/sitemap-index.xml"
           curl -fsS "$BASE/llms.txt" | grep -q "Bide+"
 
       - name: Sitemap
         run: |
           set -e
-          # Como lo pide Google: con su user-agent, mostrando estado y tipo de contenido.
-          curl -sS -A "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" -D headers.txt -o sitemap.xml "$BASE/sitemap.xml"
+          # Como lo pide Google: con su user-agent, estado y tipo de contenido. El índice y un sitemap por red.
+          UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          curl -sS -A "$UA" -D headers.txt -o index.xml "$BASE/sitemap-index.xml"
           grep -iE '^(HTTP|content-type|content-length|x-vercel-cache)' headers.txt
-          head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap.xml no responde 200 a Googlebot"; exit 1; }
-          grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap.xml sin Content-Type XML"; exit 1; }
-          python3 -c "import xml.dom.minidom as m; m.parse('sitemap.xml')" || { echo "::error::sitemap.xml no es XML válido"; exit 1; }
+          head -1 headers.txt | grep -q ' 200' || { echo "::error::sitemap-index.xml no responde 200 a Googlebot"; exit 1; }
+          grep -qi '^content-type: *\(application\|text\)/xml' headers.txt || { echo "::error::sitemap-index.xml sin Content-Type XML"; exit 1; }
+          python3 -c "import xml.dom.minidom as m; m.parse('index.xml')" || { echo "::error::sitemap-index.xml no es XML válido"; exit 1; }
+          : > sitemap.xml
+          for r in bide $NETWORKS; do
+            grep -q "/sitemaps/$r.xml</loc>" index.xml || { echo "::error::falta el sitemap de $r"; exit 1; }
+            curl -fsS -A "$UA" -o part.xml "$BASE/sitemaps/$r.xml"
+            python3 -c "import xml.dom.minidom as m; m.parse('part.xml')" || { echo "::error::sitemaps/$r.xml no es XML válido"; exit 1; }
+            cat part.xml >> sitemap.xml
+          done
           for r in $NETWORKS; do
             grep -q "/?red=$r</loc>" sitemap.xml || { echo "::error::falta la app $r"; exit 1; }
           done
           echo "URLs: $(grep -c '<url>' sitemap.xml) | líneas: $(grep -c '/lines/' sitemap.xml) | paradas: $(grep -c '/stops/' sitemap.xml)"
-          [ "$(grep -c '<url>' sitemap.xml)" -gt 1000 ] || { echo "::error::sitemap.xml con muy pocas URLs"; exit 1; }
+          [ "$(grep -c '<url>' sitemap.xml)" -gt 1000 ] || { echo "::error::los sitemaps tienen muy pocas URLs"; exit 1; }
 
       - name: Títulos, descripción, canonical y snippet
         run: |

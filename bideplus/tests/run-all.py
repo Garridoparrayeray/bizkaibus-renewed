@@ -2,6 +2,7 @@
 
     python tests/run-all.py            # todo
     python tests/run-all.py --rapido   # sin navegador (estáticas, unitarias, datos, API y contrato)
+    APPS=kbus ONLY_APPS=1 python tests/run-all.py   # de la interfaz, solo la batería de esas redes
 
 Si no hay un servidor en BASE_URL, arranca uno propio con dev-router.php y lo cierra al terminar.
 """
@@ -22,13 +23,20 @@ STEPS = [
     ('Estáticas, unitarias y datos', [PY, 'tests/static-checks.py']),
     ('API (todas las rutas)', [PY, 'tests/api-smoke.py']),
     ('Contrato de la API', [PY, 'tests/api-contract.py']),
+    ('SEO en el HTML del servidor', [PY, 'tests/seo-check.py']),
     ('Horarios sin conexión', ['node', 'tests/offline-schedule.mjs']),
     ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
     ('Enlaces de los avisos', ['node', 'tests/linkify.mjs']),
     ('Aviso general (script del workflow)', [PY, 'tests/aviso-script.py']),
     ('Vigilante del directo (retrasos)', [PY, 'tests/live-health.py']),
+    ('Poda de los acumulados de la captura', [PY, 'tests/podar-acumulado.py']),
+    ('Despliegue a Vercel (limpieza y tamaño)', [PY, 'tests/vercel-deploy.py']),
+    ('Commit del bot tras desplegar', [PY, 'tests/rebuild-commit.py']),
 ]
-if not QUICK:
+# Con ONLY_APPS y APPS, de la interfaz solo la batería de esas redes (sin las comprobaciones comunes).
+if not QUICK and os.environ.get('ONLY_APPS') and os.environ.get('APPS'):
+    STEPS += [('UI de ' + os.environ['APPS'], ['node', 'tests/ui-battery.mjs'])]
+elif not QUICK:
     STEPS += [
         ('UI completa', ['node', 'tests/ui-battery.mjs']),
         ('UI sin conexión', ['node', 'tests/ui-offline.mjs']),
@@ -36,6 +44,7 @@ if not QUICK:
         ('UI cerca de mí', ['node', 'tests/ui-nearby.mjs']),
         ('UI Bide+ (pestañas, columna, páginas)', ['node', 'tests/ui-bide.mjs']),
         ('UI planificador del inicio', ['node', 'tests/ui-route.mjs']),
+        ('UI SEO (título, idioma y contenido sin /api/)', ['node', 'tests/ui-seo.mjs']),
     ]
 
 

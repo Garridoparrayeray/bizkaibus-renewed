@@ -1,7 +1,7 @@
-// La imagen para compartir (icons-bide-rojo/og-image.png, 1200 × 630) con todas las apps de api/Networks, la
-// plantilla del cartel de parada en A5 (carteles/cartel-parada-a5.png y .pdf, sin el QR: va en el hueco del centro) y
-// un cartel A5 por app con el QR que la abre (carteles/apps/cartel-<red>.png y .pdf).
-// Uso: node scripts/render-images.mjs [og|cartel|apps]   (sin nada, todo). Usa el navegador de las pruebas (CHROME_PATH).
+// La imagen para compartir (icons-bide-rojo/og-image.png, 1200 × 630) con todas las apps de api/Networks, la de cada
+// red (<iconos>/og-image.png, con su icono, su nombre y su color), la plantilla del cartel de parada en A5
+// (carteles/cartel-parada-a5.png y .pdf, sin el QR) y un cartel A5 por app con su QR (carteles/apps/cartel-<red>).
+// Uso: node scripts/render-images.mjs [og|redes|cartel|apps]   (sin nada, todo). Usa el navegador de las pruebas.
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -46,6 +46,22 @@ function ogPage() {
         li img{width:${size.icon}px;height:${size.icon}px;border-radius:15px;flex:none}
     </style></head><body><main><img class="mark" src="${wordmark}" alt="Bide+">
         <h1>Bus, metro, tren y tranvía de Euskal Herria<br>en un solo sitio</h1><ul>${tiles}</ul></main></body></html>`;
+}
+
+// La vista previa de una red: su icono, su nombre y lo que ofrece (el subtítulo de su ficha) sobre su color.
+function networkOgPage([name, icons, , , color, texts]) {
+    return `<html><head><style>${base}
+        main{width:1200px;height:630px;padding:72px 80px;display:flex;flex-direction:column;justify-content:space-between;background:${color};color:#fff}
+        .app{display:flex;align-items:center;gap:40px}
+        .app img{width:180px;height:180px;border-radius:40px;box-shadow:0 0 0 6px rgba(255,255,255,.9)}
+        h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:92px;line-height:1;letter-spacing:-.02em}
+        p{font-size:44px;font-weight:600;line-height:1.2;max-width:1000px}
+        footer{display:flex;align-items:center;gap:20px;font-size:30px;font-weight:600}
+        footer span{display:inline-flex;padding:10px 20px;border-radius:14px;background:#fff}
+        footer img{height:44px}
+    </style></head><body><main><div class="app"><img src="${embed(icons + '/icon-192.png', 'image/png')}" alt=""><h1>${name}</h1></div>
+        <p>${texts.es.subtitle}</p>
+        <footer><span><img src="${wordmark}" alt="Bide+"></span>www.bideplus.eus</footer></main></body></html>`;
 }
 
 // A5 a 300 ppp: 1748 × 2480. El hueco blanco del centro es para el QR de la parada.
@@ -167,7 +183,8 @@ function appPosterPage([name, icons, slug, kind, color, texts]) {
 }
 
 const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'bide-images-'))}`, 'about:blank'];
-if (process.env.CI) flags.unshift('--no-sandbox');
+// Como root (un contenedor) Chrome no arranca con su sandbox.
+if (process.env.CI || (process.getuid && process.getuid() === 0)) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 let targets;
 for (let i = 0; i < 40 && !targets; i++) {
@@ -217,6 +234,12 @@ async function printA5() {
 if (asked === 'todo' || asked === 'og') {
     writeFileSync(join(ROOT, 'icons-bide-rojo/og-image.png'), await render(ogPage(), 1200, 630));
     process.stdout.write(`icons-bide-rojo/og-image.png (1200 × 630, ${apps.length} apps)\n`);
+}
+if (asked === 'todo' || asked === 'redes') {
+    for (const app of apps) {
+        writeFileSync(join(ROOT, app[1], 'og-image.png'), await render(networkOgPage(app), 1200, 630));
+        process.stdout.write(`${app[1]}/og-image.png (1200 × 630)\n`);
+    }
 }
 if (asked === 'todo' || asked === 'cartel') {
     mkdirSync(POSTERS, { recursive: true });

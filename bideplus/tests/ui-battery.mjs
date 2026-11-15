@@ -60,9 +60,13 @@ const search = async (q, wait = 3200) => {
     await sleep(wait);
 };
 
-// Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
-const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
-const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished }));
+// Una muestra de cada red (tests/network-samples.php): una red nueva entra sola. Con APPS, solo de esas.
+// Con ONLY_APPS=1 (y APPS) se prueban solo esas redes, sin las comprobaciones comunes (enlaces, idioma, menú…).
+const sampleArgs = [new URL('./network-samples.php', import.meta.url).pathname];
+if (process.env.APPS) sampleArgs.push(`--redes=${process.env.APPS}`);
+const onlyApps = Boolean(process.env.ONLY_APPS && process.env.APPS);
+const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', sampleArgs, { encoding: 'utf8' }));
+const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished, serviceDate: samples[key].serviceDate }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
 let sizeFilter = null;
@@ -99,26 +103,33 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await sleep(300);
         let pick = '#platform-timetable-lines .pill, #platform-timetable-link:not([hidden])';
         if (a.panel === 'live-card') {
-            pick = '#live-timetable-link:not([hidden]), #live-more-list button';
+            pick = '#live-timetable-link:not([hidden]), #live-more-list a, #live-more-list button';
         }
         await until(`!!document.querySelector('${pick}')`);
         // De noche, sin próximas salidas, la tarjeta lista las líneas de la parada; las que terminan en ella no tienen salidas
         // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada. A cada
         // tabla se le dan 15 s: en GitHub, con el feed de Renfe lento, el servidor de pruebas tarda en contestar.
         const candidates = await ev(`document.querySelectorAll('${pick}').length`);
+        // Una red sin servicio hoy se mira con su primer día con servicio desde la primera línea: si no, cada candidata
+        // esperaría en balde a que su tabla de hoy tenga filas (más de 10 min en una red sin servicio el domingo).
+        let todayValue = '';
+        const setServiceDate = `(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';`
+            + "d.dispatchEvent(new Event('change',{bubbles:true}));})()";
         for (let index = 0; index < Math.max(candidates, 1); index++) {
             for (let attempt = 0; attempt < 3; attempt++) {
                 await ev(`(()=>{const c=document.querySelectorAll('${pick}')[${index}];if(c)c.click();})()`);
                 if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
             }
             await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
+            const shownDate = await ev("document.getElementById('filter-date').value");
+            if (todayValue === '') todayValue = shownDate;
+            if (a.serviceDate !== shownDate) await ev(setServiceDate);
             if (await until("document.querySelectorAll('#timetable-body tr').length > 0")) break;
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await sleep(500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
-        const todayValue = await ev("document.getElementById('filter-date').value");
         const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
         check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         // Hoy el aviso solo sale si el horario publicado ya terminó (bases del repositorio sin reconstruir): entonces debe citar una fecha pasada.
@@ -131,7 +142,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.beyond}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
-        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+        await ev(setServiceDate);
         let noteBack = "!document.getElementById('timetable-note').hidden";
         if (noteToday === '') noteBack = "document.getElementById('timetable-note').hidden";
         await until(noteBack);
@@ -195,6 +206,22 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
     }
 }
 
+// El resumen y la salida (con ONLY_APPS, justo después de las redes).
+const finish = () => {
+    const unique = [...new Set(problems)];
+    const bad = results.filter(r => r.startsWith('MAL')).length;
+    const ok = results.filter(r => r.startsWith('OK')).length;
+    const skipped = results.filter(r => r.startsWith('SKIP')).length;
+    console.log(results.join('\n'));
+    console.log(`\nRESULTADO UI: ${ok} OK, ${bad} MAL, ${skipped} SKIP, ${unique.length} problemas de consola/red`);
+    for (const p of unique.slice(0, 25)) console.log(' -', p);
+    ws.close();
+    let exitCode = 0;
+    if (bad || unique.length) exitCode = 1;
+    shutdown(exitCode);
+};
+if (onlyApps) finish();
+
 where = 'deep';
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
 for (const [url, panel, name] of [
@@ -211,6 +238,28 @@ for (const [url, panel, name] of [
     await go(url, 4500);
     check(`enlace directo ${name}`, (await ev(`!document.getElementById('${panel}').hidden`)) === true && (await ev("getComputedStyle(document.querySelector('header')).position")) === 'sticky');
 }
+
+where = 'pantalla';
+// La pantalla de TV con muchas salidas de destino largo: ninguna medida deja barra de desplazamiento.
+const fakeRows = `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (!/departures/.test(String(a[0]))) return r; const at = Math.floor(Date.now() / 1000) + 300; const j = { departures: [], platforms: [] }; for (let i = 0; i < 12; i++) j.departures.push({ lineId: 'L' + i, lineCode: 'A39' + i, headsign: 'Destino con un nombre muy largo número ' + i, tripKey: 'T' + i, scheduledTime: '12:00', etaMinutes: 5 + i, etaAt: at + i * 60, status: 'live', delayMinutes: 2, platformId: null }); return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); }; })();`;
+const fakeScript = await send('Page.addScriptToEvaluateOnNewDocument', { source: fakeRows });
+for (const [w, h] of [[1920, 1080], [1280, 720], [1080, 1920]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await go(`/pantalla/${samples.bus.stopId}`, 3500);
+    const fit = await ev('[document.documentElement.scrollHeight, window.innerHeight, document.querySelectorAll(".screen-row").length]');
+    check(`pantalla ${w}x${h} sin desbordar`, fit[0] <= fit[1] && fit[2] > 0, `${fit[0]} de ${fit[1]} px, ${fit[2]} filas`);
+}
+// En el móvil o la tableta, con la barra del navegador a la vista, lo que se ve (innerHeight) es menos que 100vh.
+const barScript = await send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(window, 'innerHeight', { get: () => document.documentElement.clientHeight - 56 });` });
+for (const [w, h] of [[390, 844], [820, 1180]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: true });
+    await go(`/pantalla/${samples.bus.stopId}`, 3500);
+    const fit = await ev('[document.documentElement.scrollHeight, document.documentElement.clientHeight, document.querySelectorAll(".screen-row").length]');
+    check(`pantalla en móvil ${w}x${h} con la barra del navegador: más de una fila y sin desbordar`, fit[0] <= fit[1] && fit[2] > 1, `${fit[0]} de ${fit[1]} px, ${fit[2]} filas`);
+}
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: barScript.identifier });
+await send('Emulation.setDeviceMetricsOverride', { width: 1080, height: 1920, deviceScaleFactor: 1, mobile: false });
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeScript.identifier });
 
 where = 'idioma';
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (/departures/.test(String(a[0]))) { const j = await r.clone().json(); if (!(j.departures || []).length) { const at = Math.floor(Date.now() / 1000) + 300; j.departures = [{ lineId: '3411', lineCode: 'A3411', lineName: 'A3411', headsign: 'Prueba', tripKey: '3411-0-0', scheduledTime: '00:00', etaMinutes: 5, etaAt: at, status: 'live', delayMinutes: 3, direction: null, platformId: null }]; } for (const d of (j.departures || [])) { d.status = 'live'; d.delayMinutes = 3; } return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); } return r; }; })();` });
@@ -242,12 +291,4 @@ for (const [u, nombre] of [['/stops/99999999', 'parada inexistente'], ['/nada-po
     check(`404 real: ${nombre}`, res.status === 404, `HTTP ${res.status}`);
 }
 
-const unique = [...new Set(problems)];
-const bad = results.filter(r => r.startsWith('MAL')).length;
-console.log(results.join('\n'));
-console.log(`\nRESULTADO UI: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${results.filter(r => r.startsWith('SKIP')).length} SKIP, ${unique.length} problemas de consola/red`);
-for (const p of unique.slice(0, 25)) console.log(' -', p);
-ws.close();
-let exitCode = 0;
-if (bad || unique.length) exitCode = 1;
-shutdown(exitCode);
+finish();

@@ -86,8 +86,15 @@ return [
     ],
 
     'seo' => [
+        // Una red de Iparralde: la versión en francés es la de quien no habla ninguno de los cuatro (x-default).
+        'default_lang' => 'fr',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Pyrénées-Atlantiques',
+        'country' => 'FR',
+        'operator' => 'SNCF',
         'title' => 'SNCF+ · Horarios y tiempo real de los trenes de Iparralde',
-        'description' => 'Consulta los horarios de los trenes de SNCF (TGV, Intercités y TER) en Hendaia, Donibane Lohizune, Biarritz, Baiona, Kanbo y Donibane Garazi, con su retraso en tiempo real.',
+        'description' => 'Horarios y tiempo real de los TER y trenes SNCF de Iparralde: Baiona, Biarritz, Donibane Lohizune, Hendaia y la línea de Garazi, por estación.',
     ],
     'attribution' => 'Datos: SNCF, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)',
 

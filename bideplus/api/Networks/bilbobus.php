@@ -83,12 +83,19 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Bilbobus+ · Horarios de los autobuses de Bilbao por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Bizkaia',
+        'country' => 'ES',
+        'operator' => 'Bilbobus',
+        'title' => 'Bilbobus+ · Horarios de los autobuses de Bilbao',
         'description' => 'Consulta los horarios de Bilbobus, los autobuses urbanos de Bilbao, por línea y parada, con el recorrido de cada línea en el mapa.',
     ],
     'attribution' => 'Datos: Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
 
     'features' => [
+        // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,
@@ -104,10 +111,13 @@ return [
     'live_often_empty' => true,
     'engine' => 'bilbobus',
 
-    // El feed del CTB y la copia de Open Data Euskadi. Avisos: el CTB no publica ninguno para Bilbobus.
+    // Primero el de Open Data Euskadi, que se actualiza; el del CTB, de respaldo: no cambia desde el 03-10-2024 (un
+    // fichero vacío que siempre responde, así que delante tapaba al otro). Avisos: el CTB no publica ninguno.
     'siri' => [
-        'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bilbobus-vehicle-positions.xml',
-        'vehicle_monitoring_fallback_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/siri_bilbobus_vehicle_monitoring.xml',
+        'vehicle_monitoring_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/'
+            . 'siri_bilbobus_vehicle_monitoring.xml',
+        'vehicle_monitoring_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/'
+            . 'bilbobus-vehicle-positions.xml',
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 8,
     ],

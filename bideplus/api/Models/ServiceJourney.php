@@ -401,6 +401,42 @@ class ServiceJourney
         return $aRunning;
     }
 
+    // Los viajes de unas líneas que ese día van en marcha a $iNowSeconds (de su salida, menos $iBefore, a su llegada,
+    // más $iAfter): [línea => [ids]]. Con ellos se casa un vehículo del directo que no trae su viaje, solo su línea.
+    public function runningOfLines(array $aLineIds, \DateTime $Day, int $iNowSeconds, int $iBefore, int $iAfter): array
+    {
+        $aLineIds = array_values(array_unique(array_filter(array_map('strval', $aLineIds), fn($sId) => $sId !== '')));
+        if (empty($aLineIds)) {
+            return [];
+        }
+        $aParams = ['from' => $iNowSeconds - self::LONGEST_TRIP_SECONDS, 'start' => $iNowSeconds + $iBefore,
+            'end' => $iNowSeconds - $iAfter];
+        $aMarks = [];
+        foreach ($aLineIds as $iIndex => $sLineId) {
+            $aMarks[] = ':l' . $iIndex;
+            $aParams['l' . $iIndex] = $sLineId;
+        }
+        $sCalendar = '';
+        if ($this->hasTable('service_calendars')) {
+            $sCalendar = 'AND sj.calendar_id IN (SELECT sc.id FROM service_calendars sc WHERE '
+                . self::RUNS_ON_DAY . ')';
+            $sDay = $Day->format('Y-m-d');
+            $aParams += ['weekdayBit' => Calendar::weekdayBitFor($Day), 'day' => $sDay, 'day2' => $sDay];
+        }
+        $Stmt = $this->Pdo->prepare('SELECT sj.line_id, sj.id FROM service_journeys sj
+            WHERE sj.line_id IN (' . implode(',', $aMarks) . ')
+              AND sj.first_departure_seconds BETWEEN CAST(:from AS INTEGER) AND CAST(:start AS INTEGER)
+              ' . $sCalendar . '
+              AND (SELECT MAX(pt.arrival_seconds) FROM passing_times pt WHERE pt.service_journey_id = sj.id)
+                  >= CAST(:end AS INTEGER)');
+        $Stmt->execute($aParams);
+        $aOut = [];
+        foreach ($Stmt->fetchAll() as $aRow) {
+            $aOut[(string)$aRow['line_id']][] = (string)$aRow['id'];
+        }
+        return $aOut;
+    }
+
     // Nombres con los que el directo puede llamar a cada viaje (sus alias y su propio id).
     public function tripRefsForJourneys(array $aJourneyIds): array
     {

@@ -57,6 +57,34 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 
 Lo que se sube a la rama `prueba` se despliega solo, con el flujo «Desplegar la prueba» (`.github/workflows/deploy-prueba.yml`, también a mano), en <https://bideplusmiamor.vercel.app>: la app de producción entera con el planificador, como *preview* de Vercel y con la rama `planificador` del motor. No toca producción, ni las releases, ni git. Antes de desplegar, `.github/scripts/modo-prueba.py` cambia solo la copia del runner: fuera de los buscadores (sin Google, sitemap, `llms.txt` ni IndexNow), sin Vercel Insights, con el almacén solo de lectura y sin notificaciones ni cron; si un texto que cambia ya no está tal cual, para. Las llamadas a la API de Vercel van por `.github/scripts/vercel-api.sh` (secretos `VERCEL_TOKEN`, `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID_BIDEPLUS`). El flujo hace también el mapa base de Bizkaia (`.github/scripts/mapa-base.sh`, guardado en caché por semana de OpenStreetMap) y, al acabar, comprueba que la prueba responde, sirve ese mapa a trozos, no se indexa y no da clave de notificaciones. Con «Aceptar el planificador» acepta un planificador que tarda más que el de producción.
 
+## Flujos programados
+
+GitHub retrasa los `schedule` de Actions en las horas de más carga (el de la noche llegó a salir 7 horas tarde) y los salta a veces. Por eso la reconstrucción nocturna (`rebuild-schedule.yml`) y la vigilancia del directo (`live-health.yml`) también se pueden lanzar con `repository_dispatch` desde el mismo cron externo que llama cada minuto a `/api/live/record`, a la hora exacta:
+
+```
+curl -X POST -H "Authorization: Bearer <token>" -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/<dueño>/<repositorio>/dispatches -d '{"event_type":"rebuild-schedule"}'
+```
+
+Con `"event_type":"live-health"` lanza la vigilancia. El token es uno de grano fino de GitHub con permiso *Contents: write* solo sobre este repositorio, guardado en el cron externo y no en el código. Lanzado así, el despliegue es completo, como el de la noche.
+
+## Añadir una red
+
+Una red es su ficha (`bideplus/api/Networks/<red>.php`) y sus iconos (`bideplus/icons-<red>/`): el menú, el buscador, el mapa, el *sitemap*, los horarios sin conexión, `llms.txt`, las preguntas frecuentes, las descripciones para buscadores, las pruebas y el planificador la leen del registro (`Core\Networks`). Se hace en unos 20 minutos, casi todos de esperar a que se construya y se pruebe:
+
+1. **La ficha**, desde la dirección de su GTFS (desde `bideplus`):
+
+   ```bash
+   php scripts/new-network.php --gtfs=https://…/gtfs.zip [--trip-updates=https://…pb] [--vehicle-positions=https://…pb] [--alerts=https://…pb]
+   ```
+
+   Baja el GTFS y saca de él el operador, el tipo de vehículo, el color de sus líneas, la zona horaria (la app va con la hora de Madrid: si no cuadra, para), si los viajes traen rótulo y la zona de sus paradas. En una terminal pregunta el nombre, el nombre interno, la ciudad (y su nombre en euskera y en francés), el tipo, el color y los feeds, con eso por defecto (Intro lo acepta; `--si` no pregunta). Saca también la licencia de los datos, para la atribución: de la ficha de data.gouv.fr (su API pública) o del Punto de Acceso Nacional (con `NAP_API_KEY`) si el GTFS viene de ahí, de una columna de licencia en `feed_info.txt` o `agency.txt` o, si todas coinciden, la de las redes que bajan del mismo portal; si no, la pregunta con las conocidas (CC-BY 4.0, ODbL, Licence Ouverte…) o deja un aviso (`--license="…"` la da). Escribe la ficha en los cuatro idiomas (el euskera con las declinaciones del nombre, -ko, -n, -k, -ren, -rekin, y el francés y el castellano con el artículo de una institución: tablas `BASQUE_SUFFIXES` e `INSTITUTION_GENDER` del script) y al terminar enseña los textos para revisarlos, con «Nuevo» unos días y, si su ciudad está en el calendario laboral de `api/Config/holidays.php`, sus festivos con las redes de su territorio como respaldo. Construye su base, el mapa, los horarios sin conexión, el *sitemap* y lo que sale de las fichas, y la valida: calidad del código, integridad de las bases, los días de las dos próximas semanas sin ningún viaje (un GTFS incompleto) que cada feed responde y es GTFS-Realtime y la interfaz de la red sola (`tests/ui-battery.mjs` con `APPS=<red> ONLY_APPS=1`, si hay navegador).
+2. **Iconos y colores**: salen solos, provisionales (su inicial y su «+» sobre su color, en `icon.svg` y `glyph.svg`, pasados a PNG con el navegador de `CHROME_PATH`, del `PATH` o de Playwright). Los de verdad se dibujan en esos dos SVG. Los colores de la app (`brand.palette`) salen del principal y se pueden retocar en la ficha.
+3. **El directo**, solo si el feed es raro: con GTFS-Realtime estándar no hay que escribir código (`matching` `trip` o `stops`). Con solo posiciones (sin horas previstas), la red sale con `'live' => ['vehicle-positions']`: la app estima el retraso de cada viaje con el GPS de su vehículo y su horario (`Services\VehicleDelays`, por su viaje o, si no lo trae, por su línea, su rumbo y la hora más cercana), y `/api/status` lo dice (`feed`: `vehicle-positions`). Con horas previstas, la ficha sale con el servicio reducido por el directo (`reduced_service.live`) de la red más parecida; `gtfs_rt.platform_matching` (por andén y destino, como Metro) solo hace falta si los viajes del feed no son los del horario: la validación lo avisa y `--platform-matching` lo copia. Un feed de otro formato necesita su adaptador en `api/Services`; uno SIRI de vehículos, su motor (`php engine/bizkaibus/tools/new-engine.php <red>`).
+4. **Un comando** tras retocar la ficha o los iconos (textos de euskera y francés, `disclaimer`, `attribution` si no salió la licencia): `php scripts/new-network.php --rehacer=<red>`, que vuelve a dibujar, a construir y a validar. Después, la batería de siempre (`python tests/run-all.py`; con `APPS=<red> ONLY_APPS=1`, de la interfaz solo esa red, en menos de un minuto). Una red sin servicio hoy se prueba con su primer día con servicio.
+
+Lo que no hay que tocar: `js/networks.js`, `css/style-networks.css`, `404.html`, `llms.txt`, la tabla de apps de los README (`scripts/build-readme.php`), `sitemap.xml`, `map-data/` y `offline-data/` (salen de las fichas y de las bases), las pruebas (leen el registro) ni ninguna lista de redes en el código: `code-quality.php` avisa si se nombra una red fuera de su ficha. Todas las claves de la ficha, en la guía «nueva red» del manual.
+
 ## Commits y *pull requests*
 
 - Mensajes cortos, en castellano, con el formato `tipo(ámbito): descripción`, por ejemplo `fix(bideplus): corrige el horario del primer tren`.

@@ -12,17 +12,13 @@
     const titleEl = document.getElementById('app-title');
     const cityEl = document.getElementById('app-title-city');
     const cityKey = 'net.' + net + '.tile_city';
-    const seoTitle = document.title;
 
-    // Los tranvías llevan el título y la ciudad de su ficha; la pestaña, el nombre de la app. En el idioma elegido.
+    // Los tranvías llevan el título y la ciudad de su ficha, en el idioma elegido. La pestaña la lleva js/app/.
     function translateHeader() {
         if (cityEl.textContent && I18n.t(cityKey) !== cityKey) {
             titleEl.firstChild.textContent = I18n.t('net.' + net + '.tile_title').toUpperCase();
             cityEl.textContent = I18n.t(cityKey).toUpperCase();
         }
-        if (isMiamorActive) return;
-        document.title = seoTitle;
-        if (I18n.getLang() !== 'es') document.title = I18n.t('net.' + net + '.name') + ' · ' + I18n.t('net.' + net + '.switcher');
     }
 
     // Que la ciudad termine justo bajo la última letra del título, sin contar el "+": se mide el ancho

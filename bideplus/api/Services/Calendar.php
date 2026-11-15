@@ -27,6 +27,13 @@ class Calendar
         return $iNow - self::secondsSinceMidnight((new \DateTime('@' . $iNow))->setTimezone(new \DateTimeZone(self::TIME_ZONE)));
     }
 
+    // Lo que falta hasta la próxima medianoche de Madrid (la de verdad, también el día del cambio de hora).
+    public static function secondsUntilMidnight(): int
+    {
+        $Now = self::todayMadrid();
+        return (clone $Now)->modify('tomorrow')->getTimestamp() - $Now->getTimestamp();
+    }
+
     public static function nowSecondsSinceMidnight(): int
     {
         return self::secondsSinceMidnight(self::todayMadrid());

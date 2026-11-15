@@ -2,7 +2,8 @@
 // Una muestra de cada red para las pruebas de API y de interfaz, sacada del registro (api/Networks) y de su base de
 // datos: la parada con más pasos de viajes que circulan hoy (o su estación), una búsqueda que la encuentra, dónde
 // está y el primer día que el horario ya no cubre. Una red nueva entra sola.
-// Uso: php tests/network-samples.php (JSON por red: suffix, q, stopId, name, lat, lon, panel, live, beyondPublished).
+// Uso: php tests/network-samples.php [--redes=a,b] (JSON por red: suffix, q, stopId, name, lat, lon, panel, live,
+// required, serviceDate, beyondPublished).
 
 declare(strict_types=1);
 
@@ -13,9 +14,15 @@ use Models\Search;
 use Services\Calendar;
 use Services\ScheduleRange;
 
+// Con --redes=a,b, solo de esas (ui-battery.mjs con APPS).
+$aOnly = null;
+$sOnly = getopt('', ['redes:'])['redes'] ?? '';
+if ($sOnly !== '') {
+    $aOnly = explode(',', $sOnly);
+}
 $aSamples = [];
 foreach (Networks::all() as $sSlug => $aNetwork) {
-    if (!is_file($aNetwork['db_path'])) {
+    if (!is_file($aNetwork['db_path']) || ($aOnly !== null && !in_array($sSlug, $aOnly, true))) {
         continue;
     }
     $Pdo = new PDO('sqlite:' . $aNetwork['db_path']);
@@ -39,8 +46,16 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         ORDER BY n DESC, id
         LIMIT 1
     ');
-    $Busiest->execute(['weekdayBit' => Calendar::weekdayBitFor($Today), 'date' => $Today->format('Y-m-d'), 'date2' => $Today->format('Y-m-d')]);
-    $aBusiest = $Busiest->fetch(PDO::FETCH_ASSOC);
+    // Un día sin servicio (un domingo en una red de lunes a sábado) la red no se queda fuera de las pruebas: el
+    // primero de las dos semanas siguientes con servicio, en serviceDate.
+    $Day = clone $Today;
+    $aBusiest = false;
+    for ($i = 0; $i < 14 && $aBusiest === false; $i++) {
+        $sDate = $Day->format('Y-m-d');
+        $Busiest->execute(['weekdayBit' => Calendar::weekdayBitFor($Day), 'date' => $sDate, 'date2' => $sDate]);
+        $aBusiest = $Busiest->fetch(PDO::FETCH_ASSOC);
+        $Day = $Day->modify('+1 day');
+    }
     if ($aBusiest === false) {
         continue;
     }
@@ -65,6 +80,8 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'lon' => (float)$aStop['lon'],
         'panel' => $sPanel,
         'live' => !empty($aNetwork['live']),
+        'required' => !empty($aNetwork['gtfs']['required']),
+        'serviceDate' => $sDate,
         'beyondPublished' => dayAfter(ScheduleRange::forDatabase($Pdo)['to']),
     ];
 }

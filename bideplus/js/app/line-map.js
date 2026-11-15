@@ -1,6 +1,29 @@
 // Mapa de la línea abierta en «Consultar horarios»: su recorrido, parada a parada.
 import { FEATURES, NETWORK_SLUG, el, state } from './core.js';
 
+// Leaflet (con su versión en la ruta: se guarda en caché sin caducidad) solo se baja al abrir el mapa de una línea.
+const LEAFLET_DIR = '/lib/leaflet-1.9.4/';
+let leafletLoading = null;
+
+function loadLeaflet() {
+    if (!leafletLoading) {
+        leafletLoading = new Promise((resolve, reject) => {
+            const style = document.createElement('link');
+            style.rel = 'stylesheet';
+            style.href = LEAFLET_DIR + 'leaflet.css';
+            const script = document.createElement('script');
+            script.src = LEAFLET_DIR + 'leaflet.js';
+            script.onload = resolve;
+            script.onerror = () => {
+                leafletLoading = null;
+                reject(new Error('Leaflet'));
+            };
+            document.head.append(style, script);
+        });
+    }
+    return leafletLoading;
+}
+
 const mapState = {
     map: null,
     lineId: null,
@@ -70,7 +93,7 @@ function renderLineMap(data) {
 export async function loadLineMap(lineId) {
     let data;
     try {
-        data = await Api.lineRoute(lineId);
+        [data] = await Promise.all([Api.lineRoute(lineId), loadLeaflet()]);
     } catch (e) {
         return;
     }

@@ -127,7 +127,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=favoritos]').click
 check('instalada · Favoritos: se abre como página', await waitTrue(shown('[data-bide-view=favoritos]')));
 check('instalada · Favoritos: oculta las fichas de apps', (await ev(shown('#tr'))) === false);
 check('instalada · Favoritos: agrupa Bizkaibus+ y Metro+', (await ev("[...document.querySelectorAll('[data-bide-view=favoritos] .bide-group')].map(n => n.textContent).join('|')")) === 'Bizkaibus+|Metro+');
-check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav').length === 3 && document.querySelector('[data-bide-view=favoritos] .bide-fav strong').textContent.includes('MOYUA')"));
+check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav').length === 3 && document.querySelector('[data-bide-view=favoritos] .bide-fav strong').textContent.toUpperCase().includes('MOYUA')"));
 check('instalada · Favoritos: enlaza a la parada en su app', (await ev("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav')[2].getAttribute('href')")) === '/stops/7?red=metro');
 check('instalada · Favoritos: se puede volver con «atrás»', (await ev("location.hash")) === '#favoritos');
 await ev('history.back(); true');
@@ -352,13 +352,16 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
-// ===== Inglés para quien tiene el móvil en inglés =====
+// ===== Inglés para quien tiene el móvil en inglés: se ofrece, no se traduce solo =====
 await phone();
 await go('/?red=bus', 1500);
 await ev("localStorage.removeItem('bide_lang'); true");
 const englishPhone = await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-GB', 'en'] });" });
 await go('/?red=bus', 3000);
-check('idioma · con el móvil en inglés, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
+check('idioma · con el móvil en inglés, la página sigue en el idioma del servidor', await ev("document.documentElement.lang === 'es' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favoritos'"));
+check('idioma · y un aviso ofrece el inglés, en inglés', await waitTrue("(document.querySelector('.bide-lang-offer-switch') || {}).textContent === 'View in English'"));
+await ev("document.querySelector('.bide-lang-offer-switch').click(); true");
+check('idioma · al aceptarlo, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites' && location.search.includes('lang=en') && !document.querySelector('.bide-lang-offer')"));
 check('idioma · el botón de la cabecera pasa después a francés', await ev("document.getElementById('lang-toggle').textContent.trim() === 'FR'"));
 check('idioma · los textos de la red también salen en inglés', await ev("document.getElementById('app-subtitle').textContent.trim() === 'Bizkaibus timetables and real time'"));
 await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: englishPhone.identifier });
@@ -384,6 +387,19 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+    // Con el móvil en Nueva York, la hora del texto sigue siendo la de los horarios (Madrid): 12:34, no 06:34.
+    const fixedAt = Math.floor(Date.UTC(2026, 10, 15, 11, 34) / 1000);
+    const liveTrip = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (!/\\/api\\/vehicles\\//.test(String(a[0]))) return r; const j = await r.clone().json(); j.status = 'live'; for (const s of (j.stops || [])) s.etaAt = ${fixedAt}; return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); }; })();` });
+    await send('Emulation.setTimezoneOverride', { timezoneId: 'America/New_York' });
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    await ev("window.__shared = ''; navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
+    check('compartir: la hora del texto es la de los horarios aunque el móvil esté en otra zona horaria', await waitTrue("(window.__shared || '').includes('12:34')", 3000), await ev('window.__shared'));
+    await send('Emulation.setTimezoneOverride', { timezoneId: '' });
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: liveTrip.identifier });
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; true");
     // Dos opciones en la ficha: el viaje y la parada (el enlace abre sus próximas salidas, sin el viaje).
     check('compartir: la ficha ofrece también compartir la parada', await ev("!document.getElementById('modal-share-stop').hidden"));
     await ev("window.__shared = ''; document.getElementById('modal-share-stop').click(); true");

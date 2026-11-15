@@ -180,6 +180,9 @@ class GtfsRealtimeClient
     private static function parseVehicle(string $sVehicle): array|null
     {
         $sTripId = null;
+        $sRouteId = '';
+        $iDirection = null;
+        $dBearing = null;
         $dLat = null;
         $dLon = null;
         $sStopId = '';
@@ -191,6 +194,10 @@ class GtfsRealtimeClient
                 foreach (self::fields($Value) as [$iTripField, $TripValue]) {
                     if ($iTripField === 1) {
                         $sTripId = $TripValue;
+                    } elseif ($iTripField === 5) {
+                        $sRouteId = $TripValue;
+                    } elseif ($iTripField === 6) {
+                        $iDirection = (int)$TripValue;
                     }
                 }
             } elseif ($iField === 2) {
@@ -199,6 +206,8 @@ class GtfsRealtimeClient
                         $dLat = self::float($PositionValue);
                     } elseif ($iPositionField === 2) {
                         $dLon = self::float($PositionValue);
+                    } elseif ($iPositionField === 3) {
+                        $dBearing = self::float($PositionValue);
                     }
                 }
             } elseif ($iField === 4) {
@@ -215,10 +224,13 @@ class GtfsRealtimeClient
                 }
             }
         }
-        if ($sTripId === null || $dLat === null || $dLon === null) {
+        // Sin viaje vale con su línea: VehicleDelays lo casa con el viaje de esa línea más cercano a su hora.
+        if (($sTripId === null && $sRouteId === '') || $dLat === null || $dLon === null) {
             return null;
         }
-        return ['tripId' => $sTripId, 'lat' => round($dLat, 6), 'lon' => round($dLon, 6), 'stopId' => $sStopId, 'stopStatus' => $sStopStatus, 'vehicleId' => $sVehicleId, 'timestamp' => $iTimestamp];
+        return ['tripId' => (string)$sTripId, 'routeId' => $sRouteId, 'directionId' => $iDirection,
+            'lat' => round($dLat, 6), 'lon' => round($dLon, 6), 'bearing' => $dBearing, 'stopId' => $sStopId,
+            'stopStatus' => $sStopStatus, 'vehicleId' => $sVehicleId, 'timestamp' => $iTimestamp];
     }
 
     private static function float(mixed $Value): float|null

@@ -347,6 +347,7 @@ $Expect('TripKey con guiones en la línea', TripKey::parse(TripKey::build('L-1',
 $Expect('TripKey rechaza claves mal formadas', TripKey::parse('sin-numero') === null && TripKey::parse('') === null);
 $Expect('lunes = bit 1 y domingo = bit 64', Calendar::weekdayBitFor(new DateTime('2026-09-28')) === 1 && Calendar::weekdayBitFor(new DateTime(DATE_WEEKEND)) === 64);
 $Expect('secondsToHm pasa la medianoche (25:05 -> 01:05)', Calendar::secondsToHm(25 * 3600 + 5 * 60) === '01:05');
+$Expect('secondsToHm quita los segundos (08:10:59 -> 08:10), como hm() de js/offline.js', Calendar::secondsToHm(8 * 3600 + 10 * 60 + 59) === '08:10');
 $Expect('hmToSeconds: 07:45 son 27900 s', Calendar::hmToSeconds('07:45') === 27900);
 $Expect('hmToSeconds: lo que no es HH:MM cuenta como 0', Calendar::hmToSeconds('7h45') === 0 && Calendar::hmToSeconds('') === 0);
 
@@ -357,6 +358,14 @@ $Expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya
 $Expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
 $Expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $Expect('ficha del viaje: sin paradas sale scheduled', Services\TripSheet::status(false, [], 8 * 3600) === 'scheduled');
+// SNCF pone en el headsign el número del tren: la ficha da como destino la última parada, como las salidas.
+$aSncfJourney = ['line_code' => 'TER', 'line_name' => 'TER', 'headsign' => '867432'];
+$aSncfStops = [['name' => 'Hendaye'], ['name' => 'Bordeaux Saint-Jean']];
+\Core\Config::set('sncf');
+$sSncfHeadsign = Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'];
+\Core\Config::set(\Core\Networks::defaultSlug());
+$Expect('ficha del tren de SNCF: el destino es la última parada, no el número del tren', $sSncfHeadsign === 'Bordeaux Saint-Jean');
+$Expect('ficha del viaje en las demás redes: el headsign del GTFS', Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'] === '867432');
 
 $Section('GTFS-Realtime de Renfe: retraso de cada tren y cancelados (Renfe+)');
 
@@ -537,6 +546,30 @@ $Expect('el viaje de hoy sí vale', (new TripDelayMatcher($aTodayTrip, new Servi
 $aBadTimes = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 1800], ['C', $iOffMidnight + T0 + 1140 + 1800]]]];
 $aGpsRow = (new TripDelayMatcher($aBadTimes, new ServiceJourney($PdoRenfe), $iOffMidnight, [$aOffVehicles[1]]))->enrich('C', $aRowC);
 $Expect('Álavabus: con la posición del autobús, su retraso sale del GPS y no de las horas del feed', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
+// Con el tope de su ficha (max_feed_gap_seconds, 90 min en bus urbano), un retraso de 2 h sin el día del viaje puede
+// ser de otro viaje: sale sin dato, no a su hora. Uno de 10 min sí vale, y con el día de hoy, también los de 40 a 120.
+$TripLate = fn(int $iLate, array $aDay = []) => [$aDay + ['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + $iLate], ['C', $iOffMidnight + T0 + 1140 + $iLate]]]];
+$aToday = ['startDate' => date('Ymd', $iOffMidnight + 12 * 3600)];
+foreach (['dbus', 'txiktxak'] as $sCapped) {
+    \Core\Config::set($sCapped);
+    $aFarRow = (new TripDelayMatcher($TripLate(7200), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $aNearRow = (new TripDelayMatcher($TripLate(600), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: sin el día del viaje, un retraso de 2 h sale sin dato y uno de 10 min vale", $aFarRow[0]['status'] === 'likely_departed' && $aNearRow[0]['status'] === 'live', json_encode([$aFarRow[0], $aNearRow[0]]));
+    // La fila de C lleva ya su retraso sin el del feed: se cuenta lo que añade cada uno.
+    $iBase = (new TripDelayMatcher($TripLate(0, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['delaySeconds'];
+    $aLate = [];
+    foreach ([40, 46, 80, 120] as $iMinutes) {
+        $aLateRow = (new TripDelayMatcher($TripLate($iMinutes * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+        $aLate[$iMinutes] = ($aLateRow[0]['delaySeconds'] - $iBase) / 60;
+    }
+    $Expect("{$sCapped}: con el día de hoy, 40, 46, 80 y 120 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80, 120 => 120], json_encode($aLate));
+    $aUndated = (new TripDelayMatcher($TripLate(80 * 60), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: sin el día del viaje, 80 min caben en el tope de 90", $aUndated[0]['delaySeconds'] === 80 * 60 + $iBase, json_encode($aUndated[0]));
+    $aOtherDay = ['startDate' => date('Ymd', $iOffMidnight - 2 * 86400 + 12 * 3600)];
+    $aOld = (new TripDelayMatcher($TripLate(46 * 60, $aOtherDay), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: un viaje de otro día no da retraso", $aOld[0]['status'] === 'scheduled', json_encode($aOld[0]));
+}
+\Core\Config::set('alavabus');
 // Dónde está el autobús por su GPS: tres paradas en línea recta (A 08:00, B 08:10, C 08:20), cada una a 1 km.
 $aLine = [['stop_id' => 'A', 'arrival_seconds' => 8 * 3600], ['stop_id' => 'B', 'arrival_seconds' => 8 * 3600 + 600], ['stop_id' => 'C', 'arrival_seconds' => 8 * 3600 + 1200]];
 $aLineCoords = ['A' => [43.0, -2.9], 'B' => [43.009, -2.9], 'C' => [43.018, -2.9]];
@@ -546,7 +579,7 @@ $iBeforeB = Services\RoutePosition::scheduledSeconds($aLine, 1, $aLineCoords, 43
 $Expect('posición GPS: el feed da B y el bus va por la mitad de A a B: 08:05', abs($iBeforeB - (8 * 3600 + 300)) <= 5, (string)$iBeforeB);
 $Expect('posición GPS: sin coordenadas de las paradas, no hay posición', Services\RoutePosition::scheduledSeconds($aLine, 1, [], 43.0, -2.9) === null);
 $aOtherTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + 5 * 3600], ['C', $iOffMidnight + T0 + 1170 + 5 * 3600]]]];
-$Expect('Álavabus: unas horas a 5 h de su horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
+$Expect('Álavabus: unas horas a 5 h de su horario son de otro viaje: sale sin dato', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'likely_departed');
 // Álavabus con las paradas en línea recta, a 1 km: A a T0, B a T0 + 10 min, C a T0 + 20 min.
 $PdoAlava = new PDO('sqlite::memory:');
 $PdoAlava->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -573,14 +606,14 @@ $iWrongMidnight = time() - (T0 + 600 + 3000);
 $aWrongBus = [['tripId' => '22123', 'lat' => 43.009, 'lon' => -2.9, 'stopId' => 'B', 'stopStatus' => null, 'vehicleId' => '94']];
 $aWrongTimes = [['tripId' => '22123', 'stops' => [['C', $iWrongMidnight + T0 + 1200 + 1200]]]];
 $aWrongC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
-$Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale con el horario', ($aWrongC[0]['status'] ?? null) === 'scheduled', json_encode($aWrongC));
+$Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale sin dato', ($aWrongC[0]['status'] ?? null) === 'likely_departed', json_encode($aWrongC));
 $aRightC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('sin GPS, las mismas horas sí valen (40 min)', ($aRightC[0]['status'] ?? null) === 'live' && $aRightC[0]['delaySeconds'] === 2400, json_encode($aRightC));
 // Sin GPS, el feed lo pone en B 25 min tarde y ya han pasado otros 25: se enseñarían 50 min, más del tope de 45.
 $iStaleMidnight = time() - (T0 + 600 + 1500 + 1500);
 $aStaleTimes = [['tripId' => '22123', 'stops' => [['B', $iStaleMidnight + T0 + 600 + 1500], ['C', $iStaleMidnight + T0 + 1200 + 1500]]]];
 $MStale = new TripDelayMatcher($aStaleTimes, new ServiceJourney($PdoAlava), $iStaleMidnight);
-$Expect('Álavabus: un retraso que con lo que lleva de más pasa de 45 min no vale: sale con el horario', !$MStale->hasData() && ($MStale->enrich('C', [$AlavaRow('C', 2)])[0]['status'] ?? null) === 'scheduled', json_encode($MStale->diagnostics()));
+$Expect('Álavabus: un retraso que con lo que lleva de más pasa de 45 min no vale: sale sin dato', !$MStale->hasData() && ($MStale->enrich('C', [$AlavaRow('C', 2)])[0]['status'] ?? null) === 'likely_departed', json_encode($MStale->diagnostics()));
 \Core\Config::set('renfe');
 $Expect('en las demás redes no hay tope: un tren con más de 2 h de retraso sale con su retraso', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'live');
 $Expect('sin local_clock en su ficha, las horas del feed no se corrigen', (new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 + $iZone);
@@ -595,6 +628,83 @@ $aMetroAbsurd = [['tripId' => '6005L1C1', 'stops' => [['B', time() + 5 * 3600], 
 $Expect('Metro: un retraso de horas en el GTFS-Realtime (otro viaje con ese id) no vale: sale con el horario', !(new TripDelayMatcher($aMetroAbsurd, new ServiceJourney($PdoRenfe), time() - T0))->hasData());
 \Core\Config::set('bus');
 $Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+
+$Section('Directo con solo posiciones (vehicle positions sin trip updates)');
+// Una red de la que solo se publica dónde va cada vehículo: su ficha con live = ['vehicle-positions'].
+$aOnlyPositions = \Core\Networks::get('alavabus');
+$aOnlyPositions['live'] = ['vehicle-positions'];
+unset($aOnlyPositions['gtfs_rt']['trip_updates_url'], $aOnlyPositions['gtfs_rt']['prefer_vehicles']);
+(new ReflectionProperty(\Core\Config::class, 'aCurrent'))->setValue(null, $aOnlyPositions);
+$PdoPos = new PDO('sqlite::memory:');
+$PdoPos->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+$PdoPos->exec('CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT, lat REAL, lon REAL)');
+$PdoPos->exec('CREATE TABLE service_journeys (id TEXT PRIMARY KEY, line_id TEXT, first_departure_seconds INTEGER)');
+$PdoPos->exec('CREATE TABLE passing_times (service_journey_id TEXT, seq_order INTEGER, stop_id TEXT,
+    arrival_seconds INTEGER, departure_seconds INTEGER)');
+$PdoPos->exec('CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT)');
+$InsPosStop = $PdoPos->prepare('INSERT INTO stops VALUES (?, ?, ?, ?)');
+foreach (['A' => 43.0, 'B' => 43.009, 'C' => 43.018] as $sStop => $dLat) {
+    $InsPosStop->execute([$sStop, $sStop, $dLat, -2.9]);
+    $InsPosStop->execute([$sStop . '2', $sStop . ' vuelta', $dLat, -2.9 + lonOffset(20)]);
+}
+// J1 y J2, de A a C con 30 min entre uno y otro; J3, la vuelta por la acera de enfrente.
+$aPosJourneys = ['J1' => [['A', 'B', 'C'], T0], 'J2' => [['A', 'B', 'C'], T0 + 1800],
+    'J3' => [['C2', 'B2', 'A2'], T0 + 1300]];
+foreach ($aPosJourneys as $sJourney => [$aStopIds, $iStart]) {
+    $PdoPos->exec("INSERT INTO service_journeys VALUES ('$sJourney', 'L1', $iStart)");
+    foreach ($aStopIds as $iSeq => $sStop) {
+        $iArrival = $iStart + $iSeq * 600;
+        $PdoPos->exec("INSERT INTO passing_times VALUES ('$sJourney', $iSeq, '$sStop', $iArrival, $iArrival)");
+    }
+}
+$PdoPos->exec("INSERT INTO trip_aliases VALUES ('T1', 'J1'), ('T2', 'J2'), ('T3', 'J3')");
+$sPosFixture = (string)file_get_contents(__DIR__ . '/fixtures/vehicle-positions-sin-horas.pb');
+$aPosFeed = GtfsRealtimeClient::parseVehiclePositions($sPosFixture);
+$aNoTrip = $aPosFeed['vehicles'][1] ?? [];
+$bNoTrip = $aNoTrip['tripId'] === '' && $aNoTrip['routeId'] === 'L1' && $aNoTrip['directionId'] === 0;
+$Expect('feed guardado: un vehículo sin viaje entra con su línea, su sentido y su rumbo',
+    count($aPosFeed['vehicles']) === 3 && $bNoTrip && $aNoTrip['bearing'] === 2.0, json_encode($aPosFeed['vehicles']));
+$iPosMidnight = time() - (T0 + 2340);
+$MPos = new TripDelayMatcher([], new ServiceJourney($PdoPos), $iPosMidnight, $aPosFeed['vehicles']);
+$PosRow = function (string $sJourney, int $iSeq) use ($aPosJourneys): array {
+    $iArrival = $aPosJourneys[$sJourney][1] + $iSeq * 600;
+    return ['service_journey_id' => $sJourney, 'trip_number' => $sJourney, 'stop_seq' => $iSeq,
+        'arrival_seconds' => $iArrival, 'status' => 'scheduled', 'etaSeconds' => $iArrival, 'delaySeconds' => 0];
+};
+$IsLive = fn(array $aRows, int $iDelay) => ($aRows[0]['status'] ?? null) === 'live'
+    && $aRows[0]['delaySeconds'] === $iDelay;
+$aPosC = $MPos->enrich('C', [$PosRow('J1', 2)]);
+$Expect('con su viaje y sin parada: el GPS a mitad de B a C (24 min tarde) da su retraso en C', $IsLive($aPosC, 1440),
+    json_encode($aPosC));
+$aPosLine = $MPos->enrich('B', [$PosRow('J2', 1)]);
+$Expect('sin viaje: el de su línea y su rumbo de hora más cercana (J2, 4 min tarde), ni el de antes ni la vuelta',
+    $IsLive($aPosLine, 240), json_encode($aPosLine));
+$aPosBack = $MPos->enrich('B2', [$PosRow('J3', 1)]);
+$Expect('con un viaje desconocido, la parada del feed da el sentido: la vuelta, a mitad de C a B (12 min)',
+    $IsLive($aPosBack, 740), json_encode($aPosBack));
+$aPosTrip = $MPos->liveTrip('B', [], 'J2');
+$Expect('la ficha del viaje sale con esas horas, desde la parada a la que va',
+    ($aPosTrip[0] ?? null) === ['B', $iPosMidnight + T0 + 2400 + 240], json_encode($aPosTrip));
+// Con su viaje pero sin su día (el feed de posiciones no lo trae), un GPS que da 1 h tarde pasa del tope: sin dato.
+$aLateBus = [['tripId' => 'T1', 'routeId' => 'L1', 'lat' => 43.0005, 'lon' => -2.9, 'stopId' => '', 'vehicleId' => '9']];
+$MLate = new TripDelayMatcher([], new ServiceJourney($PdoPos), time() - (T0 + 3600), $aLateBus);
+$aLateA = $MLate->enrich('A', [$PosRow('J1', 0)]);
+$Expect('solo posiciones: un GPS de más del tope y sin el día del viaje sale sin dato, no a su hora',
+    ($aLateA[0]['status'] ?? null) === 'likely_departed', json_encode($aLateA));
+$aLoopStops = [];
+foreach (['A', 'B', 'C', 'B', 'A'] as $iSeq => $sStop) {
+    $aLoopStops[] = ['stop_id' => $sStop, 'arrival_seconds' => T0 + $iSeq * 600];
+}
+$aLoopCoords = ['A' => [43.0, -2.9], 'B' => [43.009, -2.9], 'C' => [43.018, -2.9]];
+$aGoing = Services\RoutePosition::locate($aLoopStops, $aLoopCoords, 43.0045, -2.9, T0 + 420);
+$aComing = Services\RoutePosition::locate($aLoopStops, $aLoopCoords, 43.0045, -2.9, T0 + 2160);
+$bGoing = ($aGoing['index'] ?? null) === 1 && $aGoing['seconds'] === T0 + 300;
+$bComing = ($aComing['index'] ?? null) === 4 && $aComing['seconds'] === T0 + 2100;
+$Expect('ida y vuelta por la misma calle: el tramo con la hora más cercana a la de ahora', $bGoing && $bComing,
+    json_encode([$aGoing, $aComing]));
+$aAway = Services\RoutePosition::locate($aLoopStops, $aLoopCoords, 43.0045, -2.85, T0);
+$Expect('lejos del recorrido no se sitúa', $aAway === null);
+\Core\Config::set('bus');
 
 $aCancelAlerts = CancelledTrains::alerts($MRenfe, new ServiceJourney($PdoRenfe), T0 + 1200 + 60);
 $Expect('un tren cancelado es una incidencia: línea, hora de salida, origen y destino', count($aCancelAlerts) === 1 && $aCancelAlerts[0]['summary'] === 'C1 · tren de las 08:20 cancelado' && $aCancelAlerts[0]['description'] === 'Renfe ha cancelado el tren de las 08:20 de Abando a Zabalburu.' && $aCancelAlerts[0]['lineRefs'] === ['C1-ida'], json_encode($aCancelAlerts));
@@ -778,8 +888,10 @@ $Expect('el día siguiente, ya no', !Core\NewBadge::isNew('2026-11-02', (clone $
 $Expect('sin fecha o con una que no es fecha, no', !Core\NewBadge::isNew(null) && !Core\NewBadge::isNew('pronto'));
 $Expect('una red sin «added» no es nueva', !Core\Networks::isNew(['slug' => 'x']));
 
-$aUncited = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && empty($aNet['texts']['es']['liveSource'])));
-$Expect('cada red con horas previstas en directo cita a quien las publica (texts.liveSource)', empty($aUncited));
+$Uncited = fn($aNet) => \Core\Networks::hasFeedLive($aNet) && empty($aNet['texts']['es']['liveSource']);
+$aUncited = array_keys(array_filter(\Core\Networks::all(), $Uncited));
+$Expect('cada red con directo del GTFS-Realtime (horas o posiciones) cita de dónde salen sus horas (liveSource)',
+    empty($aUncited));
 
 $Section('Aviso general (Services\\Notice)');
 $iNow = 1800000000;
@@ -1152,5 +1264,47 @@ $Expect('un día normal (4 de 54 sin pasar, lo medido en Metro) no sale como red
 $Expect('de madrugada, con muy pocos viajes que tocaban, no se juzga', !\Services\ReducedService::confirmed($Samples([5, 5], 20), 1000000 + 1200, $aLiveRules));
 $iEarly = (new DateTimeImmutable('2026-11-15 02:30', new DateTimeZone(\Services\Calendar::TIME_ZONE)))->getTimestamp();
 $Expect('a las 02:30 el día de servicio aún es el de ayer', \Services\ReducedService::serviceDay($iEarly, $aReducedRules)->format('Y-m-d') === '2026-11-14' && \Services\ReducedService::serviceDay($iNowStrike, $aReducedRules)->format('Y-m-d') === '2026-11-14');
+
+$Section('Latido del cron externo (/api/live/record) y última vez que vino lleno cada feed');
+$aBeat = \Services\CronHeartbeat::commands(['bus' => 120, 'bilbobus' => 0, 'lurraldebus' => null], 1000);
+$bBeatShape = count($aBeat) === 2 && $aBeat[0][0] === 'SET' && $aBeat[0][2] === '1000' && $aBeat[0][3] === 'EX';
+$Expect('el latido es un SET con caducidad, más uno por cada red que vino llena (no las vacías)',
+    $bBeatShape && $aBeat[1][1] === 'live:full:bus', json_encode($aBeat));
+$sBeatMarker = sys_get_temp_dir() . '/bide-latido-' . getmypid();
+@unlink($sBeatMarker);
+$bFirst = \Services\CronHeartbeat::due($sBeatMarker, 5000);
+touch($sBeatMarker, 5000);
+$bSoon = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS - 1);
+$bLater = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS);
+unlink($sBeatMarker);
+$Expect('se escribe como mucho cada 10 minutos, no en cada llamada del cron', $bFirst && !$bSoon && $bLater);
+$aAges = \Services\CronHeartbeat::agesFrom(['400', null], 1000);
+$Expect('/api/status: antigüedad del latido y, sin marca de lleno, null',
+    $aAges['cronSeconds'] === 600 && $aAges['lastFullSeconds'] === null, json_encode($aAges));
+$Expect('sin almacén o si no responde, no se dice nada', \Services\CronHeartbeat::agesFrom(null, 1000) === []);
+
+// Nombres en formato título (Core\DisplayName) y medidas de títulos y descripciones (Core\Seo).
+$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'McDonalds', "O'Donnell"]]]];
+$aNames = [
+    'BILBAO INTERMODAL' => 'Bilbao Intermodal', 'AREETA/LAS ARENAS' => 'Areeta/Las Arenas', 'ARTXANDA (EL GALLO)' => 'Artxanda (El Gallo)',
+    'BARRIO SAN JUAN DE DIOS' => 'Barrio San Juan de Dios', 'ERANDIO-LA LLANA' => 'Erandio-La Llana', 'MUNGIA XII' => 'Mungia XII',
+    'COLEGIO JUAN XXIII' => 'Colegio Juan XXIII', 'CC MAX CENTER' => 'CC Max Center', 'MCDONALDS' => 'McDonalds',
+    "O'DONNELL 12" => "O'Donnell 12", 'BBKREN UDALEKUA' => 'BBKren Udalekua', 'Mixed Case' => 'Mixed Case',
+];
+$aWrongNames = [];
+foreach ($aNames as $sIn => $sOut) {
+    if (\Core\DisplayName::of($sIn, $aTitleCase) !== $sOut) {
+        $aWrongNames[] = $sIn . ' → ' . \Core\DisplayName::of($sIn, $aTitleCase);
+    }
+}
+$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
+$Expect('formato título: sin title_case_names en la ficha, el nombre no cambia', \Core\DisplayName::of('BILBAO', ['features' => []]) === 'BILBAO');
+$sLongTitle = \Core\Seo::title([str_repeat('Parada muy larga ', 6)]);
+$Expect('título: si nada cabe, se recorta por una palabra con «…» y no pasa de 60', mb_strlen($sLongTitle) <= \Core\Seo::TITLE_MAX && str_ends_with($sLongTitle, '…'), $sLongTitle);
+$sShortDescription = \Core\Seo::description([str_repeat('a', 100) . '.'], [str_repeat('b', 60), 'Gratis y sin anuncios.', str_repeat('c', 30)]);
+$Expect('descripción corta: la frase de relleno más corta que la deja entre 120 y 155', mb_strlen($sShortDescription) === 124, (string)mb_strlen($sShortDescription));
+$sLongDescription = \Core\Seo::description([str_repeat('palabra ', 30)], []);
+$Expect('descripción larga: recortada a 155 como mucho', mb_strlen($sLongDescription) <= \Core\Seo::DESCRIPTION_MAX);
+$Expect('medianoche de Madrid: lo que falta está entre 0 y 25 h', \Services\Calendar::secondsUntilMidnight() > 0 && \Services\Calendar::secondsUntilMidnight() <= 25 * 3600);
 
 $Finish('unitarias');

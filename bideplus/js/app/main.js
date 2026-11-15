@@ -3,7 +3,7 @@ import { el, state } from './core.js';
 import { loadFavorites, setUpFavoritesPanel } from './favorites.js';
 import { setUpLineMap } from './line-map.js';
 import { renderDepartures, setUpConnectionBanner, setUpStop } from './stop.js';
-import { setUpNetworkMenu, startRouting } from './navigation.js';
+import { setUpNetworkMenu, startRouting, updateTitle } from './navigation.js';
 import { setUpSearch } from './search.js';
 import { renderSchedulePublished, renderTimetableRows, setUpTimetable } from './timetable.js';
 import { setUpScheduleModal } from './schedule-modal.js';
@@ -46,6 +46,7 @@ function setUpLanguage() {
         updateLangToggleLabel();
         updateNetworkSubtitle();
         refreshLanguageDependentViews();
+        updateTitle();
     });
 }
 

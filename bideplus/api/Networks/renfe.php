@@ -84,7 +84,12 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Renfe Cercanías+ · Horarios y retrasos en tiempo real de Cercanías en Bilbao y Donostia',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Euskadi',
+        'country' => 'ES',
+        'operator' => 'Renfe Cercanías',
+        'title' => 'Renfe Cercanías+ · Cercanías de Bilbao y Donostia',
         'description' => 'Consulta los horarios de Cercanías Renfe en Bilbao y Donostia/Irun por parada, con los retrasos y los trenes cancelados en tiempo real.',
     ],
     'attribution' => 'Datos: Renfe Cercanías / data.renfe.com (CC-BY 4.0)',

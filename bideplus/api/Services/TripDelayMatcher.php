@@ -4,8 +4,8 @@ namespace Services;
 
 use Models\ServiceJourney;
 
-// Directo por viaje (GTFS-Realtime de Renfe, Metro, Euskotren, tranvías, Tuvisa, Dbus y Álavabus): cada vehículo trae
-// su viaje del horario y su hora en las paradas que le quedan o un retraso; sin horas, el de su GPS (VehicleDelays).
+// Directo por viaje (GTFS-Realtime): cada vehículo trae su viaje del horario y su hora en las paradas que le quedan o
+// un retraso; sin horas (o en una red con solo posiciones), el de su GPS sobre su horario (VehicleDelays).
 // Se empareja por el viaje, los que ya pasaron por la parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
@@ -22,6 +22,8 @@ class TripDelayMatcher
     // horas del horario del viaje; 'shift' se suma a las de hoy para llegar a ellas (24 h de madrugada en un viaje de
     // ayer que pasa de las 24:00, 0 el resto del día).
     private array $aByJourney = [];
+    // Los viajes del feed con un retraso que no se cree (implausible): salen sin dato, no a su hora.
+    private array $aNoData = [];
     private int $iMidnight;
     private int $iZone = 0;
     private int $iShifted = 0;
@@ -43,7 +45,9 @@ class TripDelayMatcher
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
         $aJourneyIds = $this->runningJourneys($JourneyModel, $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId')));
         $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
-        $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds());
+        $Today = (new \DateTime('@' . ($this->iMidnight + 12 * 3600)))->setTimezone(new \DateTimeZone('Europe/Madrid'));
+        $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds(),
+            $Today);
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;
@@ -51,9 +55,14 @@ class TripDelayMatcher
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
-            if (!$this->finished($aLive) && !$this->implausible((string)$sJourneyId, $aLive)) {
-                $this->aByJourney[(string)$sJourneyId] = $aLive;
+            if ($this->finished($aLive)) {
+                continue;
             }
+            if ($this->implausible($aTrip, (string)$sJourneyId, $aLive)) {
+                $this->aNoData[(string)$sJourneyId] = true;
+                continue;
+            }
+            $this->aByJourney[(string)$sJourneyId] = $aLive;
         }
         $this->iMatched = \count($this->aByJourney);
         $this->bCopiesSchedule = $this->Trust->copiesSchedule($this->aByJourney);
@@ -62,6 +71,10 @@ class TripDelayMatcher
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->aByJourney += $Vehicles->entries();
+        // También con solo posiciones: un GPS fuera del tope no deja el viaje «a su hora», sino sin dato.
+        foreach ($Vehicles->rejected() as $sRejected) {
+            $this->aNoData[(string)$sRejected] = true;
+        }
     }
 
     // Solo valen los viajes que circulan hoy (o ayer, de madrugada): el feed de Metro trae a veces ids que en el horario
@@ -151,13 +164,13 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // Con gtfs_rt.max_feed_gap_seconds (Álavabus, 45 min), un retraso de más es de otro viaje con ese número (da a
-    // veces el de hace horas): no vale y el viaje sale con su horario. Cuenta también el de la parada a la que va, con
-    // lo que lleva de más si no ha llegado. Las demás redes no tienen tope: Renfe con +2 h sale con su retraso.
-    private function implausible(string $sJourneyId, array $aLive): bool
+    // Sin el día del viaje en el feed (startDate), un retraso de más de gtfs_rt.max_feed_gap_seconds puede ser de otro
+    // viaje con ese número: sale sin dato. Con el día de hoy (ofToday) no hay tope. Cuenta también el de la parada a
+    // la que va, con lo que lleva de más si no ha llegado.
+    private function implausible(array $aTrip, string $sJourneyId, array $aLive): bool
     {
         $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;
-        if ($iMaxGap === null) {
+        if ($iMaxGap === null || isset($aTrip['startDate'])) {
             return false;
         }
         $iNextOrder = null;
@@ -288,7 +301,8 @@ class TripDelayMatcher
     {
         $sJourneyId = (string)$aRow['service_journey_id'];
         $aLive = $this->aByJourney[$sJourneyId] ?? null;
-        if ($aLive === null && $this->missingFromFeed($aRow)) {
+        $bNoData = isset($this->aNoData[$sJourneyId]) && ($aRow['status'] ?? 'scheduled') === 'scheduled';
+        if ($aLive === null && ($bNoData || $this->missingFromFeed($aRow))) {
             return ['status' => 'likely_departed', 'etaSeconds' => (int)$aRow['arrival_seconds'], 'delaySeconds' => 0] + $aRow;
         }
         if ($aLive === null || ($aRow['status'] ?? 'scheduled') !== 'scheduled') {

@@ -1,34 +1,41 @@
 <?php
 
-// Genera 404.html con un enlace a cada app de api/Networks, en el orden del menú. Es un fichero estático (Vercel lo
-// sirve tal cual), así que se vuelve a generar al añadir una red (scripts/new-network.php).
-// Uso: php scripts/build-404.php [--output=ruta]
+// Genera la página de error (404.html en castellano y 404-eu.html, 404-en.html y 404-fr.html) con un enlace a cada app
+// de api/Networks, en el orden del menú. Son ficheros estáticos que sirve Core\NotFound en el idioma de la dirección;
+// se vuelven a generar al añadir una red (scripts/new-network.php). Los textos, de js/i18n.js.
+// Uso: php scripts/build-404.php [--output=ruta del castellano; los demás, a su lado con -eu, -en y -fr]
 
 declare(strict_types=1);
 
-require __DIR__ . '/../api/Core/Networks.php';
+require __DIR__ . '/../api/autoload.php';
 
+use Core\Lang;
 use Core\Networks;
+use Core\NotFound;
 
 $aOptions = getopt('', ['output:']);
 $sOutput = $aOptions['output'] ?? __DIR__ . '/../404.html';
 
-$aLinks = [];
-foreach (Networks::all() as $sSlug => $aNetwork) {
-    $sName = htmlspecialchars($aNetwork['texts']['es']['name'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    $aLinks[] = '                <li><a href="/?red=' . rawurlencode($sSlug) . '">' . $sName . '</a></li>';
-}
-$sLinks = implode("\n", $aLinks);
+$Escape = fn(string $sText): string => htmlspecialchars($sText, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+foreach (Lang::LANGS as $sLang) {
+    $aLinks = [];
+    foreach (Networks::all() as $sSlug => $aNetwork) {
+        $sHref = Lang::url('/?red=' . rawurlencode($sSlug), $sLang);
+        $aLinks[] = '                <li><a href="' . $Escape($sHref) . '">' . $Escape(Networks::text($aNetwork, 'name', $sLang)) . '</a></li>';
+    }
+    $sLinks = implode("\n", $aLinks);
+    $T = fn(string $sKey): string => $Escape(Lang::t($sKey, $sLang));
+    $sHome = $Escape(Lang::url('/', $sLang));
 
-$sHtml = <<<HTML
+    $sHtml = <<<HTML
 <!DOCTYPE html>
 <!-- Generado por scripts/build-404.php desde api/Networks: no se edita a mano. -->
-<html lang="es">
+<html lang="{$sLang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Página no encontrada · Bide+</title>
-    <meta name="description" content="La página que buscas no existe o ha cambiado de sitio. Vuelve a Bide+ para consultar los horarios y el tiempo real del bus, el metro, el tren y el tranvía de Euskal Herria.">
+    <title>{$T('notFound.title')}</title>
+    <meta name="description" content="{$T('notFound.description')}">
     <meta name="robots" content="noindex, follow">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">
@@ -44,14 +51,14 @@ $sHtml = <<<HTML
 <body>
     <main>
         <header>
-            <a href="/"><img src="/icons-bide-rojo/bide-wordmark-mayusculas.svg" alt="Bide+, ir al inicio" width="136" height="44"></a>
+            <a href="{$sHome}"><img src="/icons-bide-rojo/bide-wordmark-mayusculas.svg" alt="{$T('notFound.logo')}" width="136" height="44"></a>
         </header>
 
         <section class="notfound">
-            <h1>Esta página no existe</h1>
-            <p>Puede que el enlace esté mal escrito o que la página ya no esté disponible. Vuelve al menú y elige una app.</p>
-            <a class="back" href="/">Volver a Bide+</a>
-            <ul aria-label="Apps de movilidad">
+            <h1>{$T('notFound.heading')}</h1>
+            <p>{$T('notFound.text')}</p>
+            <a class="back" href="{$sHome}">{$T('notFound.back')}</a>
+            <ul aria-label="{$T('menu.section')}">
 {$sLinks}
             </ul>
         </section>
@@ -61,5 +68,6 @@ $sHtml = <<<HTML
 
 HTML;
 
-file_put_contents($sOutput, $sHtml);
-echo \count($aLinks) . " apps\n";
+    file_put_contents(NotFound::fileFor($sOutput, $sLang), $sHtml);
+}
+echo \count($aLinks) . ' apps en ' . \count(Lang::LANGS) . " idiomas\n";

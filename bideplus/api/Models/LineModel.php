@@ -24,27 +24,6 @@ class LineModel
         return $aRow;
     }
 
-    // Paradas de una línea por orden alfabético, para los enlaces de su página.
-    public function stopsByName(int|string $iLineId, int $iLimit = 60): array
-    {
-        $Stmt = $this->Pdo->prepare('
-            SELECT DISTINCT s.id, s.name FROM journey_pattern_stops jps
-            JOIN journey_patterns jp ON jp.id = jps.journey_pattern_id
-            JOIN stops s ON s.id = jps.stop_id
-            WHERE jp.line_id = ?
-            ORDER BY s.name
-            LIMIT ?
-        ');
-        $Stmt->bindValue(1, $iLineId);
-        $Stmt->bindValue(2, $iLimit, \PDO::PARAM_INT);
-        $Stmt->execute();
-        $aRows = $Stmt->fetchAll();
-        foreach ($aRows as &$aRow) {
-            $aRow['id'] = Ids::forOutput($aRow['id']);
-        }
-        return $aRows;
-    }
-
     public function all(): array
     {
         $aRows = $this->Pdo->query('SELECT id, code, name FROM lines ORDER BY code')->fetchAll();
@@ -86,22 +65,56 @@ class LineModel
         $Stmt = $this->Pdo->prepare('SELECT id, headsign FROM journey_patterns WHERE line_id = ?');
         $Stmt->execute([$iLineId]);
         $aPatterns = $Stmt->fetchAll();
+        foreach ($aPatterns as &$aPattern) {
+            $aPattern['stops'] = $this->patternStops($aPattern['id']);
+        }
+        return $aPatterns;
+    }
 
-        $StopsStmt = $this->Pdo->prepare('
+    // Los recorridos con más viajes de una línea, uno por destino y hasta $iMax, con sus paradas en orden: los de su
+    // página. Con $aEnds, solo los que van de una a otra de esas dos paradas (por nombre), en cualquier sentido.
+    public function mainRoutes(int|string $iLineId, int $iMax, array|null $aEnds = null): array
+    {
+        $Stmt = $this->Pdo->prepare('
+            SELECT jp.id, jp.headsign, COUNT(sj.id) AS trips
+            FROM journey_patterns jp LEFT JOIN service_journeys sj ON sj.journey_pattern_id = jp.id
+            WHERE jp.line_id = ?
+            GROUP BY jp.id ORDER BY trips DESC, jp.id
+        ');
+        $Stmt->execute([$iLineId]);
+        if ($aEnds !== null) {
+            sort($aEnds);
+        }
+        $aRoutes = [];
+        foreach ($Stmt->fetchAll() as $aPattern) {
+            if (count($aRoutes) >= $iMax || isset($aRoutes[$aPattern['headsign']])) {
+                continue;
+            }
+            $aStops = $this->patternStops($aPattern['id']);
+            $aPatternEnds = [$aStops[0]['name'] ?? '', end($aStops)['name'] ?? ''];
+            sort($aPatternEnds);
+            if (count($aStops) < 2 || ($aEnds !== null && $aPatternEnds !== $aEnds)) {
+                continue;
+            }
+            $aRoutes[$aPattern['headsign']] = ['headsign' => $aPattern['headsign'], 'stops' => $aStops];
+        }
+        return array_values($aRoutes);
+    }
+
+    private function patternStops(int|string $sPatternId): array
+    {
+        $Stmt = $this->Pdo->prepare('
             SELECT s.id, s.name, s.lat, s.lon
             FROM journey_pattern_stops jps
             JOIN stops s ON s.id = jps.stop_id
             WHERE jps.journey_pattern_id = ?
             ORDER BY jps.seq_order
         ');
-        foreach ($aPatterns as &$aPattern) {
-            $StopsStmt->execute([$aPattern['id']]);
-            $aStops = $StopsStmt->fetchAll();
-            foreach ($aStops as &$aStop) {
-                $aStop['id'] = Ids::forOutput($aStop['id']);
-            }
-            $aPattern['stops'] = $aStops;
+        $Stmt->execute([$sPatternId]);
+        $aStops = $Stmt->fetchAll();
+        foreach ($aStops as &$aStop) {
+            $aStop['id'] = Ids::forOutput($aStop['id']);
         }
-        return $aPatterns;
+        return $aStops;
     }
 }

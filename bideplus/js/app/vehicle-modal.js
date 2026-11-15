@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, NETWORK_SLUG, el, onReturn, savedSchedule, state, whenVisible } from './core.js';
+import { FEATURES, NETWORK_SLUG, appHref, el, onReturn, openOnClick, savedSchedule, state, whenVisible } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -16,6 +16,8 @@ const MODAL_PASSED_AFTER_MS = 45000;
 export const DEPARTED_GRACE_MS = 45 * 1000;
 export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
 // Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
+// La hora del texto de compartir, en el idioma de la app y en la zona de los horarios aunque el móvil esté en otra.
+const SHARE_TIME_OPTIONS = { timeZone: BideNetworks.TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
 const shareState = { tripKey: null, data: null };
 
 function freshModalStops(data) {
@@ -59,12 +61,15 @@ export function renderModalStops(data) {
         if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
             label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
         }
-        li.textContent = label;
-        li.classList.add('stop-clickable');
-        li.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.href = appHref('stops', stop.stopId);
+        link.textContent = label;
+        openOnClick(link, () => {
             el.modal.close();
             selectStop(stop.stopId);
         });
+        li.appendChild(link);
+        li.classList.add('stop-clickable');
         el.modalStops.appendChild(li);
     }
     el.modal.scrollTop = scrollTop;
@@ -265,7 +270,7 @@ function arrivalTime(data) {
     const stop = data.stops.find((s) => String(s.stopId) === String(state.currentStop.id));
     if (!stop) return '';
     if (Number.isFinite(stop.etaAt) && (data.status === 'live' || data.status === 'estimated')) {
-        return new Date(stop.etaAt * 1000).toTimeString().slice(0, 5);
+        return new Intl.DateTimeFormat(I18n.getLang(), SHARE_TIME_OPTIONS).format(new Date(stop.etaAt * 1000));
     }
     return stop.scheduledTime || '';
 }

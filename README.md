@@ -4,19 +4,26 @@ Horarios, llegadas y avisos del transporte público de Euskadi en una sola aplic
 
 **Pruébala:** <https://www.bideplus.eus>
 
-| App | Qué muestra |
-|---|---|
-| **Bizkaibus+** | Horarios, llegadas calculadas con la posición GPS de cada bus, mapa en vivo y avisos |
-| **Metro+** | Horarios, tiempo real y avisos de Metro Bilbao |
-| **Euskotren+** | Horarios y avisos de Euskotren |
-| **Tranvía Bilbao+** y **Tranvía Vitoria+** | Horarios y avisos de los tranvías, y tiempo real del de Vitoria |
-| **Renfe Cercanías+** | Horarios, retrasos en directo y avisos de Cercanías en Bilbao y Donostia/Irun |
-| **Lurraldebus+** | Horarios y avisos de los autobuses de Gipuzkoa |
-| **Bilbobus+** | Horarios de los autobuses urbanos de Bilbao |
-| **Tuvisa+** | Horarios, tiempo real y avisos de los autobuses de Vitoria-Gasteiz |
-| **Dbus+** | Horarios y tiempo real de los autobuses de Donostia |
-| **Álavabus+** | Horarios y tiempo real de los autobuses interurbanos de Álava |
-| **La Unión+** | Horarios de los autobuses de La Unión entre Bizkaia y Vitoria-Gasteiz |
+<!-- apps: la genera bideplus/scripts/build-readme.php -->
+| App | Qué muestra | Datos |
+|---|---|---|
+| **Bizkaibus+** | Horarios y tiempo real de Bizkaibus | Bizkaibus / Open Data Bizkaia (CC-BY 4.0) |
+| **Metro+** | Horarios y tiempo real de Metro Bilbao | Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real |
+| **Euskotren+** | Horarios de Euskotren | Euskotren / Open Data Euskadi (CC-BY 4.0) |
+| **Renfe Cercanías+** | Horarios y tiempo real de Cercanías en Bilbao y Donostia | Renfe Cercanías / data.renfe.com (CC-BY 4.0) |
+| **Lurraldebus+** | Horarios de Lurraldebus en Gipuzkoa | Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) |
+| **Tranvía Bilbao+** | Horarios y tiempo real del tranvía de Bilbao | Euskotren (Tranvía Bilbao) / Open Data Euskadi (CC-BY 4.0) |
+| **Tranvía Vitoria+** | Horarios y tiempo real del tranvía de Vitoria-Gasteiz | Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0) |
+| **Bilbobus+** | Horarios de Bilbobus en Bilbao | Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0) |
+| **Tuvisa+** | Horarios y tiempo real de Tuvisa en Vitoria-Gasteiz | Tuvisa / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0) |
+| **Dbus+** | Horarios y tiempo real de Dbus en Donostia | Dbus / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0) |
+| **Álavabus+** | Horarios y tiempo real de Álavabus en Álava | Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) |
+| **La Unión+** | Horarios de La Unión entre Bizkaia y Vitoria-Gasteiz | Autobuses La Unión, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) |
+| **Renfe LD+** | Horarios y tiempo real de los trenes de larga y media distancia | Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0) |
+| **Txik Txak+** | Horarios y tiempo real de los autobuses de Iparralde | Syndicat des Mobilités Pays Basque-Adour, vía transport.data.gouv.fr (Open Database License, ODbL 1.0) |
+| **SNCF+** | Horarios y tiempo real de los trenes de Iparralde | SNCF, vía transport.data.gouv.fr (Open Database License, ODbL 1.0) |
+| **Villavesas+** | Horarios de las villavesas de la Comarca de Pamplona | Mancomunidad de la Comarca de Pamplona (TCC), vía el Punto de Acceso Nacional de Transporte Multimodal (Licencia de datos abiertos del Ministerio de Transportes y Movilidad Sostenible) |
+<!-- /apps -->
 
 Es una aplicación web instalable (PWA) en castellano, euskera e inglés, que funciona en el móvil y en el ordenador. Avisa con una notificación antes de que llegue tu bus o tu tren y de las incidencias nuevas de tus favoritos, aunque la app esté cerrada, y guarda en el dispositivo el horario de todas las redes: sin conexión se puede buscar y ver las paradas, las líneas con su horario y las paradas de cada viaje.
 

@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: '17 1 * * *'
     - cron: '47 4 * * *'
+  # El cron externo puede lanzarlo a su hora (CONTRIBUTING.md, «Flujos programados»).
+  repository_dispatch:
+    types: [rebuild-schedule]
   push:
     branches: [master]
     paths:
@@ -43,7 +46,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           HACER=1
-          if [ "${{ github.event_name }}" = "schedule" ] && gh release download bases --repo "${{ github.repository }}" -p 'bases.json*' -D bases; then
+          EVENTO="${{ github.event_name }}"
+          if { [ "$EVENTO" = "schedule" ] || [ "$EVENTO" = "repository_dispatch" ]; } && gh release download bases --repo "${{ github.repository }}" -p 'bases.json*' -D bases; then
             # A medio sustituir, bases.json.nuevo es el más reciente.
             FICHA=bases/bases.json
             if [ -f bases/bases.json.nuevo ]; then
@@ -162,38 +166,6 @@ jobs:
           set -o pipefail
           php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
 
-      # Resumen visible en la ejecucion: que horario se ha publicado, hasta cuando vale y si los calendarios cuadran con
-      # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
-      # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
-      - name: Summarize the published schedule
-        if: steps.modo.outputs.redes == 'todas' || contains(format(' {0} ', steps.modo.outputs.redes), ' bus ')
-        run: |
-          python3 - <<'PY'
-          import os, re, sqlite3, datetime
-          c = sqlite3.connect('bideplus/data/bizkaibus.sqlite')
-          meta = dict(c.execute('select key, value from meta'))
-          start, end, published = meta.get('feed_start_date', '?'), meta.get('feed_end_date', '?'), meta.get('schedule_source_published', '?')
-          journeys = c.execute('select count(*) from service_journeys').fetchone()[0]
-          audit = ''
-          log = open(os.path.join(os.environ['RUNNER_TEMP'], 'bus-build.log'), encoding='utf-8', errors='replace').read()
-          m = re.search(r'Auditoría de calendarios[^\n]*', log)
-          if m: audit = m.group(0).strip()
-          left = None
-          try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
-          except ValueError: pass
-          remaining = ''
-          if left is not None: remaining = f' (quedan {left} días)'
-          audit_line = '- Sin línea de auditoría de calendarios (revisar el log del build)'
-          if audit: audit_line = f'- {audit}'
-          lines = ['### Horario de Bizkaibus publicado',
-                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + remaining,
-                   f'- {journeys:,} viajes en la base'.replace(',', '.'),
-                   audit_line]
-          open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
-          if left is not None and left <= 10:
-              print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
-          PY
-
       # Cada base se genera aparte y solo sustituye a la de ayer si termina bien y no está vacía. Si falla una
       # obligatoria (gtfs.required), el flujo se para y producción sigue como estaba; si falla una opcional, va la
       # de ayer.
@@ -216,6 +188,9 @@ jobs:
             if [ "$required" = "1" ]; then
               echo "::error::No se pudo reconstruir $network (obligatoria)"
               exit 1
+            else
+              echo "::warning::No se pudo reconstruir $network; se mantiene su última base buena"
+              echo "$network" >> "$RUNNER_TEMP/conservadas.txt"
             fi
             # Sin la de ayer (no se bajó al principio), se intenta otra vez solo esa.
             if [ ! -s "bideplus/data/$db.sqlite" ]; then
@@ -236,10 +211,10 @@ jobs:
             echo "OK: $f ($(du -h "$f" | cut -f1))"
           done
 
-      # sitemap.xml es estático: se regenera con las bases nuevas para que cada línea y
-      # parada que aparezca o desaparezca entre o salga del sitemap en el mismo despliegue.
-      - name: Rebuild sitemap.xml
-        run: php bideplus/scripts/build-sitemap.php
+      # Sitemaps estáticos (sitemap-index.xml y uno por red) con las bases nuevas. El lastmod de cada página solo cambia
+      # si cambia su huella: las dos cosas van en sitemap-lastmod.json, que se sube tras desplegar, con geocache.json.
+      - name: Rebuild sitemaps
+        run: php bideplus/scripts/build-sitemap.php --save-state
 
       # El mapa de la red (/mapa): líneas, recorridos y paradas de cada red, sacados de las bases recién construidas.
       - name: Rebuild network map data
@@ -420,34 +395,16 @@ jobs:
           echo "::warning::Primer despliegue sin planificador: no hay ni el de hoy ni release «planificador»"
           echo "- Primer despliegue sin planificador: no hay ni el de hoy ni release «planificador»" >> "$RUNNER_TEMP/avisos.md"
 
-      - name: Commit updated geocache, if it changed
-        run: |
-          if ! git diff --quiet bideplus/scripts/geocache.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add bideplus/scripts/geocache.json
-            git commit -m "chore: update geocache with newly seen stop coordinates"
-            # GitHub rechaza a veces el push con un error suyo («fatal error in commit_refs», 4/11/2026) o porque
-            # master ha cambiado entretanto: se reintenta hasta tres veces, poniéndose al día antes.
-            for INTENTO in 1 2 3; do
-              git push && break
-              [ "$INTENTO" = 3 ] && exit 1
-              sleep 10
-              git pull --rebase
-            done
-          else
-            echo "geocache.json unchanged, nothing to commit"
-          fi
-
       # La huella de los ficheros de la app en sw.js: con ella el móvil no los vuelve a pedir en cada apertura y baja
-      # la versión nueva entera en cuanto cambia alguno. Va después del commit de geocache para no subirla al
-      # repositorio. Si fallara, sw.js se queda sin huella y la app funciona como hasta ahora: no frena el despliegue.
+      # la versión nueva entera en cuanto cambia alguno. No se sube al repositorio (el commit de más abajo solo lleva
+      # geocache.json y sitemap-lastmod.json). Si fallara, sw.js se queda sin huella y la app funciona igual.
       - name: Stamp the app files fingerprint in sw.js
         continue-on-error: true
         run: php bideplus/scripts/stamp-sw.php
 
+      # Versión fija: una nueva de la CLI no cambia el despliegue sin probarla antes.
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.9.0
 
       # Vercel ya no arranca las funciones tal como las emite vercel-php (vercel-community/php#650): se construye aquí,
       # se parchea el lanzador (bideplus/scripts/vercel-launcher.py) y se sube la salida ya construida.
@@ -549,6 +506,36 @@ jobs:
             echo "- No se ha podido guardar el planificador en su release: mañana se parte del anterior" >> "$RUNNER_TEMP/avisos.md"
           fi
 
+      # Ya desplegado: geocache.json y sitemap-lastmod.json se suben desde un árbol aparte, sobre el master de ese
+      # momento, con sitemap-lastmod.json rehecho desde el de master: el árbol desplegado no se toca para los pasos de
+      # después. Si no sube, solo avisa: el despliegue ya está hecho.
+      - name: Commit updated geocache and sitemap lastmod, if they changed
+        continue-on-error: true
+        run: |
+          ARBOL="$RUNNER_TEMP/commit-bot"
+          trap 'git worktree remove --force "$ARBOL" 2>/dev/null || true' EXIT
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for INTENTO in 1 2 3; do
+            git worktree remove --force "$ARBOL" 2>/dev/null || true
+            git fetch --quiet origin master && git worktree add --quiet --detach "$ARBOL" origin/master || {
+              sleep 10
+              continue
+            }
+            cp bideplus/scripts/geocache.json "$ARBOL/bideplus/scripts/geocache.json"
+            php bideplus/scripts/build-sitemap.php --save-state --state="$ARBOL/bideplus/scripts/sitemap-lastmod.json" \
+              --output-dir="$RUNNER_TEMP/sitemaps-commit" > /dev/null
+            git -C "$ARBOL" add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json
+            if git -C "$ARBOL" diff --cached --quiet; then
+              echo "geocache.json y sitemap-lastmod.json sin cambios"
+              exit 0
+            fi
+            git -C "$ARBOL" commit --quiet -m "chore: update geocache and sitemap lastmod"
+            git -C "$ARBOL" push origin HEAD:master && exit 0
+            sleep 10
+          done
+          echo "::warning::No se han podido subir geocache.json y sitemap-lastmod.json (el despliegue sí está hecho)"
+
       # IndexNow: avisa a Bing (y a los buscadores que lo comparten) de las páginas principales en los tres idiomas.
       # Si falla, solo lo dice: el despliegue ya está hecho.
       - name: Avisar a los buscadores (IndexNow)
@@ -564,11 +551,38 @@ jobs:
             echo "- El directo de alguna red no cuadra en producción (ver «Vigilar el directo»)" >> "$RUNNER_TEMP/avisos.md"
           fi
 
+      # Se borran los despliegues viejos menos el que sirve el dominio, el último y los KEEP_PREVIOUS anteriores de
+      # producción (.github/scripts/vercel-cleanup.py): «Rollback production» siempre tiene a cuál volver.
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
-        run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          KEEP_PREVIOUS: 2
+        run: |
+          TEAM=""
+          case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
+          API="https://api.vercel.com"
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
+          LISTA="$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
+          # El que sirve el dominio ahora; si no se puede leer, vercel-cleanup.py no borra nada.
+          PROYECTO="$(curl -fsS -H "$AUTH" "$API/v9/projects/$VERCEL_PROJECT_ID?x=1$TEAM" || true)"
+          CURRENT="$(printf '%s' "$PROYECTO" | python3 -c \
+            'import json, sys; print(json.load(sys.stdin)["targets"]["production"]["id"])' 2>/dev/null || true)"
+          export CURRENT
+          printf '%s' "$LISTA" | python3 .github/scripts/vercel-cleanup.py | while read -r UID_; do
+            [ -n "$UID_" ] && curl -fsS -X DELETE -H "$AUTH" "$API/v13/deployments/$UID_?x=1$TEAM" > /dev/null || true
+          done
+
+      # Al final, para no frenar el despliegue: hasta cuándo vale el horario de cada red y de qué fuente salió. Sale en
+      # rojo si una red obligatoria se queda sin horario en pocos días, si una opcional que hoy no se pudo reconstruir
+      # conserva una base a punto de caducar o si el respaldo de una fuente caída es demasiado viejo.
+      - name: Horario publicado de cada red
+        run: |
+          grep -h 'Auditoría de calendarios' "$RUNNER_TEMP"/bus-build.log 2>/dev/null | sed 's/^/- Bizkaibus: /' \
+            >> "$GITHUB_STEP_SUMMARY" || true
+          CONSERVADAS="$(paste -sd, "$RUNNER_TEMP/conservadas.txt" 2>/dev/null || true)"
+          php bideplus/scripts/published-schedule.php --kept="$CONSERVADAS" --summary="$GITHUB_STEP_SUMMARY"
 
       # GitHub no avisa de los ::warning::: los avisos del día van a una incidencia abierta (un comentario cada vez).
       - name: Avisar al dueño

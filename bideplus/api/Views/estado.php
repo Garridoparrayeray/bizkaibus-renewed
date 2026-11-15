@@ -6,31 +6,16 @@ $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sWordmark = require __DIR__ . '/wordmark.php';
 $sLang = Lang::current();
-$aTitles = [
-    'es' => 'Estado del transporte en Euskadi, en directo | Bide+',
-    'eu' => 'Euskadiko garraioaren egoera, zuzenean | Bide+',
-    'en' => 'Basque Country public transport status, live | Bide+',
-    'fr' => 'État des transports au Pays basque, en direct | Bide+',
-];
-$aDescriptions = [
-    'es' => 'Cuántos trenes, metros, tranvías y autobuses van en directo ahora en cada red de Euskal Herria (Euskadi, Navarra e Iparralde), cuántos van en hora y cuánto acierta Bide+ frente al horario.',
-    'eu' => 'Zenbat tren, metro, tranbia eta autobus dabiltzan zuzenean orain Euskal Herriko sare bakoitzean (Euskadi, Nafarroa eta Iparraldea), zenbat doazen orduan eta Bide+-k ordutegiak baino zenbat gehiago asmatzen duen.',
-    'en' => 'How many trains, metros, trams and buses are live right now on each Basque network (Euskadi, Navarre and the Northern Basque Country), how many are on time and how much better Bide+ does than the timetable.',
-    'fr' => 'Combien de trains, métros, tramways et bus circulent en direct sur chaque réseau d’Euskal Herria (Euskadi, Navarre et Pays basque nord), combien sont à l’heure et la précision de Bide+ par rapport aux horaires.',
-];
-$sTitle = $aTitles[$sLang];
-$sDescription = $aDescriptions[$sLang];
+$sTitle = Lang::t('status.seoTitle', $sLang);
+$sDescription = Lang::t('status.seoDescription', $sLang);
 $sCanonicalEs = $aSite['url'] . '/estado';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
 $aJsonLd = [
     '@context' => 'https://schema.org',
-    '@type' => 'WebPage',
-    'name' => $sTitle,
-    'description' => $sDescription,
-    'url' => $sCanonical,
-    'inLanguage' => $sLang,
-    'isPartOf' => ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'],
+    '@graph' => array_merge(bideSiteJsonLd($sLang), [
+        ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang] + bideSiteRefs(),
+    ]),
 ];
 $aPrecision = [
     ['range' => '0–3', 'bide' => 96, 'timetable' => 24],
@@ -40,13 +25,17 @@ $aPrecision = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <?= Lang::alternates($sCanonicalEs) ?>
     <meta property="og:type" content="website">
@@ -55,7 +44,13 @@ $aPrecision = [
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="manifest" href="/manifest-bide.json">
     <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">
@@ -73,6 +68,7 @@ $aPrecision = [
     <script src="/js/i18n.js"></script>
     <script src="/js/networks.js"></script>
     <script src="/js/estado.js" defer></script>
+    <script src="/js/lang-offer.js" defer></script>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-status">

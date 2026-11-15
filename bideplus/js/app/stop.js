@@ -1,8 +1,8 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, el, networkQuery, savedSchedule, state, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
-import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
+import { closeFromButton, closeLiveCard, closeTimetableSection, updateTitle } from './navigation.js';
 import { loadTimetable, selectLine } from './timetable.js';
 import { DEPARTED_GRACE_MS, openVehicleModal } from './vehicle-modal.js';
 import { refreshStopAlerts } from './stop-alerts.js';
@@ -65,10 +65,15 @@ export async function selectStop(stopId) {
     } catch (e) {
         const saved = await savedSchedule();
         if (saved) stop = BideOffline.stop(saved, stopId);
-        if (!stop) return;
+        if (!stop) {
+            el.appMain.classList.remove('is-stop-page', 'is-tall');
+            return;
+        }
     }
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
+    syncPageContent('stop', stop.id);
+    updateTitle();
     const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
     const planTo = PlannerLink.url('to', NETWORK_SLUG, stop.id, stop.name);
     const planFrom = PlannerLink.url('from', NETWORK_SLUG, stop.id, stop.name);
@@ -90,11 +95,9 @@ export async function selectStop(stopId) {
         closeTimetableSection();
     }
     if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-        if (history.state && (history.state.view === 'stop' || history.state.view === 'line')) {
-            history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
-        } else {
-            history.pushState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
-        }
+        // fromNetwork: abierta desde la red; su ✕ vuelve a esa entrada en vez de añadir otra.
+        const fromNetwork = !/^\/(stops|lines)\//.test(window.location.pathname);
+        history.pushState({ view: 'stop', id: stopId, fromApp: true, fromNetwork }, '', '/stops/' + stopId + networkQuery);
     } else if (!history.state || !history.state.view) {
         history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', window.location.href);
     }
@@ -191,11 +194,11 @@ function renderStopLines(lines) {
 
     for (const line of lines) {
         const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.innerHTML = `<strong>${escapeHtml(line.code)}</strong><span>${escapeHtml(line.name)}</span>`;
-        button.addEventListener('click', () => selectLine(line.id, true));
-        li.appendChild(button);
+        const link = document.createElement('a');
+        link.href = appHref('lines', line.id);
+        link.innerHTML = `<strong>${escapeHtml(line.code)}</strong><span>${escapeHtml(line.name)}</span>`;
+        openOnClick(link, () => selectLine(line.id, true));
+        li.appendChild(link);
         el.liveMoreList.appendChild(li);
     }
 }
@@ -434,12 +437,12 @@ function renderLineButtons(departures, link, container, enabled, fromStop = fals
         container.hidden = false;
         container.innerHTML = '';
         for (const line of distinctLines) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'pill';
-            button.textContent = line.lineCode;
-            button.addEventListener('click', () => selectLine(line.lineId, true));
-            container.appendChild(button);
+            const link = document.createElement('a');
+            link.className = 'pill';
+            link.href = appHref('lines', line.lineId);
+            link.textContent = line.lineCode;
+            openOnClick(link, () => selectLine(line.lineId, true));
+            container.appendChild(link);
         }
         return;
     }
@@ -465,9 +468,9 @@ export function setUpConnectionBanner() {
 
 export function setUpStop() {
     el.liveFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.liveFavorite));
-    el.liveClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
+    el.liveClose.addEventListener('click', () => closeFromButton('stop', () => closeLiveCard({ push: true }), 'fromNetwork'));
     el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
-    el.platformClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
+    el.platformClose.addEventListener('click', () => closeFromButton('stop', () => closeLiveCard({ push: true }), 'fromNetwork'));
     el.platformTimetableLink.addEventListener('click', () => {
         if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });

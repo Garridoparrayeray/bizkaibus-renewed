@@ -9,6 +9,12 @@
     --screen-line: rgba(255, 255, 255, .12);
     --screen-live: #3DDC84;
     --screen-warn: #FFB020;
+    --screen-row-gap-min: 12px;
+    --screen-row-gap-max: 48px;
+    --screen-row-text-min: 16px;
+    --screen-row-text-max: 48px;
+    --screen-time-min: 20px;
+    --screen-time-max: 60px;
 }
 
 * {
@@ -20,7 +26,9 @@
 .screen {
     display: flex;
     flex-direction: column;
+    /* En el móvil, 100vh es la altura sin la barra del navegador: la que se ve es 100dvh. */
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     background: var(--screen-bg);
     color: var(--screen-text);
@@ -83,7 +91,7 @@
             display: grid;
             grid-template-columns: auto minmax(0, 1fr) auto;
             align-items: center;
-            gap: 2.5vw;
+            gap: clamp(var(--screen-row-gap-min), min(2.5vw, 3.2vh), var(--screen-row-gap-max));
             padding: 1.6vh 0;
             border-bottom: 1px solid var(--screen-line);
         }
@@ -97,13 +105,13 @@
                 border-radius: .35em;
                 background: var(--network);
                 color: #FFFFFF;
-                font-size: clamp(16px, 2.8vw, 48px);
+                font-size: clamp(var(--screen-row-text-min), min(2.8vw, 3.6vh), var(--screen-row-text-max));
                 font-weight: 800;
                 text-align: center;
             }
             .screen-dest {
                 overflow: hidden;
-                font-size: clamp(16px, 2.8vw, 48px);
+                font-size: clamp(var(--screen-row-text-min), min(2.8vw, 3.6vh), var(--screen-row-text-max));
                 font-weight: 600;
                 text-overflow: ellipsis;
                 white-space: nowrap;
@@ -117,7 +125,7 @@
                     text-overflow: ellipsis;
                 }
             .screen-time {
-                font-size: clamp(20px, 3.4vw, 60px);
+                font-size: clamp(var(--screen-time-min), min(3.4vw, 4.4vh), var(--screen-time-max));
                 font-weight: 800;
                 font-variant-numeric: tabular-nums;
                 text-align: right;

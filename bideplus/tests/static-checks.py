@@ -17,7 +17,7 @@ failures = []
 APP_JS = sorted(glob.glob(ROOT + 'js/app/*.js'))
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", ''.join(open(f, encoding='utf-8').read() for f in APP_JS)))
 # La plantilla de las apps (Views/app.php) más las piezas que incluye (aviso legal y piezas comunes de Bide+).
-shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
+shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/page-content.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
 ids_html = set(re.findall(r'id="([^"]+)"', shell))
 missing_ids = sorted(ids_js - ids_html)
 print('ids que js/app/ busca y no existen en la plantilla:', missing_ids or 'ninguno')
@@ -104,16 +104,25 @@ print('geocache (caché de geocodificación):', geo_result)
 if geo.returncode != 0:
     failures.append('prueba de geocache')
 
-# sitemap.xml: lo genera scripts/build-sitemap.php; el del repositorio debe coincidir con las bases de datos.
-fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check.xml')
-r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output=' + fresh], capture_output=True, text=True)
-stale = r.returncode != 0 or open(fresh, encoding='utf-8').read() != open(ROOT + 'sitemap.xml', encoding='utf-8').read()
+# sitemap-index.xml y sitemaps/: los genera scripts/build-sitemap.php; los del repositorio deben tener las páginas de
+# las bases. El lastmod no cuenta: la reconstrucción diaria sube sitemap-lastmod.json pero no las bases.
+fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check')
+r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output-dir=' + fresh], capture_output=True, text=True)
+stale = r.returncode != 0
+
+
+def without_lastmod(path):
+    return re.sub(r'<lastmod>[^<]*</lastmod>', '', open(path, encoding='utf-8').read())
+
+
+for name in ['sitemap-index.xml'] + ['sitemaps/' + f for f in sorted(os.listdir(ROOT + 'sitemaps'))]:
+    stale = stale or not os.path.exists(os.path.join(fresh, name)) or without_lastmod(os.path.join(fresh, name)) != without_lastmod(ROOT + name)
 sitemap_result = 'al día (' + r.stdout.strip() + ')'
 if stale:
     sitemap_result = 'desactualizado, ejecuta php scripts/build-sitemap.php'
-print('sitemap.xml:', sitemap_result)
+print('sitemaps:', sitemap_result)
 if stale:
-    failures.append('sitemap.xml desactualizado')
+    failures.append('sitemaps desactualizados')
 
 # js/networks.js: lo genera scripts/build-networks-js.php desde api/Networks.
 fresh_js = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.js')
@@ -137,10 +146,13 @@ print('style-networks.css:', css_result)
 if stale_css:
     failures.append('style-networks.css desactualizado')
 
-# 404.html: un enlace a cada app, generado por scripts/build-404.php desde api/Networks.
+# 404.html y sus versiones en euskera, inglés y francés: un enlace a cada app, de scripts/build-404.php.
 fresh_404 = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check-404.html')
 r = subprocess.run([PHP, ROOT + 'scripts/build-404.php', '--output=' + fresh_404], capture_output=True, text=True)
-stale_404 = r.returncode != 0 or open(fresh_404, encoding='utf-8').read() != open(ROOT + '404.html', encoding='utf-8').read()
+stale_404 = r.returncode != 0
+for suffix in ('', '-eu', '-en', '-fr'):
+    fresh = fresh_404.replace('.html', suffix + '.html')
+    stale_404 = stale_404 or open(fresh, encoding='utf-8').read() != open(ROOT + '404' + suffix + '.html', encoding='utf-8').read()
 notfound_result = 'al día (' + r.stdout.strip() + ')'
 if stale_404:
     notfound_result = 'desactualizado, ejecuta php scripts/build-404.php'
@@ -158,6 +170,15 @@ if stale_llms:
 print('llms.txt:', llms_result)
 if stale_llms:
     failures.append('llms.txt desactualizado')
+
+# La tabla de las apps de README.md y bideplus/README.md: la genera scripts/build-readme.php desde api/Networks.
+r = subprocess.run([PHP, ROOT + 'scripts/build-readme.php', '--comprobar'], capture_output=True, text=True)
+readme_result = 'al día (' + r.stdout.strip() + ')'
+if r.returncode != 0:
+    readme_result = (r.stdout + r.stderr).strip() + ', ejecuta php scripts/build-readme.php'
+print('tabla de apps de los README:', readme_result)
+if r.returncode != 0:
+    failures.append('tabla de apps de los README desfasada')
 
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
@@ -190,9 +211,12 @@ if missing_headers or weak_csp:
     failures.append('cabeceras de seguridad')
 
 # Caché de los estáticos: solo en el CDN (s-maxage, que se vacía en cada despliegue). Con max-age en el navegador, una versión nueva
-# podría servir ficheros viejos, porque sus direcciones no llevan versión.
+# podría servir ficheros viejos, porque sus direcciones no llevan versión. Solo lo que lleva la versión en la ruta
+# (lib/leaflet-1.9.4/) puede ir con caché larga e immutable.
 static_cache = [r for r in vercel.get('routes', []) if (r.get('headers') or {}).get('Cache-Control')]
-bad_cache = [r['src'] for r in static_cache if not re.search(r'max-age=0\b', r['headers']['Cache-Control']) or 's-maxage=' not in r['headers']['Cache-Control'] or 'sw[.]js' not in r['src']]
+versioned = [r for r in static_cache if 'immutable' in r['headers']['Cache-Control']]
+bad_cache = [r['src'] for r in versioned if not re.search(r'-\[0-9\.\]\+/', r['src'])]
+bad_cache += [r['src'] for r in static_cache if r not in versioned and (not re.search(r'max-age=0\b', r['headers']['Cache-Control']) or 's-maxage=' not in r['headers']['Cache-Control'] or 'sw[.]js' not in r['src'])]
 cache_ok = bool(static_cache) and not bad_cache
 print('caché de estáticos en el CDN sin caché en el navegador:', cache_ok)
 if not cache_ok:

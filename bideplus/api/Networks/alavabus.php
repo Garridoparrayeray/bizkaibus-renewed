@@ -86,12 +86,19 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Álavabus+ · Autobuses de Álava en tiempo real por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Araba/Álava',
+        'country' => 'ES',
+        'operator' => 'Álavabus',
+        'title' => 'Álavabus+ · Autobuses de Álava en tiempo real',
         'description' => 'Consulta los próximos autobuses de Álavabus, los interurbanos de Álava, en tiempo real, sus horarios por línea y parada y dónde va cada autobús en el mapa.',
     ],
     'attribution' => 'Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     'features' => [
+        // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,
@@ -121,8 +128,8 @@ return [
         'local_clock' => true,
         // Sus horas previstas fallan a menudo: donde el autobús manda su posición, se usa la posición.
         'prefer_vehicles' => true,
-        // A veces da a un autobús el número de un viaje de hace horas: un retraso de más de 45 min (el tope del GPS) no
-        // vale y el viaje sale con su horario.
+        // A veces da a un autobús el número de un viaje de hace horas: sin el día del viaje en el feed, un retraso de más
+        // de 45 min (el tope del GPS) no vale y el viaje sale sin dato.
         'max_feed_gap_seconds' => 45 * 60,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
@@ -149,6 +156,9 @@ return [
         'holidays' => [
             'calendar' => 'euskadi', 'territory' => 'Álava - Araba', 'municipality' => null,
             'fallback' => ['networks' => ['dbus', 'bilbobus'], 'quorum' => 2],
+            // Su GTFS marca el festivo entre semana añadiendo el calendario de domingo sin quitar el de ese día: en
+            // un festivo del calendario laboral, lo de ese día de la semana sin excepción no circula.
+            'added_sunday_is_holiday' => true,
         ],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/gtfs_alavabus.zip',
         'fallback_source' => null,

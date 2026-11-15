@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v59';
+const CACHE_VERSION = 'v60';
 // Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
 // cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
 const SHELL_HASH = '';
@@ -37,13 +37,13 @@ const SHELL_FILES = [
     '/fonts/fonts.css',
     '/fonts/bricolage-grotesque-latin.woff2',
     '/fonts/hanken-grotesk-latin.woff2',
-    '/lib/leaflet/leaflet.css',
-    '/lib/leaflet/leaflet.js',
-    '/lib/leaflet/images/layers.png',
-    '/lib/leaflet/images/layers-2x.png',
-    '/lib/leaflet/images/marker-icon.png',
-    '/lib/leaflet/images/marker-icon-2x.png',
-    '/lib/leaflet/images/marker-shadow.png',
+    '/lib/leaflet-1.9.4/leaflet.css',
+    '/lib/leaflet-1.9.4/leaflet.js',
+    '/lib/leaflet-1.9.4/images/layers.png',
+    '/lib/leaflet-1.9.4/images/layers-2x.png',
+    '/lib/leaflet-1.9.4/images/marker-icon.png',
+    '/lib/leaflet-1.9.4/images/marker-icon-2x.png',
+    '/lib/leaflet-1.9.4/images/marker-shadow.png',
     '/lib/protomaps-leaflet/protomaps-leaflet.js',
     '/js/api.js',
     '/js/offline.js',
@@ -93,6 +93,7 @@ const SHELL_FILES = [
     '/js/route/basemap.js',
     '/js/planner-link.js',
     '/js/i18n.js',
+    '/js/lang-offer.js',
     '/css/style-menu.css',
     '/css/style-splash.css',
     '/js/splash.js',

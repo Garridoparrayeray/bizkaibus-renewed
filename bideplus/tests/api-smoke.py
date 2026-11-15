@@ -74,7 +74,7 @@ for name, cfg in NETS.items():
         for line in (stop.get('lines') or [])[:2]:
             lid = enc(line['id'])
             get(with_net(f'/api/lines/{lid}', s))
-            tt = get(with_net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s))
+            tt = get(with_net(f'/api/lines/{lid}/timetable?date={cfg.get("serviceDate", today)}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s))
             if tt and tt['entries']:
                 trip = enc(tt['entries'][0]['tripKey'])
                 get(with_net(f'/api/vehicles/{trip}', s))
@@ -141,7 +141,7 @@ get('/api/planner/live?legs=metro%7C1', 422)
 # Búsqueda por palabras: pueblo y parada en cualquier orden, sin importar mayúsculas.
 for q in ('amorebieta san juan', 'SAN JUAN Amorebieta'):
     found = (get('/api/search?q=' + urllib.parse.quote(q)) or {}).get('stops', [])
-    if not any(x['name'] == 'SAN JUAN' and 'amorebieta' in (x.get('area') or '').lower() for x in found):
+    if not any(x['name'].upper() == 'SAN JUAN' and 'amorebieta' in (x.get('area') or '').lower() for x in found):
         fails.append(f'búsqueda «{q}»: no encuentra SAN JUAN de Amorebieta')
 lines_found = (get('/api/search?q=' + urllib.parse.quote('gernika bilbao')) or {}).get('lines', [])
 if not lines_found:
@@ -200,12 +200,23 @@ def fetch_text(path):
         return 0, str(e)
 
 
-code, sitemap = fetch_text('/sitemap.xml')
-try:
-    _minidom.parseString(sitemap)
-except Exception:
-    fails.append(f'/sitemap.xml: XML no válido ({code})')
-    sitemap = ''
+def seo_problems(where, page):
+    # Ni un mapa con los vehículos en directo, que no existe, ni la doble puntuación de una lista recortada («N1….»).
+    description = (_re.search(r'<meta property="og:description" content="([^"]*)"', page) or [None, ''])[1]
+    if '….' in description or 'Mapa con los' in page:
+        fails.append(f'{where}: descripción para buscadores con «….» o con el mapa en directo ({description[:80]!r})')
+
+
+# El índice (sitemap-index.xml) y un sitemap por red.
+code, index = fetch_text('/sitemap-index.xml')
+sitemap = ''
+for child in _re.findall(r'<loc>([^<]+)</loc>', index):
+    code, part = fetch_text(urllib.parse.urlparse(child).path)
+    try:
+        _minidom.parseString(part)
+        sitemap += part
+    except Exception:
+        fails.append(f'{child}: XML no válido ({code})')
 locs = [loc.replace('&amp;', '&') for loc in _re.findall(r'<loc>([^<]+)</loc>', sitemap)]
 for red in NETS:
     suffix = ''
@@ -221,7 +232,7 @@ for red in NETS:
     for kind in ('lines', 'stops'):
         sample = [loc for loc in locs if f'/{kind}/' in loc and of_network(loc)]
         if not sample:
-            fails.append(f'/sitemap.xml: sin {kind} de {red}')
+            fails.append(f'sitemaps: sin {kind} de {red}')
             continue
         for loc in sample[::max(1, len(sample) // 2)][:2]:
             parts = urllib.parse.urlparse(loc)
@@ -231,7 +242,10 @@ for red in NETS:
             code, page = fetch_text(target)
             canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
             if code != 200 or canonical != loc:
-                fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
+                fails.append(f'sitemaps: {loc} da {code} con canónica {canonical!r}')
+            seo_problems(loc, page)
+    code, page = fetch_text(with_net(f"/stops/{enc(NETS[red]['stopId'])}", NETS[red]['suffix']))
+    seo_problems(f"/stops/{NETS[red]['stopId']}", page)
 print('sitemap ok')
 
 # Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.

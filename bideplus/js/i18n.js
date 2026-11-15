@@ -6,6 +6,19 @@
     const dict = {
         es: {
             'menu.tagline': 'Movilidad en Euskal Herria',
+            'menu.heading': 'Bide+: horarios y tiempo real del transporte público de Euskal Herria',
+            'menu.seoTitle': 'Horarios de Bizkaibus, Metro Bilbao, Renfe y más | Bide+',
+            'menu.seoDescription': 'Horarios y tiempo real del bus, metro, tren y tranvía de Euskal Herria: Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus y más, en una sola app gratis.',
+            'map.seoTitle': 'Mapa de la red · Líneas de transporte de Euskadi | Bide+',
+            'map.seoDescription': 'Mapa del transporte público de Euskal Herria: las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe y más, con sus paradas y transbordos.',
+            'status.seoTitle': 'Estado del transporte en Euskadi, en directo | Bide+',
+            'status.seoDescription': 'Cuántos trenes, metros, tranvías y autobuses van en directo ahora en cada red de Euskal Herria y cuántos van en hora frente al horario.',
+            'notFound.title': 'Página no encontrada · Bide+',
+            'notFound.description': 'La página que buscas no existe o ha cambiado de sitio. Vuelve a Bide+ para consultar los horarios y el tiempo real del bus, el metro, el tren y el tranvía de Euskal Herria.',
+            'notFound.logo': 'Bide+, ir al inicio',
+            'notFound.heading': 'Esta página no existe',
+            'notFound.text': 'Puede que el enlace esté mal escrito o que la página ya no esté disponible. Vuelve al menú y elige una app.',
+            'notFound.back': 'Volver a Bide+',
             'menu.section': 'Apps de movilidad',
             'menu.planner.title': '¿A dónde vas?',
             'menu.planner.to': 'Destino: parada, calle o sitio',
@@ -228,6 +241,35 @@
             'bide.notice.group': 'Aviso general',
             'bide.notice.more': 'Más información',
             'bide.notice.close': 'Cerrar aviso',
+            'bide.langOffer.text': 'Bide+ también está en castellano.',
+            'bide.langOffer.switch': 'Ver en castellano',
+            'bide.langOffer.close': 'Seguir en este idioma',
+            'seo.networkDescription': '{switcher}: próximas salidas, horarios y avisos de cada parada y línea.',
+            'seo.stopTitle': '{stop} · Horarios {operator}',
+            'seo.stopDescription': 'Horarios y próximas salidas de {operator} en {place}.',
+            'seo.stopLines': 'Líneas: {list}.',
+            'seo.live': 'Llegadas en tiempo real.',
+            'seo.stopMore': 'Consulta el horario de hoy de cada línea y guarda la parada en favoritos.',
+            'seo.lineTitle': 'Línea {code} {name} · Horarios {operator}',
+            'seo.lineTitleShort': 'Línea {code} · Horarios {operator}',
+            'seo.lineDescription': 'Horarios, recorrido y paradas de la línea {code} ({name}) de {operator}.',
+            'seo.lineMore': 'Las paradas de cada sentido en orden, con su horario y sus próximas salidas.',
+            'seo.stopMoreShort': 'Consulta el horario de hoy de cada línea.',
+            'seo.lineMoreShort': 'Con sus paradas en orden.',
+            'seo.line': 'Línea {code}',
+            'seo.lineHeading': 'Línea {code} {name} · {operator}',
+            'seo.linesAt': 'Líneas que paran en {stop}',
+            'seo.linesOf': 'Líneas de {operator}',
+            'seo.scheduleToday': 'Horario de hoy ({date})',
+            'seo.noDepartures': 'Hoy no sale ningún viaje de esta parada.',
+            'seo.towards': 'Hacia {headsign}',
+            'seo.towardsShort': 'hacia {headsign}',
+            'seo.stopNumber': 'nº {code}',
+            'seo.moreGeneric': 'Gratis, sin anuncios y en castellano, euskera, inglés y francés.',
+            'seo.moreTiny': 'Gratis y sin anuncios.',
+            'seo.lineTowards': '{code} hacia {headsign}',
+            'seo.enableJs': 'Para ver los horarios en directo, activa JavaScript.',
+            'seo.imageAlt': 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio',
             'bide.alerts.note': 'Solo aparecen los avisos de lo que tienes en Favoritos, en todas las apps.',
             'bide.alerts.none': 'No hay avisos activos en tus favoritos.',
             'info.title': 'Información',
@@ -350,7 +392,7 @@
             'bide.changelog.12.title': 'Retrasos más claros',
             'bide.changelog.12.text': 'El retraso se escribe entero junto a los minutos: «Lleva 5 min de retraso» o «Va 2 min adelantado». En Bizkaibus+, sin GPS se usa la última parada por la que pasó el autobús, y en Metro+ el recorrido del tren avanza con el reloj.',
             'bide.faq.1.q': '¿Las llegadas son en tiempo real?',
-            'bide.faq.1.a': 'Depende de la red. En Bizkaibus+ la llegada se calcula con la posición GPS de cada autobús y lo que tardan de verdad en cada tramo. Metro+ casa cada tren de los datos abiertos del Consorcio de Transportes de Bizkaia con su salida del horario, por andén y destino. Tranvía Vitoria+, Renfe Cercanías+, Tuvisa+, Dbus+ y Álavabus+ enseñan en directo lo que publica cada operador. Euskotren+, Tranvía Bilbao+, Bilbobus+, Lurraldebus+ y La Unión+ muestran el horario oficial, con la etiqueta «Solo horario», porque sus operadores todavía no publican el directo real de sus trenes y autobuses (el de Euskotren y el del tranvía de Bilbao repiten el horario); en cuanto lo hagan, Bide+ lo usará solo.',
+            'bide.faq.1.a': 'Depende de la red. Unas publican la hora prevista de cada vehículo y Bide+ la enseña tal cual; de otras solo se sabe dónde va cada vehículo, y Bide+ calcula su llegada con su posición GPS y su horario. Las que no tienen directo muestran el horario oficial, con la etiqueta «Solo horario», porque su operador todavía no lo publica; en cuanto lo haga, Bide+ lo usará solo. Tienen directo:',
             'bide.faq.2.q': '¿Qué significa «Estimado»?',
             'bide.faq.2.a': 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.',
             'bide.faq.3.q': '¿Funciona sin conexión?',
@@ -368,13 +410,14 @@
             'bide.faq.9.q': '¿Es una app oficial?',
             'bide.faq.9.a': 'No. Bide+ es un proyecto independiente que usa los datos abiertos de los operadores. Si hay dudas, vale lo que diga cada operador.',
             'bide.faq.10.q': '¿Qué apps hay en Bide+?',
-            'bide.faq.10.a': 'Dieciséis: Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Renfe LD+, Lurraldebus+ (con el urbano de Tolosa), Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+ (los autobuses entre Bizkaia y Vitoria-Gasteiz) y, en Navarra, Villavesas+ (los autobuses de Pamplona) y, en Iparralde, Txik Txak+ y SNCF+. Los iconos de SNCF+ y Villavesas+ son provisionales.',
+            'bide.faq.10.a': 'Una por cada red de transporte, todas con su ficha en la portada:',
+            'bide.and': 'y',
             'bide.faq.11.q': '¿Cómo quito los permisos de notificaciones o de ubicación?',
             'bide.faq.11.a': 'En Ajustes: «Desactivar las notificaciones» cancela todos tus avisos, y «No usar mi ubicación» hace que «Cerca de mí» no la pida. Una web no puede quitarse el permiso a sí misma: para quitarlo del todo, cámbialo en los ajustes del navegador (en Chrome, el icono junto a la dirección; en iPhone, Ajustes › Notificaciones o Privacidad › Localización).',
             'bide.faq.12.q': '¿Por qué en iPhone me pide la ubicación cada vez?',
             'bide.faq.12.a': 'Porque iOS no guarda el permiso de ubicación de las webs ni de las apps añadidas a la pantalla de inicio, como Bide+. Cada vez que usas «Cerca de mí», el iPhone te lo vuelve a pedir: dale a «Permitir». No es un fallo de Bide+ y no se puede cambiar desde la app. Si no quieres que te lo pida, busca la parada por su nombre o activa «No usar mi ubicación» en Ajustes.',
             'bide.faq.13.q': '¿Qué pasa los días de huelga o festivos?',
-            'bide.faq.13.a': 'Si el operador avisa de una huelga, de servicios mínimos o de un servicio reducido, la red lo dice debajo del buscador, también unos días antes y con las líneas afectadas si no es toda la red. Ese día, las salidas que solo van con su horario llevan «puede no pasar». Metro+, Euskotren+, Bizkaibus+, Dbus+, Tuvisa+ y Txik Txak+ lo notan también solas cuando faltan muchos de los trenes o autobuses del horario. Los festivos entre semana van con el horario de domingo cuando el operador no dice nada de ellos, según el calendario laboral oficial de Euskadi, de cada territorio y de cada municipio.',
+            'bide.faq.13.a': 'Si el operador avisa de una huelga, de servicios mínimos o de un servicio reducido, la red lo dice debajo del buscador, también unos días antes y con las líneas afectadas si no es toda la red. Ese día, las salidas que solo van con su horario llevan «puede no pasar». Los festivos entre semana van con el horario de domingo cuando el operador no dice nada de ellos, según el calendario laboral oficial de Euskadi, de cada territorio y de cada municipio. Además, estas apps lo notan solas cuando faltan muchos de los trenes o autobuses del horario:',
             'bide.faq.title': 'Preguntas frecuentes',
             'bide.offline.title': 'Horarios sin conexión',
             'bide.offline.text': 'Bide+ guarda en el móvil el horario oficial de todas las redes y, donde hay datos, lo que tardan de verdad los buses. Sin cobertura puedes buscar, ver las paradas con sus próximas salidas y las líneas con su horario, sin directo. Se actualiza solo cuando tienes conexión; quita las redes que no uses para ocupar menos.',
@@ -625,6 +668,19 @@
         },
         eu: {
             'menu.tagline': 'Mugikortasuna Euskal Herrian',
+            'menu.heading': 'Bide+: Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean',
+            'menu.seoTitle': 'Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak | Bide+',
+            'menu.seoDescription': 'Euskal Herriko autobus, metro, tren eta tranbiaren ordutegiak eta denbora errealean: Bizkaibus, Metroa, Euskotren, Renfe, Dbus eta gehiago, doan.',
+            'map.seoTitle': 'Sarearen mapa · Euskadiko garraio-lineak | Bide+',
+            'map.seoDescription': 'Euskal Herriko garraio publikoaren mapa: Bilboko Metroa, Bizkaibus, Euskotren, Renfe eta beste linea guztiak, geltokiekin eta loturekin.',
+            'status.seoTitle': 'Euskadiko garraioaren egoera, zuzenean | Bide+',
+            'status.seoDescription': 'Zenbat tren, metro, tranbia eta autobus dabiltzan zuzenean orain Euskal Herriko sare bakoitzean, eta zenbat doazen orduan ordutegiaren arabera.',
+            'notFound.title': 'Ez da orria aurkitu · Bide+',
+            'notFound.description': 'Bilatzen duzun orria ez dago edo lekuz aldatu da. Itzuli Bide+-ra Euskal Herriko autobus, metro, tren eta tranbiaren ordutegiak eta denbora errealean ikusteko.',
+            'notFound.logo': 'Bide+, hasierara joan',
+            'notFound.heading': 'Orri hau ez dago',
+            'notFound.text': 'Agian esteka gaizki idatzita dago edo orria ez dago jada eskuragarri. Itzuli menura eta aukeratu aplikazio bat.',
+            'notFound.back': 'Itzuli Bide+-ra',
             'menu.section': 'Mugikortasun aplikazioak',
             'menu.planner.title': 'Nora zoaz?',
             'menu.planner.to': 'Helmuga: geralekua, kalea edo lekua',
@@ -847,6 +903,35 @@
             'bide.notice.group': 'Ohar orokorra',
             'bide.notice.more': 'Informazio gehiago',
             'bide.notice.close': 'Itxi oharra',
+            'bide.langOffer.text': 'Bide+ euskaraz ere badago.',
+            'bide.langOffer.switch': 'Euskaraz ikusi',
+            'bide.langOffer.close': 'Hizkuntza honetan jarraitu',
+            'seo.networkDescription': '{switcher}: geltoki eta linea bakoitzaren hurrengo irteerak, ordutegiak eta abisuak.',
+            'seo.stopTitle': '{stop} · {operator} ordutegiak',
+            'seo.stopDescription': '{operator}: {place} geltokiko ordutegiak eta hurrengo irteerak.',
+            'seo.stopLines': 'Lineak: {list}.',
+            'seo.live': 'Iritsierak denbora errealean.',
+            'seo.stopMore': 'Ikusi linea bakoitzaren gaurko ordutegia eta gorde geltokia gogokoetan.',
+            'seo.lineTitle': '{code} {name} linea · {operator} ordutegiak',
+            'seo.lineTitleShort': '{code} linea · {operator} ordutegiak',
+            'seo.lineDescription': '{operator}: {code} ({name}) linearen ordutegiak, ibilbidea eta geltokiak.',
+            'seo.lineMore': 'Noranzko bakoitzeko geltokiak ordenan, ordutegiarekin eta hurrengo irteerekin.',
+            'seo.stopMoreShort': 'Ikusi linea bakoitzaren gaurko ordutegia.',
+            'seo.lineMoreShort': 'Geltokiak ordenan.',
+            'seo.line': '{code} linea',
+            'seo.lineHeading': '{code} {name} linea · {operator}',
+            'seo.linesAt': '{stop} geltokian gelditzen diren lineak',
+            'seo.linesOf': '{operator}: lineak',
+            'seo.scheduleToday': 'Gaurko ordutegia ({date})',
+            'seo.noDepartures': 'Gaur ez da bidaiarik irteten geltoki honetatik.',
+            'seo.towards': '{headsign} aldera',
+            'seo.towardsShort': '{headsign} aldera',
+            'seo.stopNumber': '{code} zk.',
+            'seo.moreGeneric': 'Doan, iragarkirik gabe, euskaraz, gaztelaniaz, ingelesez eta frantsesez.',
+            'seo.moreTiny': 'Doan eta iragarkirik gabe.',
+            'seo.lineTowards': '{code} {headsign} aldera',
+            'seo.enableJs': 'Ordutegiak zuzenean ikusteko, aktibatu JavaScript.',
+            'seo.imageAlt': 'Bide+: Euskal Herriko autobusa, metroa, trena eta tranbia leku bakarrean',
             'bide.alerts.note': 'Gogokoetan duzunaren abisuak bakarrik agertzen dira, aplikazio guztietan.',
             'bide.alerts.none': 'Ez dago abisu aktiborik zure gogokoetan.',
             'info.title': 'Informazioa',
@@ -969,7 +1054,7 @@
             'bide.changelog.12.title': 'Atzerapenak argiago',
             'bide.changelog.12.text': 'Atzerapena osorik idazten da minutuen ondoan: «5 min atzeratuta dator» edo «2 min aurreratuta dator». Bizkaibus+-en, GPSrik gabe autobusak igarotako azken geltokia erabiltzen da, eta Metro+-en trenaren ibilbideak erlojuarekin batera egiten du aurrera.',
             'bide.faq.1.q': 'Iritsierak denbora errealean dira?',
-            'bide.faq.1.a': 'Sarearen araberakoa da. Bizkaibus+-en iritsiera autobus bakoitzaren GPS kokapenarekin eta zati bakoitzean benetan behar dutenarekin kalkulatzen da. Metro+-ek Bizkaiko Garraio Partzuergoaren datu irekietako tren bakoitza ordutegiko bere irteerarekin lotzen du, nasaren eta helmugaren arabera. Tranvía Vitoria+, Renfe Aldiriak+, Tuvisa+, Dbus+ eta Álavabus+-ek operadore bakoitzak argitaratzen duena erakusten dute zuzenean. Euskotren+, Tranvía Bilbao+, Bilbobus+, Lurraldebus+ eta La Unión+-ek ordutegi ofiziala erakusten dute, «Ordutegia soilik» etiketarekin, haien operadoreek oraindik ez dutelako argitaratzen beren tren eta autobusen benetako zuzenekoa (Euskotrenenak eta Bilboko tranbiarenak ordutegia errepikatzen dute); egiten dutenean, Bide+-ek berez erabiliko du.',
+            'bide.faq.1.a': 'Sarearen araberakoa da. Batzuek ibilgailu bakoitzaren aurreikusitako ordua argitaratzen dute, eta Bide+-ek dagoen bezala erakusten du; beste batzuetan ibilgailu bakoitza non doan bakarrik dakigu, eta Bide+-ek bere GPS kokapenarekin eta ordutegiarekin kalkulatzen du iritsiera. Zuzenekorik ez dutenek ordutegi ofiziala erakusten dute, «Ordutegia soilik» etiketarekin, haien operadoreak oraindik ez duelako argitaratzen; egiten duenean, Bide+-ek berez erabiliko du. Zuzenekoa dutenak:',
             'bide.faq.2.q': 'Zer esan nahi du «Kalkulatua» hitzak?',
             'bide.faq.2.a': 'Autobusa zerbitzuan dagoela, baina ez duela bere kokapena bidaltzen. Iritsiera Bide+-en algoritmoarekin kalkulatzen da, zati horretan autobusek benetan behar dutenetik abiatuta.',
             'bide.faq.3.q': 'Konexiorik gabe dabil?',
@@ -987,13 +1072,14 @@
             'bide.faq.9.q': 'Aplikazio ofiziala da?',
             'bide.faq.9.a': 'Ez. Bide+ proiektu independentea da, eta operadoreen datu irekiak erabiltzen ditu. Zalantzarik badago, operadore bakoitzak dioena da baliozkoa.',
             'bide.faq.10.q': 'Zer aplikazio daude Bide+-en?',
-            'bide.faq.10.a': 'Hamasei: Bizkaibus+, Metro+, Euskotren+, Renfe Aldiriak+, Renfe LD+, Lurraldebus+ (Tolosako hiribusarekin), Tranbia Bilbo+, Tranbia Gasteiz+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+ (Bizkaia eta Gasteiz arteko autobusak) eta, Nafarroan, Villavesas+ (Iruñeko autobusak) eta, Iparraldean, Txik Txak+ eta SNCF+. SNCF+ eta Villavesas+-en ikonoak behin-behinekoak dira.',
+            'bide.faq.10.a': 'Garraio-sare bakoitzeko bat, denak atarian beren fitxarekin:',
+            'bide.and': 'eta',
             'bide.faq.11.q': 'Nola kentzen ditut jakinarazpenen edo kokapenaren baimenak?',
             'bide.faq.11.a': 'Ezarpenetan: «Desaktibatu jakinarazpenak» aukerak zure abisu guztiak bertan behera uzten ditu, eta «Ez erabili nire kokapena» aukerarekin «Nire ondoan»-ek ez du eskatzen. Webgune batek ezin dio bere buruari baimena kendu: guztiz kentzeko, aldatu nabigatzailearen ezarpenetan (Chromen, helbidearen ondoko ikonoa; iPhonen, Ezarpenak › Jakinarazpenak edo Pribatutasuna › Kokapena).',
             'bide.faq.12.q': 'Zergatik eskatzen dit iPhoneak kokapena aldiro?',
             'bide.faq.12.a': 'iOSek ez duelako gordetzen webguneen kokapen-baimena, ezta hasierako pantailan gehitutako aplikazioena ere, Bide+ bezala. «Nire ondoan» erabiltzen duzun bakoitzean, iPhoneak berriro eskatzen dizu: sakatu «Baimendu». Ez da Bide+-en akatsa, eta ezin da aplikaziotik aldatu. Eskatzerik nahi ez baduzu, bilatu geltokia bere izenez edo aktibatu «Ez erabili nire kokapena» Ezarpenetan.',
             'bide.faq.13.q': 'Zer gertatzen da greba edo jai egunetan?',
-            'bide.faq.13.a': 'Operadoreak greba, gutxieneko zerbitzuak edo zerbitzu murriztua iragartzen baditu, sareak bilatzailearen azpian esaten du, baita egun batzuk lehenago ere, eta zein linea diren, sare osoa ez bada. Egun horretan, ordutegiarekin bakarrik doazen irteerek «baliteke ez pasatzea» daramate. Metro+, Euskotren+, Bizkaibus+, Dbus+, Tuvisa+ eta Txik Txak+ berez ere ohartzen dira ordutegiko tren edo autobus asko falta direnean. Asteguneko jai egunak igandeko ordutegiarekin doaz operadoreak haiei buruz ezer esaten ez duenean, Euskadiko, lurralde bakoitzeko eta udalerri bakoitzeko lan-egutegi ofizialaren arabera.',
+            'bide.faq.13.a': 'Operadoreak greba, gutxieneko zerbitzuak edo zerbitzu murriztua iragartzen baditu, sareak bilatzailearen azpian esaten du, baita egun batzuk lehenago ere, eta zein linea diren, sare osoa ez bada. Egun horretan, ordutegiarekin bakarrik doazen irteerek «baliteke ez pasatzea» daramate. Asteguneko jai egunak igandeko ordutegiarekin doaz operadoreak haiei buruz ezer esaten ez duenean, Euskadiko, lurralde bakoitzeko eta udalerri bakoitzeko lan-egutegi ofizialaren arabera. Gainera, aplikazio hauek berez ohartzen dira ordutegiko tren edo autobus asko falta direnean:',
             'bide.faq.title': 'Ohiko galderak',
             'bide.offline.title': 'Konexiorik gabeko ordutegiak',
             'bide.offline.text': 'Bide+-k sare guztien ordutegi ofiziala gordetzen du mugikorrean eta, daturik badago, autobusek benetan behar dutena. Estaldurarik gabe bilatu dezakezu, geltokiak hurrengo irteerekin eta lineak ordutegiarekin ikusi, zuzenekorik gabe. Konexioa duzunean berez eguneratzen da; kendu erabiltzen ez dituzun sareak leku gutxiago hartzeko.',
@@ -1245,6 +1331,19 @@
         en: {
             'bide.new': 'New',
             'menu.tagline': 'Getting around the Basque Country',
+            'menu.heading': 'Bide+: timetables and real time for public transport in the Basque Country',
+            'menu.seoTitle': 'Bizkaibus, Metro Bilbao, Renfe timetables and more | Bide+',
+            'menu.seoDescription': 'Bus, metro, train and tram timetables and real time across the Basque Country: Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus and more, in one free app.',
+            'map.seoTitle': 'Network map · Basque Country transport lines | Bide+',
+            'map.seoDescription': 'Public transport map of the Basque Country: every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe and more, with their stops and transfers.',
+            'status.seoTitle': 'Basque Country public transport status, live | Bide+',
+            'status.seoDescription': 'How many trains, metros, trams and buses are live right now on each network in the Basque Country, and how many are on time against the timetable.',
+            'notFound.title': 'Page not found · Bide+',
+            'notFound.description': 'The page you are looking for does not exist or has moved. Go back to Bide+ for timetables and real time for buses, metro, trains and trams in the Basque Country.',
+            'notFound.logo': 'Bide+, go to the home page',
+            'notFound.heading': 'This page does not exist',
+            'notFound.text': 'The link may be mistyped or the page may no longer be available. Go back to the menu and choose an app.',
+            'notFound.back': 'Back to Bide+',
             'menu.section': 'Transport apps',
             'menu.planner.title': 'Where are you going?',
             'menu.planner.to': 'Destination: stop, street or place',
@@ -1467,6 +1566,35 @@
             'bide.notice.group': 'General notice',
             'bide.notice.more': 'More information',
             'bide.notice.close': 'Dismiss notice',
+            'bide.langOffer.text': 'Bide+ is also available in English.',
+            'bide.langOffer.switch': 'View in English',
+            'bide.langOffer.close': 'Keep this language',
+            'seo.networkDescription': '{switcher}: next departures, timetables and alerts for every stop and line.',
+            'seo.stopTitle': '{stop} · {operator} timetable',
+            'seo.stopDescription': '{operator} timetable and next departures at {place}.',
+            'seo.stopLines': 'Lines: {list}.',
+            'seo.live': 'Real-time arrivals.',
+            'seo.stopMore': 'See today’s timetable for each line and save the stop to your favourites.',
+            'seo.lineTitle': 'Line {code} {name} · {operator} timetable',
+            'seo.lineTitleShort': 'Line {code} · {operator} timetable',
+            'seo.lineDescription': 'Timetable, route and stops of {operator} line {code} ({name}).',
+            'seo.lineMore': 'Every stop in each direction, in order, with its timetable and next departures.',
+            'seo.stopMoreShort': 'See today’s timetable for each line.',
+            'seo.lineMoreShort': 'With its stops in order.',
+            'seo.line': 'Line {code}',
+            'seo.lineHeading': 'Line {code} {name} · {operator}',
+            'seo.linesAt': 'Lines stopping at {stop}',
+            'seo.linesOf': '{operator} lines',
+            'seo.scheduleToday': 'Today’s timetable ({date})',
+            'seo.noDepartures': 'No departures from this stop today.',
+            'seo.towards': 'Towards {headsign}',
+            'seo.towardsShort': 'towards {headsign}',
+            'seo.stopNumber': 'no. {code}',
+            'seo.moreGeneric': 'Free, with no ads, in Spanish, Basque, English and French.',
+            'seo.moreTiny': 'Free and with no ads.',
+            'seo.lineTowards': '{code} towards {headsign}',
+            'seo.enableJs': 'To see live times, turn on JavaScript.',
+            'seo.imageAlt': 'Bide+: bus, metro, train and tram across the Basque Country in one place',
             'bide.alerts.note': 'Only alerts for what you have in Favourites are shown, across all the apps.',
             'bide.alerts.none': 'There are no active alerts for your favourites.',
             'info.title': 'Information',
@@ -1588,7 +1716,7 @@
             'bide.changelog.12.title': 'Clearer delays',
             'bide.changelog.12.text': 'The delay is written out next to the minutes: «5 min late» or «2 min early». In Bizkaibus+, without GPS the last stop the bus went past is used, and in Metro+ the train\'s route moves along with the clock.',
             'bide.faq.1.q': 'Are arrivals in real time?',
-            'bide.faq.1.a': 'It depends on the network. In Bizkaibus+ the arrival is worked out from the GPS position of each bus and how long buses really take on each stretch. Metro+ matches each train in the Bizkaia Transport Consortium’s open data to its timetable departure, by platform and destination. Tranvía Vitoria+, Renfe Cercanías+, Tuvisa+, Dbus+ and Álavabus+ show live what each operator publishes. Euskotren+, Tranvía Bilbao+, Bilbobus+, Lurraldebus+ and La Unión+ show the official timetable, labelled «Timetable only», because their operators do not yet publish real live data for their trains and buses (Euskotren’s and the Bilbao tram’s repeat the timetable); as soon as they do, Bide+ will use it on its own.',
+            'bide.faq.1.a': 'It depends on the network. Some publish the predicted time of each vehicle and Bide+ shows it as it is; for others only the position of each vehicle is known, and Bide+ works out its arrival from its GPS position and its timetable. Those without live data show the official timetable, labelled «Timetable only», because their operator does not publish it yet; as soon as it does, Bide+ will use it on its own. With live data:',
             'bide.faq.2.q': 'What does «Estimated» mean?',
             'bide.faq.2.a': 'That the bus is in service but is not sending its position. The arrival is worked out by the Bide+ algorithm, from how long buses really take on that stretch.',
             'bide.faq.3.q': 'Does it work offline?',
@@ -1606,13 +1734,14 @@
             'bide.faq.9.q': 'Is it an official app?',
             'bide.faq.9.a': 'No. Bide+ is an independent project that uses the operators\' open data. If in doubt, what each operator says is what counts.',
             'bide.faq.10.q': 'Which apps are in Bide+?',
-            'bide.faq.10.a': 'Sixteen: Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Renfe LD+, Lurraldebus+ (with the Tolosa town bus), Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+ (the buses between Bizkaia and Vitoria-Gasteiz) and, in Navarre, Villavesas+ (the Pamplona buses) and, in the Northern Basque Country, Txik Txak+ and SNCF+. The icons of SNCF+ and Villavesas+ are provisional.',
+            'bide.faq.10.a': 'One for each transport network, all with their card on the home page:',
+            'bide.and': 'and',
             'bide.faq.11.q': 'How do I remove the notification or location permissions?',
             'bide.faq.11.a': 'In Settings: «Turn off notifications» cancels all your alerts, and «Stop using my location» makes «Near me» stop asking for it. A website cannot remove its own permission: to remove it completely, change it in the browser settings (in Chrome, the icon next to the address; on iPhone, Settings › Notifications or Privacy › Location Services).',
             'bide.faq.12.q': 'Why does my iPhone ask for my location every time?',
             'bide.faq.12.a': 'Because iOS does not keep the location permission for websites or for apps added to the home screen, such as Bide+. Each time you use «Near me», the iPhone asks again: tap «Allow». It is not a Bide+ fault and it cannot be changed from the app. If you do not want to be asked, search for the stop by name or turn on «Stop using my location» in Settings.',
             'bide.faq.13.q': 'What happens on strike days or public holidays?',
-            'bide.faq.13.a': 'If the operator announces a strike, minimum services or a reduced service, the network says so below the search box, also a few days ahead, and names the lines if it is not the whole network. On that day, departures that only follow their timetable are marked «may not run». Metro+, Euskotren+, Bizkaibus+, Dbus+, Tuvisa+ and Txik Txak+ also notice it on their own when many of the timetabled trains or buses are missing. Weekday public holidays run on the Sunday timetable when the operator says nothing about them, following the official work calendar of the Basque Country, of each province and of each town.',
+            'bide.faq.13.a': 'If the operator announces a strike, minimum services or a reduced service, the network says so below the search box, also a few days ahead, and names the lines if it is not the whole network. On that day, departures that only follow their timetable are marked «may not run». Weekday public holidays run on the Sunday timetable when the operator says nothing about them, following the official work calendar of the Basque Country, of each province and of each town. These apps also notice it on their own when many of the timetabled trains or buses are missing:',
             'bide.faq.title': 'Frequently asked questions',
             'bide.offline.title': 'Offline timetables',
             'bide.offline.text': 'Bide+ saves the official timetable of every network on your phone and, where there is data, how long buses really take. With no signal you can search, see stops with their next departures and lines with their timetable, without live tracking. It updates itself whenever you are online; remove the networks you don\'t use to take up less space.',
@@ -1863,6 +1992,19 @@
         },
         fr: {
             'menu.tagline': 'Mobilité en Euskal Herria',
+            'menu.heading': 'Bide+ : horaires et temps réel des transports en commun d’Euskal Herria',
+            'menu.seoTitle': 'Horaires Txik Txak, SNCF, Bizkaibus, Metro Bilbao | Bide+',
+            'menu.seoDescription': 'Horaires et temps réel des bus, métros, trains et tramways du Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao et plus, dans une appli gratuite.',
+            'map.seoTitle': 'Plan du réseau · Lignes de transport du Pays basque | Bide+',
+            'map.seoDescription': 'Plan des transports en commun d’Euskal Herria : les lignes de Txik Txak, Metro Bilbao, Bizkaibus, Euskotren et plus, avec arrêts et correspondances.',
+            'status.seoTitle': 'État des transports au Pays basque, en direct | Bide+',
+            'status.seoDescription': 'Combien de trains, métros, tramways et bus circulent en direct sur chaque réseau d’Euskal Herria, et combien sont à l’heure par rapport aux horaires.',
+            'notFound.title': 'Page introuvable · Bide+',
+            'notFound.description': 'La page que vous cherchez n’existe pas ou a changé d’adresse. Revenez à Bide+ pour les horaires et le temps réel des bus, métros, trains et tramways d’Euskal Herria.',
+            'notFound.logo': 'Bide+, aller à l’accueil',
+            'notFound.heading': 'Cette page n’existe pas',
+            'notFound.text': 'Le lien est peut-être mal écrit ou la page n’est plus disponible. Revenez au menu et choisissez une application.',
+            'notFound.back': 'Retour à Bide+',
             'menu.section': 'Applis de mobilité',
             'menu.planner.title': 'Où allez-vous ?',
             'menu.planner.to': 'Destination : arrêt, rue ou lieu',
@@ -2085,6 +2227,35 @@
             'bide.notice.group': 'Avis général',
             'bide.notice.more': 'Plus d’informations',
             'bide.notice.close': 'Fermer l’avis',
+            'bide.langOffer.text': 'Bide+ existe aussi en français.',
+            'bide.langOffer.switch': 'Voir en français',
+            'bide.langOffer.close': 'Garder cette langue',
+            'seo.networkDescription': '{switcher} : prochains départs, horaires et alertes de chaque arrêt et de chaque ligne.',
+            'seo.stopTitle': '{stop} · Horaires {operator}',
+            'seo.stopDescription': 'Horaires et prochains départs {operator} à {place}.',
+            'seo.stopLines': 'Lignes : {list}.',
+            'seo.live': 'Arrivées en temps réel.',
+            'seo.stopMore': 'Consultez l’horaire du jour de chaque ligne et ajoutez l’arrêt à vos favoris.',
+            'seo.lineTitle': 'Ligne {code} {name} · Horaires {operator}',
+            'seo.lineTitleShort': 'Ligne {code} · Horaires {operator}',
+            'seo.lineDescription': 'Horaires, itinéraire et arrêts de la ligne {code} ({name}) de {operator}.',
+            'seo.lineMore': 'Les arrêts de chaque sens dans l’ordre, avec leurs horaires et prochains départs.',
+            'seo.stopMoreShort': 'Consultez l’horaire du jour de chaque ligne.',
+            'seo.lineMoreShort': 'Avec ses arrêts dans l’ordre.',
+            'seo.line': 'Ligne {code}',
+            'seo.lineHeading': 'Ligne {code} {name} · {operator}',
+            'seo.linesAt': 'Lignes desservant {stop}',
+            'seo.linesOf': 'Lignes {operator}',
+            'seo.scheduleToday': 'Horaire du jour ({date})',
+            'seo.noDepartures': 'Aucun départ de cet arrêt aujourd’hui.',
+            'seo.towards': 'Vers {headsign}',
+            'seo.towardsShort': 'vers {headsign}',
+            'seo.stopNumber': 'nº {code}',
+            'seo.moreGeneric': 'Gratuit, sans publicité, en espagnol, basque, anglais et français.',
+            'seo.moreTiny': 'Gratuit et sans publicité.',
+            'seo.lineTowards': '{code} vers {headsign}',
+            'seo.enableJs': 'Pour voir les horaires en direct, activez JavaScript.',
+            'seo.imageAlt': 'Bide+ : bus, métro, train et tramway d’Euskal Herria au même endroit',
             'bide.alerts.note': 'Seules les alertes de ce que vous avez en Favoris s’affichent, toutes applis confondues.',
             'bide.alerts.none': 'Aucune alerte active sur vos favoris.',
             'info.title': 'Informations',
@@ -2207,7 +2378,7 @@
             'bide.changelog.12.title': 'Retards plus clairs',
             'bide.changelog.12.text': 'Le retard s’écrit en toutes lettres à côté des minutes : « 5 min de retard » ou « 2 min d’avance ». Dans Bizkaibus+, sans GPS, on utilise le dernier arrêt où le bus est passé, et dans Metro+, le parcours du train avance avec l’horloge.',
             'bide.faq.1.q': 'Les arrivées sont-elles en temps réel ?',
-            'bide.faq.1.a': 'Cela dépend du réseau. Dans Bizkaibus+, l’arrivée est calculée avec la position GPS de chaque bus et les temps de parcours réels sur chaque tronçon. Metro+ associe chaque train des données ouvertes du Consorcio de Transportes de Bizkaia à son départ de l’horaire, par quai et par destination. Tranvía Vitoria+, Renfe Cercanías+, Tuvisa+, Dbus+ et Álavabus+ affichent en direct ce que publie chaque opérateur. Euskotren+, Tranvía Bilbao+, Bilbobus+, Lurraldebus+ et La Unión+ affichent l’horaire officiel, avec la mention « Horaire théorique », car leurs opérateurs ne publient pas encore le vrai temps réel de leurs trains et de leurs bus (celui d’Euskotren et celui du tramway de Bilbao répètent l’horaire) ; dès qu’ils le feront, Bide+ l’utilisera automatiquement.',
+            'bide.faq.1.a': 'Cela dépend du réseau. Certains publient l’heure prévue de chaque véhicule et Bide+ l’affiche telle quelle ; pour d’autres, on sait seulement où se trouve chaque véhicule, et Bide+ calcule son arrivée avec sa position GPS et son horaire. Ceux qui n’ont pas de temps réel affichent l’horaire officiel, avec la mention « Horaire théorique », car leur opérateur ne le publie pas encore ; dès qu’il le fera, Bide+ l’utilisera automatiquement. Avec temps réel :',
             'bide.faq.2.q': 'Que signifie « Estimé » ?',
             'bide.faq.2.a': 'Que le bus est en service mais n’envoie pas sa position. L’arrivée est calculée par l’algorithme de Bide+, à partir des temps de parcours réels des bus sur ce tronçon.',
             'bide.faq.3.q': 'Est-ce que ça fonctionne hors connexion ?',
@@ -2225,13 +2396,14 @@
             'bide.faq.9.q': 'Est-ce une appli officielle ?',
             'bide.faq.9.a': 'Non. Bide+ est un projet indépendant qui utilise les données ouvertes des opérateurs. En cas de doute, c’est l’information de chaque opérateur qui fait foi.',
             'bide.faq.10.q': 'Quelles applis y a-t-il dans Bide+ ?',
-            'bide.faq.10.a': 'Seize : Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Renfe LD+, Lurraldebus+ (avec le bus urbain de Tolosa), Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+ (les bus entre la Bizkaia et Vitoria-Gasteiz) et, en Navarre, Villavesas+ (les bus de Pampelune) et, en Iparralde, Txik Txak+ et SNCF+. Les icônes de SNCF+ et Villavesas+ sont provisoires.',
+            'bide.faq.10.a': 'Une par réseau de transport, chacune avec sa fiche sur l’accueil :',
+            'bide.and': 'et',
             'bide.faq.11.q': 'Comment retirer les autorisations de notifications ou de localisation ?',
             'bide.faq.11.a': 'Dans Réglages : « Désactiver les notifications » annule toutes vos alertes, et « Ne pas utiliser ma position » fait que « Autour de moi » ne la demande plus. Un site web ne peut pas se retirer lui-même l’autorisation : pour la retirer complètement, modifiez-la dans les réglages du navigateur (dans Chrome, l’icône à côté de l’adresse ; sur iPhone, Réglages › Notifications ou Confidentialité › Service de localisation).',
             'bide.faq.12.q': 'Pourquoi l’iPhone me demande-t-il la position à chaque fois ?',
             'bide.faq.12.a': 'Parce qu’iOS ne mémorise pas l’autorisation de localisation des sites web ni des applis ajoutées à l’écran d’accueil, comme Bide+. Chaque fois que vous utilisez « Autour de moi », l’iPhone vous la redemande : touchez « Autoriser ». Ce n’est pas un défaut de Bide+ et cela ne peut pas se changer depuis l’appli. Si vous ne voulez pas qu’il vous la demande, cherchez l’arrêt par son nom ou activez « Ne pas utiliser ma position » dans Réglages.',
             'bide.faq.13.q': 'Que se passe-t-il les jours de grève ou fériés ?',
-            'bide.faq.13.a': 'Si l’opérateur annonce une grève, un service minimum ou un service réduit, le réseau l’indique sous la recherche, aussi quelques jours avant, avec les lignes concernées si ce n’est pas tout le réseau. Ce jour-là, les départs qui ne suivent que leur horaire portent « peut ne pas passer ». Metro+, Euskotren+, Bizkaibus+, Dbus+, Tuvisa+ et Txik Txak+ le détectent aussi d’eux-mêmes quand beaucoup des trains ou bus prévus manquent. Les jours fériés en semaine suivent l’horaire du dimanche quand l’opérateur n’en dit rien, d’après le calendrier officiel des jours fériés d’Euskadi, de chaque province et de chaque commune.',
+            'bide.faq.13.a': 'Si l’opérateur annonce une grève, un service minimum ou un service réduit, le réseau l’indique sous la recherche, aussi quelques jours avant, avec les lignes concernées si ce n’est pas tout le réseau. Ce jour-là, les départs qui ne suivent que leur horaire portent « peut ne pas passer ». Les jours fériés en semaine suivent l’horaire du dimanche quand l’opérateur n’en dit rien, d’après le calendrier officiel des jours fériés d’Euskadi, de chaque province et de chaque commune. Ces applis le détectent aussi d’elles-mêmes quand beaucoup des trains ou bus prévus manquent :',
             'bide.faq.title': 'Foire aux questions',
             'bide.offline.title': 'Horaires hors connexion',
             'bide.offline.text': 'Bide+ enregistre sur le téléphone les horaires officiels de tous les réseaux et, là où il y a des données, les temps de parcours réels des bus. Sans réseau, vous pouvez chercher, voir les arrêts avec leurs prochains départs et les lignes avec leurs horaires, sans temps réel. Mise à jour automatique quand vous avez une connexion ; retirez les réseaux que vous n’utilisez pas pour gagner de la place.',
@@ -2498,22 +2670,40 @@
         return null;
     }
 
+    // Sin ?lang ni idioma elegido, el de la página que ha hecho el servidor: la URL castellana sale en castellano.
     function getLang() {
         if (chosenLang) return chosenLang;
+        const stored = storedLang();
+        if (stored) return stored;
+        return serverLang();
+    }
+
+    function storedLang() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (LANGS.indexOf(stored) !== -1) return stored;
         } catch (e) { /* private mode / storage blocked */ }
-        return browserLang();
+        return null;
     }
 
-    // Sin idioma elegido, quien tiene el móvil en inglés o en francés ve Bide+ en su idioma; el resto, en castellano.
+    function serverLang() {
+        const lang = global.document.documentElement.getAttribute('data-server-lang');
+        if (LANGS.indexOf(lang) !== -1) return lang;
+        return 'es';
+    }
+
+    // El idioma del móvil, si Bide+ lo tiene: no traduce la página, solo se ofrece (js/lang-offer.js).
     function browserLang() {
         let preferred = '';
         if (global.navigator) preferred = (global.navigator.languages && global.navigator.languages[0]) || global.navigator.language || '';
-        if (preferred.toLowerCase().indexOf('en') === 0) return 'en';
-        if (preferred.toLowerCase().indexOf('fr') === 0) return 'fr';
+        const lang = preferred.toLowerCase().slice(0, 2);
+        if (LANGS.indexOf(lang) !== -1) return lang;
         return 'es';
+    }
+
+    // ¿Hay un idioma elegido (en la dirección o guardado)? Entonces no se ofrece otro.
+    function hasChoice() {
+        return chosenLang !== null || storedLang() !== null;
     }
 
     // Cambia el idioma y avisa con «bide:lang» para que cada parte de la página vuelva a pintar sus textos.
@@ -2521,14 +2711,12 @@
         if (LANGS.indexOf(lang) === -1) return;
         chosenLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
-        // Si la dirección lleva ?lang, cambia con el idioma: al recargar o compartir sale el elegido.
+        // La dirección pasa a la de ese idioma (?lang=, sin él en castellano): al recargar o compartir sale el elegido.
         try {
             const url = new URL(global.location.href);
-            if (url.searchParams.has('lang')) {
-                if (lang === 'es') url.searchParams.delete('lang');
-                else url.searchParams.set('lang', lang);
-                global.history.replaceState(global.history.state, '', url);
-            }
+            if (lang === 'es') url.searchParams.delete('lang');
+            else url.searchParams.set('lang', lang);
+            global.history.replaceState(global.history.state, '', url);
         } catch (e) { /* ignore */ }
         global.dispatchEvent(new CustomEvent('bide:lang', { detail: { lang: lang } }));
     }
@@ -2537,9 +2725,9 @@
         return LANGS[(LANGS.indexOf(getLang()) + 1) % LANGS.length];
     }
 
-    function t(key, vars) {
-        const lang = getLang();
-        const table = dict[lang] || dict.es;
+    // Con lang, en ese idioma y no en el de la página (el aviso que ofrece el idioma del móvil).
+    function t(key, vars, lang) {
+        const table = dict[lang || getLang()] || dict.es;
         let text = table[key];
         if (text === undefined) text = dict.es[key];
         if (text === undefined) return key;
@@ -2572,5 +2760,6 @@
         Object.keys(table).forEach(function (key) { dict[lang][key] = table[key]; });
     }
 
-    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend };
+    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend, browserLang: browserLang, hasChoice: hasChoice };
+    if (global.BideNetworks) global.BideNetworks.addTexts(global.I18n);
 })(window);

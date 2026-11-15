@@ -29,17 +29,20 @@ const index = JSON.parse(readFileSync(resolve(DIR, 'index.json'), 'utf8'));
 const key = (d) => `${d.lineCode}|${d.scheduledTime}|${d.platformId}`;
 const COMPARED = new Set(['scheduled', 'estimated', 'live', 'likely_departed']);
 
+let nightFromToday = 0;
 for (const { slug } of index.networks) {
     const data = BideOffline.prepare(JSON.parse(readFileSync(resolve(DIR, slug + '.json'), 'utf8')));
     const stations = [...data.platformsByStation.keys()];
     const stops = Object.keys(data.stops).filter((id) => data.byStop.has(id) && data.stops[id].length < 2);
     const sample = [...stations, ...stops].filter((_, i, all) => i % Math.max(1, Math.floor(all.length / STOPS_PER_NETWORK)) === 0).slice(0, STOPS_PER_NETWORK);
     let same = 0;
+    let sameAsTimetable = null;
     const differences = [];
     for (const stopId of sample) {
         const response = await fetch(`${BASE}/api/stops/${encodeURIComponent(stopId)}/departures?limit=20&red=${slug}`);
         if (!response.ok) continue;
         const api = await response.json();
+        if (!sameAsTimetable && api.departures.some((d) => d.status === 'scheduled' && !d.tomorrow && !d.unscheduled)) sameAsTimetable = { stopId, api };
         // Los que probablemente ya pasaron van al final, detrás de los de mañana: con un tope corto se quedan fuera.
         const offline = BideOffline.departures(data, stopId, new Date(), 1000);
         const offlineKeys = new Set(offline.departures.map(key));
@@ -51,6 +54,17 @@ for (const { slug } of index.networks) {
         if (offline.stop.name !== api.stop.name) differences.push(`${stopId}: nombre «${offline.stop.name}» frente a «${api.stop.name}»`);
     }
     check(`${slug}: las salidas guardadas son las del horario (${same}/${sample.length} paradas)`, differences.length === 0, differences.slice(0, 3).join(' | '));
+    // «Próximas salidas» da la hora de salida, la misma que el horario de la línea en esa parada.
+    if (sameAsTimetable) {
+        const scheduled = sameAsTimetable.api.departures.filter((d) => d.status === 'scheduled' && !d.tomorrow && !d.unscheduled).slice(0, 3);
+        const notInTimetable = [];
+        for (const d of scheduled) {
+            const url = `${BASE}/api/lines/${encodeURIComponent(d.lineId)}/timetable?stopId=${encodeURIComponent(sameAsTimetable.stopId)}&red=${slug}`;
+            const timetableAt = await (await fetch(url)).json();
+            if (!(timetableAt.entries || []).some((entry) => entry.tripKey === d.tripKey && entry.departure === d.scheduledTime)) notInTimetable.push(`${d.lineCode} ${d.scheduledTime}`);
+        }
+        check(`${slug}: «Próximas salidas» da la hora de salida del horario (${scheduled.length} salidas)`, notInTimetable.length === 0, notInTimetable.join(', '));
+    }
 
     // Buscador sin conexión: con el nombre de unas paradas de muestra, las mismas paradas y líneas que /api/search (el
     // orden de dos con el mismo nombre puede cambiar).
@@ -79,6 +93,16 @@ for (const { slug } of index.networks) {
     const offlineTimetable = BideOffline.timetable(data, lineId, { date: tomorrow, from: 7 * 3600, to: 10 * 3600, stopId: null, now: new Date() });
     const entryKeys = (entries) => entries.map((entry) => `${entry.departure} ${entry.tripKey} ${entry.headsign}`).sort().join('\n');
     check(`${slug}: el horario de la línea sin conexión es el de la API (${offlineTimetable.entries.length} salidas)`, entryKeys(offlineTimetable.entries) === entryKeys(apiTimetable.entries), `${offlineTimetable.entries.length} frente a ${apiTimetable.entries.length}`);
+    // La madrugada de mañana con los búhos de hoy (salen de las 24:00 en adelante): la API y el móvil los suman igual.
+    const nightTrip = data.trips.find((trip) => trip[5] >= 86400);
+    if (nightTrip) {
+        const nightLine = data.lines[data.patterns[nightTrip[0]][0]][0];
+        const nightApi = await (await fetch(`${BASE}/api/lines/${encodeURIComponent(nightLine)}/timetable?date=${day}&hourFrom=00:00&hourTo=05:59&red=${slug}`)).json();
+        const nightOffline = BideOffline.timetable(data, nightLine, { date: tomorrow, from: 0, to: 6 * 3600 - 60, stopId: null, now: new Date() });
+        const fromToday = nightApi.entries.filter((entry) => Number(entry.tripKey.split('-').pop()) >= 86400).length;
+        nightFromToday += fromToday;
+        check(`${slug}: la madrugada del horario sin conexión es la de la API, con ${fromToday} viajes del día anterior`, entryKeys(nightOffline.entries) === entryKeys(nightApi.entries), `${nightOffline.entries.length} frente a ${nightApi.entries.length}`);
+    }
     const firstTrip = apiTimetable.entries[0];
     if (firstTrip) {
         const apiTrip = await (await fetch(`${BASE}/api/trips/${encodeURIComponent(firstTrip.tripKey)}?red=${slug}`)).json();
@@ -87,6 +111,8 @@ for (const { slug } of index.networks) {
         check(`${slug}: las paradas de un viaje sin conexión son las de la API`, offlineTrip !== null && tripKeys(offlineTrip) === tripKeys(apiTrip) && offlineTrip.headsign === apiTrip.headsign, firstTrip.tripKey);
     }
 }
+
+check(`la madrugada del horario lleva los viajes del día anterior de las 24:00 en adelante (${nightFromToday})`, nightFromToday > 0);
 
 // Por defecto se guardan todas las redes; quien quita una ya ha elegido las suyas.
 const memory = new Map();

@@ -3,8 +3,8 @@
 // teselas de OpenStreetMap del planificador (que, si fallan, dibuja las calles del grafo a pie).
 import { addBase } from '/planificador/pantallas/map-base.js';
 
-const LEAFLET_SCRIPT = '/lib/leaflet/leaflet.js';
-const LEAFLET_STYLE = '/lib/leaflet/leaflet.css';
+const LEAFLET_SCRIPT = '/lib/leaflet-1.9.4/leaflet.js';
+const LEAFLET_STYLE = '/lib/leaflet-1.9.4/leaflet.css';
 const PROTOMAPS_SCRIPT = '/lib/protomaps-leaflet/protomaps-leaflet.js';
 const BASEMAP_URL = '/map-data/bizkaia.pmtiles';
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" '

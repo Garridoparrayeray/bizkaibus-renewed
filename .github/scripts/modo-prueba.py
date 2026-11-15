@@ -8,6 +8,7 @@ texto que hay que cambiar no está tal cual, sale con error: el parche ya no enc
 """
 import json
 import os
+import shutil
 import sys
 
 TEST_DOMAIN = 'bideplusmiamor.vercel.app'
@@ -23,7 +24,8 @@ GOOGLE_FILES = ('api/Views/menu.php', 'api/Views/app.php')
 INSIGHTS_LINE = '    <script defer src="/_vercel/insights/script.js"></script>\n'
 READ_COMMANDS = ('GET', 'MGET', 'HGET', 'HMGET', 'HGETALL', 'HSCAN', 'SCARD', 'SISMEMBER', 'SMEMBERS', 'EXISTS', 'TTL')
 NO_ROBOTS = 'User-agent: *\nDisallow: /\n'
-SEO_FILES = ('sitemap.xml', 'llms.txt')
+SEO_FILES = ('sitemap-index.xml', 'llms.txt')
+SEO_DIRS = ('sitemaps',)
 
 STORE_PIPELINE = '''    public static function pipeline(array $aCommands, int $iTimeoutMs = 800): array|null
     {
@@ -111,6 +113,13 @@ def remove(root, name):
     os.remove(path)
 
 
+def remove_dir(root, name):
+    path = os.path.join(root, name)
+    if not os.path.isdir(path):
+        raise PatchError(f'{name}/: no está')
+    shutil.rmtree(path)
+
+
 def add_noindex_header(root):
     config = json.loads(read(root, 'vercel.json'))
     for route in config['routes']:
@@ -144,6 +153,8 @@ def patch(root):
     write(root, 'robots.txt', NO_ROBOTS)
     for name in SEO_FILES:
         remove(root, name)
+    for name in SEO_DIRS:
+        remove_dir(root, name)
     remove(root, indexnow_key(root) + '.txt')
 
 
