@@ -12,6 +12,8 @@ class NotFound
     {
         http_response_code(404);
         header('Content-Type: text/html; charset=utf-8');
+        // Que nadie la guarde: la de un fichero que falta no puede quedarse con la caché immutable de su ruta.
+        header('Cache-Control: no-store');
         readfile(self::fileFor(self::PAGE, $sLang));
     }
 

@@ -5,26 +5,14 @@ $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sLang = Lang::current();
 // Lo que se busca: horarios y tiempo real, los nombres de las redes y el territorio (Euskadi, Navarra, Iparralde).
-$aTitles = [
-    'es' => 'Bide+ · Horarios y tiempo real de Bizkaibus, Metro, Renfe y más en Euskadi',
-    'eu' => 'Bide+ · Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak eta denbora errealean Euskadin',
-    'en' => 'Bide+ · Bizkaibus, Metro Bilbao, Renfe and more: Basque Country timetables and real time',
-    'fr' => 'Bide+ · Horaires et temps réel au Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao…',
-];
-$aDescriptions = [
-    'es' => 'Horarios y tiempo real del transporte público de Euskal Herria (Euskadi, Navarra e Iparralde): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF y los tranvías de Bilbao y Vitoria, en una sola app gratis.',
-    'eu' => 'Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean (Euskadi, Nafarroa eta Iparraldea): Bizkaibus, Bilboko Metroa, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesak, Txik Txak, SNCF eta Bilbo eta Gasteizko tranbiak, doako aplikazio bakarrean.',
-    'en' => 'Timetables and real time for public transport across the Basque Country (Euskadi, Navarre and the Northern Basque Country): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF and the Bilbao and Vitoria trams, in one free app.',
-    'fr' => 'Horaires et temps réel des transports en commun d’Euskal Herria (Pays basque nord, Euskadi et Navarre) : Txik Txak, SNCF, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas et les tramways de Bilbao et Vitoria-Gasteiz, dans une seule application gratuite.',
-];
 $aKeywords = [
     'es' => 'horarios autobús, tiempo real, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, transporte público, Euskal Herria, Euskadi, País Vasco, Navarra, Iparralde, Bilbao, Donostia, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayona',
     'eu' => 'autobus ordutegiak, denbora errealean, Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesak, Txik Txak, SNCF, garraio publikoa, Euskal Herria, Euskadi, Nafarroa, Iparraldea, Bilbo, Donostia, Gasteiz, Iruñea, Baiona',
     'en' => 'bus timetables, real time, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, public transport, Basque Country, Euskal Herria, Euskadi, Navarre, Bilbao, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayonne, Biarritz',
     'fr' => 'horaires bus, temps réel, Txik Txak, SNCF, TER, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas, transports en commun, Pays basque, Euskal Herria, Iparralde, Euskadi, Navarre, Bayonne, Biarritz, Anglet, Saint-Jean-de-Luz, Hendaye, Bilbao, Saint-Sébastien, Pampelune',
 ];
-$sTitle = $aTitles[$sLang];
-$sDescription = $aDescriptions[$sLang];
+$sTitle = Lang::t('menu.seoTitle', $sLang);
+$sDescription = Lang::t('menu.seoDescription', $sLang);
 $sCanonicalEs = $aSite['url'] . '/';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';

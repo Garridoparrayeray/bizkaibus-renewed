@@ -19,6 +19,8 @@ $sWordmark = require __DIR__ . '/wordmark.php';
 
 // Recorridos (uno por destino) que salen en la página de una línea.
 const LINE_PAGE_ROUTES = 4;
+// Los destinos con que se distingue una parada de otra que se llama igual.
+const STOP_WHICH_HEADSIGNS = 2;
 // Las líneas que se nombran en la descripción de una parada.
 const STOP_DESCRIPTION_LINES = 8;
 
@@ -48,13 +50,15 @@ if ($bMiamorDomain) {
         $aTitles[$sTextLang] = $aNetwork['seo']['title'];
         if ($sTextLang !== 'es') {
             $sGeneric = Networks::text($aNetwork, 'name', $sTextLang) . ' · ' . Networks::text($aNetwork, 'switcher', $sTextLang);
-            $aTitles[$sTextLang] = Seo::title([$sGeneric . ' | Bide+', $sGeneric]);
+            $sShort = Networks::text($aNetwork, 'name', $sTextLang) . ' · ' . Networks::text($aNetwork, 'tile', $sTextLang);
+            $aTitles[$sTextLang] = Seo::title([$sGeneric . ' | Bide+', $sGeneric, $sShort]);
         }
     }
     $sTitle = $aTitles[$sLang];
     $sDescription = $aNetwork['seo']['description'];
     if ($sLang !== 'es') {
-        $sDescription = Lang::t('seo.networkDescription', $sLang, ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
+        $sNetworkSentence = Lang::t('seo.networkDescription', $sLang, ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
+        $sDescription = Seo::description([$sNetworkSentence], [Lang::t('seo.moreGeneric', $sLang), Lang::t('seo.moreTiny', $sLang)]);
     }
     // Al compartir una página de la red (parada, línea o la propia red), su vista previa (scripts/render-images.mjs
     // redes); sin ella, la de Bide+. El texto alternativo, en el idioma de la página.
@@ -103,9 +107,35 @@ function appPageSplit(array $aNetwork, string $sLineId, string $sCode): array|nu
     return null;
 }
 
+// Lo que distingue a una parada de las que se llaman igual en el mismo sitio: hacia dónde van sus autobuses o, si eso
+// también coincide, su número. Vacío si no hay otra.
+function appPageStopWhich(\PDO $Pdo, array $aRecord, array $aNetwork, string $sLang): string
+{
+    $StopModel = new Stop($Pdo);
+    $aSame = $StopModel->sameName($aRecord['name'], (string)($aRecord['area'] ?? ''));
+    if (count($aSame) < 2) {
+        return '';
+    }
+    $aHeadsigns = $StopModel->headsignsForMany($aSame, PHP_INT_MAX, (bool)Networks::feature($aNetwork, 'headsign_from_last_stop'));
+    // Con un destino si basta para distinguirla; si no, con más.
+    for ($iHeadsigns = 1; $iHeadsigns <= STOP_WHICH_HEADSIGNS; $iHeadsigns++) {
+        $aLabels = [];
+        foreach ($aSame as $sId) {
+            $aOwn = array_values(array_unique($aHeadsigns[$sId] ?? []));
+            sort($aOwn);
+            $aLabels[$sId] = implode(', ', array_slice($aOwn, 0, $iHeadsigns));
+        }
+        $sOwn = $aLabels[(string)$aRecord['id']] ?? '';
+        if ($sOwn !== '' && count(array_keys($aLabels, $sOwn, true)) === 1) {
+            return Lang::t('seo.towardsShort', $sLang, ['headsign' => DisplayName::of($sOwn, $aNetwork)]);
+        }
+    }
+    return Lang::t('seo.stopNumber', $sLang, ['code' => (string)$aRecord['id']]);
+}
+
 // El contenido que pinta el servidor: lo ven los buscadores (que no llegan a /api/) y quien no tiene JavaScript. Cada
 // apartado es un título y sus enlaces; los del horario de hoy llevan además sus horas.
-$aContent = ['type' => 'network', 'id' => $sNetworkSlug, 'heading' => null, 'sections' => [], 'empty' => null];
+$aContent = ['type' => 'network', 'id' => $sNetworkSlug, 'heading' => null, 'sections' => []];
 $sBreadcrumbName = null;
 $aPlace = null;
 $bNoIndex = $bMiamorDomain;
@@ -119,7 +149,11 @@ try {
         if ($aRecord === null && !isset($_GET['red'])) {
             foreach (array_diff(Networks::slugs(), [$sNetworkSlug]) as $sOtherSlug) {
                 if (appPageRecord($sOtherSlug, $sType, $sId) !== null) {
-                    header('Location: ' . Lang::url('/' . $sType . '/' . $aMatches[2] . '?red=' . $sOtherSlug, $sLang), true, 301);
+                    $sRest = '';
+                    if (isset($aMatches[3])) {
+                        $sRest = '/' . $aMatches[3];
+                    }
+                    header('Location: ' . Lang::url('/' . $sType . '/' . $aMatches[2] . $sRest . '?red=' . $sOtherSlug, $sLang), true, 301);
                     exit;
                 }
             }
@@ -138,11 +172,17 @@ try {
             if (($aRecord['area'] ?? '') !== '') {
                 $sStopLabel .= ' (' . Seo::municipality($Name($aRecord['area'])) . ')';
             }
+            // Dos paradas con el mismo nombre y pueblo (una en cada acera): cada una dice hacia dónde va o su número.
+            $sWhich = appPageStopWhich($Pdo, $aRecord, $aNetwork, $sLang);
+            if ($sWhich !== '') {
+                $sStopName .= ' ' . $sWhich;
+                $sStopLabel .= ' ' . $sWhich;
+            }
             $aServing = (new Stop($Pdo))->linesServing($aRecord['id']);
             foreach (Lang::LANGS as $sTextLang) {
                 $sKeyword = Lang::t('seo.stopTitle', $sTextLang, ['stop' => $sStopLabel, 'operator' => $sOperator]);
                 $sShort = Lang::t('seo.stopTitle', $sTextLang, ['stop' => $sStopName, 'operator' => $sOperator]);
-                $aTitles[$sTextLang] = Seo::title([$sKeyword . ' | Bide+', $sKeyword, $sShort]);
+                $aTitles[$sTextLang] = Seo::title([$sKeyword . ' | Bide+', $sKeyword, $sShort, $sStopName . ' · ' . $sOperator]);
             }
             $sTitle = $aTitles[$sLang];
             // Renfe publica una línea por sentido: el mismo código sale dos veces.
@@ -158,21 +198,27 @@ try {
             if (!empty($aNetwork['live'])) {
                 $aSentences[] = Lang::t('seo.live', $sLang);
             }
-            $sDescription = Seo::description($aSentences, [Lang::t('seo.stopMore', $sLang), Lang::t('seo.stopMoreShort', $sLang)]);
+            $sDescription = Seo::description($aSentences, [Lang::t('seo.stopMore', $sLang), Lang::t('seo.stopMoreShort', $sLang), Lang::t('seo.moreGeneric', $sLang), Lang::t('seo.moreTiny', $sLang)]);
             $aStopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'train' => 'TrainStation', 'tram' => 'TrainStation'];
             $aPlace = [
                 '@type' => $aStopTypes[$aNetwork['kind']] ?? 'Place',
                 'name' => $sStopName,
                 'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float)$aRecord['lat'], 'longitude' => (float)$aRecord['lon']],
             ];
+            // Región y país, de la ficha (Txik Txak está en Francia; Villavesas, en Navarra); el pueblo, de la base.
+            $aPlace['address'] = ['@type' => 'PostalAddress'];
             if (($aRecord['area'] ?? '') !== '') {
-                $aPlace['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $Name($aRecord['area']), 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
+                $aPlace['address']['addressLocality'] = Seo::municipality($Name($aRecord['area']));
             }
+            if (isset($aNetwork['seo']['region'])) {
+                $aPlace['address']['addressRegion'] = $aNetwork['seo']['region'];
+            }
+            $aPlace['address']['addressCountry'] = $aNetwork['seo']['country'];
             $sBreadcrumbName = $sStopName;
             // Sin ninguna línea, la parada no tiene servicio ni nada que leer: fuera del índice (y del sitemap).
             $bNoIndex = $bNoIndex || empty($aServing);
 
-            $aContent = ['type' => 'stop', 'id' => (string)$aRecord['id'], 'heading' => $sStopLabel . ' · ' . $sOperator, 'sections' => [], 'empty' => null];
+            $aContent = ['type' => 'stop', 'id' => (string)$aRecord['id'], 'heading' => $sStopLabel . ' · ' . $sOperator, 'sections' => []];
             $aLinks = [];
             foreach ($aServing as $aLine) {
                 $aLinks[] = ['href' => $AppLink('lines', (string)$aLine['id']), 'label' => $aLine['code'] . ' · ' . $Name($aLine['name'])];
@@ -186,10 +232,13 @@ try {
                 $aSchedule[] = ['href' => $AppLink('lines', (string)$aGroup['lineId']), 'label' => $sLabel, 'times' => implode(' · ', $aGroup['times'])];
             }
             $sScheduleTitle = Lang::t('seo.scheduleToday', $sLang, ['date' => Calendar::todayMadrid()->format('d/m/Y')]);
-            $aContent['sections'][] = ['title' => $sScheduleTitle, 'items' => $aSchedule];
+            $aScheduleSection = ['title' => $sScheduleTitle, 'items' => $aSchedule, 'date' => Calendar::todayMadrid()->format('Y-m-d')];
             if (empty($aSchedule)) {
-                $aContent['empty'] = Lang::t('seo.noDepartures', $sLang);
+                $aScheduleSection['empty'] = Lang::t('seo.noDepartures', $sLang);
             }
+            $aContent['sections'][] = $aScheduleSection;
+            // La página lleva el horario de hoy: en la caché del CDN, como mucho hasta la medianoche de Madrid.
+            $iCacheSeconds = min($iCacheSeconds, Calendar::secondsUntilMidnight());
         } else {
             $sLineCode = $aRecord['code'];
             $sLineName = $Name($aRecord['name']);
@@ -211,10 +260,10 @@ try {
             } elseif (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-positions')) {
                 $aSentences[] = Lang::t('seo.trainMap', $sLang);
             }
-            $sDescription = Seo::description($aSentences, [Lang::t('seo.lineMore', $sLang), Lang::t('seo.lineMoreShort', $sLang)]);
+            $sDescription = Seo::description($aSentences, [Lang::t('seo.lineMore', $sLang), Lang::t('seo.lineMoreShort', $sLang), Lang::t('seo.moreGeneric', $sLang), Lang::t('seo.moreTiny', $sLang)]);
             $sBreadcrumbName = Lang::t('seo.line', $sLang, ['code' => $sLineCode]);
 
-            $aContent = ['type' => 'line', 'id' => (string)$aRecord['id'], 'heading' => Lang::t('seo.lineHeading', $sLang, $aLineVars), 'sections' => [], 'empty' => null];
+            $aContent = ['type' => 'line', 'id' => (string)$aRecord['id'], 'heading' => Lang::t('seo.lineHeading', $sLang, $aLineVars), 'sections' => []];
             foreach ((new LineModel($Pdo))->mainRoutes($aRecord['id'], LINE_PAGE_ROUTES, $aEnds) as $aRoute) {
                 $aLinks = [];
                 foreach ($aRoute['stops'] as $aStop) {

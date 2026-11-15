@@ -11,12 +11,18 @@ $sPath = strtok($_SERVER['REQUEST_URI'] ?? '/', '?#');
 $bMiamorDomain = ($_SERVER['HTTP_HOST'] ?? '') === 'bideplusmiamor.vercel.app';
 
 // Estas páginas solo cambian con la dirección (y ?red) y al desplegar, que vacía la caché de Vercel: el CDN las sirve
-// sin ejecutar PHP. Solo las que salen bien, y no las del dominio «mi amor», que tienen otra vista previa.
-header_register_callback(function () use ($bMiamorDomain) {
+// sin ejecutar PHP. Solo las que salen bien, y no las del dominio «mi amor», que tienen otra vista previa. Las que
+// llevan el horario de hoy (app-page.php baja $iCacheSeconds) caducan a la medianoche de Madrid, sin copias viejas.
+$iCacheSeconds = Core\CacheSeconds::STATIC;
+header_register_callback(function () use ($bMiamorDomain, &$iCacheSeconds) {
     if (http_response_code() !== 200 || $bMiamorDomain) {
         return;
     }
-    header('Cache-Control: public, max-age=0, s-maxage=' . Core\CacheSeconds::STATIC . ', stale-while-revalidate=' . (Core\CacheSeconds::STATIC * 2));
+    $sStale = ', stale-while-revalidate=' . ($iCacheSeconds * 2);
+    if ($iCacheSeconds < Core\CacheSeconds::STATIC) {
+        $sStale = '';
+    }
+    header('Cache-Control: public, max-age=0, s-maxage=' . $iCacheSeconds . $sStale);
     header('Vary: Host');
 });
 
@@ -38,8 +44,17 @@ if ($sCanonicalPath === null) {
     \Core\NotFound::send($sLang);
     exit;
 }
-if (isset($_GET['red']) && !\Core\Networks::exists((string)$_GET['red'])) {
-    header('Location: ' . \Core\Lang::url('/', $sLang), true, 301);
+// ?red= en mayúsculas (?red=Metro) lleva a la de verdad; una que no existe (o que no es un texto), a la portada.
+if (isset($_GET['red']) && (!is_string($_GET['red']) || !\Core\Networks::exists($_GET['red']))) {
+    $sRed = '';
+    if (is_string($_GET['red'])) {
+        $sRed = strtolower($_GET['red']);
+    }
+    $sTarget = \Core\Lang::url('/', $sLang);
+    if (\Core\Networks::exists($sRed)) {
+        $sTarget = $sPath . '?' . http_build_query(['red' => $sRed] + $_GET);
+    }
+    header('Location: ' . $sTarget, true, 301);
     exit;
 }
 if ($sCanonicalPath !== $sPath) {

@@ -17,22 +17,45 @@ class Seo
                 return $sCandidate;
             }
         }
-        return end($aCandidates);
+        return self::cut(end($aCandidates), self::TITLE_MAX);
+    }
+
+    // El texto recortado a $iMax caracteres por el último espacio, con «…».
+    private static function cut(string $sText, int $iMax): string
+    {
+        $sCut = mb_substr($sText, 0, $iMax - 1);
+        $iSpace = mb_strrpos($sCut, ' ');
+        if ($iSpace !== false) {
+            $sCut = mb_substr($sCut, 0, $iSpace);
+        }
+        return rtrim($sCut, ' ,.;:·|-') . '…';
     }
 
     // La primera frase, las siguientes que quepan y, si se queda corta, la primera de relleno que quepa.
     public static function description(array $aSentences, array $aFillers): string
     {
         $sText = array_shift($aSentences);
+        if (mb_strlen($sText) > self::DESCRIPTION_MAX) {
+            return self::cut($sText, self::DESCRIPTION_MAX);
+        }
         foreach ($aSentences as $sSentence) {
             if (mb_strlen($sText . ' ' . $sSentence) <= self::DESCRIPTION_MAX) {
                 $sText .= ' ' . $sSentence;
             }
         }
-        foreach ($aFillers as $sFiller) {
-            if (mb_strlen($sText) < self::DESCRIPTION_MIN && mb_strlen($sText . ' ' . $sFiller) <= self::DESCRIPTION_MAX) {
-                $sText .= ' ' . $sFiller;
+        // Mientras se quede corta: la frase de relleno más corta que la deja en su medida o, si ninguna llega, la más
+        // larga que cabe (y se sigue con las demás).
+        while (mb_strlen($sText) < self::DESCRIPTION_MIN && !empty($aFillers)) {
+            $aFits = array_filter($aFillers, fn($sFiller) => mb_strlen($sText . ' ' . $sFiller) <= self::DESCRIPTION_MAX);
+            if (empty($aFits)) {
+                break;
             }
+            $aEnough = array_filter($aFits, fn($sFiller) => mb_strlen($sText . ' ' . $sFiller) >= self::DESCRIPTION_MIN);
+            usort($aEnough, fn($sA, $sB) => mb_strlen($sA) <=> mb_strlen($sB));
+            usort($aFits, fn($sA, $sB) => mb_strlen($sB) <=> mb_strlen($sA));
+            $sChosen = $aEnough[0] ?? $aFits[0];
+            $sText .= ' ' . $sChosen;
+            $aFillers = array_values(array_diff($aFillers, [$sChosen]));
         }
         return $sText;
     }
