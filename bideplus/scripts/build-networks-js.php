@@ -29,10 +29,12 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     ];
 }
 
-// La lista de todas las apps en cada idioma (net.apps, en las preguntas frecuentes).
+// Las listas de apps de las preguntas frecuentes en cada idioma (net.apps, net.apps.live…).
 $aApps = [];
 foreach (Lang::LANGS as $sLang) {
-    $aApps[$sLang] = Lang::t('net.apps', $sLang);
+    foreach (Networks::APP_LISTS as $sList) {
+        $aApps[$sLang][$sList] = Lang::t($sList, $sLang);
+    }
 }
 
 $sJson = json_encode($aOut, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -57,10 +59,10 @@ $sJs = <<<JS
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y la lista de las apps como net.apps.
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y las listas de apps como net.apps….
     if (global.I18n && global.I18n.extend) {
         Object.keys(apps).forEach(function (lang) {
-            global.I18n.extend(lang, { 'net.apps': apps[lang] });
+            global.I18n.extend(lang, apps[lang]);
         });
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {

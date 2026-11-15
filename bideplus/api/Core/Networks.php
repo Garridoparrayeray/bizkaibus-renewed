@@ -5,6 +5,9 @@ namespace Core;
 // Registro de redes: cada fichero de api/Networks describe una. Añadir una red es añadir su fichero.
 class Networks
 {
+    // Las listas de apps de las preguntas frecuentes (appList), como claves del diccionario.
+    public const APP_LISTS = ['net.apps', 'net.apps.live', 'net.apps.reduced'];
+
     private static array|null $aAll = null;
     private static string|null $sDefault = null;
 
@@ -112,15 +115,30 @@ class Networks
         return $aNetwork['texts'][$sLang][$sKey] ?? $aNetwork['texts']['es'][$sKey] ?? '';
     }
 
-    // Los nombres de las apps en el idioma pedido, en el orden del menú, como «A+, B+ y C+» ($sAnd, la «y»): la
-    // lista de las preguntas frecuentes. Sale del registro: una red nueva entra sola.
-    public static function appList(string $sLang, string $sAnd): string
+    // Los nombres de las apps en el idioma pedido, en el orden del menú, como «A+, B+ y C+» ($sAnd, la «y»): las
+    // listas de las preguntas frecuentes (APP_LISTS). Salen del registro: una red nueva entra sola.
+    public static function appList(string $sLang, string $sAnd, string $sList = 'net.apps'): string
     {
         $aNames = [];
         foreach (self::all() as $aNetwork) {
-            $aNames[] = self::text($aNetwork, 'name', $sLang);
+            if (self::inList($aNetwork, $sList)) {
+                $aNames[] = self::text($aNetwork, 'name', $sLang);
+            }
         }
         return self::sentence($aNames, $sAnd);
+    }
+
+    // Todas (net.apps), las que tienen directo (net.apps.live) o las que notan solas el servicio reducido por el
+    // directo (net.apps.reduced, con reduced_service.live).
+    private static function inList(array $aNetwork, string $sList): bool
+    {
+        if ($sList === 'net.apps.live') {
+            return !empty($aNetwork['live']);
+        }
+        if ($sList === 'net.apps.reduced') {
+            return isset($aNetwork['reduced_service']['live']);
+        }
+        return true;
     }
 
     // Las marcas de las redes para los buscadores (la del mapa o el nombre sin el «+»), separadas por comas.

@@ -112,10 +112,13 @@ class Lang
         return $aTexts;
     }
 
-    // Los textos de las fichas (net.<red>.<clave>) y net.apps, la lista de todas las apps (Networks::appList).
+    // Los textos de las fichas (net.<red>.<clave>) y las listas de apps (Networks::appList).
     private static function networkTexts(string $sLang, string $sAnd): array
     {
-        $aTexts = ['net.apps' => Networks::appList($sLang, $sAnd)];
+        $aTexts = [];
+        foreach (Networks::APP_LISTS as $sList) {
+            $aTexts[$sList] = Networks::appList($sLang, $sAnd, $sList);
+        }
         foreach (Networks::all() as $sSlug => $aNetwork) {
             foreach ($aNetwork['texts'][$sLang] ?? [] as $sKey => $sText) {
                 $aTexts['net.' . $sSlug . '.' . $sKey] = $sText;

@@ -1199,7 +1199,7 @@
         }
     }
 };
-    const apps = {"es":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ y Villavesas+","eu":"Bizkaibus+, Metro+, Euskotren+, Renfe Aldiriak+, Lurraldebus+, Tranbia Bilbo+, Tranbia Gasteiz+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ eta Villavesas+","en":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ and Villavesas+","fr":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ et Villavesas+"};
+    const apps = {"es":{"net.apps":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ y Villavesas+","net.apps.live":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, Renfe LD+, Txik Txak+ y SNCF+","net.apps.reduced":"Bizkaibus+, Metro+, Euskotren+, Tuvisa+, Dbus+ y Txik Txak+"},"eu":{"net.apps":"Bizkaibus+, Metro+, Euskotren+, Renfe Aldiriak+, Lurraldebus+, Tranbia Bilbo+, Tranbia Gasteiz+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ eta Villavesas+","net.apps.live":"Bizkaibus+, Metro+, Euskotren+, Renfe Aldiriak+, Lurraldebus+, Tranbia Bilbo+, Tranbia Gasteiz+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, Renfe LD+, Txik Txak+ eta SNCF+","net.apps.reduced":"Bizkaibus+, Metro+, Euskotren+, Tuvisa+, Dbus+ eta Txik Txak+"},"en":{"net.apps":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ and Villavesas+","net.apps.live":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, Renfe LD+, Txik Txak+ and SNCF+","net.apps.reduced":"Bizkaibus+, Metro+, Euskotren+, Tuvisa+, Dbus+ and Txik Txak+"},"fr":{"net.apps":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ et Villavesas+","net.apps.live":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, Renfe LD+, Txik Txak+ et SNCF+","net.apps.reduced":"Bizkaibus+, Metro+, Euskotren+, Tuvisa+, Dbus+ et Txik Txak+"}};
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: "bus",
@@ -1214,10 +1214,10 @@
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y la lista de las apps como net.apps.
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y las listas de apps como net.apps….
     if (global.I18n && global.I18n.extend) {
         Object.keys(apps).forEach(function (lang) {
-            global.I18n.extend(lang, { 'net.apps': apps[lang] });
+            global.I18n.extend(lang, apps[lang]);
         });
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
