@@ -43,7 +43,8 @@ USO="'forest', 'grass', 'residential', 'industrial', 'commercial', 'retail', 'ce
 NATURAL="'wood', 'beach', 'sand'"
 capa landuse "SELECT CASE WHEN leisure IN ($OCIO) THEN leisure WHEN landuse IN ($USO) THEN landuse ELSE \"natural\" END AS kind, geometry FROM multipolygons WHERE leisure IN ($OCIO) OR landuse IN ($USO) OR \"natural\" IN ($NATURAL)"
 capa buildings "SELECT 'building' AS kind, geometry FROM multipolygons WHERE building IS NOT NULL"
-capa places "SELECT place AS kind, name, geometry FROM points WHERE place IN ('city', 'town', 'village', 'suburb', 'neighbourhood') AND name IS NOT NULL"
+# Con su población (si la tiene), para que de lejos salgan los pueblos grandes y, al no caber todos, primero los mayores.
+capa places "SELECT place AS kind, name, COALESCE(CAST(hstore_get_value(other_tags, 'population') AS INTEGER), 0) AS population, geometry FROM points WHERE place IN ('city', 'town', 'village', 'suburb', 'neighbourhood') AND name IS NOT NULL"
 
 # Por zoom: lo menudo (calles, caminos, jardines, edificios, barrios) solo de cerca. Los lugares no se aclaran (-r1).
 FILTRO='{
@@ -55,8 +56,8 @@ FILTRO='{
   "landuse": ["any", ["in", "kind", "forest", "wood", "residential", "industrial", "commercial", "retail", "railway",
     "cemetery", "beach", "sand"], [">=", "$zoom", 13]],
   "buildings": [">=", "$zoom", 14],
-  "places": ["any", ["in", "kind", "city", "town"], ["all", [">=", "$zoom", 11], ["==", "kind", "village"]],
-    [">=", "$zoom", 13]]
+  "places": ["any", ["in", "kind", "city", "town"], ["all", [">=", "$zoom", 9], ["==", "kind", "village"],
+    [">=", "population", 1000]], ["all", [">=", "$zoom", 10], ["==", "kind", "village"]], [">=", "$zoom", 13]]
 }'
 tippecanoe --force --quiet -o "$SALIDA" -Z "$ZOOM_MINIMO" -z "$ZOOM_MAXIMO" -n "Bizkaia" -r1 \
   -A '&copy; OpenStreetMap' -j "$FILTRO" --clip-bounding-box="$RECUADRO" --detect-shared-borders \

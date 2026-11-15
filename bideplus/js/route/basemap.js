@@ -16,8 +16,19 @@ const BUILDINGS_ZOOM = 15;
 const STREET_NAMES_ZOOM = 16;
 const LABEL_HALO = 3;
 const LABEL_SIZE = 12;
-const PLACE_SIZE = 14;
 const LABEL_WEIGHT = 700;
+// Los nombres de los lugares, de más a menos importantes (se colocan en ese orden y no se pisan): su tamaño de letra
+// lejos y cerca, y desde qué zoom de pantalla se ven así de grandes. Van a un lado del punto, no encima de su parada.
+const PLACE_KINDS = [
+    [['city'], 13, 15], [['town'], 12, 14], [['village'], 11, 13], [['suburb', 'neighbourhood'], 11, 12],
+];
+const PLACE_NEAR_ZOOM = 12;
+const PLACE_OFFSET = 10;
+const PLACE_SIDES = [1, 5, 3, 7];
+// Los nombres van en su propio panel, con su halo encima de los recorridos (overlayPane, 400) y debajo de las paradas
+// del viaje (markerPane, 600), que no se tapan.
+const LABEL_PANE = 'routeLabels';
+const LABEL_PANE_Z = 450;
 const STEPS_DASH = [1, 1.5];
 const PATH_DASH = [3, 2];
 // El ancho de cada clase de calle (en px) a zoom 12, 15 y 18; la base de la curva, como en Protomaps.
@@ -151,22 +162,41 @@ const paintRules = (oColors) => {
     ];
 };
 
+// Entre los de una clase, primero los de más población (si el mapa base la trae).
+const byPopulation = (a, b) => (Number(b.population) || 0) - (Number(a.population) || 0);
+
+const placeRule = ([aKinds, iFar, iNear], oColors, sFont) => ({
+    dataLayer: 'places', filter: kindIn(aKinds), sort: byPopulation,
+    symbolizer: new window.protomapsL.OffsetTextSymbolizer({ fill: oColors.label, stroke: oColors.halo,
+        width: LABEL_HALO, fontFamily: sFont, fontWeight: LABEL_WEIGHT, offsetX: PLACE_OFFSET, offsetY: PLACE_OFFSET,
+        placements: PLACE_SIDES, fontSize: window.protomapsL.step(iFar, [[PLACE_NEAR_ZOOM, iNear]]) }),
+});
+
 const labelRules = (oColors, sFont) => [
-    { dataLayer: 'places', symbolizer: new window.protomapsL.CenteredTextSymbolizer({ fill: oColors.label,
-        stroke: oColors.halo, width: LABEL_HALO, fontFamily: sFont, fontSize: PLACE_SIZE, fontWeight: LABEL_WEIGHT }) },
+    ...PLACE_KINDS.map((place) => placeRule(place, oColors, sFont)),
     { dataLayer: 'roads', minzoom: STREET_NAMES_ZOOM, symbolizer: new window.protomapsL.LineLabelSymbolizer({
         fill: oColors.label, stroke: oColors.halo, width: LABEL_HALO, fontFamily: sFont, fontSize: LABEL_SIZE,
         fontWeight: LABEL_WEIGHT }) },
 ];
 
-const vectorLayer = (map, basemap) => {
+// El fondo (sin nombres) y, en su panel, los nombres: [fondo, nombres].
+const vectorLayers = (map, basemap) => {
     const oColors = tokensOf(map.getContainer(), COLORS);
-    return window.protomapsL.leafletLayer({
-        url: basemap.pmtiles, maxDataZoom: basemap.header.maxZoom, maxZoom: MAX_ZOOM, attribution: ATTRIBUTION,
-        backgroundColor: oColors.land, paintRules: paintRules(oColors),
-        labelRules: labelRules(oColors, getComputedStyle(document.body).fontFamily),
-        bounds: [[basemap.header.minLat, basemap.header.minLon], [basemap.header.maxLat, basemap.header.maxLon]],
-    });
+    const common = { url: basemap.pmtiles, maxDataZoom: basemap.header.maxZoom, maxZoom: MAX_ZOOM,
+        bounds: [[basemap.header.minLat, basemap.header.minLon], [basemap.header.maxLat, basemap.header.maxLon]] };
+    const base = window.protomapsL.leafletLayer(Object.assign({ attribution: ATTRIBUTION, backgroundColor: oColors.land,
+        paintRules: paintRules(oColors), labelRules: [] }, common));
+    const labels = window.protomapsL.leafletLayer(Object.assign({ attribution: '', pane: LABEL_PANE, paintRules: [],
+        labelRules: labelRules(oColors, getComputedStyle(document.body).fontFamily) }, common));
+    return [base, labels];
+};
+
+const labelPane = (map) => {
+    if (!map.getPane(LABEL_PANE)) {
+        const pane = map.createPane(LABEL_PANE);
+        pane.style.zIndex = String(LABEL_PANE_Z);
+        pane.style.pointerEvents = 'none';
+    }
 };
 
 // Pone el fondo de un mapa cuyo viaje ocupa bounds; si cambia el tema del sistema, se vuelve a pintar con sus colores.
@@ -176,11 +206,14 @@ export const addBasemap = async (L, map, bounds) => {
         addBase(L, map, bounds);
         return;
     }
-    const layer = { current: vectorLayer(map, basemap).addTo(map) };
+    labelPane(map);
+    const layer = { current: vectorLayers(map, basemap) };
+    layer.current.forEach((item) => item.addTo(map));
     const dark = window.matchMedia(DARK);
     const repaint = () => {
-        map.removeLayer(layer.current);
-        layer.current = vectorLayer(map, basemap).addTo(map);
+        layer.current.forEach((item) => map.removeLayer(item));
+        layer.current = vectorLayers(map, basemap);
+        layer.current.forEach((item) => item.addTo(map));
     };
     dark.addEventListener('change', repaint);
     map.on('unload', () => dark.removeEventListener('change', repaint));

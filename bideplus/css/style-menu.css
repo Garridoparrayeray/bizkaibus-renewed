@@ -1748,10 +1748,36 @@ html.route-trip-open body {
     --map-casing: var(--bide-surface);
     --map-origin: var(--bide-green);
     --map-target: var(--bide-red);
+    --map-control: var(--bide-surface);
+    --map-control-ink: var(--bide-ink);
+    --map-control-off: var(--bide-muted);
+    --map-control-line: var(--bide-line);
+    --map-attribution: rgba(255, 255, 255, .85);
 }
     .route-trip-map[hidden] {
         display: none;
     }
+    /* Los controles de Leaflet (+/− y atribución) con los colores del mapa; leaflet.css se carga después. */
+    .route-trip-map .leaflet-control.leaflet-bar {
+        border: 1px solid var(--map-control-line);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+    }
+        .route-trip-map .leaflet-control.leaflet-bar a {
+            border-bottom-color: var(--map-control-line);
+            background: var(--map-control);
+            color: var(--map-control-ink);
+        }
+            .route-trip-map .leaflet-control.leaflet-bar a.leaflet-disabled {
+                background: var(--map-control);
+                color: var(--map-control-off);
+            }
+    .route-trip-map .leaflet-control.leaflet-control-attribution {
+        background: var(--map-attribution);
+        color: var(--map-control-ink);
+    }
+        .route-trip-map .leaflet-control.leaflet-control-attribution a {
+            color: var(--map-control-ink);
+        }
     .route-trip-map-frame {
         position: relative;
         overflow: hidden;
@@ -1828,6 +1854,11 @@ html.route-trip-open body {
         --map-label-halo: #1d2320;
         --map-walk: #f4f6f4;
         --map-casing: #1d2320;
+        --map-control: #262d29;
+        --map-control-ink: #eef2ef;
+        --map-control-off: #7d8780;
+        --map-control-line: #3a433e;
+        --map-attribution: rgba(29, 35, 32, .85);
     }
 }
 @media (min-width: 720px) {
