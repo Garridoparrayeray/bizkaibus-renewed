@@ -42,7 +42,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 | `browser.mjs` | Lo que comparten las cinco `ui-*.mjs`: lanza el navegador sin ventana y en castellano y, si no responde en 20 s (en GitHub pasa a veces), lo cierra y lo vuelve a lanzar, hasta tres veces. No se lanza sola |
 | `ui-nearby.mjs` | Botón «Cerca de mí» con la ubicación simulada en Bizkaibus, Metro y Euskotren (parada más cercana, distancia, próxima salida, abrir ficha), ubicación fuera de la zona y permiso denegado |
 
-Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (slugs de `api/Networks`, por ejemplo bus,metro,renfe; por defecto todas), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
+Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (slugs de `api/Networks`, por ejemplo bus,metro,renfe; por defecto todas), `ONLY_APPS=1` (con `APPS`: solo esas redes, sin las comprobaciones comunes de enlaces, idioma, menú, «mi amor» y 404; así lo usa `new-network.php`, y `run-all.py` deja de la interfaz solo esta batería), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
 
 Los mosaicos del mapa (OpenStreetMap) siguen necesitando internet: sin red se ven la ruta y los marcadores sobre fondo liso.
 

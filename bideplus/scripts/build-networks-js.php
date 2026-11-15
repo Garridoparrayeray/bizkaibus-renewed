@@ -5,9 +5,9 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../api/Core/Networks.php';
-require __DIR__ . '/../api/Services/Calendar.php';
+require __DIR__ . '/../api/autoload.php';
 
+use Core\Lang;
 use Core\Networks;
 use Services\Calendar;
 
@@ -31,13 +31,23 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     ];
 }
 
+// Las listas de apps de las preguntas frecuentes en cada idioma (net.apps, net.apps.live…).
+$aApps = [];
+foreach (Lang::LANGS as $sLang) {
+    foreach (Networks::APP_LISTS as $sList) {
+        $aApps[$sLang][$sList] = Lang::t($sList, $sLang);
+    }
+}
+
 $sJson = json_encode($aOut, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$sApps = json_encode($aApps, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $sDefault = json_encode(Networks::defaultSlug());
 $sTimeZone = json_encode(Calendar::TIME_ZONE, JSON_UNESCAPED_SLASHES);
 $sJs = <<<JS
 // Generado por scripts/build-networks-js.php a partir de api/Networks. No editar a mano.
 (function (global) {
     const networks = $sJson;
+    const apps = $sApps;
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: $sDefault,
@@ -54,9 +64,12 @@ $sJs = <<<JS
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>: aquí si js/i18n.js ya está y, si no
-    // (en las apps va con defer, después), los mete él al cargarse.
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y las listas de apps como net.apps…:
+    // aquí si js/i18n.js ya está y, si no (en las apps va con defer, después), los mete él al cargarse.
     global.BideNetworks.addTexts = function (i18n) {
+        Object.keys(apps).forEach(function (lang) {
+            i18n.extend(lang, apps[lang]);
+        });
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
                 const table = {};

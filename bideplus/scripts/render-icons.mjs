@@ -35,7 +35,8 @@ const jobs = [
 if (existsSync(join(folder, 'glyph.svg'))) jobs.push([readFileSync(join(folder, 'glyph.svg'), 'utf8'), 192, 'glyph.png']);
 
 const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'bide-icons-'))}`, 'about:blank'];
-if (process.env.CI) flags.unshift('--no-sandbox');
+// Como root (un contenedor) Chrome no arranca con su sandbox.
+if (process.env.CI || (process.getuid && process.getuid() === 0)) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 
 let targets;

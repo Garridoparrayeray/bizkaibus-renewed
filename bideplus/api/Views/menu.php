@@ -6,13 +6,15 @@ require_once __DIR__ . '/bide-components.php';
 $sLang = Lang::current();
 // Lo que se busca: horarios y tiempo real, los nombres de las redes y el territorio (Euskadi, Navarra, Iparralde).
 $aKeywords = [
-    'es' => 'horarios autobús, tiempo real, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, transporte público, Euskal Herria, Euskadi, País Vasco, Navarra, Iparralde, Bilbao, Donostia, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayona',
-    'eu' => 'autobus ordutegiak, denbora errealean, Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesak, Txik Txak, SNCF, garraio publikoa, Euskal Herria, Euskadi, Nafarroa, Iparraldea, Bilbo, Donostia, Gasteiz, Iruñea, Baiona',
-    'en' => 'bus timetables, real time, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, public transport, Basque Country, Euskal Herria, Euskadi, Navarre, Bilbao, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayonne, Biarritz',
-    'fr' => 'horaires bus, temps réel, Txik Txak, SNCF, TER, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas, transports en commun, Pays basque, Euskal Herria, Iparralde, Euskadi, Navarre, Bayonne, Biarritz, Anglet, Saint-Jean-de-Luz, Hendaye, Bilbao, Saint-Sébastien, Pampelune',
+    'es' => 'horarios autobús, tiempo real, {apps}, transporte público, Euskal Herria, Euskadi, País Vasco, Navarra, Iparralde, Bilbao, Donostia, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayona',
+    'eu' => 'autobus ordutegiak, denbora errealean, {apps}, garraio publikoa, Euskal Herria, Euskadi, Nafarroa, Iparraldea, Bilbo, Donostia, Gasteiz, Iruñea, Baiona',
+    'en' => 'bus timetables, real time, {apps}, public transport, Basque Country, Euskal Herria, Euskadi, Navarre, Bilbao, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayonne, Biarritz',
+    'fr' => 'horaires bus, temps réel, TER, {apps}, transports en commun, Pays basque, Euskal Herria, Iparralde, Euskadi, Navarre, Bayonne, Biarritz, Anglet, Saint-Jean-de-Luz, Hendaye, Bilbao, Saint-Sébastien, Pampelune',
 ];
 $sTitle = Lang::t('menu.seoTitle', $sLang);
 $sDescription = Lang::t('menu.seoDescription', $sLang);
+// Las redes de las palabras clave salen del registro (Networks::brandList): una red nueva entra sola.
+$sKeywords = str_replace('{apps}', \Core\Networks::brandList($sLang), $aKeywords[$sLang]);
 $sCanonicalEs = $aSite['url'] . '/';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
@@ -50,7 +52,7 @@ $aJsonLd = [
             'description' => $sDescription,
             'url' => $sCanonical,
             'inLanguage' => $sLang,
-            'keywords' => $aKeywords[$sLang],
+            'keywords' => $sKeywords,
             'spatialCoverage' => [
                 ['@type' => 'Place', 'name' => 'Euskal Herria'],
                 ['@type' => 'AdministrativeArea', 'name' => 'Euskadi'],
@@ -74,7 +76,7 @@ $aJsonLd = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
-    <meta name="keywords" content="<?= htmlspecialchars($aKeywords[$sLang]) ?>">
+    <meta name="keywords" content="<?= htmlspecialchars($sKeywords) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
 <?php if ($bMiamorDomain): ?>
     <meta name="robots" content="noindex, nofollow">

@@ -2,6 +2,7 @@
 
     python tests/run-all.py            # todo
     python tests/run-all.py --rapido   # sin navegador (estáticas, unitarias, datos, API y contrato)
+    APPS=kbus ONLY_APPS=1 python tests/run-all.py   # de la interfaz, solo la batería de esas redes
 
 Si no hay un servidor en BASE_URL, arranca uno propio con dev-router.php y lo cierra al terminar.
 """
@@ -32,7 +33,10 @@ STEPS = [
     ('Despliegue a Vercel (limpieza y tamaño)', [PY, 'tests/vercel-deploy.py']),
     ('Commit del bot tras desplegar', [PY, 'tests/rebuild-commit.py']),
 ]
-if not QUICK:
+# Con ONLY_APPS y APPS, de la interfaz solo la batería de esas redes (sin las comprobaciones comunes).
+if not QUICK and os.environ.get('ONLY_APPS') and os.environ.get('APPS'):
+    STEPS += [('UI de ' + os.environ['APPS'], ['node', 'tests/ui-battery.mjs'])]
+elif not QUICK:
     STEPS += [
         ('UI completa', ['node', 'tests/ui-battery.mjs']),
         ('UI sin conexión', ['node', 'tests/ui-offline.mjs']),

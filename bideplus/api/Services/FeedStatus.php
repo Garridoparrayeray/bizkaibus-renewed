@@ -15,7 +15,7 @@ class FeedStatus
     public static function report(): array|null
     {
         $aConfig = Config::current();
-        if (Config::hasLive('trip-updates')) {
+        if (Config::hasFeedLive()) {
             return self::tripUpdatesReport($aConfig);
         }
         if (!Config::hasLive('vehicle-monitoring')) {
@@ -48,27 +48,43 @@ class FeedStatus
         }
     }
 
+    // GTFS-Realtime: con horas previstas (feed trip-updates) o, sin ellas, con el retraso que da el GPS de cada
+    // vehículo sobre su horario (feed vehicle-positions, emparejado por posición).
     private static function tripUpdatesReport(array $aConfig): array
     {
         $dStart = microtime(true);
-        $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($aConfig['gtfs_rt']['trip_updates_url'], PHP_URL_HOST), 'ok' => false];
+        $sFeed = 'trip-updates';
+        if (!Config::hasLive('trip-updates')) {
+            $sFeed = 'vehicle-positions';
+        }
+        $sUrl = $aConfig['gtfs_rt'][str_replace('-', '_', $sFeed) . '_url'];
+        $aOut = ['network' => $aConfig['slug'], 'source' => parse_url($sUrl, PHP_URL_HOST), 'feed' => $sFeed,
+            'ok' => false];
         try {
             $Client = new GtfsRealtimeClient($aConfig);
-            $aOut['feedTrips'] = \count($Client->fetchTripUpdates());
+            $aOut['feedTrips'] = 0;
+            if ($sFeed === 'trip-updates') {
+                $aOut['feedTrips'] = \count($Client->fetchTripUpdates());
+            }
             $aOut['vehicles'] = 0;
             if (Config::hasLive('vehicle-positions')) {
                 $aOut['vehicles'] = \count($Client->fetchVehiclePositions());
             }
             $Matcher = Live::tripMatcher(new ServiceJourney(Database::connection()));
             $aOut['matching'] = 'stops';
-            if ($Matcher instanceof TripDelayMatcher) {
+            if ($Matcher instanceof TripDelayMatcher && $sFeed === 'vehicle-positions') {
+                $aOut['matching'] = 'positions';
+            } elseif ($Matcher instanceof TripDelayMatcher) {
                 $aOut['matching'] = 'trip';
+            }
+            if ($Matcher instanceof TripDelayMatcher) {
                 $aOut += $Matcher->diagnostics();
             }
             if ($Matcher instanceof PlatformMatcher) {
                 $aOut = array_merge($aOut, $Matcher->diagnostics());
             }
-            $aOut['ok'] = $aOut['feedTrips'] > 0 || ($aOut['trains'] ?? 0) > 0;
+            $bVehicles = $sFeed === 'vehicle-positions' && $aOut['vehicles'] > 0;
+            $aOut['ok'] = $aOut['feedTrips'] > 0 || ($aOut['trains'] ?? 0) > 0 || $bVehicles;
         } catch (\Throwable $Ex) {
             $aOut['error'] = 'La fuente no respondió';
         }

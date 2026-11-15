@@ -86,15 +86,19 @@ class Live
         return $sClass::history(Config::current(), $sDate, $sLineId);
     }
 
-    // Horas previstas (GTFS-Realtime) de la red, o null si no tiene: Renfe se empareja por viaje y aplica el retraso de
-    // cada tren; Euskotren y los tranvías, por paradas y hora. Si los ids del feed no son viajes del horario y la ficha
-    // pide gtfs_rt.platform_matching (Metro), sus trenes (o los del SIRI) se casan por andén y destino.
+    // Horas previstas (GTFS-Realtime) de la red, o null si no tiene: por viaje o por paradas y hora; con ids de otro
+    // horario y gtfs_rt.platform_matching (Metro), por andén y destino. Con solo posiciones, por el mismo camino: el
+    // retraso de cada viaje sale del GPS de su vehículo y su horario (VehicleDelays).
     public static function tripMatcher(ServiceJourney $JourneyModel, int|null $iMidnight = null): object|null
     {
-        if (!Config::hasLive('trip-updates')) {
+        if (!Config::hasFeedLive()) {
             return null;
         }
         $aConfig = Config::current();
+        if (!Config::hasLive('trip-updates')) {
+            $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
+            return new TripDelayMatcher([], $JourneyModel, $iMidnight, $aVehicles);
+        }
         $aTrips = (new GtfsRealtimeClient($aConfig))->fetchTripUpdates();
         if (($aConfig['gtfs_rt']['matching'] ?? 'stops') === 'trip') {
             $aVehicles = [];

@@ -4,8 +4,8 @@ namespace Services;
 
 use Models\ServiceJourney;
 
-// Directo por viaje (GTFS-Realtime de Renfe, Metro, Euskotren, tranvías, Tuvisa, Dbus y Álavabus): cada vehículo trae
-// su viaje del horario y su hora en las paradas que le quedan o un retraso; sin horas, el de su GPS (VehicleDelays).
+// Directo por viaje (GTFS-Realtime): cada vehículo trae su viaje del horario y su hora en las paradas que le quedan o
+// un retraso; sin horas (o en una red con solo posiciones), el de su GPS sobre su horario (VehicleDelays).
 // Se empareja por el viaje, los que ya pasaron por la parada no salen y los cancelados se marcan.
 class TripDelayMatcher
 {
@@ -45,7 +45,9 @@ class TripDelayMatcher
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
         $aJourneyIds = $this->runningJourneys($JourneyModel, $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId')));
         $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
-        $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds());
+        $Today = (new \DateTime('@' . ($this->iMidnight + 12 * 3600)))->setTimezone(new \DateTimeZone('Europe/Madrid'));
+        $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds(),
+            $Today);
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
         foreach ($aTrips as $aTrip) {
             $sJourneyId = $aJourneyIds[$aTrip['tripId']] ?? null;

@@ -32,8 +32,10 @@ const BIDE_ICONS = [
 ];
 
 // Preguntas frecuentes de Info: [pregunta, respuesta] en castellano; el euskera está en i18n.js (bide.faq.N).
+// Las respuestas de BIDE_FAQ_LISTS acaban con una lista de apps, que sale del registro (Networks::appList).
+const BIDE_FAQ_LISTS = [1 => 'net.apps.live', 10 => 'net.apps', 13 => 'net.apps.reduced'];
 const BIDE_FAQ = [
-    ['¿Las llegadas son en tiempo real?', 'Depende de la red. En Bizkaibus+ la llegada se calcula con la posición GPS de cada autobús y lo que tardan de verdad en cada tramo. Metro+ casa cada tren de los datos abiertos del Consorcio de Transportes de Bizkaia con su salida del horario, por andén y destino. Los tranvías, Renfe Cercanías+, Tuvisa+, Dbus+ y Álavabus+ enseñan en directo lo que publica cada operador. Euskotren+, Bilbobus+, Lurraldebus+ y La Unión+ muestran el horario oficial, con la etiqueta «Solo horario», porque sus operadores todavía no publican el directo de sus trenes y autobuses; en cuanto lo hagan, Bide+ lo usará solo.'],
+    ['¿Las llegadas son en tiempo real?', 'Depende de la red. Unas publican la hora prevista de cada vehículo y Bide+ la enseña tal cual; de otras solo se sabe dónde va cada vehículo, y Bide+ calcula su llegada con su posición GPS y su horario. Las que no tienen directo muestran el horario oficial, con la etiqueta «Solo horario», porque su operador todavía no lo publica; en cuanto lo haga, Bide+ lo usará solo. Tienen directo:'],
     ['¿Qué significa «Estimado»?', 'Que el autobús va en servicio pero no envía su posición. La llegada se calcula con el algoritmo de Bide+, a partir de lo que tardan de verdad los autobuses en ese tramo.'],
     ['¿Funciona sin conexión?', 'Sí. Bide+ guarda en el móvil el horario de todas las redes y lo actualiza solo cada día; puedes quitar las que no uses en «Horarios sin conexión», en Ajustes. Sin cobertura puedes buscar paradas y líneas, ver las próximas salidas de cada parada según el horario oficial (en Bizkaibus, también la hora estimada con lo que tardan de verdad los autobuses), el horario completo de cada línea y las paradas de cada viaje. El directo vuelve en cuanto hay conexión.'],
     ['¿Cómo instalo Bide+ en el móvil?', 'Instálala desde Chrome o Firefox en Android, o desde Safari en iPhone. En Android, abre Bide+ en Chrome y pulsa «Instalar» en el aviso de abajo o en el menú ⋮ del navegador; en Firefox, menú ⋮ → «Instalar». En iPhone, ábrela en Safari, toca Compartir y elige «Añadir a pantalla de inicio». Otros navegadores, como DuckDuckGo, solo crean un acceso directo a la web: se abre dentro del navegador y sin avisos con la app cerrada.'],
@@ -42,10 +44,10 @@ const BIDE_FAQ = [
     ['¿Cómo me entero de las incidencias?', 'En Avisos ves las incidencias de tus favoritos, y en Ajustes puedes activar que el móvil te avise de cada una nueva, aunque tengas la app cerrada.'],
     ['¿Cada cuánto se actualizan los horarios?', 'Cada día, solos, con los datos oficiales que publican los operadores. En cada línea, «Ver horario oficial» enseña su horario por periodos (de lunes a viernes, sábados, domingos y festivos…) con el de hoy marcado, y el horario de cada línea dice desde y hasta cuándo es válido.'],
     ['¿Es una app oficial?', 'No. Bide+ es un proyecto independiente que usa los datos abiertos de los operadores. Si hay dudas, vale lo que diga cada operador.'],
-    ['¿Qué apps hay en Bide+?', 'Dieciséis: Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Renfe LD+, Lurraldebus+ (con el urbano de Tolosa), Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+ (los autobuses entre Bizkaia y Vitoria-Gasteiz) y, en Navarra, Villavesas+ (los autobuses de Pamplona) y, en Iparralde, Txik Txak+ y SNCF+. Los iconos de SNCF+ y Villavesas+ son provisionales.'],
+    ['¿Qué apps hay en Bide+?', 'Una por cada red de transporte, todas con su ficha en la portada:'],
     ['¿Cómo quito los permisos de notificaciones o de ubicación?', 'En Ajustes: «Desactivar las notificaciones» cancela todos tus avisos, y «No usar mi ubicación» hace que «Cerca de mí» no la pida. Una web no puede quitarse el permiso a sí misma: para quitarlo del todo, cámbialo en los ajustes del navegador (en Chrome, el icono junto a la dirección; en iPhone, Ajustes › Notificaciones o Privacidad › Localización).'],
     ['¿Por qué en iPhone me pide la ubicación cada vez?', 'Porque iOS no guarda el permiso de ubicación de las webs ni de las apps añadidas a la pantalla de inicio, como Bide+. Cada vez que usas «Cerca de mí», el iPhone te lo vuelve a pedir: dale a «Permitir». No es un fallo de Bide+ y no se puede cambiar desde la app. Si no quieres que te lo pida, busca la parada por su nombre o activa «No usar mi ubicación» en Ajustes.'],
-    ['¿Qué pasa los días de huelga o festivos?', 'Si el operador avisa de una huelga, de servicios mínimos o de un servicio reducido, la red lo dice debajo del buscador, también unos días antes y con las líneas afectadas si no es toda la red. Ese día, las salidas que solo van con su horario llevan «puede no pasar». Metro+, Euskotren+, Bizkaibus+, Dbus+, Tuvisa+ y Txik Txak+ lo notan también solas cuando faltan muchos de los trenes o autobuses del horario. Los festivos entre semana van con el horario de domingo cuando el operador no dice nada de ellos, según el calendario laboral oficial de Euskadi, de cada territorio y de cada municipio.'],
+    ['¿Qué pasa los días de huelga o festivos?', 'Si el operador avisa de una huelga, de servicios mínimos o de un servicio reducido, la red lo dice debajo del buscador, también unos días antes y con las líneas afectadas si no es toda la red. Ese día, las salidas que solo van con su horario llevan «puede no pasar». Los festivos entre semana van con el horario de domingo cuando el operador no dice nada de ellos, según el calendario laboral oficial de Euskadi, de cada territorio y de cada municipio. Además, estas apps lo notan solas cuando faltan muchos de los trenes o autobuses del horario:'],
 ];
 
 function bideTabbar(): string
@@ -172,6 +174,9 @@ function bideFaqJsonLd(string $sLang): array
             $sQuestion = \Core\Lang::t('bide.faq.' . $iNumber . '.q', $sLang);
             $sAnswer = \Core\Lang::t('bide.faq.' . $iNumber . '.a', $sLang);
         }
+        if (isset(BIDE_FAQ_LISTS[$iNumber])) {
+            $sAnswer .= ' ' . \Core\Lang::t(BIDE_FAQ_LISTS[$iNumber], $sLang) . '.';
+        }
         $aQuestions[] = ['@type' => 'Question', 'name' => $sQuestion, 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $sAnswer]];
     }
     return ['@type' => 'FAQPage', 'inLanguage' => $sLang, 'mainEntity' => $aQuestions];
@@ -182,8 +187,14 @@ function bideFaq(): string
     $sHtml = '<section class="bide-card bide-faq"><h3 data-i18n="bide.faq.title">Preguntas frecuentes</h3>';
     foreach (BIDE_FAQ as $iIndex => [$sQuestion, $sAnswer]) {
         $iNumber = $iIndex + 1;
+        $sAnswerHtml = '<p data-i18n="bide.faq.' . $iNumber . '.a">' . $sAnswer . '</p>';
+        if (isset(BIDE_FAQ_LISTS[$iNumber])) {
+            $sList = BIDE_FAQ_LISTS[$iNumber];
+            $sAnswerHtml = '<p><span data-i18n="bide.faq.' . $iNumber . '.a">' . $sAnswer . '</span> <span data-i18n="'
+                . $sList . '">' . htmlspecialchars(\Core\Lang::t($sList, 'es')) . '</span>.</p>';
+        }
         $sHtml .= '<details class="bide-faq-item"><summary data-i18n="bide.faq.' . $iNumber . '.q">' . $sQuestion . '</summary>'
-            . '<p data-i18n="bide.faq.' . $iNumber . '.a">' . $sAnswer . '</p></details>';
+            . $sAnswerHtml . '</details>';
     }
     return $sHtml . '</section>';
 }
