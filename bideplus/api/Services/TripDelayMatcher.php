@@ -58,7 +58,7 @@ class TripDelayMatcher
             if ($this->finished($aLive)) {
                 continue;
             }
-            if ($this->implausible($aTrip, (string)$sJourneyId, $aLive)) {
+            if ($this->implausible((string)$sJourneyId, $aLive)) {
                 $this->aNoData[(string)$sJourneyId] = true;
                 continue;
             }
@@ -164,13 +164,13 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // Sin el día del viaje en el feed (startDate), un retraso de más de gtfs_rt.max_feed_gap_seconds puede ser de otro
-    // viaje con ese número: sale sin dato. Con el día de hoy (ofToday) no hay tope. Cuenta también el de la parada a
-    // la que va, con lo que lleva de más si no ha llegado.
-    private function implausible(array $aTrip, string $sJourneyId, array $aLive): bool
+    // Un retraso de más de gtfs_rt.max_feed_gap_seconds (90 min en bus urbano) no es creíble aunque el feed diga que
+    // el viaje es de hoy: sale sin dato, no a su hora. Cuenta también el de la parada a la que va, con lo que lleva de
+    // más si no ha llegado.
+    private function implausible(string $sJourneyId, array $aLive): bool
     {
         $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;
-        if ($iMaxGap === null || isset($aTrip['startDate'])) {
+        if ($iMaxGap === null) {
             return false;
         }
         $iNextOrder = null;

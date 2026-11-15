@@ -550,11 +550,13 @@ foreach (['dbus', 'txiktxak'] as $sCapped) {
     // La fila de C lleva ya su retraso sin el del feed: se cuenta lo que añade cada uno.
     $iBase = (new TripDelayMatcher($TripLate(0, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['delaySeconds'];
     $aLate = [];
-    foreach ([40, 46, 80, 120] as $iMinutes) {
+    foreach ([40, 46, 80] as $iMinutes) {
         $aLateRow = (new TripDelayMatcher($TripLate($iMinutes * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
         $aLate[$iMinutes] = ($aLateRow[0]['delaySeconds'] - $iBase) / 60;
     }
-    $Expect("{$sCapped}: con el día de hoy, 40, 46, 80 y 120 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80, 120 => 120], json_encode($aLate));
+    $Expect("{$sCapped}: con el día de hoy, 40, 46 y 80 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80], json_encode($aLate));
+    $aAbsurd = (new TripDelayMatcher($TripLate(150 * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: con el día de hoy, 2 h 30 min no es creíble: sin dato", $aAbsurd[0]['status'] === 'likely_departed', json_encode($aAbsurd[0]));
     $aUndated = (new TripDelayMatcher($TripLate(80 * 60), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
     $Expect("{$sCapped}: sin el día del viaje, 80 min caben en el tope de 90", $aUndated[0]['delaySeconds'] === 80 * 60 + $iBase, json_encode($aUndated[0]));
     $aOtherDay = ['startDate' => date('Ymd', $iOffMidnight - 2 * 86400 + 12 * 3600)];
@@ -620,6 +622,55 @@ $aMetroAbsurd = [['tripId' => '6005L1C1', 'stops' => [['B', time() + 5 * 3600], 
 $Expect('Metro: un retraso de horas en el GTFS-Realtime (otro viaje con ese id) no vale: sale con el horario', !(new TripDelayMatcher($aMetroAbsurd, new ServiceJourney($PdoRenfe), time() - T0))->hasData());
 \Core\Config::set('bus');
 $Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+
+$Section('Álavabus con su feed real (fixtures/alavabus-*-20261115.pb, del 15-11-2026 a las 17:49)');
+// Su base, con todos los calendarios en marcha, y el feed movido a hoy a la misma hora: lo que sale tiene que ser lo
+// de master con ese feed. El viaje 20925 trae horas de hace 4,5 h con el día de hoy (antes daba un p95 de 194 min).
+$sAlavaDb = __DIR__ . '/../data/alavabus.sqlite';
+if (is_file($sAlavaDb)) {
+    \Core\Config::set('alavabus');
+    $sAlavaCopy = tempnam(sys_get_temp_dir(), 'bide-alava-');
+    copy($sAlavaDb, $sAlavaCopy);
+    $PdoReal = new PDO('sqlite:' . $sAlavaCopy);
+    $PdoReal->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $PdoReal->exec("UPDATE service_calendars SET from_date = '2000-01-01', to_date = '2099-12-31', weekday_mask = 127");
+    $PdoReal->exec('DELETE FROM service_calendar_exceptions');
+    $aRealFeed = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/alavabus-trip-updates-20261115.pb'));
+    $aRealPos = GtfsRealtimeClient::parseVehiclePositions((string)file_get_contents(__DIR__ . '/fixtures/alavabus-vehicle-positions-20261115.pb'));
+    $iFixtureMidnight = (new DateTime('2026-11-15', new DateTimeZone(Calendar::TIME_ZONE)))->getTimestamp();
+    $iRealMidnight = time() - ($aRealFeed['generatedAt'] - $iFixtureMidnight);
+    $iMoved = $iRealMidnight - $iFixtureMidnight;
+    $sRealDay = (new DateTime('@' . ($iRealMidnight + 12 * 3600)))->setTimezone(new DateTimeZone(Calendar::TIME_ZONE))->format('Ymd');
+    $aRealTrips = [];
+    foreach ($aRealFeed['trips'] as $aTrip) {
+        foreach ($aTrip['stops'] as $iStop => $aStop) {
+            $aTrip['stops'][$iStop][1] += $iMoved;
+        }
+        $aTrip['startDate'] = $sRealDay;
+        $aRealTrips[] = $aTrip;
+    }
+    $aRealVehicles = [];
+    foreach ($aRealPos['vehicles'] as $aVehicle) {
+        $aVehicle['timestamp'] += $iMoved;
+        $aRealVehicles[] = $aVehicle;
+    }
+    $MReal = new TripDelayMatcher($aRealTrips, new ServiceJourney($PdoReal), $iRealMidnight, $aRealVehicles);
+    $aRealLive = [];
+    foreach ((new ReflectionProperty($MReal, 'aByJourney'))->getValue($MReal) as $sJourney => $aLive) {
+        $aRealLive[(string)$sJourney] = [(int)round($aLive['delay'] / 60), (string)$aLive['nextStopId']];
+    }
+    ksort($aRealLive);
+    // Lo que da master con el mismo feed: viaje => [retraso en min, parada a la que va].
+    $aMasterLive = ['15911' => [0, '1'], '20882' => [3, '412'], '21994' => [4, '71'], '22038' => [0, '142'],
+        '22046' => [0, '79'], '22151' => [4, '10'], '22195' => [0, '4'], '25426' => [0, '399'], '25902' => [0, '1'],
+        '25962' => [0, '135']];
+    $Expect('Álavabus, feed real: los mismos viajes en directo y con el mismo retraso que en master', $aRealLive === $aMasterLive, json_encode($aRealLive));
+    $aRealDiag = $MReal->diagnostics();
+    $Expect('Álavabus, feed real: sin retrasos absurdos (p95 de 11 min, como en master)', ($aRealDiag['delayMinutes']['p95'] ?? null) === 11, json_encode($aRealDiag));
+    $aStale = $MReal->enrich('828', [['service_journey_id' => '20925', 'trip_number' => '20925', 'stop_seq' => 1, 'arrival_seconds' => 0, 'status' => 'scheduled', 'etaSeconds' => 0, 'delaySeconds' => 0]]);
+    $Expect('Álavabus, feed real: el viaje con horas de hace 4,5 h sale sin dato', ($aStale[0]['status'] ?? null) === 'likely_departed', json_encode($aStale));
+    unlink($sAlavaCopy);
+}
 
 $Section('Directo con solo posiciones (vehicle positions sin trip updates)');
 // Una red de la que solo se publica dónde va cada vehículo: su ficha con live = ['vehicle-positions'].

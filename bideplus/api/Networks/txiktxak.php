@@ -135,8 +135,8 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
-        // Sin el día del viaje en el feed, un retraso de más de 90 min es de otro viaje con ese número: el viaje sale
-        // sin dato. Con el día de hoy no hay tope (un bus urbano puede ir 46 u 80 min tarde de verdad).
+        // Un retraso de más de 90 min es de otro viaje con ese número, aunque el feed diga que es de hoy: el viaje sale
+        // sin dato. Hasta ahí sale tal cual (un bus urbano puede ir 46 u 80 min tarde de verdad).
         'max_feed_gap_seconds' => 90 * 60,
     ],
 

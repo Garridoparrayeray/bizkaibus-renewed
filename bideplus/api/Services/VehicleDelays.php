@@ -21,6 +21,9 @@ final class VehicleDelays
     private array $aFinished = [];
     private array $aCoords = [];
     private bool $bByPosition;
+    // Solo posiciones (sin horas previstas): el GPS sin parada y los vehículos sin viaje se casan por su recorrido.
+    // Con prefer_vehicles (Álavabus) no: va como siempre, por la parada que da el feed.
+    private bool $bOnlyPositions;
 
     public function __construct(
         array $aVehicles,
@@ -30,8 +33,8 @@ final class VehicleDelays
         private int $iNowSeconds,
         \DateTime|null $Today = null
     ) {
-        $bOnlyPositions = \Core\Config::hasLive('vehicle-positions') && !\Core\Config::hasLive('trip-updates');
-        $this->bByPosition = $bOnlyPositions || !empty(\Core\Config::current()['gtfs_rt']['prefer_vehicles']);
+        $this->bOnlyPositions = \Core\Config::hasLive('vehicle-positions') && !\Core\Config::hasLive('trip-updates');
+        $this->bByPosition = $this->bOnlyPositions || !empty(\Core\Config::current()['gtfs_rt']['prefer_vehicles']);
         $aUnknown = [];
         foreach ($aVehicles as $iVehicle => $aVehicle) {
             $sJourneyId = (string)($aJourneyIds[$aVehicle['tripId']] ?? '');
@@ -41,7 +44,7 @@ final class VehicleDelays
                 $this->add($sJourneyId, $aVehicle);
             }
         }
-        if ($this->bByPosition && $aUnknown !== []) {
+        if ($this->bOnlyPositions && $aUnknown !== []) {
             $this->addByLine($aUnknown, $Today ?? Calendar::todayMadrid());
         }
     }
@@ -74,7 +77,9 @@ final class VehicleDelays
         $iOrder = $this->Stops->orderOf($sJourneyId, $sStopId);
         $aStops = $this->Stops->of($sJourneyId);
         if ($sStopId === '' || $iOrder === null) {
-            $this->addByPosition($sJourneyId, $aVehicle);
+            if ($this->bOnlyPositions) {
+                $this->addByPosition($sJourneyId, $aVehicle);
+            }
             return;
         }
         if ($iOrder === (int)end($aStops)['seq_order']) {
