@@ -1199,6 +1199,7 @@
         }
     }
 };
+    const apps = {"es":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ y Villavesas+","eu":"Bizkaibus+, Metro+, Euskotren+, Renfe Aldiriak+, Lurraldebus+, Tranbia Bilbo+, Tranbia Gasteiz+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ eta Villavesas+","en":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ and Villavesas+","fr":"Bizkaibus+, Metro+, Euskotren+, Renfe Cercanías+, Lurraldebus+, Tranvía Bilbao+, Tranvía Vitoria+, Bilbobus+, Tuvisa+, Dbus+, Álavabus+, La Unión+, Renfe LD+, Txik Txak+, SNCF+ et Villavesas+"};
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: "bus",
@@ -1213,8 +1214,11 @@
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>.
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y la lista de las apps como net.apps.
     if (global.I18n && global.I18n.extend) {
+        Object.keys(apps).forEach(function (lang) {
+            global.I18n.extend(lang, { 'net.apps': apps[lang] });
+        });
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
                 const table = {};

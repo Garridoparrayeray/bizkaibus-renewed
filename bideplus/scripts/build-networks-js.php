@@ -5,8 +5,9 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../api/Core/Networks.php';
+require __DIR__ . '/../api/autoload.php';
 
+use Core\Lang;
 use Core\Networks;
 
 $aOptions = getopt('', ['output:']);
@@ -28,12 +29,20 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     ];
 }
 
+// La lista de todas las apps en cada idioma (net.apps, en las preguntas frecuentes).
+$aApps = [];
+foreach (Lang::LANGS as $sLang) {
+    $aApps[$sLang] = Lang::t('net.apps', $sLang);
+}
+
 $sJson = json_encode($aOut, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$sApps = json_encode($aApps, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $sDefault = json_encode(Networks::defaultSlug());
 $sJs = <<<JS
 // Generado por scripts/build-networks-js.php a partir de api/Networks. No editar a mano.
 (function (global) {
     const networks = $sJson;
+    const apps = $sApps;
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: $sDefault,
@@ -48,8 +57,11 @@ $sJs = <<<JS
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>.
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>, y la lista de las apps como net.apps.
     if (global.I18n && global.I18n.extend) {
+        Object.keys(apps).forEach(function (lang) {
+            global.I18n.extend(lang, { 'net.apps': apps[lang] });
+        });
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
                 const table = {};

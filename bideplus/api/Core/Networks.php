@@ -104,4 +104,34 @@ class Networks
     {
         return $aNetwork['texts'][$sLang][$sKey] ?? $aNetwork['texts']['es'][$sKey] ?? '';
     }
+
+    // Los nombres de las apps en el idioma pedido, en el orden del menú, como «A+, B+ y C+» ($sAnd, la «y»): la
+    // lista de las preguntas frecuentes. Sale del registro: una red nueva entra sola.
+    public static function appList(string $sLang, string $sAnd): string
+    {
+        $aNames = [];
+        foreach (self::all() as $aNetwork) {
+            $aNames[] = self::text($aNetwork, 'name', $sLang);
+        }
+        return self::sentence($aNames, $sAnd);
+    }
+
+    // Las marcas de las redes para los buscadores (la del mapa o el nombre sin el «+»), separadas por comas.
+    public static function brandList(string $sLang): string
+    {
+        $aNames = [];
+        foreach (self::all() as $aNetwork) {
+            $aNames[] = $aNetwork['map']['label'] ?? rtrim(self::text($aNetwork, 'name', $sLang), '+');
+        }
+        return implode(', ', $aNames);
+    }
+
+    private static function sentence(array $aItems, string $sAnd): string
+    {
+        $sLast = (string)array_pop($aItems);
+        if ($aItems === []) {
+            return $sLast;
+        }
+        return implode(', ', $aItems) . ' ' . $sAnd . ' ' . $sLast;
+    }
 }

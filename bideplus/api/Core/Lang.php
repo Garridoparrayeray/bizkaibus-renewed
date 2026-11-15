@@ -60,7 +60,8 @@ class Lang
     public static function dictionary(string $sLang): array
     {
         if (!isset(self::$aDictionaries[$sLang])) {
-            self::$aDictionaries[$sLang] = self::readI18n($sLang) + self::networkTexts($sLang);
+            $aI18n = self::readI18n($sLang);
+            self::$aDictionaries[$sLang] = $aI18n + self::networkTexts($sLang, $aI18n['bide.and'] ?? 'y');
         }
         return self::$aDictionaries[$sLang];
     }
@@ -111,9 +112,10 @@ class Lang
         return $aTexts;
     }
 
-    private static function networkTexts(string $sLang): array
+    // Los textos de las fichas (net.<red>.<clave>) y net.apps, la lista de todas las apps (Networks::appList).
+    private static function networkTexts(string $sLang, string $sAnd): array
     {
-        $aTexts = [];
+        $aTexts = ['net.apps' => Networks::appList($sLang, $sAnd)];
         foreach (Networks::all() as $sSlug => $aNetwork) {
             foreach ($aNetwork['texts'][$sLang] ?? [] as $sKey => $sText) {
                 $aTexts['net.' . $sSlug . '.' . $sKey] = $sText;
