@@ -58,6 +58,9 @@ const served = async (url) => {
 
 await send('Runtime.enable'); await send('Page.enable');
 await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
+// Sin el service worker: las peticiones a /api/ que bloquea la prueba no pueden salir por él.
+await send('Network.enable');
+await send('Network.setBypassServiceWorker', { bypass: true });
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
 await go('/?red=bus', 1500);
 await ev('localStorage.clear(); true');
@@ -102,6 +105,46 @@ check('los resultados de búsqueda son <a href>', await waitTrue("[...document.q
 await ev("document.querySelector('#search-results a.pill').click(); true");
 check('el clic abre la parada en la app (pushState) y esconde el contenido de la anterior', await waitTrue("location.pathname !== '/stops/2877' && location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden && document.getElementById('page-content').hidden"));
 check('las líneas de la parada son <a href>', await waitTrue("document.querySelectorAll('#live-timetable-lines a[href^=\"/lines/\"], #live-more-list a[href^=\"/lines/\"], #live-timetable-link').length > 0"));
+
+// Historial: abrir otra parada y cerrar la tarjeta añaden una entrada; «atrás» vuelve. La pestaña dice lo que se ve.
+await ev("history.back(); true"); await sleep(2500);
+check('«atrás» vuelve a la parada anterior', await waitTrue("location.pathname === '/stops/2877' && !document.getElementById('live-card').hidden"), await ev('location.pathname'));
+await ev("history.forward(); true"); await sleep(2500);
+check('al navegar dentro de la app, el título es el de la parada abierta', await waitTrue("location.pathname !== '/stops/2877' && document.title.startsWith(document.getElementById('live-headsign') ? '' : '') && document.title.includes('Horarios') && !document.title.includes('Intermodal')"), await ev('document.title'));
+await ev("document.getElementById('live-close').click(); true"); await sleep(1000);
+check('cerrar la tarjeta lleva a la red con una entrada nueva', (await ev('location.pathname + location.search')) === '/?red=bus');
+await ev("history.back(); true"); await sleep(2500);
+check('y «atrás» vuelve a abrir la parada', await waitTrue("location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden"));
+
+// Ctrl+clic en un enlace del contenido del servidor: otra pestaña, sin navegar en esta.
+await go('/stops/2877', 3000);
+await ev("window.__opened = []; window.open = (url) => { window.__opened.push(url); return null; }; true");
+await ev("document.querySelector('#page-content a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true, button: 0 })); true");
+await sleep(800);
+check('Ctrl+clic abre en otra pestaña y no navega en esta', (await ev("location.pathname === '/stops/2877' && window.__opened.length === 1 && window.__opened[0].includes('/lines/')")) === true, await ev('JSON.stringify(window.__opened)'));
+
+// En una parada, lo más grande que se pinta pronto es el contenido del servidor (H1 y horario), no un aviso tardío.
+await send('Page.addScriptToEvaluateOnNewDocument', { source: "window.__lcp = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: 'largest-contentful-paint', buffered: true });" });
+for (const url of ['/stops/171', '/stops/7?red=metro']) {
+    await go(url, 5000);
+    check(`${url}: el LCP es el contenido del servidor`, (await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return !!last && !!last.element && !!last.element.closest('#page-content'); })()")) === true, await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return last && last.element ? last.element.className || last.element.tagName : 'sin LCP'; })()"));
+}
+
+// El horario de hoy de una copia vieja (otro día) no se enseña.
+const stale = await send('Page.addScriptToEvaluateOnNewDocument', { source: "const realDate = Date.prototype.toLocaleDateString; Date.prototype.toLocaleDateString = function (locale, options) { if (locale === 'sv-SE') return '2000-01-01'; return realDate.call(this, locale, options); };" });
+blockApi = true;
+await go('/stops/2877', 3500);
+check('un horario que no es de hoy se esconde', (await ev("document.querySelector('#page-content [data-date]').hidden")) === true);
+blockApi = false;
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: stale.identifier });
+
+// El aviso de idioma no entra en la página hasta que ha cargado.
+await ev('localStorage.clear(); true');
+await send('Page.navigate', { url: BASE + '/stops/2877' });
+await sleep(700);
+check('el aviso de idioma no está mientras carga la página', (await ev("!document.querySelector('.bide-lang-offer')")) === true);
+check('y sale después, en inglés', await waitTrue("(document.querySelector('.bide-lang-offer-switch') || {}).textContent === 'View in English'"));
+await ev('localStorage.clear(); true');
 
 for (const line of results) console.log(line);
 const failed = results.filter(r => r.startsWith('MAL')).length;

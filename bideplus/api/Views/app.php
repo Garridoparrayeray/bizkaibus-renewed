@@ -55,7 +55,7 @@ use Core\Networks;
     <script src="/js/networks.js"></script>
     <script defer src="/js/new-badge.js"></script>
     <script src="/js/theme.js"></script>
-    <!-- Sin defer: boot.js escribe con document.write (y necesita networks.js) y bide-mode.js pone la clase que pinta. -->
+    <!-- Sin defer: boot.js usa document.write (y necesita networks.js); bide-mode.js pone la clase que pinta. -->
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
     <script defer src="/js/notification-open.js"></script>
@@ -167,6 +167,9 @@ if ($aContent['type'] === 'stop') {
 }
 ?>
             <div id="app-main" class="<?= $sMainClass ?>">
+<?php if ($aContent['type'] === 'stop'): ?>
+<?php require __DIR__ . '/page-content.php'; ?>
+<?php endif; ?>
                 <article id="live-card" class="live-card glass" hidden>
                     <header>
                         <span id="live-badge" class="badge">Solo horario</span>
@@ -219,30 +222,11 @@ if ($aContent['type'] === 'stop') {
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
                     <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>
                 </div>
-                <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
+                <p id="live-empty" class="live-empty" role="status"<?php if ($aContent['type'] === 'stop'): ?> hidden<?php endif; ?> data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
 
-                <section id="page-content" class="page-content glass" data-page-type="<?= $aContent['type'] ?>" data-page-id="<?= htmlspecialchars($aContent['id']) ?>"<?php if (empty($aContent['sections'])): ?> hidden<?php endif; ?>>
-<?php if ($aContent['heading'] !== null): ?>
-                    <h1><?= htmlspecialchars($aContent['heading']) ?></h1>
+<?php if ($aContent['type'] !== 'stop'): ?>
+<?php require __DIR__ . '/page-content.php'; ?>
 <?php endif; ?>
-<?php foreach ($aContent['sections'] as $aSection):
-    $sListTag = 'ul';
-    if (!empty($aSection['ordered'])) {
-        $sListTag = 'ol';
-    }
-?>
-                    <h2><?= htmlspecialchars($aSection['title']) ?></h2>
-                    <<?= $sListTag ?> class="page-content-list">
-<?php foreach ($aSection['items'] as $aItem): ?>
-                        <li><a href="<?= htmlspecialchars($aItem['href']) ?>"><?= htmlspecialchars($aItem['label']) ?></a><?php if (isset($aItem['times'])): ?> <span class="page-content-times"><?= htmlspecialchars($aItem['times']) ?></span><?php endif; ?></li>
-<?php endforeach; ?>
-                    </<?= $sListTag ?>>
-<?php endforeach; ?>
-<?php if ($aContent['empty'] !== null): ?>
-                    <p><?= htmlspecialchars($aContent['empty']) ?></p>
-<?php endif; ?>
-                    <noscript><p><a href="/">Bide+</a> · <?= htmlspecialchars(\Core\Lang::t('seo.enableJs', $sLang)) ?></p></noscript>
-                </section>
 
             </div>
 

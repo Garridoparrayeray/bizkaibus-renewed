@@ -3,7 +3,7 @@ import { FEATURES, el, networkQuery, savedSchedule, state, syncPageContent } fro
 import { toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { loadLineMap } from './line-map.js';
 import { statusLabel } from './ui.js';
-import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
+import { closeFromButton, closeLiveCard, closeTimetableSection, updateTitle } from './navigation.js';
 import { openVehicleModal } from './vehicle-modal.js';
 
 // La línea: con la red guardada en el móvil, de ahí, sin pedirla al servidor; si no, de la API.
@@ -29,6 +29,7 @@ export async function selectLine(lineId, scopeToCurrentStop = false) {
     state.currentLine = { id: line.id, code: line.code, name: line.name };
     state.timetableStopId = null;
     syncPageContent('line', line.id);
+    updateTitle();
     if (scopeToCurrentStop) state.timetableStopId = state.currentStop?.id ?? null;
     updateFavoriteButton(el.timetableFavorite, 'line', line.id);
     el.timetableSection.hidden = false;

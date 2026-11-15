@@ -17,7 +17,7 @@ failures = []
 APP_JS = sorted(glob.glob(ROOT + 'js/app/*.js'))
 ids_js = set(re.findall(r"getElementById\('([^']+)'\)", ''.join(open(f, encoding='utf-8').read() for f in APP_JS)))
 # La plantilla de las apps (Views/app.php) más las piezas que incluye (aviso legal y piezas comunes de Bide+).
-shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
+shell = ''.join(open(ROOT + f, encoding='utf-8').read() for f in ('api/Views/app.php', 'api/Views/page-content.php', 'api/Views/legal.php', 'api/Views/bide-components.php'))
 ids_html = set(re.findall(r'id="([^"]+)"', shell))
 missing_ids = sorted(ids_js - ids_html)
 print('ids que js/app/ busca y no existen en la plantilla:', missing_ids or 'ninguno')
@@ -107,7 +107,7 @@ if geo.returncode != 0:
 # sitemap-index.xml y sitemaps/: los genera scripts/build-sitemap.php; los del repositorio deben tener las páginas de
 # las bases. El lastmod no cuenta: la reconstrucción diaria sube sitemap-lastmod.json pero no las bases.
 fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check')
-r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output-dir=' + fresh, '--keep-state'], capture_output=True, text=True)
+r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output-dir=' + fresh], capture_output=True, text=True)
 stale = r.returncode != 0
 
 

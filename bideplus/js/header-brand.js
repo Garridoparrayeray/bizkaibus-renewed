@@ -12,17 +12,13 @@
     const titleEl = document.getElementById('app-title');
     const cityEl = document.getElementById('app-title-city');
     const cityKey = 'net.' + net + '.tile_city';
-    // El título de la página en cada idioma, el mismo que da el servidor con ?lang= (data-titles de app.php).
-    const titles = JSON.parse(document.documentElement.getAttribute('data-titles') || '{}');
 
-    // Los tranvías llevan el título y la ciudad de su ficha. La pestaña solo cambia con el idioma elegido.
+    // Los tranvías llevan el título y la ciudad de su ficha, en el idioma elegido. La pestaña la lleva js/app/.
     function translateHeader() {
         if (cityEl.textContent && I18n.t(cityKey) !== cityKey) {
             titleEl.firstChild.textContent = I18n.t('net.' + net + '.tile_title').toUpperCase();
             cityEl.textContent = I18n.t(cityKey).toUpperCase();
         }
-        if (isMiamorActive || !titles[I18n.getLang()]) return;
-        document.title = titles[I18n.getLang()];
     }
 
     // Que la ciudad termine justo bajo la última letra del título, sin contar el "+": se mide el ancho

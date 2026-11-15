@@ -2,7 +2,7 @@
 import { FEATURES, HAS_PLATFORMS, NETWORK, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
-import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
+import { closeFromButton, closeLiveCard, closeTimetableSection, updateTitle } from './navigation.js';
 import { loadTimetable, selectLine } from './timetable.js';
 import { DEPARTED_GRACE_MS, openVehicleModal } from './vehicle-modal.js';
 import { refreshStopAlerts } from './stop-alerts.js';
@@ -73,6 +73,7 @@ export async function selectStop(stopId) {
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
     syncPageContent('stop', stop.id);
+    updateTitle();
     const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
     if (HAS_PLATFORMS) {
         updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
@@ -88,11 +89,9 @@ export async function selectStop(stopId) {
         closeTimetableSection();
     }
     if (!window.location.pathname.startsWith('/stops/' + stopId)) {
-        if (history.state && (history.state.view === 'stop' || history.state.view === 'line')) {
-            history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
-        } else {
-            history.pushState({ view: 'stop', id: stopId, fromApp: true }, '', '/stops/' + stopId + networkQuery);
-        }
+        // fromNetwork: abierta desde la red; su ✕ vuelve a esa entrada en vez de añadir otra.
+        const fromNetwork = !/^\/(stops|lines)\//.test(window.location.pathname);
+        history.pushState({ view: 'stop', id: stopId, fromApp: true, fromNetwork }, '', '/stops/' + stopId + networkQuery);
     } else if (!history.state || !history.state.view) {
         history.replaceState({ view: 'stop', id: stopId, fromApp: true }, '', window.location.href);
     }
@@ -463,9 +462,9 @@ export function setUpConnectionBanner() {
 
 export function setUpStop() {
     el.liveFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.liveFavorite));
-    el.liveClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
+    el.liveClose.addEventListener('click', () => closeFromButton('stop', () => closeLiveCard({ push: true }), 'fromNetwork'));
     el.platformFavorite.addEventListener('click', () => toggleFavorite('stop', state.currentStop?.id, el.platformFavorite));
-    el.platformClose.addEventListener('click', () => closeFromButton('stop', closeLiveCard));
+    el.platformClose.addEventListener('click', () => closeFromButton('stop', () => closeLiveCard({ push: true }), 'fromNetwork'));
     el.platformTimetableLink.addEventListener('click', () => {
         if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });

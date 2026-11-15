@@ -136,20 +136,35 @@ export function appHref(type, id) {
     return url.pathname + url.search;
 }
 
-// Un clic normal en el enlace la abre dentro de la app (pushState); con Ctrl, Mayús o el botón central, aparte.
+// Un clic normal en el enlace la abre dentro de la app (pushState); con Ctrl o Cmd, en una pestaña nueva; con Mayús
+// o el botón central, lo que haga el navegador.
 export function openOnClick(link, open) {
-    link.addEventListener('click', (event) => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        open();
-    });
+    link.addEventListener('click', (event) => followAppLink(event, link, open));
+}
+
+export function followAppLink(event, link, open) {
+    if (event.button !== 0 || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (event.ctrlKey || event.metaKey) {
+        window.open(link.href, '_blank', 'noopener');
+        return;
+    }
+    open();
 }
 
 // El contenido que pinta el servidor (#page-content) es el de la página con la que se abrió la app: se esconde en
-// cuanto se ve otra parada, otra línea o la red sin la suya.
+// cuanto se ve otra línea o la red sin la suya, y en una parada su tarjeta lo sustituye.
 export function syncPageContent(type, id) {
     if (!el.pageContent.querySelector('h2')) return;
-    el.pageContent.hidden = el.pageContent.dataset.pageType !== type || el.pageContent.dataset.pageId !== String(id);
+    el.pageContent.hidden = type === 'stop' || el.pageContent.dataset.pageType !== type || el.pageContent.dataset.pageId !== String(id);
+}
+
+// El horario de hoy de #page-content, si es de otro día (una copia vieja del service worker o del CDN), no se enseña.
+export function hideStaleSchedule() {
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    el.pageContent.querySelectorAll('[data-date]').forEach((section) => {
+        section.hidden = section.dataset.date !== today;
+    });
 }
 
 // Al volver a la app o recuperar la conexión se pide ya lo que se refresca solo, por si ha vuelto el directo.
