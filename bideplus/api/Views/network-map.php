@@ -33,7 +33,7 @@ $aJsonLd = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -66,6 +66,7 @@ $aJsonLd = [
     <script src="/js/i18n.js"></script>
     <script src="/lib/leaflet/leaflet.js" defer></script>
     <script src="/js/network-map.js" defer></script>
+    <script src="/js/lang-offer.js" defer></script>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-map">

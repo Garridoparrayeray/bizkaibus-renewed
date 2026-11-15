@@ -4,7 +4,7 @@
 use Core\Networks;
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>" data-titles="<?= htmlspecialchars(json_encode($aTitles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT)) ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <base href="/">
@@ -345,6 +345,7 @@ use Core\Networks;
     <script defer src="/js/bide.js"></script>
     <script defer src="/js/bide-info.js"></script>
     <script defer src="/js/sw-register.js"></script>
+    <script defer src="/js/lang-offer.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

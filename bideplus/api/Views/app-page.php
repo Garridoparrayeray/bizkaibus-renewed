@@ -59,15 +59,20 @@ $aPageTexts = [
         'appDescription' => 'Horaires de {app}.',
     ],
 ];
-$PageText = function (string $sKey, array $aVars = []) use ($aPageTexts, $sLang): string {
+// Con $sTextLang, en ese idioma: el título de la página va en los cuatro (data-titles, para js/header-brand.js).
+$PageText = function (string $sKey, array $aVars = [], string|null $sTextLang = null) use ($aPageTexts, $sLang): string {
+    if ($sTextLang === null) {
+        $sTextLang = $sLang;
+    }
     $aReplace = [];
     foreach ($aVars as $sName => $sValue) {
         $aReplace['{' . $sName . '}'] = (string)$sValue;
     }
-    return strtr($aPageTexts[$sLang][$sKey], $aReplace);
+    return strtr($aPageTexts[$sTextLang][$sKey], $aReplace);
 };
 
 $sSiteUrl = $aSite['url'];
+$aTitles = [];
 if ($bMiamorDomain) {
     // Los que muestran la vista previa de un enlace (WhatsApp...) no ejecutan JavaScript: el texto se decide aquí.
     $sTitle = 'Para el amor de mi vida 💕';
@@ -79,12 +84,16 @@ if ($bMiamorDomain) {
     $sImageAlt = 'Icono de ' . $sTitle;
     $sFaviconFolder = 'icons';
 } else {
-    $sTitle = $aNetwork['seo']['title'];
+    foreach (Lang::LANGS as $sTextLang) {
+        $aTitles[$sTextLang] = $aNetwork['seo']['title'];
+        if ($sTextLang !== 'es') {
+            $aTitles[$sTextLang] = Networks::text($aNetwork, 'name', $sTextLang) . ' · ' . Networks::text($aNetwork, 'switcher', $sTextLang) . ' | Bide+';
+        }
+    }
+    $sTitle = $aTitles[$sLang];
     $sDescription = $aNetwork['seo']['description'];
     if ($sLang !== 'es') {
-        $sSwitcher = Networks::text($aNetwork, 'switcher', $sLang);
-        $sTitle = $aAppNames[$sNetworkSlug] . ' · ' . $sSwitcher . ' | Bide+';
-        $sDescription = $PageText('networkDescription', ['switcher' => $sSwitcher]);
+        $sDescription = $PageText('networkDescription', ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
     }
     // Al compartir cualquier página (parada, línea, red), la vista previa es siempre la imagen de Bide+.
     $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
@@ -147,7 +156,10 @@ try {
                 $sStopLabel .= ' (' . $aRecord['area'] . ')';
             }
             $aRelated = (new Stop(Database::connection()))->linesServing($aRecord['id']);
-            $sTitle = $PageText('stopTitle', ['stop' => $aRecord['name'], 'app' => $sAppName]);
+            foreach (Lang::LANGS as $sTextLang) {
+                $aTitles[$sTextLang] = $PageText('stopTitle', ['stop' => $aRecord['name'], 'app' => Networks::text($aNetwork, 'name', $sTextLang)], $sTextLang);
+            }
+            $sTitle = $aTitles[$sLang];
             $sDescription = $PageText('stopDescription', ['app' => $sAppName, 'place' => $sStopLabel]);
             if (!empty($aRelated)) {
                 // Renfe publica una línea por sentido: el mismo código sale dos veces.
@@ -175,7 +187,10 @@ try {
             $sRelatedType = 'lines';
         } else {
             $aLineVars = ['code' => $aRecord['code'], 'name' => $aRecord['name'], 'app' => $sAppName];
-            $sTitle = $PageText('lineTitle', $aLineVars);
+            foreach (Lang::LANGS as $sTextLang) {
+                $aTitles[$sTextLang] = $PageText('lineTitle', ['app' => Networks::text($aNetwork, 'name', $sTextLang)] + $aLineVars, $sTextLang);
+            }
+            $sTitle = $aTitles[$sLang];
             $sDescription = $PageText('lineDescription', $aLineVars);
             if (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-monitoring')) {
                 $sDescription .= $PageText('busMap');

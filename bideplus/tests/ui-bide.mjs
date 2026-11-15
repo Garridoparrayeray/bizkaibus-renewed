@@ -352,13 +352,16 @@ check('mapa: Bizkaibus se carga al activarlo', await waitTrue("window.BideMap.lo
 check('mapa: las líneas no son de un color tan claro que se pierda en el mapa', await ev("fetch('/map-data/bus.json').then(r => r.json()).then(d => d.lines.every(l => { const v = parseInt(l.color.slice(1), 16); const lum = 0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255); return lum < 200; }))"));
 check('mapa: sin desbordar a lo ancho', await ev(noOverflow));
 
-// ===== Inglés para quien tiene el móvil en inglés =====
+// ===== Inglés para quien tiene el móvil en inglés: se ofrece, no se traduce solo =====
 await phone();
 await go('/?red=bus', 1500);
 await ev("localStorage.removeItem('bide_lang'); true");
 const englishPhone = await send('Page.addScriptToEvaluateOnNewDocument', { source: "Object.defineProperty(navigator, 'languages', { get: () => ['en-GB', 'en'] });" });
 await go('/?red=bus', 3000);
-check('idioma · con el móvil en inglés, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites'"));
+check('idioma · con el móvil en inglés, la página sigue en el idioma del servidor', await ev("document.documentElement.lang === 'es' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favoritos'"));
+check('idioma · y un aviso ofrece el inglés, en inglés', await waitTrue("(document.querySelector('.bide-lang-offer-switch') || {}).textContent === 'View in English'"));
+await ev("document.querySelector('.bide-lang-offer-switch').click(); true");
+check('idioma · al aceptarlo, la app sale en inglés', await waitTrue("document.documentElement.lang === 'en' && document.querySelector('[data-bide-tab=favoritos] span').textContent === 'Favourites' && location.search.includes('lang=en') && !document.querySelector('.bide-lang-offer')"));
 check('idioma · el botón de la cabecera pasa después a francés', await ev("document.getElementById('lang-toggle').textContent.trim() === 'FR'"));
 check('idioma · los textos de la red también salen en inglés', await ev("document.getElementById('app-subtitle').textContent.trim() === 'Bizkaibus timetables and real time'"));
 await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: englishPhone.identifier });

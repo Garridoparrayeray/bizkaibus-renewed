@@ -110,6 +110,9 @@
             'bide.notice.group': 'Aviso general',
             'bide.notice.more': 'Más información',
             'bide.notice.close': 'Cerrar aviso',
+            'bide.langOffer.text': 'Bide+ también está en castellano.',
+            'bide.langOffer.switch': 'Ver en castellano',
+            'bide.langOffer.close': 'Seguir en este idioma',
             'bide.alerts.note': 'Solo aparecen los avisos de lo que tienes en Favoritos, en todas las apps.',
             'bide.alerts.none': 'No hay avisos activos en tus favoritos.',
             'info.title': 'Información',
@@ -611,6 +614,9 @@
             'bide.notice.group': 'Ohar orokorra',
             'bide.notice.more': 'Informazio gehiago',
             'bide.notice.close': 'Itxi oharra',
+            'bide.langOffer.text': 'Bide+ euskaraz ere badago.',
+            'bide.langOffer.switch': 'Euskaraz ikusi',
+            'bide.langOffer.close': 'Hizkuntza honetan jarraitu',
             'bide.alerts.note': 'Gogokoetan duzunaren abisuak bakarrik agertzen dira, aplikazio guztietan.',
             'bide.alerts.none': 'Ez dago abisu aktiborik zure gogokoetan.',
             'info.title': 'Informazioa',
@@ -1113,6 +1119,9 @@
             'bide.notice.group': 'General notice',
             'bide.notice.more': 'More information',
             'bide.notice.close': 'Dismiss notice',
+            'bide.langOffer.text': 'Bide+ is also available in English.',
+            'bide.langOffer.switch': 'View in English',
+            'bide.langOffer.close': 'Keep this language',
             'bide.alerts.note': 'Only alerts for what you have in Favourites are shown, across all the apps.',
             'bide.alerts.none': 'There are no active alerts for your favourites.',
             'info.title': 'Information',
@@ -1613,6 +1622,9 @@
             'bide.notice.group': 'Avis général',
             'bide.notice.more': 'Plus d’informations',
             'bide.notice.close': 'Fermer l’avis',
+            'bide.langOffer.text': 'Bide+ existe aussi en français.',
+            'bide.langOffer.switch': 'Voir en français',
+            'bide.langOffer.close': 'Garder cette langue',
             'bide.alerts.note': 'Seules les alertes de ce que vous avez en Favoris s’affichent, toutes applis confondues.',
             'bide.alerts.none': 'Aucune alerte active sur vos favoris.',
             'info.title': 'Informations',
@@ -2026,22 +2038,40 @@
         return null;
     }
 
+    // Sin ?lang ni idioma elegido, el de la página que ha hecho el servidor: la URL castellana sale en castellano.
     function getLang() {
         if (chosenLang) return chosenLang;
+        const stored = storedLang();
+        if (stored) return stored;
+        return serverLang();
+    }
+
+    function storedLang() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (LANGS.indexOf(stored) !== -1) return stored;
         } catch (e) { /* private mode / storage blocked */ }
-        return browserLang();
+        return null;
     }
 
-    // Sin idioma elegido, quien tiene el móvil en inglés o en francés ve Bide+ en su idioma; el resto, en castellano.
+    function serverLang() {
+        const lang = global.document.documentElement.getAttribute('data-server-lang');
+        if (LANGS.indexOf(lang) !== -1) return lang;
+        return 'es';
+    }
+
+    // El idioma del móvil, si Bide+ lo tiene: no traduce la página, solo se ofrece (js/lang-offer.js).
     function browserLang() {
         let preferred = '';
         if (global.navigator) preferred = (global.navigator.languages && global.navigator.languages[0]) || global.navigator.language || '';
-        if (preferred.toLowerCase().indexOf('en') === 0) return 'en';
-        if (preferred.toLowerCase().indexOf('fr') === 0) return 'fr';
+        const lang = preferred.toLowerCase().slice(0, 2);
+        if (LANGS.indexOf(lang) !== -1) return lang;
         return 'es';
+    }
+
+    // ¿Hay un idioma elegido (en la dirección o guardado)? Entonces no se ofrece otro.
+    function hasChoice() {
+        return chosenLang !== null || storedLang() !== null;
     }
 
     // Cambia el idioma y avisa con «bide:lang» para que cada parte de la página vuelva a pintar sus textos.
@@ -2049,14 +2079,12 @@
         if (LANGS.indexOf(lang) === -1) return;
         chosenLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
-        // Si la dirección lleva ?lang, cambia con el idioma: al recargar o compartir sale el elegido.
+        // La dirección pasa a la de ese idioma (?lang=, sin él en castellano): al recargar o compartir sale el elegido.
         try {
             const url = new URL(global.location.href);
-            if (url.searchParams.has('lang')) {
-                if (lang === 'es') url.searchParams.delete('lang');
-                else url.searchParams.set('lang', lang);
-                global.history.replaceState(global.history.state, '', url);
-            }
+            if (lang === 'es') url.searchParams.delete('lang');
+            else url.searchParams.set('lang', lang);
+            global.history.replaceState(global.history.state, '', url);
         } catch (e) { /* ignore */ }
         global.dispatchEvent(new CustomEvent('bide:lang', { detail: { lang: lang } }));
     }
@@ -2065,9 +2093,9 @@
         return LANGS[(LANGS.indexOf(getLang()) + 1) % LANGS.length];
     }
 
-    function t(key, vars) {
-        const lang = getLang();
-        const table = dict[lang] || dict.es;
+    // Con lang, en ese idioma y no en el de la página (el aviso que ofrece el idioma del móvil).
+    function t(key, vars, lang) {
+        const table = dict[lang || getLang()] || dict.es;
         let text = table[key];
         if (text === undefined) text = dict.es[key];
         if (text === undefined) return key;
@@ -2100,5 +2128,5 @@
         Object.keys(table).forEach(function (key) { dict[lang][key] = table[key]; });
     }
 
-    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend };
+    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend, browserLang: browserLang, hasChoice: hasChoice };
 })(window);

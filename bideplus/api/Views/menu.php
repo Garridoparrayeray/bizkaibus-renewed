@@ -86,7 +86,7 @@ $aJsonLd = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -265,6 +265,7 @@ $aJsonLd = [
 <?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>
     <script src="/js/sw-register.js" defer></script>
+    <script src="/js/lang-offer.js" defer></script>
     <script src="/js/menu-lang.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/alerts-store.js"></script>
