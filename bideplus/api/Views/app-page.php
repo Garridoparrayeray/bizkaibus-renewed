@@ -258,35 +258,29 @@ if ($bNotFound) {
 $sCanonicalEs = $sCanonical;
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sAppUrl = Lang::url($aSite['url'] . '/?red=' . $sNetworkSlug, $sLang);
-$aWebSite = ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'];
-$aApp = [
-    '@type' => 'SoftwareApplication',
-    'name' => $aAppNames[$sNetworkSlug],
-    'description' => $sDescription,
-    'url' => $sCanonical,
-    'image' => $sImage,
-    'applicationCategory' => 'TravelApplication',
-    'operatingSystem' => 'Web, Android, iOS',
-    'inLanguage' => $sLang,
-    'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
-    'author' => ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']],
-    'isPartOf' => $aWebSite,
-];
-$aJsonLd = ['@context' => 'https://schema.org', '@graph' => [$aApp]];
-if ($sBreadcrumbName !== null) {
-    $aApp['url'] = $sAppUrl;
-    $aApp['description'] = Lang::t('seo.appDescription', $sLang, ['app' => $aAppNames[$sNetworkSlug]]);
-    $aWebPage = ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang, 'isPartOf' => $aWebSite];
+// La app (SoftwareApplication) solo en la página de la red; la parada o la línea es una WebPage de esa app.
+$aJsonLd = ['@context' => 'https://schema.org', '@graph' => bideSiteJsonLd($sLang)];
+if ($sBreadcrumbName === null) {
+    $aJsonLd['@graph'][] = [
+        '@type' => 'SoftwareApplication',
+        'name' => $aAppNames[$sNetworkSlug],
+        'description' => $sDescription,
+        'url' => $sCanonical,
+        'image' => $sImage,
+        'applicationCategory' => 'TravelApplication',
+        'operatingSystem' => 'Web, Android, iOS',
+        'inLanguage' => $sLang,
+        'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
+    ] + bideSiteRefs();
+} else {
+    $aWebPage = ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang] + bideSiteRefs();
     if ($aPlace !== null) {
         $aWebPage['about'] = $aPlace;
     }
-    $aJsonLd['@graph'] = [
-        $aWebPage,
-        ['@type' => 'BreadcrumbList', 'itemListElement' => [
-            ['@type' => 'ListItem', 'position' => 1, 'name' => $aSite['name'], 'item' => $aSite['url'] . '/'],
-            ['@type' => 'ListItem', 'position' => 2, 'name' => $aAppNames[$sNetworkSlug], 'item' => $sAppUrl],
-            ['@type' => 'ListItem', 'position' => 3, 'name' => $sBreadcrumbName, 'item' => $sCanonical],
-        ]],
-        $aApp,
-    ];
+    $aJsonLd['@graph'][] = $aWebPage;
+    $aJsonLd['@graph'][] = ['@type' => 'BreadcrumbList', 'itemListElement' => [
+        ['@type' => 'ListItem', 'position' => 1, 'name' => $aSite['name'], 'item' => $aSite['url'] . '/'],
+        ['@type' => 'ListItem', 'position' => 2, 'name' => $aAppNames[$sNetworkSlug], 'item' => $sAppUrl],
+        ['@type' => 'ListItem', 'position' => 3, 'name' => $sBreadcrumbName, 'item' => $sCanonical],
+    ]];
 }

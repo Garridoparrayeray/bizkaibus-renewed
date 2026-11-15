@@ -4,6 +4,7 @@ contenido propio de cada parada y línea, el sitemap índice y que su lastmod no
     python tests/seo-check.py      (con el servidor local en BASE_URL)
 """
 import html
+import json
 import os
 import re
 import sys
@@ -106,6 +107,29 @@ for path in ('/stops/2877', '/lines/651', '/stops/13?red=metro', '/?red=bus', '/
     expect(len(title) <= 60, f'{path}: título de {len(title)} caracteres: {title}')
     expect(120 <= len(description) <= 155, f'{path}: descripción de {len(description)} caracteres: {description}')
 print('contenido, H1 y enlaces ok')
+
+
+def graph(page):
+    nodes = []
+    for block in re.findall(r'<script type="application/ld\+json">(.*?)</script>', page, re.S):
+        data = json.loads(block)
+        nodes += data.get('@graph', [data])
+    return nodes
+
+
+# Datos estructurados: un solo WebSite y una Organization con logo y sameAs; la app solo en el menú y en las redes.
+for path, app in (('/', True), ('/?red=bus', True), ('/stops/2877', False), ('/lines/651', False), ('/mapa', False)):
+    code, headers, page = fetch(path)
+    nodes = graph(page)
+    types = [n.get('@type') for n in nodes]
+    sites = [n for n in nodes if n.get('@type') == 'WebSite']
+    orgs = [n for n in nodes if n.get('@type') == 'Organization']
+    expect(len(sites) == 1 and sites[0].get('@id') == 'https://www.bideplus.eus/#website' and sites[0].get('url') == 'https://www.bideplus.eus/', f'{path}: WebSite {sites}')
+    expect(len(orgs) == 1 and orgs[0].get('logo', '').endswith('/icons-bide-rojo/icon-512.png') and len(orgs[0].get('sameAs', [])) == 2, f'{path}: Organization {orgs}')
+    has_app = 'SoftwareApplication' in types or 'SoftwareApplication' in page
+    expect(has_app == app, f'{path}: SoftwareApplication {has_app}, esperaba {app}')
+    expect('aggregateRating' not in page, f'{path}: valoraciones inventadas')
+print('datos estructurados ok')
 
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:

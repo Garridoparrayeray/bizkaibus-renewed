@@ -36,7 +36,6 @@ foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
     $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name', $sLang), 'description' => \Core\Networks::text($aNetwork, 'switcher', $sLang), 'url' => Lang::url($aSite['url'] . '/?red=' . $sSlug, $sLang)];
 }
 
-$aAuthor = ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']];
 $aItems = [];
 foreach ($aApps as $i => $aApp) {
     $aItems[] = [
@@ -51,38 +50,33 @@ foreach ($aApps as $i => $aApp) {
             'operatingSystem' => 'Web, Android, iOS',
             'inLanguage' => $sLang,
             'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
-            'author' => $aAuthor,
-        ],
+        ] + bideSiteRefs(),
     ];
 }
 $aJsonLd = [
     '@context' => 'https://schema.org',
-    '@graph' => [
+    '@graph' => array_merge(bideSiteJsonLd($sLang), [
         [
-            '@type' => 'WebSite',
-            '@id' => $sCanonical . '#website',
-            'name' => $aSite['name'],
-            'url' => $sCanonical,
+            '@type' => 'WebPage',
+            'name' => $sTitle,
             'description' => $sDescription,
+            'url' => $sCanonical,
             'inLanguage' => $sLang,
-            'publisher' => $aAuthor,
             'keywords' => $aKeywords[$sLang],
-            'availableLanguage' => Lang::LANGS,
             'spatialCoverage' => [
                 ['@type' => 'Place', 'name' => 'Euskal Herria'],
                 ['@type' => 'AdministrativeArea', 'name' => 'Euskadi'],
                 ['@type' => 'AdministrativeArea', 'name' => 'Navarra'],
                 ['@type' => 'Place', 'name' => 'Iparralde'],
             ],
-            'sameAs' => [$aSite['instagram_url']],
-        ],
+        ] + bideSiteRefs(),
         [
             '@type' => 'ItemList',
             'name' => Lang::t('menu.section', $sLang),
             'itemListElement' => $aItems,
         ],
         bideFaqJsonLd($sLang),
-    ],
+    ]),
 ];
 ?>
 <!DOCTYPE html>

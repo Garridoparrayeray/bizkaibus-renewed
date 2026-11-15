@@ -25,12 +25,9 @@ $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
 $aJsonLd = [
     '@context' => 'https://schema.org',
-    '@type' => 'WebPage',
-    'name' => $sTitle,
-    'description' => $sDescription,
-    'url' => $sCanonical,
-    'inLanguage' => $sLang,
-    'isPartOf' => ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'],
+    '@graph' => array_merge(bideSiteJsonLd($sLang), [
+        ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang] + bideSiteRefs(),
+    ]),
 ];
 $aPrecision = [
     ['range' => '0–3', 'bide' => 96, 'timetable' => 24],
