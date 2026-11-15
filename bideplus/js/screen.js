@@ -83,7 +83,7 @@ function render() {
 // Tantas filas como quepan en la pantalla, sin barra de desplazamiento (pantallas de TV y verticales).
 function fitRows() {
     const page = document.documentElement;
-    while (list.children.length > 1 && page.scrollHeight > window.innerHeight) {
+    while (list.children.length > 1 && page.scrollHeight > page.clientHeight) {
         list.lastElementChild.remove();
     }
 }

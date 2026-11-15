@@ -26,7 +26,9 @@
 .screen {
     display: flex;
     flex-direction: column;
+    /* En el móvil, 100vh es la altura sin la barra del navegador: la que se ve es 100dvh. */
     min-height: 100vh;
+    min-height: 100dvh;
     margin: 0;
     background: var(--screen-bg);
     color: var(--screen-text);

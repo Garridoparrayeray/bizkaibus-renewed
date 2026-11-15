@@ -222,6 +222,16 @@ for (const [w, h] of [[1920, 1080], [1280, 720], [1080, 1920]]) {
     const fit = await ev('[document.documentElement.scrollHeight, window.innerHeight, document.querySelectorAll(".screen-row").length]');
     check(`pantalla ${w}x${h} sin desbordar`, fit[0] <= fit[1] && fit[2] > 0, `${fit[0]} de ${fit[1]} px, ${fit[2]} filas`);
 }
+// En el móvil o la tableta, con la barra del navegador a la vista, lo que se ve (innerHeight) es menos que 100vh.
+const barScript = await send('Page.addScriptToEvaluateOnNewDocument', { source: `Object.defineProperty(window, 'innerHeight', { get: () => document.documentElement.clientHeight - 56 });` });
+for (const [w, h] of [[390, 844], [820, 1180]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: true });
+    await go(`/pantalla/${samples.bus.stopId}`, 3500);
+    const fit = await ev('[document.documentElement.scrollHeight, document.documentElement.clientHeight, document.querySelectorAll(".screen-row").length]');
+    check(`pantalla en móvil ${w}x${h} con la barra del navegador: más de una fila y sin desbordar`, fit[0] <= fit[1] && fit[2] > 1, `${fit[0]} de ${fit[1]} px, ${fit[2]} filas`);
+}
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: barScript.identifier });
+await send('Emulation.setDeviceMetricsOverride', { width: 1080, height: 1920, deviceScaleFactor: 1, mobile: false });
 await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeScript.identifier });
 
 where = 'idioma';
