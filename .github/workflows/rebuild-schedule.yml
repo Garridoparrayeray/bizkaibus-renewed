@@ -89,7 +89,8 @@ jobs:
           fi
           echo "redes=$REDES" >> "$GITHUB_OUTPUT"
 
-      # También en el completo: una red opcional que hoy falla conserva su última base buena, no la vieja del repositorio.
+      # También en el completo: una red opcional que hoy falla conserva su última base buena, no la vieja del
+      # repositorio.
       - name: Recuperar las bases de la última reconstrucción
         uses: actions/cache/restore@v4
         with:
@@ -308,6 +309,7 @@ jobs:
       # conserva una base a punto de caducar o si el respaldo de una fuente caída es demasiado viejo.
       - name: Horario publicado de cada red
         run: |
-          grep -h 'Auditoría de calendarios' "$RUNNER_TEMP"/bus-build.log 2>/dev/null | sed 's/^/- Bizkaibus: /' >> "$GITHUB_STEP_SUMMARY" || true
+          grep -h 'Auditoría de calendarios' "$RUNNER_TEMP"/bus-build.log 2>/dev/null | sed 's/^/- Bizkaibus: /' \
+            >> "$GITHUB_STEP_SUMMARY" || true
           CONSERVADAS="$(paste -sd, "$RUNNER_TEMP/conservadas.txt" 2>/dev/null || true)"
           php bideplus/scripts/published-schedule.php --kept="$CONSERVADAS" --summary="$GITHUB_STEP_SUMMARY"

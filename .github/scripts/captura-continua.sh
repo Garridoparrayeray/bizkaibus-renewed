@@ -156,7 +156,8 @@ descargar_acumulados() {
 
 # Los acumulados que el motor no poda (cobertura y precisión) se quedan con los mismos días que las muestras de ritmo
 # y de tramos: SAMPLES_RETENTION_DAYS de realtime-backtest.php. Cada línea lleva su día en «date» o en «fecha».
-RETENCION_DIAS=$(sed -nE 's/^const SAMPLES_RETENTION_DAYS = ([0-9]+);.*/\1/p' "$MOTOR/realtime-backtest.php" 2>/dev/null)
+RETENCION_DIAS=$(sed -nE 's/^const SAMPLES_RETENTION_DAYS = ([0-9]+);.*/\1/p' "$MOTOR/realtime-backtest.php" \
+  2>/dev/null)
 podar() {
   local sFichero=$1
   if [ ! -s "$sFichero" ] || [ -z "$RETENCION_DIAS" ]; then

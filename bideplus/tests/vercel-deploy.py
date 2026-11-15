@@ -1,7 +1,7 @@
 """El despliegue a Vercel: la limpieza (.github/scripts/vercel-cleanup.py) y el tamaño de la función
 (scripts/vercel-launcher.py).
 
-Uso: python tests/vercel-cleanup.py
+Uso: python tests/vercel-deploy.py
 """
 import json
 import os
