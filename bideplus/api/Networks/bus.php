@@ -91,7 +91,12 @@ return [
         'alerts_detail' => true,
         // Los nombres del operador van en mayúsculas: en la app y en los buscadores, en formato título
         // (Core\DisplayName), salvo estas palabras, que se escriben así.
-        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BBKren', 'BEC', 'BBVA', 'IES', 'CC', 'McDonalds', "O'Donnell"]],
+        'title_case_names' => [
+            'keep' => ['UPV', 'EHU', 'BBK', 'BBKren', 'BEC', 'BBVA', 'IES', 'CIFP', 'IMQ', 'CC', 'McDonalds',
+                "O'Donnell"],
+            // «AV» y «AV.» (avenida) salen «Av.».
+            'abbreviations' => ['AV' => 'Av.'],
+        ],
     ],
 
     // Fuentes en directo: 'vehicle-monitoring' (SIRI, con el motor de engine/<engine>) y 'trip-updates' (GTFS-RT).

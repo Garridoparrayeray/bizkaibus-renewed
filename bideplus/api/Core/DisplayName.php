@@ -10,6 +10,8 @@ class DisplayName
     private const SMALL_WORDS = ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'a', 'al', 'en', 'por', 'con'];
     // Los números romanos se quedan como están («Juan XXIII», «Pío XII»).
     private const ROMAN = '/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/';
+    // Una palabra sin vocales son siglas («JM», «NH», «TC»): se queda en mayúsculas.
+    private const VOWELS = '/[AEIOUÁÉÍÓÚÜY]/u';
     // Los campos de las respuestas de la API que son nombres de paradas, líneas o destinos.
     private const OUTPUT_KEYS = ['name', 'lineName', 'headsign', 'hint', 'area', 'stopName', 'destination', 'label'];
 
@@ -34,12 +36,17 @@ class DisplayName
         foreach ($aKeep as $sWord) {
             $aExceptions[mb_strtoupper($sWord)] = $sWord;
         }
-        return preg_replace_callback('/\p{Lu}[\p{Lu}\']+/u', function (array $aMatch) use ($aExceptions, $sName): string {
+        // Las abreviaturas de la ficha («AV» → «Av.»), sin repetir el punto si el nombre ya lo lleva.
+        $aShort = $aNetwork['features']['title_case_names']['abbreviations'] ?? [];
+        $Word = function (array $aMatch) use ($aExceptions, $aShort, $sName): string {
             [$sWord, $iOffset] = $aMatch[0];
             if (isset($aExceptions[$sWord])) {
                 return $aExceptions[$sWord];
             }
-            if (preg_match(self::ROMAN, $sWord)) {
+            if (isset($aShort[$sWord])) {
+                return self::abbreviation($aShort[$sWord], substr($sName, $iOffset + strlen($sWord), 1));
+            }
+            if (preg_match(self::ROMAN, $sWord) || !preg_match(self::VOWELS, $sWord)) {
                 return $sWord;
             }
             $sLower = mb_strtolower($sWord);
@@ -48,7 +55,16 @@ class DisplayName
                 return $sLower;
             }
             return mb_strtoupper(mb_substr($sLower, 0, 1)) . mb_substr($sLower, 1);
-        }, $sName, -1, $iCount, PREG_OFFSET_CAPTURE);
+        };
+        return preg_replace_callback('/\p{Lu}[\p{Lu}\']+/u', $Word, $sName, -1, $iCount, PREG_OFFSET_CAPTURE);
+    }
+
+    private static function abbreviation(string $sShort, string $sNext): string
+    {
+        if ($sNext === '.') {
+            return rtrim($sShort, '.');
+        }
+        return $sShort;
     }
 
     // Una respuesta de la API con sus nombres ya en formato título.

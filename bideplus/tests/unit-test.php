@@ -1292,12 +1292,14 @@ $Expect('/api/status: antigüedad del latido y, sin marca de lleno, null',
 $Expect('sin almacén o si no responde, no se dice nada', \Services\CronHeartbeat::agesFrom(null, 1000) === []);
 
 // Nombres en formato título (Core\DisplayName) y medidas de títulos y descripciones (Core\Seo).
-$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'McDonalds', "O'Donnell"]]]];
+$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'IMQ', 'McDonalds', "O'Donnell"], 'abbreviations' => ['AV' => 'Av.']]]];
 $aNames = [
     'BILBAO INTERMODAL' => 'Bilbao Intermodal', 'AREETA/LAS ARENAS' => 'Areeta/Las Arenas', 'ARTXANDA (EL GALLO)' => 'Artxanda (El Gallo)',
     'BARRIO SAN JUAN DE DIOS' => 'Barrio San Juan de Dios', 'ERANDIO-LA LLANA' => 'Erandio-La Llana', 'MUNGIA XII' => 'Mungia XII',
     'COLEGIO JUAN XXIII' => 'Colegio Juan XXIII', 'CC MAX CENTER' => 'CC Max Center', 'MCDONALDS' => 'McDonalds',
     "O'DONNELL 12" => "O'Donnell 12", 'BBKREN UDALEKUA' => 'BBKren Udalekua', 'Mixed Case' => 'Mixed Case',
+    'AV ALTOS HORNOS' => 'Av. Altos Hornos', 'AV. DEL ANGEL 18' => 'Av. del Angel 18', 'CLÍNICA IMQ' => 'Clínica IMQ',
+    'INDALECIO PRIETO / JM LIDÓN' => 'Indalecio Prieto / JM Lidón', 'NH LA AVANZADA' => 'NH la Avanzada', 'CORRO (TC)' => 'Corro (TC)',
 ];
 $aWrongNames = [];
 foreach ($aNames as $sIn => $sOut) {
@@ -1305,7 +1307,7 @@ foreach ($aNames as $sIn => $sOut) {
         $aWrongNames[] = $sIn . ' → ' . \Core\DisplayName::of($sIn, $aTitleCase);
     }
 }
-$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
+$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos, siglas sin vocales, «Av.» y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
 $Expect('formato título: sin title_case_names en la ficha, el nombre no cambia', \Core\DisplayName::of('BILBAO', ['features' => []]) === 'BILBAO');
 $sLongTitle = \Core\Seo::title([str_repeat('Parada muy larga ', 6)]);
 $Expect('título: si nada cabe, se recorta por una palabra con «…» y no pasa de 60', mb_strlen($sLongTitle) <= \Core\Seo::TITLE_MAX && str_ends_with($sLongTitle, '…'), $sLongTitle);

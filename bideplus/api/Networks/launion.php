@@ -95,7 +95,7 @@ return [
 
     'features' => [
         // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
-        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC', 'IMQ', 'IES', 'CIFP']],
         'platforms' => false,
         // El GTFS pone «U» como destino de todos los viajes: el destino es su última parada.
         'headsign_from_last_stop' => true,
