@@ -132,12 +132,11 @@ return [
         'fleet' => 'all',
         'stops' => 'unknown',
         'gtfs' => 'trust',
-        'unknown_stops_with_accessible_fleet' => 'no',
+        'unknown_stops_with_accessible_fleet' => 'yes',
         'source' => 'https://dbus.eus/es/autobuses-accesibles/',
         'checked' => '2026-11-15',
-        'note' => 'Todos los autobuses son de piso bajo y llevan rampa. No dice nada de las paradas: con '
-            . 'unknown_stops_with_accessible_fleet = yes contarían como accesibles («Autobús accesible; parada '
-            . 'sin confirmar»).',
+        'note' => 'Todos los autobuses son de piso bajo y llevan rampa; las paradas tienen guiado NaviLens. Sin dato '
+            . 'oficial parada a parada: cuentan como accesibles con «Autobús accesible; parada sin confirmar».',
     ],
 
     'gtfs' => [

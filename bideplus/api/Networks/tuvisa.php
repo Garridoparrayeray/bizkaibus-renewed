@@ -132,13 +132,13 @@ return [
         'fleet' => 'all',
         'stops' => 'unknown',
         'gtfs' => 'trust',
-        'unknown_stops_with_accessible_fleet' => 'no',
+        'unknown_stops_with_accessible_fleet' => 'yes',
         'source' =>
             'https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&uid=u18e83a19_15c2f36bc17__7f1f',
         'checked' => '2026-11-15',
-        'note' => 'El 100 % de los autobuses son accesibles y llevan rampa. No dice nada de las paradas: con '
-            . 'unknown_stops_with_accessible_fleet = yes contarían como accesibles («Autobús accesible; parada '
-            . 'sin confirmar»).',
+        'note' => 'El 100 % de los autobuses son accesibles y llevan rampa; las marquesinas se mejoran con plataformas '
+            . 'de acceso (nota de prensa del 21-07-2025). Sin dato parada a parada: cuentan como accesibles con '
+            . '«Autobús accesible; parada sin confirmar».',
     ],
 
     'gtfs' => [
