@@ -167,7 +167,8 @@ function appPosterPage([name, icons, slug, kind, color, texts]) {
 }
 
 const flags = ['--headless=new', '--disable-gpu', `--remote-debugging-port=${PORT}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'bide-images-'))}`, 'about:blank'];
-if (process.env.CI) flags.unshift('--no-sandbox');
+// Como root (un contenedor) Chrome no arranca con su sandbox.
+if (process.env.CI || (process.getuid && process.getuid() === 0)) flags.unshift('--no-sandbox');
 const browser = spawn(CHROME, flags, { stdio: 'ignore' });
 let targets;
 for (let i = 0; i < 40 && !targets; i++) {

@@ -51,6 +51,23 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 - No incluyas en tu *pull request* las bases de datos `bideplus/data/*.sqlite` regeneradas, salvo que el cambio sea justo en cómo se generan. Un flujo diario de GitHub Actions las reconstruye desde los GTFS oficiales.
 - No subas claves, tokens ni datos personales. Las claves se pasan por variables de entorno o secretos del repositorio.
 
+## Añadir una red
+
+Una red es su ficha (`bideplus/api/Networks/<red>.php`) y sus iconos (`bideplus/icons-<red>/`): el menú, el buscador, el mapa, el *sitemap*, los horarios sin conexión, `llms.txt`, las preguntas frecuentes, las descripciones para buscadores, las pruebas y el planificador la leen del registro (`Core\Networks`). Se hace en unos 20 minutos, casi todos de esperar a que se construya y se pruebe:
+
+1. **La ficha**, desde la dirección de su GTFS (desde `bideplus`):
+
+   ```bash
+   php scripts/new-network.php --gtfs=https://…/gtfs.zip [--trip-updates=https://…pb] [--vehicle-positions=https://…pb] [--alerts=https://…pb]
+   ```
+
+   Baja el GTFS y saca de él el operador, el tipo de vehículo, el color de sus líneas, la zona horaria (la app va con la hora de Madrid: si no cuadra, para), si los viajes traen rótulo y la zona de sus paradas. En una terminal pregunta el nombre, el nombre interno, la ciudad, el tipo, el color y los feeds, con eso por defecto (Intro lo acepta; `--si` no pregunta). Escribe la ficha en los cuatro idiomas, con «Nuevo» unos días y, si su ciudad está en el calendario laboral de `api/Config/holidays.php`, sus festivos con las redes de su territorio como respaldo. Construye su base, el mapa, los horarios sin conexión, el *sitemap* y lo que sale de las fichas, y la valida: calidad del código, integridad de las bases, los días de las dos próximas semanas sin ningún viaje (un GTFS incompleto) y que cada feed responde y es GTFS-Realtime.
+2. **Iconos y colores**: salen solos, provisionales (su inicial y su «+» sobre su color, en `icon.svg` y `glyph.svg`, pasados a PNG con el navegador de `CHROME_PATH`, del `PATH` o de Playwright). Los de verdad se dibujan en esos dos SVG. Los colores de la app (`brand.palette`) salen del principal y se pueden retocar en la ficha.
+3. **El directo**, solo si el feed es raro: con GTFS-Realtime estándar no hay que escribir código (`matching` `trip` o `stops`). Unas posiciones sin horas previstas no bastan: la red sale con su horario y la dirección queda guardada. Un feed de otro formato necesita su adaptador en `api/Services`; uno SIRI de vehículos, su motor (`php engine/bizkaibus/tools/new-engine.php <red>`).
+4. **Un comando** tras retocar la ficha o los iconos (textos de euskera y francés, `disclaimer`, `attribution` con la licencia, `reduced_service.live`): `php scripts/new-network.php --rehacer=<red>`, que vuelve a dibujar, a construir y a validar. Después, la batería de siempre (`python tests/run-all.py`; con `APPS=<red>` para la interfaz de esa red sola). Una red sin servicio hoy se prueba con su primer día con servicio.
+
+Lo que no hay que tocar: `js/networks.js`, `css/style-networks.css`, `404.html`, `llms.txt`, `sitemap.xml`, `map-data/` y `offline-data/` (salen de las fichas y de las bases), las pruebas (leen el registro) ni ninguna lista de redes en el código: `code-quality.php` avisa si se nombra una red fuera de su ficha. Todas las claves de la ficha, en la guía «nueva red» del manual.
+
 ## Commits y *pull requests*
 
 - Mensajes cortos, en castellano, con el formato `tipo(ámbito): descripción`, por ejemplo `fix(bideplus): corrige el horario del primer tren`.
