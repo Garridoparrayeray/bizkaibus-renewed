@@ -110,22 +110,24 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         // desde aquí (tabla vacía con razón). Se prueba cada candidata hasta dar con una que salga de la parada. A cada
         // tabla se le dan 15 s: en GitHub, con el feed de Renfe lento, el servidor de pruebas tarda en contestar.
         const candidates = await ev(`document.querySelectorAll('${pick}').length`);
+        // Una red sin servicio hoy se mira con su primer día con servicio desde la primera línea: si no, cada candidata
+        // esperaría en balde a que su tabla de hoy tenga filas (más de 10 min en una red sin servicio el domingo).
+        let todayValue = '';
+        const setServiceDate = `(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';`
+            + "d.dispatchEvent(new Event('change',{bubbles:true}));})()";
         for (let index = 0; index < Math.max(candidates, 1); index++) {
             for (let attempt = 0; attempt < 3; attempt++) {
                 await ev(`(()=>{const c=document.querySelectorAll('${pick}')[${index}];if(c)c.click();})()`);
                 if (await until("!document.getElementById('timetable-section').hidden", 5000)) break;
             }
             await ev("(()=>{document.getElementById('filter-hour-from').value='00:00';document.getElementById('filter-hour-from').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('filter-hour-to').value='23:59';document.getElementById('filter-hour-to').dispatchEvent(new Event('change',{bubbles:true}));})()");
+            const shownDate = await ev("document.getElementById('filter-date').value");
+            if (todayValue === '') todayValue = shownDate;
+            if (a.serviceDate !== shownDate) await ev(setServiceDate);
             if (await until("document.querySelectorAll('#timetable-body tr').length > 0")) break;
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await sleep(500);
-        const todayValue = await ev("document.getElementById('filter-date').value");
-        // Una red sin servicio hoy (un domingo, de lunes a sábado) se prueba con su primer día con servicio.
-        if (a.serviceDate !== todayValue) {
-            await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-            await until("document.querySelectorAll('#timetable-body tr').length > 0");
-        }
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
         const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
@@ -140,7 +142,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.beyond}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
-        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+        await ev(setServiceDate);
         let noteBack = "!document.getElementById('timetable-note').hidden";
         if (noteToday === '') noteBack = "document.getElementById('timetable-note').hidden";
         await until(noteBack);
