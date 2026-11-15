@@ -11,6 +11,17 @@ const Api = (() => {
         return `${path}${separator}red=${network}`;
     }
 
+    // Una petición que no sale aunque el servidor responde (un buscador que respeta «Disallow: /api/», un bloqueador)
+    // no es «sin conexión»: se pregunta por un fichero propio fuera de /api/, sin pasar por el service worker (HEAD).
+    async function serverReachable() {
+        try {
+            await fetch('/robots.txt', { method: 'HEAD', cache: 'no-store' });
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async function request(path, options, network) {
         let target = network;
         if (!target) target = window.__bbNetwork;
@@ -20,7 +31,7 @@ const Api = (() => {
             if (options.body) init.headers = { 'Content-Type': 'application/json' };
             response = await fetch(`/api${withNetwork(path, target)}`, Object.assign(init, options));
         } catch (networkError) {
-            window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: false } }));
+            window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: await serverReachable() } }));
             throw networkError;
         }
         window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: true } }));
