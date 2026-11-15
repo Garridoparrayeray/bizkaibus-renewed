@@ -14,6 +14,9 @@ class CronHeartbeat
     private const KEEP_SECONDS = 7 * 86400;
     private const BEAT_KEY = 'cron:heartbeat';
     private const FULL_KEY = 'live:full:';
+    // /api/status va en el CDN 30 s por dirección y red (y live-health.py añade ?intento=): la lectura del almacén se
+    // guarda este rato en cada servidor, para no gastar dos comandos de Upstash en cada petición que no está en caché.
+    public const READ_CACHE_SECONDS = 60;
 
     // Desde el cron, con lo que ha apuntado cada red: si toca, escribe el latido y las redes que vinieron llenas.
     public static function beat(array $aRecorded, int $iNow): bool
@@ -50,7 +53,21 @@ class CronHeartbeat
         if (!Store::enabled()) {
             return [];
         }
-        return self::agesFrom(Store::pipeline([['GET', self::BEAT_KEY], ['GET', self::FULL_KEY . $sSlug]]), $iNow);
+        $sCache = self::readCachePath($sSlug);
+        $aCached = json_decode((string)@file_get_contents($sCache), true);
+        if (is_array($aCached) && $iNow - (int)($aCached['at'] ?? 0) < self::READ_CACHE_SECONDS) {
+            return self::agesFrom($aCached['results'], $iNow);
+        }
+        $aResults = Store::pipeline([['GET', self::BEAT_KEY], ['GET', self::FULL_KEY . $sSlug]]);
+        if ($aResults !== null) {
+            @file_put_contents($sCache, json_encode(['at' => $iNow, 'results' => $aResults]));
+        }
+        return self::agesFrom($aResults, $iNow);
+    }
+
+    public static function readCachePath(string $sSlug): string
+    {
+        return sys_get_temp_dir() . '/bizkaibusplus_heartbeat_read_' . $sSlug . '.json';
     }
 
     public static function agesFrom(array|null $aResults, int $iNow): array
