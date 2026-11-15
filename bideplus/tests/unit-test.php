@@ -339,6 +339,7 @@ $Expect('TripKey con guiones en la línea', TripKey::parse(TripKey::build('L-1',
 $Expect('TripKey rechaza claves mal formadas', TripKey::parse('sin-numero') === null && TripKey::parse('') === null);
 $Expect('lunes = bit 1 y domingo = bit 64', Calendar::weekdayBitFor(new DateTime('2026-09-28')) === 1 && Calendar::weekdayBitFor(new DateTime(DATE_WEEKEND)) === 64);
 $Expect('secondsToHm pasa la medianoche (25:05 -> 01:05)', Calendar::secondsToHm(25 * 3600 + 5 * 60) === '01:05');
+$Expect('secondsToHm quita los segundos (08:10:59 -> 08:10), como hm() de js/offline.js', Calendar::secondsToHm(8 * 3600 + 10 * 60 + 59) === '08:10');
 $Expect('hmToSeconds: 07:45 son 27900 s', Calendar::hmToSeconds('07:45') === 27900);
 $Expect('hmToSeconds: lo que no es HH:MM cuenta como 0', Calendar::hmToSeconds('7h45') === 0 && Calendar::hmToSeconds('') === 0);
 

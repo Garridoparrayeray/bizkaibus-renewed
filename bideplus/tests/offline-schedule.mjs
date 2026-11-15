@@ -36,11 +36,13 @@ for (const { slug } of index.networks) {
     const stops = Object.keys(data.stops).filter((id) => data.byStop.has(id) && data.stops[id].length < 2);
     const sample = [...stations, ...stops].filter((_, i, all) => i % Math.max(1, Math.floor(all.length / STOPS_PER_NETWORK)) === 0).slice(0, STOPS_PER_NETWORK);
     let same = 0;
+    let sameAsTimetable = null;
     const differences = [];
     for (const stopId of sample) {
         const response = await fetch(`${BASE}/api/stops/${encodeURIComponent(stopId)}/departures?limit=20&red=${slug}`);
         if (!response.ok) continue;
         const api = await response.json();
+        if (!sameAsTimetable && api.departures.some((d) => d.status === 'scheduled' && !d.tomorrow && !d.unscheduled)) sameAsTimetable = { stopId, api };
         // Los que probablemente ya pasaron van al final, detrás de los de mañana: con un tope corto se quedan fuera.
         const offline = BideOffline.departures(data, stopId, new Date(), 1000);
         const offlineKeys = new Set(offline.departures.map(key));
@@ -52,6 +54,17 @@ for (const { slug } of index.networks) {
         if (offline.stop.name !== api.stop.name) differences.push(`${stopId}: nombre «${offline.stop.name}» frente a «${api.stop.name}»`);
     }
     check(`${slug}: las salidas guardadas son las del horario (${same}/${sample.length} paradas)`, differences.length === 0, differences.slice(0, 3).join(' | '));
+    // «Próximas salidas» da la hora de salida, la misma que el horario de la línea en esa parada.
+    if (sameAsTimetable) {
+        const scheduled = sameAsTimetable.api.departures.filter((d) => d.status === 'scheduled' && !d.tomorrow && !d.unscheduled).slice(0, 3);
+        const notInTimetable = [];
+        for (const d of scheduled) {
+            const url = `${BASE}/api/lines/${encodeURIComponent(d.lineId)}/timetable?stopId=${encodeURIComponent(sameAsTimetable.stopId)}&red=${slug}`;
+            const timetableAt = await (await fetch(url)).json();
+            if (!(timetableAt.entries || []).some((entry) => entry.tripKey === d.tripKey && entry.departure === d.scheduledTime)) notInTimetable.push(`${d.lineCode} ${d.scheduledTime}`);
+        }
+        check(`${slug}: «Próximas salidas» da la hora de salida del horario (${scheduled.length} salidas)`, notInTimetable.length === 0, notInTimetable.join(', '));
+    }
 
     // Buscador sin conexión: con el nombre de unas paradas de muestra, las mismas paradas y líneas que /api/search (el
     // orden de dos con el mismo nombre puede cambiar).
