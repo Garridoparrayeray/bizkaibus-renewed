@@ -11,6 +11,10 @@ final class RoutePosition
     // Más lejos del recorrido, el vehículo no va por él (otra línea, en cocheras).
     private const MAX_OFF_ROUTE_KM = 0.3;
     private const MAX_TURN_DEGREES = 90.0;
+    // Tramos a menos de esto de más que el más cercano cuentan como igual de cerca (el GPS y la calle de enfrente).
+    private const SAME_DISTANCE_KM = 0.05;
+    // Ir adelantado es raro: cada segundo antes de hora cuenta como tres de retraso al elegir el tramo.
+    private const EARLY_WEIGHT = 3;
 
     // $aStops: las paradas del viaje (stop_id, arrival_seconds), $iIndex la de la parada del feed, $aCoords [id => [lat,
     // lon]]. Null si no hay coordenadas para ningún tramo.
@@ -30,29 +34,39 @@ final class RoutePosition
     }
 
     // Sin parada del feed: el tramo junto al que va el vehículo (a menos de MAX_OFF_ROUTE_KM, en su sentido si el
-    // GPS da su rumbo) y, si son varios (una circular), el de hora más cercana a $iNowSeconds. ['index' de la parada
-    // a la que va, 'seconds' del horario allí, 'end' si ya está en la última] o null si va lejos del recorrido.
+    // GPS da su rumbo); si hay varios igual de cerca (una circular), el de hora más cercana a $iNowSeconds, y antes uno
+    // que va tarde que uno que va adelantado. ['index' de la parada a la que va, 'seconds', 'end'] o null.
     public static function locate(array $aStops, array $aCoords, float $dLat, float $dLon, int $iNowSeconds,
         float|null $dBearing = null): array|null
     {
         $aStops = array_values($aStops);
-        $aBest = null;
+        $aNear = [];
         foreach (array_keys($aStops) as $iFrom) {
             $aSegment = self::onSegment($aStops, $iFrom, $aCoords, $dLat, $dLon);
             if ($aSegment === null || $aSegment['distance'] > self::MAX_OFF_ROUTE_KM) {
                 continue;
             }
-            if (!self::sameWay($aSegment, $dBearing)) {
-                continue;
-            }
-            $aSegment['index'] = $iFrom + 1;
-            $aSegment['seconds'] = self::seconds($aSegment);
-            if ($aBest === null || abs($iNowSeconds - $aSegment['seconds']) < abs($iNowSeconds - $aBest['seconds'])) {
-                $aBest = $aSegment;
+            if (self::sameWay($aSegment, $dBearing)) {
+                $aSegment['index'] = $iFrom + 1;
+                $aSegment['seconds'] = self::seconds($aSegment);
+                $aNear[] = $aSegment;
             }
         }
-        if ($aBest === null) {
+        if ($aNear === []) {
             return null;
+        }
+        $dClosest = min(array_column($aNear, 'distance'));
+        $aBest = null;
+        foreach ($aNear as $aSegment) {
+            $iGap = $iNowSeconds - $aSegment['seconds'];
+            if ($iGap < 0) {
+                $iGap = -self::EARLY_WEIGHT * $iGap;
+            }
+            $aSegment['gap'] = $iGap;
+            $bClose = $aSegment['distance'] <= $dClosest + self::SAME_DISTANCE_KM;
+            if ($bClose && ($aBest === null || $iGap < $aBest['gap'])) {
+                $aBest = $aSegment;
+            }
         }
         $bEnd = $aBest['index'] === \count($aStops) - 1 && $aBest['fraction'] >= 1.0;
         return ['index' => $aBest['index'], 'seconds' => $aBest['seconds'], 'end' => $bEnd];
