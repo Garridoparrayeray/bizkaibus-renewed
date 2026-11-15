@@ -212,6 +212,18 @@ for (const [url, panel, name] of [
     check(`enlace directo ${name}`, (await ev(`!document.getElementById('${panel}').hidden`)) === true && (await ev("getComputedStyle(document.querySelector('header')).position")) === 'sticky');
 }
 
+where = 'pantalla';
+// La pantalla de TV con muchas salidas de destino largo: ninguna medida deja barra de desplazamiento.
+const fakeRows = `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (!/departures/.test(String(a[0]))) return r; const at = Math.floor(Date.now() / 1000) + 300; const j = { departures: [], platforms: [] }; for (let i = 0; i < 12; i++) j.departures.push({ lineId: 'L' + i, lineCode: 'A39' + i, headsign: 'Destino con un nombre muy largo número ' + i, tripKey: 'T' + i, scheduledTime: '12:00', etaMinutes: 5 + i, etaAt: at + i * 60, status: 'live', delayMinutes: 2, platformId: null }); return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); }; })();`;
+const fakeScript = await send('Page.addScriptToEvaluateOnNewDocument', { source: fakeRows });
+for (const [w, h] of [[1920, 1080], [1280, 720], [1080, 1920]]) {
+    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+    await go(`/pantalla/${samples.bus.stopId}`, 3500);
+    const fit = await ev('[document.documentElement.scrollHeight, window.innerHeight, document.querySelectorAll(".screen-row").length]');
+    check(`pantalla ${w}x${h} sin desbordar`, fit[0] <= fit[1] && fit[2] > 0, `${fit[0]} de ${fit[1]} px, ${fit[2]} filas`);
+}
+await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: fakeScript.identifier });
+
 where = 'idioma';
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (/departures/.test(String(a[0]))) { const j = await r.clone().json(); if (!(j.departures || []).length) { const at = Math.floor(Date.now() / 1000) + 300; j.departures = [{ lineId: '3411', lineCode: 'A3411', lineName: 'A3411', headsign: 'Prueba', tripKey: '3411-0-0', scheduledTime: '00:00', etaMinutes: 5, etaAt: at, status: 'live', delayMinutes: 3, direction: null, platformId: null }]; } for (const d of (j.departures || [])) { d.status = 'live'; d.delayMinutes = 3; } return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); } return r; }; })();` });
 await go('/stops/4255', 4500);

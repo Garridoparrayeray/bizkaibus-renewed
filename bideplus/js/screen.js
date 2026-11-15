@@ -5,7 +5,7 @@ import { statusLabel } from './app/ui.js';
 const REFRESH_MS = 25000;
 const TICK_MS = 10000;
 const CLOCK_MS = 1000;
-const MAX_ROWS = 8;
+const MAX_ROWS = 10;
 const PAST_MARGIN_MS = 60000;
 const HIDDEN_STATUSES = ['departed', 'likely_departed'];
 
@@ -77,6 +77,15 @@ function render() {
         .slice(0, MAX_ROWS);
     list.replaceChildren(...rows.map(row));
     empty.hidden = rows.length > 0;
+    fitRows();
+}
+
+// Tantas filas como quepan en la pantalla, sin barra de desplazamiento (pantallas de TV y verticales).
+function fitRows() {
+    const page = document.documentElement;
+    while (list.children.length > 1 && page.scrollHeight > window.innerHeight) {
+        list.lastElementChild.remove();
+    }
 }
 
 async function load() {
@@ -116,6 +125,7 @@ I18n.applyTranslations();
 tickClock();
 setInterval(tickClock, CLOCK_MS);
 body.addEventListener('click', goFullscreen);
+window.addEventListener('resize', render);
 if (body.dataset.stopFound === '1') {
     load();
     // En segundo plano no pide nada: al volver a verse lo pide en el momento (abajo).
