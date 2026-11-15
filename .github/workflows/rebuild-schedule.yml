@@ -35,6 +35,7 @@ concurrency:
 jobs:
   rebuild-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
     steps:
@@ -220,8 +221,9 @@ jobs:
         continue-on-error: true
         run: php bideplus/scripts/stamp-sw.php
 
+      # Versión fija: una nueva de la CLI no cambia el despliegue sin probarla antes.
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.9.0
 
       # Vercel ya no arranca las funciones tal como las emite vercel-php (vercel-community/php#650): se construye aquí,
       # se parchea el lanzador (bideplus/scripts/vercel-launcher.py) y se sube la salida ya construida.
@@ -259,8 +261,10 @@ jobs:
       - name: Avisar a los buscadores (IndexNow)
         run: php bideplus/scripts/indexnow.php || echo "::warning::IndexNow no ha respondido bien"
 
-      # El directo de cada red en producción (.github/scripts/live-health.py): si algo no cuadra, el flujo sale en rojo.
+      # El directo de cada red en producción (.github/scripts/live-health.py), con su tabla en el resumen. No pone el
+      # despliegue en rojo: la alarma la da live-health.yml.
       - name: Vigilar el directo
+        continue-on-error: true
         run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
 
       - name: Clean up old deployments to save Vercel storage
