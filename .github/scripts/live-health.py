@@ -16,7 +16,8 @@ trenes y los dos tranvías), que no haya nada de la red es lo normal. Una red «
 si lleva más de MAX_EMPTY_HOURS sin venir llena («lastFullSeconds», que apunta el cron en el almacén; sin marca, no
 se sabe). Con huelga o servicio reducido hoy («reducedService»), un feed vacío es aviso.
 También son errores: el horario publicado de una red ya caducado («publishedUntil») y el cron externo de cada minuto
-callado más de MAX_CRON_SILENCE_SECONDS después del latido que toca («cronSeconds» y «cronEverySeconds»).
+callado más de MAX_CRON_SILENCE_SECONDS después del latido que toca («cronSeconds» y «cronEverySeconds»; sin
+ningún latido, aviso).
 Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos), o trae
 vehículos sin hora de hoy (de 23:58 a 05:00 el de Bizkaibus repite los de antes de medianoche: la app usa el horario).
 Una red con error se vuelve a mirar al minuto: un feed que viene vacío en una sola lectura no es un fallo.
@@ -92,9 +93,16 @@ def cron_silent(report):
         return None
     age = report['cronSeconds']
     if age is None:
-        return 'el cron externo de cada minuto no ha dejado ningún latido en el almacén'
+        return None
     if age > report.get('cronEverySeconds', 0) + MAX_CRON_SILENCE_SECONDS:
         return f'el cron externo de cada minuto no llama desde hace {age // 60} min'
+    return None
+
+
+def cron_unknown(report):
+    # Sin ningún latido en el almacén (la primera vez tras desplegar, o tras vaciarlo) no se sabe: aviso.
+    if report and 'cronSeconds' in report and report['cronSeconds'] is None:
+        return 'el cron externo de cada minuto aún no ha dejado ningún latido en el almacén'
     return None
 
 
@@ -164,10 +172,13 @@ def main():
         if not cron_checked and report and 'cronSeconds' in report:
             cron_checked = True
             silent = cron_silent(report)
-            lines.append(f'| cron | {silent or "bien"} | latido hace {report["cronSeconds"]} s |')
+            unknown = cron_unknown(report)
+            lines.append(f'| cron | {silent or unknown or "bien"} | latido hace {report["cronSeconds"]} s |')
             if silent:
                 failed = True
                 print(f'::error::{silent}')
+            if unknown:
+                print(f'::notice::{unknown}')
         errors, notices, summary = check(network, report)
         if errors:
             print(f'{network}: ' + '; '.join(errors) + f'; se vuelve a mirar en {RETRY_SECONDS} s')
