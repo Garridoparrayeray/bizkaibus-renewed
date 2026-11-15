@@ -10,7 +10,8 @@
 //
 // Uso:
 //   php scripts/new-network.php --gtfs=https://…/gtfs.zip [--slug=getxo] [--name="Getxo Bus+"] [--color=#E30613]
-//       [--kind=bus|metro|tram|train] [--city=Getxo] [--operator="Getxoko Udala"] [--trip-updates=https://…pb]
+//       [--kind=bus|metro|tram|train] [--city=Getxo] [--city-eu=…] [--city-fr=…] [--operator="Getxoko Udala"]
+//       [--trip-updates=https://…pb]
 //       [--vehicle-positions=https://…pb] [--alerts=https://…pb] [--matching=trip|stops] [--si] [--sin-datos]
 //   php scripts/new-network.php --rehacer=getxo
 // --si no pregunta nada (lo sacado del GTFS y las opciones); sin terminal, tampoco. --sin-datos solo escribe la ficha y
@@ -99,8 +100,8 @@ function ask(string $sQuestion, string $sDefault, bool $bAsk): string
 
 function options(): array
 {
-    $aLong = ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'operator:', 'trip-updates:', 'vehicle-positions:',
-        'alerts:', 'matching:', 'sin-datos', 'si', 'rehacer:'];
+    $aLong = ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'city-eu:', 'city-fr:', 'operator:',
+        'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:', 'sin-datos', 'si', 'rehacer:'];
     $aOptions = getopt('', $aLong);
     if (isset($aOptions['rehacer'])) {
         return $aOptions;
@@ -271,6 +272,8 @@ function settings(array $aOptions): array
     $aSet['name'] = ask('Nombre de la app (con su «+»)', $aOptions['name'] ?? $aSet['operator'] . '+', $bAsk);
     $aSet['slug'] = ask('Nombre interno (?red=…)', $aOptions['slug'] ?? slugify(rtrim($aSet['name'], '+')), $bAsk);
     $aSet['city'] = ask('Ciudad o zona (para los textos; vacío si es de muchas)', $aOptions['city'] ?? '', $bAsk);
+    $aSet['city-eu'] = ask('Su nombre en euskera', $aOptions['city-eu'] ?? $aSet['city'], $bAsk);
+    $aSet['city-fr'] = ask('Su nombre en francés', $aOptions['city-fr'] ?? $aSet['city'], $bAsk);
     $aSet['kind'] = ask('Tipo (' . implode(', ', KINDS) . ')', $aOptions['kind'] ?? $aGtfs['kind'], $bAsk);
     $aSet['color'] = strtoupper(ask('Color principal', $aOptions['color'] ?? $aGtfs['color'], $bAsk));
     foreach (array_keys(GTFS_RT_FEEDS) as $sFeed) {
@@ -387,58 +390,113 @@ function phpValue(mixed $Value, string $sIndent): string
     return $sOut . $sIndent . ']';
 }
 
-// «de Barakaldo» en euskera: Barakaldoko, Tarbeseko.
-function basqueOf(string $sCity): string
+// Declinación de un nombre propio en euskera (la regla sencilla de los topónimos): tras vocal, el sufijo tal cual;
+// tras consonante, con la «e» de enlace; tras r, la r doblada; el -ko de lugar no lleva «e» y tras n o l es -go.
+// Caso => [tras vocal, tras consonante, tras r, tras n o l].
+const BASQUE_SUFFIXES = [
+    'ko' => ['ko', 'ko', 'ko', 'go'],
+    'n' => ['n', 'en', 'ren', 'en'],
+    'k' => ['k', 'ek', 'rek', 'ek'],
+    'ren' => ['ren', 'en', 'ren', 'en'],
+    'rekin' => ['rekin', 'ekin', 'rekin', 'ekin'],
+];
+// Un nombre que empieza por uno de estos (una institución) lleva artículo: castellano y francés por su género;
+// en euskera va como «<nombre> erakundea» (Syndicat … erakundearekin) y en inglés, con «the».
+const INSTITUTION_GENDER = [
+    'Agglomération' => 'f', 'Ayuntamiento' => 'm', 'Communauté' => 'f', 'Compagnie' => 'f', 'Conseil' => 'm',
+    'Consorcio' => 'm', 'Département' => 'm', 'Diputación' => 'f', 'Mairie' => 'f', 'Mancomunidad' => 'f',
+    'Métropole' => 'f', 'Région' => 'f', 'Régie' => 'f', 'Réseau' => 'm', 'Société' => 'f', 'Syndicat' => 'm',
+    'Ville' => 'f',
+];
+const ARTICLES = ['es' => ['m' => 'el', 'f' => 'la'], 'fr' => ['m' => 'le', 'f' => 'la']];
+// Contracciones de la preposición con el artículo: «de el» es «del»; «de le», «du»; «à le», «au».
+const CONTRACTIONS = ['de el ' => 'del ', 'de le ' => 'du ', 'de les ' => 'des ', 'à le ' => 'au ', 'à les ' => 'aux '];
+
+// Con un sufijo de BASQUE_SUFFIXES: Barakaldoko, Irungo, Gasteizen, Eibarren, Tuvisak, Kbusekin. Una sigla, una
+// dirección o un nombre con cifra o «+» al final lleva guion (SNCF-en, data.gouv.fr-en, Bide+-ek).
+function basque(string $sName, string $sCase): string
 {
-    if (preg_match('/[aeiou]$/i', $sCity)) {
-        return $sCity . 'ko';
+    $sEnd = mb_strtolower(mb_substr($sName, -1));
+    $sGlue = '';
+    if (!preg_match('/\p{Ll}$/u', $sName) || str_contains($sName, '.')) {
+        $sGlue = '-';
     }
-    return $sCity . 'eko';
+    $iColumn = 1;
+    if (in_array($sEnd, ['a', 'e', 'i', 'o', 'u'], true)) {
+        $iColumn = 0;
+    } elseif ($sEnd === 'r') {
+        $iColumn = 2;
+    } elseif ($sEnd === 'n' || $sEnd === 'l') {
+        $iColumn = 3;
+    }
+    if (isInstitution($sName)) {
+        return $sName . ' erakundea' . BASQUE_SUFFIXES[$sCase][0];
+    }
+    return $sName . $sGlue . BASQUE_SUFFIXES[$sCase][$iColumn];
 }
 
-// «de Kbus» (posesivo) en euskera: Kbusen, Tuvisaren.
-function basqueGenitive(string $sName): string
+function isInstitution(string $sName): bool
 {
-    if (preg_match('/[aeiou]$/i', $sName)) {
-        return $sName . 'ren';
-    }
-    return $sName . 'en';
+    return isset(INSTITUTION_GENDER[strtok($sName, ' ')]);
 }
 
-// «por Tuvisa» en euskera: Tuvisak, Kbusek.
-function basqueBy(string $sName): string
+// El nombre con su artículo si es una institución: «la Ville d’Oloron», «le Syndicat…», «the Syndicat…»; los demás,
+// tal cual (Kbus). En francés, «l’» ante vocal o h.
+function withArticle(string $sName, string $sLang): string
 {
-    if (preg_match('/[aeiou]$/i', $sName)) {
-        return $sName . 'k';
+    if (!isInstitution($sName)) {
+        return $sName;
     }
-    return $sName . 'ek';
+    if ($sLang === 'en') {
+        return 'the ' . $sName;
+    }
+    if ($sLang === 'fr' && preg_match('/^[AEIOUHÉÈÊÀÂÎÔÛ]/u', $sName)) {
+        return 'l’' . $sName;
+    }
+    return ARTICLES[$sLang][INSTITUTION_GENDER[strtok($sName, ' ')]] . ' ' . $sName;
 }
 
-// «de Oloron» en francés: d’Oloron, de Tarbes.
-function frenchOf(string $sCity): string
+// «de»/«à» y el nombre, con su artículo y las contracciones: de Kbus, del Syndicat, d’Oloron, du Havre, au Havre.
+// Una ciudad con artículo (Le Havre, Les Sables) lo lleva en su nombre.
+function preposition(string $sPreposition, string $sName, string $sLang): string
 {
-    if (preg_match('/^[aeiouhéèêàâîôûAEIOUHÉÈÊÀÂÎÔÛ]/u', $sCity)) {
-        return 'd’' . $sCity;
+    $sWith = withArticle($sName, $sLang);
+    if ($sLang === 'fr' && preg_match('/^(Le|La|Les) /u', $sWith)) {
+        $sWith = lcfirst(substr($sWith, 0, 3)) . substr($sWith, 3);
     }
-    return 'de ' . $sCity;
+    if ($sLang === 'fr' && $sPreposition === 'de' && preg_match('/^[AEIOUHÉÈÊÀÂÎÔÛ]/u', $sWith)) {
+        return 'd’' . $sWith;
+    }
+    return strtr($sPreposition . ' ' . $sWith, CONTRACTIONS);
 }
 
-// Los textos de la ficha en los cuatro idiomas. $aLive: las fuentes del directo (live de la ficha).
+// En inglés, «Kbus timetables» o, con una institución, «Timetables of the Syndicat…».
+function englishOf(string $sWhat, string $sName): string
+{
+    if (isInstitution($sName)) {
+        return $sWhat . ' of the ' . $sName;
+    }
+    return $sName . ' ' . lcfirst($sWhat);
+}
+
+// Los textos de la ficha en los cuatro idiomas. $aLive: las fuentes del directo (live de la ficha). La ciudad, con su
+// nombre en cada idioma (city, city-eu, city-fr): Vitoria-Gasteiz es Gasteiz en euskera.
 function texts(array $aSet, array $aLive): array
 {
     $bLive = $aLive !== [];
     $bGps = $aLive === ['vehicle-positions'];
     $sName = $aSet['name'];
-    $sCity = $aSet['city'];
-    $sOperator = $aSet['operator'];
+    $aCity = ['es' => $aSet['city'], 'eu' => $aSet['city-eu'], 'en' => $aSet['city'], 'fr' => $aSet['city-fr']];
+    $sOp = $aSet['operator'];
     $aV = VEHICLE[$aSet['kind']];
     $aTile = ['es' => 'Horarios', 'eu' => 'Ordutegiak', 'en' => 'Timetables', 'fr' => 'Horaires'];
-    if ($sCity !== '') {
-        $aTile = ['es' => $aV['es'][1] . ' de ' . $sCity, 'eu' => basqueOf($sCity) . ' ' . $aV['eu'][1],
-            'en' => $sCity . ' ' . $aV['en'][1], 'fr' => $aV['fr'][1] . ' ' . frenchOf($sCity)];
+    if ($aCity['es'] !== '') {
+        $aTile = ['es' => $aV['es'][1] . ' de ' . $aCity['es'], 'eu' => basque($aCity['eu'], 'ko') . ' ' . $aV['eu'][1],
+            'en' => $aCity['en'] . ' ' . $aV['en'][1],
+            'fr' => $aV['fr'][1] . ' ' . preposition('de', $aCity['fr'], 'fr')];
     }
-    $aWhat = ['es' => 'Horarios de ', 'eu' => '', 'en' => '', 'fr' => 'Horaires de '];
-    $aWhatEnd = ['es' => '', 'eu' => ' ordutegiak', 'en' => ' timetables', 'fr' => ''];
+    $aSubtitle = ['es' => 'Horarios ' . preposition('de', $sOp, 'es'), 'eu' => basque($sOp, 'ren') . ' ordutegiak',
+        'en' => englishOf('Timetables', $sOp), 'fr' => 'Horaires ' . preposition('de', $sOp, 'fr')];
     $aDisclaimer = [
         'es' => 'Horario programado oficial: no refleja retrasos ni cancelaciones.',
         'eu' => 'Ordutegi ofizial programatua: ez ditu atzerapenak eta bertan behera utzitakoak jasotzen.',
@@ -453,8 +511,10 @@ function texts(array $aSet, array $aLive): array
         'fr' => ['Seulement ses horaires.', 'Les horaires officiels.', 'Ni retards ni suppressions.'],
     ];
     if ($bLive) {
-        $aWhat = ['es' => 'Horarios y tiempo real de ', 'eu' => '', 'en' => '', 'fr' => 'Horaires et temps réel de '];
-        $aWhatEnd = ['es' => '', 'eu' => ' ordutegiak eta denbora errealean', 'en' => ' timetables and real time', 'fr' => ''];
+        $aSubtitle = ['es' => 'Horarios y tiempo real ' . preposition('de', $sOp, 'es'),
+            'eu' => basque($sOp, 'ren') . ' ordutegiak eta denbora errealean',
+            'en' => englishOf('Timetables and real time', $sOp),
+            'fr' => 'Horaires et temps réel ' . preposition('de', $sOp, 'fr')];
         $aDisclaimer = [
             'es' => 'Los tiempos en directo son una previsión del operador.',
             'eu' => 'Zuzeneko denborak operadorearen aurreikuspena dira.',
@@ -463,7 +523,8 @@ function texts(array $aSet, array $aLive): array
         ];
         $aData = [
             'es' => ['La hora prevista de cada vehículo.', 'La previsión del operador.', 'Sin limitaciones conocidas.'],
-            'eu' => ['Ibilgailu bakoitzaren aurreikusitako ordua.', 'Operadorearen aurreikuspena.', 'Ez dago muga ezagunik.'],
+            'eu' => ['Ibilgailu bakoitzaren aurreikusitako ordua.', 'Operadorearen aurreikuspena.',
+                'Ez dago muga ezagunik.'],
             'en' => ['The predicted time of each vehicle.', 'The operator\'s forecast.', 'No known limitations.'],
             'fr' => ['L’heure prévue de chaque véhicule.', 'La prévision de l’opérateur.', 'Aucune limite connue.'],
         ];
@@ -490,15 +551,18 @@ function texts(array $aSet, array $aLive): array
                 'Un véhicule sans GPS suit ses horaires.'],
         ];
     }
-    $aSwitcherEnd = ['es' => '', 'eu' => '', 'en' => '', 'fr' => ''];
-    if ($sCity !== '') {
-        $aSwitcherEnd = ['es' => ' en ' . $sCity, 'eu' => ' (' . $sCity . ')', 'en' => ' in ' . $sCity, 'fr' => ' à ' . $sCity];
+    $aSwitcher = $aSubtitle;
+    if ($aCity['es'] !== '') {
+        $aSwitcher = ['es' => $aSubtitle['es'] . ' en ' . $aCity['es'],
+            'eu' => $aSubtitle['eu'] . ' ' . basque($aCity['eu'], 'n'),
+            'en' => $aSubtitle['en'] . ' in ' . $aCity['en'],
+            'fr' => $aSubtitle['fr'] . ' ' . preposition('à', $aCity['fr'], 'fr')];
     }
     $aNotOfficial = [
-        'es' => 'Proyecto independiente y no oficial, sin relación con ' . $sOperator . '. ',
-        'eu' => 'Proiektu independentea eta ez-ofiziala, ' . $sOperator . ' erakundearekin loturarik gabea. ',
-        'en' => 'An independent, unofficial project, not affiliated with ' . $sOperator . '. ',
-        'fr' => 'Projet indépendant et non officiel, sans lien avec ' . $sOperator . '. ',
+        'es' => 'Proyecto independiente y no oficial, sin relación con ' . withArticle($sOp, 'es') . '. ',
+        'eu' => 'Proiektu independentea eta ez-ofiziala, ' . basque($sOp, 'rekin') . ' loturarik gabea. ',
+        'en' => 'An independent, unofficial project, not affiliated with ' . withArticle($sOp, 'en') . '. ',
+        'fr' => 'Projet indépendant et non officiel, sans lien avec ' . withArticle($sOp, 'fr') . '. ',
     ];
     $aEmpty = [
         'es' => 'Busca una parada para ver el próximo ' . $aV['es'][0] . '.',
@@ -506,38 +570,60 @@ function texts(array $aSet, array $aLive): array
         'en' => 'Search for a stop to see the next ' . $aV['en'][0] . '.',
         'fr' => 'Cherchez un arrêt pour voir le prochain ' . $aV['fr'][0] . '.',
     ];
-    $aAttribution = ['es' => 'Datos: ', 'eu' => 'Datuak: ', 'en' => 'Data: ', 'fr' => 'Données : '];
+    // Quién da las horas previstas, en la ficha del vehículo («horas previstas por Tuvisa», «Tuvisak»); sin horas del
+    // operador, las calcula Bide+ con su GPS («por Bide+ con el GPS de Kbus»).
+    $aSource = ['es' => withArticle($sOp, 'es'), 'eu' => basque($sOp, 'k'), 'en' => withArticle($sOp, 'en'),
+        'fr' => withArticle($sOp, 'fr')];
+    if ($bGps) {
+        $aSource = ['es' => 'Bide+ con el GPS ' . preposition('de', $sOp, 'es'),
+            'eu' => 'Bide+-ek ' . basque($sOp, 'ren') . ' GPSarekin', 'en' => 'Bide+ from ' . $sOp . ' GPS data',
+            'fr' => 'Bide+ d’après le GPS ' . preposition('de', $sOp, 'fr')];
+    }
+    $aAttribution = attribution($aSet);
     $aTexts = [];
     foreach (array_keys($aTile) as $sLang) {
-        $sSubtitle = $aWhat[$sLang] . $sOperator . $aWhatEnd[$sLang];
         $aTexts[$sLang] = [
             'name' => $sName,
             'tile' => $aTile[$sLang],
-            'switcher' => $sSubtitle . $aSwitcherEnd[$sLang],
-            'subtitle' => $sSubtitle,
+            'switcher' => $aSwitcher[$sLang],
+            'subtitle' => $aSubtitle[$sLang],
             'liveEmpty' => $aEmpty[$sLang],
             'disclaimer' => $aNotOfficial[$sLang] . $aDisclaimer[$sLang],
             'dataPublished' => $aData[$sLang][0],
             'dataMethod' => $aData[$sLang][1],
             'dataLimits' => $aData[$sLang][2],
-            'attribution' => $aAttribution[$sLang] . $sOperator . ' (GTFS)',
+            'attribution' => $aAttribution[$sLang],
         ];
-        // Quién da las horas previstas, en la ficha del vehículo («horas previstas por Tuvisa», «Tuvisak»).
         if ($bLive) {
-            $aTexts[$sLang] = ['liveSource' => $sOperator] + $aTexts[$sLang];
+            $aTexts[$sLang] = ['liveSource' => $aSource[$sLang]] + $aTexts[$sLang];
         }
     }
-    if ($bLive) {
-        $aTexts['eu']['liveSource'] = basqueBy($sOperator);
-    }
-    // Sin horas del operador: las calcula Bide+ con su GPS («horas previstas por Bide+ con el GPS de Kbus»).
-    if ($bGps) {
-        $aTexts['es']['liveSource'] = 'Bide+ con el GPS de ' . $sOperator;
-        $aTexts['eu']['liveSource'] = 'Bide+-ek ' . basqueGenitive($sOperator) . ' GPSarekin';
-        $aTexts['en']['liveSource'] = 'Bide+ from ' . $sOperator . ' GPS data';
-        $aTexts['fr']['liveSource'] = 'Bide+ d’après le GPS ' . frenchOf($sOperator);
-    }
     return $aTexts;
+}
+
+// La atribución de los datos en cada idioma: el operador y su licencia.
+function attribution(array $aSet): array
+{
+    $aLabel = ['es' => 'Datos: ', 'eu' => 'Datuak: ', 'en' => 'Data: ', 'fr' => 'Données : '];
+    $aOut = [];
+    foreach ($aLabel as $sLang => $sLabel) {
+        $aOut[$sLang] = $sLabel . $aSet['operator'] . ' (GTFS)';
+    }
+    return $aOut;
+}
+
+// Los textos generados, para revisarlos al terminar (sobre todo euskera y francés).
+function showTexts(array $aTexts): void
+{
+    echo "\nTextos de la ficha (revísalos; se cambian en su ficha y php scripts/new-network.php --rehacer=…):\n";
+    foreach ($aTexts as $sLang => $aLang) {
+        echo "  [$sLang]\n";
+        foreach ($aLang as $sKey => $sText) {
+            if ($sKey !== 'name') {
+                echo '    ' . str_pad($sKey, 14) . $sText . "\n";
+            }
+        }
+    }
 }
 
 // El bloque gtfs_rt de los feeds que haya, o null sin ninguno.
@@ -592,6 +678,7 @@ function config(array $aSet): string
     if ($aSet['city'] !== '') {
         $sWhere = ' en ' . $aSet['city'];
     }
+    $sOf = preposition('de', $aSet['operator'], 'es');
     $sAlt = htmlspecialchars($aSet['name'], ENT_QUOTES);
     // En la cabecera, la marca en blanco (glyph.png) si se ha podido dibujar; si no, el icono entero.
     $sLogomark = '<img class="is-icon" src="/icons-' . $sSlug . '/icon-192.png" alt="' . $sAlt . '" aria-hidden="true">';
@@ -623,8 +710,9 @@ function config(array $aSet): string
         ],
         'texts' => $aTexts,
         'seo' => [
-            'title' => $aSet['name'] . ' · ' . $aSeoWhat[0] . ' de ' . $aSet['operator'] . $sWhere . ' | Bide+',
-            'description' => 'Consulta los ' . mb_strtolower($aSeoWhat[0]) . ' de ' . $aSet['operator'] . $sWhere . ' ' . $aSeoWhat[1] . '.',
+            'title' => $aSet['name'] . ' · ' . $aSeoWhat[0] . ' ' . $sOf . $sWhere . ' | Bide+',
+            'description' => 'Consulta los ' . mb_strtolower($aSeoWhat[0]) . ' ' . $sOf . $sWhere . ' '
+                . $aSeoWhat[1] . '.',
         ],
         'attribution' => $aTexts['es']['attribution'],
         'checks' => ['bounds' => [round($dLatMin - BOUNDS_MARGIN, 2), round($dLatMax + BOUNDS_MARGIN, 2),
@@ -820,6 +908,7 @@ if (isset($aOptions['rehacer'])) {
     }
     build($sSlug);
     validate($sSlug);
+    showTexts((require ROOT . '/api/Networks/' . $sSlug . '.php')['texts']);
     echo "\nRed «{$sSlug}» rehecha y validada: /?red=$sSlug\n";
     exit(0);
 }
@@ -835,6 +924,7 @@ if (isset($aOptions['sin-datos'])) {
 }
 build($sSlug);
 validate($sSlug);
+showTexts((require ROOT . '/api/Networks/' . $sSlug . '.php')['texts']);
 
 echo <<<TXT
 
