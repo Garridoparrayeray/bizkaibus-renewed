@@ -230,7 +230,7 @@ for name, cfg in NETS.items():
             lid = enc(line['id'])
             get(net(f'/api/lines/{lid}', s), 'line', name)
             get(net(f'/api/lines/{lid}/route', s), 'route', name)
-            tt = get(net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s), 'timetable', name) or {}
+            tt = get(net(f'/api/lines/{lid}/timetable?date={cfg.get("serviceDate", today)}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s), 'timetable', name) or {}
             entries_seen += len(tt.get('entries') or [])
             if tt.get('beyondPublished'):
                 beyond_published = True
@@ -242,7 +242,7 @@ for name, cfg in NETS.items():
                     if d_ and d_.get('status') == 'departed':
                         fails.append(f"{name} {path_}: el viaje dice 'departed' pero la ficha del viaje no puede afirmar que el bus salió")
     if entries_seen == 0 and not beyond_published:
-        fails.append(f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)')
+        fails.append(f'{name}: ningún horario de su día con servicio tiene salidas (una lista vacía no comprueba nada)')
     if departures_seen == 0 and not quiet_hours:
         fails.append(f'{name}: ninguna parada muestra próximas salidas')
     summary = 'OK'

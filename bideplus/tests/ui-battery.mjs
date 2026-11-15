@@ -62,7 +62,7 @@ const search = async (q, wait = 3200) => {
 
 // Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
 const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
-const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished }));
+const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished, serviceDate: samples[key].serviceDate }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
 let sizeFilter = null;
@@ -116,9 +116,14 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         }
         check(`${tag} horario completo se abre`, (await ev("!document.getElementById('timetable-section').hidden")) === true);
         await sleep(500);
+        const todayValue = await ev("document.getElementById('filter-date').value");
+        // Una red sin servicio hoy (un domingo, de lunes a sábado) se prueba con su primer día con servicio.
+        if (a.serviceDate !== todayValue) {
+            await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+            await until("document.querySelectorAll('#timetable-body tr').length > 0");
+        }
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
-        const todayValue = await ev("document.getElementById('filter-date').value");
         const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
         check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         // Hoy el aviso solo sale si el horario publicado ya terminó (bases del repositorio sin reconstruir): entonces debe citar una fecha pasada.
@@ -131,7 +136,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.beyond}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
         await until("!document.getElementById('timetable-note').hidden");
         check(`${tag} aviso de fecha sin publicar visible en el futuro`, (await ev("document.getElementById('timetable-note').hidden")) === false, (await ev("document.getElementById('timetable-note').textContent")).slice(0, 60));
-        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${todayValue}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+        await ev(`(()=>{const d=document.getElementById('filter-date');d.value='${a.serviceDate}';d.dispatchEvent(new Event('change',{bubbles:true}));})()`);
         let noteBack = "!document.getElementById('timetable-note').hidden";
         if (noteToday === '') noteBack = "document.getElementById('timetable-note').hidden";
         await until(noteBack);

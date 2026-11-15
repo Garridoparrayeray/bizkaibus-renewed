@@ -74,7 +74,7 @@ for name, cfg in NETS.items():
         for line in (stop.get('lines') or [])[:2]:
             lid = enc(line['id'])
             get(with_net(f'/api/lines/{lid}', s))
-            tt = get(with_net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s))
+            tt = get(with_net(f'/api/lines/{lid}/timetable?date={cfg.get("serviceDate", today)}&hourFrom=00:00&hourTo=23:59&stopId={sid}', s))
             if tt and tt['entries']:
                 trip = enc(tt['entries'][0]['tripKey'])
                 get(with_net(f'/api/vehicles/{trip}', s))
