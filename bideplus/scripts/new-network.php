@@ -13,7 +13,8 @@
 //       [--kind=bus|metro|tram|train] [--city=Getxo] [--city-eu=…] [--city-fr=…] [--operator="Getxoko Udala"]
 //       [--license="CC-BY 4.0"]
 //       [--trip-updates=https://…pb]
-//       [--vehicle-positions=https://…pb] [--alerts=https://…pb] [--matching=trip|stops] [--si] [--sin-datos]
+//       [--vehicle-positions=https://…pb] [--alerts=https://…pb] [--matching=trip|stops] [--platform-matching]
+//       [--si] [--sin-datos]
 //   php scripts/new-network.php --rehacer=getxo
 // --si no pregunta nada (lo sacado del GTFS y las opciones); sin terminal, tampoco. --sin-datos solo escribe la ficha y
 // los iconos. --rehacer, después de retocar la ficha o los iconos (icons-<red>/icon.svg y glyph.svg): vuelve a dibujar
@@ -21,11 +22,10 @@
 //
 // Con horas previstas (--trip-updates) la red sale en directo: retrasos, vehículos en el mapa (--vehicle-positions) e
 // incidencias (--alerts, que también valen solas). Con solo posiciones, también: el retraso de cada viaje lo estima la
-// app con el GPS de su vehículo y su horario (Services\VehicleDelays). Lo que no se puede saber del GTFS y se pone a
-// mano en la ficha (los
-// bloques de metro.php sirven de modelo): reduced_service.live (servicio reducido por el directo, si es fiable) y
-// gtfs_rt.platform_matching (si los viajes del directo no son los del horario). Un feed que no sea GTFS-Realtime
-// necesita su adaptador en api/Services.
+// app con el GPS de su vehículo y su horario (Services\VehicleDelays). Con horas previstas, la ficha lleva el servicio
+// reducido por el directo (reduced_service.live) de la red más parecida. --platform-matching copia el emparejamiento
+// por andén y destino de Metro, solo para un feed cuyos viajes no son los del horario (la validación lo avisa). Un feed
+// que no sea GTFS-Realtime necesita su adaptador en api/Services.
 
 declare(strict_types=1);
 
@@ -111,7 +111,8 @@ function ask(string $sQuestion, string $sDefault, bool $bAsk): string
 function options(): array
 {
     $aLong = ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'city-eu:', 'city-fr:', 'operator:', 'license:',
-        'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:', 'sin-datos', 'si', 'rehacer:'];
+        'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:', 'platform-matching', 'sin-datos', 'si',
+        'rehacer:'];
     $aOptions = getopt('', $aLong);
     if (isset($aOptions['rehacer'])) {
         return $aOptions;
@@ -383,6 +384,7 @@ function settings(array $aOptions): array
         $aSet[$sFeed] = ask('Feed GTFS-Realtime ' . $sFeed . ' (vacío si no hay)', $aOptions[$sFeed] ?? '', $bAsk);
     }
     $aSet['matching'] = $aOptions['matching'] ?? 'trip';
+    $aSet['platform-matching'] = isset($aOptions['platform-matching']);
     if (!preg_match('/^[a-z][a-z0-9-]{1,30}$/', $aSet['slug'])) {
         fail('Nombre interno: minúsculas, números y guiones (por ejemplo, getxo o tranvia-vitoria).');
     }
@@ -760,6 +762,27 @@ function gtfsRt(array $aSet): array|null
     return $aRt + ['cache_ttl_seconds' => 30, 'http_timeout_seconds' => 8, 'max_age_seconds' => 300];
 }
 
+// La red del registro que más se parece a la nueva entre las que tienen un bloque (reduced_service.live,
+// gtfs_rt.platform_matching…): del mismo tipo y con las mismas fuentes del directo si la hay; si no, del mismo tipo;
+// si no, la primera. Null si ninguna lo tiene.
+function likest(array $aSet, array $aLive, string $sBlock): array|null
+{
+    $aBest = null;
+    $iBest = -1;
+    foreach (Networks::all() as $aNetwork) {
+        $Value = $aNetwork;
+        foreach (explode('.', $sBlock) as $sKey) {
+            $Value = $Value[$sKey] ?? null;
+        }
+        $iScore = 2 * (int)($aNetwork['kind'] === $aSet['kind']) + (int)($aNetwork['live'] === $aLive);
+        if ($Value !== null && $iScore > $iBest) {
+            $aBest = ['slug' => $aNetwork['slug'], 'value' => $Value];
+            $iBest = $iScore;
+        }
+    }
+    return $aBest;
+}
+
 // El siguiente order libre, contando las redes preparadas de api/Networks/pending.
 function nextOrder(): int
 {
@@ -844,13 +867,33 @@ function config(array $aSet): string
     if ($aLive !== []) {
         $aConfig['features']['trip_detail'] = 'vehicle';
     }
+    // Con horas previstas el directo es fiable: el servicio reducido por el directo, con los valores de la red más
+    // parecida (todas usan los mismos: 6 paradas, 20 min, el 60 % sin pasar durante 15 min).
+    $aComments = [];
+    $aReduced = likest($aSet, $aLive, 'reduced_service.live');
+    if (in_array('trip-updates', $aLive, true) && $aReduced !== null) {
+        $aConfig['reduced_service'] = ['live' => $aReduced['value']];
+        $aComments['reduced_service'] = 'Servicio reducido por el directo (Services\\ReducedService), con los valores '
+            . 'de ' . $aReduced['slug'] . '.php: allí se explican.';
+    }
     $aRt = gtfsRt($aSet);
     if ($aRt !== null) {
         $aConfig['gtfs_rt'] = $aRt;
+        $aComments['gtfs_rt'] = 'gtfs_rt.platform_matching (por andén y destino, como metro.php) solo si los viajes '
+            . 'del feed no son los del horario: lo avisa la validación; --platform-matching lo copia.';
+    }
+    $aPlatforms = likest($aSet, $aLive, 'gtfs_rt.platform_matching');
+    if ($aRt !== null && $aSet['platform-matching'] && $aPlatforms !== null) {
+        $aConfig['gtfs_rt']['platform_matching'] = $aPlatforms['value'];
     }
     $aConfig['gtfs'] = $aGtfs;
+    $sPhp = phpValue($aConfig, '');
+    foreach ($aComments as $sKey => $sComment) {
+        $sLines = "\n    // " . wordwrap($sComment, 112, "\n    // ");
+        $sPhp = str_replace("\n    '$sKey' => [", $sLines . "\n    '$sKey' => [", $sPhp);
+    }
     return "<?php\n\n// Creada con scripts/new-network.php. Revisa los textos (sobre todo los de euskera y francés) y, tras cualquier\n"
-        . "// cambio, php scripts/new-network.php --rehacer=$sSlug.\nreturn " . phpValue($aConfig, '') . ";\n";
+        . "// cambio, php scripts/new-network.php --rehacer=$sSlug.\nreturn " . $sPhp . ";\n";
 }
 
 // Lanza scripts de scripts/ con sus argumentos, uno detrás de otro; para si alguno falla.
@@ -976,10 +1019,32 @@ function feeds(array $aNetwork): void
         }
         try {
             $aParsed = Services\GtfsRealtimeClient::$sParser($sBody);
-            echo "  $sKey: responde (" . strlen($sBody) . ' bytes, ' . count($aParsed['trips'] ?? $aParsed['vehicles'] ?? $aParsed['alerts'] ?? []) . " elementos)\n";
+            $aItems = $aParsed['trips'] ?? $aParsed['vehicles'] ?? $aParsed['alerts'] ?? [];
+            echo "  $sKey: responde (" . strlen($sBody) . ' bytes, ' . count($aItems) . " elementos)\n";
         } catch (Throwable $Ex) {
             notice("el feed $sKey no es GTFS-Realtime: necesita su adaptador en api/Services");
+            continue;
         }
+        if ($sKey === 'trip_updates_url') {
+            tripsInSchedule($aNetwork, $aItems);
+        }
+    }
+}
+
+// Cuántos viajes del feed son viajes del horario: si son menos de la mitad (Metro: ids de otra generación del
+// horario), el emparejamiento por viaje no casa y hace falta gtfs_rt.platform_matching o matching stops.
+function tripsInSchedule(array $aNetwork, array $aTrips): void
+{
+    $aIds = array_column($aTrips, 'tripId');
+    if ($aIds === [] || ($aNetwork['gtfs_rt']['matching'] ?? '') !== 'trip') {
+        return;
+    }
+    $JourneyModel = new Models\ServiceJourney(new PDO('sqlite:' . $aNetwork['db_path']));
+    $iFound = count($JourneyModel->journeyIdsForTripRefs($aIds));
+    echo "  viajes del feed en el horario: $iFound de " . count(array_unique($aIds)) . "\n";
+    if ($iFound * 2 < count(array_unique($aIds)) && !isset($aNetwork['gtfs_rt']['platform_matching'])) {
+        notice('menos de la mitad de los viajes del feed están en el horario: prueba --matching=stops o, si el feed es '
+            . 'como el de Metro (andén y destino), gtfs_rt.platform_matching (--platform-matching).');
     }
 }
 
