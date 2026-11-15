@@ -239,27 +239,32 @@ jobs:
           echo "::error::Producción no responde con el despliegue nuevo"
           exit 1
 
-      # Ya desplegado: geocache.json y sitemap-lastmod.json (sin él, el lastmod de mañana sería el de la compilación)
-      # se suben encima del master de ese momento. Si choca, se rehace sitemap-lastmod.json a partir del de master en
-      # vez de rebasar; si aun así no sube, solo avisa: el despliegue ya está hecho.
+      # Ya desplegado: geocache.json y sitemap-lastmod.json se suben desde un árbol aparte, sobre el master de ese
+      # momento, con sitemap-lastmod.json rehecho desde el de master: el árbol desplegado no se toca para los pasos de
+      # después. Si no sube, solo avisa: el despliegue ya está hecho.
       - name: Commit updated geocache and sitemap lastmod, if they changed
         continue-on-error: true
         run: |
+          ARBOL="$RUNNER_TEMP/commit-bot"
+          trap 'git worktree remove --force "$ARBOL" 2>/dev/null || true' EXIT
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           for INTENTO in 1 2 3; do
-            git fetch --quiet origin master || { sleep 10; continue; }
-            # El índice y HEAD pasan al master de ahora, sin tocar los ficheros (las bases recién hechas siguen ahí).
-            git reset --quiet origin/master
-            git checkout origin/master -- bideplus/scripts/sitemap-lastmod.json 2>/dev/null || true
-            php bideplus/scripts/build-sitemap.php --save-state --output-dir="$RUNNER_TEMP/sitemaps-commit" > /dev/null
-            git add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json
-            if git diff --cached --quiet; then
+            git worktree remove --force "$ARBOL" 2>/dev/null || true
+            git fetch --quiet origin master && git worktree add --quiet --detach "$ARBOL" origin/master || {
+              sleep 10
+              continue
+            }
+            cp bideplus/scripts/geocache.json "$ARBOL/bideplus/scripts/geocache.json"
+            php bideplus/scripts/build-sitemap.php --save-state --state="$ARBOL/bideplus/scripts/sitemap-lastmod.json" \
+              --output-dir="$RUNNER_TEMP/sitemaps-commit" > /dev/null
+            git -C "$ARBOL" add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json
+            if git -C "$ARBOL" diff --cached --quiet; then
               echo "geocache.json y sitemap-lastmod.json sin cambios"
               exit 0
             fi
-            git commit --quiet -m "chore: update geocache and sitemap lastmod"
-            git push origin HEAD:master && exit 0
+            git -C "$ARBOL" commit --quiet -m "chore: update geocache and sitemap lastmod"
+            git -C "$ARBOL" push origin HEAD:master && exit 0
             sleep 10
           done
           echo "::warning::No se han podido subir geocache.json y sitemap-lastmod.json (el despliegue sí está hecho)"

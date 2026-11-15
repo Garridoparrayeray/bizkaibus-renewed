@@ -113,7 +113,7 @@ jobs:
         run: python tests/aviso-script.py
 
       - name: Vigilante del directo y poda de los acumulados (scripts de los workflows)
-        run: python tests/live-health.py && python tests/podar-acumulado.py && python tests/vercel-deploy.py
+        run: python tests/live-health.py && python tests/podar-acumulado.py && python tests/vercel-deploy.py && python tests/rebuild-commit.py
 
       - name: UI battery
         env:

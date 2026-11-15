@@ -30,6 +30,7 @@ STEPS = [
     ('Vigilante del directo (retrasos)', [PY, 'tests/live-health.py']),
     ('Poda de los acumulados de la captura', [PY, 'tests/podar-acumulado.py']),
     ('Despliegue a Vercel (limpieza y tamaño)', [PY, 'tests/vercel-deploy.py']),
+    ('Commit del bot tras desplegar', [PY, 'tests/rebuild-commit.py']),
 ]
 if not QUICK:
     STEPS += [
