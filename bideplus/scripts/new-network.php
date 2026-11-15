@@ -972,7 +972,7 @@ function makeIcons(string $sSlug, string $sName, string $sColor): void
 // Todo lo que sale de las fichas; con $sSlug, también su base y lo que sale de las bases.
 function build(string|null $sSlug): void
 {
-    run(['build-networks-js.php', 'build-networks-css.php', 'build-404.php', 'build-llms.php']);
+    run(['build-networks-js.php', 'build-networks-css.php', 'build-404.php', 'build-llms.php', 'build-readme.php']);
     if ($sSlug !== null) {
         run(['build-database.php --network=' . $sSlug, 'build-network-map.php', 'build-offline-data.php', 'build-sitemap.php']);
     }

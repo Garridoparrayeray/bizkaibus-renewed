@@ -159,6 +159,15 @@ print('llms.txt:', llms_result)
 if stale_llms:
     failures.append('llms.txt desactualizado')
 
+# La tabla de las apps de README.md y bideplus/README.md: la genera scripts/build-readme.php desde api/Networks.
+r = subprocess.run([PHP, ROOT + 'scripts/build-readme.php', '--comprobar'], capture_output=True, text=True)
+readme_result = 'al día (' + r.stdout.strip() + ')'
+if r.returncode != 0:
+    readme_result = (r.stdout + r.stderr).strip() + ', ejecuta php scripts/build-readme.php'
+print('tabla de apps de los README:', readme_result)
+if r.returncode != 0:
+    failures.append('tabla de apps de los README desfasada')
+
 # Cada red del registro tiene sus piezas: base de datos, iconos y textos en castellano.
 registry = json.loads(subprocess.run([PHP, '-r', "require '" + ROOT + "api/Core/Networks.php'; echo json_encode(Core\\Networks::all());"], capture_output=True, text=True).stdout)
 for slug, net in registry.items():
