@@ -41,6 +41,8 @@ Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_
 Los mosaicos del mapa (OpenStreetMap) siguen necesitando internet: sin red se ven la ruta y los marcadores sobre fondo liso.
 
 Las comprobaciones que dependen de internet (el feed del «horario oficial» de Bizkaibus) salen como `SKIP`, no como fallo.
+
+El directo por andén de Metro (`PlatformMatcher`) se prueba en `unit-test.php` con los feeds abiertos reales del 14-11-2026 (GTFS-Realtime y SIRI) y las salidas de la app oficial en Moyua a la misma hora. Para medirlo contra la web de Metro Bilbao, a mano y en horas de servicio: `php scripts/compare-metro.php [--base=…] [MOY/SIN …]`, que dice cuántos trenes coinciden a ±60 s y a ±120 s y cuáles faltan o sobran. No es una prueba ni lo usa la app: esa web no es un dato abierto.
 El navegador de pruebas usa un perfil temporal propio (uno nuevo en cada intento) y se cierra por PID: no toca otras ventanas del navegador.
 
 ## Al añadir algo nuevo

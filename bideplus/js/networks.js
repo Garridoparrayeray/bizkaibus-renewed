@@ -101,9 +101,9 @@
                 "subtitle": "Horarios y tiempo real de Metro Bilbao",
                 "liveEmpty": "Busca una estación para ver el próximo metro.",
                 "disclaimer": "Proyecto independiente y no oficial, sin relación con Metro Bilbao S.A. ni con el Consorcio de Transportes de Bizkaia. Los tiempos en directo son una previsión del operador.",
-                "dataPublished": "La hora prevista de cada tren en cada estación y su posición.",
-                "dataMethod": "La previsión del operador; si manda una estación con el número de otra, se corrige.",
-                "dataLimits": "Sin limitaciones conocidas.",
+                "dataPublished": "La hora prevista de cada tren en sus próximas estaciones y su posición, con números de viaje que no son los del horario.",
+                "dataMethod": "Cada tren se casa, en orden, con la salida del horario de su andén y su destino, sacados de su recorrido; si el GTFS-Realtime no trae trenes, los del SIRI.",
+                "dataLimits": "Un tren que no encaja con ninguna salida (más de 10 min tarde o 3 min antes) sale sin horario, con sus minutos y su destino. Con el SIRI, va un par de minutos por detrás.",
                 "attribution": "Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real"
             },
             "eu": {
@@ -114,9 +114,9 @@
                 "subtitle": "Bilboko Metroaren ordutegiak eta denbora errealean",
                 "liveEmpty": "Bilatu geltoki bat hurrengo metroa ikusteko.",
                 "disclaimer": "Proiektu independentea eta ez-ofiziala, Metro Bilbao S.A.-rekin eta Bizkaiko Garraio Partzuergoarekin loturarik gabea. Zuzeneko denborak operadorearen aurreikuspena dira.",
-                "dataPublished": "Tren bakoitzaren aurreikusitako ordua geltoki bakoitzean, eta haren kokapena.",
-                "dataMethod": "Operadorearen aurreikuspena; geltoki bat beste baten zenbakiarekin bidaltzen badu, zuzentzen da.",
-                "dataLimits": "Ez dago muga ezagunik.",
+                "dataPublished": "Tren bakoitzaren aurreikusitako ordua hurrengo geltokietan eta haren kokapena, ordutegikoak ez diren bidaia-zenbakiekin.",
+                "dataMethod": "Tren bakoitza, ordenan, bere nasako eta helmugako ordutegiko irteerarekin lotzen da, ibilbidetik ateratakoak; GTFS-Realtimeak trenik ez badakar, SIRIkoak.",
+                "dataLimits": "Inongo irteerarekin bat ez datorren trena (10 min berandu baino gehiago edo 3 min lehenago) ordutegirik gabe ateratzen da, bere minutuekin eta helmugarekin. SIRIarekin, minutu pare bat atzerago doa.",
                 "attribution": "Datuak: Metro Bilbao / Bizkaiko Garraio Partzuergoa (data.ctb.eus, CC-BY 4.0): ordutegia eta denbora errealean"
             },
             "en": {
@@ -127,9 +127,9 @@
                 "subtitle": "Metro Bilbao timetables and real time",
                 "liveEmpty": "Search for a station to see the next metro.",
                 "disclaimer": "An independent, unofficial project, not affiliated with Metro Bilbao S.A. or with the Bizkaia Transport Consortium. Live times are the operator's forecast.",
-                "dataPublished": "The predicted time of each train at each station, and its position.",
-                "dataMethod": "The operator's forecast; if it sends a station with another one's number, it is corrected.",
-                "dataLimits": "No known limitations.",
+                "dataPublished": "The predicted time of each train at its next stations, and its position, with trip numbers that are not the timetable's.",
+                "dataMethod": "Each train is matched, in order, to the timetable departure of its platform and destination, worked out from its route; if the GTFS-Realtime feed has no trains, those from the SIRI.",
+                "dataLimits": "A train that fits no departure (more than 10 min late or 3 min early) shows without a timetable, with its minutes and destination. With the SIRI, it runs a couple of minutes behind.",
                 "attribution": "Data: Metro Bilbao / Bizkaia Transport Consortium (data.ctb.eus, CC-BY 4.0): timetable and real time"
             },
             "fr": {
@@ -140,9 +140,9 @@
                 "subtitle": "Horaires et temps réel de Metro Bilbao",
                 "liveEmpty": "Cherchez une station pour voir le prochain métro.",
                 "disclaimer": "Projet indépendant et non officiel, sans lien avec Metro Bilbao S.A. ni avec le Consorcio de Transportes de Bizkaia. Les temps en direct sont une prévision de l’opérateur.",
-                "dataPublished": "L’heure prévue de chaque train à chaque station et sa position.",
-                "dataMethod": "La prévision de l’opérateur ; s’il envoie une station avec le numéro d’une autre, c’est corrigé.",
-                "dataLimits": "Aucune limite connue.",
+                "dataPublished": "L’heure prévue de chaque train à ses prochaines stations et sa position, avec des numéros de trajet qui ne sont pas ceux de l’horaire.",
+                "dataMethod": "Chaque train est associé, dans l’ordre, au départ de l’horaire de son quai et de sa destination, déduits de son parcours ; si le GTFS-Realtime n’a aucun train, ceux du SIRI.",
+                "dataLimits": "Un train qui ne correspond à aucun départ (plus de 10 min de retard ou 3 min d’avance) s’affiche sans horaire, avec ses minutes et sa destination. Avec le SIRI, il a quelques minutes de décalage.",
                 "attribution": "Données : Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0) : horaires et temps réel"
             }
         }
