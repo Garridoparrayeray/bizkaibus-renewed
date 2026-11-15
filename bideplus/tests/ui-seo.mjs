@@ -143,7 +143,7 @@ await ev('localStorage.clear(); true');
 await send('Page.navigate', { url: BASE + '/stops/2877' });
 await sleep(700);
 check('el aviso de idioma no está mientras carga la página', (await ev("!document.querySelector('.bide-lang-offer')")) === true);
-check('y sale después, en inglés', await waitTrue("(document.querySelector('.bide-lang-offer-switch') || {}).textContent === 'View in English'"));
+check('y sale después, en inglés', await waitTrue("(document.querySelector('.bide-lang-offer-switch') || {}).textContent === 'Continue in English'"));
 await ev('localStorage.clear(); true');
 
 for (const line of results) console.log(line);
