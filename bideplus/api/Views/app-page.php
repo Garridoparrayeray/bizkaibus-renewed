@@ -24,7 +24,6 @@ $aPageTexts = [
         'stopDescription' => 'Próximas salidas y horarios de {app} en {place}.', 'lines' => ' Líneas: {list}.',
         'live' => ' Llegadas en tiempo real.', 'lineTitle' => 'Línea {code} {name} · Horarios | {app}',
         'lineDescription' => 'Horarios, recorrido y paradas de la línea {code} ({name}) de {app}.',
-        'busMap' => ' Mapa con los autobuses en tiempo real.', 'trainMap' => ' Mapa con los trenes en tiempo real.',
         'line' => 'Línea {code}', 'linesAt' => 'Líneas que paran en {stop}', 'stopsOf' => 'Paradas de la línea {code}',
         'appDescription' => 'Horarios de {app}.',
     ],
@@ -34,7 +33,6 @@ $aPageTexts = [
         'stopDescription' => '{app}: {place} geltokiko hurrengo irteerak eta ordutegiak.', 'lines' => ' Lineak: {list}.',
         'live' => ' Iritsierak denbora errealean.', 'lineTitle' => '{code} {name} linea · Ordutegiak | {app}',
         'lineDescription' => '{app}: {code} ({name}) linearen ordutegiak, ibilbidea eta geltokiak.',
-        'busMap' => ' Autobusak denbora errealean erakusten dituen mapa.', 'trainMap' => ' Trenak denbora errealean erakusten dituen mapa.',
         'line' => '{code} linea', 'linesAt' => '{stop} geltokian gelditzen diren lineak', 'stopsOf' => '{code} linearen geltokiak',
         'appDescription' => '{app}: ordutegiak.',
     ],
@@ -44,7 +42,6 @@ $aPageTexts = [
         'stopDescription' => 'Next departures and timetables for {app} at {place}.', 'lines' => ' Lines: {list}.',
         'live' => ' Real-time arrivals.', 'lineTitle' => 'Line {code} {name} · Timetable | {app}',
         'lineDescription' => 'Timetable, route and stops of line {code} ({name}), {app}.',
-        'busMap' => ' Map with the buses in real time.', 'trainMap' => ' Map with the trains in real time.',
         'line' => 'Line {code}', 'linesAt' => 'Lines stopping at {stop}', 'stopsOf' => 'Stops on line {code}',
         'appDescription' => '{app} timetables.',
     ],
@@ -54,7 +51,6 @@ $aPageTexts = [
         'stopDescription' => 'Prochains départs et horaires de {app} à {place}.', 'lines' => ' Lignes : {list}.',
         'live' => ' Arrivées en temps réel.', 'lineTitle' => 'Ligne {code} {name} · Horaires | {app}',
         'lineDescription' => 'Horaires, itinéraire et arrêts de la ligne {code} ({name}) de {app}.',
-        'busMap' => ' Carte avec les bus en temps réel.', 'trainMap' => ' Carte avec les trains en temps réel.',
         'line' => 'Ligne {code}', 'linesAt' => 'Lignes desservant {stop}', 'stopsOf' => 'Arrêts de la ligne {code}',
         'appDescription' => 'Horaires de {app}.',
     ],
@@ -152,11 +148,11 @@ try {
             if (!empty($aRelated)) {
                 // Renfe publica una línea por sentido: el mismo código sale dos veces.
                 $aCodes = array_values(array_unique(array_column($aRelated, 'code')));
-                $sList = implode(', ', array_slice($aCodes, 0, 8));
+                $sLines = $PageText('lines', ['list' => implode(', ', array_slice($aCodes, 0, 8))]);
                 if (count($aCodes) > 8) {
-                    $sList .= '…';
+                    $sLines = rtrim($sLines, '.') . '…';
                 }
-                $sDescription .= $PageText('lines', ['list' => $sList]);
+                $sDescription .= $sLines;
             }
             if (!empty($aNetwork['live'])) {
                 $sDescription .= $PageText('live');
@@ -177,11 +173,6 @@ try {
             $aLineVars = ['code' => $aRecord['code'], 'name' => $aRecord['name'], 'app' => $sAppName];
             $sTitle = $PageText('lineTitle', $aLineVars);
             $sDescription = $PageText('lineDescription', $aLineVars);
-            if (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-monitoring')) {
-                $sDescription .= $PageText('busMap');
-            } elseif (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-positions')) {
-                $sDescription .= $PageText('trainMap');
-            }
             $aRelated = (new LineModel(Database::connection()))->stopsByName($aRecord['id']);
             $sBreadcrumbName = $PageText('line', ['code' => $aRecord['code']]);
             $sRelatedHeading = $PageText('stopsOf', ['code' => $aRecord['code']]);

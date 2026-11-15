@@ -198,6 +198,13 @@ def fetch_text(path):
         return 0, str(e)
 
 
+def seo_problems(where, page):
+    # Ni un mapa con los vehículos en directo, que no existe, ni la doble puntuación de una lista recortada («N1….»).
+    description = (_re.search(r'<meta property="og:description" content="([^"]*)"', page) or [None, ''])[1]
+    if '….' in description or 'Mapa con los' in page:
+        fails.append(f'{where}: descripción para buscadores con «….» o con el mapa en directo ({description[:80]!r})')
+
+
 code, sitemap = fetch_text('/sitemap.xml')
 try:
     _minidom.parseString(sitemap)
@@ -230,6 +237,9 @@ for red in NETS:
             canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
             if code != 200 or canonical != loc:
                 fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
+            seo_problems(loc, page)
+    code, page = fetch_text(with_net(f"/stops/{enc(NETS[red]['stopId'])}", NETS[red]['suffix']))
+    seo_problems(f"/stops/{NETS[red]['stopId']}", page)
 print('sitemap ok')
 
 # Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.
