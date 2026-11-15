@@ -101,6 +101,16 @@ return [
 
     'live' => ['trip-updates'],
 
+    // Servicio reducido por el directo (Services\ReducedService): en las 6 paradas con más pasos (40 salidas de
+    // cada una), de las de los próximos 20 min cuyo viaje ya ha salido, falta el 60 % o más durante 15 min (lo
+    // normal no llega al 20 %).
+    'reduced_service' => [
+        'live' => [
+            'sample_stops' => 6, 'rows_per_stop' => 40, 'window_seconds' => 1200,
+            'min_expected' => 8, 'missing_share' => 0.6, 'confirm_seconds' => 900,
+        ],
+    ],
+
     // Previsión de Euskotren (GTFS-Realtime, cada 1-2 min): trenes y los dos tranvías van en el mismo fichero.
     'gtfs_rt' => [
         'trip_updates_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/gtfsrt_euskotren_trip_updates.pb',
@@ -123,6 +133,13 @@ return [
     ],
 
     'gtfs' => [
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => null, 'municipality' => null,
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
         'fallback_source' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/gtfs_euskotren.zip',
         'agency_id' => 'ES:Euskotren:Operator:EUS_Tren:',

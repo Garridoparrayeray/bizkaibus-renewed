@@ -114,15 +114,16 @@ return [
             'tolosaldea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/siri_tolosaldea_vehicle_monitoring.xml',
             'tolosa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/siri_tolosa_vehicle_monitoring.xml',
         ],
+        // Por operador, como los ids de sus líneas en la base («pesa:…»): sus avisos llevan el operador en la línea.
         'alerts_urls' => [
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/siri_goierrialdea_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/siri_euskobus_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/siri_tolosaldea_situation_exchange.xml',
-            'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/siri_tolosa_situation_exchange.xml',
+            'ekialdebus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/siri_ekialdebus_situation_exchange.xml',
+            'goierrialdea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/goierrialdea/siri_goierrialdea_situation_exchange.xml',
+            'gipuzkoana' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/guipuzkoana/siri_guipuzkoana_situation_exchange.xml',
+            'pesa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/pesa/siri_pesa_situation_exchange.xml',
+            'tbh' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tbh/siri_tbh_situation_exchange.xml',
+            'euskotrenbus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/siri_euskobus_situation_exchange.xml',
+            'tolosaldea' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosaldea/siri_tolosaldea_situation_exchange.xml',
+            'tolosa' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/tolosa/siri_tolosa_situation_exchange.xml',
         ],
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 4,
@@ -130,6 +131,13 @@ return [
 
     // Un GTFS por operador; build-database.php los junta (ver mergeGtfsZips).
     'gtfs' => [
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Gipuzkoa', 'municipality' => null,
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'sources' => [
             'ekialdebus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/gtfs_ekialdebus.zip',
             'euskotrenbus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/gtfs_euskotren_bus.zip',

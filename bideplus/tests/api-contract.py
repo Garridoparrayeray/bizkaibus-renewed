@@ -22,6 +22,7 @@ checked = 0
 ID = (int, str)
 NUM = (int, float)
 HM = re.compile(r'^\d{2}:\d{2}$')
+DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
 STATUS = {'scheduled', 'estimated', 'likely_departed', 'live', 'departed', 'finished', 'cancelled'}
 
 
@@ -32,6 +33,8 @@ def opt(*schema):
 
 
 LINE = {'id': ID, 'code': str, 'name': str}
+# Servicio reducido de la red (huelga, servicios mínimos): hoy, los días (AAAA-MM-DD), de dónde sale y el aviso.
+REDUCED = {'today': bool, 'days': ['date'], 'sources': [str], 'alert': opt(str), 'cause': opt(str), 'lines': opt([ID]), 'lineCodes': opt([str])}
 STOP_REF = {'id': ID, 'name': str, 'lat': NUM, 'lon': NUM}
 
 SCHEMAS = {
@@ -60,7 +63,9 @@ SCHEMAS = {
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
-    'alerts': {'alerts': ['alert']},
+    'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
+    'reduced': REDUCED,
+    'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'reducedService': REDUCED},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
     'error': {'error': str},
@@ -80,6 +85,10 @@ def check(value, schema, path, where):
         return
     if schema == 'alert':
         check_alert(value, path, where)
+        return
+    if schema == 'date':
+        if not isinstance(value, str) or not DATE.match(value):
+            fails.append(f'{where} {path}: fecha AAAA-MM-DD esperada, llegó {value!r}')
         return
     if schema == 'status':
         if value not in STATUS:
@@ -191,6 +200,9 @@ for name, cfg in NETS.items():
     res = get(net('/api/search?q=' + q, s), 'search', name) or {}
     get(net('/api/lines', s), 'lines', name)
     get(net('/api/alerts', s), 'alerts', name)
+    get(net('/api/reduced', s), 'reduced', name)
+    if cfg.get('live'):
+        get(net('/api/status', s), 'netStatus', name)
     get(net(f'/api/nearby?lat={lat}&lon={lon}&limit=5', s), 'nearby', name)
     get(net('/api/stops/999999999', s), 'error', name, expect=404)
     get(net('/api/nearby?lat=abc&lon=1', s), 'error', name, expect=422)

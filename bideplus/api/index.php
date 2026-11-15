@@ -49,6 +49,7 @@ $Router->get('/lines/{id}/timetable', [$Timetable, 'show'], CacheSeconds::MINUTE
 
 $Alerts = new AlertsController();
 $Router->get('/alerts', [$Alerts, 'index'], CacheSeconds::MINUTE);
+$Router->get('/reduced', [$Alerts, 'reduced'], CacheSeconds::MINUTE);
 
 // El horario oficial por periodos: el del operador o, si no publica uno en texto, el de su GTFS (todas las redes).
 $Router->get('/lines/{id}/schedule-text', [$Lines, 'scheduleText'], CacheSeconds::STATIC);

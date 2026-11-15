@@ -15,6 +15,7 @@ use Build\Calendars;
 use Build\Download;
 use Build\Geocode;
 use Build\Gtfs;
+use Build\Holidays;
 use Build\Journeys;
 use Build\Schema;
 use Models\Search;
@@ -22,6 +23,7 @@ require_once __DIR__ . '/build/geocode.php';
 require_once __DIR__ . '/build/download.php';
 require_once __DIR__ . '/build/gtfs.php';
 require_once __DIR__ . '/build/calendars.php';
+require_once __DIR__ . '/build/holidays.php';
 require_once __DIR__ . '/build/journeys.php';
 require_once __DIR__ . '/build/shapes.php';
 require_once __DIR__ . '/build/schema.php';
@@ -162,6 +164,14 @@ function main(array $aArgv): void
     }
     if ($iMergeLength > 0) {
         echo '  ' . Schema::mergeSameTrains($Pdo, $iMergeLength) . " journeys left identical inside the network merged\n";
+    }
+
+    if (!empty($aGtfs['holidays'])) {
+        $aHolidays = Holidays::forNetwork($sNetwork, $aGtfs['holidays'], date('Y-m-d'));
+        $aPublished = Calendars::publishedWindow($aFeedInfo, $aCalendars);
+        $bPublishesDates = !empty(array_filter($aCalendars, fn(array $aCal) => !empty($aCal['exact']['available']) || !empty($aCal['exact']['excluded'])));
+        $iBorrowed = Calendars::applyHolidays($Pdo, $aHolidays, (string)end($aPublished), $bPublishesDates);
+        echo '  ' . count($aHolidays) . " festivos en el calendario laboral; $iBorrowed con el servicio de domingo (el GTFS no dice nada de ellos)\n";
     }
 
     $iBackwards = Schema::fixBackwardTimes($Pdo);

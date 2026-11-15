@@ -11,6 +11,7 @@ import { modalState, renderModalHeader, renderModalStops, setUpVehicleModal } fr
 import { setUpStopShare } from './share.js';
 import { setUpSideMenu } from './side-menu.js';
 import { setUpStopAlerts } from './stop-alerts.js';
+import { setUpReduced } from './reduced.js';
 import { setUpAlerts } from './alerts.js';
 import { setUpArrivalAlerts } from './arrival-alerts.js';
 
@@ -52,6 +53,7 @@ setUpConnectionBanner();
 setUpNetworkMenu();
 setUpSideMenu();
 setUpStopAlerts();
+setUpReduced();
 setUpFavoritesPanel();
 setUpAlerts();
 setUpLanguage();

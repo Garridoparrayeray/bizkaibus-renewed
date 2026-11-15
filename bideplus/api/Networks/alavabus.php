@@ -130,6 +130,13 @@ return [
     ],
 
     'gtfs' => [
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Álava - Araba', 'municipality' => null,
+            'fallback' => ['networks' => ['dbus', 'bilbobus'], 'quorum' => 2],
+        ],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/gtfs_alavabus.zip',
         'fallback_source' => null,
         'agency_id' => null,

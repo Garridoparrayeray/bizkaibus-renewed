@@ -104,6 +104,16 @@ return [
 
     'live' => ['trip-updates', 'vehicle-positions'],
 
+    // Servicio reducido por el directo (Services\ReducedService): en las 6 paradas con más pasos (40 salidas de
+    // cada una), de las de los próximos 20 min cuyo viaje ya ha salido, falta el 60 % o más durante 15 min (lo
+    // normal no llega al 20 %).
+    'reduced_service' => [
+        'live' => [
+            'sample_stops' => 6, 'rows_per_stop' => 40, 'window_seconds' => 1200,
+            'min_expected' => 8, 'missing_share' => 0.6, 'confirm_seconds' => 900,
+        ],
+    ],
+
     // El directo trae el viaje del horario de cada autobús: se empareja por viaje.
     'gtfs_rt' => [
         'trip_updates_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/tuvisa/gtfsrt_tuvisa_trip_updates.pb',
@@ -116,6 +126,13 @@ return [
     ],
 
     'gtfs' => [
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Álava - Araba', 'municipality' => 'Vitoria-Gasteiz',
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/tuvisa/gtfs_tuvisa.zip',
         'fallback_source' => null,
         'agency_id' => null,

@@ -233,7 +233,7 @@ function renderLiveCard(departures) {
 
     el.liveTimetableLink.hidden = false;
 
-    const { text, className } = statusLabel(departure.status, departure.delayMinutes);
+    const { text, className } = statusLabel(departure.status, departure.delayMinutes, departure);
     el.liveLine.textContent = `${departure.lineCode} · ${departure.headsign}`;
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
@@ -333,7 +333,7 @@ function renderPlatformColumn(direction, departures) {
     badge.textContent = liveBadgeText(next.status, next.etaMinutes, next.atOrigin);
     if (next.tomorrow) badge.textContent = I18n.t('app.badge.tomorrow');
 
-    const { text, className } = statusLabel(next.status, next.delayMinutes);
+    const { text, className } = statusLabel(next.status, next.delayMinutes, next);
     const dot = document.createElement('span');
     dot.className = `status-dot ${className}`;
     const scheduled = document.createElement('p');
@@ -469,5 +469,9 @@ export function setUpStop() {
     el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey, { tomorrow: el.liveOpenDetail.dataset.tomorrow === 'true' }));
     el.liveTimetableLink.addEventListener('click', () => {
         if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
+    });
+    // Con servicio reducido, lo que va solo con su horario se marca como «puede no pasar».
+    window.addEventListener('bide:reduced', () => {
+        if (state.currentStop && state.lastDepartures) renderDepartures(state.lastDepartures);
     });
 }

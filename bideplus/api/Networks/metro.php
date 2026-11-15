@@ -101,6 +101,16 @@ return [
 
     'live' => ['trip-updates', 'vehicle-positions'],
 
+    // Servicio reducido por el directo (Services\ReducedService): en las 6 paradas con más pasos (40 salidas de
+    // cada una), de las de los próximos 20 min cuyo viaje ya ha salido, falta el 60 % o más durante 15 min (lo
+    // normal no llega al 20 %).
+    'reduced_service' => [
+        'live' => [
+            'sample_stops' => 6, 'rows_per_stop' => 40, 'window_seconds' => 1200,
+            'min_expected' => 8, 'missing_share' => 0.6, 'confirm_seconds' => 900,
+        ],
+    ],
+
     'metro_alerts' => [
         'url' => 'https://cms.metrobilbao.eus/es/get/open_data/json/avisos/es',
         'cache_ttl_seconds' => 60,
@@ -161,6 +171,13 @@ return [
     ],
 
     'gtfs' => [
+        // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
+        // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
+        // municipio; sin él, los que salen de las redes de respaldo.
+        'holidays' => [
+            'calendar' => 'euskadi', 'territory' => 'Bizkaia', 'municipality' => null,
+            'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
+        ],
         'source' => 'https://ctb-gtfs.s3.eu-south-2.amazonaws.com/metrobilbao.zip',
         'fallback_source' => 'https://nap.transportes.gob.es/api/Fichero/download/1066',
         'agency_id' => null,

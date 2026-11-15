@@ -53,9 +53,43 @@ class GtfsRealtimeClient
     }
 
     // Las incidencias vigentes ahora.
-    public function fetchAlerts(): array
+    // Los avisos en vigor o, con $bUpcoming, también los que aún no han empezado (una huelga anunciada), con la hora de
+    // inicio y de fin de su primer periodo.
+    public function fetchAlerts(bool $bUpcoming = false): array
     {
-        return self::activeAlerts($this->feed('alerts_url', [self::class, 'parseAlerts'])['alerts'] ?? [], time());
+        $aAlerts = $this->feed('alerts_url', [self::class, 'parseAlerts'])['alerts'] ?? [];
+        if ($bUpcoming) {
+            $aAlerts = array_values(array_filter($aAlerts, fn(array $aAlert) => self::notEnded($aAlert, time())));
+        } else {
+            $aAlerts = self::activeAlerts($aAlerts, time());
+        }
+        return array_map(fn(array $aAlert) => $aAlert + self::periodTimes($aAlert), $aAlerts);
+    }
+
+    private static function notEnded(array $aAlert, int $iNow): bool
+    {
+        if (empty($aAlert['periods'])) {
+            return true;
+        }
+        foreach ($aAlert['periods'] as $aPeriod) {
+            if ($aPeriod['end'] === null || $aPeriod['end'] > $iNow) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function periodTimes(array $aAlert): array
+    {
+        $aTimes = ['startTime' => null, 'endTime' => null];
+        $aFirst = $aAlert['periods'][0] ?? [];
+        if (isset($aFirst['start'])) {
+            $aTimes['startTime'] = gmdate('c', (int)$aFirst['start']);
+        }
+        if (isset($aFirst['end'])) {
+            $aTimes['endTime'] = gmdate('c', (int)$aFirst['end']);
+        }
+        return $aTimes;
     }
 
     // Un feed de la ficha, guardado por su dirección (Euskotren y los dos tranvías leen el mismo y lo bajan una sola

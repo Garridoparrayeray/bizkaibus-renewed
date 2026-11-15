@@ -330,6 +330,65 @@ $iBackFixed = Build\Schema::fixBackwardTimes($TimesPdo);
 $aBackTimes = $TimesPdo->query('SELECT arrival_seconds, departure_seconds FROM passing_times ORDER BY seq_order')->fetchAll(PDO::FETCH_NUM);
 $Expect('una hora que va hacia atrás se deja a la de la parada anterior', $iBackFixed === 1 && $aBackTimes === [[100, 100], [400, 420], [420, 420], [500, 500]]);
 
+// Festivo entre semana: el martes 2026-12-08 dos redes de la zona van como un domingo (quitan el laborable y añaden
+// el de domingo) y en Nochebuena, con servicio especial, no. Una red cuyo GTFS no dice nada de festivos lo coge.
+$CalendarDb = function (string $sPath, array $aCalendars, array $aExceptions): PDO {
+    $Pdo = new PDO('sqlite:' . $sPath);
+    $Pdo->exec('CREATE TABLE service_calendars (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, weekday_mask INTEGER NOT NULL);
+        CREATE TABLE service_calendar_exceptions (calendar_id TEXT NOT NULL, date TEXT NOT NULL, available INTEGER NOT NULL);
+        CREATE TABLE service_journeys (id TEXT PRIMARY KEY, calendar_id TEXT NOT NULL)');
+    foreach ($aCalendars as $sId => [$iMask, $iJourneys]) {
+        $Pdo->prepare('INSERT INTO service_calendars VALUES (?, \'\', \'\', ?)')->execute([$sId, $iMask]);
+        for ($iJourney = 0; $iJourney < $iJourneys; $iJourney++) {
+            $Pdo->prepare('INSERT INTO service_journeys VALUES (?, ?)')->execute([$sId . $iJourney, $sId]);
+        }
+    }
+    foreach ($aExceptions as [$sId, $sDate, $iAvailable]) {
+        $Pdo->prepare('INSERT INTO service_calendar_exceptions VALUES (?, ?, ?)')->execute([$sId, $sDate, $iAvailable]);
+    }
+    return $Pdo;
+};
+$aRefPaths = [];
+foreach (['a', 'b'] as $sRef) {
+    $aRefPaths[] = $sRefPath = sys_get_temp_dir() . '/bide-festivos-' . $sRef . '-' . getmypid() . '.sqlite';
+    $CalendarDb($sRefPath, ['lv' => [31, 10], 'd' => [64, 4], 'nochebuena' => [0, 2], 'reyes' => [0, 1]], [['lv', '2026-12-08', 0], ['d', '2026-12-08', 1], ['nochebuena', '2026-12-24', 1], ['lv', '2027-01-06', 0]]);
+}
+$aHolidays = Calendars::referenceHolidays($aRefPaths, 2, '2026-11-14');
+$aOneRef = Calendars::referenceHolidays([$aRefPaths[0], sys_get_temp_dir() . '/bide-no-existe.sqlite'], 2, '2026-11-14');
+array_map('unlink', $aRefPaths);
+$Expect('festivo de respaldo: el martes 8 de diciembre y Reyes sin viajes y con anulaciones, no Nochebuena', $aHolidays === ['2026-12-08', '2027-01-06']);
+$Expect('festivo de respaldo: con una sola red no hay quórum', $aOneRef === []);
+// El calendario laboral de Euskadi tal como lo publica (fechas «2026/12/08» y «2027/1/6»): los de toda Euskadi, los
+// del territorio y los del municipio de la red; los de otros municipios y los domingos, no.
+$aEuskadiRows = [
+    ['date' => '2026/12/08', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2027/1/6', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2027/7/31', 'territory' => 'Gipuzkoa', 'municipalityEs' => 'Gipuzkoa'],
+    ['date' => '2027/1/20', 'territory' => 'Gipuzkoa', 'municipalityEs' => 'Donostia-San Sebastian  '],
+    ['date' => '2027/4/28', 'territory' => 'Álava - Araba', 'municipalityEs' => 'Álava - Araba'],
+    ['date' => '2026/12/06', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+    ['date' => '2026/01/01', 'territory' => 'Todos/denak', 'municipalityEs' => 'CAE'],
+];
+$aEuskadi = ['url' => 'prueba-{year}', 'date' => 'date', 'territory' => 'territory', 'municipality' => 'municipalityEs', 'everywhere' => 'Todos/denak'];
+$Expect('calendario laboral: toda la comunidad y el territorio para una red de Gipuzkoa', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, 'Gipuzkoa', null, '2026-11-14') === ['2026-12-08', '2027-01-06', '2027-07-31']);
+$Expect('calendario laboral: y el del municipio para la red de Donostia', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, 'Gipuzkoa', 'Donostia-San Sebastian', '2026-11-14') === ['2026-12-08', '2027-01-06', '2027-07-31', '2027-01-20']);
+$Expect('calendario laboral: una red de toda Euskadi, solo los de toda la comunidad', Build\Holidays::fromCalendar($aEuskadiRows, $aEuskadi, null, null, '2026-11-14') === ['2026-12-08', '2027-01-06']);
+array_map('unlink', glob(sys_get_temp_dir() . '/bizkaibusplus_holidays_prueba_*.json'));
+$aHolidayConfig = ['calendars' => ['prueba' => $aEuskadi], 'cache_seconds' => 3600, 'http_timeout_seconds' => 1];
+$aFetched = Build\Holidays::forNetwork('prueba', ['calendar' => 'prueba', 'territory' => 'Gipuzkoa', 'municipality' => null, 'fallback' => ['networks' => [], 'quorum' => 1]], '2026-11-14', fn(string $sUrl) => match ($sUrl) {
+    'prueba-2026' => json_encode(array_slice($aEuskadiRows, 0, 1)),
+    default => null,
+}, $aHolidayConfig);
+array_map('unlink', glob(sys_get_temp_dir() . '/bizkaibusplus_holidays_prueba_*.json'));
+$Expect('calendario laboral: se baja año a año; el que no está sale del respaldo (aquí, sin redes: ninguno)', $aFetched === ['2026-12-08']);
+$Target = fn() => $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'todos' => [127, 1]], []);
+$Silent = $Target();
+$iApplied = Calendars::applyHolidays($Silent, ['2026-12-08'], '2027-02-08', false);
+$Expect('festivo: sin calendar_dates, ese martes va con el de domingo y lo diario sigue', $iApplied === 1
+    && Calendars::journeysOn($Silent, new DateTime('2026-12-08')) === 5 && Calendars::journeysOn($Silent, new DateTime('2026-12-01')) === 11);
+$Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-23', true) === 0);
+$Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-01', true) === 1);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

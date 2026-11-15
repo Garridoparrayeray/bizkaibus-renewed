@@ -22,9 +22,9 @@ class SiriAlertsClient
         if (!empty($aCfg['alerts_urls'])) {
             return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
                 $aAlerts = [];
-                foreach ($aCfg['alerts_urls'] as $sUrl) {
+                foreach ($aCfg['alerts_urls'] as $Operator => $sUrl) {
                     try {
-                        $aAlerts = array_merge($aAlerts, self::parse(Http::get($sUrl, $aCfg['http_timeout_seconds'])));
+                        $aAlerts = array_merge($aAlerts, self::withOperator(self::parse(Http::get($sUrl, $aCfg['http_timeout_seconds'])), $Operator));
                     } catch (\Throwable $Ex) {
                     }
                 }
@@ -38,6 +38,18 @@ class SiriAlertsClient
         return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aUrls, $aCfg) {
             return self::parse(Http::getFirst($aUrls, $aCfg['http_timeout_seconds']));
         });
+    }
+
+    // Con las direcciones por operador (Lurraldebus), sus líneas como las de la base: «operador:línea».
+    public static function withOperator(array $aAlerts, int|string $Operator): array
+    {
+        if (!\is_string($Operator)) {
+            return $aAlerts;
+        }
+        foreach ($aAlerts as &$aAlert) {
+            $aAlert['lineRefs'] = array_map(fn(string $sRef) => $Operator . ':' . $sRef, $aAlert['lineRefs']);
+        }
+        return $aAlerts;
     }
 
     public function alertsByLine(): array

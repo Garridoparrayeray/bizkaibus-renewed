@@ -7,23 +7,30 @@ use Core\Request;
 use Core\Response;
 use Services\GtfsRealtimeClient;
 use Services\MetroAlertsClient;
+use Services\ReducedService;
 use Services\RenfeAlertsClient;
 use Services\SiriAlertsClient;
 
-// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=). Las fuentes son los clientes de
-// Services (Metro, Renfe, GTFS-Realtime y SIRI).
+// Incidencias de la red: /api/alerts (todas, ?line= o, en Renfe, ?stop=), con el servicio reducido de la red
+// (Services\ReducedService), que también da /api/reduced. Las fuentes son los clientes de Metro, Renfe, GTFS-RT y SIRI.
 class AlertsController
 {
     public function index(Request $Req): void
     {
-        Response::json(['alerts' => $this->alerts($Req->query('line'), $Req->query('stop'))]);
+        Response::json(['alerts' => $this->alerts($Req->query('line'), $Req->query('stop')), 'reducedService' => ReducedService::current()]);
     }
 
-    // Avisos de la red actual: todos, los de una línea (?line=) o, en Renfe, los de una estación (?stop=).
-    // También los usan las notificaciones de incidencias (Services\IncidentAlerts).
-    public function alerts(string|null $sLine, string|null $sStop): array
+    // Solo el servicio reducido de la red (/api/reduced): lo pide la app al arrancar y el planificador, red a red.
+    public function reduced(Request $Req): void
     {
-        return self::withoutRepeats($this->sourceAlerts($sLine, $sStop));
+        Response::json(ReducedService::current());
+    }
+
+    // Avisos de la red actual: todos, los de una línea (?line=) o, en Renfe, los de una estación (?stop=). Con
+    // $bUpcoming, también los que aún no han empezado. Los usan los avisos de incidencias y el servicio reducido.
+    public function alerts(string|null $sLine, string|null $sStop, bool $bUpcoming = false): array
+    {
+        return self::withoutRepeats($this->sourceAlerts($sLine, $sStop, $bUpcoming));
     }
 
     // Cada aviso una vez: el SIRI de Metro repite el mismo decenas de veces, sin nada que los distinga.
@@ -46,7 +53,7 @@ class AlertsController
         return $aOut;
     }
 
-    private function sourceAlerts(string|null $sLine, string|null $sStop): array
+    private function sourceAlerts(string|null $sLine, string|null $sStop, bool $bUpcoming): array
     {
         $aConfig = Config::current();
 
@@ -65,7 +72,7 @@ class AlertsController
         }
 
         if (isset($aConfig['gtfs_rt']['alerts_url'])) {
-            return self::gtfsRtAlerts((new GtfsRealtimeClient($aConfig))->fetchAlerts(), $sLine);
+            return self::gtfsRtAlerts((new GtfsRealtimeClient($aConfig))->fetchAlerts($bUpcoming), $sLine);
         }
 
         if (isset($aConfig['renfe_alerts'])) {
@@ -98,6 +105,8 @@ class AlertsController
                 'description' => $aAlert['description'],
                 'lineRefs' => $aAlert['lineRefs'],
                 'stopRefs' => $aAlert['stopRefs'],
+                'startTime' => $aAlert['startTime'],
+                'endTime' => $aAlert['endTime'],
             ];
         }
         return $aOut;

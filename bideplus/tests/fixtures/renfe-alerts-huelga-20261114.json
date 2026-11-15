@@ -1,0 +1,227 @@
+{
+ "header": {
+  "gtfsRealtimeVersion": "2.0",
+  "timestamp": "1794684124"
+ },
+ "entity": [
+  {
+   "id": "AVISO_526248",
+   "alert": {
+    "activePeriod": [
+     {
+      "start": "1794670500"
+     }
+    ],
+    "informedEntity": [
+     {
+      "routeId": "60T0002C1"
+     },
+     {
+      "routeId": "60T0001C1"
+     },
+     {
+      "routeId": "60T0004C2"
+     },
+     {
+      "routeId": "60T0003C2"
+     },
+     {
+      "routeId": "60T0006C3"
+     },
+     {
+      "routeId": "60T0005C3"
+     },
+     {
+      "routeId": "60T0008C4"
+     },
+     {
+      "routeId": "60T0007C4"
+     },
+     {
+      "routeId": "60T0019C5"
+     },
+     {
+      "routeId": "60T0018C5"
+     },
+     {
+      "routeId": "60T0020C5"
+     },
+     {
+      "routeId": "60T0017C5"
+     }
+    ],
+    "descriptionText": {
+     "translation": [
+      {
+       "text": "Trenbide sektoreak azaroaren 17rako 24 orduko deitutako grebak trenen ohiko zerbitzuan eragina izan dezake eta Zerbitzu Minimoen eskaintza bat ezarriko da. Kontsulta ezazu informazio guztia gure kanal ofizialen bidez. Eskerrik asko zuen arretagatik. // Con motivo de la huelga de 24 horas convocada el día 17 de noviembre por el sector ferroviario, el servicio podría verse afectado, se ha establecido una oferta de Servicios Mínimos. Consulta toda la información en nuestros canales oficiales. Gracias por tu compresión.\r\n",
+       "language": "es"
+      },
+      {
+       "text": "Trenbide sektoreak azaroaren 17rako 24 orduko deitutako grebak trenen ohiko zerbitzuan eragina izan dezake eta Zerbitzu Minimoen eskaintza bat ezarriko da. Kontsulta ezazu informazio guztia gure kanal ofizialen bidez. Eskerrik asko zuen arretagatik. // Con motivo de la huelga de 24 horas convocada el día 17 de noviembre por el sector ferroviario, el servicio podría verse afectado, se ha establecido una oferta de Servicios Mínimos. Consulta toda la información en nuestros canales oficiales. Gracias por tu compresión.\r\n",
+       "language": "es"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "AVISO_526290",
+   "alert": {
+    "activePeriod": [
+     {
+      "start": "1794671580"
+     }
+    ],
+    "informedEntity": [
+     {
+      "routeId": "61T0006C1"
+     },
+     {
+      "routeId": "61T0005C1"
+     },
+     {
+      "routeId": "61T0003C1"
+     },
+     {
+      "routeId": "61T0002C1"
+     },
+     {
+      "routeId": "61T0001C1"
+     }
+    ],
+    "descriptionText": {
+     "translation": [
+      {
+       "text": "Trenbide sektoreak azaroaren 17rako 24 orduko deitutako grebak trenen ohiko zerbitzuan eragina izan dezake eta Zerbitzu Minimoen eskaintza bat ezarriko da. Kontsulta ezazu informazio guztia gure kanal ofizialen bidez. Eskerrik asko zuen arretagatik. // Con motivo de la huelga de 24 horas convocada el día 17 de noviembre por el sector ferroviario, el servicio podría verse afectado, se ha establecido una oferta de Servicios Mínimos. Consulta toda la información en nuestros canales oficiales. Gracias por tu compresión.\r\n",
+       "language": "es"
+      },
+      {
+       "text": "Trenbide sektoreak azaroaren 17rako 24 orduko deitutako grebak trenen ohiko zerbitzuan eragina izan dezake eta Zerbitzu Minimoen eskaintza bat ezarriko da. Kontsulta ezazu informazio guztia gure kanal ofizialen bidez. Eskerrik asko zuen arretagatik. // Con motivo de la huelga de 24 horas convocada el día 17 de noviembre por el sector ferroviario, el servicio podría verse afectado, se ha establecido una oferta de Servicios Mínimos. Consulta toda la información en nuestros canales oficiales. Gracias por tu compresión.\r\n",
+       "language": "es"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "INFO_525249",
+   "alert": {
+    "activePeriod": [
+     {
+      "start": "1794259080"
+     }
+    ],
+    "informedEntity": [
+     {
+      "routeId": "60T0002C1"
+     },
+     {
+      "routeId": "60T0001C1"
+     },
+     {
+      "routeId": "60T0008C4"
+     },
+     {
+      "routeId": "60T0007C4"
+     },
+     {
+      "routeId": "60T0019C5"
+     },
+     {
+      "routeId": "60T0006C3"
+     },
+     {
+      "routeId": "60T0018C5"
+     },
+     {
+      "routeId": "60T0005C3"
+     },
+     {
+      "routeId": "60T0020C5"
+     },
+     {
+      "routeId": "60T0017C5"
+     },
+     {
+      "routeId": "60T0004C2"
+     },
+     {
+      "routeId": "60T0003C2"
+     }
+    ],
+    "descriptionText": {
+     "translation": [
+      {
+       "text": "AMETZOLA. 2. trenbideko igogailua zerbitzuz kanpo daude. // AMETZOLA. Ascensor de vía 2 se encuentra fuera de servicio. ",
+       "language": "es"
+      },
+      {
+       "text": "AMETZOLA. 2. trenbideko igogailua zerbitzuz kanpo daude. // AMETZOLA. Ascensor de vía 2 se encuentra fuera de servicio. ",
+       "language": "es"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "INFO_524436",
+   "alert": {
+    "activePeriod": [
+     {
+      "start": "1793965080"
+     }
+    ],
+    "informedEntity": [
+     {
+      "routeId": "60T0002C1"
+     },
+     {
+      "routeId": "60T0001C1"
+     },
+     {
+      "routeId": "60T0008C4"
+     },
+     {
+      "routeId": "60T0007C4"
+     },
+     {
+      "routeId": "60T0019C5"
+     },
+     {
+      "routeId": "60T0006C3"
+     },
+     {
+      "routeId": "60T0018C5"
+     },
+     {
+      "routeId": "60T0005C3"
+     },
+     {
+      "routeId": "60T0020C5"
+     },
+     {
+      "routeId": "60T0017C5"
+     },
+     {
+      "routeId": "60T0004C2"
+     },
+     {
+      "routeId": "60T0003C2"
+     }
+    ],
+    "descriptionText": {
+     "translation": [
+      {
+       "text": "LA PEÑA. Kanpoko eskailerak mekanikoak zerbitzuz kanpo daude. //  LA PEÑA. Escaleras mecánicas exteriores se encuentran fuera de servicio. ",
+       "language": "es"
+      },
+      {
+       "text": "LA PEÑA. Kanpoko eskailerak mekanikoak zerbitzuz kanpo daude. //  LA PEÑA. Escaleras mecánicas exteriores se encuentran fuera de servicio. ",
+       "language": "es"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -146,6 +146,7 @@ use Core\Networks;
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/></svg>
                 <span data-i18n="app.nearby">Cerca de mí</span>
             </button>
+                <p id="reduced-notice" class="timetable-note" role="status" hidden></p>
                 <div id="favorites-panel" class="glass favorites-panel">
                     <header>
                         <h2 data-i18n="app.favorites.title">Tus favoritos</h2>

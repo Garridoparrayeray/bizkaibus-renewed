@@ -12,9 +12,23 @@ export function debounce(fn, delayMs) {
     };
 }
 
+// Servicio reducido de la red (js/app/reduced.js): hoy, lo que va solo con su horario en sus líneas puede no pasar.
+let reduced = null;
+
+export function setReducedToday(value) {
+    reduced = value;
+}
+
+// Una salida de hoy (no de otro día ni la primera de mañana) sin directo en una línea con servicio reducido.
+function mayNotRun(departure) {
+    if (!reduced || !reduced.today || !departure || departure.tomorrow || departure.status !== 'scheduled') return false;
+    return !Array.isArray(reduced.lines) || reduced.lines.map(String).includes(String(departure.lineId));
+}
+
 // Cuánto falta, para las listas: «5 min» o, si hoy ya no sale ninguna más, «mañana 07:00».
 export function departureWhen(departure) {
     if (departure.tomorrow) return I18n.t('app.tomorrowAt', { time: departure.scheduledTime });
+    if (mayNotRun(departure)) return `${Math.max(departure.etaMinutes, 0)} min · ${I18n.t('app.list.mayNotRun')}`;
     return `${Math.max(departure.etaMinutes, 0)} min`;
 }
 
@@ -36,7 +50,8 @@ export function liveBadgeText(status, etaMinutes, atOrigin = false) {
     return I18n.t('app.badge.enRoute');
 }
 
-export function statusLabel(status, delayMinutes) {
+// departure: la salida de hoy de la que es el estado (en el horario de una línea, ninguna).
+export function statusLabel(status, delayMinutes, departure = null) {
     if (status === 'live') {
         // Retraso no creíble (null): se muestra la llegada estimada sin afirmar ni «en hora» ni retraso.
         if (delayMinutes === null || delayMinutes === undefined) return { text: '', className: 'status-muted' };
@@ -49,6 +64,7 @@ export function statusLabel(status, delayMinutes) {
     if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
     if (status === 'likely_departed') return { text: noData('app.status.likelyDeparted', 'app.status.likelyDepartedTrain'), className: 'status-muted' };
     if (status === 'cancelled') return { text: I18n.t('app.status.cancelled'), className: 'status-warn' };
+    if (mayNotRun(departure)) return { text: I18n.t('app.status.mayNotRun'), className: 'status-warn' };
     return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
 }
 
