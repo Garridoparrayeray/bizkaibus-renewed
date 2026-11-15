@@ -16,6 +16,13 @@ const MODAL_PASSED_AFTER_MS = 45000;
 export const DEPARTED_GRACE_MS = 45 * 1000;
 export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
 // Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
+// La hora del texto de compartir, en la de los horarios aunque el móvil esté en otra zona horaria.
+const SHARE_TIME = new Intl.DateTimeFormat('es-ES', {
+    timeZone: BideNetworks.TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+});
 const shareState = { tripKey: null, data: null };
 
 function freshModalStops(data) {
@@ -265,7 +272,7 @@ function arrivalTime(data) {
     const stop = data.stops.find((s) => String(s.stopId) === String(state.currentStop.id));
     if (!stop) return '';
     if (Number.isFinite(stop.etaAt) && (data.status === 'live' || data.status === 'estimated')) {
-        return new Date(stop.etaAt * 1000).toTimeString().slice(0, 5);
+        return SHARE_TIME.format(new Date(stop.etaAt * 1000));
     }
     return stop.scheduledTime || '';
 }
