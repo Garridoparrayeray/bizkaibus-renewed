@@ -1004,6 +1004,32 @@ $aRefuerzoTimes = ['A' => $iMidPm + 1000, 'B' => $iMidPm + 1100, 'D' => $iMidPm 
 $aPlannerExtra = \Services\PlannerExtras::extraOf('metro', 'MB', 'rt:t3', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 900);
 $Expect('un refuerzo para el planificador: sus paradas en el orden del recorrido con su hora del día, sin las que no tienen hora', $aPlannerExtra === ['network' => 'metro', 'line' => 'MB', 'trip' => 'rt:t3', 'headsign' => 'Uve', 'stops' => [['stop' => 'A', 'arrive' => 1000, 'depart' => 1000], ['stop' => 'B', 'arrive' => 1100, 'depart' => 1100], ['stop' => 'D', 'arrive' => 1300, 'depart' => 1300]]], json_encode($aPlannerExtra));
 $Expect('un refuerzo que no pasa por ninguna parada en las próximas 2 h no sale (ni el que ya pasó ni el de dentro de 3 h)', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1400) === null && \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1000 - 3 * 3600) === null);
+$aPlannerDay = \Services\PlannerExtras::extraOf('metro', 'MB', 'rt:t3', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 900, 20772, true);
+$Expect('el refuerzo lleva su día de servicio y, si la ficha lo dice, que es accesible', ($aPlannerDay['day'] ?? null) === 20772 && ($aPlannerDay['accessible'] ?? null) === true && array_key_last($aPlannerDay) === 'stops', json_encode($aPlannerDay));
+$aOddTimes = ['A' => $iMidPm - 30, 'B' => $iMidPm + 1100, 'C' => $iMidPm + 1050, 'D' => $iMidPm + 1300];
+$aOdd = \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aOddTimes, $iMidPm, 900);
+$Expect('del refuerzo se quitan las paradas de hora negativa (antes de medianoche) y las que retroceden', array_column($aOdd['stops'] ?? [], 'stop') === ['B', 'D'], json_encode($aOdd));
+$Expect('la ficha de la red dice si su flota es toda accesible; si no, no se sabe', \Services\PlannerExtras::fleetAccessible(['accessibility' => ['fleet' => 'all']]) === true && \Services\PlannerExtras::fleetAccessible(['accessibility' => ['fleet' => 'some']]) === null && \Services\PlannerExtras::fleetAccessible([]) === null);
+$KnownTrips = new class extends ServiceJourney {
+    public function __construct()
+    {
+        parent::__construct(new PDO('sqlite::memory:'));
+    }
+
+    public function journeyIdsForTripRefs(array $aTripRefs): array
+    {
+        return array_intersect_key(['alias-1' => '896700'], array_flip($aTripRefs));
+    }
+
+    public function lineOfJourney(string $sServiceJourneyId): array|null
+    {
+        if ($sServiceJourneyId === '896643') {
+            return ['id' => 'MB', 'code' => 'MB'];
+        }
+        return null;
+    }
+};
+$Expect('un tren «sin horario» cuyo id del feed es un viaje del horario (o su alias) no es un refuerzo', \Services\PlannerExtras::scheduled($KnownTrips, '896643') && \Services\PlannerExtras::scheduled($KnownTrips, 'alias-1') && !\Services\PlannerExtras::scheduled($KnownTrips, '999') && !\Services\PlannerExtras::scheduled($KnownTrips, ''));
 $Expect('un refuerzo con la hora de una sola parada no sale', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, ['A' => $iMidPm + 1000], $iMidPm, 900) === null);
 
 $Section('Servicio reducido (huelgas, servicios mínimos)');

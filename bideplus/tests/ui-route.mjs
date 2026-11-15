@@ -387,6 +387,12 @@ if (!(await liveSearch('mixed'))) {
         check('refuerzo · sale primero y marcado «Refuerzo · en directo»', await waitTrue(`${sFirstLabel} === 'Refuerzo · en directo'`, 20000), await ev(labels));
         await ev("document.querySelector('.route-option .route-choose').click(); true");
         check('refuerzo · el viaje elegido lo lleva, marcado', await waitTrue("[...document.querySelectorAll('.route-ride-badge')].some((n) => n.textContent === 'Refuerzo · en directo')", 20000));
+        // En el refresco siguiente su hora se mueve 1 min y medio (como la ETA del feed): sigue siendo el mismo viaje.
+        live.extra.stops = live.extra.stops.map((stop) => ({ ...stop, arrive: stop.arrive + 90, depart: stop.depart + 90 }));
+        const iAsked = live.count;
+        const bRefreshed = await waitUntil(() => live.count > iAsked, 45000);
+        await sleep(3000);
+        check('refuerzo · con su hora movida en el refresco el viaje elegido sigue en él', bRefreshed && await waitTrue("[...document.querySelectorAll('.route-ride-badge')].some((n) => n.textContent === 'Refuerzo · en directo')", 10000));
         await ev('history.back(); true');
         await waitTrue("document.getElementById('route-trip').hidden");
         live.mode = 'mixed';

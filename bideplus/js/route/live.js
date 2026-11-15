@@ -19,8 +19,10 @@ const AHEAD_SECONDS = 2 * 3600;
 const LEG_SEPARATOR = ',';
 const PART_SEPARATOR = '|';
 
-const live = { entries: new Map(), asked: new Map(), extras: { at: 0, list: [] }, sent: '', running: null, timer: 0, last: 0,
-    sources: null, changed: null, reduced: new Map(), reducedChanged: null };
+const live = {
+    entries: new Map(), asked: new Map(), extras: { at: 0, list: [] }, sent: '', sentFull: '', running: null, timer: 0,
+    last: 0, sources: null, changed: null, reduced: new Map(), reducedChanged: null,
+};
 // El servicio reducido de cada red se vuelve a pedir pasado este tiempo.
 const REDUCED_URL = '/api/reduced?red=';
 const REDUCED_MS = 5 * 60 * 1000;
@@ -129,12 +131,12 @@ const download = async (aLegs) => {
 };
 
 // Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. Los refuerzos de cada respuesta
-// sustituyen a los de la anterior.
+// sustituyen a los de la anterior, cada uno con su día de servicio (sin él, el de la respuesta).
 const remember = (aLegs, answer) => {
     const iNow = Date.now();
     let aExtras = [];
     if (Array.isArray(answer.extras)) {
-        aExtras = answer.extras;
+        aExtras = answer.extras.map((extra) => Object.assign({ day: answer.day }, extra));
     }
     live.extras = { at: iNow, list: aExtras };
     aLegs.forEach((leg) => {
@@ -148,7 +150,8 @@ const remember = (aLegs, answer) => {
     });
 };
 
-// Manda al núcleo lo que vale ahora. true si ha cambiado algo de lo que había.
+// Manda al núcleo lo que vale ahora. true si ha cambiado algo que pide repetir la búsqueda: los retrasos o qué
+// refuerzos hay, no sus horas (la ETA de un refuerzo se mueve en cada refresco; se le pasan igual al núcleo).
 const apply = async () => {
     const iNow = Date.now();
     live.entries.forEach((entry, sKey) => {
@@ -160,15 +163,19 @@ const apply = async () => {
         live.extras = { at: 0, list: [] };
     }
     const aUpdates = Array.from(live.entries.values()).map((entry) => entry.update);
-    const sSent = JSON.stringify([aUpdates.map((update) => [update.network, update.trip, update.day, update.delay, update.cancelled]).sort(),
-        live.extras.list]);
-    if (sSent === live.sent) {
+    const aDelays = aUpdates.map((update) => [update.network, update.trip, update.day, update.delay, update.cancelled])
+        .sort();
+    const sSent = JSON.stringify([aDelays, live.extras.list.map((extra) => [extra.network, extra.trip]).sort()]);
+    const sFull = JSON.stringify([aDelays, live.extras.list]);
+    if (sFull === live.sentFull) {
         return false;
     }
+    const bChanged = sSent !== live.sent;
     live.sent = sSent;
+    live.sentFull = sFull;
     const here = nowHere();
     await engine.setLive(here.day, aUpdates, live.extras.list, here.seconds).catch(() => null);
-    return true;
+    return bChanged;
 };
 
 const refresh = async () => {

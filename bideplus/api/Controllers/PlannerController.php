@@ -3,9 +3,12 @@
 namespace Controllers;
 
 use Core\Config;
+use Core\Database;
+use Core\Live;
 use Core\Networks;
 use Core\Request;
 use Core\Response;
+use Models\ServiceJourney;
 use Services\Calendar;
 use Services\PlannerExtras;
 
@@ -35,14 +38,16 @@ class PlannerController
         $sCurrent = Config::network();
         try {
             foreach ($aByNetwork as $sNetwork => $aLegs) {
-                array_push($aUpdates, ...self::networkUpdates($sNetwork, $aLegs));
-                array_push($aExtras, ...self::networkExtras($sNetwork, array_keys($aLegs)));
+                [$aNetworkUpdates, $aNetworkExtras] = self::networkLive($sNetwork, $aLegs, self::serviceDay());
+                array_push($aUpdates, ...$aNetworkUpdates);
+                array_push($aExtras, ...$aNetworkExtras);
             }
         } finally {
             Config::set($sCurrent);
         }
         $aExtras = \array_slice($aExtras, 0, PlannerExtras::MAX_EXTRAS);
-        Response::json(['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates, 'extras' => $aExtras]);
+        $aAnswer = ['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates, 'extras' => $aExtras];
+        Response::json($aAnswer);
     }
 
     // red => parada => [[línea, hora en la parada, viaje]], de «red|parada|línea|hora|viaje» separados por comas (cada
@@ -70,27 +75,21 @@ class PlannerController
         return $aByNetwork;
     }
 
-    // Los viajes de una red que van en directo o cancelados. Si su directo falla, la red se queda con su horario.
-    private static function networkUpdates(string $sNetwork, array $aLegs): array
+    // Los viajes de una red que van en directo o cancelados, y sus refuerzos por las paradas de los tramos, con un
+    // solo emparejador. Si su directo falla, la red se queda con su horario y sin refuerzos.
+    private static function networkLive(string $sNetwork, array $aLegs, int $iDay): array
     {
         try {
             Config::set($sNetwork);
-            return self::updatesOf($sNetwork, StopsController::liveLegs($aLegs), self::serviceDay());
+            $JourneyModel = new ServiceJourney(Database::connection());
+            $TripMatcher = Live::tripMatcher($JourneyModel);
+            $aUpdates = self::updatesOf($sNetwork, StopsController::liveLegs($aLegs, $JourneyModel, $TripMatcher),
+                $iDay);
+            $aExtras = PlannerExtras::atStops($sNetwork, $JourneyModel, $TripMatcher, array_keys($aLegs), $iDay);
+            return [$aUpdates, $aExtras];
         } catch (\Throwable $Ex) {
             error_log('Bide+ directo del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
-            return [];
-        }
-    }
-
-    // Los refuerzos de una red que pasan por esas paradas. Si su directo falla, sin refuerzos.
-    private static function networkExtras(string $sNetwork, array $aStopIds): array
-    {
-        try {
-            Config::set($sNetwork);
-            return PlannerExtras::atStops($sNetwork, $aStopIds);
-        } catch (\Throwable $Ex) {
-            error_log('Bide+ refuerzos del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
-            return [];
+            return [[], []];
         }
     }
 

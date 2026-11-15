@@ -180,18 +180,19 @@ class StopsController
     }
 
     // El directo de unos viajes al salir de sus paradas, en la red actual, para el planificador, con los mismos
-    // emparejadores y la misma ventana que las próximas salidas: por línea y hora del horario en la parada (de su día de
-    // servicio: de madrugada, las de ayer van como 25:10). $aLegs: parada => [[línea, hora, viaje]]; da viaje => salida.
-    public static function liveLegs(array $aLegs): array
+    // emparejadores (el por viaje puede venir hecho) y la misma ventana que las próximas salidas: por línea y hora del
+    // horario de su día de servicio (las de ayer de madrugada, como 25:10). $aLegs: parada => [[línea, hora, viaje]].
+    public static function liveLegs(array $aLegs, ServiceJourney|null $JourneyModel = null,
+        object|null $TripMatcher = null): array
     {
-        $JourneyModel = new ServiceJourney(Database::connection());
+        $JourneyModel ??= new ServiceJourney(Database::connection());
         $Matcher = Live::matcher($JourneyModel);
         $YesterdayMatcher = null;
         $Yesterday = function () use (&$YesterdayMatcher, $JourneyModel): object {
             $YesterdayMatcher ??= Live::matcher($JourneyModel, null, 1);
             return $YesterdayMatcher;
         };
-        $TripMatcher = Live::tripMatcher($JourneyModel);
+        $TripMatcher ??= Live::tripMatcher($JourneyModel);
         $iPast = self::pastSeconds($TripMatcher);
         $aLive = [];
         foreach ($aLegs as $StopId => $aWanted) {

@@ -64,7 +64,7 @@ SCHEMAS = {
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'plannerLive': {'day': int, 'generated': int,
                     'updates': [{'network': str, 'trip': str, 'day': int, 'delay': int, 'cancelled': bool}],
-                    'extras': [{'network': str, 'line': str, 'trip': str, 'headsign': str,
+                    'extras': [{'network': str, 'line': str, 'trip': str, 'headsign': str, 'day': int,
                                 'stops': [{'stop': str, 'arrive': int, 'depart': int}]}]},
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
