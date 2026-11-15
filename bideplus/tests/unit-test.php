@@ -1124,4 +1124,22 @@ $Expect('de madrugada, con muy pocos viajes que tocaban, no se juzga', !\Service
 $iEarly = (new DateTimeImmutable('2026-11-15 02:30', new DateTimeZone(\Services\Calendar::TIME_ZONE)))->getTimestamp();
 $Expect('a las 02:30 el día de servicio aún es el de ayer', \Services\ReducedService::serviceDay($iEarly, $aReducedRules)->format('Y-m-d') === '2026-11-14' && \Services\ReducedService::serviceDay($iNowStrike, $aReducedRules)->format('Y-m-d') === '2026-11-14');
 
+$Section('Latido del cron externo (/api/live/record) y última vez que vino lleno cada feed');
+$aBeat = \Services\CronHeartbeat::commands(['bus' => 120, 'bilbobus' => 0, 'lurraldebus' => null], 1000);
+$bBeatShape = count($aBeat) === 2 && $aBeat[0][0] === 'SET' && $aBeat[0][2] === '1000' && $aBeat[0][3] === 'EX';
+$Expect('el latido es un SET con caducidad, más uno por cada red que vino llena (no las vacías)',
+    $bBeatShape && $aBeat[1][1] === 'live:full:bus', json_encode($aBeat));
+$sBeatMarker = sys_get_temp_dir() . '/bide-latido-' . getmypid();
+@unlink($sBeatMarker);
+$bFirst = \Services\CronHeartbeat::due($sBeatMarker, 5000);
+touch($sBeatMarker, 5000);
+$bSoon = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS - 1);
+$bLater = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS);
+unlink($sBeatMarker);
+$Expect('se escribe como mucho cada 10 minutos, no en cada llamada del cron', $bFirst && !$bSoon && $bLater);
+$aAges = \Services\CronHeartbeat::agesFrom(['400', null], 1000);
+$Expect('/api/status: antigüedad del latido y, sin marca de lleno, null',
+    $aAges['cronSeconds'] === 600 && $aAges['lastFullSeconds'] === null, json_encode($aAges));
+$Expect('sin almacén o si no responde, no se dice nada', \Services\CronHeartbeat::agesFrom(null, 1000) === []);
+
 $Finish('unitarias');

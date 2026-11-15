@@ -17,6 +17,7 @@ BASE = os.environ.get('BASE_URL', 'http://localhost:8011').rstrip('/')
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PHP = os.environ.get('PHP_PATH', 'php')
 fails = []
+warnings = []
 checked = 0
 
 ID = (int, str)
@@ -65,7 +66,9 @@ SCHEMAS = {
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
     'reduced': REDUCED,
-    'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'reducedService': REDUCED},
+    'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'reducedService': REDUCED,
+                  'publishedUntil': opt('date')},
+    'noLiveStatus': {'error': str, 'publishedUntil': opt('date')},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
                           'next': opt({'lineCode': str, 'headsign': opt(str), 'etaMinutes': int, 'scheduledTime': 'hm'})}]},
     'error': {'error': str},
@@ -203,6 +206,8 @@ for name, cfg in NETS.items():
     get(net('/api/reduced', s), 'reduced', name)
     if cfg.get('live'):
         get(net('/api/status', s), 'netStatus', name)
+    else:
+        get(net('/api/status', s), 'noLiveStatus', name, expect=404)
     get(net(f'/api/nearby?lat={lat}&lon={lon}&limit=5', s), 'nearby', name)
     get(net('/api/stops/999999999', s), 'error', name, expect=404)
     get(net('/api/nearby?lat=abc&lon=1', s), 'error', name, expect=422)
@@ -242,7 +247,12 @@ for name, cfg in NETS.items():
                     if d_ and d_.get('status') == 'departed':
                         fails.append(f"{name} {path_}: el viaje dice 'departed' pero la ficha del viaje no puede afirmar que el bus salió")
     if entries_seen == 0 and not beyond_published:
-        fails.append(f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)')
+        # En una red opcional es un aviso: su base puede estar caducada sin que eso frene el despliegue de las demás.
+        message = f'{name}: ningún horario de hoy tiene salidas (una lista vacía no comprueba nada)'
+        if cfg.get('required'):
+            fails.append(message)
+        else:
+            warnings.append(message)
     if departures_seen == 0 and not quiet_hours:
         fails.append(f'{name}: ninguna parada muestra próximas salidas')
     summary = 'OK'
@@ -250,6 +260,8 @@ for name, cfg in NETS.items():
         summary = f'{len(fails) - before} fallos'
     print(name, summary)
 
+for w in warnings:
+    print('AVISO', w)
 print(f'RESULTADO contrato: {checked} comprobaciones, {len(fails)} fallos')
 for f in fails[:60]:
     print(' -', f)
