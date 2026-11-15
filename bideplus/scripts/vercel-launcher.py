@@ -35,6 +35,9 @@ PHP_WORKERS = '4'
 # Vercel admite 250 MB por función; por encima va con las funciones grandes (VERCEL_SUPPORT_LARGE_FUNCTIONS, hasta
 # 5 GB), probadas con 269 MB (ver «Tamaño de la función» en el manual de operación).
 NORMAL_LIMIT_MB = 250
+LARGE_LIMIT_MB = 5000
+# Al pasar de este trozo del tope de las funciones grandes, solo un aviso: el despliegue sigue.
+LARGE_WARN_SHARE = 0.9
 NOT_PUBLISHED = ('data', 'scripts', 'tests', 'engine')
 
 ADAPTER = r'''
@@ -165,7 +168,10 @@ def patch_function(func_dir):
         f.write('\n')
     size = sum(os.path.getsize(v) for v in file_map.values() if os.path.exists(v))
     print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías fuera; {size / 1e6:.0f} MB')
-    if size / 1e6 > NORMAL_LIMIT_MB:
+    if size / 1e6 > LARGE_LIMIT_MB * LARGE_WARN_SHARE:
+        print(f'::warning::La función pesa {size / 1e6:.0f} MB, cerca de los {LARGE_LIMIT_MB} MB de las funciones '
+              'grandes de Vercel: hay que aligerarla antes de que no se pueda desplegar.')
+    elif size / 1e6 > NORMAL_LIMIT_MB:
         print(f'::notice::La función pesa {size / 1e6:.0f} MB, más de los 250 normales de Vercel: va gracias a '
               'VERCEL_SUPPORT_LARGE_FUNCTIONS, que tiene que seguir puesta en Vercel.')
 
