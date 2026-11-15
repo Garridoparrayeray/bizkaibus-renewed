@@ -297,18 +297,19 @@ $Expect('unos metros del GTFS que no caen sobre la parada se miden de nuevo sobr
 // Un tren publicado en varios viajes: el contenido en otro más largo del mismo número y calendario se junta con él.
 $MergePdo = new PDO('sqlite::memory:');
 Build\Schema::createSchema($MergePdo);
-$InsertJourney = $MergePdo->prepare('INSERT INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id) VALUES (?, ?, ?, ?, ?)');
+$InsertJourney = $MergePdo->prepare('INSERT INTO service_journeys (id, line_id, journey_pattern_id, trip_number,
+    calendar_id, wheelchair_accessible) VALUES (?, ?, ?, ?, ?, ?)');
 $InsertTime = $MergePdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds) VALUES (?, ?, ?, ?, ?)');
 $aJourneys = [
-    ['0001112026-11-09', 'c1', [['A', 100], ['B', 200], ['C', 300]]],
-    ['0001122026-11-09', 'c1', [['B', 200], ['C', 300]]],
-    ['0001132026-11-09', 'c1', [['A', 100], ['B', 200]]],
-    ['0001142026-11-09', 'c1', [['B', 250], ['C', 300]]],
-    ['0001212026-11-09', 'c1', [['B', 200], ['C', 300]]],
-    ['0001162026-11-09', 'c2', [['B', 200], ['C', 300]]],
+    ['0001112026-11-09', 'c1', [['A', 100], ['B', 200], ['C', 300]], 1],
+    ['0001122026-11-09', 'c1', [['B', 200], ['C', 300]], 1],
+    ['0001132026-11-09', 'c1', [['A', 100], ['B', 200]], 0],
+    ['0001142026-11-09', 'c1', [['B', 250], ['C', 300]], 1],
+    ['0001212026-11-09', 'c1', [['B', 200], ['C', 300]], 1],
+    ['0001162026-11-09', 'c2', [['B', 200], ['C', 300]], 2],
 ];
-foreach ($aJourneys as [$sId, $sCalendar, $aStops]) {
-    $InsertJourney->execute([$sId, 'L', 'P', $sId, $sCalendar]);
+foreach ($aJourneys as [$sId, $sCalendar, $aStops, $iWheelchair]) {
+    $InsertJourney->execute([$sId, 'L', 'P', $sId, $sCalendar, $iWheelchair]);
     foreach ($aStops as $iSeq => [$sStop, $iTime]) {
         $InsertTime->execute([$sId, $iSeq + 1, $sStop, $iTime, $iTime]);
     }
@@ -318,6 +319,31 @@ $aLeft = $MergePdo->query('SELECT id FROM service_journeys ORDER BY id')->fetchA
 $aAliases = $MergePdo->query('SELECT trip_id, service_journey_id FROM trip_aliases ORDER BY trip_id')->fetchAll(PDO::FETCH_KEY_PAIR);
 $Expect('mismo tren: los tramos contenidos en el largo se juntan con él', $iMerged === 2 && $aAliases === ['0001122026-11-09' => '0001112026-11-09', '0001132026-11-09' => '0001112026-11-09']);
 $Expect('otra hora, otro número de tren u otro calendario: viaje aparte', $aLeft === ['0001112026-11-09', '0001142026-11-09', '0001162026-11-09', '0001212026-11-09']);
+$aMergedWheelchair = $MergePdo->query('SELECT id, wheelchair_accessible FROM service_journeys ORDER BY id')
+    ->fetchAll(PDO::FETCH_KEY_PAIR);
+$Expect('mismo tren: accesible (1) junto con uno sin dato (0) queda sin dato; los que no se juntan, como venían',
+    $aMergedWheelchair === ['0001112026-11-09' => 0, '0001142026-11-09' => 1, '0001162026-11-09' => 2,
+        '0001212026-11-09' => 1]);
+$Expect('viajes fusionados: accesible solo si lo son todos, no accesible si uno no lo es, y si no, sin dato',
+    Gtfs::mergedWheelchair([1, 1]) === 1 && Gtfs::mergedWheelchair([1, 2, 0]) === 2
+    && Gtfs::mergedWheelchair([1, 0]) === 0 && Gtfs::mergedWheelchair([0]) === 0);
+
+// Accesibilidad de las paradas (wheelchair_boarding): un andén sin dato toma el de su estación; con dato, el suyo.
+$sZipPath = tempnam(sys_get_temp_dir(), 'gtfs');
+$Zip = new ZipArchive();
+$Zip->open($sZipPath, ZipArchive::OVERWRITE);
+$Zip->addFromString('stops.txt', "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station,wheelchair_boarding"
+    . "\n"
+    . "E,Estación,43.2,-2.9,1,,1\nE_Q1,Andén,43.2,-2.9,0,E,0\nE_Q2,Andén,43.2,-2.9,0,E,2\nF,Otra,43.3,-2.9,1,,\n"
+    . "F_Q1,Andén,43.3,-2.9,0,F,\nS.0,Suelta,43.4,-2.9,0,,1\n");
+$Zip->close();
+$Zip->open($sZipPath);
+$aWheelchairStops = Gtfs::withWheelchair($Zip, Gtfs::loadStopsEuskotren($Zip) + Gtfs::loadStopsMetro($Zip));
+$Zip->close();
+unlink($sZipPath);
+$Expect('paradas: el andén sin dato hereda de su estación, el que tiene dato se queda el suyo; sin nada, sin dato',
+    array_map(fn(array $aStop) => $aStop['wheelchair'], $aWheelchairStops)
+    === ['E' => 1, 'F' => 0, 'E_Q1' => 1, 'E_Q2' => 2, 'F_Q1' => 0, 'S' => 1]);
 
 // Una errata del operador (un paso antes que el anterior) se deja a la hora del anterior, y lo de detrás no se toca.
 $TimesPdo = new PDO('sqlite::memory:');

@@ -87,6 +87,7 @@ class Journeys
                 'excludedDates' => $aExcludedDates,
                 'calendarGroupKey' => $sCalendarGroupKey,
                 'timingKey' => $sTimingKey,
+                'wheelchair' => $aTrip['wheelchair'] ?? Gtfs::WHEELCHAIR_UNKNOWN,
             ];
         }
 
@@ -271,7 +272,9 @@ class Journeys
         $InsertPattern = $Pdo->prepare('INSERT OR IGNORE INTO journey_patterns (id, line_id, headsign) VALUES (?, ?, ?)');
         $LastStopName = $Pdo->prepare('SELECT name FROM stops WHERE id = ?');
         $InsertPatternStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
-        $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id, trip_number, calendar_id, first_departure_seconds, shape_id) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $InsertJourney = $Pdo->prepare('INSERT OR IGNORE INTO service_journeys (id, line_id, journey_pattern_id,
+            trip_number, calendar_id, first_departure_seconds, shape_id, wheelchair_accessible)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
         $InsertPassingTime = $Pdo->prepare('INSERT INTO passing_times (service_journey_id, seq_order, stop_id, arrival_seconds, departure_seconds, dist_m) VALUES (?, ?, ?, ?, ?, ?)');
         $aUsedShapeIds = [];
         $InsertTripAlias = $Pdo->prepare('INSERT OR IGNORE INTO trip_aliases (trip_id, service_journey_id) VALUES (?, ?)');
@@ -308,7 +311,9 @@ class Journeys
                 $sShapeId = $aTrips[$sTripId]['shapeId'];
                 $aUsedShapeIds[$sShapeId] = true;
             }
-            $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'], $aGroup['firstDeparture'], $sShapeId]);
+            $aMembers = array_map(fn(string $sTrip) => $aSignatures[$sTrip]['wheelchair'], $aGroup['memberTripIds']);
+            $InsertJourney->execute([$sTripId, $aGroup['routeId'], $sPatternKey, $sTripNumber, $aGroup['calendarId'],
+                $aGroup['firstDeparture'], $sShapeId, Gtfs::mergedWheelchair($aMembers)]);
             $aTotals['journeys']++;
 
             foreach ($aGroup['memberTripIds'] as $sMemberTripId) {

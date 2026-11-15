@@ -12,6 +12,11 @@ use RuntimeException;
 
 class Gtfs
 {
+    // Accesibilidad en silla de ruedas, como en GTFS (wheelchair_boarding y wheelchair_accessible).
+    public const WHEELCHAIR_UNKNOWN = 0;
+    public const WHEELCHAIR_YES = 1;
+    public const WHEELCHAIR_NO = 2;
+
     // «Azkoitia(altzibar» -> «Azkoitia (Altzibar)»: espacio antes del paréntesis, paréntesis cerrado y mayúscula
     // inicial en cada palabra que empieza en minúscula (también tras «-» y «(»).
     public static function tidyHeadsign(string $sHeadsign): string
@@ -245,6 +250,57 @@ class Gtfs
         return $aStops;
     }
 
+    // 1 y 2 de GTFS tal cual; vacío, 0 o cualquier otra cosa es «sin dato».
+    public static function wheelchairValue(string|null $sValue): int
+    {
+        $iValue = (int)$sValue;
+        if ($iValue === self::WHEELCHAIR_YES || $iValue === self::WHEELCHAIR_NO) {
+            return $iValue;
+        }
+        return self::WHEELCHAIR_UNKNOWN;
+    }
+
+    // Un viaje hecho de varios del GTFS: accesible si lo son todos, no accesible si uno no lo es, y si no, sin dato.
+    public static function mergedWheelchair(array $aValues): int
+    {
+        if (in_array(self::WHEELCHAIR_NO, $aValues, true)) {
+            return self::WHEELCHAIR_NO;
+        }
+        if (array_unique($aValues) === [self::WHEELCHAIR_YES]) {
+            return self::WHEELCHAIR_YES;
+        }
+        return self::WHEELCHAIR_UNKNOWN;
+    }
+
+    // wheelchair_boarding de cada parada de stops.txt; como manda GTFS, un andén sin dato toma el de su estación.
+    public static function stopWheelchair(ZipArchive $Zip): array
+    {
+        $aOwn = [];
+        $aParent = [];
+        foreach (self::readCsv($Zip, 'stops.txt') as $aRow) {
+            $sId = self::stripFloatIdSuffix($aRow['stop_id']);
+            $aOwn[$sId] = self::wheelchairValue($aRow['wheelchair_boarding'] ?? null);
+            $aParent[$sId] = self::stripFloatIdSuffix($aRow['parent_station'] ?? '');
+        }
+        $aValues = $aOwn;
+        foreach ($aOwn as $sId => $iValue) {
+            if ($iValue === self::WHEELCHAIR_UNKNOWN && isset($aOwn[$aParent[$sId]])) {
+                $aValues[$sId] = $aOwn[$aParent[$sId]];
+            }
+        }
+        return $aValues;
+    }
+
+    // Las paradas de un cargador con su wheelchair_boarding (stopWheelchair).
+    public static function withWheelchair(ZipArchive $Zip, array $aStops): array
+    {
+        $aValues = self::stopWheelchair($Zip);
+        foreach ($aStops as $Id => $aStop) {
+            $aStops[$Id]['wheelchair'] = $aValues[self::stripFloatIdSuffix((string)$Id)] ?? self::WHEELCHAIR_UNKNOWN;
+        }
+        return $aStops;
+    }
+
     public static function headsignByPattern(string $sPattern, string $sHeadsign): string
     {
         if (preg_match($sPattern, $sHeadsign, $aMatch)) {
@@ -281,6 +337,7 @@ class Gtfs
                 'headsign' => $sHeadsign,
                 'tripNumber' => $sTripNumber,
                 'shapeId' => $sShapeId,
+                'wheelchair' => self::wheelchairValue($aRow['wheelchair_accessible'] ?? null),
             ];
         }
         return $aTrips;
