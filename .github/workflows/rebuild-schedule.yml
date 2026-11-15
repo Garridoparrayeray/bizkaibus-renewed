@@ -243,6 +243,17 @@ jobs:
           vercel build --prod --yes --token="$VERCEL_TOKEN"
           OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
           python3 bideplus/scripts/vercel-launcher.py "$OUT"
+          # Vercel no admite funciones de más de 250 MB sin comprimir: se para antes, con margen.
+          MAX_FUNCTION_MB=220
+          for FUNC in "$OUT"/functions/*.func "$OUT"/functions/*/*.func; do
+            [ -d "$FUNC" ] || continue
+            MB=$(du -sm "$FUNC" | cut -f1)
+            echo "Función $(basename "$FUNC"): $MB MB"
+            if [ "$MB" -gt "$MAX_FUNCTION_MB" ]; then
+              echo "::error::La función $(basename "$FUNC") ocupa $MB MB (tope $MAX_FUNCTION_MB MB): no se despliega"
+              exit 1
+            fi
+          done
           rm -f .vercelignore bideplus/.vercelignore
           vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
 

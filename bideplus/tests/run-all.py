@@ -27,6 +27,7 @@ STEPS = [
     ('Enlaces de los avisos', ['node', 'tests/linkify.mjs']),
     ('Aviso general (script del workflow)', [PY, 'tests/aviso-script.py']),
     ('Vigilante del directo (retrasos)', [PY, 'tests/live-health.py']),
+    ('Poda de los acumulados de la captura', [PY, 'tests/podar-acumulado.py']),
 ]
 if not QUICK:
     STEPS += [
