@@ -116,6 +116,9 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
+        // Un retraso de más de 1 h (el tope de Metro) es de otro viaje con ese id: no vale y el viaje sale con su
+        // horario. Renfe y SNCF no tienen tope: sus trenes de largo recorrido sí llevan retrasos así.
+        'max_feed_gap_seconds' => 3600,
         'matching' => 'trip',
         'match_tolerance_seconds' => 600,
     ],
