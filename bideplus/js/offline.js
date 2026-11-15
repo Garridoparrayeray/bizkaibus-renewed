@@ -551,17 +551,22 @@ const BideOffline = (() => {
 
     /*
      * Horario de una línea para un día y una franja, como /api/lines/{id}/timetable: desde la primera parada o, con
-     * stopId, en esa parada. Si la franja pasa de medianoche, se suman las de la madrugada del día siguiente.
+     * stopId, en esa parada. Se suman las de ayer de las 24:00 en adelante (la madrugada de hoy) y, si la franja pasa
+     * de medianoche, las de la madrugada del día siguiente.
      * options: { date: Date, from, to (segundos), stopId, now: Date }.
      */
     function timetable(data, lineId, options) {
         const index = lineIndex(data, lineId);
         if (index < 0) return null;
-        let rows;
-        if (options.to >= options.from) {
-            rows = departuresOn(data, index, options.date, options.from, options.to, options.stopId, 0);
-        } else {
-            rows = departuresOn(data, index, options.date, options.from, options.to + DAY_SECONDS, options.stopId, 0);
+        let last = options.to;
+        if (options.to < options.from) last = options.to + DAY_SECONDS;
+        const previous = new Date(options.date);
+        previous.setDate(previous.getDate() - 1);
+        const fromPrevious = options.from + DAY_SECONDS;
+        const toPrevious = Math.min(last, DAY_SECONDS - 1) + DAY_SECONDS;
+        let rows = departuresOn(data, index, previous, fromPrevious, toPrevious, options.stopId, -DAY_SECONDS);
+        rows = rows.concat(departuresOn(data, index, options.date, options.from, last, options.stopId, 0));
+        if (options.to < options.from) {
             const next = new Date(options.date);
             next.setDate(next.getDate() + 1);
             rows = rows.concat(departuresOn(data, index, next, 0, options.to, options.stopId, DAY_SECONDS));
