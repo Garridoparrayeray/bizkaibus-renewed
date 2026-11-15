@@ -1,7 +1,8 @@
 <?php
 
 // Genera llms.txt, el resumen de Bide+ para los modelos de IA, con cada app de api/Networks: qué cubre, si tiene
-// tiempo real y de dónde salen sus datos. Es un fichero estático: se vuelve a generar al añadir o cambiar una red.
+// tiempo real, sus límites y de dónde salen sus datos. Es un fichero estático: se vuelve a generar al añadir o
+// cambiar una red.
 // Uso: php scripts/build-llms.php [--output=ruta]
 
 declare(strict_types=1);
@@ -37,7 +38,8 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
     $sAppUrl = $sUrl . '/?red=' . rawurlencode($sSlug);
     $sAttribution = preg_replace('/^Data:\s*/', '', $aNetwork['texts']['en']['attribution']);
     $aApps[] = '- [' . $sName . '](' . $sAppUrl . '&lang=en) (' . $aNetwork['kind'] . '): ' . $aNetwork['texts']['en']['switcher']
-        . '. Coverage: ' . liveSummary($aNetwork['live'] ?? []) . '. Data: ' . $sAttribution . '.';
+        . '. Coverage: ' . liveSummary($aNetwork['live'] ?? []) . '. Limits: ' . $aNetwork['texts']['en']['dataLimits']
+        . ' Data: ' . $sAttribution . '.';
     $aLinks[] = '- [' . $sName . '](' . $sAppUrl . ')';
 }
 $iApps = count($aApps);
@@ -77,6 +79,7 @@ $sText = <<<TEXT
 - Use it offline: timetables for every network are stored on the device and refreshed every day.
 - Open a full-screen departure board for any stop (for a TV or tablet in a shop or bar).
 - Bizkaibus+ computes arrivals from each bus's GPS position on its route instead of only repeating the timetable.
+- On strike, minimum-service or reduced-service days, each network shows a warning below the search box (also a few days ahead) and marks the departures that only follow the timetable as «may not run». Weekday public holidays that the operator does not list run on the Sunday timetable, from the official Basque work calendar.
 
 ## Key pages
 - [Home: all the apps]({$sUrl}/)

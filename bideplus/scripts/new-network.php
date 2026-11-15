@@ -4,7 +4,15 @@
 // provisional con su inicial y su «+» sobre su color (icons-<red>/), los archivos que salen de la configuración
 // (js/networks.js, css/style-networks.css y los enlaces de 404.html), su base de datos, el mapa de la red, los
 // horarios sin conexión y el sitemap. Después solo queda revisar los textos y, cuando los haya, poner sus iconos de
-// verdad.
+// verdad. Lo que el script no escribe y hay que mirar a mano en la ficha (los bloques de metro.php sirven de modelo):
+//   gtfs.holidays          festivos de los que el GTFS no dice nada, con el servicio de domingo: el calendario laboral
+//                          (api/Config/holidays.php), el territorio, el municipio si es una red urbana, y las redes de
+//                          respaldo por si no se puede bajar. Se nota al reconstruir la base (build-database.php).
+//   reduced_service.live   solo si su directo es fiable y no llega vacío a ratos: los umbrales para ver un día de
+//                          servicios mínimos por los viajes que faltan. Sin él, el servicio reducido sale solo de los
+//                          avisos (palabras y fechas de api/Config/reduced-service.php).
+//   gtfs_rt.platform_matching  solo si los ids de viaje del GTFS-Realtime no son los del horario (Metro): casa cada
+//                          tren por andén y destino.
 //
 // Uso:
 //   php scripts/new-network.php --slug=getxo --name="Getxo Bus+" --color=#E30613 --gtfs=https://…/gtfs.zip
