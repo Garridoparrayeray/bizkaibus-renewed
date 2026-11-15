@@ -40,7 +40,7 @@ python tests/static-checks.py && python tests/api-smoke.py && python tests/api-c
 
 Variables de entorno: `BASE_URL` (por defecto `http://localhost:8011`), `CHROME_PATH` (por defecto Edge de Windows), `CDP_PORT`, `PHP_PATH`. Solo para `ui-battery.mjs`: `APPS` (slugs de `api/Networks`, por ejemplo bus,metro,renfe; por defecto todas), `SIZES` (movil,pc) y `VERBOSE=1` para ir viendo cada comprobación.
 
-Los mosaicos del mapa (OpenStreetMap) siguen necesitando internet: sin red se ven la ruta y los marcadores sobre fondo liso.
+Los mosaicos del mapa (OpenStreetMap) siguen necesitando internet: sin red se ven la ruta y los marcadores sobre fondo liso. El mapa del viaje del planificador usa en Bizkaia `map-data/bizkaia.pmtiles` si está (no va en git: lo hace `.github/scripts/mapa-base.sh`); sin él, esos mismos mosaicos.
 
 Las comprobaciones que dependen de internet (el feed del «horario oficial» de Bizkaibus) salen como `SKIP`, no como fallo.
 

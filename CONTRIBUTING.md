@@ -53,6 +53,10 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 - El planificador que se despliega (`bideplus/planificador/` y sus fuentes en `bideplus/docs/`) lo genera `scripts/build-planner.php` y tampoco va en git: el mismo flujo lo deja en la release `planificador`.
 - No subas claves, tokens ni datos personales. Las claves se pasan por variables de entorno o secretos del repositorio.
 
+## Copia de prueba
+
+Lo que se sube a la rama `prueba` se despliega solo, con el flujo «Desplegar la prueba» (`.github/workflows/deploy-prueba.yml`, también a mano), en <https://bideplusmiamor.vercel.app>: la app de producción entera con el planificador, como *preview* de Vercel y con la rama `planificador` del motor. No toca producción, ni las releases, ni git. Antes de desplegar, `.github/scripts/modo-prueba.py` cambia solo la copia del runner: fuera de los buscadores (sin Google, sitemap, `llms.txt` ni IndexNow), sin Vercel Insights, con el almacén solo de lectura y sin notificaciones ni cron; si un texto que cambia ya no está tal cual, para. Las llamadas a la API de Vercel van por `.github/scripts/vercel-api.sh` (secretos `VERCEL_TOKEN`, `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID_BIDEPLUS`). El flujo hace también el mapa base de Bizkaia (`.github/scripts/mapa-base.sh`, guardado en caché por semana de OpenStreetMap) y, al acabar, comprueba que la prueba responde, sirve ese mapa a trozos, no se indexa y no da clave de notificaciones. Con «Aceptar el planificador» acepta un planificador que tarda más que el de producción.
+
 ## Commits y *pull requests*
 
 - Mensajes cortos, en castellano, con el formato `tipo(ámbito): descripción`, por ejemplo `fix(bideplus): corrige el horario del primer tren`.
