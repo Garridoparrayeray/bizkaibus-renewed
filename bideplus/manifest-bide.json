@@ -2,7 +2,7 @@
     "id": "/?homescreen=bide",
     "name": "Bide+",
     "short_name": "Bide+",
-    "description": "Horarios de Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías y los tranvías de Bilbao y Vitoria, con tiempo real donde el operador lo publica, en una sola app",
+    "description": "Horarios y tiempo real del bus, metro, tren y tranvía de Euskal Herria (Euskadi, Navarra e Iparralde): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, Villavesas, Txik Txak, SNCF y más, en una sola app gratis",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
