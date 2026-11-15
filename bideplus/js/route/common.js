@@ -85,7 +85,37 @@ export const tagPill = (sText, sKind) => {
     return pill;
 };
 
-// Las etiquetas de una opción: la suya (o lo que ha pasado con ella, en un enlace recibido) y «Accesible».
+// Lo que el manifiesto da por accesible por la ficha de la red y no por el GTFS: 'all', 'none' o una lista de ids.
+const byOperator = (value, sId) => value === 'all' || (Array.isArray(value) && value.includes(sId));
+
+// De dónde sale que una opción accesible lo sea: 'gtfs'; 'operator' si algún tramo lo es por la ficha de su red (un
+// refuerzo, por su flota); 'unconfirmed' si es por una flota accesible con la parada sin confirmar.
+export const accessibleSource = (option, app) => {
+    let sSource = 'gtfs';
+    ridesIn(option.legs).forEach((leg) => {
+        const network = app.networks.get(leg.network);
+        if (!network || !network.accessibility) {
+            return;
+        }
+        const rule = network.accessibility;
+        const bStop = byOperator(rule.operator.stops, leg.from.id) || byOperator(rule.operator.stops, leg.to.id);
+        let bTrip = byOperator(rule.operator.trips, leg.trip);
+        if (leg.extra === true) {
+            bTrip = rule.fleet === 'all';
+        }
+        if (bStop && rule.operator.unconfirmed_stops) {
+            sSource = 'unconfirmed';
+        } else if ((bStop || bTrip) && sSource === 'gtfs') {
+            sSource = 'operator';
+        }
+    });
+    return sSource;
+};
+
+const ACCESSIBLE_TEXTS = { operator: 'route.accessible.operator', unconfirmed: 'route.accessible.unconfirmed' };
+
+// Las etiquetas de una opción: la suya (o lo que ha pasado con ella, en un enlace recibido) y «Accesible», que dice
+// si lo es según el operador (la ficha de la red) y no según el GTFS.
 export const optionTags = (option, app) => {
     const tags = el('span', 'route-tags');
     const tag = tagOf(option, app);
@@ -93,7 +123,12 @@ export const optionTags = (option, app) => {
         tags.append(tagPill(tag.text, tag.kind));
     }
     if (option.accessible === true) {
-        tags.append(tagPill(t('planner.card.accessible'), 'good'));
+        const sKey = ACCESSIBLE_TEXTS[accessibleSource(option, app)];
+        let sText = t('planner.card.accessible');
+        if (sKey) {
+            sText = I18n.t(sKey);
+        }
+        tags.append(tagPill(sText, 'good'));
     }
     return tags;
 };

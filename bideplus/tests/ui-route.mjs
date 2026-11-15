@@ -411,6 +411,27 @@ await send('Fetch.disable');
 await go('/planificador?de=parada&de_red=metro&de_id=20&de_nombre=Gobela&a_texto=Gernika');
 check('/planificador lleva al inicio con su consulta y busca', (await ev('location.pathname')) === '/' && await waitTrue(optionsReady, PLANNER_MS));
 
+// «Accesible» con el metro: su ficha dice que todo es accesible (el GTFS no trae el dato), así que hay opciones
+// accesibles, marcadas «Accesible según el operador», y ningún aviso de que no consta. Luego se apaga.
+const ACCESSIBLE_TAGS = "[...document.querySelectorAll('#route-options .route-option')].map((o) => [...o.querySelectorAll('.route-tag')].map((n) => n.textContent))";
+const NOTICES = "[...document.querySelectorAll('#route-notices .route-notice')].map((n) => n.textContent).join(' | ')";
+await go('/planificador?de=parada&de_red=metro&de_id=20&de_nombre=Gobela&a=parada&a_red=metro&a_id=10&a_nombre=San%20Mam%C3%A9s');
+await waitTrue(optionsReady, PLANNER_MS);
+await ev("document.getElementById('route-filters-open').click(); true");
+await waitTrue("document.getElementById('route-filters').open");
+await ev("document.querySelector('[data-route-filter=accessible]').click(); document.getElementById('route-filters-done').click(); true");
+await waitOptionsSettled();
+const aAccessibleTags = await ev(ACCESSIBLE_TAGS);
+check('accesible con el metro · todas las opciones lo son y las del metro dicen «Accesible según el operador»',
+    aAccessibleTags.length > 0 && aAccessibleTags.every((a) => a.some((s) => s.startsWith('Accesible')))
+    && aAccessibleTags.some((a) => a.includes('Accesible según el operador')), JSON.stringify(aAccessibleTags));
+check('accesible con el metro · sin el aviso de que no consta', !/no consta|que consten|Sin constar/.test(await ev(NOTICES)),
+    await ev(NOTICES));
+await ev("document.getElementById('route-filters-open').click(); true");
+await waitTrue("document.getElementById('route-filters').open");
+await ev("document.querySelector('[data-route-filter=accessible]').click(); document.getElementById('route-filters-done').click(); true");
+await waitOptionsSettled();
+
 // Compartir las opciones copia un enlace (#v1.…) que se abre en el inicio con ellas.
 await ev("navigator.clipboard.writeText = (t) => { window.__copied = t; return Promise.resolve(); }; navigator.share = undefined; document.getElementById('route-share').click(); true");
 check('compartir copia el enlace', await waitTrue("typeof window.__copied === 'string' && window.__copied.includes('/#v1.')"));
