@@ -87,6 +87,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Araba/Álava',
+        'country' => 'ES',
         'operator' => 'Tuvisa',
         'title' => 'Tuvisa+ · Autobuses de Vitoria-Gasteiz en tiempo real',
         'description' => 'Próximos autobuses de Tuvisa en Vitoria-Gasteiz en tiempo real, con los horarios de cada línea y parada y dónde va cada autobús en el mapa.',

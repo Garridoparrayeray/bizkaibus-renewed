@@ -71,6 +71,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Bizkaia',
+        'country' => 'ES',
         'operator' => 'Bizkaibus',
         'title' => 'Bizkaibus+ · Horarios y tiempo real de Bizkaibus',
         'description' => 'Horarios de Bizkaibus por línea y parada, con las próximas salidas y las llegadas en tiempo real de cada autobús de Bizkaia en el mapa.',
@@ -86,9 +89,9 @@ return [
         'trip_detail' => 'vehicle',
         'alerts' => 'lines',
         'alerts_detail' => true,
-        // Los nombres del operador van en mayúsculas: en la app y en los buscadores, en formato título (Core\DisplayName),
-        // salvo estas siglas.
-        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'IES', 'II', 'III', 'IV']],
+        // Los nombres del operador van en mayúsculas: en la app y en los buscadores, en formato título
+        // (Core\DisplayName), salvo estas palabras, que se escriben así.
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BBKren', 'BEC', 'BBVA', 'IES', 'CC', 'McDonalds', "O'Donnell"]],
     ],
 
     // Fuentes en directo: 'vehicle-monitoring' (SIRI, con el motor de engine/<engine>) y 'trip-updates' (GTFS-RT).

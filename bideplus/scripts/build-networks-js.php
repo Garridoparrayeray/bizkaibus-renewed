@@ -22,6 +22,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'themeColor' => $aNetwork['brand']['theme_color'],
         'title' => $aNetwork['brand']['title'],
         'favoritesKey' => $aNetwork['db'] . '_favorites',
+        'operator' => $aNetwork['seo']['operator'],
         'live' => !empty($aNetwork['live']),
         'features' => $aNetwork['features'],
         'texts' => $aTexts,

@@ -10,6 +10,7 @@
             ""
         ],
         "favoritesKey": "bizkaibus_favorites",
+        "operator": "Bizkaibus",
         "live": true,
         "features": {
             "platforms": false,
@@ -25,12 +26,13 @@
                     "UPV",
                     "EHU",
                     "BBK",
+                    "BBKren",
                     "BEC",
                     "BBVA",
                     "IES",
-                    "II",
-                    "III",
-                    "IV"
+                    "CC",
+                    "McDonalds",
+                    "O'Donnell"
                 ]
             }
         },
@@ -94,6 +96,7 @@
             ""
         ],
         "favoritesKey": "metrobilbao_favorites",
+        "operator": "Metro Bilbao",
         "live": true,
         "features": {
             "platforms": true,
@@ -169,6 +172,7 @@
             ""
         ],
         "favoritesKey": "euskotren_favorites",
+        "operator": "Euskotren",
         "live": true,
         "features": {
             "platforms": true,
@@ -244,6 +248,7 @@
             ""
         ],
         "favoritesKey": "renfe_favorites",
+        "operator": "Renfe Cercanías",
         "live": true,
         "features": {
             "platforms": true,
@@ -320,6 +325,7 @@
             ""
         ],
         "favoritesKey": "lurraldebus_favorites",
+        "operator": "Lurraldebus",
         "live": true,
         "features": {
             "platforms": false,
@@ -391,6 +397,7 @@
             "BILBAO"
         ],
         "favoritesKey": "tranviabilbao_favorites",
+        "operator": "Tranvía de Bilbao",
         "live": true,
         "features": {
             "platforms": true,
@@ -474,6 +481,7 @@
             "VITORIA"
         ],
         "favoritesKey": "tranviavitoria_favorites",
+        "operator": "Tranvía de Vitoria-Gasteiz",
         "live": true,
         "features": {
             "platforms": true,
@@ -557,8 +565,19 @@
             "BILBAO"
         ],
         "favoritesKey": "bilbobus_favorites",
+        "operator": "Bilbobus",
         "live": true,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": false,
             "stop_hints": true,
@@ -628,6 +647,7 @@
             "VITORIA-GASTEIZ"
         ],
         "favoritesKey": "tuvisa_favorites",
+        "operator": "Tuvisa",
         "live": true,
         "features": {
             "platforms": false,
@@ -703,6 +723,7 @@
             "DONOSTIA"
         ],
         "favoritesKey": "dbus_favorites",
+        "operator": "Dbus",
         "live": true,
         "features": {
             "platforms": false,
@@ -778,8 +799,19 @@
             "ARABA"
         ],
         "favoritesKey": "alavabus_favorites",
+        "operator": "Álavabus",
         "live": true,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": false,
             "stop_hints": true,
@@ -853,8 +885,19 @@
             "BILBAO · GASTEIZ"
         ],
         "favoritesKey": "launion_favorites",
+        "operator": "La Unión",
         "live": false,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": true,
             "stop_hints": true,
@@ -924,6 +967,7 @@
             ""
         ],
         "favoritesKey": "renfe-ld_favorites",
+        "operator": "Renfe",
         "live": true,
         "features": {
             "platforms": false,
@@ -999,6 +1043,7 @@
             ""
         ],
         "favoritesKey": "txiktxak_favorites",
+        "operator": "Txik Txak",
         "live": true,
         "features": {
             "platforms": false,
@@ -1074,6 +1119,7 @@
             ""
         ],
         "favoritesKey": "sncf_favorites",
+        "operator": "SNCF",
         "live": true,
         "features": {
             "platforms": false,
@@ -1149,6 +1195,7 @@
             ""
         ],
         "favoritesKey": "villavesas_favorites",
+        "operator": "Villavesas",
         "live": false,
         "features": {
             "platforms": false,

@@ -84,6 +84,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Euskadi',
+        'country' => 'ES',
         'operator' => 'La Unión',
         'title' => 'La Unión+ · Autobuses Bilbao - Vitoria por línea y parada',
         'description' => 'Horarios de Autobuses La Unión entre Bizkaia y Vitoria-Gasteiz por línea y parada: Bilbao, Margen Izquierda y Derecha, Leioa, Algorta y Loiu.',
@@ -91,6 +94,8 @@ return [
     'attribution' => 'Datos: Autobuses La Unión, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     'features' => [
+        // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
         'platforms' => false,
         // El GTFS pone «U» como destino de todos los viajes: el destino es su última parada.
         'headsign_from_last_stop' => true,

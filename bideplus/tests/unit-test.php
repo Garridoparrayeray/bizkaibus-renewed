@@ -1104,4 +1104,28 @@ $Expect('de madrugada, con muy pocos viajes que tocaban, no se juzga', !\Service
 $iEarly = (new DateTimeImmutable('2026-11-15 02:30', new DateTimeZone(\Services\Calendar::TIME_ZONE)))->getTimestamp();
 $Expect('a las 02:30 el día de servicio aún es el de ayer', \Services\ReducedService::serviceDay($iEarly, $aReducedRules)->format('Y-m-d') === '2026-11-14' && \Services\ReducedService::serviceDay($iNowStrike, $aReducedRules)->format('Y-m-d') === '2026-11-14');
 
+// Nombres en formato título (Core\DisplayName) y medidas de títulos y descripciones (Core\Seo).
+$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'McDonalds', "O'Donnell"]]]];
+$aNames = [
+    'BILBAO INTERMODAL' => 'Bilbao Intermodal', 'AREETA/LAS ARENAS' => 'Areeta/Las Arenas', 'ARTXANDA (EL GALLO)' => 'Artxanda (El Gallo)',
+    'BARRIO SAN JUAN DE DIOS' => 'Barrio San Juan de Dios', 'ERANDIO-LA LLANA' => 'Erandio-La Llana', 'MUNGIA XII' => 'Mungia XII',
+    'COLEGIO JUAN XXIII' => 'Colegio Juan XXIII', 'CC MAX CENTER' => 'CC Max Center', 'MCDONALDS' => 'McDonalds',
+    "O'DONNELL 12" => "O'Donnell 12", 'BBKREN UDALEKUA' => 'BBKren Udalekua', 'Mixed Case' => 'Mixed Case',
+];
+$aWrongNames = [];
+foreach ($aNames as $sIn => $sOut) {
+    if (\Core\DisplayName::of($sIn, $aTitleCase) !== $sOut) {
+        $aWrongNames[] = $sIn . ' → ' . \Core\DisplayName::of($sIn, $aTitleCase);
+    }
+}
+$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
+$Expect('formato título: sin title_case_names en la ficha, el nombre no cambia', \Core\DisplayName::of('BILBAO', ['features' => []]) === 'BILBAO');
+$sLongTitle = \Core\Seo::title([str_repeat('Parada muy larga ', 6)]);
+$Expect('título: si nada cabe, se recorta por una palabra con «…» y no pasa de 60', mb_strlen($sLongTitle) <= \Core\Seo::TITLE_MAX && str_ends_with($sLongTitle, '…'), $sLongTitle);
+$sShortDescription = \Core\Seo::description([str_repeat('a', 100) . '.'], [str_repeat('b', 60), 'Gratis y sin anuncios.', str_repeat('c', 30)]);
+$Expect('descripción corta: la frase de relleno más corta que la deja entre 120 y 155', mb_strlen($sShortDescription) === 124, (string)mb_strlen($sShortDescription));
+$sLongDescription = \Core\Seo::description([str_repeat('palabra ', 30)], []);
+$Expect('descripción larga: recortada a 155 como mucho', mb_strlen($sLongDescription) <= \Core\Seo::DESCRIPTION_MAX);
+$Expect('medianoche de Madrid: lo que falta está entre 0 y 25 h', \Services\Calendar::secondsUntilMidnight() > 0 && \Services\Calendar::secondsUntilMidnight() <= 25 * 3600);
+
 $Finish('unitarias');

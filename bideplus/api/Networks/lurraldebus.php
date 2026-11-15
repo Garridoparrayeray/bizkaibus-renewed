@@ -81,6 +81,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Gipuzkoa',
+        'country' => 'ES',
         'operator' => 'Lurraldebus',
         'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa',
         'description' => 'Consulta los horarios de Lurraldebus en Gipuzkoa por línea y parada: Ekialdebus, Gipuzkoana, Goierrialdea, Pesa, TBH, Tolosaldea y Euskotren bus.',

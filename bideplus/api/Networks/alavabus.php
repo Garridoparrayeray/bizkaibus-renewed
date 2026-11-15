@@ -87,6 +87,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Araba/Álava',
+        'country' => 'ES',
         'operator' => 'Álavabus',
         'title' => 'Álavabus+ · Autobuses de Álava en tiempo real',
         'description' => 'Consulta los próximos autobuses de Álavabus, los interurbanos de Álava, en tiempo real, sus horarios por línea y parada y dónde va cada autobús en el mapa.',
@@ -94,6 +97,8 @@ return [
     'attribution' => 'Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 
     'features' => [
+        // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,

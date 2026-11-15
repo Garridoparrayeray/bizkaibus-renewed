@@ -87,6 +87,8 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'country' => 'ES',
         'operator' => 'Renfe',
         'title' => 'Renfe LD+ · Trenes de larga y media distancia en directo',
         'description' => 'Horarios y retrasos en tiempo real de los trenes de larga y media distancia de Renfe que pasan por Euskadi y Navarra, por estación y por tren.',

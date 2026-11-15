@@ -83,6 +83,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Navarra',
+        'country' => 'ES',
         'operator' => 'Villavesas',
         'title' => 'Villavesas+ · Horarios de las villavesas de Pamplona',
         'description' => 'Horarios de las villavesas de la Comarca de Pamplona / Iruñerria por línea y parada, con las próximas salidas y el recorrido de cada línea.',

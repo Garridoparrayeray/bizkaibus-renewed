@@ -84,6 +84,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Bizkaia',
+        'country' => 'ES',
         'operator' => 'Metro Bilbao',
         'title' => 'Metro+ · Horarios y tiempo real de Metro Bilbao L1 y L2',
         'description' => 'Consulta los horarios y el tiempo real de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.',

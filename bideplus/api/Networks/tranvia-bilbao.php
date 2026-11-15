@@ -93,6 +93,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Bizkaia',
+        'country' => 'ES',
         'operator' => 'Tranvía de Bilbao',
         'title' => 'Tranvía Bilbao+ · Horarios y tiempo real del tranvía',
         'description' => 'Horarios y tiempo real del tranvía de Bilbao de Euskotren: las próximas salidas en cada parada, el horario de hoy y el recorrido de la línea.',

@@ -84,6 +84,9 @@ return [
 
     'seo' => [
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Bizkaia',
+        'country' => 'ES',
         'operator' => 'Bilbobus',
         'title' => 'Bilbobus+ · Horarios de los autobuses de Bilbao',
         'description' => 'Consulta los horarios de Bilbobus, los autobuses urbanos de Bilbao, por línea y parada, con el recorrido de cada línea en el mapa.',
@@ -91,6 +94,8 @@ return [
     'attribution' => 'Datos: Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
 
     'features' => [
+        // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,

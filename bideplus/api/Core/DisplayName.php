@@ -8,10 +8,13 @@ class DisplayName
 {
     // Las palabras que van en minúscula salvo al principio del nombre.
     private const SMALL_WORDS = ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'a', 'al', 'en', 'por', 'con'];
+    // Los números romanos se quedan como están («Juan XXIII», «Pío XII»).
+    private const ROMAN = '/^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/';
     // Los campos de las respuestas de la API que son nombres de paradas, líneas o destinos.
     private const OUTPUT_KEYS = ['name', 'lineName', 'headsign', 'hint', 'area', 'stopName', 'destination', 'label'];
 
-    // Las siglas que se quedan en mayúsculas (features.title_case_names.keep de la ficha), o null si la red no lo usa.
+    // Las palabras que se escriben tal cual (features.title_case_names.keep de la ficha: siglas y nombres como
+    // «McDonalds»), o null si la red no lo usa.
     public static function keep(array $aNetwork): array|null
     {
         $Setting = $aNetwork['features']['title_case_names'] ?? false;
@@ -27,13 +30,21 @@ class DisplayName
         if ($aKeep === null) {
             return $sName;
         }
-        return preg_replace_callback('/\p{Lu}[\p{Lu}\']+/u', function (array $aMatch) use ($aKeep): string {
+        $aExceptions = [];
+        foreach ($aKeep as $sWord) {
+            $aExceptions[mb_strtoupper($sWord)] = $sWord;
+        }
+        return preg_replace_callback('/\p{Lu}[\p{Lu}\']+/u', function (array $aMatch) use ($aExceptions, $sName): string {
             [$sWord, $iOffset] = $aMatch[0];
-            if (in_array($sWord, $aKeep, true)) {
+            if (isset($aExceptions[$sWord])) {
+                return $aExceptions[$sWord];
+            }
+            if (preg_match(self::ROMAN, $sWord)) {
                 return $sWord;
             }
             $sLower = mb_strtolower($sWord);
-            if ($iOffset > 0 && in_array($sLower, self::SMALL_WORDS, true)) {
+            // «de», «la»… en minúscula entre palabras; tras «/», «(» o «-» empiezan nombre: «Areeta/Las Arenas».
+            if ($iOffset > 0 && $sName[$iOffset - 1] === ' ' && in_array($sLower, self::SMALL_WORDS, true)) {
                 return $sLower;
             }
             return mb_strtoupper(mb_substr($sLower, 0, 1)) . mb_substr($sLower, 1);
