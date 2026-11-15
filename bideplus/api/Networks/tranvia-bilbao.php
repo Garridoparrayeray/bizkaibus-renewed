@@ -135,6 +135,8 @@ return [
     ],
 
     'gtfs' => [
+        // Publica solo los próximos días y lo renueva a diario: el resumen del flujo avisa y falla con 2 días o menos.
+        'expiry_alert_days' => 2,
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
         // municipio; sin él, los que salen de las redes de respaldo.

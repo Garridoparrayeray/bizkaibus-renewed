@@ -1,8 +1,10 @@
 <?php
 
 require __DIR__ . '/../scripts/build-database.php';
+require_once __DIR__ . '/../scripts/build/expiry.php';
 
 use Build\Calendars;
+use Build\Expiry;
 use Build\Gtfs;
 use Build\Journeys;
 use Build\Shapes;
@@ -396,6 +398,26 @@ $Expect('festivo ambiguo: solo el domingo añadido y en el calendario laboral, v
     && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-08')) === 7 && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-01')) === 13);
 $Expect('festivo ambiguo: un día que no está en el calendario laboral no se toca', Calendars::applyHolidays($Ambiguous(), [], '2027-01-14', true, true) === 0);
 $Expect('festivo ambiguo: sin la opción de la ficha, dentro de su periodo manda el GTFS', Calendars::applyHolidays($Ambiguous(), ['2026-12-08'], '2027-01-14', true) === 0);
+
+// Caducidad del horario publicado (resumen del flujo diario, scripts/published-schedule.php).
+$aRequired = ['gtfs' => ['required' => true]];
+$aOptional = ['gtfs' => ['required' => false]];
+$aRolling = ['gtfs' => ['required' => true, 'expiry_alert_days' => 2]];
+$Row = fn(string|null $sTo, string $sSource = 'primary', string $sPublished = '2026-11-10')
+    => ['to' => $sTo, 'source' => $sSource, 'published' => $sPublished];
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2026-11-21'), false, '2026-11-15');
+$Expect('caducidad: una red obligatoria con 6 días falla', count($aErr) === 1 && $aWarn === []);
+[$aErr, $aWarn] = Expiry::problems($aOptional, $Row('2026-11-21'), false, '2026-11-15');
+$Expect('caducidad: una opcional con 6 días solo avisa', $aErr === [] && count($aWarn) === 1);
+[$aErr, $aWarn] = Expiry::problems($aOptional, $Row('2026-11-21'), true, '2026-11-15');
+$Expect('caducidad: una opcional sin reconstruir hoy cuya última base caduca en 6 días: falla', count($aErr) === 1);
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-20'), false, '2026-11-15');
+$Expect('caducidad: Euskotren, que publica solo los próximos días, con 5 días no avisa', $aErr === [] && $aWarn === []);
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2027-01-09', 'fallback', '2026-11-10'), false, '2026-11-15');
+$Expect('respaldo reciente: avisa «fuente principal caída, se usa el respaldo»',
+    $aErr === [] && $aWarn === ['fuente principal caída, se usa el respaldo']);
+[$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2027-01-09', 'fallback', '2026-09-01'), false, '2026-11-15');
+$Expect('respaldo de hace más de ' . Expiry::FALLBACK_MAX_AGE_DAYS . ' días: falla', count($aErr) === 1);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";

@@ -9,6 +9,9 @@ use ZipArchive;
 
 class Download
 {
+    // De dónde salió el último GTFS bajado: «fallback» si la fuente principal falló y se usó la de respaldo.
+    public static string $sLastSource = 'primary';
+
     public static function resolveZipPath(string $sSource, ?string $sFallbackSource = null): string
     {
         $AttemptDownload = function(string $sUrl) {
@@ -51,6 +54,7 @@ class Download
             echo "  -> Downloading from primary source: $sSource\n";
             $sResult = $AttemptDownload($sSource);
             if (is_string($sResult) && file_exists($sResult)) {
+                self::$sLastSource = 'primary';
                 return $sResult;
             }
 
@@ -60,6 +64,7 @@ class Download
                 echo "  -> Trying backdoor fallback source: $sFallbackSource\n";
                 $sFallbackResult = $AttemptDownload($sFallbackSource);
                 if (is_string($sFallbackResult) && file_exists($sFallbackResult)) {
+                    self::$sLastSource = 'fallback';
                     return $sFallbackResult;
                 }
                 fwrite(STDERR, "  -> Fallback download failed: $sFallbackResult\n");

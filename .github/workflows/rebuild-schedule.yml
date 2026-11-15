@@ -84,8 +84,8 @@ jobs:
           fi
           echo "redes=$REDES" >> "$GITHUB_OUTPUT"
 
+      # También en el completo: una red opcional que hoy falla conserva su última base buena, no la vieja del repositorio.
       - name: Recuperar las bases de la última reconstrucción
-        if: steps.tipo.outputs.redes != 'todas'
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -114,42 +114,10 @@ jobs:
           set -o pipefail
           php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
 
-      # Resumen visible en la ejecucion: que horario se ha publicado, hasta cuando vale y si los calendarios cuadran con
-      # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
-      # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
-      - name: Summarize the published schedule
-        if: steps.modo.outputs.redes == 'todas' || contains(format(' {0} ', steps.modo.outputs.redes), ' bus ')
-        run: |
-          python3 - <<'PY'
-          import os, re, sqlite3, datetime
-          c = sqlite3.connect('bideplus/data/bizkaibus.sqlite')
-          meta = dict(c.execute('select key, value from meta'))
-          start, end, published = meta.get('feed_start_date', '?'), meta.get('feed_end_date', '?'), meta.get('schedule_source_published', '?')
-          journeys = c.execute('select count(*) from service_journeys').fetchone()[0]
-          audit = ''
-          log = open(os.path.join(os.environ['RUNNER_TEMP'], 'bus-build.log'), encoding='utf-8', errors='replace').read()
-          m = re.search(r'Auditoría de calendarios[^\n]*', log)
-          if m: audit = m.group(0).strip()
-          left = None
-          try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
-          except ValueError: pass
-          remaining = ''
-          if left is not None: remaining = f' (quedan {left} días)'
-          audit_line = '- Sin línea de auditoría de calendarios (revisar el log del build)'
-          if audit: audit_line = f'- {audit}'
-          lines = ['### Horario de Bizkaibus publicado',
-                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + remaining,
-                   f'- {journeys:,} viajes en la base'.replace(',', '.'),
-                   audit_line]
-          open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
-          if left is not None and left <= 10:
-              print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
-          PY
-
       # El resto de redes salen de bideplus/api/Networks. Cada base se genera en un fichero
       # temporal y solo sustituye a la del repositorio si el build termina bien y no está
       # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
-      # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
+      # sigue con el último despliegue bueno; si falla una opcional, se conserva su última base buena.
       - name: Rebuild the other networks
         if: steps.modo.outputs.redes != ''
         run: |
@@ -167,7 +135,8 @@ jobs:
               echo "::error::No se pudo reconstruir $network (obligatoria)"
               exit 1
             else
-              echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
+              echo "::warning::No se pudo reconstruir $network; se mantiene su última base buena"
+              echo "$network" >> "$RUNNER_TEMP/conservadas.txt"
             fi
           done
 
@@ -297,3 +266,12 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
         run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
+
+      # Al final, para no frenar el despliegue: hasta cuándo vale el horario de cada red y de qué fuente salió. Sale en
+      # rojo si una red obligatoria se queda sin horario en pocos días, si una opcional que hoy no se pudo reconstruir
+      # conserva una base a punto de caducar o si el respaldo de una fuente caída es demasiado viejo.
+      - name: Horario publicado de cada red
+        run: |
+          grep -h 'Auditoría de calendarios' "$RUNNER_TEMP"/bus-build.log 2>/dev/null | sed 's/^/- Bizkaibus: /' >> "$GITHUB_STEP_SUMMARY" || true
+          CONSERVADAS="$(paste -sd, "$RUNNER_TEMP/conservadas.txt" 2>/dev/null || true)"
+          php bideplus/scripts/published-schedule.php --kept="$CONSERVADAS" --summary="$GITHUB_STEP_SUMMARY"
