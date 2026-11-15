@@ -598,7 +598,7 @@ $iWrongMidnight = time() - (T0 + 600 + 3000);
 $aWrongBus = [['tripId' => '22123', 'lat' => 43.009, 'lon' => -2.9, 'stopId' => 'B', 'stopStatus' => null, 'vehicleId' => '94']];
 $aWrongTimes = [['tripId' => '22123', 'stops' => [['C', $iWrongMidnight + T0 + 1200 + 1200]]]];
 $aWrongC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
-$Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale con el horario', ($aWrongC[0]['status'] ?? null) === 'scheduled', json_encode($aWrongC));
+$Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale sin dato', ($aWrongC[0]['status'] ?? null) === 'likely_departed', json_encode($aWrongC));
 $aRightC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('sin GPS, las mismas horas sí valen (40 min)', ($aRightC[0]['status'] ?? null) === 'live' && $aRightC[0]['delaySeconds'] === 2400, json_encode($aRightC));
 // Sin GPS, el feed lo pone en B 25 min tarde y ya han pasado otros 25: se enseñarían 50 min, más del tope de 45.
@@ -677,6 +677,12 @@ $Expect('con un viaje desconocido, la parada del feed da el sentido: la vuelta, 
 $aPosTrip = $MPos->liveTrip('B', [], 'J2');
 $Expect('la ficha del viaje sale con esas horas, desde la parada a la que va',
     ($aPosTrip[0] ?? null) === ['B', $iPosMidnight + T0 + 2400 + 240], json_encode($aPosTrip));
+// Con su viaje pero sin su día (el feed de posiciones no lo trae), un GPS que da 1 h tarde pasa del tope: sin dato.
+$aLateBus = [['tripId' => 'T1', 'routeId' => 'L1', 'lat' => 43.0005, 'lon' => -2.9, 'stopId' => '', 'vehicleId' => '9']];
+$MLate = new TripDelayMatcher([], new ServiceJourney($PdoPos), time() - (T0 + 3600), $aLateBus);
+$aLateA = $MLate->enrich('A', [$PosRow('J1', 0)]);
+$Expect('solo posiciones: un GPS de más del tope y sin el día del viaje sale sin dato, no a su hora',
+    ($aLateA[0]['status'] ?? null) === 'likely_departed', json_encode($aLateA));
 $aLoopStops = [];
 foreach (['A', 'B', 'C', 'B', 'A'] as $iSeq => $sStop) {
     $aLoopStops[] = ['stop_id' => $sStop, 'arrival_seconds' => T0 + $iSeq * 600];

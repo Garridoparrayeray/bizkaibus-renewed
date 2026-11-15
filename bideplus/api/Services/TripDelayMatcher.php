@@ -71,6 +71,10 @@ class TripDelayMatcher
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->aByJourney += $Vehicles->entries();
+        // También con solo posiciones: un GPS fuera del tope no deja el viaje «a su hora», sino sin dato.
+        foreach ($Vehicles->rejected() as $sRejected) {
+            $this->aNoData[(string)$sRejected] = true;
+        }
     }
 
     // Solo valen los viajes que circulan hoy (o ayer, de madrugada): el feed de Metro trae a veces ids que en el horario

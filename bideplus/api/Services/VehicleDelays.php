@@ -51,6 +51,12 @@ final class VehicleDelays
         return $this->aEntries;
     }
 
+    // Los viajes cuyo GPS daría más del tope: sin el día del viaje, puede ser otro con ese número (salen sin dato).
+    public function rejected(): array
+    {
+        return array_keys($this->aRejected);
+    }
+
     // Con gtfs_rt.prefer_vehicles, un viaje con GPS va con el GPS; si su GPS no vale (otro viaje), tampoco sus horas.
     // Y en cualquier red, un viaje con el vehículo en su última parada no va en directo.
     public function overrides(string $sJourneyId): bool
