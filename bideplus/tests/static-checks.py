@@ -104,16 +104,25 @@ print('geocache (caché de geocodificación):', geo_result)
 if geo.returncode != 0:
     failures.append('prueba de geocache')
 
-# sitemap.xml: lo genera scripts/build-sitemap.php; el del repositorio debe coincidir con las bases de datos.
-fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check.xml')
-r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output=' + fresh], capture_output=True, text=True)
-stale = r.returncode != 0 or open(fresh, encoding='utf-8').read() != open(ROOT + 'sitemap.xml', encoding='utf-8').read()
+# sitemap-index.xml y sitemaps/: los genera scripts/build-sitemap.php; los del repositorio deben tener las páginas de
+# las bases. El lastmod no cuenta: la reconstrucción diaria sube sitemap-lastmod.json pero no las bases.
+fresh = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'sitemap-check')
+r = subprocess.run([PHP, ROOT + 'scripts/build-sitemap.php', '--output-dir=' + fresh, '--keep-state'], capture_output=True, text=True)
+stale = r.returncode != 0
+
+
+def without_lastmod(path):
+    return re.sub(r'<lastmod>[^<]*</lastmod>', '', open(path, encoding='utf-8').read())
+
+
+for name in ['sitemap-index.xml'] + ['sitemaps/' + f for f in sorted(os.listdir(ROOT + 'sitemaps'))]:
+    stale = stale or not os.path.exists(os.path.join(fresh, name)) or without_lastmod(os.path.join(fresh, name)) != without_lastmod(ROOT + name)
 sitemap_result = 'al día (' + r.stdout.strip() + ')'
 if stale:
     sitemap_result = 'desactualizado, ejecuta php scripts/build-sitemap.php'
-print('sitemap.xml:', sitemap_result)
+print('sitemaps:', sitemap_result)
 if stale:
-    failures.append('sitemap.xml desactualizado')
+    failures.append('sitemaps desactualizados')
 
 # js/networks.js: lo genera scripts/build-networks-js.php desde api/Networks.
 fresh_js = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check.js')

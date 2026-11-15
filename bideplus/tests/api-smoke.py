@@ -198,12 +198,16 @@ def fetch_text(path):
         return 0, str(e)
 
 
-code, sitemap = fetch_text('/sitemap.xml')
-try:
-    _minidom.parseString(sitemap)
-except Exception:
-    fails.append(f'/sitemap.xml: XML no válido ({code})')
-    sitemap = ''
+# El índice (sitemap-index.xml) y un sitemap por red.
+code, index = fetch_text('/sitemap-index.xml')
+sitemap = ''
+for child in _re.findall(r'<loc>([^<]+)</loc>', index):
+    code, part = fetch_text(urllib.parse.urlparse(child).path)
+    try:
+        _minidom.parseString(part)
+        sitemap += part
+    except Exception:
+        fails.append(f'{child}: XML no válido ({code})')
 locs = [loc.replace('&amp;', '&') for loc in _re.findall(r'<loc>([^<]+)</loc>', sitemap)]
 for red in NETS:
     suffix = ''
@@ -219,7 +223,7 @@ for red in NETS:
     for kind in ('lines', 'stops'):
         sample = [loc for loc in locs if f'/{kind}/' in loc and of_network(loc)]
         if not sample:
-            fails.append(f'/sitemap.xml: sin {kind} de {red}')
+            fails.append(f'sitemaps: sin {kind} de {red}')
             continue
         for loc in sample[::max(1, len(sample) // 2)][:2]:
             parts = urllib.parse.urlparse(loc)
@@ -229,7 +233,7 @@ for red in NETS:
             code, page = fetch_text(target)
             canonical = (_re.search(r'rel="canonical" href="([^"]+)"', page) or [None, ''])[1].replace('&amp;', '&')
             if code != 200 or canonical != loc:
-                fails.append(f'/sitemap.xml: {loc} da {code} con canónica {canonical!r}')
+                fails.append(f'sitemaps: {loc} da {code} con canónica {canonical!r}')
 print('sitemap ok')
 
 # Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.

@@ -2,7 +2,7 @@ name: Rebuild schedule data
 
 # Reconstruye y redespliega a diario la base de datos de cada red de
 # bideplus/api/Networks desde su GTFS oficial. Los .sqlite no se comitean (solo
-# geocache.json si cambia): se regeneran en el runner y se suben tal cual con el
+# geocache.json y sitemap-lastmod.json si cambian): se regeneran en el runner y se suben tal cual con el
 # deploy de Vercel.
 #
 # Fuentes: las de cada ficha de bideplus/api/Networks (gtfs.source y, si falla, gtfs.fallback_source). Las del NAP
@@ -182,9 +182,11 @@ jobs:
             echo "OK: $f ($(du -h "$f" | cut -f1))"
           done
 
-      # sitemap.xml es estático: se regenera con las bases nuevas para que cada línea y
-      # parada que aparezca o desaparezca entre o salga del sitemap en el mismo despliegue.
-      - name: Rebuild sitemap.xml
+      # Los sitemaps son estáticos (sitemap-index.xml y uno por red en sitemaps/): se regeneran con las bases nuevas
+      # para que cada línea y parada que aparezca o desaparezca entre o salga en el mismo despliegue. El lastmod de cada
+      # página solo cambia si cambia su huella: las dos cosas viven en bideplus/scripts/sitemap-lastmod.json, que se
+      # sube al repositorio más abajo, con geocache.json (las bases no se suben: se guardan en la caché de Actions).
+      - name: Rebuild sitemaps
         run: php bideplus/scripts/build-sitemap.php
 
       # El mapa de la red (/mapa): líneas, recorridos y paradas de cada red, sacados de las bases recién construidas.
@@ -223,13 +225,15 @@ jobs:
             .bases-reconstruidas
           key: bases-${{ github.run_id }}
 
-      - name: Commit updated geocache, if it changed
+      # geocache.json y sitemap-lastmod.json (la huella y el día del último cambio de cada página) se suben si cambian:
+      # sin el segundo, el lastmod de mañana volvería a ser la fecha de compilación.
+      - name: Commit updated geocache and sitemap lastmod, if they changed
         run: |
-          if ! git diff --quiet bideplus/scripts/geocache.json; then
+          if ! git diff --quiet bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add bideplus/scripts/geocache.json
-            git commit -m "chore: update geocache with newly seen stop coordinates"
+            git add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json
+            git commit -m "chore: update geocache and sitemap lastmod"
             # GitHub rechaza a veces el push con un error suyo («fatal error in commit_refs», 4/11/2026) o porque
             # master ha cambiado entretanto: se reintenta hasta tres veces, poniéndose al día antes.
             for INTENTO in 1 2 3; do
@@ -239,7 +243,7 @@ jobs:
               git pull --rebase
             done
           else
-            echo "geocache.json unchanged, nothing to commit"
+            echo "geocache.json and sitemap-lastmod.json unchanged, nothing to commit"
           fi
 
       # La huella de los ficheros de la app en sw.js: con ella el móvil no los vuelve a pedir en cada apertura y baja

@@ -30,6 +30,11 @@ foreach ($aVercel['routes'] ?? [] as $aRoute) {
     if (isset($aRoute['has'], $aRoute['dest']) && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
         $sUri = $aRoute['dest'];
     }
+    if (isset($aRoute['status'], $aRoute['headers']['Location']) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
+        http_response_code($aRoute['status']);
+        header('Location: ' . $aRoute['headers']['Location']);
+        return true;
+    }
     if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri) || !routeHostMatches($aRoute, $sHost)) {
         continue;
     }

@@ -3,18 +3,26 @@ contenido propio de cada parada y línea, el sitemap índice y que su lastmod no
 
     python tests/seo-check.py      (con el servidor local en BASE_URL)
 """
+import datetime
 import html
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
+import xml.dom.minidom as minidom
 
 BASE = os.environ.get('BASE_URL', 'http://localhost:8011').rstrip('/')
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PHP = os.environ.get('PHP_PATH', 'php')
 TEST_HOST = 'bideplusmiamor.vercel.app'
+# Las redes del registro (api/Networks): una red nueva entra sola.
+NETWORKS = subprocess.check_output([PHP, os.path.join(ROOT, 'scripts/networks.php'), '--slugs'], text=True).split()
 fails = []
 count = 0
 
@@ -147,7 +155,54 @@ for path, canonical in (('/stops/ES:Euskotren:StopPlace:2577:?red=euskotren', 'h
     code, headers, page = fetch(path)
     got = html.unescape((re.search(r'<link rel="canonical" href="([^"]+)"', page) or [None, ''])[1])
     expect(code == 200 and got == canonical, f'{path}: {code} con canónica {got!r}')
-print('canónicas, 301 y 404 ok')
+# En las redes de Iparralde (seo.default_lang de su ficha), el x-default es la versión en francés.
+for path, default in (('/stops/MBAY01?red=txiktxak', 'https://www.bideplus.eus/stops/MBAY01?red=txiktxak&lang=fr'), ('/?red=sncf', 'https://www.bideplus.eus/?red=sncf&lang=fr'),
+                      ('/stops/2877', 'https://www.bideplus.eus/stops/2877')):
+    code, headers, page = fetch(path)
+    got = html.unescape((re.search(r'hreflang="x-default" href="([^"]+)"', page) or [None, ''])[1])
+    expect(got == default, f'{path}: x-default {got!r}')
+print('canónicas, 301, 404 y x-default ok')
+
+# El sitemap índice: XML válido, un sitemap por red y uno general, todos accesibles y sin changefreq ni priority.
+code, headers, index = fetch('/sitemap-index.xml')
+children = re.findall(r'<loc>([^<]+)</loc>', index)
+try:
+    minidom.parseString(index)
+except Exception:
+    fails.append('/sitemap-index.xml: XML no válido')
+expect(code == 200 and '<sitemapindex' in index and len(children) == len(NETWORKS) + 1, f'/sitemap-index.xml: {code}, {len(children)} sitemaps')
+for child in children:
+    code, headers, part = fetch(urllib.parse.urlparse(child).path)
+    expect(code == 200 and '<urlset' in part and '<changefreq>' not in part and '<priority>' not in part, f'{child}: {code} o con changefreq/priority')
+code, headers, page = fetch('/sitemap.xml')
+expect(code == 301 and headers.get('Location', '').endswith('/sitemap-index.xml'), '/sitemap.xml: no lleva al índice')
+code, headers, page = fetch('/robots.txt')
+expect('Sitemap: https://www.bideplus.eus/sitemap-index.xml' in page, '/robots.txt: sin el sitemap índice')
+
+# El lastmod es el día del último cambio de verdad: dos compilaciones sin cambios dan los mismos sitemaps, y una fecha
+# guardada se conserva mientras la huella de la página no cambie.
+with tempfile.TemporaryDirectory() as tmp:
+    state = os.path.join(tmp, 'lastmod.json')
+    shutil.copy(os.path.join(ROOT, 'scripts/sitemap-lastmod.json'), state)
+
+    def build():
+        subprocess.run([PHP, os.path.join(ROOT, 'scripts/build-sitemap.php'), '--output-dir=' + tmp, '--state=' + state], check=True, capture_output=True)
+        return {name: open(os.path.join(tmp, 'sitemaps', name), encoding='utf-8').read() for name in os.listdir(os.path.join(tmp, 'sitemaps'))}
+
+    first = build()
+    expect(first == build(), 'sitemaps: dos compilaciones sin cambios dan lastmod distintos')
+    saved = json.load(open(state))
+    json.dump({path: [value[0], '2020-01-01'] for path, value in saved.items()}, open(state, 'w'))
+    old = build()
+    dates = set(re.findall(r'<lastmod>([^<]+)</lastmod>', old['bus.xml'] + old['metro.xml']))
+    expect(dates == {'2020-01-01'}, f'sitemaps: con la misma huella el lastmod cambia {sorted(dates)[:3]}')
+    touched = json.load(open(state))
+    touched['/stops/2877'][0] = 'otra'
+    json.dump(touched, open(state, 'w'))
+    changed = build()['bus.xml']
+    today = (re.search(r'/stops/2877</loc><lastmod>([^<]+)</lastmod>', changed) or [None, ''])[1]
+    expect(today == datetime.date.today().isoformat(), f'sitemaps: una parada que cambia no pasa a hoy ({today})')
+print('sitemaps ok')
 
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:
