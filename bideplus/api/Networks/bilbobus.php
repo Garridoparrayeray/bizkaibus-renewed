@@ -104,10 +104,11 @@ return [
     'live_often_empty' => true,
     'engine' => 'bilbobus',
 
-    // El feed del CTB y la copia de Open Data Euskadi. Avisos: el CTB no publica ninguno para Bilbobus.
+    // Primero el de Open Data Euskadi, que se actualiza; el del CTB, de respaldo: no cambia desde el 03-10-2024 (un
+    // fichero vacío que siempre responde, así que delante tapaba al otro). Avisos: el CTB no publica ninguno.
     'siri' => [
-        'vehicle_monitoring_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bilbobus-vehicle-positions.xml',
-        'vehicle_monitoring_fallback_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/siri_bilbobus_vehicle_monitoring.xml',
+        'vehicle_monitoring_url' => 'https://opendata.euskadi.eus/transport/moveuskadi/bilbobus/siri_bilbobus_vehicle_monitoring.xml',
+        'vehicle_monitoring_fallback_url' => 'https://ctb-siri.s3.eu-south-2.amazonaws.com/bilbobus-vehicle-positions.xml',
         'cache_ttl_seconds' => 25,
         'http_timeout_seconds' => 8,
     ],
