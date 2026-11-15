@@ -19,7 +19,20 @@
             "schedule_text": true,
             "trip_detail": "vehicle",
             "alerts": "lines",
-            "alerts_detail": true
+            "alerts_detail": true,
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "IES",
+                    "II",
+                    "III",
+                    "IV"
+                ]
+            }
         },
         "texts": {
             "es": {

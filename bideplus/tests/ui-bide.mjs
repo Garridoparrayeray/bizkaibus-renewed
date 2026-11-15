@@ -127,7 +127,7 @@ await ev("document.querySelector('.bide-tabbar [data-bide-tab=favoritos]').click
 check('instalada · Favoritos: se abre como página', await waitTrue(shown('[data-bide-view=favoritos]')));
 check('instalada · Favoritos: oculta las fichas de apps', (await ev(shown('#tr'))) === false);
 check('instalada · Favoritos: agrupa Bizkaibus+ y Metro+', (await ev("[...document.querySelectorAll('[data-bide-view=favoritos] .bide-group')].map(n => n.textContent).join('|')")) === 'Bizkaibus+|Metro+');
-check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav').length === 3 && document.querySelector('[data-bide-view=favoritos] .bide-fav strong').textContent.includes('MOYUA')"));
+check('instalada · Favoritos: 3 favoritos con su nombre', await waitTrue("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav').length === 3 && document.querySelector('[data-bide-view=favoritos] .bide-fav strong').textContent.toUpperCase().includes('MOYUA')"));
 check('instalada · Favoritos: enlaza a la parada en su app', (await ev("document.querySelectorAll('[data-bide-view=favoritos] .bide-fav')[2].getAttribute('href')")) === '/stops/7?red=metro');
 check('instalada · Favoritos: se puede volver con «atrás»', (await ev("location.hash")) === '#favoritos');
 await ev('history.back(); true');

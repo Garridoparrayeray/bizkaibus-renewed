@@ -80,7 +80,9 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Lurraldebus',
+        'title' => 'Lurraldebus+ · Horarios de los autobuses de Gipuzkoa',
         'description' => 'Consulta los horarios de Lurraldebus en Gipuzkoa por línea y parada: Ekialdebus, Gipuzkoana, Goierrialdea, Pesa, TBH, Tolosaldea y Euskotren bus.',
     ],
     'attribution' => 'Datos: Lurraldebus / Diputación Foral de Gipuzkoa, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',

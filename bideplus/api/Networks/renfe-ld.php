@@ -86,8 +86,10 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Renfe LD+ · Horarios y retrasos en tiempo real de los trenes de larga y media distancia',
-        'description' => 'Consulta los horarios de los trenes de larga y media distancia de Renfe (Alvia, Intercity, Media Distancia, Regional…) que paran en Euskadi y Navarra, con su retraso en tiempo real.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Renfe',
+        'title' => 'Renfe LD+ · Trenes de larga y media distancia en directo',
+        'description' => 'Horarios y retrasos en tiempo real de los trenes de larga y media distancia de Renfe que pasan por Euskadi y Navarra, por estación y por tren.',
     ],
     'attribution' => 'Datos: Renfe, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',
 

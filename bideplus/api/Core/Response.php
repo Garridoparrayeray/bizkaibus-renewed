@@ -16,6 +16,8 @@ class Response
         } else {
             header('Cache-Control: no-store');
         }
+        // Los nombres en mayúsculas del operador salen en formato título (features.title_case_names de la ficha).
+        $aData = DisplayName::inData($aData, Config::current());
         echo json_encode($aData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 

@@ -75,6 +75,11 @@ function buildNetwork(string $sSlug, array $aNetwork): array
     if ($aListed !== null) {
         $aUnlisted = array_values(array_map('strval', array_diff(array_keys($aStops), array_keys($aListed))));
     }
+    // Los nombres como los da la API (Core\DisplayName): líneas, destinos y paradas.
+    $aLines = \Core\DisplayName::inData($aLines, $aNetwork);
+    foreach ($aStops as $sStopId => $aStop) {
+        $aStops[$sStopId][0] = \Core\DisplayName::of($aStop[0], $aNetwork);
+    }
     return ['network' => $sSlug, 'hasLearnedMins' => $Segments !== null, 'lines' => $aLines, 'stops' => $aStops, 'unlisted' => $aUnlisted];
 }
 

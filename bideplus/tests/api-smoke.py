@@ -139,7 +139,7 @@ get('/api/live/history?line=3514', 404)
 # Búsqueda por palabras: pueblo y parada en cualquier orden, sin importar mayúsculas.
 for q in ('amorebieta san juan', 'SAN JUAN Amorebieta'):
     found = (get('/api/search?q=' + urllib.parse.quote(q)) or {}).get('stops', [])
-    if not any(x['name'] == 'SAN JUAN' and 'amorebieta' in (x.get('area') or '').lower() for x in found):
+    if not any(x['name'].upper() == 'SAN JUAN' and 'amorebieta' in (x.get('area') or '').lower() for x in found):
         fails.append(f'búsqueda «{q}»: no encuentra SAN JUAN de Amorebieta')
 lines_found = (get('/api/search?q=' + urllib.parse.quote('gernika bilbao')) or {}).get('lines', [])
 if not lines_found:

@@ -86,8 +86,10 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Tuvisa+ · Autobuses de Vitoria-Gasteiz en tiempo real por línea y parada | Bide+',
-        'description' => 'Consulta los próximos autobuses de Tuvisa en Vitoria-Gasteiz en tiempo real, sus horarios por línea y parada, las incidencias y dónde va cada autobús en el mapa.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Tuvisa',
+        'title' => 'Tuvisa+ · Autobuses de Vitoria-Gasteiz en tiempo real',
+        'description' => 'Próximos autobuses de Tuvisa en Vitoria-Gasteiz en tiempo real, con los horarios de cada línea y parada y dónde va cada autobús en el mapa.',
     ],
     'attribution' => 'Datos: Tuvisa / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)',
 

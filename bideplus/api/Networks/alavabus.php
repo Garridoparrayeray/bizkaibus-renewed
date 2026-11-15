@@ -86,7 +86,9 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Álavabus+ · Autobuses de Álava en tiempo real por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Álavabus',
+        'title' => 'Álavabus+ · Autobuses de Álava en tiempo real',
         'description' => 'Consulta los próximos autobuses de Álavabus, los interurbanos de Álava, en tiempo real, sus horarios por línea y parada y dónde va cada autobús en el mapa.',
     ],
     'attribution' => 'Datos: Álavabus / Diputación Foral de Álava, vía Moveuskadi (Open Data Euskadi, CC-BY 4.0)',

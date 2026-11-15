@@ -83,7 +83,9 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Metro+ · Horarios y tiempo real de Metro Bilbao: líneas L1, L2 y L3, estaciones y avisos | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Metro Bilbao',
+        'title' => 'Metro+ · Horarios y tiempo real de Metro Bilbao L1 y L2',
         'description' => 'Consulta los horarios y el tiempo real de Metro Bilbao por línea y estación, con los próximos metros y los avisos de servicio.',
     ],
     'attribution' => 'Datos: Metro Bilbao / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0): horario y tiempo real',

@@ -70,8 +70,10 @@ return [
     ],
 
     'seo' => [
-        'title' => 'BizkaiBus+ · Horarios y tiempo real de Bizkaibus',
-        'description' => 'Consulta horarios, líneas, paradas y llegadas en tiempo real de Bizkaibus.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Bizkaibus',
+        'title' => 'Bizkaibus+ · Horarios y tiempo real de Bizkaibus',
+        'description' => 'Horarios de Bizkaibus por línea y parada, con las próximas salidas y las llegadas en tiempo real de cada autobús de Bizkaia en el mapa.',
     ],
     'attribution' => 'Datos: Bizkaibus / Open Data Bizkaia (CC-BY 4.0)',
 
@@ -84,6 +86,9 @@ return [
         'trip_detail' => 'vehicle',
         'alerts' => 'lines',
         'alerts_detail' => true,
+        // Los nombres del operador van en mayúsculas: en la app y en los buscadores, en formato título (Core\DisplayName),
+        // salvo estas siglas.
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'IES', 'II', 'III', 'IV']],
     ],
 
     // Fuentes en directo: 'vehicle-monitoring' (SIRI, con el motor de engine/<engine>) y 'trip-updates' (GTFS-RT).

@@ -92,8 +92,10 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Tranvía Vitoria+ · Horarios y tiempo real del tranvía de Vitoria-Gasteiz',
-        'description' => 'Consulta los horarios y el tiempo real del tranvía de Vitoria-Gasteiz por parada.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Tranvía de Vitoria-Gasteiz',
+        'title' => 'Tranvía Vitoria+ · Horarios del tranvía de Vitoria-Gasteiz',
+        'description' => 'Horarios y tiempo real del tranvía de Vitoria-Gasteiz de Euskotren: próximas salidas en cada parada, sus ramales y el recorrido de cada línea.',
     ],
     'attribution' => 'Datos: Euskotren (Tranvía Vitoria) / Open Data Euskadi (CC-BY 4.0)',
 

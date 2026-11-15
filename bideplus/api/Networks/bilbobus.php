@@ -83,7 +83,9 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Bilbobus+ · Horarios de los autobuses de Bilbao por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        'operator' => 'Bilbobus',
+        'title' => 'Bilbobus+ · Horarios de los autobuses de Bilbao',
         'description' => 'Consulta los horarios de Bilbobus, los autobuses urbanos de Bilbao, por línea y parada, con el recorrido de cada línea en el mapa.',
     ],
     'attribution' => 'Datos: Bilbobus / Consorcio de Transportes de Bizkaia (data.ctb.eus, CC-BY 4.0)',
