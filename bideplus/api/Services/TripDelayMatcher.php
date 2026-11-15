@@ -71,7 +71,7 @@ class TripDelayMatcher
             $this->aByJourney = array_filter($this->aByJourney, fn(array $aLive) => $aLive['canceled']);
         }
         $this->aByJourney += $Vehicles->entries();
-        // También con solo posiciones: un GPS fuera del tope no deja el viaje «a su hora», sino sin dato.
+        // Donde manda el GPS (solo posiciones o prefer_vehicles), uno fuera del tope no deja el viaje «a su hora».
         foreach ($Vehicles->rejected() as $sRejected) {
             $this->aNoData[(string)$sRejected] = true;
         }

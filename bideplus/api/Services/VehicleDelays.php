@@ -54,9 +54,13 @@ final class VehicleDelays
         return $this->aEntries;
     }
 
-    // Los viajes cuyo GPS daría más del tope: sin el día del viaje, puede ser otro con ese número (salen sin dato).
+    // Los viajes cuyo GPS daría más del tope, donde manda el GPS (solo posiciones o prefer_vehicles): salen sin dato.
+    // En las demás (Renfe LD) siguen con las horas del feed o su horario.
     public function rejected(): array
     {
+        if (!$this->bByPosition) {
+            return [];
+        }
         return array_keys($this->aRejected);
     }
 

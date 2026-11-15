@@ -601,6 +601,12 @@ $aWrongBus = [['tripId' => '22123', 'lat' => 43.009, 'lon' => -2.9, 'stopId' => 
 $aWrongTimes = [['tripId' => '22123', 'stops' => [['C', $iWrongMidnight + T0 + 1200 + 1200]]]];
 $aWrongC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale sin dato', ($aWrongC[0]['status'] ?? null) === 'likely_departed', json_encode($aWrongC));
+// En una red donde no manda el GPS (Renfe LD), ese mismo vehículo de 50 min sin hora prevista no deja el viaje sin
+// dato: sigue con su horario, como en master.
+\Core\Config::set('renfe-ld');
+$aLdC = (new TripDelayMatcher([], new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
+$Expect('Renfe LD: un GPS de más de 45 min sin hora prevista no deja el viaje sin dato', ($aLdC[0]['status'] ?? null) === 'scheduled', json_encode($aLdC));
+\Core\Config::set('alavabus');
 $aRightC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('sin GPS, las mismas horas sí valen (40 min)', ($aRightC[0]['status'] ?? null) === 'live' && $aRightC[0]['delaySeconds'] === 2400, json_encode($aRightC));
 // Sin GPS, el feed lo pone en B 25 min tarde y ya han pasado otros 25: se enseñarían 50 min, más del tope de 45.
