@@ -11,6 +11,7 @@
 // Uso:
 //   php scripts/new-network.php --gtfs=https://…/gtfs.zip [--slug=getxo] [--name="Getxo Bus+"] [--color=#E30613]
 //       [--kind=bus|metro|tram|train] [--city=Getxo] [--city-eu=…] [--city-fr=…] [--operator="Getxoko Udala"]
+//       [--license="CC-BY 4.0"]
 //       [--trip-updates=https://…pb]
 //       [--vehicle-positions=https://…pb] [--alerts=https://…pb] [--matching=trip|stops] [--si] [--sin-datos]
 //   php scripts/new-network.php --rehacer=getxo
@@ -49,6 +50,14 @@ const VEHICLE = [
     'tram' => ['es' => ['tranvía', 'Tranvía'], 'eu' => ['tranbia', 'tranbia'], 'en' => ['tram', 'tram'], 'fr' => ['tram', 'Tram']],
     'train' => ['es' => ['tren', 'Trenes'], 'eu' => ['trena', 'trenak'], 'en' => ['train', 'trains'], 'fr' => ['train', 'Trains']],
 ];
+// Licencias conocidas, como se citan en las fichas: id de la API de data.gouv.fr (y del NAP) => texto. Son también
+// las opciones que se preguntan si no se puede saber sola.
+const LICENSES = [
+    'cc-by' => 'CC-BY 4.0', 'odc-odbl' => 'Open Database License, ODbL 1.0', 'lov2' => 'Licence Ouverte 2.0',
+    'fr-lo' => 'Licence Ouverte 1.0', 'cc-by-sa' => 'CC BY-SA 4.0', 'cc-zero' => 'CC0 1.0', 'odc-by' => 'ODC-BY 1.0',
+];
+const DATA_GOUV_API = 'https://www.data.gouv.fr/api';
+const NAP_API = 'https://nap.transportes.gob.es/api/Fichero/';
 // Sin route_color en el GTFS: el rojo de Bide+.
 const DEFAULT_COLOR = '#E30613';
 const MIN_CONTRAST = 3.0;
@@ -73,10 +82,11 @@ function notice(string $sMessage): void
 }
 
 // Una dirección con curl (que usa el proxy del sistema), o null si no responde.
-function fetch(string $sUrl): string|null
+function fetch(string $sUrl, array $aHeaders = []): string|null
 {
     $Ch = curl_init($sUrl);
-    curl_setopt_array($Ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 30, CURLOPT_FAILONERROR => true]);
+    curl_setopt_array($Ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 30,
+        CURLOPT_FAILONERROR => true, CURLOPT_HTTPHEADER => $aHeaders]);
     $sBody = curl_exec($Ch);
     if (!is_string($sBody)) {
         return null;
@@ -100,7 +110,7 @@ function ask(string $sQuestion, string $sDefault, bool $bAsk): string
 
 function options(): array
 {
-    $aLong = ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'city-eu:', 'city-fr:', 'operator:',
+    $aLong = ['slug:', 'name:', 'color:', 'gtfs:', 'kind:', 'city:', 'city-eu:', 'city-fr:', 'operator:', 'license:',
         'trip-updates:', 'vehicle-positions:', 'alerts:', 'matching:', 'sin-datos', 'si', 'rehacer:'];
     $aOptions = getopt('', $aLong);
     if (isset($aOptions['rehacer'])) {
@@ -167,6 +177,7 @@ function readGtfs(string $sUrl): array
         fail('El GTFS no es un ZIP: ' . $sUrl);
     }
     $aAgencies = csvRows($Zip, 'agency.txt');
+    $aFeedInfo = csvRows($Zip, 'feed_info.txt');
     $aRoutes = csvRows($Zip, 'routes.txt');
     $aStops = csvRows($Zip, 'stops.txt');
     $aTrips = csvRows($Zip, 'trips.txt');
@@ -193,7 +204,99 @@ function readGtfs(string $sUrl): array
         'stops' => count($aStops),
         'bounds' => [min($aLats), max($aLats), min($aLons), max($aLons)],
         'headsign_share' => $iWithHeadsign / count($aTrips),
+        'license' => licenseColumn(array_merge($aFeedInfo, $aAgencies)),
     ];
+}
+
+// Una columna de licencia en feed_info.txt o agency.txt (no es del estándar, pero hay operadores que la ponen).
+function licenseColumn(array $aRows): string
+{
+    foreach ($aRows as $aRow) {
+        foreach ($aRow as $sColumn => $sValue) {
+            if (preg_match('/licen[cs]/i', (string)$sColumn) && trim((string)$sValue) !== '') {
+                return trim((string)$sValue);
+            }
+        }
+    }
+    return '';
+}
+
+// La licencia de la ficha de data.gouv.fr de la que sale el GTFS (su API pública: recurso, conjunto y licencia).
+function licenseFromDataGouv(string $sUrl): string
+{
+    if (!preg_match('#^https://www\.data\.gouv\.fr/api/1/datasets/r/([0-9a-f-]+)#', $sUrl, $aMatch)) {
+        return '';
+    }
+    $aResource = json_decode((string)fetch(DATA_GOUV_API . '/2/datasets/resources/' . $aMatch[1] . '/'), true);
+    if (empty($aResource['dataset_id'])) {
+        return '';
+    }
+    $aDataset = json_decode((string)fetch(DATA_GOUV_API . '/1/datasets/' . $aResource['dataset_id'] . '/'), true);
+    $sId = (string)($aDataset['license'] ?? '');
+    return LICENSES[$sId] ?? $sId;
+}
+
+// La licencia de la ficha del Punto de Acceso Nacional (su API pide la clave NAP_API_KEY, como la descarga).
+function licenseFromNap(string $sUrl): string
+{
+    $bNap = preg_match('#nap\.transportes\.gob\.es/api/Fichero/download/(\d+)#i', $sUrl, $aMatch) === 1;
+    if (!$bNap || !getenv('NAP_API_KEY')) {
+        return '';
+    }
+    $aFile = json_decode((string)fetch(NAP_API . $aMatch[1], ['ApiKey: ' . getenv('NAP_API_KEY')]), true);
+    return licenseColumn([(array)$aFile]);
+}
+
+// La licencia que citan todas las redes que bajan su GTFS del mismo portal (lo último entre paréntesis de su
+// atribución), si coinciden: Open Data Euskadi publica todo con CC-BY 4.0.
+function licenseOfPortal(string $sUrl): string
+{
+    $aFound = [];
+    foreach (Networks::all() as $aNetwork) {
+        $sSource = (string)($aNetwork['gtfs']['source'] ?? '');
+        if (parse_url($sSource, PHP_URL_HOST) === parse_url($sUrl, PHP_URL_HOST)
+            && preg_match('/\(([^()]*)\)\s*$/', $aNetwork['attribution'], $aMatch)) {
+            $aParts = explode(',', $aMatch[1]);
+            $aFound[trim((string)end($aParts))] = true;
+        }
+    }
+    if (count($aFound) !== 1) {
+        return '';
+    }
+    return (string)array_key_first($aFound);
+}
+
+// La licencia de los datos: la opción --license, la del portal (data.gouv.fr, NAP), la del GTFS o la de las redes del
+// mismo portal; si no, se pregunta con las conocidas. Vacía si nadie la sabe: la ficha sale con un aviso.
+function license(array $aOptions, array $aGtfs, bool $bAsk): string
+{
+    $sUrl = $aOptions['gtfs'];
+    $aFinders = ['--license' => fn() => $aOptions['license'] ?? '',
+        'data.gouv.fr' => fn() => licenseFromDataGouv($sUrl), 'NAP' => fn() => licenseFromNap($sUrl),
+        'el GTFS' => fn() => $aGtfs['license'],
+        'las demás redes de ese portal, compruébala' => fn() => licenseOfPortal($sUrl)];
+    foreach ($aFinders as $sWhere => $Finder) {
+        $sLicense = $Finder();
+        if ($sLicense !== '') {
+            echo "Licencia de los datos: $sLicense (de $sWhere)\n";
+            return $sLicense;
+        }
+    }
+    $aChoices = array_values(array_unique(LICENSES));
+    if ($bAsk) {
+        foreach ($aChoices as $i => $sChoice) {
+            echo '  ' . ($i + 1) . ') ' . $sChoice . "\n";
+        }
+        $sLicense = ask('Licencia de los datos (número, otra escrita o vacío si no se sabe)', '', true);
+        if (ctype_digit($sLicense)) {
+            $sLicense = $aChoices[(int)$sLicense - 1] ?? '';
+        }
+    }
+    if ($sLicense === '') {
+        notice('no se ha podido saber la licencia de los datos: la atribución sale sin ella. Búscala en la web del '
+            . 'operador o del portal y ponla en attribution y texts.*.attribution (o --license="CC-BY 4.0").');
+    }
+    return $sLicense;
 }
 
 // Una zona horaria con otra hora que la de Madrid, en invierno o en verano, no vale: la app usa ese reloj.
@@ -297,6 +400,7 @@ function settings(array $aOptions): array
         notice('posiciones sin horas previstas: la red sale en directo con el retraso que da el GPS de cada vehículo '
             . 'sobre su horario (live = [\'vehicle-positions\']).');
     }
+    $aSet['license'] = license($aOptions, $aGtfs, $bAsk);
     $aSet['holidays'] = holidays($aSet['city']);
     if ($aSet['holidays'] === null) {
         notice('su ciudad no está en ningún calendario laboral (api/Config/holidays.php): sin gtfs.holidays, los festivos '
@@ -424,7 +528,7 @@ function basque(string $sName, string $sCase): string
     $iColumn = 1;
     if (in_array($sEnd, ['a', 'e', 'i', 'o', 'u'], true)) {
         $iColumn = 0;
-    } elseif ($sEnd === 'r') {
+    } elseif ($sEnd === 'r' && $sGlue === '') {
         $iColumn = 2;
     } elseif ($sEnd === 'n' || $sEnd === 'l') {
         $iColumn = 3;
@@ -601,15 +705,22 @@ function texts(array $aSet, array $aLive): array
     return $aTexts;
 }
 
-// La atribución de los datos en cada idioma: el operador y su licencia.
+// La atribución de los datos en cada idioma, como en las fichas: el operador, el portal del que sale el GTFS y su
+// licencia («Datos: Kbus, vía opendata.euskadi.eus (CC-BY 4.0)»); sin licencia, «(GTFS)».
 function attribution(array $aSet): array
 {
-    $aLabel = ['es' => 'Datos: ', 'eu' => 'Datuak: ', 'en' => 'Data: ', 'fr' => 'Données : '];
-    $aOut = [];
-    foreach ($aLabel as $sLang => $sLabel) {
-        $aOut[$sLang] = $sLabel . $aSet['operator'] . ' (GTFS)';
+    $sPortal = preg_replace('/^www\./', '', (string)parse_url($aSet['gtfs'], PHP_URL_HOST));
+    $sLicense = $aSet['license'];
+    if ($sLicense === '') {
+        $sLicense = 'GTFS';
     }
-    return $aOut;
+    $sOp = $aSet['operator'];
+    return [
+        'es' => 'Datos: ' . $sOp . ', vía ' . $sPortal . ' (' . $sLicense . ')',
+        'eu' => 'Datuak: ' . $sOp . ', ' . basque($sPortal, 'ren') . ' bidez (' . $sLicense . ')',
+        'en' => 'Data: ' . $sOp . ', via ' . $sPortal . ' (' . $sLicense . ')',
+        'fr' => 'Données : ' . $sOp . ', via ' . $sPortal . ' (' . $sLicense . ')',
+    ];
 }
 
 // Los textos generados, para revisarlos al terminar (sobre todo euskera y francés).
