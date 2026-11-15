@@ -349,6 +349,14 @@ $Expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya
 $Expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
 $Expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $Expect('ficha del viaje: sin paradas sale scheduled', Services\TripSheet::status(false, [], 8 * 3600) === 'scheduled');
+// SNCF pone en el headsign el número del tren: la ficha da como destino la última parada, como las salidas.
+$aSncfJourney = ['line_code' => 'TER', 'line_name' => 'TER', 'headsign' => '867432'];
+$aSncfStops = [['name' => 'Hendaye'], ['name' => 'Bordeaux Saint-Jean']];
+\Core\Config::set('sncf');
+$sSncfHeadsign = Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'];
+\Core\Config::set(\Core\Networks::defaultSlug());
+$Expect('ficha del tren de SNCF: el destino es la última parada, no el número del tren', $sSncfHeadsign === 'Bordeaux Saint-Jean');
+$Expect('ficha del viaje en las demás redes: el headsign del GTFS', Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'] === '867432');
 
 $Section('GTFS-Realtime de Renfe: retraso de cada tren y cancelados (Renfe+)');
 
