@@ -107,8 +107,13 @@ class Schema
     }
 
     // $sSource: «fallback» si el GTFS salió de la fuente de respaldo (el resumen del flujo diario lo avisa).
-    public static function insertMeta(PDO $Pdo, array $aFeedInfo, string $sSource = 'primary'): void
-    {
+    // $sZipDate: el día del zip (Gtfs::zipDate), con el que se sabe lo viejo que es un respaldo.
+    public static function insertMeta(
+        PDO $Pdo,
+        array $aFeedInfo,
+        string $sSource = 'primary',
+        string|null $sZipDate = null
+    ): void {
         $sPublishedDate = date('Y-m-d');
         if (isset($aFeedInfo['feed_version']) && preg_match('/^\d{8}$/', $aFeedInfo['feed_version'])) {
             $sPublishedDate = Gtfs::gtfsDateToIso($aFeedInfo['feed_version']);
@@ -117,6 +122,9 @@ class Schema
         $Stmt = $Pdo->prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
         $Stmt->execute(['schedule_source_published', $sPublishedDate]);
         $Stmt->execute(['schedule_source', $sSource]);
+        if ($sZipDate !== null) {
+            $Stmt->execute(['schedule_zip_date', $sZipDate]);
+        }
         if (isset($aFeedInfo['feed_start_date']) && $aFeedInfo['feed_start_date'] !== '') {
             $Stmt->execute(['feed_start_date', Gtfs::gtfsDateToIso($aFeedInfo['feed_start_date'])]);
         }

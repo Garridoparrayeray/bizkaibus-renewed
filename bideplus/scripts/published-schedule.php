@@ -55,10 +55,11 @@ if (isset($aOptions['summary'])) {
 }
 exit((int)$bFailed);
 
-// Lo que dice la base de la red: hasta cuándo vale, cuándo se publicó y de qué fuente salió.
+// Lo que dice la base de la red: hasta cuándo vale, cuándo se publicó, de qué fuente salió y de cuándo es el GTFS (el
+// día del zip o, si no, el feed_start_date; schedule_source_published puede ser el de la compilación).
 function scheduleRow(array $aNetwork): array
 {
-    $aRow = ['to' => null, 'published' => '?', 'source' => 'primary'];
+    $aRow = ['to' => null, 'published' => '?', 'source' => 'primary', 'issued' => null];
     if (!is_file($aNetwork['db_path'])) {
         return $aRow;
     }
@@ -67,5 +68,6 @@ function scheduleRow(array $aNetwork): array
     $aRow['to'] = ScheduleRange::forDatabase($Pdo)['to'];
     $aRow['published'] = (string)($aMeta['schedule_source_published'] ?? '?');
     $aRow['source'] = (string)($aMeta['schedule_source'] ?? 'primary');
+    $aRow['issued'] = $aMeta['schedule_zip_date'] ?? $aMeta['feed_start_date'] ?? null;
     return $aRow;
 }

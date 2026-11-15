@@ -135,7 +135,7 @@ function main(array $aArgv): void
 
     Schema::insertStops($Pdo, $aStops);
     Schema::insertCalendars($Pdo, $aCalendars);
-    Schema::insertMeta($Pdo, $aFeedInfo, Download::$sLastSource);
+    Schema::insertMeta($Pdo, $aFeedInfo, Download::$sLastSource, Gtfs::zipDate($Zip));
 
     $InsertLine = $Pdo->prepare('INSERT OR IGNORE INTO lines (id, code, name, name_normalized, color, text_color) VALUES (?, ?, ?, ?, ?, ?)');
     foreach ($aRoutes as $iRouteId => $aRoute) {

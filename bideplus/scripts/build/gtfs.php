@@ -78,6 +78,20 @@ class Gtfs
         return '#' . $sValue;
     }
 
+    // El día del fichero más nuevo del zip (cuando lo exportó el operador; null si no lo dice): no es el día de la
+    // compilación, así que dice lo vieja que es una copia de respaldo.
+    public static function zipDate(ZipArchive $Zip): string|null
+    {
+        $iNewest = 0;
+        for ($iIndex = 0; $iIndex < $Zip->numFiles; $iIndex++) {
+            $iNewest = max($iNewest, (int)($Zip->statIndex($iIndex)['mtime'] ?? 0));
+        }
+        if ($iNewest === 0) {
+            return null;
+        }
+        return date('Y-m-d', $iNewest);
+    }
+
     public static function gtfsDateToIso(string $sYmd): string
     {
         return substr($sYmd, 0, 4) . '-' . substr($sYmd, 4, 2) . '-' . substr($sYmd, 6, 2);

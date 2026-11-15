@@ -18,22 +18,25 @@ class Expiry
     // Una copia de respaldo publicada hace más de esto (más que el tiempo normal entre dos horarios) ya no vale.
     public const FALLBACK_MAX_AGE_DAYS = 45;
 
-    // [errores, avisos]. Las redes de horario corto que se renueva a diario (Euskotren) bajan los márgenes en su ficha
-    // (gtfs.expiry_alert_days).
+    // [errores, avisos]. Las redes de horario corto que se renueva a diario (Euskotren y los tranvías, +5 días) bajan
+    // en su ficha todos los márgenes (gtfs.expiry_alert_days), también el de la última base buena conservada.
     public static function problems(array $aNetwork, array $aRow, bool $bKept, string $sToday): array
     {
         $aErrors = [];
         $aWarnings = [];
         $iWarnDays = $aNetwork['gtfs']['expiry_alert_days'] ?? self::WARN_DAYS_LEFT;
         $iFailDays = $aNetwork['gtfs']['expiry_alert_days'] ?? self::FAIL_DAYS_LEFT;
+        $iKeptDays = $aNetwork['gtfs']['expiry_alert_days'] ?? self::KEPT_FAIL_DAYS_LEFT;
         if ($aRow['source'] === 'fallback') {
             $aWarnings[] = 'fuente principal caída, se usa el respaldo';
+            // De cuándo es el GTFS (el día del zip o su feed_start_date); si no se sabe, el día que dice publicado.
+            $sIssued = $aRow['issued'] ?? $aRow['published'];
             $iAge = 0;
-            if ($aRow['published'] !== '?') {
-                $iAge = self::daysBetween($aRow['published'], $sToday);
+            if ($sIssued !== '?') {
+                $iAge = self::daysBetween($sIssued, $sToday);
             }
             if ($iAge > self::FALLBACK_MAX_AGE_DAYS) {
-                $aErrors[] = "el respaldo es del {$aRow['published']}, de hace $iAge días";
+                $aErrors[] = "el respaldo es del $sIssued, de hace $iAge días";
             }
         }
         if ($aRow['to'] === null) {
@@ -45,7 +48,7 @@ class Expiry
         if ($iLeft < 0) {
             $sEnds = "su horario caducó el {$aRow['to']}";
         }
-        if ($bKept && $iLeft <= self::KEPT_FAIL_DAYS_LEFT) {
+        if ($bKept && $iLeft <= $iKeptDays) {
             $aErrors[] = "hoy no se pudo reconstruir y la última base buena caduca pronto: $sEnds";
         } elseif (!empty($aNetwork['gtfs']['required']) && $iLeft <= $iFailDays) {
             $aErrors[] = "red obligatoria a punto de quedarse sin horario: $sEnds";

@@ -423,6 +423,29 @@ $Expect('respaldo reciente: avisa «fuente principal caída, se usa el respaldo�
     $aErr === [] && $aWarn === ['fuente principal caída, se usa el respaldo']);
 [$aErr, $aWarn] = Expiry::problems($aRequired, $Row('2027-01-09', 'fallback', '2026-09-01'), false, '2026-11-15');
 $Expect('respaldo de hace más de ' . Expiry::FALLBACK_MAX_AGE_DAYS . ' días: falla', count($aErr) === 1);
+// schedule_source_published puede ser el día de la compilación: manda el día del zip (o su feed_start_date).
+$aOldCopy = ['issued' => '2026-09-01'] + $Row('2027-01-09', 'fallback', '2026-11-15');
+[$aErr, $aWarn] = Expiry::problems($aRequired, $aOldCopy, false, '2026-11-15');
+$Expect('respaldo con zip de hace más de ' . Expiry::FALLBACK_MAX_AGE_DAYS . ' días y compilado hoy: falla', count($aErr) === 1, json_encode($aErr));
+[$aErr, $aWarn] = Expiry::problems($aRequired, ['issued' => '2026-11-12'] + $Row('2027-01-09', 'fallback', '2026-11-15'), false, '2026-11-15');
+$Expect('respaldo con zip reciente: solo el aviso', $aErr === [] && count($aWarn) === 1);
+$sZipFile = tempnam(sys_get_temp_dir(), 'bide-zip-');
+$DatedZip = new ZipArchive();
+$DatedZip->open($sZipFile, ZipArchive::OVERWRITE);
+$DatedZip->addFromString('stops.txt', "stop_id\n");
+$DatedZip->addFromString('trips.txt', "trip_id\n");
+$DatedZip->setMtimeName('stops.txt', (int)strtotime('2026-09-01 10:00'));
+$DatedZip->setMtimeName('trips.txt', (int)strtotime('2026-09-03 10:00'));
+$DatedZip->close();
+$DatedZip->open($sZipFile);
+$Expect('el día del zip es el de su fichero más nuevo', Gtfs::zipDate($DatedZip) === '2026-09-03', (string)Gtfs::zipDate($DatedZip));
+$DatedZip->close();
+unlink($sZipFile);
+// Con el cron de la 01:17 Euskotren puede bajar el fichero del día anterior (+4 días): conservado, no falla.
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-19'), true, '2026-11-15');
+$Expect('caducidad: Euskotren sin reconstruir hoy con 4 días: aviso, con el umbral de su ficha', $aErr === [] && count($aWarn) === 1, json_encode([$aErr, $aWarn]));
+[$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-19'), false, '2026-11-15');
+$Expect('caducidad: Euskotren con el fichero del día anterior (4 días): ni aviso', $aErr === [] && $aWarn === []);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
