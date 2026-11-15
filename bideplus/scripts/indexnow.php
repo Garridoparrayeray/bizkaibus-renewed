@@ -2,8 +2,8 @@
 
 // Avisa por IndexNow (Bing, Yandex y los buscadores que lo comparten; ChatGPT y Copilot buscan con Bing) de las
 // páginas principales de Bide+ en los cuatro idiomas (el inicio, el mapa y cada app) y de las paradas y líneas que
-// han cambiado hoy (su lastmod en scripts/sitemap-lastmod.json). El resto, en sitemap-index.xml. Se lanza después de
-// cada despliegue; si falla, no para nada.
+// han cambiado hoy (su lastmod en sitemap-lastmod.json, junto a este script). El resto, en sitemap-index.xml. Se
+// lanza después de cada despliegue; si falla, no para nada.
 // Uso: php scripts/indexnow.php [--dry-run]
 
 declare(strict_types=1);
@@ -37,27 +37,34 @@ foreach ($aPages as $sPage) {
 }
 
 $sHost = (string)parse_url($aSite['url'], PHP_URL_HOST);
-$sBody = json_encode([
-    'host' => $sHost,
-    'key' => $aSite['indexnow_key'],
-    'keyLocation' => $aSite['url'] . '/' . $aSite['indexnow_key'] . '.txt',
-    'urlList' => array_slice($aUrls, 0, INDEXNOW_MAX_URLS),
-], JSON_UNESCAPED_SLASHES);
-if ($bDryRun) {
-    echo $sBody . "\n";
-    exit(0);
+// En tandas de INDEXNOW_MAX_URLS, lo más que admite IndexNow en una petición.
+$iFailed = 0;
+foreach (array_chunk($aUrls, INDEXNOW_MAX_URLS) as $aBatch) {
+    $sBody = json_encode([
+        'host' => $sHost,
+        'key' => $aSite['indexnow_key'],
+        'keyLocation' => $aSite['url'] . '/' . $aSite['indexnow_key'] . '.txt',
+        'urlList' => $aBatch,
+    ], JSON_UNESCAPED_SLASHES);
+    if ($bDryRun) {
+        echo $sBody . "\n";
+        continue;
+    }
+    $Context = stream_context_create(['http' => [
+        'method' => 'POST',
+        'header' => "Content-Type: application/json; charset=utf-8\r\n",
+        'content' => $sBody,
+        'timeout' => 20,
+        'ignore_errors' => true,
+    ]]);
+    $sResponse = @file_get_contents('https://api.indexnow.org/indexnow', false, $Context);
+    $sStatus = $http_response_header[0] ?? 'sin respuesta';
+    echo 'IndexNow: ' . count($aBatch) . ' páginas → ' . $sStatus . "\n";
+    if ($sResponse === false || !preg_match('#\s20[02]\s#', $sStatus)) {
+        echo trim((string)$sResponse) . "\n";
+        $iFailed++;
+    }
 }
-$Context = stream_context_create(['http' => [
-    'method' => 'POST',
-    'header' => "Content-Type: application/json; charset=utf-8\r\n",
-    'content' => $sBody,
-    'timeout' => 20,
-    'ignore_errors' => true,
-]]);
-$sResponse = @file_get_contents('https://api.indexnow.org/indexnow', false, $Context);
-$sStatus = $http_response_header[0] ?? 'sin respuesta';
-echo 'IndexNow: ' . min(count($aUrls), INDEXNOW_MAX_URLS) . ' páginas → ' . $sStatus . "\n";
-if ($sResponse === false || !preg_match('#\s20[02]\s#', $sStatus)) {
-    echo trim((string)$sResponse) . "\n";
+if ($iFailed > 0) {
     exit(1);
 }

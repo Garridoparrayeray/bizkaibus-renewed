@@ -3,11 +3,10 @@
 // Genera los sitemaps (estáticos) de Bide+: sitemap-index.xml y, en sitemaps/, uno con las páginas generales (menú,
 // mapa, estado y cada red) y uno por red con sus líneas y paradas, cada página en sus cuatro idiomas (hreflang).
 // El lastmod de cada página es el día en que cambió de verdad (nombre, líneas, paradas u horario), no el de la
-// compilación: su huella y ese día se guardan en scripts/sitemap-lastmod.json, que la reconstrucción diaria
-// (rebuild-schedule.yml) sube al repositorio junto a geocache.json. El día solo cambia cuando cambia la huella.
+// compilación: su huella y ese día van en sitemap-lastmod.json, junto a este script, que solo escribe y sube la
+// reconstrucción diaria (rebuild-schedule.yml, con --save-state). El día solo cambia cuando cambia la huella.
 //
-// Uso: php scripts/build-sitemap.php [--output-dir=raíz] [--state=json] [--keep-state]
-//   --keep-state  no guarda las huellas nuevas (para comparar con lo del repositorio sin tocarlo)
+// Uso: php scripts/build-sitemap.php [--output-dir=raíz] [--state=json] [--save-state]
 
 declare(strict_types=1);
 
@@ -23,7 +22,7 @@ const HASH_LENGTH = 12;
 // Las páginas generales van en su propio sitemap, con este nombre.
 const GENERAL_SITEMAP = 'bide';
 
-$aOptions = getopt('', ['output-dir:', 'state:', 'keep-state']);
+$aOptions = getopt('', ['output-dir:', 'state:', 'save-state']);
 $sRoot = dirname(__DIR__);
 $sOutputDir = rtrim($aOptions['output-dir'] ?? $sRoot, '/');
 $sStatePath = $aOptions['state'] ?? __DIR__ . '/sitemap-lastmod.json';
@@ -222,7 +221,7 @@ foreach ($aSitemaps as $sName => $sDate) {
 }
 file_put_contents($sOutputDir . '/sitemap-index.xml', $sIndex . '</sitemapindex>' . "\n");
 
-if (!isset($aOptions['keep-state'])) {
+if (isset($aOptions['save-state'])) {
     ksort($aNewState);
     file_put_contents($sStatePath, json_encode($aNewState, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n");
 }

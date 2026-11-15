@@ -44,7 +44,7 @@ jobs:
       - name: Sitemap
         run: |
           set -e
-          # Como lo pide Google: con su user-agent, mostrando estado y tipo de contenido. El índice y un sitemap por red.
+          # Como lo pide Google: con su user-agent, estado y tipo de contenido. El índice y un sitemap por red.
           UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           curl -sS -A "$UA" -D headers.txt -o index.xml "$BASE/sitemap-index.xml"
           grep -iE '^(HTTP|content-type|content-length|x-vercel-cache)' headers.txt

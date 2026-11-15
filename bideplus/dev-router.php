@@ -27,13 +27,10 @@ function routeHostMatches(array $aRoute, string $sHost): bool
 $sHost = $_SERVER['HTTP_HOST'] ?? '';
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
-    if (isset($aRoute['has'], $aRoute['dest']) && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
+    // Las que llevan a un fichero (/sitemap.xml, el robots.txt de la copia de prueba) cambian la ruta que se sirve.
+    $bToFile = isset($aRoute['dest']) && !str_ends_with($aRoute['dest'], '.php');
+    if ($bToFile && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
         $sUri = $aRoute['dest'];
-    }
-    if (isset($aRoute['status'], $aRoute['headers']['Location']) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
-        http_response_code($aRoute['status']);
-        header('Location: ' . $aRoute['headers']['Location']);
-        return true;
     }
     if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri) || !routeHostMatches($aRoute, $sHost)) {
         continue;
