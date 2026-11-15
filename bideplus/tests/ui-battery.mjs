@@ -60,8 +60,12 @@ const search = async (q, wait = 3200) => {
     await sleep(wait);
 };
 
-// Una muestra de cada red (tests/network-samples.php): una red nueva entra sola.
-const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', [new URL('./network-samples.php', import.meta.url).pathname], { encoding: 'utf8' }));
+// Una muestra de cada red (tests/network-samples.php): una red nueva entra sola. Con APPS, solo de esas.
+// Con ONLY_APPS=1 (y APPS) se prueban solo esas redes, sin las comprobaciones comunes (enlaces, idioma, menú…).
+const sampleArgs = [new URL('./network-samples.php', import.meta.url).pathname];
+if (process.env.APPS) sampleArgs.push(`--redes=${process.env.APPS}`);
+const onlyApps = Boolean(process.env.ONLY_APPS && process.env.APPS);
+const samples = JSON.parse(execFileSync(process.env.PHP_PATH || 'php', sampleArgs, { encoding: 'utf8' }));
 const apps = Object.keys(samples).map((key) => ({ key, url: `/?red=${key}`, q: samples[key].fullQuery, panel: samples[key].panel, beyond: samples[key].beyondPublished, serviceDate: samples[key].serviceDate }));
 
 const sizes = [{ n: 'movil', w: 390, h: 844, m: true }, { n: 'pc', w: 1366, h: 800, m: false }];
@@ -200,6 +204,22 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
     }
 }
 
+// El resumen y la salida (con ONLY_APPS, justo después de las redes).
+const finish = () => {
+    const unique = [...new Set(problems)];
+    const bad = results.filter(r => r.startsWith('MAL')).length;
+    const ok = results.filter(r => r.startsWith('OK')).length;
+    const skipped = results.filter(r => r.startsWith('SKIP')).length;
+    console.log(results.join('\n'));
+    console.log(`\nRESULTADO UI: ${ok} OK, ${bad} MAL, ${skipped} SKIP, ${unique.length} problemas de consola/red`);
+    for (const p of unique.slice(0, 25)) console.log(' -', p);
+    ws.close();
+    let exitCode = 0;
+    if (bad || unique.length) exitCode = 1;
+    shutdown(exitCode);
+};
+if (onlyApps) finish();
+
 where = 'deep';
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
 for (const [url, panel, name] of [
@@ -247,12 +267,4 @@ for (const [u, nombre] of [['/stops/99999999', 'parada inexistente'], ['/nada-po
     check(`404 real: ${nombre}`, res.status === 404, `HTTP ${res.status}`);
 }
 
-const unique = [...new Set(problems)];
-const bad = results.filter(r => r.startsWith('MAL')).length;
-console.log(results.join('\n'));
-console.log(`\nRESULTADO UI: ${results.filter(r => r.startsWith('OK')).length} OK, ${bad} MAL, ${results.filter(r => r.startsWith('SKIP')).length} SKIP, ${unique.length} problemas de consola/red`);
-for (const p of unique.slice(0, 25)) console.log(' -', p);
-ws.close();
-let exitCode = 0;
-if (bad || unique.length) exitCode = 1;
-shutdown(exitCode);
+finish();

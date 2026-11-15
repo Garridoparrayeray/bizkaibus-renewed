@@ -1048,6 +1048,45 @@ function tripsInSchedule(array $aNetwork, array $aTrips): void
     }
 }
 
+// Un puerto libre de esta máquina (para el servidor y el navegador de la prueba de la interfaz).
+function freePort(): int
+{
+    $Socket = stream_socket_server('tcp://127.0.0.1:0');
+    $iPort = (int)substr(strrchr((string)stream_socket_get_name($Socket, false), ':'), 1);
+    fclose($Socket);
+    return $iPort;
+}
+
+// La interfaz de la red sola (tests/ui-battery.mjs con APPS y ONLY_APPS), con un servidor propio en un puerto libre.
+// Sin navegador, se salta con un aviso.
+function uiCheck(string $sSlug): bool
+{
+    $sChrome = chrome();
+    if ($sChrome === null) {
+        notice('sin navegador no se prueba la interfaz: CHROME_PATH=… APPS=' . $sSlug
+            . ' ONLY_APPS=1 node tests/ui-battery.mjs');
+        return true;
+    }
+    $iPort = freePort();
+    $aServe = [PHP_BINARY, '-S', '127.0.0.1:' . $iPort, 'dev-router.php'];
+    $aQuiet = [['pipe', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']];
+    $Server = proc_open($aServe, $aQuiet, $aPipes, ROOT, ['PHP_CLI_SERVER_WORKERS' => '4'] + getenv());
+    for ($i = 0; $i < 30 && fetch('http://127.0.0.1:' . $iPort . '/') === null; $i++) {
+        usleep(300000);
+    }
+    $sEnv = 'APPS=' . escapeshellarg($sSlug) . ' ONLY_APPS=1 BASE_URL=http://127.0.0.1:' . $iPort
+        . ' CDP_PORT=' . freePort() . ' CHROME_PATH=' . escapeshellarg($sChrome);
+    exec($sEnv . ' node ' . escapeshellarg(ROOT . '/tests/ui-battery.mjs') . ' 2>&1', $aOutput, $iStatus);
+    proc_terminate($Server);
+    proc_close($Server);
+    $aSummary = preg_grep('/^RESULTADO UI/', $aOutput);
+    echo '  tests/ui-battery.mjs (solo ' . $sSlug . '): ' . (string)end($aSummary) . "\n";
+    if ($iStatus !== 0) {
+        echo '    ' . implode("\n    ", preg_grep('/^MAL| - /', $aOutput)) . "\n";
+    }
+    return $iStatus === 0;
+}
+
 // La validación final: las pautas de la ficha, la base y lo que se puede comprobar de sus datos.
 function validate(string $sSlug): void
 {
@@ -1067,6 +1106,7 @@ function validate(string $sSlug): void
     }
     coverage($aNetwork);
     feeds($aNetwork);
+    $bOk = uiCheck($sSlug) && $bOk;
     if (!$bOk) {
         fail("La red «{$sSlug}» no pasa la validación: arregla su ficha y php scripts/new-network.php --rehacer=$sSlug");
     }
