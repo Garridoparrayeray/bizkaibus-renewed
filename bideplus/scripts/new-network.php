@@ -879,11 +879,13 @@ function config(array $aSet): string
     $aRt = gtfsRt($aSet);
     if ($aRt !== null) {
         $aConfig['gtfs_rt'] = $aRt;
+    }
+    if (isset($aRt['trip_updates_url'])) {
         $aComments['gtfs_rt'] = 'gtfs_rt.platform_matching (por andén y destino, como metro.php) solo si los viajes '
             . 'del feed no son los del horario: lo avisa la validación; --platform-matching lo copia.';
     }
     $aPlatforms = likest($aSet, $aLive, 'gtfs_rt.platform_matching');
-    if ($aRt !== null && $aSet['platform-matching'] && $aPlatforms !== null) {
+    if (isset($aRt['trip_updates_url']) && $aSet['platform-matching'] && $aPlatforms !== null) {
         $aConfig['gtfs_rt']['platform_matching'] = $aPlatforms['value'];
     }
     $aConfig['gtfs'] = $aGtfs;
