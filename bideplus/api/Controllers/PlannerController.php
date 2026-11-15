@@ -70,22 +70,28 @@ class PlannerController
     {
         try {
             Config::set($sNetwork);
-            return self::updatesOf($sNetwork, StopsController::liveLegs($aLegs));
+            return self::updatesOf($sNetwork, StopsController::liveLegs($aLegs), self::serviceDay());
         } catch (\Throwable $Ex) {
             error_log('Bide+ directo del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
             return [];
         }
     }
 
-    public static function updatesOf(string $sNetwork, array $aLive): array
+    // Cada viaje con su día de servicio ($iDay, hoy): los de ayer que siguen de madrugada, con el de ayer.
+    public static function updatesOf(string $sNetwork, array $aLive, int $iDay): array
     {
         $aUpdates = [];
         foreach ($aLive as $sTrip => $aRow) {
+            $iTripDay = $iDay;
+            if (!empty($aRow['yesterday'])) {
+                $iTripDay = $iDay - 1;
+            }
+            $aTrip = ['network' => $sNetwork, 'trip' => (string)$sTrip, 'day' => $iTripDay];
             if ($aRow['status'] === 'live') {
                 $iDelay = max(-self::MAX_ADVANCE_SECONDS, (int)$aRow['delaySeconds']);
-                $aUpdates[] = ['network' => $sNetwork, 'trip' => (string)$sTrip, 'delay' => $iDelay, 'cancelled' => false];
+                $aUpdates[] = $aTrip + ['delay' => $iDelay, 'cancelled' => false];
             } elseif ($aRow['status'] === 'cancelled') {
-                $aUpdates[] = ['network' => $sNetwork, 'trip' => (string)$sTrip, 'delay' => 0, 'cancelled' => true];
+                $aUpdates[] = $aTrip + ['delay' => 0, 'cancelled' => true];
             }
         }
         return $aUpdates;

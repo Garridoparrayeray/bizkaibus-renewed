@@ -63,7 +63,7 @@ SCHEMAS = {
                 'delayMinutes': opt(int),
                 'stops': [{'stopId': ID, 'name': str, 'scheduledTime': 'hm', 'etaMinutes': opt(int), 'etaAt': opt(int), 'isPast': bool, 'isCurrent': bool}]},
     'plannerLive': {'day': int, 'generated': int,
-                    'updates': [{'network': str, 'trip': str, 'delay': int, 'cancelled': bool}]},
+                    'updates': [{'network': str, 'trip': str, 'day': int, 'delay': int, 'cancelled': bool}]},
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
     'reduced': REDUCED,

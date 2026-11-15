@@ -35,19 +35,22 @@ export const liveEntry = (leg, iDay) => {
     return entry.update;
 };
 
-// Los tramos de hoy que salen pronto o van ya en marcha, uno por vehículo, con su parada, línea y hora sin retraso.
+// Los tramos que salen pronto o van ya en marcha, uno por vehículo, con su parada, línea y hora sin retraso. Los de hoy
+// y, de madrugada, los de ayer que pasan de las 24:00; la hora va en la de su día de servicio (25:10, no 01:10), como
+// en las bases.
 const wantedLegs = () => {
     const here = nowHere();
     const wanted = new Map();
     live.sources().forEach((source) => {
         const iOffset = (source.day - here.day) * SECONDS_PER_DAY;
         ridesIn(source.legs).forEach((leg) => {
-            const bToday = source.day + leg.day_shift === here.day;
+            const iServiceDay = source.day + leg.day_shift;
+            const bRunning = iServiceDay === here.day || iServiceDay === here.day - 1;
             const bSoon = leg.depart + iOffset <= here.seconds + AHEAD_SECONDS && leg.arrive + iOffset >= here.seconds;
-            const sKey = keyOf(leg.network, leg.trip, here.day);
-            if (bToday && bSoon && !wanted.has(sKey)) {
-                wanted.set(sKey, { key: sKey, network: leg.network, stop: leg.from.id, line: leg.line.code, depart: leg.scheduled_depart,
-                    trip: leg.trip });
+            const sKey = keyOf(leg.network, leg.trip, iServiceDay);
+            if (bRunning && bSoon && !wanted.has(sKey)) {
+                wanted.set(sKey, { key: sKey, network: leg.network, stop: leg.from.id, line: leg.line.code,
+                    depart: leg.scheduled_depart - leg.day_shift * SECONDS_PER_DAY, trip: leg.trip });
             }
         });
     });
@@ -131,8 +134,10 @@ const remember = (aLegs, answer) => {
         live.asked.set(leg.key, iNow);
         live.entries.delete(leg.key);
     });
+    // Cada viaje con su día de servicio (el de ayer, de madrugada); sin él, el de hoy.
     answer.updates.forEach((update) => {
-        live.entries.set(keyOf(update.network, update.trip, answer.day), { at: iNow, update: Object.assign({ day: answer.day }, update) });
+        const full = Object.assign({ day: answer.day }, update);
+        live.entries.set(keyOf(full.network, full.trip, full.day), { at: iNow, update: full });
     });
 };
 
