@@ -24,7 +24,7 @@ use Core\Networks;
 <?php endif; ?>
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
-    <?= \Core\Lang::alternates($sCanonicalEs) ?>
+    <?= \Core\Lang::alternates($sCanonicalEs, $aNetwork['seo']['default_lang'] ?? 'es') ?>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">

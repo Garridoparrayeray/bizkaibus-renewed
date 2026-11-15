@@ -86,6 +86,8 @@ return [
     ],
 
     'seo' => [
+        // Una red de Iparralde: la versión en francés es la de quien no habla ninguno de los cuatro (x-default).
+        'default_lang' => 'fr',
         // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
         'operator' => 'Txik Txak',
         'title' => 'Txik Txak+ · Horarios de los autobuses de Iparralde',
