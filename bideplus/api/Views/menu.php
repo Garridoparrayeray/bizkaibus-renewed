@@ -28,7 +28,7 @@ $sDescription = $aDescriptions[$sLang];
 $sCanonicalEs = $aSite['url'] . '/';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
-$sOgAlt = 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio';
+$sOgAlt = Lang::t('seo.imageAlt', $sLang);
 $sWordmark = require __DIR__ . '/wordmark.php';
 
 $aApps = [];

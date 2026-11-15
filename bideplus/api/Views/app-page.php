@@ -56,11 +56,16 @@ if ($bMiamorDomain) {
     if ($sLang !== 'es') {
         $sDescription = Lang::t('seo.networkDescription', $sLang, ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
     }
-    // Al compartir cualquier página (parada, línea, red), la vista previa es siempre la imagen de Bide+.
+    // Al compartir una página de la red (parada, línea o la propia red), su vista previa (scripts/render-images.mjs
+    // redes); sin ella, la de Bide+. El texto alternativo, en el idioma de la página.
     $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
+    $sImageAlt = Lang::t('seo.imageAlt', $sLang);
+    if (is_file(__DIR__ . '/../../' . $aNetwork['brand']['icons'] . '/og-image.png')) {
+        $sImage = $aSite['url'] . '/' . $aNetwork['brand']['icons'] . '/og-image.png';
+        $sImageAlt = Networks::text($aNetwork, 'name', $sLang) . ': ' . Networks::text($aNetwork, 'subtitle', $sLang);
+    }
     $iImageWidth = 1200;
     $iImageHeight = 630;
-    $sImageAlt = 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio';
     $sFaviconFolder = $aNetwork['brand']['icons'];
 }
 // Imagen apaisada: vista previa grande en las redes que lo distinguen.

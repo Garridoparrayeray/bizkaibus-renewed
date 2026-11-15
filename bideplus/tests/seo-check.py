@@ -137,7 +137,13 @@ for path, app in (('/', True), ('/?red=bus', True), ('/stops/2877', False), ('/l
     has_app = 'SoftwareApplication' in types or 'SoftwareApplication' in page
     expect(has_app == app, f'{path}: SoftwareApplication {has_app}, esperaba {app}')
     expect('aggregateRating' not in page, f'{path}: valoraciones inventadas')
-print('datos estructurados ok')
+# La vista previa al compartir: la de la red, con su texto alternativo traducido, su tipo y el de Twitter.
+code, headers, page = fetch('/stops/2877?lang=eu')
+expect('og:image" content="https://www.bideplus.eus/icons-pro/og-image.png"' in page and '<meta property="og:image:type" content="image/png">' in page, '/stops/2877: sin la imagen de la red o sin og:image:type')
+expect('<meta name="twitter:image:alt" content="Bizkaibus+: Bizkaibusen ordutegiak eta zuzenekoa">' in page and 'og:image:alt" content="Bizkaibus+: Bizkaibusen' in page, '/stops/2877?lang=eu: texto alternativo sin traducir')
+code, headers, page = fetch('/?lang=en')
+expect('og:image:alt" content="Bide+: bus, metro, train and tram' in page and 'twitter:image:alt" content="Bide+: bus, metro, train and tram' in page, '/?lang=en: texto alternativo sin traducir')
+print('datos estructurados y vista previa ok')
 
 # Una sola dirección por página: 301 a la buena (barra final, mayúsculas en la parte fija, red que no existe) y 404
 # en lo que no es una página, en el idioma de la dirección y con noindex. Los ids conservan sus mayúsculas.

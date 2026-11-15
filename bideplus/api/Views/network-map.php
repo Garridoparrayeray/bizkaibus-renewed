@@ -49,7 +49,13 @@ $aJsonLd = [
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="manifest" href="/manifest-bide.json">
     <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">

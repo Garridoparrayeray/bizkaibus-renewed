@@ -33,6 +33,7 @@ use Core\Networks;
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sImage) ?>">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="<?= $iImageWidth ?>">
     <meta property="og:image:height" content="<?= $iImageHeight ?>">
     <meta property="og:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
@@ -40,6 +41,7 @@ use Core\Networks;
     <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="twitter:image" content="<?= htmlspecialchars($sImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
     <link rel="icon" href="/<?= $sFaviconFolder ?>/icon-192.png">
     <link rel="apple-touch-icon" href="/<?= $sFaviconFolder ?>/apple-touch-icon.png">
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
