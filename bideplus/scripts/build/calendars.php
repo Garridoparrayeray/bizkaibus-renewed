@@ -75,21 +75,38 @@ class Calendars
     /*
      * Los festivos de los que el GTFS no dice nada (no publica calendar_dates, o caen después de su periodo) van con
      * el servicio de domingo: ese día no circulan los calendarios de ese día de la semana y sí los de domingo. Lo que
-     * circula los dos días no cambia. Devuelve cuántos festivos se han puesto.
+     * circula los dos días no cambia. Con $bAddedSunday (Álavabus), si el GTFS ese día solo añade el calendario de
+     * domingo y no quita el de ese día de la semana, es festivo igual: se quitan los de ese día que no tienen
+     * excepción. Devuelve cuántos festivos se han puesto.
      */
-    public static function applyHolidays(PDO $Pdo, array $aHolidays, string $sPublishedEnd, bool $bPublishesDates): int
-    {
+    public static function applyHolidays(
+        PDO $Pdo,
+        array $aHolidays,
+        string $sPublishedEnd,
+        bool $bPublishesDates,
+        bool $bAddedSunday = false
+    ): int {
         $iApplied = 0;
         $sMissing = 'NOT EXISTS (SELECT 1 FROM service_calendar_exceptions e WHERE e.calendar_id = sc.id AND e.date = ?)';
         $Exclude = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) SELECT sc.id, ?, 0
             FROM service_calendars sc WHERE (sc.weekday_mask & ?) != 0 AND (sc.weekday_mask & ?) = 0 AND ' . $sMissing);
         $Include = $Pdo->prepare('INSERT INTO service_calendar_exceptions (calendar_id, date, available) SELECT sc.id, ?, 1
             FROM service_calendars sc WHERE (sc.weekday_mask & ?) != 0 AND (sc.weekday_mask & ?) = 0 AND ' . $sMissing);
+        $AddsSunday = $Pdo->prepare('SELECT 1 FROM service_calendar_exceptions e
+            JOIN service_calendars sc ON sc.id = e.calendar_id
+            WHERE e.date = ? AND e.available = 1 AND sc.weekday_mask = ? LIMIT 1');
         foreach ($aHolidays as $sDate) {
+            $iWeekday = 1 << ((int)(new DateTime($sDate))->format('N') - 1);
             if ($bPublishesDates && ($sPublishedEnd === '' || $sDate <= $sPublishedEnd)) {
+                $AddsSunday->execute([$sDate, self::SUNDAY_ONLY_MASK]);
+                if ($bAddedSunday && $AddsSunday->fetchColumn() !== false) {
+                    $Exclude->execute([$sDate, $iWeekday, self::SUNDAY_ONLY_MASK, $sDate]);
+                    if ($Exclude->rowCount() > 0) {
+                        $iApplied++;
+                    }
+                }
                 continue;
             }
-            $iWeekday = 1 << ((int)(new DateTime($sDate))->format('N') - 1);
             $Exclude->execute([$sDate, $iWeekday, self::SUNDAY_ONLY_MASK, $sDate]);
             $Include->execute([$sDate, self::SUNDAY_ONLY_MASK, $iWeekday, $sDate]);
             $iApplied++;

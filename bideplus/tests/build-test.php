@@ -388,6 +388,14 @@ $Expect('festivo: sin calendar_dates, ese martes va con el de domingo y lo diari
     && Calendars::journeysOn($Silent, new DateTime('2026-12-08')) === 5 && Calendars::journeysOn($Silent, new DateTime('2026-12-01')) === 11);
 $Expect('festivo: si el operador publica calendar_dates, dentro de su periodo manda él', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-23', true) === 0);
 $Expect('festivo: pasado su periodo, se coge el de la zona', Calendars::applyHolidays($Target(), ['2026-12-08'], '2026-12-01', true) === 1);
+// Álavabus: dentro de su periodo, el GTFS solo añade el domingo el martes festivo y no quita el laborable.
+$Ambiguous = fn() => $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'todos' => [127, 1], 'lv-especial' => [31, 2]], [['d', '2026-12-08', 1], ['lv-especial', '2026-12-08', 1]]);
+$AlavaHoliday = $Ambiguous();
+$iAmbiguous = Calendars::applyHolidays($AlavaHoliday, ['2026-12-08'], '2027-01-14', true, true);
+$Expect('festivo ambiguo: solo el domingo añadido y en el calendario laboral, va como festivo (sin lo laborable sin excepción)', $iAmbiguous === 1
+    && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-08')) === 7 && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-01')) === 13);
+$Expect('festivo ambiguo: un día que no está en el calendario laboral no se toca', Calendars::applyHolidays($Ambiguous(), [], '2027-01-14', true, true) === 0);
+$Expect('festivo ambiguo: sin la opción de la ficha, dentro de su periodo manda el GTFS', Calendars::applyHolidays($Ambiguous(), ['2026-12-08'], '2027-01-14', true) === 0);
 
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";

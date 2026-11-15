@@ -136,6 +136,9 @@ return [
         'holidays' => [
             'calendar' => 'euskadi', 'territory' => 'Álava - Araba', 'municipality' => null,
             'fallback' => ['networks' => ['dbus', 'bilbobus'], 'quorum' => 2],
+            // Su GTFS marca el festivo entre semana añadiendo el calendario de domingo sin quitar el de ese día: en
+            // un festivo del calendario laboral, lo de ese día de la semana sin excepción no circula.
+            'added_sunday_is_holiday' => true,
         ],
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/alavabus/gtfs_alavabus.zip',
         'fallback_source' => null,

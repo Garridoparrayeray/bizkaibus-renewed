@@ -170,7 +170,9 @@ function main(array $aArgv): void
         $aHolidays = Holidays::forNetwork($sNetwork, $aGtfs['holidays'], date('Y-m-d'));
         $aPublished = Calendars::publishedWindow($aFeedInfo, $aCalendars);
         $bPublishesDates = !empty(array_filter($aCalendars, fn(array $aCal) => !empty($aCal['exact']['available']) || !empty($aCal['exact']['excluded'])));
-        $iBorrowed = Calendars::applyHolidays($Pdo, $aHolidays, (string)end($aPublished), $bPublishesDates);
+        $bAddedSunday = !empty($aGtfs['holidays']['added_sunday_is_holiday']);
+        $sEnd = (string)end($aPublished);
+        $iBorrowed = Calendars::applyHolidays($Pdo, $aHolidays, $sEnd, $bPublishesDates, $bAddedSunday);
         echo '  ' . count($aHolidays) . " festivos en el calendario laboral; $iBorrowed con el servicio de domingo (el GTFS no dice nada de ellos)\n";
     }
 
