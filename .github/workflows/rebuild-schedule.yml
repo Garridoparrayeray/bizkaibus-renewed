@@ -192,7 +192,9 @@ jobs:
             .bases-reconstruidas
           key: bases-${{ github.run_id }}
 
+      # No frena el despliegue: si el push falla, las coordenadas nuevas se vuelven a ver mañana.
       - name: Commit updated geocache, if it changed
+        continue-on-error: true
         run: |
           if ! git diff --quiet bideplus/scripts/geocache.json; then
             git config user.name "github-actions[bot]"
