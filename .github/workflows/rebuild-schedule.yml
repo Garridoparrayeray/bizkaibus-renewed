@@ -19,7 +19,11 @@ name: Rebuild schedule data
 # el mensaje del commit fuerza el completo.
 on:
   schedule:
-    - cron: '0 3 * * *' # diario, 03:00 UTC
+    # GitHub retrasa los cron horas en las de más carga (de 03:00 a las 10:30 UTC en noviembre de 2026): se pide antes.
+    - cron: '17 1 * * *' # diario, 01:17 UTC
+  # El cron externo puede lanzarlo a su hora (CONTRIBUTING.md, «Flujos programados»).
+  repository_dispatch:
+    types: [rebuild-schedule]
   push:
     branches: [master]
     paths:

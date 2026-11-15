@@ -7,6 +7,9 @@ name: Vigilar el directo
 on:
   schedule:
     - cron: '23 6-21 * * *'
+  # El cron externo puede lanzarlo a su hora (CONTRIBUTING.md, «Flujos programados»).
+  repository_dispatch:
+    types: [live-health]
   workflow_dispatch: {}
 
 jobs:
