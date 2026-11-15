@@ -102,6 +102,20 @@ return [
 
     'live' => [],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'unknown',
+        'stops' => 'unknown',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => null,
+        'checked' => null,
+        'note' => 'La web y el GTFS no casan: el GTFS marca los viajes como no accesibles y la web del operador '
+            . 'dice otra cosa. Se respeta el GTFS hasta aclararlo.',
+    ],
+
     'gtfs' => [
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/la_union/gtfs_la_union.zip',
         'fallback_source' => null,

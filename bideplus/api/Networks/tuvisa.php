@@ -125,6 +125,22 @@ return [
         'max_age_seconds' => 300,
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'all',
+        'stops' => 'unknown',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' =>
+            'https://www.vitoria-gasteiz.org/wb021/was/contenidoAction.do?idioma=es&uid=u18e83a19_15c2f36bc17__7f1f',
+        'checked' => '2026-11-15',
+        'note' => 'El 100 % de los autobuses son accesibles y llevan rampa. No dice nada de las paradas: con '
+            . 'unknown_stops_with_accessible_fleet = yes contarían como accesibles («Autobús accesible; parada '
+            . 'sin confirmar»).',
+    ],
+
     'gtfs' => [
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del

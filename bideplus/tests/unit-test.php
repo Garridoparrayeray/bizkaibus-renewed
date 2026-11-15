@@ -81,6 +81,14 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
 }
 $aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['max_age_seconds']) || (($aNet['gtfs_rt']['matching'] ?? 'stops') === 'stops' && !isset($aNet['gtfs_rt']['match_tolerance_seconds'])))));
 $Expect('las redes con horas previstas (GTFS-Realtime) tienen su feed configurado', $aWithoutFeed === [], implode(', ', $aWithoutFeed));
+// La accesibilidad de cada red (accessibility), con sus valores; build-packs del motor la aplica a su paquete.
+$aAccessibilityValues = ['fleet' => ['all', 'some', 'unknown'], 'stops' => ['all', 'some', 'unknown'],
+    'gtfs' => ['trust', 'ignore'], 'unknown_stops_with_accessible_fleet' => ['yes', 'no']];
+$aBadAccessibility = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => array_filter($aAccessibilityValues,
+    fn($aAllowed, $sKey) => !in_array($aNet['accessibility'][$sKey] ?? null, $aAllowed, true), ARRAY_FILTER_USE_BOTH) !== []
+    || !array_key_exists('source', $aNet['accessibility']) || !is_string($aNet['accessibility']['note'] ?? null)));
+$Expect('cada red dice su accesibilidad (flota, paradas, qué hacer con el GTFS, fuente y nota)', $aBadAccessibility === [],
+    implode(', ', $aBadAccessibility));
 $Expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
 /* ------------------------------------------------------------------ */

@@ -130,6 +130,20 @@ return [
         'max_age_seconds' => 300,
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'unknown',
+        'stops' => 'unknown',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => null,
+        'checked' => null,
+        'note' => 'La web y el GTFS no casan: el GTFS marca la mayoría de los viajes como no accesibles y la web '
+            . 'del operador dice otra cosa. Se respeta el GTFS hasta aclararlo.',
+    ],
+
     'gtfs' => [
         'source' => 'https://www.data.gouv.fr/api/1/datasets/r/a6c39f5b-9e05-4dc6-be13-f2620ff73216',
         'fallback_source' => null,

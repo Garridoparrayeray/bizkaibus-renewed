@@ -126,6 +126,19 @@ return [
         'max_age_seconds' => 2 * 86400,
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'some',
+        'stops' => 'some',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => null,
+        'checked' => null,
+        'note' => 'El GTFS marca cada tren como accesible o no; las estaciones sin dato no cuentan.',
+    ],
+
     // El horario lo publica Renfe a diario, con los mismos viajes que su directo. La copia del NAP llega con semanas de
     // retraso y solo queda de reserva.
     'gtfs' => [
