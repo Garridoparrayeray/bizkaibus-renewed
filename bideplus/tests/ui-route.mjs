@@ -1,11 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { launchBrowser } from './browser.mjs';
 
-// El planificador del inicio, en castellano y en euskera: escribir origen y destino en la tarjeta «¿A dónde vas?» con
+// El planificador del inicio, en castellano, euskera y francés (sin ningún texto en castellano): escribir origen y destino en la tarjeta «¿A dónde vas?» con
 // las sugerencias debajo, buscar, las opciones debajo de la tarjeta (desplegar, etiquetas, línea de tiempo), los
 // filtros y las redes, la pantalla del viaje elegido, «atrás», «Cómo llegar aquí» desde una parada y un enlace
 // compartido. Con el directo simulado (/api/planner/live, interceptado): las etiquetas «En directo · N min de retraso» y
-// «Según horario», «Solo en directo», un directo que falla, el transbordo perdido, que se para en segundo plano y un
-// día con servicios mínimos (aviso, «puede no pasar» y primero lo que no depende solo del horario).
+// «Según horario», «Solo en directo», un directo que falla, el transbordo perdido, que se para en segundo plano, un
+// día con servicios mínimos (aviso, «puede no pasar» y primero lo que no depende solo del horario) y Renfe Cercanías.
 // Necesita el planificador publicado (planificador/build/data): sin él, lo dice y no prueba nada.
 
 const BASE = (process.env.BASE_URL || 'http://localhost:8011').replace(/\/$/, '');
@@ -51,14 +52,20 @@ const waitTrue = async (expr, ms = 10000) => {
 };
 // El directo simulado: «mixed» retrasa 4 min los metros y deja lo demás con su horario, «late» los retrasa 25 min (el
 // transbordo se pierde), «reduced» es «mixed» con servicios mínimos hoy en las demás redes y «fail» responde con un
-// error. Cuenta las peticiones.
-const live = { mode: 'mixed', count: 0 };
+// error; «renfe» retrasa 3 min los trenes de Renfe y apunta sus tramos. Cuenta las peticiones.
+const live = { mode: 'mixed', count: 0, renfeLegs: [] };
 const madridDay = () => Math.floor(Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()) + 'T00:00:00Z') / 86400000);
 const liveBody = (sUrl) => {
     const aLegs = (new URL(sUrl).searchParams.get('legs') || '').split(',').filter(Boolean).map((sLeg) => sLeg.split('|').map(decodeURIComponent));
     let iDelay = 240;
     if (live.mode === 'late') iDelay = 1500;
-    const updates = aLegs.filter((a) => a[0] === 'metro').map((a) => ({ network: a[0], trip: a[4], delay: iDelay, cancelled: false }));
+    let sNetwork = 'metro';
+    if (live.mode === 'renfe') {
+        sNetwork = 'renfe';
+        iDelay = 180;
+        live.renfeLegs.push(...aLegs.filter((a) => a[0] === 'renfe'));
+    }
+    const updates = aLegs.filter((a) => a[0] === sNetwork).map((a) => ({ network: a[0], trip: a[4], day: madridDay(), delay: iDelay, cancelled: false }));
     return JSON.stringify({ day: madridDay(), generated: Math.floor(Date.now() / 1000), updates });
 };
 // /api/reduced: sin nada, salvo en «reduced», que da servicios mínimos hoy en las redes que no son el metro (y tarda
@@ -169,7 +176,23 @@ const searchFromCard = async (sLang) => {
     check(`${sLang} · las opciones salen debajo de la tarjeta, en el inicio`, await waitTrue(optionsReady, PLANNER_MS) && (await ev("location.pathname")) === '/');
 };
 
-for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir este viaje', 'Tu viaje a'], ['eu', 'Nola iritsi', 'Aukeratu bidaia hau', 'Zure bidaia']]) {
+// Los textos en castellano que no se escriben igual en francés (de la app y de las pantallas del planificador), para
+// ver que en francés no queda ninguno. Sin huecos ({n}) y de más de 6 letras: «Metro», «Bus»… se escriben igual.
+const tableOf = (sCode, sStart, sEnd) => {
+    const sBlock = sCode.slice(sCode.indexOf(sStart), sCode.indexOf(sEnd, sCode.indexOf(sStart) + 1));
+    return Object.fromEntries([...sBlock.matchAll(/^\s*'((?:route|planner)\.[^']+)': '((?:[^'\\]|\\.)*)',$/gm)].map((m) => [m[1], m[2]]));
+};
+const sAppTexts = readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
+const sPlannerEs = await (await fetch(BASE + '/planificador/pantallas/lang-es.js')).text();
+const sPlannerFr = await (await fetch(BASE + '/planificador/pantallas/lang-fr.js').catch(() => null))?.text() || '';
+const SPANISH = Object.assign(tableOf(sAppTexts, '        es: {', '        eu: {'), tableOf(sPlannerEs, 'export const', '};'));
+const FRENCH = Object.assign(tableOf(sAppTexts, '        fr: {', '\n    };'), tableOf(sPlannerFr, 'export const', '};'));
+const SPANISH_ONLY = Object.keys(SPANISH).map((sKey) => [sKey, SPANISH[sKey]])
+    .filter(([sKey, sText]) => sText !== FRENCH[sKey] && !/[{}]/.test(sText) && sText.length > 6);
+const spanishIn = (sText) => SPANISH_ONLY.filter(([, sSpanish]) => sText.includes(sSpanish)).map(([sKey]) => sKey);
+const PLANNER_TEXT = "[...document.querySelectorAll('.planner, #route')].map((n) => n.innerText + ' ' + [...n.querySelectorAll('[placeholder], [aria-label], [title]')].map((e) => [e.getAttribute('placeholder'), e.getAttribute('aria-label'), e.getAttribute('title')].join(' ')).join(' ')).join(' ')";
+
+for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir este viaje', 'Tu viaje a'], ['eu', 'Nola iritsi', 'Aukeratu bidaia hau', 'Zure bidaia'], ['fr', 'Itinéraire', 'Choisir ce trajet', 'Votre trajet vers']]) {
     await searchFromCard(sLang);
     check(`${sLang} · título «${sTitle}» con Filtros y compartir`, (await text('#route-title')) === sTitle && (await ev(shown('#route-filters-open'))) && (await ev(shown('#route-share'))));
     check(`${sLang} · hasta cinco opciones`, await ev("document.querySelectorAll('#route-options .route-option').length <= 5"));
@@ -194,6 +217,10 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
     await ev("document.querySelector('.route-option.is-open .route-choose').click(); true");
     check(`${sLang} · «${sChoose}» abre la pantalla del viaje`, await waitTrue(`${shown('#route-trip .route-hero')} && document.getElementById('route-trip-title').textContent.startsWith(${JSON.stringify(sTrip)})`));
     check(`${sLang} · el viaje: salida, llegada, reparto y cada vehículo con su red`, await ev("!!document.querySelector('.route-hero-big') && /\\d\\d:\\d\\d/.test(document.querySelector('.route-hero-clock').textContent) && document.querySelectorAll('.route-split-part').length > 1 && document.querySelectorAll('.route-ride').length > 0"));
+    if (sLang === 'fr') {
+        const aTrip = spanishIn(await ev(PLANNER_TEXT));
+        check('fr · el viaje y su mapa, sin textos en castellano', FRENCH['planner.trip.timeline'] !== undefined && aTrip.length === 0, aTrip.join(', '));
+    }
     if (sLang === 'es') {
         // Sin el mapa base (lo hace el despliegue: .github/scripts/mapa-base.sh), el fondo son las teselas de OSM.
         const bBasemap = (await fetch(BASE + '/map-data/bizkaia.pmtiles', { method: 'HEAD' }).catch(() => null))?.ok;
@@ -206,6 +233,17 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
         check(`mapa del viaje: con el viaje dibujado y de fondo ${sBase}`,
             await waitTrue(`!!document.querySelector('.route-trip-map .leaflet-overlay-pane path') && ${sTiles}`, PLANNER_MS));
         check('mapa del viaje: atribución «© OpenStreetMap»', /© OpenStreetMap/.test(await text('.route-trip-map .leaflet-control-attribution')));
+        // En oscuro, los controles de Leaflet siguen los colores del mapa (--map-*), no el blanco de leaflet.css.
+        const sControls = "(() => { const box = document.querySelector('.route-trip-map'); const css = (n) => getComputedStyle(n); const zoom = css(box.querySelector('.leaflet-control-zoom-in')); const credit = css(box.querySelector('.leaflet-control-attribution')); const token = css(box).getPropertyValue('--map-control').trim(); return [zoom.backgroundColor, zoom.color, credit.backgroundColor, token]; })()";
+        await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+        await sleep(500);
+        const aDark = await ev(sControls);
+        await send('Emulation.setEmulatedMedia', { features: [] });
+        check('mapa del viaje: en oscuro, «+/−» y la atribución con los colores del mapa', Array.isArray(aDark) && aDark[3] === '#262d29'
+            && aDark[0] === 'rgb(38, 45, 41)' && aDark[1] !== 'rgb(0, 0, 0)' && aDark[2] !== 'rgba(255, 255, 255, 0.8)', JSON.stringify(aDark));
+        if (bBasemap) {
+            check('mapa del viaje: los nombres, encima del recorrido y debajo de las paradas', await ev("(() => { const z = (s) => Number(getComputedStyle(document.querySelector('.route-trip-map .leaflet-' + s + '-pane')).zIndex); return z('overlay') < z('routeLabels') && z('routeLabels') < z('marker') && !!document.querySelector('.route-trip-map .leaflet-routeLabels-pane canvas'); })()"));
+        }
         check('mapa del viaje: entre el resumen y los tramos', await ev("(() => { const m = document.querySelector('.route-trip-map'); return m.previousElementSibling.classList.contains('route-hero') || m.previousElementSibling.classList.contains('route-notice'); })()"));
         check('mapa del viaje: fuera de Bizkaia, las teselas de siempre', await ev(`(async () => {
             const { addBasemap } = await import('/js/route/basemap.js');
@@ -225,6 +263,13 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
     check(`${sLang} · el viaje queda en la dirección`, /[?&]viaje=/.test(await ev('location.search')));
     await ev('history.back(); true');
     check(`${sLang} · «atrás» vuelve a las opciones`, await waitTrue(`document.getElementById('route-trip').hidden && ${shown('#route-options .route-option')}`));
+    if (sLang === 'fr') {
+        await ev("document.getElementById('route-filters-open').click(); true");
+        await waitTrue("document.getElementById('route-filters').open");
+        const aOptions = spanishIn(await ev(PLANNER_TEXT + " + ' ' + document.getElementById('route-filters').innerText"));
+        await ev("document.getElementById('route-filters-done').click(); true");
+        check('fr · la tarjeta, las opciones y los filtros, sin textos en castellano', aOptions.length === 0, aOptions.join(', '));
+    }
 }
 
 // ===== Directo simulado =====
@@ -301,6 +346,20 @@ if (!(await liveSearch('mixed'))) {
     await sleep(500);
     check('servicios mínimos · las opciones no cambian de orden al llegar', typeof live.orderBefore === 'string' && live.orderBefore !== '' && (await ev(OPTION_ORDER)) === live.orderBefore);
     check('servicios mínimos · su tramo con horario va «Según horario · puede no pasar»', await ev(`${labels}.some((s) => s === 'Según horario · puede no pasar')`));
+
+    // Renfe Cercanías (Desertu-Barakaldo → Abando): los tramos de Renfe piden su parada de la base, el código de la
+    // línea (C1, C2) y la hora del horario; con el retraso simulado, «En directo · 3 min de retraso».
+    live.mode = 'renfe';
+    live.renfeLegs = [];
+    const iRenfeBefore = live.count;
+    await go('/planificador?de=parada&de_red=renfe&de_id=13400&de_nombre=Desertu-Barakaldo&a=parada&a_red=renfe&a_id=13200&a_nombre=Abando');
+    await waitTrue(optionsReady, PLANNER_MS);
+    if (!(await waitUntil(() => live.count > iRenfeBefore, 15000)) || live.renfeLegs.length === 0) {
+        results.push('SALTA directo de Renfe: ningún tren sale en las próximas 2 h');
+    } else {
+        check('directo de Renfe · cada tramo con su parada, su línea y su hora', live.renfeLegs.every((a) => a[1] === '13400' && /^C\d$/.test(a[2]) && /^\d+$/.test(a[3]) && a[4] !== ''), JSON.stringify(live.renfeLegs.slice(0, 3)));
+        check('directo de Renfe · las opciones lo enseñan', await waitTrue(`${labels}.some((s) => s === 'En directo · 3 min de retraso')`, 15000));
+    }
 
     // Si el directo falla, todo sigue con el horario, sin avisos de error.
     check('directo · si falla, se pide igual y las opciones salen', await liveSearch('fail'));
