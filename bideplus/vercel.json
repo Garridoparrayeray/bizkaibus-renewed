@@ -52,6 +52,13 @@
       "continue": true
     },
     {
+      "src": "^/lib/leaflet-[0-9.]+/.*$",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "continue": true
+    },
+    {
       "src": "^/(data|scripts|tests|engine)(/.*)?$",
       "dest": "/api/index.php"
     },

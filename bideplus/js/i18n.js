@@ -2253,4 +2253,5 @@
     }
 
     global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend, browserLang: browserLang, hasChoice: hasChoice };
+    if (global.BideNetworks) global.BideNetworks.addTexts(global.I18n);
 })(window);

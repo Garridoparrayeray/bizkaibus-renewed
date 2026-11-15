@@ -119,6 +119,7 @@ export const el = {
     modalStops: document.getElementById('modal-stops'),
     netBanner: document.getElementById('net-banner'),
     pageContent: document.getElementById('page-content'),
+    appMain: document.getElementById('app-main'),
 };
 
 // La consulta ?red= que llevan las direcciones de esta app (la red por defecto no la lleva).

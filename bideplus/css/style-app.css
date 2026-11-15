@@ -859,6 +859,20 @@ header p,
     font-weight: 500;
     text-align: center;
 }
+/* El sitio de la tarjeta de la parada mientras llega: la más baja ronda los 580px; el panel de andenes, más. */
+.is-stop-page > .live-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.is-stop-page > .live-empty,
+.is-stop-page > .live-card {
+    min-height: 580px;
+}
+.is-stop-page.is-tall > .live-empty,
+.is-stop-page.is-tall > .platform-panel {
+    min-height: 900px;
+}
 
 /* ===== Lo que pinta el servidor (#page-content): las líneas de la red, o las de la parada y su horario de hoy ===== */
 .page-content {

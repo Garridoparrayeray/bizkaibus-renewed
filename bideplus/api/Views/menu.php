@@ -129,14 +129,15 @@ $aJsonLd = [
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
+    <!-- Sin defer: menu-view.js y bide-mode.js ponen en <html> las clases con las que se pinta la página. -->
     <script src="/js/menu-view.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/bide-mode.js"></script>
-    <script src="/js/notification-open.js"></script>
-    <script src="/js/i18n.js"></script>
-    <script src="/js/linkify.js"></script>
+    <script defer src="/js/notification-open.js"></script>
+    <script defer src="/js/i18n.js"></script>
+    <script defer src="/js/linkify.js"></script>
     <script defer src="/js/notice.js"></script>
-    <script src="/js/networks.js"></script>
+    <script defer src="/js/networks.js"></script>
     <link rel="stylesheet" href="/css/style-menu.css">
     <link rel="stylesheet" href="/css/style-bide.css">
     <link rel="stylesheet" href="/css/style-networks.css">
@@ -243,7 +244,7 @@ $aJsonLd = [
             <span id="nets-toast-text"></span>
             <button type="button" id="nets-toast-undo" data-i18n="menu.nets.undo">Deshacer</button>
         </div>
-        <script src="/js/menu-favorites.js"></script>
+        <script defer src="/js/menu-favorites.js"></script>
 
 <?= bideViews() ?>
 <?= bideMenuSheet() ?>
@@ -264,13 +265,13 @@ $aJsonLd = [
     <script src="/js/menu.js" defer></script>
     <script src="/js/sw-register.js" defer></script>
     <script src="/js/lang-offer.js" defer></script>
-    <script src="/js/menu-lang.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/alerts-store.js"></script>
-    <script src="/js/bide.js"></script>
-    <script src="/js/new-badge.js"></script>
-    <script src="/js/offline.js"></script>
-    <script src="/js/bide-info.js"></script>
+    <script src="/js/menu-lang.js" defer></script>
+    <script src="/js/api.js" defer></script>
+    <script src="/js/alerts-store.js" defer></script>
+    <script src="/js/bide.js" defer></script>
+    <script src="/js/new-badge.js" defer></script>
+    <script src="/js/offline.js" defer></script>
+    <script src="/js/bide-info.js" defer></script>
     <script type="module" src="/js/settings.js"></script>
 </body>
 </html>

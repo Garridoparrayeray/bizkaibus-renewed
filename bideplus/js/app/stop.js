@@ -65,7 +65,10 @@ export async function selectStop(stopId) {
     } catch (e) {
         const saved = await savedSchedule();
         if (saved) stop = BideOffline.stop(saved, stopId);
-        if (!stop) return;
+        if (!stop) {
+            el.appMain.classList.remove('is-stop-page', 'is-tall');
+            return;
+        }
     }
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;

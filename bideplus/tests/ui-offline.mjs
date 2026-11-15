@@ -73,7 +73,7 @@ const hanken = await ev(`document.fonts.check('16px "Hanken Grotesk"')`);
 check('menu: Hanken Grotesk disponible', hanken === true);
 
 await go('/lines/3516', 6000);
-check('Leaflet local cargado (window.L)', (await ev("typeof L === 'object' && typeof L.map === 'function'")) === true);
+check('Leaflet local cargado al abrir el mapa (window.L)', await waitTrue("typeof L === 'object' && typeof L.map === 'function'"));
 check('el mapa de la linea se dibuja', await waitTrue("!!document.querySelector('#line-map .leaflet-pane')"));
 check('la ruta de la linea se dibuja sobre el mapa', await waitTrue("document.querySelectorAll('#line-map path.leaflet-interactive').length > 0"));
 

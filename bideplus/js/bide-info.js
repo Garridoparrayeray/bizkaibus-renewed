@@ -5,6 +5,8 @@
 
     const MAX_FEEDBACK = 1500;
     const OFFLINE_START_DELAY_MS = 3000;
+    // Si el navegador no queda libre, la descarga empieza igual pasado este tiempo.
+    const OFFLINE_IDLE_TIMEOUT_MS = 10000;
 
     function translate(key, vars) {
         if (window.I18n) return I18n.t(key, vars);
@@ -209,8 +211,13 @@
         const refreshOffline = () => BideOffline.refresh().then((updated) => {
             if (updated) renderOffline();
         }).catch(() => {});
-        // Unos segundos después de abrir, para no quitarle conexión a la página.
-        setTimeout(refreshOffline, OFFLINE_START_DELAY_MS);
+        // Fuera del camino crítico: unos segundos después de cargar la página y cuando el navegador está libre.
+        const startOffline = () => setTimeout(() => {
+            if ('requestIdleCallback' in window) requestIdleCallback(refreshOffline, { timeout: OFFLINE_IDLE_TIMEOUT_MS });
+            else refreshOffline();
+        }, OFFLINE_START_DELAY_MS);
+        if (document.readyState === 'complete') startOffline();
+        else window.addEventListener('load', startOffline, { once: true });
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') refreshOffline();
         });

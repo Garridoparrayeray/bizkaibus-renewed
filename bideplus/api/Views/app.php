@@ -49,16 +49,16 @@ use Core\Networks;
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
-    <script src="/js/i18n.js"></script>
-    <script src="/js/linkify.js"></script>
+    <script defer src="/js/i18n.js"></script>
+    <script defer src="/js/linkify.js"></script>
     <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
-    <script src="/js/new-badge.js"></script>
-    <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <script defer src="/js/new-badge.js"></script>
     <script src="/js/theme.js"></script>
+    <!-- Sin defer: boot.js escribe con document.write (y necesita networks.js) y bide-mode.js pone la clase que pinta. -->
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
-    <script src="/js/notification-open.js"></script>
+    <script defer src="/js/notification-open.js"></script>
     <link rel="stylesheet" href="/css/style-bide.css">
     <link rel="stylesheet" href="/css/style-networks.css">
     <link rel="stylesheet" href="/css/style-miamor.css">
@@ -115,7 +115,7 @@ use Core\Networks;
                     </a>
                 </nav>
 
-                <script src="/js/header-brand.js"></script>
+                <script defer src="/js/header-brand.js"></script>
             </div>
 
             <span class="header-actions">
@@ -155,7 +155,18 @@ use Core\Networks;
 
             </aside>
 
-            <div class="main">
+<?php
+// En una parada, su tarjeta (o el panel de andenes, más alto) va a salir arriba: se le guarda el sitio para que no
+// salte lo de debajo (CLS). Si no llega (sin conexión o sin /api/), js/app/stop.js lo suelta.
+$sMainClass = 'main';
+if ($aContent['type'] === 'stop') {
+    $sMainClass .= ' is-stop-page';
+    if (Networks::feature($aNetwork, 'platforms')) {
+        $sMainClass .= ' is-tall';
+    }
+}
+?>
+            <div id="app-main" class="<?= $sMainClass ?>">
                 <article id="live-card" class="live-card glass" hidden>
                     <header>
                         <span id="live-badge" class="badge">Solo horario</span>
@@ -353,10 +364,9 @@ use Core\Networks;
         <ul id="menu-alerts-list" class="menu-alerts-list"></ul>
     </dialog>
 
-    <script src="/lib/leaflet/leaflet.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/alerts-store.js"></script>
-    <script src="/js/offline.js"></script>
+    <script defer src="/js/api.js"></script>
+    <script defer src="/js/alerts-store.js"></script>
+    <script defer src="/js/offline.js"></script>
     <script type="module" src="/js/app/main.js"></script>
     <script type="module" src="/js/settings.js"></script>
     <script defer src="/js/bide.js"></script>

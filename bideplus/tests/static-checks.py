@@ -202,9 +202,12 @@ if missing_headers or weak_csp:
     failures.append('cabeceras de seguridad')
 
 # Caché de los estáticos: solo en el CDN (s-maxage, que se vacía en cada despliegue). Con max-age en el navegador, una versión nueva
-# podría servir ficheros viejos, porque sus direcciones no llevan versión.
+# podría servir ficheros viejos, porque sus direcciones no llevan versión. Solo lo que lleva la versión en la ruta
+# (lib/leaflet-1.9.4/) puede ir con caché larga e immutable.
 static_cache = [r for r in vercel.get('routes', []) if (r.get('headers') or {}).get('Cache-Control')]
-bad_cache = [r['src'] for r in static_cache if not re.search(r'max-age=0\b', r['headers']['Cache-Control']) or 's-maxage=' not in r['headers']['Cache-Control'] or 'sw[.]js' not in r['src']]
+versioned = [r for r in static_cache if 'immutable' in r['headers']['Cache-Control']]
+bad_cache = [r['src'] for r in versioned if not re.search(r'-\[0-9\.\]\+/', r['src'])]
+bad_cache += [r['src'] for r in static_cache if r not in versioned and (not re.search(r'max-age=0\b', r['headers']['Cache-Control']) or 's-maxage=' not in r['headers']['Cache-Control'] or 'sw[.]js' not in r['src'])]
 cache_ok = bool(static_cache) and not bad_cache
 print('caché de estáticos en el CDN sin caché en el navegador:', cache_ok)
 if not cache_ok:
