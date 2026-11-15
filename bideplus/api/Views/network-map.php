@@ -5,41 +5,30 @@ $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sWordmark = require __DIR__ . '/wordmark.php';
 $sLang = Lang::current();
-$aTitles = [
-    'es' => 'Mapa de la red · Todas las líneas de transporte de Euskadi | Bide+',
-    'eu' => 'Sarearen mapa · Euskadiko garraio-linea guztiak | Bide+',
-    'en' => 'Network map · Every public transport line in the Basque Country | Bide+',
-    'fr' => 'Plan du réseau · Toutes les lignes de transport du Pays basque | Bide+',
-];
-$aDescriptions = [
-    'es' => 'Mapa del transporte público de Euskal Herria: todas las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesas y los tranvías de Bilbao y Vitoria, con sus paradas, transbordos y el esquema de cada línea.',
-    'eu' => 'Euskal Herriko garraio publikoaren mapa: Bilboko Metroa, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesak eta Bilbo eta Gasteizko tranbien linea guztiak, geltokiekin, loturekin eta linea bakoitzaren eskemarekin.',
-    'en' => 'Public transport map of the Basque Country: every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Txik Txak, Villavesas and the Bilbao and Vitoria trams, with their stops, transfers and each line\'s diagram.',
-    'fr' => 'Plan des transports en commun d’Euskal Herria : toutes les lignes de Txik Txak, Metro Bilbao, Bizkaibus, Euskotren, Renfe, Lurraldebus, Villavesas et des tramways de Bilbao et Vitoria-Gasteiz, avec leurs arrêts, correspondances et le schéma de chaque ligne.',
-];
-$sTitle = $aTitles[$sLang];
-$sDescription = $aDescriptions[$sLang];
+$sTitle = Lang::t('map.seoTitle', $sLang);
+$sDescription = Lang::t('map.seoDescription', $sLang);
 $sCanonicalEs = $aSite['url'] . '/mapa';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
 $aJsonLd = [
     '@context' => 'https://schema.org',
-    '@type' => 'WebPage',
-    'name' => $sTitle,
-    'description' => $sDescription,
-    'url' => $sCanonical,
-    'inLanguage' => $sLang,
-    'isPartOf' => ['@type' => 'WebSite', 'name' => $aSite['name'], 'url' => $aSite['url'] . '/'],
+    '@graph' => array_merge(bideSiteJsonLd($sLang), [
+        ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang] + bideSiteRefs(),
+    ]),
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <?= Lang::alternates($sCanonicalEs) ?>
     <meta property="og:type" content="website">
@@ -48,7 +37,13 @@ $aJsonLd = [
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="<?= htmlspecialchars($sOgImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars(Lang::t('seo.imageAlt', $sLang)) ?>">
     <meta name="theme-color" content="#FFFFFF">
     <link rel="manifest" href="/manifest-bide.json">
     <link rel="icon" href="/icons-bide-rojo/bide-icon.svg" type="image/svg+xml">
@@ -57,15 +52,16 @@ $aJsonLd = [
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/fonts/bricolage-grotesque-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/fonts/fonts.css">
-    <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <link rel="stylesheet" href="/lib/leaflet-1.9.4/leaflet.css">
     <link rel="stylesheet" href="/css/style-bide.css">
     <link rel="stylesheet" href="/css/style-map.css">
     <link rel="stylesheet" href="/css/style-networks.css">
     <link rel="stylesheet" href="/css/style-miamor.css">
     <script src="/js/theme.js"></script>
     <script src="/js/i18n.js"></script>
-    <script src="/lib/leaflet/leaflet.js" defer></script>
+    <script src="/lib/leaflet-1.9.4/leaflet.js" defer></script>
     <script src="/js/network-map.js" defer></script>
+    <script src="/js/lang-offer.js" defer></script>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 </head>
 <body class="page-map">

@@ -164,6 +164,18 @@ class Stop
         return array_map(fn($aHeadsigns) => array_slice($aHeadsigns, 0, $iLimitPerStop), $aByStop);
     }
 
+    // Las paradas (no andenes) con ese nombre y esa zona: si hay más de una, su página dice cuál es.
+    public function sameName(string $sName, string $sArea): array
+    {
+        $Stmt = $this->safeQuery(
+            "SELECT id FROM stops WHERE name = ? AND COALESCE(area, '') = ? AND station_id IS NULL ORDER BY id",
+            'SELECT id FROM stops WHERE name = ? ORDER BY id',
+            [$sName, $sArea],
+            [$sName]
+        );
+        return array_map(fn($Id) => (string)Ids::forOutput($Id), $Stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
     public function linesServing(int|string $iStopId): array
     {
         $Stmt = $this->safeQuery(

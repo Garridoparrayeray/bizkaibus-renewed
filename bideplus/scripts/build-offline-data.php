@@ -14,6 +14,7 @@ date_default_timezone_set('Europe/Madrid');
 
 require_once __DIR__ . '/../api/autoload.php';
 
+use Core\DisplayName;
 use Core\Networks;
 
 const OFFLINE_FORMAT = 2;
@@ -44,7 +45,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         fwrite(STDERR, "  $sSlug: sin base de datos, se omite\n");
         continue;
     }
-    $aData = buildOfflineNetwork($sSlug, $aNetwork);
+    $aData = offlineDisplayNames(buildOfflineNetwork($sSlug, $aNetwork), $aNetwork);
     $sJson = json_encode($aData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     file_put_contents("$sOut/$sSlug.json", $sJson);
     $aIndex[] = ['slug' => $sSlug, 'bytes' => \strlen($sJson), 'generated' => $aData['generated']];
@@ -119,6 +120,25 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'estimates' => array_column($Estimates->values(), 0),
         'estimateTrusted' => array_column($Estimates->values(), 1),
     ];
+}
+
+// Los nombres como los da la API (Core\DisplayName): paradas, zonas, líneas y destinos de los recorridos.
+function offlineDisplayNames(array $aData, array $aNetwork): array
+{
+    if (DisplayName::keep($aNetwork) === null) {
+        return $aData;
+    }
+    foreach ($aData['stops'] as $sStopId => $aStop) {
+        $aData['stops'][$sStopId][0] = DisplayName::of($aStop[0], $aNetwork);
+    }
+    $aData['areas'] = (object)array_map(fn($sArea) => DisplayName::of($sArea, $aNetwork), (array)$aData['areas']);
+    foreach ($aData['lines'] as $iLine => $aLine) {
+        $aData['lines'][$iLine][2] = DisplayName::of($aLine[2], $aNetwork);
+    }
+    foreach ($aData['patterns'] as $iPattern => $aPattern) {
+        $aData['patterns'][$iPattern][1] = DisplayName::of($aPattern[1], $aNetwork);
+    }
+    return $aData;
 }
 
 // Cada valor distinto se guarda una vez y los viajes lo nombran por su posición.

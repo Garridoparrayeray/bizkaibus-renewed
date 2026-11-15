@@ -10,6 +10,7 @@
             ""
         ],
         "favoritesKey": "bizkaibus_favorites",
+        "operator": "Bizkaibus",
         "live": true,
         "features": {
             "platforms": false,
@@ -19,7 +20,21 @@
             "schedule_text": true,
             "trip_detail": "vehicle",
             "alerts": "lines",
-            "alerts_detail": true
+            "alerts_detail": true,
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BBKren",
+                    "BEC",
+                    "BBVA",
+                    "IES",
+                    "CC",
+                    "McDonalds",
+                    "O'Donnell"
+                ]
+            }
         },
         "texts": {
             "es": {
@@ -81,6 +96,7 @@
             ""
         ],
         "favoritesKey": "metrobilbao_favorites",
+        "operator": "Metro Bilbao",
         "live": true,
         "features": {
             "platforms": true,
@@ -156,6 +172,7 @@
             ""
         ],
         "favoritesKey": "euskotren_favorites",
+        "operator": "Euskotren",
         "live": true,
         "features": {
             "platforms": true,
@@ -231,6 +248,7 @@
             ""
         ],
         "favoritesKey": "renfe_favorites",
+        "operator": "Renfe Cercanías",
         "live": true,
         "features": {
             "platforms": true,
@@ -307,6 +325,7 @@
             ""
         ],
         "favoritesKey": "lurraldebus_favorites",
+        "operator": "Lurraldebus",
         "live": true,
         "features": {
             "platforms": false,
@@ -378,6 +397,7 @@
             "BILBAO"
         ],
         "favoritesKey": "tranviabilbao_favorites",
+        "operator": "Tranvía de Bilbao",
         "live": true,
         "features": {
             "platforms": true,
@@ -461,6 +481,7 @@
             "VITORIA"
         ],
         "favoritesKey": "tranviavitoria_favorites",
+        "operator": "Tranvía de Vitoria-Gasteiz",
         "live": true,
         "features": {
             "platforms": true,
@@ -544,8 +565,19 @@
             "BILBAO"
         ],
         "favoritesKey": "bilbobus_favorites",
+        "operator": "Bilbobus",
         "live": true,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": false,
             "stop_hints": true,
@@ -615,6 +647,7 @@
             "VITORIA-GASTEIZ"
         ],
         "favoritesKey": "tuvisa_favorites",
+        "operator": "Tuvisa",
         "live": true,
         "features": {
             "platforms": false,
@@ -690,6 +723,7 @@
             "DONOSTIA"
         ],
         "favoritesKey": "dbus_favorites",
+        "operator": "Dbus",
         "live": true,
         "features": {
             "platforms": false,
@@ -765,8 +799,19 @@
             "ARABA"
         ],
         "favoritesKey": "alavabus_favorites",
+        "operator": "Álavabus",
         "live": true,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": false,
             "stop_hints": true,
@@ -840,8 +885,19 @@
             "BILBAO · GASTEIZ"
         ],
         "favoritesKey": "launion_favorites",
+        "operator": "La Unión",
         "live": false,
         "features": {
+            "title_case_names": {
+                "keep": [
+                    "UPV",
+                    "EHU",
+                    "BBK",
+                    "BEC",
+                    "BBVA",
+                    "CC"
+                ]
+            },
             "platforms": false,
             "headsign_from_last_stop": true,
             "stop_hints": true,
@@ -911,6 +967,7 @@
             ""
         ],
         "favoritesKey": "renfe-ld_favorites",
+        "operator": "Renfe",
         "live": true,
         "features": {
             "platforms": false,
@@ -986,6 +1043,7 @@
             ""
         ],
         "favoritesKey": "txiktxak_favorites",
+        "operator": "Txik Txak",
         "live": true,
         "features": {
             "platforms": false,
@@ -1061,6 +1119,7 @@
             ""
         ],
         "favoritesKey": "sncf_favorites",
+        "operator": "SNCF",
         "live": true,
         "features": {
             "platforms": false,
@@ -1136,6 +1195,7 @@
             ""
         ],
         "favoritesKey": "villavesas_favorites",
+        "operator": "Villavesas",
         "live": false,
         "features": {
             "platforms": false,
@@ -1215,16 +1275,18 @@
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>.
-    if (global.I18n && global.I18n.extend) {
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>: aquí si js/i18n.js ya está y, si no
+    // (en las apps va con defer, después), los mete él al cargarse.
+    global.BideNetworks.addTexts = function (i18n) {
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
                 const table = {};
                 Object.keys(networks[slug].texts[lang]).forEach(function (key) {
                     table['net.' + slug + '.' + key] = networks[slug].texts[lang][key];
                 });
-                global.I18n.extend(lang, table);
+                i18n.extend(lang, table);
             });
         });
-    }
+    };
+    if (global.I18n && global.I18n.extend) global.BideNetworks.addTexts(global.I18n);
 })(self);

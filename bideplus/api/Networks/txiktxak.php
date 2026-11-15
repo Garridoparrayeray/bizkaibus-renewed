@@ -86,8 +86,15 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Txik Txak+ · Horarios y tiempo real de los autobuses de Iparralde',
-        'description' => 'Consulta los horarios de los autobuses Txik Txak de Iparralde (Baiona, Biarritz, Angelu, Donibane Lohizune, Hendaia) por parada y línea, con su retraso en tiempo real.',
+        // Una red de Iparralde: la versión en francés es la de quien no habla ninguno de los cuatro (x-default).
+        'default_lang' => 'fr',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Pyrénées-Atlantiques',
+        'country' => 'FR',
+        'operator' => 'Txik Txak',
+        'title' => 'Txik Txak+ · Horarios de los autobuses de Iparralde',
+        'description' => 'Horarios y tiempo real de los autobuses Txik Txak de Iparralde (Baiona, Angelu, Biarritz y la costa vasca) por línea y por parada.',
     ],
     'attribution' => 'Datos: Syndicat des Mobilités Pays Basque-Adour, vía transport.data.gouv.fr (Open Database License, ODbL 1.0)',
 

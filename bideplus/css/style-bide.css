@@ -388,6 +388,54 @@ html.bide .bide-card {
         line-height: 1;
         cursor: pointer;
     }
+/* El idioma del móvil, ofrecido abajo (js/lang-offer.js): fijo, para no mover la página. */
+.bide-lang-offer {
+    position: fixed;
+    right: 12px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    left: 12px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 10px 8px 10px 16px;
+    border-radius: 14px;
+    background: var(--bide-ink);
+    color: var(--bide-surface);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5);
+    font-size: calc(14px * var(--text-scale, 1));
+}
+    .bide-lang-offer span {
+        flex: 1;
+        min-width: 0;
+    }
+    .bide-lang-offer-switch {
+        flex: none;
+        padding: 8px 12px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--bide-surface);
+        color: var(--bide-ink);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .bide-lang-offer-close {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-size: 22px;
+        line-height: 1;
+        cursor: pointer;
+    }
+html.is-standalone .bide-lang-offer {
+    bottom: calc(92px + min(env(safe-area-inset-bottom), 34px));
+}
 @media (min-width: 1024px) {
     .bide-notice {
         box-sizing: border-box;

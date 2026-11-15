@@ -5,30 +5,18 @@ $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sLang = Lang::current();
 // Lo que se busca: horarios y tiempo real, los nombres de las redes y el territorio (Euskadi, Navarra, Iparralde).
-$aTitles = [
-    'es' => 'Bide+ · Horarios y tiempo real de Bizkaibus, Metro, Renfe y más en Euskadi',
-    'eu' => 'Bide+ · Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak eta denbora errealean Euskadin',
-    'en' => 'Bide+ · Bizkaibus, Metro Bilbao, Renfe and more: Basque Country timetables and real time',
-    'fr' => 'Bide+ · Horaires et temps réel au Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao…',
-];
-$aDescriptions = [
-    'es' => 'Horarios y tiempo real del transporte público de Euskal Herria (Euskadi, Navarra e Iparralde): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF y los tranvías de Bilbao y Vitoria, en una sola app gratis.',
-    'eu' => 'Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean (Euskadi, Nafarroa eta Iparraldea): Bizkaibus, Bilboko Metroa, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesak, Txik Txak, SNCF eta Bilbo eta Gasteizko tranbiak, doako aplikazio bakarrean.',
-    'en' => 'Timetables and real time for public transport across the Basque Country (Euskadi, Navarre and the Northern Basque Country): Bizkaibus, Metro Bilbao, Euskotren, Renfe, Bilbobus, Lurraldebus, Dbus, Tuvisa, Álavabus, La Unión, Villavesas, Txik Txak, SNCF and the Bilbao and Vitoria trams, in one free app.',
-    'fr' => 'Horaires et temps réel des transports en commun d’Euskal Herria (Pays basque nord, Euskadi et Navarre) : Txik Txak, SNCF, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas et les tramways de Bilbao et Vitoria-Gasteiz, dans une seule application gratuite.',
-];
 $aKeywords = [
     'es' => 'horarios autobús, tiempo real, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, transporte público, Euskal Herria, Euskadi, País Vasco, Navarra, Iparralde, Bilbao, Donostia, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayona',
     'eu' => 'autobus ordutegiak, denbora errealean, Bizkaibus, Bilboko Metroa, Euskotren, Renfe Aldiriak, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesak, Txik Txak, SNCF, garraio publikoa, Euskal Herria, Euskadi, Nafarroa, Iparraldea, Bilbo, Donostia, Gasteiz, Iruñea, Baiona',
     'en' => 'bus timetables, real time, Bizkaibus, Metro Bilbao, Euskotren, Renfe Cercanías, Bilbobus, Dbus, Tuvisa, Lurraldebus, Álavabus, Villavesas, Txik Txak, SNCF, public transport, Basque Country, Euskal Herria, Euskadi, Navarre, Bilbao, San Sebastián, Vitoria-Gasteiz, Pamplona, Bayonne, Biarritz',
     'fr' => 'horaires bus, temps réel, Txik Txak, SNCF, TER, Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus, Lurraldebus, Villavesas, transports en commun, Pays basque, Euskal Herria, Iparralde, Euskadi, Navarre, Bayonne, Biarritz, Anglet, Saint-Jean-de-Luz, Hendaye, Bilbao, Saint-Sébastien, Pampelune',
 ];
-$sTitle = $aTitles[$sLang];
-$sDescription = $aDescriptions[$sLang];
+$sTitle = Lang::t('menu.seoTitle', $sLang);
+$sDescription = Lang::t('menu.seoDescription', $sLang);
 $sCanonicalEs = $aSite['url'] . '/';
 $sCanonical = Lang::url($sCanonicalEs, $sLang);
 $sOgImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
-$sOgAlt = 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio';
+$sOgAlt = Lang::t('seo.imageAlt', $sLang);
 $sWordmark = require __DIR__ . '/wordmark.php';
 
 $aApps = [];
@@ -36,7 +24,6 @@ foreach (\Core\Networks::all() as $sSlug => $aNetwork) {
     $aApps[] = ['name' => \Core\Networks::text($aNetwork, 'name', $sLang), 'description' => \Core\Networks::text($aNetwork, 'switcher', $sLang), 'url' => Lang::url($aSite['url'] . '/?red=' . $sSlug, $sLang)];
 }
 
-$aAuthor = ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']];
 $aItems = [];
 foreach ($aApps as $i => $aApp) {
     $aItems[] = [
@@ -51,42 +38,37 @@ foreach ($aApps as $i => $aApp) {
             'operatingSystem' => 'Web, Android, iOS',
             'inLanguage' => $sLang,
             'offers' => ['@type' => 'Offer', 'price' => '0', 'priceCurrency' => 'EUR'],
-            'author' => $aAuthor,
-        ],
+        ] + bideSiteRefs(),
     ];
 }
 $aJsonLd = [
     '@context' => 'https://schema.org',
-    '@graph' => [
+    '@graph' => array_merge(bideSiteJsonLd($sLang), [
         [
-            '@type' => 'WebSite',
-            '@id' => $sCanonical . '#website',
-            'name' => $aSite['name'],
-            'url' => $sCanonical,
+            '@type' => 'WebPage',
+            'name' => $sTitle,
             'description' => $sDescription,
+            'url' => $sCanonical,
             'inLanguage' => $sLang,
-            'publisher' => $aAuthor,
             'keywords' => $aKeywords[$sLang],
-            'availableLanguage' => Lang::LANGS,
             'spatialCoverage' => [
                 ['@type' => 'Place', 'name' => 'Euskal Herria'],
                 ['@type' => 'AdministrativeArea', 'name' => 'Euskadi'],
                 ['@type' => 'AdministrativeArea', 'name' => 'Navarra'],
                 ['@type' => 'Place', 'name' => 'Iparralde'],
             ],
-            'sameAs' => [$aSite['instagram_url']],
-        ],
+        ] + bideSiteRefs(),
         [
             '@type' => 'ItemList',
             'name' => Lang::t('menu.section', $sLang),
             'itemListElement' => $aItems,
         ],
         bideFaqJsonLd($sLang),
-    ],
+    ]),
 ];
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>" data-splash="first" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -94,7 +76,11 @@ $aJsonLd = [
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="keywords" content="<?= htmlspecialchars($aKeywords[$sLang]) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <?= Lang::alternates($sCanonicalEs) ?>
@@ -131,14 +117,15 @@ $aJsonLd = [
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
+    <!-- Sin defer: menu-view.js y bide-mode.js ponen en <html> las clases con las que se pinta la página. -->
     <script src="/js/menu-view.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/bide-mode.js"></script>
-    <script src="/js/notification-open.js"></script>
-    <script src="/js/i18n.js"></script>
-    <script src="/js/linkify.js"></script>
+    <script defer src="/js/notification-open.js"></script>
+    <script defer src="/js/i18n.js"></script>
+    <script defer src="/js/linkify.js"></script>
     <script defer src="/js/notice.js"></script>
-    <script src="/js/networks.js"></script>
+    <script defer src="/js/networks.js"></script>
     <link rel="stylesheet" href="/css/style-menu.css">
     <link rel="stylesheet" href="/css/style-bide.css">
     <link rel="stylesheet" href="/css/style-networks.css">
@@ -152,7 +139,7 @@ $aJsonLd = [
 
         <header>
             <div class="menu-brand">
-                <h1><?= $sWordmark ?></h1>
+                <h1><?= $sWordmark ?><span class="bide-visually-hidden" data-i18n="menu.heading">Bide+: horarios y tiempo real del transporte público de Euskal Herria</span></h1>
                 <p data-i18n="menu.tagline">Movilidad en Euskal Herria</p>
             </div>
             <div class="header-controls">
@@ -245,7 +232,7 @@ $aJsonLd = [
             <span id="nets-toast-text"></span>
             <button type="button" id="nets-toast-undo" data-i18n="menu.nets.undo">Deshacer</button>
         </div>
-        <script src="/js/menu-favorites.js"></script>
+        <script defer src="/js/menu-favorites.js"></script>
 
 <?= bideViews() ?>
 <?= bideMenuSheet() ?>
@@ -265,13 +252,14 @@ $aJsonLd = [
 <?php require __DIR__ . '/legal.php'; ?>
     <script src="/js/menu.js" defer></script>
     <script src="/js/sw-register.js" defer></script>
-    <script src="/js/menu-lang.js"></script>
-    <script src="/js/api.js"></script>
-    <script src="/js/alerts-store.js"></script>
-    <script src="/js/bide.js"></script>
-    <script src="/js/new-badge.js"></script>
-    <script src="/js/offline.js"></script>
-    <script src="/js/bide-info.js"></script>
+    <script src="/js/lang-offer.js" defer></script>
+    <script src="/js/menu-lang.js" defer></script>
+    <script src="/js/api.js" defer></script>
+    <script src="/js/alerts-store.js" defer></script>
+    <script src="/js/bide.js" defer></script>
+    <script src="/js/new-badge.js" defer></script>
+    <script src="/js/offline.js" defer></script>
+    <script src="/js/bide-info.js" defer></script>
     <script type="module" src="/js/settings.js"></script>
 </body>
 </html>

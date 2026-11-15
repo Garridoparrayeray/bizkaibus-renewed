@@ -21,7 +21,7 @@ $sFound = '0';
 if ($aStop === null) {
     http_response_code(404);
 } else {
-    $sStopName = $aStop['name'];
+    $sStopName = \Core\DisplayName::of($aStop['name'], $aNetwork);
     $sFound = '1';
 }
 $sAppName = Networks::text($aNetwork, 'name');

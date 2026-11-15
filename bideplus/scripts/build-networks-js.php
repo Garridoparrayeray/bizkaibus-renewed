@@ -24,6 +24,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
         'themeColor' => $aNetwork['brand']['theme_color'],
         'title' => $aNetwork['brand']['title'],
         'favoritesKey' => $aNetwork['db'] . '_favorites',
+        'operator' => $aNetwork['seo']['operator'],
         'live' => !empty($aNetwork['live']),
         'features' => $aNetwork['features'],
         'texts' => $aTexts,
@@ -53,18 +54,20 @@ $sJs = <<<JS
             return networks[slug].texts.es.name;
         },
     };
-    // Los textos de cada red entran en el diccionario como net.<red>.<clave>.
-    if (global.I18n && global.I18n.extend) {
+    // Los textos de cada red entran en el diccionario como net.<red>.<clave>: aquí si js/i18n.js ya está y, si no
+    // (en las apps va con defer, después), los mete él al cargarse.
+    global.BideNetworks.addTexts = function (i18n) {
         order.forEach(function (slug) {
             Object.keys(networks[slug].texts).forEach(function (lang) {
                 const table = {};
                 Object.keys(networks[slug].texts[lang]).forEach(function (key) {
                     table['net.' + slug + '.' + key] = networks[slug].texts[lang][key];
                 });
-                global.I18n.extend(lang, table);
+                i18n.extend(lang, table);
             });
         });
-    }
+    };
+    if (global.I18n && global.I18n.extend) global.BideNetworks.addTexts(global.I18n);
 })(self);
 
 JS;

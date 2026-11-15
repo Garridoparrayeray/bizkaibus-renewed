@@ -41,7 +41,7 @@
 - [Network map](https://www.bideplus.eus/mapa): every line, stop and transfer of each network
 - [Network status](https://www.bideplus.eus/estado): how many vehicles are running live on each network right now, and its alerts
 - Every stop and line has its own page, e.g. [Moyua Plaza, Bilbao](https://www.bideplus.eus/stops/4255)
-- [Sitemap](https://www.bideplus.eus/sitemap.xml): every stop and line, in every language
+- [Sitemap](https://www.bideplus.eus/sitemap-index.xml): one sitemap per network with every stop and line, in every language
 
 ## Languages
 - [Bide+ in Spanish](https://www.bideplus.eus/)

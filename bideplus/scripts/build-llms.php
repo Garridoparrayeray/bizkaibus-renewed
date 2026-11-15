@@ -86,7 +86,7 @@ $sText = <<<TEXT
 - [Network map]({$sUrl}/mapa): every line, stop and transfer of each network
 - [Network status]({$sUrl}/estado): how many vehicles are running live on each network right now, and its alerts
 - Every stop and line has its own page, e.g. [Moyua Plaza, Bilbao]({$sUrl}/stops/4255)
-- [Sitemap]({$sUrl}/sitemap.xml): every stop and line, in every language
+- [Sitemap]({$sUrl}/sitemap-index.xml): one sitemap per network with every stop and line, in every language
 
 ## Languages
 {$sLanguageLinks}

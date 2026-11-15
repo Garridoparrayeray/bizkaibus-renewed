@@ -4,7 +4,7 @@
 use Core\Networks;
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>" data-titles="<?= htmlspecialchars(json_encode($aTitles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT)) ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <base href="/">
@@ -15,10 +15,16 @@ use Core\Networks;
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php elseif ($bNoIndex): ?>
+    <meta name="robots" content="noindex, follow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
-    <?= \Core\Lang::alternates($sCanonicalEs) ?>
+    <?= \Core\Lang::alternates($sCanonicalEs, $aNetwork['seo']['default_lang'] ?? 'es') ?>
     <script type="application/ld+json"><?= json_encode($aJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="<?= htmlspecialchars($aSite['name']) ?>">
@@ -27,6 +33,7 @@ use Core\Networks;
     <meta property="og:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta property="og:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta property="og:image" content="<?= htmlspecialchars($sImage) ?>">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="<?= $iImageWidth ?>">
     <meta property="og:image:height" content="<?= $iImageHeight ?>">
     <meta property="og:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
@@ -34,6 +41,7 @@ use Core\Networks;
     <meta name="twitter:title" content="<?= htmlspecialchars($sTitle) ?>">
     <meta name="twitter:description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="twitter:image" content="<?= htmlspecialchars($sImage) ?>">
+    <meta name="twitter:image:alt" content="<?= htmlspecialchars($sImageAlt) ?>">
     <link rel="icon" href="/<?= $sFaviconFolder ?>/icon-192.png">
     <link rel="apple-touch-icon" href="/<?= $sFaviconFolder ?>/apple-touch-icon.png">
     <link rel="preload" href="/fonts/hanken-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -41,16 +49,16 @@ use Core\Networks;
     <link rel="stylesheet" href="/fonts/fonts.css">
     <link rel="stylesheet" href="/css/style-splash.css">
     <script src="/js/splash.js"></script>
-    <script src="/js/i18n.js"></script>
-    <script src="/js/linkify.js"></script>
+    <script defer src="/js/i18n.js"></script>
+    <script defer src="/js/linkify.js"></script>
     <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
-    <script src="/js/new-badge.js"></script>
-    <link rel="stylesheet" href="/lib/leaflet/leaflet.css">
+    <script defer src="/js/new-badge.js"></script>
     <script src="/js/theme.js"></script>
+    <!-- Sin defer: boot.js usa document.write (y necesita networks.js); bide-mode.js pone la clase que pinta. -->
     <script src="/js/boot.js"></script>
     <script src="/js/bide-mode.js"></script>
-    <script src="/js/notification-open.js"></script>
+    <script defer src="/js/notification-open.js"></script>
     <link rel="stylesheet" href="/css/style-bide.css">
     <link rel="stylesheet" href="/css/style-networks.css">
     <link rel="stylesheet" href="/css/style-miamor.css">
@@ -66,24 +74,6 @@ use Core\Networks;
             <button id="net-retry" type="button" data-i18n="app.retry">Reintentar</button>
         </div>
 
-        <noscript>
-            <h2><?= htmlspecialchars($sTitle) ?></h2>
-            <p><?= htmlspecialchars($sDescription) ?></p>
-<?php if ($sRelatedHeading !== null && !empty($aRelated)): ?>
-            <h3><?= htmlspecialchars($sRelatedHeading) ?></h3>
-            <ul>
-<?php foreach ($aRelated as $aRow):
-    $sRelatedLabel = $aRow['name'];
-    if ($sRelatedType === 'lines') {
-        $sRelatedLabel = $aRow['code'] . ' ' . $aRow['name'];
-    }
-?>
-                <li><a href="/<?= $sRelatedType ?>/<?= rawurlencode((string)$aRow['id']) ?><?= Networks::urlSuffix($sNetworkSlug) ?>"><?= htmlspecialchars($sRelatedLabel) ?></a></li>
-<?php endforeach; ?>
-            </ul>
-<?php endif; ?>
-            <p><a href="/">Todas las apps de Bide+</a> · Para consultar los horarios en directo, activa JavaScript.</p>
-        </noscript>
 
 <?= bideRail($sNetworkSlug) ?>
 
@@ -91,11 +81,15 @@ use Core\Networks;
             <div class="home-link-wrap">
                 <button id="home-link" class="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
                     <span id="app-logomark" class="app-logomark" aria-hidden="true"><?= $aNetwork['brand']['logomark'] ?></span>
-                    <hgroup>
-                        <h1 id="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark" class="app-title-mark">+</span></h1>
+                    <span class="app-brand-text">
+                        <span id="app-title" class="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark" class="app-title-mark">+</span></span>
                         <span id="app-title-city" class="app-title-city"><?= htmlspecialchars($aNetwork['brand']['title'][1]) ?></span>
-                        <p id="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></p>
-                    </hgroup>
+<?php if ($aContent['type'] === 'network'): ?>
+                        <h1 id="app-subtitle" class="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></h1>
+<?php else: ?>
+                        <span id="app-subtitle" class="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></span>
+<?php endif; ?>
+                    </span>
                 </button>
 
                 <nav id="network-switcher" class="network-switcher" aria-label="Cambiar red de transporte">
@@ -121,7 +115,7 @@ use Core\Networks;
                     </a>
                 </nav>
 
-                <script src="/js/header-brand.js"></script>
+                <script defer src="/js/header-brand.js"></script>
             </div>
 
             <span class="header-actions">
@@ -161,7 +155,21 @@ use Core\Networks;
 
             </aside>
 
-            <div class="main">
+<?php
+// En una parada, su tarjeta (o el panel de andenes, más alto) va a salir arriba: se le guarda el sitio para que no
+// salte lo de debajo (CLS). Si no llega (sin conexión o sin /api/), js/app/stop.js lo suelta.
+$sMainClass = 'main';
+if ($aContent['type'] === 'stop') {
+    $sMainClass .= ' is-stop-page';
+    if (Networks::feature($aNetwork, 'platforms')) {
+        $sMainClass .= ' is-tall';
+    }
+}
+?>
+            <div id="app-main" class="<?= $sMainClass ?>">
+<?php if ($aContent['type'] === 'stop'): ?>
+<?php require __DIR__ . '/page-content.php'; ?>
+<?php endif; ?>
                 <article id="live-card" class="live-card glass" hidden>
                     <header>
                         <span id="live-badge" class="badge">Solo horario</span>
@@ -214,7 +222,11 @@ use Core\Networks;
                     <div id="platform-columns" class="platform-columns" aria-live="polite"></div>
                     <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>
                 </div>
-                <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
+                <p id="live-empty" class="live-empty" role="status"<?php if ($aContent['type'] === 'stop'): ?> hidden<?php endif; ?> data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
+
+<?php if ($aContent['type'] !== 'stop'): ?>
+<?php require __DIR__ . '/page-content.php'; ?>
+<?php endif; ?>
 
             </div>
 
@@ -336,15 +348,15 @@ use Core\Networks;
         <ul id="menu-alerts-list" class="menu-alerts-list"></ul>
     </dialog>
 
-    <script src="/lib/leaflet/leaflet.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/alerts-store.js"></script>
-    <script src="/js/offline.js"></script>
+    <script defer src="/js/api.js"></script>
+    <script defer src="/js/alerts-store.js"></script>
+    <script defer src="/js/offline.js"></script>
     <script type="module" src="/js/app/main.js"></script>
     <script type="module" src="/js/settings.js"></script>
     <script defer src="/js/bide.js"></script>
     <script defer src="/js/bide-info.js"></script>
     <script defer src="/js/sw-register.js"></script>
+    <script defer src="/js/lang-offer.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

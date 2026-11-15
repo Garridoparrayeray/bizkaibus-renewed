@@ -197,6 +197,39 @@ function bideOffline(): string
 }
 
 // Datos del sitio (api/Config/site.php): nombre, autor, enlaces y correo de contacto.
+// El sitio y quien lo publica, una vez por página en el @graph del JSON-LD: el resto los nombra por su @id.
+function bideSiteJsonLd(string $sLang): array
+{
+    $aSite = bideSite();
+    return [
+        [
+            '@type' => 'WebSite',
+            '@id' => $aSite['url'] . '/#website',
+            'name' => $aSite['name'],
+            'url' => $aSite['url'] . '/',
+            'inLanguage' => $sLang,
+            'availableLanguage' => \Core\Lang::LANGS,
+            'publisher' => ['@id' => $aSite['url'] . '/#organization'],
+        ],
+        [
+            '@type' => 'Organization',
+            '@id' => $aSite['url'] . '/#organization',
+            'name' => $aSite['name'],
+            'url' => $aSite['url'] . '/',
+            'logo' => $aSite['url'] . '/icons-bide-rojo/icon-512.png',
+            'founder' => ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']],
+            'sameAs' => [$aSite['instagram_url'], $aSite['source_url']],
+        ],
+    ];
+}
+
+// Las referencias al sitio y a quien lo publica (bideSiteJsonLd).
+function bideSiteRefs(): array
+{
+    $sUrl = bideSite()['url'];
+    return ['isPartOf' => ['@id' => $sUrl . '/#website'], 'publisher' => ['@id' => $sUrl . '/#organization']];
+}
+
 function bideSite(): array
 {
     static $aSite = null;

@@ -13,9 +13,26 @@ if ($sUri === '' || preg_match('/[\x00-\x1f]/', $sUri)) {
     return true;
 }
 
+// Las rutas de vercel.json con «has» solo valen en ese dominio (la copia de prueba): aquí, con la cabecera Host.
+function routeHostMatches(array $aRoute, string $sHost): bool
+{
+    foreach ($aRoute['has'] ?? [] as $aCondition) {
+        if (($aCondition['type'] ?? '') === 'host' && $aCondition['value'] !== $sHost) {
+            return false;
+        }
+    }
+    return true;
+}
+
+$sHost = $_SERVER['HTTP_HOST'] ?? '';
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
-    if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri)) {
+    // Las que llevan a un fichero (/sitemap.xml, el robots.txt de la copia de prueba) cambian la ruta que se sirve.
+    $bToFile = isset($aRoute['dest']) && !str_ends_with($aRoute['dest'], '.php');
+    if ($bToFile && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
+        $sUri = $aRoute['dest'];
+    }
+    if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri) || !routeHostMatches($aRoute, $sHost)) {
         continue;
     }
     foreach ($aRoute['headers'] as $sName => $sValue) {
@@ -61,13 +78,9 @@ if (str_starts_with($sUri, '/api/')) {
     return true;
 }
 
-if ($sUri === '/' || $sUri === '/mapa' || $sUri === '/estado' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/') || str_starts_with($sUri, '/pantalla/')) {
-    if (isset($_COOKIE['lento'])) {
-        usleep((int) $_COOKIE['lento'] * 1000);
-    }
-    require __DIR__ . '/api/shell.php';
-    return true;
+// Como en vercel.json, el resto lo decide shell.php: la página, su 301 a la dirección buena o el 404.
+if (isset($_COOKIE['lento'])) {
+    usleep((int) $_COOKIE['lento'] * 1000);
 }
-
-http_response_code(404);
-readfile(__DIR__ . '/404.html');
+require __DIR__ . '/api/shell.php';
+return true;

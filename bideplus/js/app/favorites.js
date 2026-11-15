@@ -1,5 +1,5 @@
 // Favoritos de paradas y líneas: guardarlos, pintarlos y el panel.
-import { FAVORITES_STORAGE_KEY, ICONS, el, state } from './core.js';
+import { FAVORITES_STORAGE_KEY, ICONS, appHref, el, openOnClick, state } from './core.js';
 import { selectStop } from './stop.js';
 import { setPillContent } from './ui.js';
 import { iconFor } from './search.js';
@@ -49,26 +49,26 @@ export async function loadFavorites() {
 
     for (const favorite of favorites) {
         const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'pill';
+        const link = document.createElement('a');
+        link.className = 'pill';
+        link.href = appHref(favorite.type + 's', favorite.refId);
         const icon = iconFor(favorite.type);
         const cacheKey = favoriteKey(favorite.type, favorite.refId);
         const cached = favoriteLabelCache.get(cacheKey);
 
         if (cached) {
-            setPillContent(button, icon, cached.label, cached.area);
+            setPillContent(link, icon, cached.label, cached.area);
         } else {
-            setPillContent(button, icon, '…', '');
-            hydrateFavoriteLabel(favorite, button, cacheKey);
+            setPillContent(link, icon, '…', '');
+            hydrateFavoriteLabel(favorite, link, cacheKey);
         }
 
-        button.addEventListener('click', () => {
+        openOnClick(link, () => {
             if (favorite.type === 'stop') selectStop(favorite.refId);
             else selectLine(favorite.refId);
             closeFavoritesPanel();
         });
-        li.appendChild(button);
+        li.appendChild(link);
         el.favoritesList.appendChild(li);
     }
 }

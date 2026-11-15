@@ -6,6 +6,19 @@
     const dict = {
         es: {
             'menu.tagline': 'Movilidad en Euskal Herria',
+            'menu.heading': 'Bide+: horarios y tiempo real del transporte público de Euskal Herria',
+            'menu.seoTitle': 'Horarios de Bizkaibus, Metro Bilbao, Renfe y más | Bide+',
+            'menu.seoDescription': 'Horarios y tiempo real del bus, metro, tren y tranvía de Euskal Herria: Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus y más, en una sola app gratis.',
+            'map.seoTitle': 'Mapa de la red · Líneas de transporte de Euskadi | Bide+',
+            'map.seoDescription': 'Mapa del transporte público de Euskal Herria: las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe y más, con sus paradas y transbordos.',
+            'status.seoTitle': 'Estado del transporte en Euskadi, en directo | Bide+',
+            'status.seoDescription': 'Cuántos trenes, metros, tranvías y autobuses van en directo ahora en cada red de Euskal Herria y cuántos van en hora frente al horario.',
+            'notFound.title': 'Página no encontrada · Bide+',
+            'notFound.description': 'La página que buscas no existe o ha cambiado de sitio. Vuelve a Bide+ para consultar los horarios y el tiempo real del bus, el metro, el tren y el tranvía de Euskal Herria.',
+            'notFound.logo': 'Bide+, ir al inicio',
+            'notFound.heading': 'Esta página no existe',
+            'notFound.text': 'Puede que el enlace esté mal escrito o que la página ya no esté disponible. Vuelve al menú y elige una app.',
+            'notFound.back': 'Volver a Bide+',
             'menu.section': 'Apps de movilidad',
             'menu.planner.title': '¿A dónde vas?',
             'menu.planner.from': 'Tu ubicación',
@@ -110,6 +123,35 @@
             'bide.notice.group': 'Aviso general',
             'bide.notice.more': 'Más información',
             'bide.notice.close': 'Cerrar aviso',
+            'bide.langOffer.text': 'Bide+ también está en castellano.',
+            'bide.langOffer.switch': 'Ver en castellano',
+            'bide.langOffer.close': 'Seguir en este idioma',
+            'seo.networkDescription': '{switcher}: próximas salidas, horarios y avisos de cada parada y línea.',
+            'seo.stopTitle': '{stop} · Horarios {operator}',
+            'seo.stopDescription': 'Horarios y próximas salidas de {operator} en {place}.',
+            'seo.stopLines': 'Líneas: {list}.',
+            'seo.live': 'Llegadas en tiempo real.',
+            'seo.stopMore': 'Consulta el horario de hoy de cada línea y guarda la parada en favoritos.',
+            'seo.lineTitle': 'Línea {code} {name} · Horarios {operator}',
+            'seo.lineTitleShort': 'Línea {code} · Horarios {operator}',
+            'seo.lineDescription': 'Horarios, recorrido y paradas de la línea {code} ({name}) de {operator}.',
+            'seo.lineMore': 'Las paradas de cada sentido en orden, con su horario y sus próximas salidas.',
+            'seo.stopMoreShort': 'Consulta el horario de hoy de cada línea.',
+            'seo.lineMoreShort': 'Con sus paradas en orden.',
+            'seo.line': 'Línea {code}',
+            'seo.lineHeading': 'Línea {code} {name} · {operator}',
+            'seo.linesAt': 'Líneas que paran en {stop}',
+            'seo.linesOf': 'Líneas de {operator}',
+            'seo.scheduleToday': 'Horario de hoy ({date})',
+            'seo.noDepartures': 'Hoy no sale ningún viaje de esta parada.',
+            'seo.towards': 'Hacia {headsign}',
+            'seo.towardsShort': 'hacia {headsign}',
+            'seo.stopNumber': 'nº {code}',
+            'seo.moreGeneric': 'Gratis, sin anuncios y en castellano, euskera, inglés y francés.',
+            'seo.moreTiny': 'Gratis y sin anuncios.',
+            'seo.lineTowards': '{code} hacia {headsign}',
+            'seo.enableJs': 'Para ver los horarios en directo, activa JavaScript.',
+            'seo.imageAlt': 'Bide+: bus, metro, tren y tranvía de Euskal Herria en un solo sitio',
             'bide.alerts.note': 'Solo aparecen los avisos de lo que tienes en Favoritos, en todas las apps.',
             'bide.alerts.none': 'No hay avisos activos en tus favoritos.',
             'info.title': 'Información',
@@ -507,6 +549,19 @@
         },
         eu: {
             'menu.tagline': 'Mugikortasuna Euskal Herrian',
+            'menu.heading': 'Bide+: Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean',
+            'menu.seoTitle': 'Bizkaibus, Metroa, Renfe eta gehiago: ordutegiak | Bide+',
+            'menu.seoDescription': 'Euskal Herriko autobus, metro, tren eta tranbiaren ordutegiak eta denbora errealean: Bizkaibus, Metroa, Euskotren, Renfe, Dbus eta gehiago, doan.',
+            'map.seoTitle': 'Sarearen mapa · Euskadiko garraio-lineak | Bide+',
+            'map.seoDescription': 'Euskal Herriko garraio publikoaren mapa: Bilboko Metroa, Bizkaibus, Euskotren, Renfe eta beste linea guztiak, geltokiekin eta loturekin.',
+            'status.seoTitle': 'Euskadiko garraioaren egoera, zuzenean | Bide+',
+            'status.seoDescription': 'Zenbat tren, metro, tranbia eta autobus dabiltzan zuzenean orain Euskal Herriko sare bakoitzean, eta zenbat doazen orduan ordutegiaren arabera.',
+            'notFound.title': 'Ez da orria aurkitu · Bide+',
+            'notFound.description': 'Bilatzen duzun orria ez dago edo lekuz aldatu da. Itzuli Bide+-ra Euskal Herriko autobus, metro, tren eta tranbiaren ordutegiak eta denbora errealean ikusteko.',
+            'notFound.logo': 'Bide+, hasierara joan',
+            'notFound.heading': 'Orri hau ez dago',
+            'notFound.text': 'Agian esteka gaizki idatzita dago edo orria ez dago jada eskuragarri. Itzuli menura eta aukeratu aplikazio bat.',
+            'notFound.back': 'Itzuli Bide+-ra',
             'menu.section': 'Mugikortasun aplikazioak',
             'menu.planner.title': 'Nora zoaz?',
             'menu.planner.from': 'Zure kokapena',
@@ -611,6 +666,35 @@
             'bide.notice.group': 'Ohar orokorra',
             'bide.notice.more': 'Informazio gehiago',
             'bide.notice.close': 'Itxi oharra',
+            'bide.langOffer.text': 'Bide+ euskaraz ere badago.',
+            'bide.langOffer.switch': 'Euskaraz ikusi',
+            'bide.langOffer.close': 'Hizkuntza honetan jarraitu',
+            'seo.networkDescription': '{switcher}: geltoki eta linea bakoitzaren hurrengo irteerak, ordutegiak eta abisuak.',
+            'seo.stopTitle': '{stop} · {operator} ordutegiak',
+            'seo.stopDescription': '{operator}: {place} geltokiko ordutegiak eta hurrengo irteerak.',
+            'seo.stopLines': 'Lineak: {list}.',
+            'seo.live': 'Iritsierak denbora errealean.',
+            'seo.stopMore': 'Ikusi linea bakoitzaren gaurko ordutegia eta gorde geltokia gogokoetan.',
+            'seo.lineTitle': '{code} {name} linea · {operator} ordutegiak',
+            'seo.lineTitleShort': '{code} linea · {operator} ordutegiak',
+            'seo.lineDescription': '{operator}: {code} ({name}) linearen ordutegiak, ibilbidea eta geltokiak.',
+            'seo.lineMore': 'Noranzko bakoitzeko geltokiak ordenan, ordutegiarekin eta hurrengo irteerekin.',
+            'seo.stopMoreShort': 'Ikusi linea bakoitzaren gaurko ordutegia.',
+            'seo.lineMoreShort': 'Geltokiak ordenan.',
+            'seo.line': '{code} linea',
+            'seo.lineHeading': '{code} {name} linea · {operator}',
+            'seo.linesAt': '{stop} geltokian gelditzen diren lineak',
+            'seo.linesOf': '{operator}: lineak',
+            'seo.scheduleToday': 'Gaurko ordutegia ({date})',
+            'seo.noDepartures': 'Gaur ez da bidaiarik irteten geltoki honetatik.',
+            'seo.towards': '{headsign} aldera',
+            'seo.towardsShort': '{headsign} aldera',
+            'seo.stopNumber': '{code} zk.',
+            'seo.moreGeneric': 'Doan, iragarkirik gabe, euskaraz, gaztelaniaz, ingelesez eta frantsesez.',
+            'seo.moreTiny': 'Doan eta iragarkirik gabe.',
+            'seo.lineTowards': '{code} {headsign} aldera',
+            'seo.enableJs': 'Ordutegiak zuzenean ikusteko, aktibatu JavaScript.',
+            'seo.imageAlt': 'Bide+: Euskal Herriko autobusa, metroa, trena eta tranbia leku bakarrean',
             'bide.alerts.note': 'Gogokoetan duzunaren abisuak bakarrik agertzen dira, aplikazio guztietan.',
             'bide.alerts.none': 'Ez dago abisu aktiborik zure gogokoetan.',
             'info.title': 'Informazioa',
@@ -1009,6 +1093,19 @@
         en: {
             'bide.new': 'New',
             'menu.tagline': 'Getting around the Basque Country',
+            'menu.heading': 'Bide+: timetables and real time for public transport in the Basque Country',
+            'menu.seoTitle': 'Bizkaibus, Metro Bilbao, Renfe timetables and more | Bide+',
+            'menu.seoDescription': 'Bus, metro, train and tram timetables and real time across the Basque Country: Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus and more, in one free app.',
+            'map.seoTitle': 'Network map · Basque Country transport lines | Bide+',
+            'map.seoDescription': 'Public transport map of the Basque Country: every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe and more, with their stops and transfers.',
+            'status.seoTitle': 'Basque Country public transport status, live | Bide+',
+            'status.seoDescription': 'How many trains, metros, trams and buses are live right now on each network in the Basque Country, and how many are on time against the timetable.',
+            'notFound.title': 'Page not found · Bide+',
+            'notFound.description': 'The page you are looking for does not exist or has moved. Go back to Bide+ for timetables and real time for buses, metro, trains and trams in the Basque Country.',
+            'notFound.logo': 'Bide+, go to the home page',
+            'notFound.heading': 'This page does not exist',
+            'notFound.text': 'The link may be mistyped or the page may no longer be available. Go back to the menu and choose an app.',
+            'notFound.back': 'Back to Bide+',
             'menu.section': 'Transport apps',
             'menu.planner.title': 'Where are you going?',
             'menu.planner.from': 'Your location',
@@ -1113,6 +1210,35 @@
             'bide.notice.group': 'General notice',
             'bide.notice.more': 'More information',
             'bide.notice.close': 'Dismiss notice',
+            'bide.langOffer.text': 'Bide+ is also available in English.',
+            'bide.langOffer.switch': 'View in English',
+            'bide.langOffer.close': 'Keep this language',
+            'seo.networkDescription': '{switcher}: next departures, timetables and alerts for every stop and line.',
+            'seo.stopTitle': '{stop} · {operator} timetable',
+            'seo.stopDescription': '{operator} timetable and next departures at {place}.',
+            'seo.stopLines': 'Lines: {list}.',
+            'seo.live': 'Real-time arrivals.',
+            'seo.stopMore': 'See today’s timetable for each line and save the stop to your favourites.',
+            'seo.lineTitle': 'Line {code} {name} · {operator} timetable',
+            'seo.lineTitleShort': 'Line {code} · {operator} timetable',
+            'seo.lineDescription': 'Timetable, route and stops of {operator} line {code} ({name}).',
+            'seo.lineMore': 'Every stop in each direction, in order, with its timetable and next departures.',
+            'seo.stopMoreShort': 'See today’s timetable for each line.',
+            'seo.lineMoreShort': 'With its stops in order.',
+            'seo.line': 'Line {code}',
+            'seo.lineHeading': 'Line {code} {name} · {operator}',
+            'seo.linesAt': 'Lines stopping at {stop}',
+            'seo.linesOf': '{operator} lines',
+            'seo.scheduleToday': 'Today’s timetable ({date})',
+            'seo.noDepartures': 'No departures from this stop today.',
+            'seo.towards': 'Towards {headsign}',
+            'seo.towardsShort': 'towards {headsign}',
+            'seo.stopNumber': 'no. {code}',
+            'seo.moreGeneric': 'Free, with no ads, in Spanish, Basque, English and French.',
+            'seo.moreTiny': 'Free and with no ads.',
+            'seo.lineTowards': '{code} towards {headsign}',
+            'seo.enableJs': 'To see live times, turn on JavaScript.',
+            'seo.imageAlt': 'Bide+: bus, metro, train and tram across the Basque Country in one place',
             'bide.alerts.note': 'Only alerts for what you have in Favourites are shown, across all the apps.',
             'bide.alerts.none': 'There are no active alerts for your favourites.',
             'info.title': 'Information',
@@ -1509,6 +1635,19 @@
         },
         fr: {
             'menu.tagline': 'Mobilité en Euskal Herria',
+            'menu.heading': 'Bide+ : horaires et temps réel des transports en commun d’Euskal Herria',
+            'menu.seoTitle': 'Horaires Txik Txak, SNCF, Bizkaibus, Metro Bilbao | Bide+',
+            'menu.seoDescription': 'Horaires et temps réel des bus, métros, trains et tramways du Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao et plus, dans une appli gratuite.',
+            'map.seoTitle': 'Plan du réseau · Lignes de transport du Pays basque | Bide+',
+            'map.seoDescription': 'Plan des transports en commun d’Euskal Herria : les lignes de Txik Txak, Metro Bilbao, Bizkaibus, Euskotren et plus, avec arrêts et correspondances.',
+            'status.seoTitle': 'État des transports au Pays basque, en direct | Bide+',
+            'status.seoDescription': 'Combien de trains, métros, tramways et bus circulent en direct sur chaque réseau d’Euskal Herria, et combien sont à l’heure par rapport aux horaires.',
+            'notFound.title': 'Page introuvable · Bide+',
+            'notFound.description': 'La page que vous cherchez n’existe pas ou a changé d’adresse. Revenez à Bide+ pour les horaires et le temps réel des bus, métros, trains et tramways d’Euskal Herria.',
+            'notFound.logo': 'Bide+, aller à l’accueil',
+            'notFound.heading': 'Cette page n’existe pas',
+            'notFound.text': 'Le lien est peut-être mal écrit ou la page n’est plus disponible. Revenez au menu et choisissez une application.',
+            'notFound.back': 'Retour à Bide+',
             'menu.section': 'Applis de mobilité',
             'menu.planner.title': 'Où allez-vous ?',
             'menu.planner.from': 'Votre position',
@@ -1613,6 +1752,35 @@
             'bide.notice.group': 'Avis général',
             'bide.notice.more': 'Plus d’informations',
             'bide.notice.close': 'Fermer l’avis',
+            'bide.langOffer.text': 'Bide+ existe aussi en français.',
+            'bide.langOffer.switch': 'Voir en français',
+            'bide.langOffer.close': 'Garder cette langue',
+            'seo.networkDescription': '{switcher} : prochains départs, horaires et alertes de chaque arrêt et de chaque ligne.',
+            'seo.stopTitle': '{stop} · Horaires {operator}',
+            'seo.stopDescription': 'Horaires et prochains départs {operator} à {place}.',
+            'seo.stopLines': 'Lignes : {list}.',
+            'seo.live': 'Arrivées en temps réel.',
+            'seo.stopMore': 'Consultez l’horaire du jour de chaque ligne et ajoutez l’arrêt à vos favoris.',
+            'seo.lineTitle': 'Ligne {code} {name} · Horaires {operator}',
+            'seo.lineTitleShort': 'Ligne {code} · Horaires {operator}',
+            'seo.lineDescription': 'Horaires, itinéraire et arrêts de la ligne {code} ({name}) de {operator}.',
+            'seo.lineMore': 'Les arrêts de chaque sens dans l’ordre, avec leurs horaires et prochains départs.',
+            'seo.stopMoreShort': 'Consultez l’horaire du jour de chaque ligne.',
+            'seo.lineMoreShort': 'Avec ses arrêts dans l’ordre.',
+            'seo.line': 'Ligne {code}',
+            'seo.lineHeading': 'Ligne {code} {name} · {operator}',
+            'seo.linesAt': 'Lignes desservant {stop}',
+            'seo.linesOf': 'Lignes {operator}',
+            'seo.scheduleToday': 'Horaire du jour ({date})',
+            'seo.noDepartures': 'Aucun départ de cet arrêt aujourd’hui.',
+            'seo.towards': 'Vers {headsign}',
+            'seo.towardsShort': 'vers {headsign}',
+            'seo.stopNumber': 'nº {code}',
+            'seo.moreGeneric': 'Gratuit, sans publicité, en espagnol, basque, anglais et français.',
+            'seo.moreTiny': 'Gratuit et sans publicité.',
+            'seo.lineTowards': '{code} vers {headsign}',
+            'seo.enableJs': 'Pour voir les horaires en direct, activez JavaScript.',
+            'seo.imageAlt': 'Bide+ : bus, métro, train et tramway d’Euskal Herria au même endroit',
             'bide.alerts.note': 'Seules les alertes de ce que vous avez en Favoris s’affichent, toutes applis confondues.',
             'bide.alerts.none': 'Aucune alerte active sur vos favoris.',
             'info.title': 'Informations',
@@ -2026,22 +2194,40 @@
         return null;
     }
 
+    // Sin ?lang ni idioma elegido, el de la página que ha hecho el servidor: la URL castellana sale en castellano.
     function getLang() {
         if (chosenLang) return chosenLang;
+        const stored = storedLang();
+        if (stored) return stored;
+        return serverLang();
+    }
+
+    function storedLang() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (LANGS.indexOf(stored) !== -1) return stored;
         } catch (e) { /* private mode / storage blocked */ }
-        return browserLang();
+        return null;
     }
 
-    // Sin idioma elegido, quien tiene el móvil en inglés o en francés ve Bide+ en su idioma; el resto, en castellano.
+    function serverLang() {
+        const lang = global.document.documentElement.getAttribute('data-server-lang');
+        if (LANGS.indexOf(lang) !== -1) return lang;
+        return 'es';
+    }
+
+    // El idioma del móvil, si Bide+ lo tiene: no traduce la página, solo se ofrece (js/lang-offer.js).
     function browserLang() {
         let preferred = '';
         if (global.navigator) preferred = (global.navigator.languages && global.navigator.languages[0]) || global.navigator.language || '';
-        if (preferred.toLowerCase().indexOf('en') === 0) return 'en';
-        if (preferred.toLowerCase().indexOf('fr') === 0) return 'fr';
+        const lang = preferred.toLowerCase().slice(0, 2);
+        if (LANGS.indexOf(lang) !== -1) return lang;
         return 'es';
+    }
+
+    // ¿Hay un idioma elegido (en la dirección o guardado)? Entonces no se ofrece otro.
+    function hasChoice() {
+        return chosenLang !== null || storedLang() !== null;
     }
 
     // Cambia el idioma y avisa con «bide:lang» para que cada parte de la página vuelva a pintar sus textos.
@@ -2049,14 +2235,12 @@
         if (LANGS.indexOf(lang) === -1) return;
         chosenLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* ignore */ }
-        // Si la dirección lleva ?lang, cambia con el idioma: al recargar o compartir sale el elegido.
+        // La dirección pasa a la de ese idioma (?lang=, sin él en castellano): al recargar o compartir sale el elegido.
         try {
             const url = new URL(global.location.href);
-            if (url.searchParams.has('lang')) {
-                if (lang === 'es') url.searchParams.delete('lang');
-                else url.searchParams.set('lang', lang);
-                global.history.replaceState(global.history.state, '', url);
-            }
+            if (lang === 'es') url.searchParams.delete('lang');
+            else url.searchParams.set('lang', lang);
+            global.history.replaceState(global.history.state, '', url);
         } catch (e) { /* ignore */ }
         global.dispatchEvent(new CustomEvent('bide:lang', { detail: { lang: lang } }));
     }
@@ -2065,9 +2249,9 @@
         return LANGS[(LANGS.indexOf(getLang()) + 1) % LANGS.length];
     }
 
-    function t(key, vars) {
-        const lang = getLang();
-        const table = dict[lang] || dict.es;
+    // Con lang, en ese idioma y no en el de la página (el aviso que ofrece el idioma del móvil).
+    function t(key, vars, lang) {
+        const table = dict[lang || getLang()] || dict.es;
         let text = table[key];
         if (text === undefined) text = dict.es[key];
         if (text === undefined) return key;
@@ -2100,5 +2284,6 @@
         Object.keys(table).forEach(function (key) { dict[lang][key] = table[key]; });
     }
 
-    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend };
+    global.I18n = { t: t, getLang: getLang, setLang: setLang, nextLang: nextLang, langs: LANGS, applyTranslations: applyTranslations, extend: extend, browserLang: browserLang, hasChoice: hasChoice };
+    if (global.BideNetworks) global.BideNetworks.addTexts(global.I18n);
 })(window);

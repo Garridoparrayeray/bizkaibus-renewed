@@ -83,8 +83,13 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Euskotren+ · Horarios de trenes y tranvía de Euskotren por línea y estación | Bide+',
-        'description' => 'Consulta los horarios de Euskotren, trenes y tranvía, por línea y estación en Bizkaia y Gipuzkoa.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Euskadi',
+        'country' => 'ES',
+        'operator' => 'Euskotren',
+        'title' => 'Euskotren+ · Horarios de trenes y tranvía de Euskotren',
+        'description' => 'Horarios de Euskotren por línea y estación en Bizkaia y Gipuzkoa: los trenes, el topo de Donostia a Hendaia y la L3 de Bilbao, con sus próximas salidas.',
     ],
     'attribution' => 'Datos: Euskotren / Open Data Euskadi (CC-BY 4.0)',
 

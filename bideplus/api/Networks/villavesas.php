@@ -82,8 +82,13 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Villavesas+ · Horarios de las villavesas de Pamplona por línea y parada',
-        'description' => 'Consulta los horarios de las villavesas (Transporte Urbano Comarcal de Pamplona) por parada y línea.',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Navarra',
+        'country' => 'ES',
+        'operator' => 'Villavesas',
+        'title' => 'Villavesas+ · Horarios de las villavesas de Pamplona',
+        'description' => 'Horarios de las villavesas de la Comarca de Pamplona / Iruñerria por línea y parada, con las próximas salidas y el recorrido de cada línea.',
     ],
     'attribution' => 'Datos: Mancomunidad de la Comarca de Pamplona (TCC), vía el Punto de Acceso Nacional de Transporte Multimodal (Licencia de datos abiertos del Ministerio de Transportes y Movilidad Sostenible)',
 

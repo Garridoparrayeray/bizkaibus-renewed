@@ -122,6 +122,7 @@ svg[viewBox] rect {
     }
 .pill {
     display: flex;
+    text-decoration: none;
     align-items: center;
     gap: 10px;
     padding: 12px 16px;
@@ -290,11 +291,13 @@ svg[viewBox] rect {
         filter: none;
         box-shadow: 0 0 0 2px rgba(255, 255, 255, .85);
     }
-hgroup {
+.app-brand-text {
+    display: block;
     min-width: 0;
     overflow: hidden;
 }
-h1 {
+.app-title {
+    display: block;
     margin: 0;
     overflow: hidden;
     color: #fff;
@@ -328,7 +331,9 @@ h1 {
     .app-title-city:empty {
         display: none;
     }
-header p {
+header p,
+.app-subtitle {
+    display: block;
     margin: 0;
     overflow: hidden;
     color: rgba(255, 255, 255, .92);
@@ -728,6 +733,7 @@ header p {
         margin-top: 6px;
     }
     .live-more-list button,
+    .live-more-list a,
     .platform-column-list button {
         display: flex;
         align-items: center;
@@ -742,6 +748,7 @@ header p {
         transition: background .15s ease;
     }
         .live-more-list button:hover,
+        .live-more-list a:hover,
         .platform-column-list button:hover {
             background: rgba(255, 255, 255, .16);
         }
@@ -851,6 +858,65 @@ header p {
     color: var(--text-secondary);
     font-weight: 500;
     text-align: center;
+}
+
+/* ===== Lo que pinta el servidor (#page-content): las líneas de la red, o las de la parada y su horario de hoy ===== */
+.page-content {
+    overflow-wrap: anywhere;
+}
+    .page-content > h1 {
+        margin: 0 0 4px;
+        color: var(--text);
+        font-family: var(--font-display);
+        font-size: calc(20.8px * var(--text-scale, 1));
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .page-content-section > h2 {
+        margin: 16px 0 8px;
+        color: var(--text);
+        font-size: calc(15.2px * var(--text-scale, 1));
+        font-weight: 700;
+    }
+    .page-content-section > p,
+    .page-content > noscript > p {
+        margin: 12px 0 0;
+        color: var(--text-secondary);
+        font-size: calc(14.08px * var(--text-scale, 1));
+    }
+    .page-content-list {
+        margin: 0;
+        padding: 0 0 0 20px;
+        color: var(--text-secondary);
+        font-size: calc(14.08px * var(--text-scale, 1));
+        line-height: 1.6;
+    }
+        .page-content-list > li > a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .page-content-list > li > a:hover {
+            text-decoration: underline;
+        }
+    ul.page-content-list {
+        padding: 0;
+        list-style: none;
+    }
+    /* Las líneas de una red pueden ser cientos: van en su propia caja con desplazamiento. */
+    .page-content[data-page-type="network"] .page-content-list {
+        max-height: 320px;
+        overflow-y: auto;
+    }
+/* En una parada, el contenido del servidor ocupa el sitio de su tarjeta (o del panel de andenes, más alto) hasta que
+   llega: así lo de debajo no salta (CLS) y el H1 y el horario se pintan enseguida (LCP). */
+.is-stop-page > .page-content,
+.is-stop-page > .live-card {
+    min-height: 580px;
+}
+.is-stop-page.is-tall > .page-content,
+.is-stop-page.is-tall > .platform-panel {
+    min-height: 900px;
 }
 
 /* ===== Panel de andén (metro y Euskotren) ===== */
@@ -1085,8 +1151,13 @@ tbody tr {
     .stop-alerts[hidden] {
         display: none;
     }
+    /* Como mucho tres líneas: un aviso largo no tapa la parada (y no pasa a ser lo más grande de la página, LCP). */
     .stop-alerts-summary {
+        display: -webkit-box;
         max-width: 100%;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
         overflow-wrap: anywhere;
         font-size: calc(13.6px * var(--text-scale, 1));
         font-weight: 600;
@@ -1410,6 +1481,11 @@ dialog {
             background: var(--primary-tint);
             color: var(--primary);
         }
+            .modal-stops > li > a {
+                display: block;
+                color: inherit;
+                text-decoration: none;
+            }
 .menu-favorites-open {
     width: 100%;
     justify-content: flex-start;
@@ -1615,10 +1691,11 @@ dialog {
         padding-top: calc(16px + env(safe-area-inset-top));
         padding-bottom: 18px;
     }
-    .app-container > header h1 {
+    .app-container > header .app-title {
         font-size: calc(32.8px * var(--text-scale, 1));
     }
-    .app-container > header p {
+    .app-container > header p,
+    .app-container > header .app-subtitle {
         font-size: calc(14.72px * var(--text-scale, 1));
     }
     .app-logomark {
@@ -1636,7 +1713,7 @@ dialog {
 
 /* ===== Móvil pequeño ===== */
 @media (max-width: 380px) {
-    h1 {
+    .app-title {
         font-size: calc(23.2px * var(--text-scale, 1));
     }
     .live-card,

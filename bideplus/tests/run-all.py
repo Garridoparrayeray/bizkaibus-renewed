@@ -22,6 +22,7 @@ STEPS = [
     ('Estáticas, unitarias y datos', [PY, 'tests/static-checks.py']),
     ('API (todas las rutas)', [PY, 'tests/api-smoke.py']),
     ('Contrato de la API', [PY, 'tests/api-contract.py']),
+    ('SEO en el HTML del servidor', [PY, 'tests/seo-check.py']),
     ('Horarios sin conexión', ['node', 'tests/offline-schedule.mjs']),
     ('Periodos del horario oficial', ['node', 'tests/schedule-periods.mjs']),
     ('Enlaces de los avisos', ['node', 'tests/linkify.mjs']),
@@ -36,6 +37,7 @@ if not QUICK:
         ('UI avisos', ['node', 'tests/ui-alerts.mjs']),
         ('UI cerca de mí', ['node', 'tests/ui-nearby.mjs']),
         ('UI Bide+ (pestañas, columna, páginas)', ['node', 'tests/ui-bide.mjs']),
+        ('UI SEO (título, idioma y contenido sin /api/)', ['node', 'tests/ui-seo.mjs']),
     ]
 
 

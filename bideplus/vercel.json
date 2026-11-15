@@ -32,9 +32,29 @@
       "continue": true
     },
     {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "bideplusmiamor.vercel.app"
+        }
+      ],
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      },
+      "continue": true
+    },
+    {
       "src": "^/(?!api/|data/|scripts/|tests/|engine/|sw[.]js$)[^?]*[.](?:css|js|woff2|png|webp|svg|ico|jpe?g|json)$",
       "headers": {
         "Cache-Control": "public, max-age=0, s-maxage=86400"
+      },
+      "continue": true
+    },
+    {
+      "src": "^/lib/leaflet-[0-9.]+/.*$",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
       },
       "continue": true
     },
@@ -49,6 +69,20 @@
     {
       "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$",
       "dest": "/api/index.php"
+    },
+    {
+      "src": "/sitemap.xml",
+      "dest": "/sitemap-index.xml"
+    },
+    {
+      "src": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "bideplusmiamor.vercel.app"
+        }
+      ],
+      "dest": "/robots-miamor.txt"
     },
     {
       "handle": "filesystem"
@@ -79,6 +113,10 @@
     },
     {
       "src": "/",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "/(.*)",
       "dest": "/api/shell.php"
     }
   ]

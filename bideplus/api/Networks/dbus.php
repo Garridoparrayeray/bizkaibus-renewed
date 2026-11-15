@@ -86,7 +86,12 @@ return [
     ],
 
     'seo' => [
-        'title' => 'Dbus+ · Autobuses de Donostia / San Sebastián en tiempo real por línea y parada | Bide+',
+        // El nombre del operador, el que se busca: va en los títulos y descripciones de cada parada y línea.
+        // Dónde están sus paradas, para la dirección de cada una en los datos estructurados (país en ISO 3166).
+        'region' => 'Gipuzkoa',
+        'country' => 'ES',
+        'operator' => 'Dbus',
+        'title' => 'Dbus+ · Autobuses de Donostia en tiempo real',
         'description' => 'Consulta los próximos autobuses de Dbus en Donostia / San Sebastián en tiempo real, sus horarios por línea y parada y dónde va cada autobús en el mapa.',
     ],
     'attribution' => 'Datos: Dbus / Open Data Euskadi, vía Moveuskadi (CC-BY 4.0)',
