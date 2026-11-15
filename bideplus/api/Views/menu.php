@@ -156,7 +156,7 @@ $aJsonLd = [
 
         <header>
             <div class="menu-brand">
-                <h1><?= $sWordmark ?></h1>
+                <h1><?= $sWordmark ?><span class="bide-visually-hidden" data-i18n="menu.heading">Bide+: horarios y tiempo real del transporte público de Euskal Herria</span></h1>
                 <p data-i18n="menu.tagline">Movilidad en Euskal Herria</p>
             </div>
             <div class="header-controls">

@@ -118,12 +118,37 @@ export const el = {
     modalAlerts: document.getElementById('modal-alerts'),
     modalStops: document.getElementById('modal-stops'),
     netBanner: document.getElementById('net-banner'),
+    pageContent: document.getElementById('page-content'),
 };
 
 // La consulta ?red= que llevan las direcciones de esta app (la red por defecto no la lleva).
 function networkQueryFor(slug) {
     if (slug !== BideNetworks.DEFAULT) return '?red=' + slug;
     return '';
+}
+
+// La dirección de una parada o una línea de esta app, en el idioma elegido: un enlace de verdad, que siguen los
+// buscadores y que se puede abrir aparte.
+export function appHref(type, id) {
+    const url = new URL(`/${type}/${encodeURIComponent(id)}${networkQuery}`, window.location.origin);
+    if (I18n.getLang() !== 'es') url.searchParams.set('lang', I18n.getLang());
+    return url.pathname + url.search;
+}
+
+// Un clic normal en el enlace la abre dentro de la app (pushState); con Ctrl, Mayús o el botón central, aparte.
+export function openOnClick(link, open) {
+    link.addEventListener('click', (event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        open();
+    });
+}
+
+// El contenido que pinta el servidor (#page-content) es el de la página con la que se abrió la app: se esconde en
+// cuanto se ve otra parada, otra línea o la red sin la suya.
+export function syncPageContent(type, id) {
+    if (!el.pageContent.querySelector('h2')) return;
+    el.pageContent.hidden = el.pageContent.dataset.pageType !== type || el.pageContent.dataset.pageId !== String(id);
 }
 
 // Al volver a la app o recuperar la conexión se pide ya lo que se refresca solo, por si ha vuelto el directo.

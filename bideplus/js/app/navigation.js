@@ -1,5 +1,5 @@
 // Cerrar la parada o la línea, el menú de redes y la navegación con el historial (atrás, enlaces /stops y /lines).
-import { el, networkQuery, state } from './core.js';
+import { el, networkQuery, state, syncPageContent } from './core.js';
 import { clearLineMap } from './line-map.js';
 import { selectStop, stopDeparturesRefresh } from './stop.js';
 import { selectLine } from './timetable.js';
@@ -25,6 +25,7 @@ export function closeLiveCard() {
         closeTimetableSection();
     }
     if (window.location.pathname.startsWith('/stops/')) history.replaceState(null, '', '/?red=' + window.__bbNetwork);
+    syncPageContent('network', window.__bbNetwork);
 }
 
 export function closeTimetableSection() {
@@ -40,6 +41,7 @@ export function closeTimetableSection() {
             history.replaceState(null, '', '/?red=' + window.__bbNetwork);
         }
     }
+    if (!state.currentStop) syncPageContent('network', window.__bbNetwork);
 }
 
 export function closeFromButton(view, close) {

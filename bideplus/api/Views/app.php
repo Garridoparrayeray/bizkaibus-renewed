@@ -17,6 +17,8 @@ use Core\Networks;
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
 <?php if ($bMiamorDomain): ?>
     <meta name="robots" content="noindex, nofollow">
+<?php elseif ($bNoIndex): ?>
+    <meta name="robots" content="noindex, follow">
 <?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
 <?php endif; ?>
@@ -70,24 +72,6 @@ use Core\Networks;
             <button id="net-retry" type="button" data-i18n="app.retry">Reintentar</button>
         </div>
 
-        <noscript>
-            <h2><?= htmlspecialchars($sTitle) ?></h2>
-            <p><?= htmlspecialchars($sDescription) ?></p>
-<?php if ($sRelatedHeading !== null && !empty($aRelated)): ?>
-            <h3><?= htmlspecialchars($sRelatedHeading) ?></h3>
-            <ul>
-<?php foreach ($aRelated as $aRow):
-    $sRelatedLabel = $aRow['name'];
-    if ($sRelatedType === 'lines') {
-        $sRelatedLabel = $aRow['code'] . ' ' . $aRow['name'];
-    }
-?>
-                <li><a href="/<?= $sRelatedType ?>/<?= rawurlencode((string)$aRow['id']) ?><?= Networks::urlSuffix($sNetworkSlug) ?>"><?= htmlspecialchars($sRelatedLabel) ?></a></li>
-<?php endforeach; ?>
-            </ul>
-<?php endif; ?>
-            <p><a href="/">Todas las apps de Bide+</a> · Para consultar los horarios en directo, activa JavaScript.</p>
-        </noscript>
 
 <?= bideRail($sNetworkSlug) ?>
 
@@ -95,11 +79,15 @@ use Core\Networks;
             <div class="home-link-wrap">
                 <button id="home-link" class="home-link" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="network-switcher">
                     <span id="app-logomark" class="app-logomark" aria-hidden="true"><?= $aNetwork['brand']['logomark'] ?></span>
-                    <hgroup>
-                        <h1 id="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark" class="app-title-mark">+</span></h1>
+                    <span class="app-brand-text">
+                        <span id="app-title" class="app-title"><?= htmlspecialchars($aNetwork['brand']['title'][0]) ?><span id="app-title-mark" class="app-title-mark">+</span></span>
                         <span id="app-title-city" class="app-title-city"><?= htmlspecialchars($aNetwork['brand']['title'][1]) ?></span>
-                        <p id="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></p>
-                    </hgroup>
+<?php if ($aContent['type'] === 'network'): ?>
+                        <h1 id="app-subtitle" class="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></h1>
+<?php else: ?>
+                        <span id="app-subtitle" class="app-subtitle" data-i18n="net.<?= $sNetworkSlug ?>.subtitle"><?= htmlspecialchars(Networks::text($aNetwork, 'subtitle')) ?></span>
+<?php endif; ?>
+                    </span>
                 </button>
 
                 <nav id="network-switcher" class="network-switcher" aria-label="Cambiar red de transporte">
@@ -219,6 +207,29 @@ use Core\Networks;
                     <p class="offline-marks"><button id="platform-marks-undo" class="offline-marks-undo" type="button" hidden></button></p>
                 </div>
                 <p id="live-empty" class="live-empty" role="status" data-i18n="net.<?= $sNetworkSlug ?>.liveEmpty"><?= htmlspecialchars(Networks::text($aNetwork, 'liveEmpty')) ?></p>
+
+                <section id="page-content" class="page-content glass" data-page-type="<?= $aContent['type'] ?>" data-page-id="<?= htmlspecialchars($aContent['id']) ?>"<?php if (empty($aContent['sections'])): ?> hidden<?php endif; ?>>
+<?php if ($aContent['heading'] !== null): ?>
+                    <h1><?= htmlspecialchars($aContent['heading']) ?></h1>
+<?php endif; ?>
+<?php foreach ($aContent['sections'] as $aSection):
+    $sListTag = 'ul';
+    if (!empty($aSection['ordered'])) {
+        $sListTag = 'ol';
+    }
+?>
+                    <h2><?= htmlspecialchars($aSection['title']) ?></h2>
+                    <<?= $sListTag ?> class="page-content-list">
+<?php foreach ($aSection['items'] as $aItem): ?>
+                        <li><a href="<?= htmlspecialchars($aItem['href']) ?>"><?= htmlspecialchars($aItem['label']) ?></a><?php if (isset($aItem['times'])): ?> <span class="page-content-times"><?= htmlspecialchars($aItem['times']) ?></span><?php endif; ?></li>
+<?php endforeach; ?>
+                    </<?= $sListTag ?>>
+<?php endforeach; ?>
+<?php if ($aContent['empty'] !== null): ?>
+                    <p><?= htmlspecialchars($aContent['empty']) ?></p>
+<?php endif; ?>
+                    <noscript><p><a href="/">Bide+</a> · <?= htmlspecialchars(\Core\Lang::t('seo.enableJs', $sLang)) ?></p></noscript>
+                </section>
 
             </div>
 

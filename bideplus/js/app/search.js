@@ -1,5 +1,5 @@
 // Buscador de paradas y líneas, y paradas cercanas con la ubicación.
-import { FEATURES, ICONS, el, savedSchedule } from './core.js';
+import { FEATURES, ICONS, appHref, el, openOnClick, savedSchedule } from './core.js';
 import { selectStop } from './stop.js';
 import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
@@ -40,11 +40,11 @@ function renderSearchResults(stops, lines) {
 
     for (const item of items) {
         const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'pill';
-        setPillContent(button, iconFor(item.type), item.label, item.area, item.hint);
-        button.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.className = 'pill';
+        link.href = appHref(item.type + 's', item.id);
+        setPillContent(link, iconFor(item.type), item.label, item.area, item.hint);
+        openOnClick(link, () => {
             el.searchInput.value = '';
             el.searchResults.hidden = true;
             if (item.type === 'stop') {
@@ -53,7 +53,7 @@ function renderSearchResults(stops, lines) {
                 selectLine(item.id);
             }
         });
-        li.appendChild(button);
+        li.appendChild(link);
         el.searchResults.appendChild(li);
     }
     el.searchResults.hidden = false;
@@ -82,17 +82,17 @@ function renderNearbyResults(stops) {
     el.searchResults.innerHTML = '';
     for (const stop of stops) {
         const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'pill';
+        const link = document.createElement('a');
+        link.className = 'pill';
+        link.href = appHref('stops', stop.id);
         let next = 'Sin salidas próximas';
         if (stop.next) next = `${stop.next.lineCode} → ${stop.next.headsign} · ${departureWhen(stop.next)}`;
-        setPillContent(button, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
-        button.addEventListener('click', () => {
+        setPillContent(link, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
+        openOnClick(link, () => {
             el.searchResults.hidden = true;
             selectStop(stop.id);
         });
-        li.appendChild(button);
+        li.appendChild(link);
         el.searchResults.appendChild(li);
     }
     el.searchResults.hidden = false;

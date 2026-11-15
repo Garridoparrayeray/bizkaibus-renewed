@@ -99,7 +99,7 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await sleep(300);
         let pick = '#platform-timetable-lines .pill, #platform-timetable-link:not([hidden])';
         if (a.panel === 'live-card') {
-            pick = '#live-timetable-link:not([hidden]), #live-more-list button';
+            pick = '#live-timetable-link:not([hidden]), #live-more-list a, #live-more-list button';
         }
         await until(`!!document.querySelector('${pick}')`);
         // De noche, sin próximas salidas, la tarjeta lista las líneas de la parada; las que terminan en ella no tienen salidas

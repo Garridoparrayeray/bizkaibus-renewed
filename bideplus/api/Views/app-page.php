@@ -1,75 +1,35 @@
 <?php
-// Datos de la página de una app: título, descripción, imagen, URL canónica y JSON-LD. En /stops/{id} y /lines/{id}
-// salen de la parada o la línea, con sus enlaces relacionados para quien no tiene JavaScript. Lo usa app.php.
+// Datos de la página de una app: título, descripción, imagen, URL canónica, JSON-LD y el contenido que pinta el
+// servidor (#page-content): en /stops/{id} y /lines/{id} el de la parada o la línea; en /?red=, sus líneas.
 
 use Core\Config;
 use Core\Database;
+use Core\DisplayName;
 use Core\Lang;
 use Core\Networks;
+use Core\Seo;
 use Models\LineModel;
 use Models\Stop;
+use Services\Calendar;
+use Services\StopDaySchedule;
 
 $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
 $sWordmark = require __DIR__ . '/wordmark.php';
 
+// Recorridos (uno por destino) que salen en la página de una línea.
+const LINE_PAGE_ROUTES = 4;
+// Las líneas que se nombran en la descripción de una parada.
+const STOP_DESCRIPTION_LINES = 8;
+
 $sNetworkSlug = Networks::fromQuery($_GET['red'] ?? null);
 $aNetwork = Networks::get($sNetworkSlug);
 $sLang = Lang::current();
 $aAppNames = array_map(fn($aOne) => Networks::text($aOne, 'name', $sLang), Networks::all());
-// Los textos de la página para los buscadores, en cada idioma ({...} se rellena con la parada, la línea o la red).
-$aPageTexts = [
-    'es' => [
-        'networkDescription' => '', 'stopTitle' => '{stop} · Horarios y próximas salidas | {app}',
-        'stopDescription' => 'Próximas salidas y horarios de {app} en {place}.', 'lines' => ' Líneas: {list}.',
-        'live' => ' Llegadas en tiempo real.', 'lineTitle' => 'Línea {code} {name} · Horarios | {app}',
-        'lineDescription' => 'Horarios, recorrido y paradas de la línea {code} ({name}) de {app}.',
-        'busMap' => ' Mapa con los autobuses en tiempo real.', 'trainMap' => ' Mapa con los trenes en tiempo real.',
-        'line' => 'Línea {code}', 'linesAt' => 'Líneas que paran en {stop}', 'stopsOf' => 'Paradas de la línea {code}',
-        'appDescription' => 'Horarios de {app}.',
-    ],
-    'eu' => [
-        'networkDescription' => '{switcher}: geltoki eta linea bakoitzaren hurrengo irteerak, ordutegiak eta abisuak.',
-        'stopTitle' => '{stop} · Ordutegiak eta hurrengo irteerak | {app}',
-        'stopDescription' => '{app}: {place} geltokiko hurrengo irteerak eta ordutegiak.', 'lines' => ' Lineak: {list}.',
-        'live' => ' Iritsierak denbora errealean.', 'lineTitle' => '{code} {name} linea · Ordutegiak | {app}',
-        'lineDescription' => '{app}: {code} ({name}) linearen ordutegiak, ibilbidea eta geltokiak.',
-        'busMap' => ' Autobusak denbora errealean erakusten dituen mapa.', 'trainMap' => ' Trenak denbora errealean erakusten dituen mapa.',
-        'line' => '{code} linea', 'linesAt' => '{stop} geltokian gelditzen diren lineak', 'stopsOf' => '{code} linearen geltokiak',
-        'appDescription' => '{app}: ordutegiak.',
-    ],
-    'en' => [
-        'networkDescription' => '{switcher}: next departures, timetables and alerts for every stop and line.',
-        'stopTitle' => '{stop} · Timetable and next departures | {app}',
-        'stopDescription' => 'Next departures and timetables for {app} at {place}.', 'lines' => ' Lines: {list}.',
-        'live' => ' Real-time arrivals.', 'lineTitle' => 'Line {code} {name} · Timetable | {app}',
-        'lineDescription' => 'Timetable, route and stops of line {code} ({name}), {app}.',
-        'busMap' => ' Map with the buses in real time.', 'trainMap' => ' Map with the trains in real time.',
-        'line' => 'Line {code}', 'linesAt' => 'Lines stopping at {stop}', 'stopsOf' => 'Stops on line {code}',
-        'appDescription' => '{app} timetables.',
-    ],
-    'fr' => [
-        'networkDescription' => '{switcher} : prochains départs, horaires et alertes de chaque arrêt et de chaque ligne.',
-        'stopTitle' => '{stop} · Horaires et prochains départs | {app}',
-        'stopDescription' => 'Prochains départs et horaires de {app} à {place}.', 'lines' => ' Lignes : {list}.',
-        'live' => ' Arrivées en temps réel.', 'lineTitle' => 'Ligne {code} {name} · Horaires | {app}',
-        'lineDescription' => 'Horaires, itinéraire et arrêts de la ligne {code} ({name}) de {app}.',
-        'busMap' => ' Carte avec les bus en temps réel.', 'trainMap' => ' Carte avec les trains en temps réel.',
-        'line' => 'Ligne {code}', 'linesAt' => 'Lignes desservant {stop}', 'stopsOf' => 'Arrêts de la ligne {code}',
-        'appDescription' => 'Horaires de {app}.',
-    ],
-];
-// Con $sTextLang, en ese idioma: el título de la página va en los cuatro (data-titles, para js/header-brand.js).
-$PageText = function (string $sKey, array $aVars = [], string|null $sTextLang = null) use ($aPageTexts, $sLang): string {
-    if ($sTextLang === null) {
-        $sTextLang = $sLang;
-    }
-    $aReplace = [];
-    foreach ($aVars as $sName => $sValue) {
-        $aReplace['{' . $sName . '}'] = (string)$sValue;
-    }
-    return strtr($aPageTexts[$sTextLang][$sKey], $aReplace);
-};
+$sOperator = $aNetwork['seo']['operator'];
+$Name = fn(string $sName): string => DisplayName::of($sName, $aNetwork);
+// Un enlace de la app en el idioma de la página: /stops/{id} o /lines/{id}, con ?red= si no es la red por defecto.
+$AppLink = fn(string $sType, string $sId): string => Lang::url('/' . $sType . '/' . rawurlencode($sId) . Networks::urlSuffix($sNetworkSlug), $sLang);
 
 $sSiteUrl = $aSite['url'];
 $aTitles = [];
@@ -87,13 +47,14 @@ if ($bMiamorDomain) {
     foreach (Lang::LANGS as $sTextLang) {
         $aTitles[$sTextLang] = $aNetwork['seo']['title'];
         if ($sTextLang !== 'es') {
-            $aTitles[$sTextLang] = Networks::text($aNetwork, 'name', $sTextLang) . ' · ' . Networks::text($aNetwork, 'switcher', $sTextLang) . ' | Bide+';
+            $sGeneric = Networks::text($aNetwork, 'name', $sTextLang) . ' · ' . Networks::text($aNetwork, 'switcher', $sTextLang);
+            $aTitles[$sTextLang] = Seo::title([$sGeneric . ' | Bide+', $sGeneric]);
         }
     }
     $sTitle = $aTitles[$sLang];
     $sDescription = $aNetwork['seo']['description'];
     if ($sLang !== 'es') {
-        $sDescription = $PageText('networkDescription', ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
+        $sDescription = Lang::t('seo.networkDescription', $sLang, ['switcher' => Networks::text($aNetwork, 'switcher', $sLang)]);
     }
     // Al compartir cualquier página (parada, línea, red), la vista previa es siempre la imagen de Bide+.
     $sImage = $aSite['url'] . '/icons-bide-rojo/og-image.png';
@@ -126,14 +87,26 @@ function appPageRecord(string $sNetworkSlug, string $sType, string $sId): array|
     return (new LineModel(Database::connection()))->find($sId);
 }
 
-$aPlace = null;
+// Uno de los recorridos de map.splits de la ficha (Metro publica L1 y L2 como una sola línea), o null.
+function appPageSplit(array $aNetwork, string $sLineId, string $sCode): array|null
+{
+    foreach ($aNetwork['map']['splits'] ?? [] as $aSplit) {
+        if ($aSplit['code'] === $sCode && (string)$aSplit['line'] === $sLineId) {
+            return $aSplit;
+        }
+    }
+    return null;
+}
+
+// El contenido que pinta el servidor: lo ven los buscadores (que no llegan a /api/) y quien no tiene JavaScript. Cada
+// apartado es un título y sus enlaces; los del horario de hoy llevan además sus horas.
+$aContent = ['type' => 'network', 'id' => $sNetworkSlug, 'heading' => null, 'sections' => [], 'empty' => null];
 $sBreadcrumbName = null;
-$sRelatedHeading = null;
-$sRelatedType = null;
-$aRelated = [];
+$aPlace = null;
+$bNoIndex = $bMiamorDomain;
 $bNotFound = false;
 try {
-    if (preg_match('#^/(stops|lines)/([^/]+)/?$#', $sPath, $aMatches)) {
+    if (preg_match('#^/(stops|lines)/([^/]+)(?:/([^/]+))?$#', $sPath, $aMatches)) {
         $sType = $aMatches[1];
         $sId = urldecode($aMatches[2]);
         $aRecord = appPageRecord($sNetworkSlug, $sType, $sId);
@@ -141,68 +114,134 @@ try {
         if ($aRecord === null && !isset($_GET['red'])) {
             foreach (array_diff(Networks::slugs(), [$sNetworkSlug]) as $sOtherSlug) {
                 if (appPageRecord($sOtherSlug, $sType, $sId) !== null) {
-                    header('Location: /' . $sType . '/' . $aMatches[2] . '?red=' . $sOtherSlug, true, 301);
+                    header('Location: ' . Lang::url('/' . $sType . '/' . $aMatches[2] . '?red=' . $sOtherSlug, $sLang), true, 301);
                     exit;
                 }
             }
         }
+        $aSplit = null;
+        if ($aRecord !== null && isset($aMatches[3])) {
+            $aSplit = appPageSplit($aNetwork, (string)$aRecord['id'], urldecode($aMatches[3]));
+        }
 
-        $sAppName = $aAppNames[$sNetworkSlug];
-        if ($aRecord === null) {
+        $Pdo = Database::connection();
+        if ($aRecord === null || ($sType === 'stops' && isset($aMatches[3])) || (isset($aMatches[3]) && $aSplit === null)) {
             $bNotFound = true;
         } elseif ($sType === 'stops') {
-            $sStopLabel = $aRecord['name'];
+            $sStopName = $Name($aRecord['name']);
+            $sStopLabel = $sStopName;
             if (($aRecord['area'] ?? '') !== '') {
-                $sStopLabel .= ' (' . $aRecord['area'] . ')';
+                $sStopLabel .= ' (' . Seo::municipality($Name($aRecord['area'])) . ')';
             }
-            $aRelated = (new Stop(Database::connection()))->linesServing($aRecord['id']);
+            $aServing = (new Stop($Pdo))->linesServing($aRecord['id']);
             foreach (Lang::LANGS as $sTextLang) {
-                $aTitles[$sTextLang] = $PageText('stopTitle', ['stop' => $aRecord['name'], 'app' => Networks::text($aNetwork, 'name', $sTextLang)], $sTextLang);
+                $sKeyword = Lang::t('seo.stopTitle', $sTextLang, ['stop' => $sStopLabel, 'operator' => $sOperator]);
+                $sShort = Lang::t('seo.stopTitle', $sTextLang, ['stop' => $sStopName, 'operator' => $sOperator]);
+                $aTitles[$sTextLang] = Seo::title([$sKeyword . ' | Bide+', $sKeyword, $sShort]);
             }
             $sTitle = $aTitles[$sLang];
-            $sDescription = $PageText('stopDescription', ['app' => $sAppName, 'place' => $sStopLabel]);
-            if (!empty($aRelated)) {
-                // Renfe publica una línea por sentido: el mismo código sale dos veces.
-                $aCodes = array_values(array_unique(array_column($aRelated, 'code')));
-                $sList = implode(', ', array_slice($aCodes, 0, 8));
-                if (count($aCodes) > 8) {
-                    $sList .= '…';
-                }
-                $sDescription .= $PageText('lines', ['list' => $sList]);
+            // Renfe publica una línea por sentido: el mismo código sale dos veces.
+            $aCodes = array_values(array_unique(array_column($aServing, 'code')));
+            $sList = implode(', ', array_slice($aCodes, 0, STOP_DESCRIPTION_LINES));
+            if (count($aCodes) > STOP_DESCRIPTION_LINES) {
+                $sList .= '…';
+            }
+            $aSentences = [Lang::t('seo.stopDescription', $sLang, ['operator' => $sOperator, 'place' => $sStopLabel])];
+            if (!empty($aCodes)) {
+                $aSentences[] = Lang::t('seo.stopLines', $sLang, ['list' => $sList]);
             }
             if (!empty($aNetwork['live'])) {
-                $sDescription .= $PageText('live');
+                $aSentences[] = Lang::t('seo.live', $sLang);
             }
+            $sDescription = Seo::description($aSentences, [Lang::t('seo.stopMore', $sLang), Lang::t('seo.stopMoreShort', $sLang)]);
             $aStopTypes = ['bus' => 'BusStop', 'metro' => 'SubwayStation', 'train' => 'TrainStation', 'tram' => 'TrainStation'];
             $aPlace = [
                 '@type' => $aStopTypes[$aNetwork['kind']] ?? 'Place',
-                'name' => $aRecord['name'],
+                'name' => $sStopName,
                 'geo' => ['@type' => 'GeoCoordinates', 'latitude' => (float)$aRecord['lat'], 'longitude' => (float)$aRecord['lon']],
             ];
             if (($aRecord['area'] ?? '') !== '') {
-                $aPlace['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $aRecord['area'], 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
+                $aPlace['address'] = ['@type' => 'PostalAddress', 'addressLocality' => $Name($aRecord['area']), 'addressRegion' => 'Euskadi', 'addressCountry' => 'ES'];
             }
-            $sBreadcrumbName = $aRecord['name'];
-            $sRelatedHeading = $PageText('linesAt', ['stop' => $aRecord['name']]);
-            $sRelatedType = 'lines';
+            $sBreadcrumbName = $sStopName;
+            // Sin ninguna línea, la parada no tiene servicio ni nada que leer: fuera del índice (y del sitemap).
+            $bNoIndex = $bNoIndex || empty($aServing);
+
+            $aContent = ['type' => 'stop', 'id' => (string)$aRecord['id'], 'heading' => $sStopLabel . ' · ' . $sOperator, 'sections' => [], 'empty' => null];
+            $aLinks = [];
+            foreach ($aServing as $aLine) {
+                $aLinks[] = ['href' => $AppLink('lines', (string)$aLine['id']), 'label' => $aLine['code'] . ' · ' . $Name($aLine['name'])];
+            }
+            if (!empty($aLinks)) {
+                $aContent['sections'][] = ['title' => Lang::t('seo.linesAt', $sLang, ['stop' => $sStopName]), 'items' => $aLinks];
+            }
+            $aSchedule = [];
+            foreach (StopDaySchedule::today($Pdo, (string)$aRecord['id']) as $aGroup) {
+                $sLabel = Lang::t('seo.lineTowards', $sLang, ['code' => $aGroup['code'], 'headsign' => $Name($aGroup['headsign'])]);
+                $aSchedule[] = ['href' => $AppLink('lines', (string)$aGroup['lineId']), 'label' => $sLabel, 'times' => implode(' · ', $aGroup['times'])];
+            }
+            $sScheduleTitle = Lang::t('seo.scheduleToday', $sLang, ['date' => Calendar::todayMadrid()->format('d/m/Y')]);
+            $aContent['sections'][] = ['title' => $sScheduleTitle, 'items' => $aSchedule];
+            if (empty($aSchedule)) {
+                $aContent['empty'] = Lang::t('seo.noDepartures', $sLang);
+            }
         } else {
-            $aLineVars = ['code' => $aRecord['code'], 'name' => $aRecord['name'], 'app' => $sAppName];
+            $sLineCode = $aRecord['code'];
+            $sLineName = $Name($aRecord['name']);
+            $aEnds = null;
+            if ($aSplit !== null) {
+                $sLineCode = $aSplit['code'];
+                $sLineName = $aSplit['name'];
+                $aEnds = $aSplit['ends'];
+            }
+            $aLineVars = ['code' => $sLineCode, 'name' => $sLineName, 'operator' => $sOperator];
             foreach (Lang::LANGS as $sTextLang) {
-                $aTitles[$sTextLang] = $PageText('lineTitle', ['app' => Networks::text($aNetwork, 'name', $sTextLang)] + $aLineVars, $sTextLang);
+                $sKeyword = Lang::t('seo.lineTitle', $sTextLang, $aLineVars);
+                $aTitles[$sTextLang] = Seo::title([$sKeyword . ' | Bide+', $sKeyword, Lang::t('seo.lineTitleShort', $sTextLang, $aLineVars)]);
             }
             $sTitle = $aTitles[$sLang];
-            $sDescription = $PageText('lineDescription', $aLineVars);
+            $aSentences = [Lang::t('seo.lineDescription', $sLang, $aLineVars)];
             if (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-monitoring')) {
-                $sDescription .= $PageText('busMap');
+                $aSentences[] = Lang::t('seo.busMap', $sLang);
             } elseif (Networks::feature($aNetwork, 'line_map') && Networks::hasLive($aNetwork, 'vehicle-positions')) {
-                $sDescription .= $PageText('trainMap');
+                $aSentences[] = Lang::t('seo.trainMap', $sLang);
             }
-            $aRelated = (new LineModel(Database::connection()))->stopsByName($aRecord['id']);
-            $sBreadcrumbName = $PageText('line', ['code' => $aRecord['code']]);
-            $sRelatedHeading = $PageText('stopsOf', ['code' => $aRecord['code']]);
-            $sRelatedType = 'stops';
+            $sDescription = Seo::description($aSentences, [Lang::t('seo.lineMore', $sLang), Lang::t('seo.lineMoreShort', $sLang)]);
+            $sBreadcrumbName = Lang::t('seo.line', $sLang, ['code' => $sLineCode]);
+
+            $aContent = ['type' => 'line', 'id' => (string)$aRecord['id'], 'heading' => Lang::t('seo.lineHeading', $sLang, $aLineVars), 'sections' => [], 'empty' => null];
+            foreach ((new LineModel($Pdo))->mainRoutes($aRecord['id'], LINE_PAGE_ROUTES, $aEnds) as $aRoute) {
+                $aLinks = [];
+                foreach ($aRoute['stops'] as $aStop) {
+                    $aLinks[] = ['href' => $AppLink('stops', (string)$aStop['id']), 'label' => $Name($aStop['name'])];
+                }
+                $aContent['sections'][] = ['title' => Lang::t('seo.towards', $sLang, ['headsign' => $Name($aRoute['headsign'])]), 'items' => $aLinks, 'ordered' => true];
+            }
+            // La línea que el operador publica junta (Metro): enlaces a la página de cada una de las suyas.
+            $aSplitLinks = [];
+            foreach ($aNetwork['map']['splits'] ?? [] as $aOther) {
+                if ((string)$aOther['line'] === (string)$aRecord['id'] && $aOther !== $aSplit) {
+                    $sHref = Lang::url('/lines/' . rawurlencode((string)$aRecord['id']) . '/' . rawurlencode($aOther['code']) . Networks::urlSuffix($sNetworkSlug), $sLang);
+                    $aSplitLinks[] = ['href' => $sHref, 'label' => $aOther['code'] . ' · ' . $aOther['name']];
+                }
+            }
+            if (!empty($aSplitLinks)) {
+                $aContent['sections'][] = ['title' => Lang::t('seo.linesOf', $sLang, ['operator' => $sOperator]), 'items' => $aSplitLinks];
+            }
         }
         $sCanonical .= Networks::urlSuffix($sNetworkSlug);
+    } elseif (!$bMiamorDomain) {
+        // La página de la red: todas sus líneas, con su enlace.
+        Config::set($sNetworkSlug);
+        $aLinks = [];
+        foreach ((new LineModel(Database::connection()))->all() as $aLine) {
+            $aLinks[] = ['href' => $AppLink('lines', (string)$aLine['id']), 'label' => $aLine['code'] . ' · ' . $Name($aLine['name'])];
+        }
+        foreach ($aNetwork['map']['splits'] ?? [] as $aSplit) {
+            $sHref = Lang::url('/lines/' . rawurlencode((string)$aSplit['line']) . '/' . rawurlencode($aSplit['code']) . Networks::urlSuffix($sNetworkSlug), $sLang);
+            $aLinks[] = ['href' => $sHref, 'label' => $aSplit['code'] . ' · ' . $aSplit['name']];
+        }
+        $aContent['sections'][] = ['title' => Lang::t('seo.linesOf', $sLang, ['operator' => $sOperator]), 'items' => $aLinks];
     }
 } catch (\Throwable $Ex) {
     // Sin base de datos la página se sirve igual, con los textos de la red.
@@ -236,7 +275,7 @@ $aApp = [
 $aJsonLd = ['@context' => 'https://schema.org', '@graph' => [$aApp]];
 if ($sBreadcrumbName !== null) {
     $aApp['url'] = $sAppUrl;
-    $aApp['description'] = $PageText('appDescription', ['app' => $aAppNames[$sNetworkSlug]]);
+    $aApp['description'] = Lang::t('seo.appDescription', $sLang, ['app' => $aAppNames[$sNetworkSlug]]);
     $aWebPage = ['@type' => 'WebPage', 'name' => $sTitle, 'description' => $sDescription, 'url' => $sCanonical, 'inLanguage' => $sLang, 'isPartOf' => $aWebSite];
     if ($aPlace !== null) {
         $aWebPage['about'] = $aPlace;

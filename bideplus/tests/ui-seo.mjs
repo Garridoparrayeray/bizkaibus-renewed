@@ -84,6 +84,25 @@ check('al elegir francés, el título es el de la página en francés', await wa
 check('y la dirección lleva ?lang=fr', (await ev('location.search')) === '?lang=fr');
 await ev('localStorage.clear(); true');
 
+// Sin /api/ (robots.txt), la parada, la línea y la red siguen con su contenido del servidor y sin «sin conexión».
+blockApi = true;
+for (const url of ['/stops/2877', `/lines/${lineId}`, '/stops/13?red=metro', '/?red=metro']) {
+    await ev('localStorage.clear(); true');
+    await go(url, 4000);
+    check(`${url} sin /api/: se ve el contenido del servidor`, await ev("(() => { const c = document.getElementById('page-content'); return !c.hidden && c.getBoundingClientRect().height > 100; })()"));
+    check(`${url} sin /api/: con enlaces <a> a paradas o líneas`, (await ev("document.querySelectorAll('#page-content a[href*=\"/lines/\"], #page-content a[href*=\"/stops/\"]').length")) > 0);
+    check(`${url} sin /api/: sin el aviso de «sin conexión»`, await ev("document.getElementById('net-banner').hidden"));
+}
+blockApi = false;
+
+// Las listas de la app son enlaces de verdad; un clic abre dentro de la app y esconde el contenido de otra parada.
+await go('/stops/2877', 3500);
+await ev("(() => { const i = document.getElementById('search-input'); i.value = 'moyua'; i.dispatchEvent(new Event('input', { bubbles: true })); })(); true");
+check('los resultados de búsqueda son <a href>', await waitTrue("[...document.querySelectorAll('#search-results a.pill')].some((a) => /^\\/stops\\/\\d+$/.test(a.getAttribute('href')))"));
+await ev("document.querySelector('#search-results a.pill').click(); true");
+check('el clic abre la parada en la app (pushState) y esconde el contenido de la anterior', await waitTrue("location.pathname !== '/stops/2877' && location.pathname.startsWith('/stops/') && !document.getElementById('live-card').hidden && document.getElementById('page-content').hidden"));
+check('las líneas de la parada son <a href>', await waitTrue("document.querySelectorAll('#live-timetable-lines a[href^=\"/lines/\"], #live-more-list a[href^=\"/lines/\"], #live-timetable-link').length > 0"));
+
 for (const line of results) console.log(line);
 const failed = results.filter(r => r.startsWith('MAL')).length;
 console.log(`\nRESULTADO SEO en el navegador: ${results.length - failed}/${results.length} OK`);

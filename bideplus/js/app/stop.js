@@ -1,5 +1,5 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, VEHICLE_PLURAL, el, networkQuery, savedSchedule, state, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection } from './navigation.js';
@@ -69,6 +69,7 @@ export async function selectStop(stopId) {
     }
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
+    syncPageContent('stop', stop.id);
     const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
     if (HAS_PLATFORMS) {
         updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
@@ -185,11 +186,11 @@ function renderStopLines(lines) {
 
     for (const line of lines) {
         const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.innerHTML = `<strong>${escapeHtml(line.code)}</strong><span>${escapeHtml(line.name)}</span>`;
-        button.addEventListener('click', () => selectLine(line.id, true));
-        li.appendChild(button);
+        const link = document.createElement('a');
+        link.href = appHref('lines', line.id);
+        link.innerHTML = `<strong>${escapeHtml(line.code)}</strong><span>${escapeHtml(line.name)}</span>`;
+        openOnClick(link, () => selectLine(line.id, true));
+        li.appendChild(link);
         el.liveMoreList.appendChild(li);
     }
 }
@@ -428,12 +429,12 @@ function renderLineButtons(departures, link, container, enabled, fromStop = fals
         container.hidden = false;
         container.innerHTML = '';
         for (const line of distinctLines) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'pill';
-            button.textContent = line.lineCode;
-            button.addEventListener('click', () => selectLine(line.lineId, true));
-            container.appendChild(button);
+            const link = document.createElement('a');
+            link.className = 'pill';
+            link.href = appHref('lines', line.lineId);
+            link.textContent = line.lineCode;
+            openOnClick(link, () => selectLine(line.lineId, true));
+            container.appendChild(link);
         }
         return;
     }

@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, NETWORK_SLUG, el, onReturn, savedSchedule, state, whenVisible } from './core.js';
+import { FEATURES, NETWORK_SLUG, appHref, el, onReturn, openOnClick, savedSchedule, state, whenVisible } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -59,12 +59,15 @@ export function renderModalStops(data) {
         if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
             label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
         }
-        li.textContent = label;
-        li.classList.add('stop-clickable');
-        li.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.href = appHref('stops', stop.stopId);
+        link.textContent = label;
+        openOnClick(link, () => {
             el.modal.close();
             selectStop(stop.stopId);
         });
+        li.appendChild(link);
+        li.classList.add('stop-clickable');
         el.modalStops.appendChild(li);
     }
     el.modal.scrollTop = scrollTop;

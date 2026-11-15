@@ -1,5 +1,5 @@
 // Horario de una línea con los filtros de fecha y hora.
-import { FEATURES, el, networkQuery, savedSchedule, state } from './core.js';
+import { FEATURES, el, networkQuery, savedSchedule, state, syncPageContent } from './core.js';
 import { toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { loadLineMap } from './line-map.js';
 import { statusLabel } from './ui.js';
@@ -28,6 +28,7 @@ export async function selectLine(lineId, scopeToCurrentStop = false) {
     }
     state.currentLine = { id: line.id, code: line.code, name: line.name };
     state.timetableStopId = null;
+    syncPageContent('line', line.id);
     if (scopeToCurrentStop) state.timetableStopId = state.currentStop?.id ?? null;
     updateFavoriteButton(el.timetableFavorite, 'line', line.id);
     el.timetableSection.hidden = false;
