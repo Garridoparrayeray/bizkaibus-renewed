@@ -15,7 +15,11 @@ use Core\Networks;
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <meta name="google-site-verification" content="<?= htmlspecialchars($aSite['gsc_verification']) ?>">
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <?= \Core\Lang::alternates($sCanonicalEs) ?>

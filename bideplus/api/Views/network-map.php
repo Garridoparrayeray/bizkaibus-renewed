@@ -39,7 +39,11 @@ $aJsonLd = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
+<?php if ($bMiamorDomain): ?>
+    <meta name="robots" content="noindex, nofollow">
+<?php else: ?>
     <meta name="robots" content="index, follow, max-image-preview:large">
+<?php endif; ?>
     <link rel="canonical" href="<?= htmlspecialchars($sCanonical) ?>">
     <?= Lang::alternates($sCanonicalEs) ?>
     <meta property="og:type" content="website">

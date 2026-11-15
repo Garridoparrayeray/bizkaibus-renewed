@@ -13,9 +13,24 @@ if ($sUri === '' || preg_match('/[\x00-\x1f]/', $sUri)) {
     return true;
 }
 
+// Las rutas de vercel.json con «has» solo valen en ese dominio (la copia de prueba): aquí, con la cabecera Host.
+function routeHostMatches(array $aRoute, string $sHost): bool
+{
+    foreach ($aRoute['has'] ?? [] as $aCondition) {
+        if (($aCondition['type'] ?? '') === 'host' && $aCondition['value'] !== $sHost) {
+            return false;
+        }
+    }
+    return true;
+}
+
+$sHost = $_SERVER['HTTP_HOST'] ?? '';
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
-    if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri)) {
+    if (isset($aRoute['has'], $aRoute['dest']) && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
+        $sUri = $aRoute['dest'];
+    }
+    if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri) || !routeHostMatches($aRoute, $sHost)) {
         continue;
     }
     foreach ($aRoute['headers'] as $sName => $sValue) {

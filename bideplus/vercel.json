@@ -32,6 +32,19 @@
       "continue": true
     },
     {
+      "src": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "bideplusmiamor.vercel.app"
+        }
+      ],
+      "headers": {
+        "X-Robots-Tag": "noindex, nofollow"
+      },
+      "continue": true
+    },
+    {
       "src": "^/(?!api/|data/|scripts/|tests/|engine/|sw[.]js$)[^?]*[.](?:css|js|woff2|png|webp|svg|ico|jpe?g|json)$",
       "headers": {
         "Cache-Control": "public, max-age=0, s-maxage=86400"
@@ -49,6 +62,16 @@
     {
       "src": "^/(dev-router[.]php|bizkaibus-renewed[.]code-workspace)$",
       "dest": "/api/index.php"
+    },
+    {
+      "src": "/robots.txt",
+      "has": [
+        {
+          "type": "host",
+          "value": "bideplusmiamor.vercel.app"
+        }
+      ],
+      "dest": "/robots-miamor.txt"
     },
     {
       "handle": "filesystem"
