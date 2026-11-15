@@ -23,7 +23,7 @@ class RealtimeController
     {
         $aReport = FeedStatus::report();
         if ($aReport === null) {
-            Response::error('This network has no vehicle feed', 404);
+            Response::json(['error' => 'This network has no vehicle feed'] + FeedStatus::publishedUntil(), 404);
             return;
         }
         Response::json($aReport);

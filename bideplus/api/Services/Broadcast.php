@@ -64,13 +64,21 @@ class Broadcast
         return array_values(array_diff(array_unique(array_merge(self::members($aSets[0]), self::members($aSets[1]))), self::members($aSets[2])));
     }
 
-    // Sin respuesta, 429 o 5xx queda pendiente; una suscripción que ya no existe se borra.
+    // Sin respuesta, 429 o 5xx queda pendiente; una suscripción que ya no existe se borra, y también el id que sigue en
+    // la lista de apuntados sin su registro (si no, la lista crece sin fin). Si el almacén no responde, nada.
     private static function sendChunk(array $aChunk, array &$aRun): void
     {
+        $aRecords = self::records($aChunk);
+        if ($aRecords === null) {
+            return;
+        }
         $aHandled = [];
-        foreach (self::records($aChunk) as $sId => $aRecord) {
+        foreach ($aRecords as $sId => $aRecord) {
             if (microtime(true) > $aRun['deadline']) {
                 break;
+            }
+            if ($aRecord === null) {
+                self::forgetOrphan($sId);
             }
             $iStatus = 0;
             if ($aRecord !== null) {
@@ -95,7 +103,17 @@ class Broadcast
         }
     }
 
-    private static function records(array $aIds): array
+    private static function forgetOrphan(string $sId): void
+    {
+        UpdateAlerts::forget($sId);
+        Store::pipeline([
+            ['DEL', IncidentAlerts::SUBSCRIBER_PREFIX . $sId],
+            ['SREM', IncidentAlerts::SUBSCRIBERS_KEY, $sId],
+        ]);
+    }
+
+    // El registro de cada id (null si no tiene ninguno), o null si el almacén no responde.
+    private static function records(array $aIds): array|null
     {
         if (empty($aIds)) {
             return [];
@@ -106,12 +124,12 @@ class Broadcast
             $aCommands[] = ['GET', IncidentAlerts::SUBSCRIBER_PREFIX . $sId];
         }
         $aValues = Store::pipeline($aCommands);
+        if ($aValues === null) {
+            return null;
+        }
         $aRecords = [];
         foreach ($aIds as $iIndex => $sId) {
-            $aRecords[$sId] = null;
-            if ($aValues !== null) {
-                $aRecords[$sId] = self::decode($aValues[2 * $iIndex]) ?? self::decode($aValues[2 * $iIndex + 1]);
-            }
+            $aRecords[$sId] = self::decode($aValues[2 * $iIndex]) ?? self::decode($aValues[2 * $iIndex + 1]);
         }
         return $aRecords;
     }

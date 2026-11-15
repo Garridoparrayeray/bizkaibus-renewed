@@ -436,6 +436,19 @@ try {
     $aRun = UpdateAlerts::process($Sender);
     $Expect('versión: y se manda en la vuelta siguiente', $aRun['sent'] === 3 && $aRun['pending'] === 0, json_encode($aRun));
 
+    // Un id en la lista de apuntados sin su registro (caducado o borrado a medias) no se queda en ella para siempre.
+    $Again();
+    $sOrphan = 'ffffffffffffffffffffffffffffffff';
+    Store::pipeline([['SADD', UpdateAlerts::SUBSCRIBERS_KEY, $sOrphan]]);
+    Store::pipeline([['SADD', IncidentAlerts::SUBSCRIBERS_KEY, $sOrphan]]);
+    UpdateAlerts::process($Sender);
+    $aLists = [
+        Store::pipeline([['SMEMBERS', UpdateAlerts::SUBSCRIBERS_KEY]])[0],
+        Store::pipeline([['SMEMBERS', IncidentAlerts::SUBSCRIBERS_KEY]])[0],
+    ];
+    $bGone = !in_array($sOrphan, $aLists[0], true) && !in_array($sOrphan, $aLists[1], true);
+    $Expect('versión: un apuntado sin registro se borra de las dos listas', $bGone, json_encode($aLists));
+
     $Again();
     $iAnswer = 410;
     UpdateAlerts::process($Sender);

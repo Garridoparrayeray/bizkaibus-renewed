@@ -384,6 +384,19 @@ if (sharedTrip) {
     check('compartir: la dirección queda sin ?viaje', await ev("!location.search.includes('viaje')"));
     await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
     check('compartir: el texto lleva la línea y el enlace al viaje', await waitTrue(`(window.__shared || '').includes(${JSON.stringify(sharedTrip.lineCode)}) && (window.__shared || '').includes('/stops/${sharedStop.stop}?') && (window.__shared || '').includes('viaje=')`, 3000));
+    // Con el móvil en Nueva York, la hora del texto sigue siendo la de los horarios (Madrid): 12:34, no 06:34.
+    const fixedAt = Math.floor(Date.UTC(2026, 10, 15, 11, 34) / 1000);
+    const liveTrip = await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => { const f = window.fetch; window.fetch = async (...a) => { const r = await f(...a); if (!/\\/api\\/vehicles\\//.test(String(a[0]))) return r; const j = await r.clone().json(); j.status = 'live'; for (const s of (j.stops || [])) s.etaAt = ${fixedAt}; return new Response(JSON.stringify(j), { status: 200, headers: { 'content-type': 'application/json' } }); }; })();` });
+    await send('Emulation.setTimezoneOverride', { timezoneId: 'America/New_York' });
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    await ev("window.__shared = ''; navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; document.getElementById('modal-share').click(); true");
+    check('compartir: la hora del texto es la de los horarios aunque el móvil esté en otra zona horaria', await waitTrue("(window.__shared || '').includes('12:34')", 3000), await ev('window.__shared'));
+    await send('Emulation.setTimezoneOverride', { timezoneId: '' });
+    await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: liveTrip.identifier });
+    await go(`/stops/${sharedStop.stop}?red=${sharedStop.red}&viaje=${encodeURIComponent(sharedTrip.tripKey)}`, 3000);
+    await waitTrue("document.getElementById('vehicle-modal').open");
+    await ev("navigator.share = undefined; navigator.clipboard.writeText = async (text) => { window.__shared = text; }; true");
     // Dos opciones en la ficha: el viaje y la parada (el enlace abre sus próximas salidas, sin el viaje).
     check('compartir: la ficha ofrece también compartir la parada', await ev("!document.getElementById('modal-share-stop').hidden"));
     await ev("window.__shared = ''; document.getElementById('modal-share-stop').click(); true");

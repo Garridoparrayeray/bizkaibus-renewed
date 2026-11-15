@@ -33,8 +33,19 @@ class FeedStatus
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
         $aOut['reducedService'] = ReducedService::current();
+        $aOut += self::publishedUntil() + CronHeartbeat::ages($aConfig['slug'], time());
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
+    }
+
+    // Hasta cuándo vale el horario publicado de la red (null si la base no lo dice o no responde).
+    public static function publishedUntil(): array
+    {
+        try {
+            return ['publishedUntil' => ScheduleRange::forDatabase(Database::connection())['to']];
+        } catch (\Throwable $Ex) {
+            return ['publishedUntil' => null];
+        }
     }
 
     private static function tripUpdatesReport(array $aConfig): array
@@ -64,6 +75,9 @@ class FeedStatus
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
         $aOut['reducedService'] = ReducedService::current();
+        // La última vez que vino lleno solo se apunta en las redes con motor (vehicle-monitoring).
+        $aAges = array_diff_key(CronHeartbeat::ages($aConfig['slug'], time()), ['lastFullSeconds' => true]);
+        $aOut += self::publishedUntil() + $aAges;
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
         return $aOut;
     }

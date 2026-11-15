@@ -63,10 +63,11 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
 
     $Patterns = new IndexedList();
     $Timings = new IndexedList();
+    $Dwells = new IndexedList();
     $Estimates = new IndexedList();
     $aTrips = [];
     $aStopsUsed = [];
-    foreach (journeyStopTimes($Pdo) as [$sJourneyId, $aStops, $aTimes, $aMeters, $iFirstDeparture]) {
+    foreach (journeyStopTimes($Pdo) as [$sJourneyId, $aStops, $aTimes, $aMeters, $iFirstDeparture, $aDepartures]) {
         if (!isset($aJourneys[$sJourneyId]) || \count($aStops) < 2) {
             continue;
         }
@@ -80,7 +81,10 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         }
         $iPattern = $Patterns->add($sPatternKey, [$aLineIndex[$aJourney['line_id']], (string)$aJourney['headsign'], $aStops]);
         $aOffsets = array_map(fn($iTime) => $iTime - $iFirst, $aTimes);
-        $iTiming = $Timings->add(implode(',', $aOffsets), $aOffsets);
+        $aDwell = array_map(fn($iDeparture, $iTime) => $iDeparture - $iTime, $aDepartures, $aTimes);
+        $sTimingKey = implode(',', $aOffsets) . '|' . implode(',', $aDwell);
+        $iTiming = $Timings->add($sTimingKey, $aOffsets);
+        $Dwells->add($sTimingKey, $aDwell);
         $iCalendar = $aCalendarIndex[$aJourney['calendar_id']];
         $aTrip = [$iPattern, $iTiming, $iFirst, $iCalendar, (string)$aJourney['trip_number'], (int)$aJourney['first_departure_seconds']];
         if ($Estimator !== null) {
@@ -109,6 +113,8 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
         'calendars' => $aCalendars,
         'patterns' => $Patterns->values(),
         'timings' => $Timings->values(),
+        // Lo que espera en cada parada (salida menos llegada), 0 si nunca espera: la hora de salida del horario.
+        'dwells' => array_map('dwellsOrZero', $Dwells->values()),
         'trips' => $aTrips,
         'estimates' => array_column($Estimates->values(), 0),
         'estimateTrusted' => array_column($Estimates->values(), 1),
@@ -116,6 +122,14 @@ function buildOfflineNetwork(string $sSlug, array $aNetwork): array
 }
 
 // Cada valor distinto se guarda una vez y los viajes lo nombran por su posición.
+function dwellsOrZero(array $aDwell): array|int
+{
+    if (max(array_map('abs', $aDwell)) === 0) {
+        return 0;
+    }
+    return $aDwell;
+}
+
 final class IndexedList
 {
     private array $aIndex = [];
@@ -203,17 +217,19 @@ function journeyStopTimes(PDO $Pdo): Generator
     $aTimes = [];
     $aMeters = [];
     $iFirstDeparture = null;
+    $aDepartures = [];
     $Statement = $Pdo->query("SELECT service_journey_id, stop_id, arrival_seconds, departure_seconds, $sMeters AS dist_m FROM passing_times ORDER BY service_journey_id, seq_order");
     foreach ($Statement as $aRow) {
         if ($aRow['service_journey_id'] !== $sCurrent) {
             if ($sCurrent !== null) {
-                yield [$sCurrent, $aStops, $aTimes, $aMeters, $iFirstDeparture];
+                yield [$sCurrent, $aStops, $aTimes, $aMeters, $iFirstDeparture, $aDepartures];
             }
             $sCurrent = $aRow['service_journey_id'];
             $aStops = [];
             $aTimes = [];
             $aMeters = [];
             $iFirstDeparture = null;
+            $aDepartures = [];
         }
         $iTime = $aRow['arrival_seconds'] ?? $aRow['departure_seconds'];
         if ($iTime === null) {
@@ -224,10 +240,11 @@ function journeyStopTimes(PDO $Pdo): Generator
         }
         $aStops[] = (string)$aRow['stop_id'];
         $aTimes[] = (int)$iTime;
+        $aDepartures[] = (int)($aRow['departure_seconds'] ?? $iTime);
         $aMeters[] = $aRow['dist_m'];
     }
     if ($sCurrent !== null) {
-        yield [$sCurrent, $aStops, $aTimes, $aMeters, $iFirstDeparture];
+        yield [$sCurrent, $aStops, $aTimes, $aMeters, $iFirstDeparture, $aDepartures];
     }
 }
 

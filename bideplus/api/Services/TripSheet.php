@@ -2,6 +2,7 @@
 
 namespace Services;
 
+use Core\Config;
 use Core\Ids;
 
 // Lo común a la ficha de un viaje (/api/vehicles/{tripKey}): su estado, su forma y cada parada con su llegada prevista.
@@ -26,13 +27,18 @@ class TripSheet
         return 'scheduled';
     }
 
-    // $aExtra va tras el vehículo (con horas del feed, feedTimes).
+    // $aExtra va tras el vehículo (con horas del feed, feedTimes). Con headsign_from_last_stop, el destino es la
+    // última parada, como en las salidas (el headsign del GTFS de SNCF es el número del tren).
     public static function sheet(array $aJourney, string $sStatus, string|null $sVehicleRef, int|null $iDelayMinutes, array $aStops, array $aExtra = []): array
     {
+        $sHeadsign = $aJourney['headsign'];
+        if (Config::feature('headsign_from_last_stop') && !empty($aStops)) {
+            $sHeadsign = end($aStops)['name'];
+        }
         return [
             'lineCode' => $aJourney['line_code'],
             'lineName' => $aJourney['line_name'],
-            'headsign' => $aJourney['headsign'],
+            'headsign' => $sHeadsign,
             'status' => $sStatus,
             'vehicleRef' => $sVehicleRef,
         ] + $aExtra + [

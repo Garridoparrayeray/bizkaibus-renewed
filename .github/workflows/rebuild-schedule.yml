@@ -19,7 +19,11 @@ name: Rebuild schedule data
 # el mensaje del commit fuerza el completo.
 on:
   schedule:
-    - cron: '0 3 * * *' # diario, 03:00 UTC
+    # GitHub retrasa los cron horas en las de más carga (de 03:00 a las 10:30 UTC en noviembre de 2026): se pide antes.
+    - cron: '17 1 * * *' # diario, 01:17 UTC
+  # El cron externo puede lanzarlo a su hora (CONTRIBUTING.md, «Flujos programados»).
+  repository_dispatch:
+    types: [rebuild-schedule]
   push:
     branches: [master]
     paths:
@@ -35,6 +39,7 @@ concurrency:
 jobs:
   rebuild-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       NAP_API_KEY: ${{ secrets.NAP_API_KEY }}
     steps:
@@ -84,8 +89,8 @@ jobs:
           fi
           echo "redes=$REDES" >> "$GITHUB_OUTPUT"
 
+      # También en el completo: una red opcional que hoy falla conserva su última base buena, no la vieja del repositorio.
       - name: Recuperar las bases de la última reconstrucción
-        if: steps.tipo.outputs.redes != 'todas'
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -114,42 +119,10 @@ jobs:
           set -o pipefail
           php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
 
-      # Resumen visible en la ejecucion: que horario se ha publicado, hasta cuando vale y si los calendarios cuadran con
-      # el GTFS. Avisa con diez dias de margen de que el horario publicado esta a punto de acabar (si Lantik no publica
-      # uno nuevo, el build se aborta el dia que acabe y producción sigue con el último despliegue bueno).
-      - name: Summarize the published schedule
-        if: steps.modo.outputs.redes == 'todas' || contains(format(' {0} ', steps.modo.outputs.redes), ' bus ')
-        run: |
-          python3 - <<'PY'
-          import os, re, sqlite3, datetime
-          c = sqlite3.connect('bideplus/data/bizkaibus.sqlite')
-          meta = dict(c.execute('select key, value from meta'))
-          start, end, published = meta.get('feed_start_date', '?'), meta.get('feed_end_date', '?'), meta.get('schedule_source_published', '?')
-          journeys = c.execute('select count(*) from service_journeys').fetchone()[0]
-          audit = ''
-          log = open(os.path.join(os.environ['RUNNER_TEMP'], 'bus-build.log'), encoding='utf-8', errors='replace').read()
-          m = re.search(r'Auditoría de calendarios[^\n]*', log)
-          if m: audit = m.group(0).strip()
-          left = None
-          try: left = (datetime.date.fromisoformat(end) - datetime.date.today()).days
-          except ValueError: pass
-          remaining = ''
-          if left is not None: remaining = f' (quedan {left} días)'
-          audit_line = '- Sin línea de auditoría de calendarios (revisar el log del build)'
-          if audit: audit_line = f'- {audit}'
-          lines = ['### Horario de Bizkaibus publicado',
-                   f'- Publicado el **{published}**, vale del **{start}** al **{end}**' + remaining,
-                   f'- {journeys:,} viajes en la base'.replace(',', '.'),
-                   audit_line]
-          open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8').write('\n'.join(lines) + '\n')
-          if left is not None and left <= 10:
-              print(f'::warning::El horario publicado de Bizkaibus acaba el {end} (quedan {left} días). Si Lantik no publica uno nuevo, el build se aborta ese día y producción sigue con el último despliegue.')
-          PY
-
       # El resto de redes salen de bideplus/api/Networks. Cada base se genera en un fichero
       # temporal y solo sustituye a la del repositorio si el build termina bien y no está
       # vacía. Si falla una red obligatoria (gtfs.required), el flujo se para y producción
-      # sigue con el último despliegue bueno; si falla una opcional, se conserva su base anterior.
+      # sigue con el último despliegue bueno; si falla una opcional, se conserva su última base buena.
       - name: Rebuild the other networks
         if: steps.modo.outputs.redes != ''
         run: |
@@ -167,7 +140,8 @@ jobs:
               echo "::error::No se pudo reconstruir $network (obligatoria)"
               exit 1
             else
-              echo "::warning::No se pudo reconstruir $network; se mantiene la base de datos del repositorio"
+              echo "::warning::No se pudo reconstruir $network; se mantiene su última base buena"
+              echo "$network" >> "$RUNNER_TEMP/conservadas.txt"
             fi
           done
 
@@ -223,7 +197,9 @@ jobs:
             .bases-reconstruidas
           key: bases-${{ github.run_id }}
 
+      # No frena el despliegue: si el push falla, las coordenadas nuevas se vuelven a ver mañana.
       - name: Commit updated geocache, if it changed
+        continue-on-error: true
         run: |
           if ! git diff --quiet bideplus/scripts/geocache.json; then
             git config user.name "github-actions[bot]"
@@ -249,8 +225,9 @@ jobs:
         continue-on-error: true
         run: php bideplus/scripts/stamp-sw.php
 
+      # Versión fija: una nueva de la CLI no cambia el despliegue sin probarla antes.
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.9.0
 
       # Vercel ya no arranca las funciones tal como las emite vercel-php (vercel-community/php#650): se construye aquí,
       # se parchea el lanzador (bideplus/scripts/vercel-launcher.py) y se sube la salida ya construida.
@@ -266,6 +243,17 @@ jobs:
           vercel build --prod --yes --token="$VERCEL_TOKEN"
           OUT="$(ls -d .vercel/output bideplus/.vercel/output 2>/dev/null | head -1)"
           python3 bideplus/scripts/vercel-launcher.py "$OUT"
+          # Vercel no admite funciones de más de 250 MB sin comprimir: se para antes, con margen.
+          MAX_FUNCTION_MB=220
+          for FUNC in "$OUT"/functions/*.func "$OUT"/functions/*/*.func; do
+            [ -d "$FUNC" ] || continue
+            MB=$(du -sm "$FUNC" | cut -f1)
+            echo "Función $(basename "$FUNC"): $MB MB"
+            if [ "$MB" -gt "$MAX_FUNCTION_MB" ]; then
+              echo "::error::La función $(basename "$FUNC") ocupa $MB MB (tope $MAX_FUNCTION_MB MB): no se despliega"
+              exit 1
+            fi
+          done
           rm -f .vercelignore bideplus/.vercelignore
           vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"
 
@@ -288,12 +276,40 @@ jobs:
       - name: Avisar a los buscadores (IndexNow)
         run: php bideplus/scripts/indexnow.php || echo "::warning::IndexNow no ha respondido bien"
 
-      # El directo de cada red en producción (.github/scripts/live-health.py): si algo no cuadra, el flujo sale en rojo.
+      # El directo de cada red en producción (.github/scripts/live-health.py), con su tabla en el resumen. No pone el
+      # despliegue en rojo: la alarma la da live-health.yml.
       - name: Vigilar el directo
+        continue-on-error: true
         run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
 
+      # Se borran los despliegues viejos menos el actual y los KEEP_PREVIOUS anteriores de producción: «Rollback
+      # production» siempre tiene a cuál volver.
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
-        run: vercel rm bizkaibus-renewed --safe --yes --token="${{ secrets.VERCEL_TOKEN }}" || true
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          KEEP_PREVIOUS: 2
+        run: |
+          TEAM=""
+          case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
+          API="https://api.vercel.com"
+          LISTA="$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
+          printf '%s' "$LISTA" | python3 -c '
+          import json, os, sys
+          deployments = sorted(json.load(sys.stdin)["deployments"], key=lambda d: d["created"], reverse=True)
+          kept = [d["uid"] for d in deployments if d.get("target") == "production" and d.get("state") == "READY"]
+          kept = kept[:1 + int(os.environ["KEEP_PREVIOUS"])]
+          print("\n".join(d["uid"] for d in deployments if d["uid"] not in kept))
+          ' | while read -r UID_; do
+            [ -n "$UID_" ] && curl -fsS -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "$API/v13/deployments/$UID_?x=1$TEAM" > /dev/null || true
+          done
+
+      # Al final, para no frenar el despliegue: hasta cuándo vale el horario de cada red y de qué fuente salió. Sale en
+      # rojo si una red obligatoria se queda sin horario en pocos días, si una opcional que hoy no se pudo reconstruir
+      # conserva una base a punto de caducar o si el respaldo de una fuente caída es demasiado viejo.
+      - name: Horario publicado de cada red
+        run: |
+          grep -h 'Auditoría de calendarios' "$RUNNER_TEMP"/bus-build.log 2>/dev/null | sed 's/^/- Bizkaibus: /' >> "$GITHUB_STEP_SUMMARY" || true
+          CONSERVADAS="$(paste -sd, "$RUNNER_TEMP/conservadas.txt" 2>/dev/null || true)"
+          php bideplus/scripts/published-schedule.php --kept="$CONSERVADAS" --summary="$GITHUB_STEP_SUMMARY"

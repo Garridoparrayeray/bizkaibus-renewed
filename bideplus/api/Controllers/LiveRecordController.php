@@ -8,6 +8,7 @@ use Core\Request;
 use Core\Response;
 use Core\Store;
 use Services\ArrivalAlerts;
+use Services\CronHeartbeat;
 use Services\IncidentAlerts;
 use Services\Notice;
 use Services\NoticeAlerts;
@@ -28,6 +29,7 @@ class LiveRecordController
             return;
         }
         $aRecorded = Live::recordAll();
+        CronHeartbeat::beat($aRecorded, time());
         $aNotifications = [
             'arrivalAlerts' => self::safely('avisos de llegada', fn() => ArrivalAlerts::process()),
             'incidentAlerts' => self::safely('avisos de incidencias', fn() => IncidentAlerts::process()),

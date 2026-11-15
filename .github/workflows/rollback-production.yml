@@ -16,7 +16,7 @@ jobs:
           sparse-checkout: bideplus/api/Config
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@65.9.0
 
       - name: Volver al despliegue anterior
         env:

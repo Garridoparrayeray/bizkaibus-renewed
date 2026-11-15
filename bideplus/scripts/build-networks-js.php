@@ -6,8 +6,10 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../api/Core/Networks.php';
+require __DIR__ . '/../api/Services/Calendar.php';
 
 use Core\Networks;
+use Services\Calendar;
 
 $aOptions = getopt('', ['output:']);
 $sOutput = $aOptions['output'] ?? __DIR__ . '/../js/networks.js';
@@ -30,6 +32,7 @@ foreach (Networks::all() as $sSlug => $aNetwork) {
 
 $sJson = json_encode($aOut, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $sDefault = json_encode(Networks::defaultSlug());
+$sTimeZone = json_encode(Calendar::TIME_ZONE, JSON_UNESCAPED_SLASHES);
 $sJs = <<<JS
 // Generado por scripts/build-networks-js.php a partir de api/Networks. No editar a mano.
 (function (global) {
@@ -37,6 +40,8 @@ $sJs = <<<JS
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: $sDefault,
+        // La zona horaria de los horarios (Services\\Calendar::TIME_ZONE), sea cual sea la del móvil.
+        TIME_ZONE: $sTimeZone,
         all: networks,
         slugs: order,
         get: function (slug) { return networks[slug] || networks[$sDefault]; },

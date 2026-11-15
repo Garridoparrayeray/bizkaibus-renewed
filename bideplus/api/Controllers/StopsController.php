@@ -344,7 +344,7 @@ class StopsController
                 'headsign' => self::headsign($aRow, $bUseLastStopHeadsign),
                 'tripKey' => self::tripKey($aRow),
                 'unscheduled' => !empty($aRow['unscheduled']),
-                'scheduledTime' => Calendar::secondsToHm((int)$aRow['arrival_seconds']),
+                'scheduledTime' => Calendar::secondsToHm((int)($aRow['departure_seconds'] ?? $aRow['arrival_seconds'])),
                 'etaMinutes' => $iEtaMinutes,
                 'etaAt' => time() + ($aRow['etaSeconds'] - $iNow),
                 'status' => $aRow['status'],

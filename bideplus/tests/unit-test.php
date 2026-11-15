@@ -339,6 +339,7 @@ $Expect('TripKey con guiones en la línea', TripKey::parse(TripKey::build('L-1',
 $Expect('TripKey rechaza claves mal formadas', TripKey::parse('sin-numero') === null && TripKey::parse('') === null);
 $Expect('lunes = bit 1 y domingo = bit 64', Calendar::weekdayBitFor(new DateTime('2026-09-28')) === 1 && Calendar::weekdayBitFor(new DateTime(DATE_WEEKEND)) === 64);
 $Expect('secondsToHm pasa la medianoche (25:05 -> 01:05)', Calendar::secondsToHm(25 * 3600 + 5 * 60) === '01:05');
+$Expect('secondsToHm quita los segundos (08:10:59 -> 08:10), como hm() de js/offline.js', Calendar::secondsToHm(8 * 3600 + 10 * 60 + 59) === '08:10');
 $Expect('hmToSeconds: 07:45 son 27900 s', Calendar::hmToSeconds('07:45') === 27900);
 $Expect('hmToSeconds: lo que no es HH:MM cuenta como 0', Calendar::hmToSeconds('7h45') === 0 && Calendar::hmToSeconds('') === 0);
 
@@ -349,6 +350,14 @@ $Expect('ficha del viaje: sin datos en vivo y a la hora de salida NO dice que ya
 $Expect('ficha del viaje: sin datos en vivo y a mitad del viaje sigue en scheduled', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 25 * 60) === 'scheduled');
 $Expect('ficha del viaje: sin datos en vivo y pasada la última parada sale finished', Services\TripSheet::status(false, $aTripStops, 8 * 3600 + 41 * 60) === 'finished');
 $Expect('ficha del viaje: sin paradas sale scheduled', Services\TripSheet::status(false, [], 8 * 3600) === 'scheduled');
+// SNCF pone en el headsign el número del tren: la ficha da como destino la última parada, como las salidas.
+$aSncfJourney = ['line_code' => 'TER', 'line_name' => 'TER', 'headsign' => '867432'];
+$aSncfStops = [['name' => 'Hendaye'], ['name' => 'Bordeaux Saint-Jean']];
+\Core\Config::set('sncf');
+$sSncfHeadsign = Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'];
+\Core\Config::set(\Core\Networks::defaultSlug());
+$Expect('ficha del tren de SNCF: el destino es la última parada, no el número del tren', $sSncfHeadsign === 'Bordeaux Saint-Jean');
+$Expect('ficha del viaje en las demás redes: el headsign del GTFS', Services\TripSheet::sheet($aSncfJourney, 'scheduled', null, null, $aSncfStops)['headsign'] === '867432');
 
 $Section('GTFS-Realtime de Renfe: retraso de cada tren y cancelados (Renfe+)');
 
@@ -529,6 +538,17 @@ $Expect('el viaje de hoy sí vale', (new TripDelayMatcher($aTodayTrip, new Servi
 $aBadTimes = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 1800], ['C', $iOffMidnight + T0 + 1140 + 1800]]]];
 $aGpsRow = (new TripDelayMatcher($aBadTimes, new ServiceJourney($PdoRenfe), $iOffMidnight, [$aOffVehicles[1]]))->enrich('C', $aRowC);
 $Expect('Álavabus: con la posición del autobús, su retraso sale del GPS y no de las horas del feed', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
+// Con el tope de su ficha (max_feed_gap_seconds), un retraso de 2 h en Dbus o Txik Txak es de otro viaje: sale el
+// horario. Uno de 10 min sí vale.
+$aFarTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 7200], ['C', $iOffMidnight + T0 + 1140 + 7200]]]];
+$aNearTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 600], ['C', $iOffMidnight + T0 + 1140 + 600]]]];
+foreach (['dbus', 'txiktxak'] as $sCapped) {
+    \Core\Config::set($sCapped);
+    $aFarRow = (new TripDelayMatcher($aFarTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $aNearRow = (new TripDelayMatcher($aNearTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: un retraso de 2 h no vale y uno de 10 min sí", $aFarRow[0]['status'] === 'scheduled' && $aNearRow[0]['status'] === 'live', json_encode([$aFarRow[0], $aNearRow[0]]));
+}
+\Core\Config::set('alavabus');
 // Dónde está el autobús por su GPS: tres paradas en línea recta (A 08:00, B 08:10, C 08:20), cada una a 1 km.
 $aLine = [['stop_id' => 'A', 'arrival_seconds' => 8 * 3600], ['stop_id' => 'B', 'arrival_seconds' => 8 * 3600 + 600], ['stop_id' => 'C', 'arrival_seconds' => 8 * 3600 + 1200]];
 $aLineCoords = ['A' => [43.0, -2.9], 'B' => [43.009, -2.9], 'C' => [43.018, -2.9]];
@@ -1103,5 +1123,23 @@ $Expect('un día normal (4 de 54 sin pasar, lo medido en Metro) no sale como red
 $Expect('de madrugada, con muy pocos viajes que tocaban, no se juzga', !\Services\ReducedService::confirmed($Samples([5, 5], 20), 1000000 + 1200, $aLiveRules));
 $iEarly = (new DateTimeImmutable('2026-11-15 02:30', new DateTimeZone(\Services\Calendar::TIME_ZONE)))->getTimestamp();
 $Expect('a las 02:30 el día de servicio aún es el de ayer', \Services\ReducedService::serviceDay($iEarly, $aReducedRules)->format('Y-m-d') === '2026-11-14' && \Services\ReducedService::serviceDay($iNowStrike, $aReducedRules)->format('Y-m-d') === '2026-11-14');
+
+$Section('Latido del cron externo (/api/live/record) y última vez que vino lleno cada feed');
+$aBeat = \Services\CronHeartbeat::commands(['bus' => 120, 'bilbobus' => 0, 'lurraldebus' => null], 1000);
+$bBeatShape = count($aBeat) === 2 && $aBeat[0][0] === 'SET' && $aBeat[0][2] === '1000' && $aBeat[0][3] === 'EX';
+$Expect('el latido es un SET con caducidad, más uno por cada red que vino llena (no las vacías)',
+    $bBeatShape && $aBeat[1][1] === 'live:full:bus', json_encode($aBeat));
+$sBeatMarker = sys_get_temp_dir() . '/bide-latido-' . getmypid();
+@unlink($sBeatMarker);
+$bFirst = \Services\CronHeartbeat::due($sBeatMarker, 5000);
+touch($sBeatMarker, 5000);
+$bSoon = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS - 1);
+$bLater = \Services\CronHeartbeat::due($sBeatMarker, 5000 + \Services\CronHeartbeat::EVERY_SECONDS);
+unlink($sBeatMarker);
+$Expect('se escribe como mucho cada 10 minutos, no en cada llamada del cron', $bFirst && !$bSoon && $bLater);
+$aAges = \Services\CronHeartbeat::agesFrom(['400', null], 1000);
+$Expect('/api/status: antigüedad del latido y, sin marca de lleno, null',
+    $aAges['cronSeconds'] === 600 && $aAges['lastFullSeconds'] === null, json_encode($aAges));
+$Expect('sin almacén o si no responde, no se dice nada', \Services\CronHeartbeat::agesFrom(null, 1000) === []);
 
 $Finish('unitarias');

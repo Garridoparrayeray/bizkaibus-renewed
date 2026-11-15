@@ -78,18 +78,29 @@ class TimetableController
         return (string)$aStop['id'];
     }
 
-    // Salidas entre dos horas. Si la franja pasa de medianoche (22:00 a 02:00), se suman las de la madrugada del día
-    // siguiente, con la hora contada desde hoy (26:00 para las 2:00) para ordenarlas.
+    // Salidas entre dos horas, con la hora contada desde hoy para ordenarlas: las de ayer de las 24:00 en adelante (la
+    // madrugada de hoy, 00:30 para las 24:30), las de hoy y, si la franja pasa de medianoche (22:00 a 02:00), las de la
+    // madrugada de mañana (26:00 para las 2:00).
     private static function rowsInRange(ServiceJourney $JourneyModel, string $sLineId, \DateTime $Date, int $iFrom, int $iTo, string|null $sStopId): array
     {
-        if ($iTo >= $iFrom) {
-            return $JourneyModel->timetableForLine($sLineId, $Date, $iFrom, $iTo, $sStopId);
+        $DayRows = function (int $iDays, int $iStart, int $iEnd) use ($JourneyModel, $sLineId, $Date, $sStopId): array {
+            $iShift = $iDays * self::DAY_SECONDS;
+            $Day = (clone $Date)->modify($iDays . ' day');
+            $aDayRows = $JourneyModel->timetableForLine($sLineId, $Day, $iStart - $iShift, $iEnd - $iShift, $sStopId);
+            $aRows = [];
+            foreach ($aDayRows as $aRow) {
+                $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + $iShift;
+                $aRows[] = $aRow;
+            }
+            return $aRows;
+        };
+        $iLast = $iTo;
+        if ($iTo < $iFrom) {
+            $iLast = $iTo + self::DAY_SECONDS;
         }
-        $aRows = $JourneyModel->timetableForLine($sLineId, $Date, $iFrom, $iTo + self::DAY_SECONDS, $sStopId);
-        $NextDate = (clone $Date)->modify('+1 day');
-        foreach ($JourneyModel->timetableForLine($sLineId, $NextDate, 0, $iTo, $sStopId) as $aRow) {
-            $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + self::DAY_SECONDS;
-            $aRows[] = $aRow;
+        $aRows = array_merge($DayRows(-1, $iFrom, min($iLast, self::DAY_SECONDS - 1)), $DayRows(0, $iFrom, $iLast));
+        if ($iTo < $iFrom) {
+            $aRows = array_merge($aRows, $DayRows(1, self::DAY_SECONDS, $iLast));
         }
         usort($aRows, fn($aA, $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
         return $aRows;

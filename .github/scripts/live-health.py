@@ -12,7 +12,10 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
   15 % se apartan dos minutos o más de esa hora («offOperator»).
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
 /api/status; sin él, de 00:30 a 06:00 no cuentan): de noche o con un feed compartido (Euskotren publica uno para sus
-trenes y los dos tranvías), que no haya nada de la red es lo normal.
+trenes y los dos tranvías), que no haya nada de la red es lo normal. Una red «oftenEmpty» vacía y con servicio es error
+si lleva más de MAX_EMPTY_HOURS sin venir llena («lastFullSeconds», que apunta el cron en el almacén).
+También son errores: el horario publicado de una red ya caducado («publishedUntil») y el cron externo de cada minuto
+callado más de MAX_CRON_SILENCE_SECONDS después del latido que toca («cronSeconds» y «cronEverySeconds»).
 Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos), o trae
 vehículos sin hora de hoy (de 23:58 a 05:00 el de Bizkaibus repite los de antes de medianoche: la app usa el horario).
 Una red con error se vuelve a mirar al minuto: un feed que viene vacío en una sola lectura no es un fallo.
@@ -33,6 +36,12 @@ MAX_P95_MINUTES = 60
 MIN_COMPARED = 10
 MAX_OFF_OPERATOR_SHARE = 0.15
 RETRY_SECONDS = 60
+MAX_EMPTY_HOURS = 24
+MAX_CRON_SILENCE_SECONDS = 10 * 60
+
+
+def today():
+    return datetime.datetime.now(datetime.timezone.utc).astimezone(ZoneInfo('Europe/Madrid')).date().isoformat()
 
 
 def night():
@@ -47,7 +56,10 @@ def status(base, network, attempt=1):
             return json.load(response)
     except urllib.error.HTTPError as error:
         if error.code == 404:
-            return None
+            try:
+                return {'noLive': True, 'publishedUntil': json.load(error).get('publishedUntil')}
+            except ValueError:
+                return {'noLive': True}
         return {'error': f'HTTP {error.code}'}
     except Exception as error:
         return {'error': str(error)}
@@ -60,14 +72,41 @@ def little_scheduled(report):
     return scheduled < MIN_SCHEDULED
 
 
+def empty_too_long(report):
+    # Sin la clave (red sin motor o sin almacén) no se sabe; sin marca en el almacén, no vino lleno en días.
+    if 'lastFullSeconds' not in report:
+        return False
+    last = report['lastFullSeconds']
+    return last is None or last > MAX_EMPTY_HOURS * 3600
+
+
+def cron_silent(report):
+    # El cron escribe su latido cada cronEverySeconds: entre dos latidos es normal no saber de él.
+    if not report or 'cronSeconds' not in report:
+        return None
+    age = report['cronSeconds']
+    if age is None:
+        return 'el cron externo de cada minuto no ha dejado ningún latido en el almacén'
+    if age > report.get('cronEverySeconds', 0) + MAX_CRON_SILENCE_SECONDS:
+        return f'el cron externo de cada minuto no llama desde hace {age // 60} min'
+    return None
+
+
 def check(network, report):
     errors = []
     notices = []
     if report is None:
         return errors, notices, 'sin directo'
+    until = report.get('publishedUntil')
+    if until and until < today():
+        errors.append(f'el horario publicado caducó el {until}')
+    if report.get('noLive'):
+        return errors, notices, f'sin directo, horario hasta {until}'
     if report.get('error') or not report.get('ok'):
         message = f"el feed no responde o viene vacío ({report.get('error') or 'sin datos'})"
-        if report.get('oftenEmpty') or little_scheduled(report):
+        if report.get('oftenEmpty') and not little_scheduled(report) and empty_too_long(report):
+            errors.append(message + f', y con servicio lleva más de {MAX_EMPTY_HOURS} h sin venir lleno')
+        elif report.get('oftenEmpty') or little_scheduled(report):
             notices.append(message)
         else:
             errors.append(message)
@@ -111,8 +150,17 @@ def main():
     base = sys.argv[1].rstrip('/')
     lines = ['### Directo de cada red', '', '| Red | Estado | Datos |', '| --- | --- | --- |']
     failed = False
+    cron_checked = False
     for network in sys.argv[2:]:
-        errors, notices, summary = check(network, status(base, network))
+        report = status(base, network)
+        if not cron_checked and report and 'cronSeconds' in report:
+            cron_checked = True
+            silent = cron_silent(report)
+            lines.append(f'| cron | {silent or "bien"} | latido hace {report["cronSeconds"]} s |')
+            if silent:
+                failed = True
+                print(f'::error::{silent}')
+        errors, notices, summary = check(network, report)
         if errors:
             print(f'{network}: ' + '; '.join(errors) + f'; se vuelve a mirar en {RETRY_SECONDS} s')
             time.sleep(RETRY_SECONDS)

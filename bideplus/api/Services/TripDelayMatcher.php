@@ -151,9 +151,9 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // Con gtfs_rt.max_feed_gap_seconds (Álavabus, 45 min), un retraso de más es de otro viaje con ese número (da a
-    // veces el de hace horas): no vale y el viaje sale con su horario. Cuenta también el de la parada a la que va, con
-    // lo que lleva de más si no ha llegado. Las demás redes no tienen tope: Renfe con +2 h sale con su retraso.
+    // Con gtfs_rt.max_feed_gap_seconds (45 min en autobús, 1 h en Metro, Euskotren y tranvía), un retraso de más es
+    // de otro viaje con ese número: no vale y sale su horario. Cuenta también el de la parada a la que va, con lo que
+    // lleva de más si no ha llegado. Renfe y SNCF no tienen tope: con +2 h salen con su retraso.
     private function implausible(string $sJourneyId, array $aLive): bool
     {
         $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;

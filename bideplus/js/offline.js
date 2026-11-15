@@ -306,8 +306,10 @@ const BideOffline = (() => {
                 const pattern = data.patterns[patternIndex];
                 for (const trip of data.tripsByPattern[patternIndex]) {
                     const atStop = trip[2] + data.timings[trip[1]][position];
+                    const leaves = departureAt(data, trip, position);
                     for (const day of days) {
                         const seconds = atStop + day.offset * DAY_SECONDS;
+                        const departure = leaves + day.offset * DAY_SECONDS;
                         const timing = arrival(data, trip, position, day.date, seconds, nowSeconds);
                         if (timing.etaSeconds < nowSeconds - PAST_MARGIN_SECONDS || seconds > nowSeconds + DAY_SECONDS) continue;
                         if (!runsOn(data.calendars[trip[3]], day.date)) continue;
@@ -322,7 +324,8 @@ const BideOffline = (() => {
                         if (userMark && userMark.coming !== undefined && position >= userMark.coming && timing.status === 'likely_departed') {
                             finalTiming = { status: 'scheduled', etaSeconds: seconds };
                         }
-                        items.push({ seconds, trip, pattern, position, serviceDay, tripKey, target, ...finalTiming });
+                        const item = { seconds, departure, trip, pattern, position, serviceDay, tripKey, target };
+                        items.push({ ...item, ...finalTiming });
                     }
                 }
             }
@@ -394,7 +397,7 @@ const BideOffline = (() => {
             tripKey: item.tripKey,
             serviceDay: item.serviceDay,
             position: item.position,
-            scheduledTime: hm(item.seconds),
+            scheduledTime: hm(item.departure),
             etaMinutes: Math.round((item.etaSeconds - nowSeconds) / 60),
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
             status: item.status,
@@ -405,6 +408,15 @@ const BideOffline = (() => {
             platformId,
             passedTime: passedTime(item),
         };
+    }
+
+    // La hora de salida de un viaje de la parada en esa posición: la de llegada más lo que espera en ella (dwells; los
+    // datos guardados antes no la tienen y salen con la de llegada).
+    function departureAt(data, trip, position) {
+        const arrives = trip[2] + data.timings[trip[1]][position];
+        const dwells = (data.dwells || [])[trip[1]];
+        if (!dwells) return arrives;
+        return arrives + dwells[position];
     }
 
     function hm(seconds) {
@@ -538,8 +550,8 @@ const BideOffline = (() => {
             for (const trip of data.tripsByPattern[patternIndex]) {
                 if (!runsOn(data.calendars[trip[3]], date)) continue;
                 for (const position of positions) {
-                    // En la cabecera, la hora de salida (la de llegada puede ser antes); en las demás, la de llegada.
-                    let seconds = trip[2] + data.timings[trip[1]][position];
+                    // La hora de salida, como /api/lines/{id}/timetable (en la cabecera, la llegada puede ser antes).
+                    let seconds = departureAt(data, trip, position);
                     if (position === 0) seconds = trip[5];
                     if (seconds < from || seconds > to) continue;
                     rows.push({ seconds: seconds + shift, pattern, trip });
@@ -551,17 +563,22 @@ const BideOffline = (() => {
 
     /*
      * Horario de una línea para un día y una franja, como /api/lines/{id}/timetable: desde la primera parada o, con
-     * stopId, en esa parada. Si la franja pasa de medianoche, se suman las de la madrugada del día siguiente.
+     * stopId, en esa parada. Se suman las de ayer de las 24:00 en adelante (la madrugada de hoy) y, si la franja pasa
+     * de medianoche, las de la madrugada del día siguiente.
      * options: { date: Date, from, to (segundos), stopId, now: Date }.
      */
     function timetable(data, lineId, options) {
         const index = lineIndex(data, lineId);
         if (index < 0) return null;
-        let rows;
-        if (options.to >= options.from) {
-            rows = departuresOn(data, index, options.date, options.from, options.to, options.stopId, 0);
-        } else {
-            rows = departuresOn(data, index, options.date, options.from, options.to + DAY_SECONDS, options.stopId, 0);
+        let last = options.to;
+        if (options.to < options.from) last = options.to + DAY_SECONDS;
+        const previous = new Date(options.date);
+        previous.setDate(previous.getDate() - 1);
+        const fromPrevious = options.from + DAY_SECONDS;
+        const toPrevious = Math.min(last, DAY_SECONDS - 1) + DAY_SECONDS;
+        let rows = departuresOn(data, index, previous, fromPrevious, toPrevious, options.stopId, -DAY_SECONDS);
+        rows = rows.concat(departuresOn(data, index, options.date, options.from, last, options.stopId, 0));
+        if (options.to < options.from) {
             const next = new Date(options.date);
             next.setDate(next.getDate() + 1);
             rows = rows.concat(departuresOn(data, index, next, 0, options.to, options.stopId, DAY_SECONDS));

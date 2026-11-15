@@ -51,6 +51,17 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 - No incluyas en tu *pull request* las bases de datos `bideplus/data/*.sqlite` regeneradas, salvo que el cambio sea justo en cómo se generan. Un flujo diario de GitHub Actions las reconstruye desde los GTFS oficiales.
 - No subas claves, tokens ni datos personales. Las claves se pasan por variables de entorno o secretos del repositorio.
 
+## Flujos programados
+
+GitHub retrasa los `schedule` de Actions en las horas de más carga (el de la noche llegó a salir 7 horas tarde) y los salta a veces. Por eso la reconstrucción nocturna (`rebuild-schedule.yml`) y la vigilancia del directo (`live-health.yml`) también se pueden lanzar con `repository_dispatch` desde el mismo cron externo que llama cada minuto a `/api/live/record`, a la hora exacta:
+
+```
+curl -X POST -H "Authorization: Bearer <token>" -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/<dueño>/<repositorio>/dispatches -d '{"event_type":"rebuild-schedule"}'
+```
+
+Con `"event_type":"live-health"` lanza la vigilancia. El token es uno de grano fino de GitHub con permiso *Contents: write* solo sobre este repositorio, guardado en el cron externo y no en el código. Lanzado así, el despliegue es completo, como el de la noche.
+
 ## Commits y *pull requests*
 
 - Mensajes cortos, en castellano, con el formato `tipo(ámbito): descripción`, por ejemplo `fix(bideplus): corrige el horario del primer tren`.

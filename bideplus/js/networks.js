@@ -1202,6 +1202,8 @@
     const order = Object.keys(networks);
     global.BideNetworks = {
         DEFAULT: "bus",
+        // La zona horaria de los horarios (Services\Calendar::TIME_ZONE), sea cual sea la del móvil.
+        TIME_ZONE: "Europe/Madrid",
         all: networks,
         slugs: order,
         get: function (slug) { return networks[slug] || networks["bus"]; },
