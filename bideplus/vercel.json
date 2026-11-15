@@ -71,6 +71,10 @@
       "dest": "/api/index.php"
     },
     {
+      "src": "^/lib/leaflet/(.*)$",
+      "dest": "/lib/leaflet-1.9.4/$1"
+    },
+    {
       "src": "/sitemap.xml",
       "dest": "/sitemap-index.xml"
     },

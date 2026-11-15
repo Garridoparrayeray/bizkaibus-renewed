@@ -27,10 +27,11 @@ function routeHostMatches(array $aRoute, string $sHost): bool
 $sHost = $_SERVER['HTTP_HOST'] ?? '';
 $aVercel = json_decode((string)file_get_contents(__DIR__ . '/vercel.json'), true);
 foreach ($aVercel['routes'] ?? [] as $aRoute) {
-    // Las que llevan a un fichero (/sitemap.xml, el robots.txt de la copia de prueba) cambian la ruta que se sirve.
+    // Las que llevan a un fichero (/sitemap.xml, el robots.txt de la copia de prueba, la ruta vieja de Leaflet)
+    // cambian la ruta que se sirve.
     $bToFile = isset($aRoute['dest']) && !str_ends_with($aRoute['dest'], '.php');
     if ($bToFile && routeHostMatches($aRoute, $sHost) && preg_match('#^' . $aRoute['src'] . '$#', $sUri)) {
-        $sUri = $aRoute['dest'];
+        $sUri = preg_replace('#^' . $aRoute['src'] . '$#', $aRoute['dest'], $sUri);
     }
     if (empty($aRoute['headers']) || !preg_match('#' . $aRoute['src'] . '#', $sUri) || !routeHostMatches($aRoute, $sHost)) {
         continue;
