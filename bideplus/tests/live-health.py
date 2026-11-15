@@ -54,7 +54,15 @@ errors, notices, summary = live_health.check('bilbobus', dict(empty, lastFullSec
 check('a menudo vacío, con servicio y más de 24 h sin venir lleno: error',
       len(errors) == 1 and '24 h' in errors[0], errors)
 errors, notices, summary = live_health.check('bilbobus', dict(empty, lastFullSeconds=None))
-check('sin marca de lleno en el almacén (días vacío): error', len(errors) == 1, errors)
+check('sin marca de lleno en el almacén (el primer día tras desplegar): no se sabe, aviso',
+      errors == [] and len(notices) == 1, (errors, notices))
+strike = {'today': True, 'cause': 'strike'}
+errors, notices, summary = live_health.check('renfe', {'ok': False, 'scheduled': 40, 'reducedService': strike})
+check('feed vacío con huelga o servicio reducido hoy: aviso, no error', errors == [] and len(notices) == 1,
+      (errors, notices))
+normal = {'today': False}
+errors, notices, summary = live_health.check('renfe', {'ok': False, 'scheduled': 40, 'reducedService': normal})
+check('feed vacío con servicio normal: error', len(errors) == 1, errors)
 errors, notices, summary = live_health.check('bilbobus', dict(empty, lastFullSeconds=3600))
 check('vacío desde hace una hora: aviso', errors == [] and len(notices) == 1, (errors, notices))
 errors, notices, summary = live_health.check('bilbobus', dict(empty, lastFullSeconds=25 * 3600, scheduled=1))

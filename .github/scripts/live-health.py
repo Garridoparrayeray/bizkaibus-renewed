@@ -13,7 +13,8 @@ Errores (el flujo sale en rojo y GitHub avisa por correo):
 Los dos primeros, solo si según el horario van en marcha al menos MIN_SCHEDULED viajes de la red («scheduled» de
 /api/status; sin él, de 00:30 a 06:00 no cuentan): de noche o con un feed compartido (Euskotren publica uno para sus
 trenes y los dos tranvías), que no haya nada de la red es lo normal. Una red «oftenEmpty» vacía y con servicio es error
-si lleva más de MAX_EMPTY_HOURS sin venir llena («lastFullSeconds», que apunta el cron en el almacén).
+si lleva más de MAX_EMPTY_HOURS sin venir llena («lastFullSeconds», que apunta el cron en el almacén; sin marca, no
+se sabe). Con huelga o servicio reducido hoy («reducedService»), un feed vacío es aviso.
 También son errores: el horario publicado de una red ya caducado («publishedUntil») y el cron externo de cada minuto
 callado más de MAX_CRON_SILENCE_SECONDS después del latido que toca («cronSeconds» y «cronEverySeconds»).
 Avisos (en el resumen, sin fallar): el feed copia el horario o sus horas contradicen al GPS (ya se tratan solos), o trae
@@ -73,11 +74,16 @@ def little_scheduled(report):
 
 
 def empty_too_long(report):
-    # Sin la clave (red sin motor o sin almacén) no se sabe; sin marca en el almacén, no vino lleno en días.
-    if 'lastFullSeconds' not in report:
+    # Sin la clave (red sin motor o sin almacén) o sin marca en el almacén (el primer día tras desplegar), no se sabe.
+    last = report.get('lastFullSeconds')
+    if last is None:
         return False
-    last = report['lastFullSeconds']
-    return last is None or last > MAX_EMPTY_HOURS * 3600
+    return last > MAX_EMPTY_HOURS * 3600
+
+
+def reduced_service(report):
+    # Huelga o servicio reducido hoy (ReducedService en /api/status): un feed vacío puede ser lo normal.
+    return bool((report.get('reducedService') or {}).get('today'))
 
 
 def cron_silent(report):
@@ -104,7 +110,9 @@ def check(network, report):
         return errors, notices, f'sin directo, horario hasta {until}'
     if report.get('error') or not report.get('ok'):
         message = f"el feed no responde o viene vacío ({report.get('error') or 'sin datos'})"
-        if report.get('oftenEmpty') and not little_scheduled(report) and empty_too_long(report):
+        if reduced_service(report):
+            notices.append(message + '; hoy hay huelga o servicio reducido')
+        elif report.get('oftenEmpty') and not little_scheduled(report) and empty_too_long(report):
             errors.append(message + f', y con servicio lleva más de {MAX_EMPTY_HOURS} h sin venir lleno')
         elif report.get('oftenEmpty') or little_scheduled(report):
             notices.append(message)
