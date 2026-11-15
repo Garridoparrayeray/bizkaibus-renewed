@@ -131,6 +131,24 @@ for path, app in (('/', True), ('/?red=bus', True), ('/stops/2877', False), ('/l
     expect('aggregateRating' not in page, f'{path}: valoraciones inventadas')
 print('datos estructurados ok')
 
+# Una sola dirección por página: 301 a la buena (barra final, mayúsculas en la parte fija, red que no existe) y 404
+# en lo que no es una página, en el idioma de la dirección y con noindex. Los ids conservan sus mayúsculas.
+for path, location in (('/MAPA', '/mapa'), ('/mapa/', '/mapa'), ('/Stops/2877/', '/stops/2877'), ('/LINES/651?lang=eu', '/lines/651?lang=eu'),
+                       ('/lines/MB/L1/?red=metro', '/lines/MB/L1?red=metro'), ('/?red=nada&lang=fr', '/?lang=fr'), ('/stops/2877?red=nada', '/')):
+    code, headers, page = fetch(path)
+    got = headers.get('Location', '').replace(BASE, '')
+    expect(code == 301 and got == location, f'{path}: {code} -> {got!r} (esperaba 301 -> {location})')
+for path, lang in (('/stops/', 'es'), ('/lines/', 'es'), ('/stops', 'es'), ('/nada-por-aqui', 'es'), ('/nada?lang=eu', 'eu'), ('/stops/99999999?lang=en', 'en'), ('/lines/MB/L9?red=metro&lang=fr', 'fr')):
+    code, headers, page = fetch(path)
+    expect(code == 404 and f'<html lang="{lang}"' in page and 'noindex' in meta_robots(page), f'{path}: {code}, sin 404 en {lang} con noindex')
+for path, canonical in (('/stops/ES:Euskotren:StopPlace:2577:?red=euskotren', 'https://www.bideplus.eus/stops/ES%3AEuskotren%3AStopPlace%3A2577%3A?red=euskotren'),
+                        ('/stops/MBAY01?red=txiktxak', 'https://www.bideplus.eus/stops/MBAY01?red=txiktxak'),
+                        ('/lines/MB/L2?red=metro&lang=eu', 'https://www.bideplus.eus/lines/MB/L2?red=metro&lang=eu')):
+    code, headers, page = fetch(path)
+    got = html.unescape((re.search(r'<link rel="canonical" href="([^"]+)"', page) or [None, ''])[1])
+    expect(code == 200 and got == canonical, f'{path}: {code} con canónica {got!r}')
+print('canónicas, 301 y 404 ok')
+
 print(f'{count} peticiones, {len(fails)} fallos')
 for f in fails:
     print(' -', f)

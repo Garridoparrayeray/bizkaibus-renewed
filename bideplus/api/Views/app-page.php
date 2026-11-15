@@ -229,6 +229,11 @@ try {
                 $aContent['sections'][] = ['title' => Lang::t('seo.linesOf', $sLang, ['operator' => $sOperator]), 'items' => $aSplitLinks];
             }
         }
+        // La canónica, con el id de la base codificado: «/stops/ES:…» y «/stops/ES%3A…» son la misma página.
+        $sCanonical = $sSiteUrl . '/' . $sType . '/' . rawurlencode((string)($aRecord['id'] ?? $sId));
+        if ($aSplit !== null) {
+            $sCanonical .= '/' . rawurlencode($aSplit['code']);
+        }
         $sCanonical .= Networks::urlSuffix($sNetworkSlug);
     } elseif (!$bMiamorDomain) {
         // La página de la red: todas sus líneas, con su enlace.
@@ -249,8 +254,7 @@ try {
 }
 
 if ($bNotFound) {
-    http_response_code(404);
-    readfile(__DIR__ . '/../../404.html');
+    \Core\NotFound::send($sLang);
     exit;
 }
 

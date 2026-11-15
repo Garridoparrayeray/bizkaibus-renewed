@@ -30,6 +30,26 @@ if ($sShellHash !== '') {
 
 // Con ?lang=eu o ?lang=en, la página sale ya traducida: así los buscadores ven la versión en euskera y en inglés.
 $sLang = \Core\Lang::current();
+
+// Una sola dirección por página (Core\PagePath): las demás formas, con 301 a ella; lo que no es una página, 404. Una
+// ?red= que no existe lleva a la portada.
+$sCanonicalPath = \Core\PagePath::canonical($sPath);
+if ($sCanonicalPath === null) {
+    \Core\NotFound::send($sLang);
+    exit;
+}
+if (isset($_GET['red']) && !\Core\Networks::exists((string)$_GET['red'])) {
+    header('Location: ' . \Core\Lang::url('/', $sLang), true, 301);
+    exit;
+}
+if ($sCanonicalPath !== $sPath) {
+    $sQuery = (string)($_SERVER['QUERY_STRING'] ?? '');
+    if ($sQuery !== '') {
+        $sCanonicalPath .= '?' . $sQuery;
+    }
+    header('Location: ' . $sCanonicalPath, true, 301);
+    exit;
+}
 if ($sLang !== 'es') {
     ob_start(function (string $sHtml) use ($sLang): string {
         // La página de error (404.html) es estática y en castellano: se deja tal cual.

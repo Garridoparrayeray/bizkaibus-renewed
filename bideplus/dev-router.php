@@ -76,13 +76,9 @@ if (str_starts_with($sUri, '/api/')) {
     return true;
 }
 
-if ($sUri === '/' || $sUri === '/mapa' || $sUri === '/estado' || str_starts_with($sUri, '/lines/') || str_starts_with($sUri, '/stops/') || str_starts_with($sUri, '/pantalla/')) {
-    if (isset($_COOKIE['lento'])) {
-        usleep((int) $_COOKIE['lento'] * 1000);
-    }
-    require __DIR__ . '/api/shell.php';
-    return true;
+// Como en vercel.json, el resto lo decide shell.php: la página, su 301 a la dirección buena o el 404.
+if (isset($_COOKIE['lento'])) {
+    usleep((int) $_COOKIE['lento'] * 1000);
 }
-
-http_response_code(404);
-readfile(__DIR__ . '/404.html');
+require __DIR__ . '/api/shell.php';
+return true;

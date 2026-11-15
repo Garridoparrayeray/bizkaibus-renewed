@@ -137,10 +137,13 @@ print('style-networks.css:', css_result)
 if stale_css:
     failures.append('style-networks.css desactualizado')
 
-# 404.html: un enlace a cada app, generado por scripts/build-404.php desde api/Networks.
+# 404.html y sus versiones en euskera, inglés y francés: un enlace a cada app, de scripts/build-404.php.
 fresh_404 = os.path.join(os.environ.get('RUNNER_TEMP') or os.environ.get('TEMP') or '/tmp', 'networks-check-404.html')
 r = subprocess.run([PHP, ROOT + 'scripts/build-404.php', '--output=' + fresh_404], capture_output=True, text=True)
-stale_404 = r.returncode != 0 or open(fresh_404, encoding='utf-8').read() != open(ROOT + '404.html', encoding='utf-8').read()
+stale_404 = r.returncode != 0
+for suffix in ('', '-eu', '-en', '-fr'):
+    fresh = fresh_404.replace('.html', suffix + '.html')
+    stale_404 = stale_404 or open(fresh, encoding='utf-8').read() != open(ROOT + '404' + suffix + '.html', encoding='utf-8').read()
 notfound_result = 'al día (' + r.stdout.strip() + ')'
 if stale_404:
     notfound_result = 'desactualizado, ejecuta php scripts/build-404.php'
