@@ -22,6 +22,8 @@ class TripDelayMatcher
     // horas del horario del viaje; 'shift' se suma a las de hoy para llegar a ellas (24 h de madrugada en un viaje de
     // ayer que pasa de las 24:00, 0 el resto del día).
     private array $aByJourney = [];
+    // Los viajes del feed con un retraso que no se cree (implausible): salen sin dato, no a su hora.
+    private array $aNoData = [];
     private int $iMidnight;
     private int $iZone = 0;
     private int $iShifted = 0;
@@ -51,9 +53,14 @@ class TripDelayMatcher
                 continue;
             }
             $aLive = $this->liveFromTrip($aTrip, (string)$sJourneyId);
-            if (!$this->finished($aLive) && !$this->implausible((string)$sJourneyId, $aLive)) {
-                $this->aByJourney[(string)$sJourneyId] = $aLive;
+            if ($this->finished($aLive)) {
+                continue;
             }
+            if ($this->implausible($aTrip, (string)$sJourneyId, $aLive)) {
+                $this->aNoData[(string)$sJourneyId] = true;
+                continue;
+            }
+            $this->aByJourney[(string)$sJourneyId] = $aLive;
         }
         $this->iMatched = \count($this->aByJourney);
         $this->bCopiesSchedule = $this->Trust->copiesSchedule($this->aByJourney);
@@ -151,13 +158,13 @@ class TripDelayMatcher
         return $this->nowSeconds() < self::EARLY_MORNING_SECONDS && $aTrip['startDate'] === $Today->modify('-1 day')->format('Ymd');
     }
 
-    // Con gtfs_rt.max_feed_gap_seconds (45 min en autobús, 1 h en Metro, Euskotren y tranvía), un retraso de más es
-    // de otro viaje con ese número: no vale y sale su horario. Cuenta también el de la parada a la que va, con lo que
-    // lleva de más si no ha llegado. Renfe y SNCF no tienen tope: con +2 h salen con su retraso.
-    private function implausible(string $sJourneyId, array $aLive): bool
+    // Sin el día del viaje en el feed (startDate), un retraso de más de gtfs_rt.max_feed_gap_seconds puede ser de otro
+    // viaje con ese número: sale sin dato. Con el día de hoy (ofToday) no hay tope. Cuenta también el de la parada a
+    // la que va, con lo que lleva de más si no ha llegado.
+    private function implausible(array $aTrip, string $sJourneyId, array $aLive): bool
     {
         $iMaxGap = \Core\Config::current()['gtfs_rt']['max_feed_gap_seconds'] ?? null;
-        if ($iMaxGap === null) {
+        if ($iMaxGap === null || isset($aTrip['startDate'])) {
             return false;
         }
         $iNextOrder = null;
@@ -288,7 +295,8 @@ class TripDelayMatcher
     {
         $sJourneyId = (string)$aRow['service_journey_id'];
         $aLive = $this->aByJourney[$sJourneyId] ?? null;
-        if ($aLive === null && $this->missingFromFeed($aRow)) {
+        $bNoData = isset($this->aNoData[$sJourneyId]) && ($aRow['status'] ?? 'scheduled') === 'scheduled';
+        if ($aLive === null && ($bNoData || $this->missingFromFeed($aRow))) {
             return ['status' => 'likely_departed', 'etaSeconds' => (int)$aRow['arrival_seconds'], 'delaySeconds' => 0] + $aRow;
         }
         if ($aLive === null || ($aRow['status'] ?? 'scheduled') !== 'scheduled') {

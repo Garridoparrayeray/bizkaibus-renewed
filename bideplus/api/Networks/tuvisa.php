@@ -128,9 +128,9 @@ return [
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
-        // Un retraso de más de 45 min (el tope de Álavabus) es de otro viaje con ese número: no vale y el viaje sale
-        // con su horario: en autobús no hay retrasos de verdad tan grandes.
-        'max_feed_gap_seconds' => 45 * 60,
+        // Sin el día del viaje en el feed, un retraso de más de 90 min es de otro viaje con ese número: el viaje sale
+        // sin dato. Con el día de hoy no hay tope (un bus urbano puede ir 46 u 80 min tarde de verdad).
+        'max_feed_gap_seconds' => 90 * 60,
     ],
 
     'gtfs' => [

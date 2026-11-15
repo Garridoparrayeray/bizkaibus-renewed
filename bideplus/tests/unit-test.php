@@ -538,15 +538,28 @@ $Expect('el viaje de hoy sí vale', (new TripDelayMatcher($aTodayTrip, new Servi
 $aBadTimes = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 1800], ['C', $iOffMidnight + T0 + 1140 + 1800]]]];
 $aGpsRow = (new TripDelayMatcher($aBadTimes, new ServiceJourney($PdoRenfe), $iOffMidnight, [$aOffVehicles[1]]))->enrich('C', $aRowC);
 $Expect('Álavabus: con la posición del autobús, su retraso sale del GPS y no de las horas del feed', $aGpsRow[0]['status'] === 'live' && $aGpsRow[0]['delaySeconds'] === 300, json_encode($aGpsRow[0]));
-// Con el tope de su ficha (max_feed_gap_seconds), un retraso de 2 h en Dbus o Txik Txak es de otro viaje: sale el
-// horario. Uno de 10 min sí vale.
-$aFarTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 7200], ['C', $iOffMidnight + T0 + 1140 + 7200]]]];
-$aNearTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + 600], ['C', $iOffMidnight + T0 + 1140 + 600]]]];
+// Con el tope de su ficha (max_feed_gap_seconds, 90 min en bus urbano), un retraso de 2 h sin el día del viaje puede
+// ser de otro viaje: sale sin dato, no a su hora. Uno de 10 min sí vale, y con el día de hoy, también los de 40 a 120.
+$TripLate = fn(int $iLate, array $aDay = []) => [$aDay + ['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1020 + $iLate], ['C', $iOffMidnight + T0 + 1140 + $iLate]]]];
+$aToday = ['startDate' => date('Ymd', $iOffMidnight + 12 * 3600)];
 foreach (['dbus', 'txiktxak'] as $sCapped) {
     \Core\Config::set($sCapped);
-    $aFarRow = (new TripDelayMatcher($aFarTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
-    $aNearRow = (new TripDelayMatcher($aNearTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
-    $Expect("{$sCapped}: un retraso de 2 h no vale y uno de 10 min sí", $aFarRow[0]['status'] === 'scheduled' && $aNearRow[0]['status'] === 'live', json_encode([$aFarRow[0], $aNearRow[0]]));
+    $aFarRow = (new TripDelayMatcher($TripLate(7200), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $aNearRow = (new TripDelayMatcher($TripLate(600), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: sin el día del viaje, un retraso de 2 h sale sin dato y uno de 10 min vale", $aFarRow[0]['status'] === 'likely_departed' && $aNearRow[0]['status'] === 'live', json_encode([$aFarRow[0], $aNearRow[0]]));
+    // La fila de C lleva ya su retraso sin el del feed: se cuenta lo que añade cada uno.
+    $iBase = (new TripDelayMatcher($TripLate(0, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['delaySeconds'];
+    $aLate = [];
+    foreach ([40, 46, 80, 120] as $iMinutes) {
+        $aLateRow = (new TripDelayMatcher($TripLate($iMinutes * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+        $aLate[$iMinutes] = ($aLateRow[0]['delaySeconds'] - $iBase) / 60;
+    }
+    $Expect("{$sCapped}: con el día de hoy, 40, 46, 80 y 120 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80, 120 => 120], json_encode($aLate));
+    $aUndated = (new TripDelayMatcher($TripLate(80 * 60), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: sin el día del viaje, 80 min caben en el tope de 90", $aUndated[0]['delaySeconds'] === 80 * 60 + $iBase, json_encode($aUndated[0]));
+    $aOtherDay = ['startDate' => date('Ymd', $iOffMidnight - 2 * 86400 + 12 * 3600)];
+    $aOld = (new TripDelayMatcher($TripLate(46 * 60, $aOtherDay), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: un viaje de otro día no da retraso", $aOld[0]['status'] === 'scheduled', json_encode($aOld[0]));
 }
 \Core\Config::set('alavabus');
 // Dónde está el autobús por su GPS: tres paradas en línea recta (A 08:00, B 08:10, C 08:20), cada una a 1 km.
@@ -558,7 +571,7 @@ $iBeforeB = Services\RoutePosition::scheduledSeconds($aLine, 1, $aLineCoords, 43
 $Expect('posición GPS: el feed da B y el bus va por la mitad de A a B: 08:05', abs($iBeforeB - (8 * 3600 + 300)) <= 5, (string)$iBeforeB);
 $Expect('posición GPS: sin coordenadas de las paradas, no hay posición', Services\RoutePosition::scheduledSeconds($aLine, 1, [], 43.0, -2.9) === null);
 $aOtherTrip = [['tripId' => '6005L2C1', 'stops' => [['B', $iOffMidnight + T0 + 1050 + 5 * 3600], ['C', $iOffMidnight + T0 + 1170 + 5 * 3600]]]];
-$Expect('Álavabus: unas horas a 5 h de su horario son de otro viaje: sale con el horario', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'scheduled');
+$Expect('Álavabus: unas horas a 5 h de su horario son de otro viaje: sale sin dato', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'likely_departed');
 // Álavabus con las paradas en línea recta, a 1 km: A a T0, B a T0 + 10 min, C a T0 + 20 min.
 $PdoAlava = new PDO('sqlite::memory:');
 $PdoAlava->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -592,7 +605,7 @@ $Expect('sin GPS, las mismas horas sí valen (40 min)', ($aRightC[0]['status'] ?
 $iStaleMidnight = time() - (T0 + 600 + 1500 + 1500);
 $aStaleTimes = [['tripId' => '22123', 'stops' => [['B', $iStaleMidnight + T0 + 600 + 1500], ['C', $iStaleMidnight + T0 + 1200 + 1500]]]];
 $MStale = new TripDelayMatcher($aStaleTimes, new ServiceJourney($PdoAlava), $iStaleMidnight);
-$Expect('Álavabus: un retraso que con lo que lleva de más pasa de 45 min no vale: sale con el horario', !$MStale->hasData() && ($MStale->enrich('C', [$AlavaRow('C', 2)])[0]['status'] ?? null) === 'scheduled', json_encode($MStale->diagnostics()));
+$Expect('Álavabus: un retraso que con lo que lleva de más pasa de 45 min no vale: sale sin dato', !$MStale->hasData() && ($MStale->enrich('C', [$AlavaRow('C', 2)])[0]['status'] ?? null) === 'likely_departed', json_encode($MStale->diagnostics()));
 \Core\Config::set('renfe');
 $Expect('en las demás redes no hay tope: un tren con más de 2 h de retraso sale con su retraso', (new TripDelayMatcher($aOtherTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['status'] === 'live');
 $Expect('sin local_clock en su ficha, las horas del feed no se corrigen', (new TripDelayMatcher($aAheadTrip, new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['etaSeconds'] === T0 + 1170 + $iZone);
