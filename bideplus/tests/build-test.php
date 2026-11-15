@@ -398,6 +398,11 @@ $Expect('festivo ambiguo: solo el domingo añadido y en el calendario laboral, v
     && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-08')) === 7 && Calendars::journeysOn($AlavaHoliday, new DateTime('2026-12-01')) === 13);
 $Expect('festivo ambiguo: un día que no está en el calendario laboral no se toca', Calendars::applyHolidays($Ambiguous(), [], '2027-01-14', true, true) === 0);
 $Expect('festivo ambiguo: sin la opción de la ficha, dentro de su periodo manda el GTFS', Calendars::applyHolidays($Ambiguous(), ['2026-12-08'], '2027-01-14', true) === 0);
+// El 25-12 (viernes) Álavabus añade el domingo y quita uno laborable: ya dice cómo es y se deja como lo publica.
+$Christmas = $CalendarDb(':memory:', ['lv' => [31, 10], 'd' => [64, 4], 'lv-otro' => [31, 3]], [['d', '2026-12-25', 1], ['lv', '2026-12-25', 0]]);
+$iChristmas = Calendars::applyHolidays($Christmas, ['2026-12-08', '2026-12-25'], '2027-01-14', true, true);
+$Expect('festivo ambiguo: el 25-12, con algo quitado por el GTFS, se queda como lo publica el operador', $iChristmas === 0
+    && Calendars::journeysOn($Christmas, new DateTime('2026-12-25')) === 7, (string)Calendars::journeysOn($Christmas, new DateTime('2026-12-25')));
 
 // Caducidad del horario publicado (resumen del flujo diario, scripts/published-schedule.php).
 $aRequired = ['gtfs' => ['required' => true]];
