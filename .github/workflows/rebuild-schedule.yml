@@ -286,8 +286,8 @@ jobs:
         continue-on-error: true
         run: python3 .github/scripts/live-health.py "$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')" $(php bideplus/scripts/networks.php --slugs)
 
-      # Se borran los despliegues viejos menos el actual y los KEEP_PREVIOUS anteriores de producción: «Rollback
-      # production» siempre tiene a cuál volver.
+      # Se borran los despliegues viejos menos el que sirve el dominio, el último y los KEEP_PREVIOUS anteriores de
+      # producción (.github/scripts/vercel-cleanup.py): «Rollback production» siempre tiene a cuál volver.
       - name: Clean up old deployments to save Vercel storage
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -298,15 +298,15 @@ jobs:
           TEAM=""
           case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
           API="https://api.vercel.com"
-          LISTA="$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
-          printf '%s' "$LISTA" | python3 -c '
-          import json, os, sys
-          deployments = sorted(json.load(sys.stdin)["deployments"], key=lambda d: d["created"], reverse=True)
-          kept = [d["uid"] for d in deployments if d.get("target") == "production" and d.get("state") == "READY"]
-          kept = kept[:1 + int(os.environ["KEEP_PREVIOUS"])]
-          print("\n".join(d["uid"] for d in deployments if d["uid"] not in kept))
-          ' | while read -r UID_; do
-            [ -n "$UID_" ] && curl -fsS -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" "$API/v13/deployments/$UID_?x=1$TEAM" > /dev/null || true
+          AUTH="Authorization: Bearer $VERCEL_TOKEN"
+          LISTA="$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
+          # El que sirve el dominio ahora; si no se puede leer, vercel-cleanup.py no borra nada.
+          PROYECTO="$(curl -fsS -H "$AUTH" "$API/v9/projects/$VERCEL_PROJECT_ID?x=1$TEAM" || true)"
+          CURRENT="$(printf '%s' "$PROYECTO" | python3 -c \
+            'import json, sys; print(json.load(sys.stdin)["targets"]["production"]["id"])' 2>/dev/null || true)"
+          export CURRENT
+          printf '%s' "$LISTA" | python3 .github/scripts/vercel-cleanup.py | while read -r UID_; do
+            [ -n "$UID_" ] && curl -fsS -X DELETE -H "$AUTH" "$API/v13/deployments/$UID_?x=1$TEAM" > /dev/null || true
           done
 
       # Al final, para no frenar el despliegue: hasta cuándo vale el horario de cada red y de qué fuente salió. Sale en
