@@ -1173,6 +1173,19 @@ $aStrike = $Reduced($aRenfeStrike, $aRenfeLines);
 $Expect('avisos reales de Renfe: la huelga marca el 17 de noviembre, solo en sus líneas (el aviso de 61T no es de esta red)', $aStrike['days'] === ['2026-11-17'] && $aStrike['lines'] === ['60T0002C1', '60T0001C1', '60T0003C2'] && $aStrike['cause'] === 'strike' && \count($aRenfeStrike) === 4, json_encode($aStrike));
 $aStrikeDay = $Reduced($aRenfeStrike, $aRenfeLines, false, new DateTimeImmutable('2026-11-17'));
 $Expect('el mismo aviso el día 17: hoy hay servicio reducido', \Services\ReducedService::verdict($aStrikeDay, false, '2026-11-17')['today'] && \Services\ReducedService::verdict($aStrikeDay, false, '2026-11-17')['sources'] === ['alerts']);
+// Avisos reales de Renfe del 16/11/2026: la huelga del 17 en siete núcleos de Cercanías (Bilbao, Donostia, Valencia…)
+// es de toda Renfe y vale para media y larga distancia, que no tiene avisos; la del 14/11 solo sale en dos.
+$aWideRule = \Core\Networks::get('renfe-ld')['renfe_alerts']['operator_wide'];
+$TodayWide = new DateTimeImmutable('2026-11-16');
+$aRenfeWide = RenfeAlertsClient::parse((string)file_get_contents(__DIR__ . '/fixtures/renfe-alerts-huelga-20261116.json'), [], null);
+$aWide = \Services\ReducedService::operatorWide($aRenfeWide, $aWideRule, $aReducedRules, $TodayWide);
+$Expect('huelga de toda Renfe (siete núcleos): media y larga distancia, el 17 de noviembre y por huelga', $aWide['days'] === ['2026-11-17'] && $aWide['cause'] === 'strike' && str_contains((string)$aWide['alert'], 'huelga') && !str_contains((string)$aWide['alert'], 'SEVILLA'), json_encode($aWide));
+$aLdVerdict = \Services\ReducedService::withOperatorWide(\Services\ReducedService::fromAlerts([], $aReducedRules, $TodayWide, $iNowStrike, [], true), $aWide);
+$Expect('la huelga de toda Renfe es de toda la red de media y larga distancia (sin líneas sueltas)', $aLdVerdict['days'] === ['2026-11-17'] && $aLdVerdict['lines'] === null, json_encode($aLdVerdict));
+$aNarrow = \Services\ReducedService::operatorWide($aRenfeStrike, $aWideRule, $aReducedRules, $TodayStrike);
+$Expect('una huelga en dos núcleos no es de toda Renfe', $aNarrow['days'] === [], json_encode($aNarrow));
+$aUnchanged = \Services\ReducedService::withOperatorWide($aStrike, ['days' => [], 'alert' => null, 'cause' => null]);
+$Expect('sin huelga de todo el operador, lo de los avisos de la red queda igual', $aUnchanged === $aStrike);
 $aCases = [
     'otra red refuerza' => [[['title' => 'Refuerzo de servicio', 'description' => 'Con motivo de la huelga de Bizkaibus, Metro Bilbao refuerza su servicio']], []],
     'en vigor, sin fechas' => [[['summary' => 'Greba: gutxieneko zerbitzuak', 'startTime' => '2026-11-14T06:00:00+01:00']], ['2026-11-14']],

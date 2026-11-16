@@ -137,6 +137,10 @@ return [
         'cache_ttl_seconds' => 120,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 2 * 86400,
+        // Renfe no publica avisos de estos trenes: una huelga de toda Renfe se ve en los de Cercanías, con la misma
+        // fecha en min_areas núcleos o más (el número del núcleo abre el id de la línea: 60T0001C1 es de Bilbao). El
+        // texto del aviso, el de Bilbao o Donostia si lo hay.
+        'operator_wide' => ['area_pattern' => '/^(\d+)T/', 'min_areas' => 3, 'home_areas' => ['60', '61']],
     ],
 
     'gtfs' => [

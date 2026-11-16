@@ -62,6 +62,11 @@ class ReducedService
         $Today = self::serviceDay($iNow, $aRules);
         $aAlerts = (new AlertsController())->alerts(null, null, true);
         $aVerdict = self::fromAlerts($aAlerts, $aRules, $Today, $iNow, self::networkLines(), self::sharesAlerts($aConfig));
+        $aWide = $aConfig['renfe_alerts']['operator_wide'] ?? null;
+        if ($aWide !== null) {
+            $aAll = (new RenfeAlertsClient($aConfig))->allAlerts();
+            $aVerdict = self::withOperatorWide($aVerdict, self::operatorWide($aAll, $aWide, $aRules, $Today));
+        }
         $iAlertsAt = $iNow;
         if (empty($aAlerts) && isset($aStored['alertsAt']) && $iNow - $aStored['alertsAt'] < $aRules['keep_last_good_seconds']) {
             $aVerdict = $aStored['alerts'];
@@ -155,6 +160,74 @@ class ReducedService
             $aOut['lines'] = array_values(array_unique($aOut['lines']));
         }
         return $aOut;
+    }
+
+    /*
+     * Los días de una huelga de todo el operador: los que dicen avisos de min_areas zonas distintas o más (la zona sale
+     * del id de sus líneas con area_pattern: el núcleo de Cercanías). Solo avisos con fecha: uno en vigor sin ella
+     * puede ser de un único núcleo. Da los días, el aviso (el de una zona de home_areas si lo hay) y la causa.
+     */
+    public static function operatorWide(array $aAlerts, array $aWide, array $aRules, \DateTimeImmutable $Today): array
+    {
+        $aAreas = [];
+        $aTexts = [];
+        $aCauses = [];
+        $sToday = $Today->format('Y-m-d');
+        $sLast = $Today->modify('+' . $aRules['horizon_days'] . ' days')->format('Y-m-d');
+        foreach ($aAlerts as $aAlert) {
+            $aOwn = [];
+            foreach ($aAlert['lineRefs'] ?? [] as $sRef) {
+                if (preg_match($aWide['area_pattern'], (string)$sRef, $aMatch) === 1) {
+                    $aOwn[$aMatch[1]] = true;
+                }
+            }
+            $sText = trim(($aAlert['summary'] ?? $aAlert['title'] ?? '') . '. ' . ($aAlert['description'] ?? ''), ' .');
+            $aRead = self::read(Search::normalize($sText), $aRules, $Today);
+            if (empty($aOwn) || $aRead === null) {
+                continue;
+            }
+            foreach ($aRead['days'] as $sDay) {
+                if ($sDay < $sToday || $sDay > $sLast) {
+                    continue;
+                }
+                $aAreas[$sDay] = ($aAreas[$sDay] ?? []) + $aOwn;
+                $bHome = !empty(array_intersect_key($aOwn, array_flip($aWide['home_areas'])));
+                if (!isset($aTexts[$sDay]) || ($bHome && !$aTexts[$sDay][1])) {
+                    $aTexts[$sDay] = [$sText, $bHome];
+                }
+                if (($aCauses[$sDay] ?? null) !== self::CAUSE_STRIKE) {
+                    $aCauses[$sDay] = $aRead['cause'];
+                }
+            }
+        }
+        $aOut = ['days' => [], 'alert' => null, 'cause' => null];
+        ksort($aAreas);
+        foreach ($aAreas as $sDay => $aSeen) {
+            if (\count($aSeen) < $aWide['min_areas']) {
+                continue;
+            }
+            $aOut['days'][] = $sDay;
+            $aOut['alert'] ??= $aTexts[$sDay][0];
+            if ($aOut['cause'] !== self::CAUSE_STRIKE) {
+                $aOut['cause'] = $aCauses[$sDay];
+            }
+        }
+        return $aOut;
+    }
+
+    // Añade a lo de los avisos de la red los días de una huelga de todo el operador, que es de toda la red.
+    public static function withOperatorWide(array $aVerdict, array $aWide): array
+    {
+        if (empty($aWide['days'])) {
+            return $aVerdict;
+        }
+        $aDays = array_values(array_unique(array_merge($aVerdict['days'], $aWide['days'])));
+        sort($aDays);
+        $sCause = $aWide['cause'];
+        if ($aVerdict['cause'] === self::CAUSE_STRIKE) {
+            $sCause = self::CAUSE_STRIKE;
+        }
+        return ['days' => $aDays, 'alert' => $aVerdict['alert'] ?? $aWide['alert'], 'cause' => $sCause, 'lines' => null];
     }
 
     // Las líneas de la red a las que afecta un aviso (null: a toda), o false si no es de esta red.
