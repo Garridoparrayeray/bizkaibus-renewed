@@ -305,6 +305,7 @@ if (!(await liveSearch('mixed'))) {
 } else {
     check('directo · las opciones piden el directo de sus vehículos y lo enseñan', await waitTrue(`${labels}.some((s) => s === 'En directo · 4 min de retraso')`, 15000));
     check('directo · lo que no trae dato va «Según horario» y no hay otras etiquetas', await ev(`${labels}.every((s) => ${LABELS}.test(s)) && ${labels}.some((s) => s === 'Según horario')`));
+    check('directo · una opción «Con N de retraso» lleva algún tramo con retraso (no todo «Según horario»)', await ev(`[...document.querySelectorAll('#route-options .route-option')].every((card) => !/^Con .* de retraso$/.test(card.querySelector('.route-tags').textContent.trim()) || [...card.querySelectorAll('.route-step-live')].some((n) => /de retraso$/.test(n.textContent)))`));
     await ev("document.getElementById('route-filters-open').click(); document.querySelector('[data-route-filter=liveOnly]').click(); document.getElementById('route-filters-done').click(); true");
     await sleep(500);
     await waitTrue(optionsReady, PLANNER_MS);

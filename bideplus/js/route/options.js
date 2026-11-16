@@ -98,13 +98,14 @@ export const liveOf = (leg, iDay) => {
         return { live: true, extra: true, text: I18n.t('route.live.extra') };
     }
     const entry = liveEntry(leg, iDay);
-    if (!entry && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id)) {
+    const bKnown = entry !== null || leg.delay !== 0;
+    if (!bKnown && reducedOn(leg.network, iDay + leg.day_shift, leg.line.id)) {
         return { live: false, text: I18n.t('route.live.mayNotRun') };
     }
-    if (!entry) {
+    if (!bKnown) {
         return { live: false, text: I18n.t('route.live.scheduled') };
     }
-    if (entry.cancelled) {
+    if (entry && entry.cancelled) {
         return { live: true, text: I18n.t('route.live.cancelled') };
     }
     if (leg.delay >= MIN_DELAY_SECONDS) {
