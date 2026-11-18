@@ -53,7 +53,8 @@ const wantedLegs = () => {
             const sKey = keyOf(leg.network, leg.trip, iServiceDay);
             if (bRunning && bSoon && !wanted.has(sKey)) {
                 wanted.set(sKey, { key: sKey, network: leg.network, stop: leg.from.id, line: leg.line.code,
-                    depart: leg.scheduled_depart - leg.day_shift * SECONDS_PER_DAY, trip: leg.trip });
+                    depart: leg.scheduled_depart - leg.day_shift * SECONDS_PER_DAY, trip: leg.trip,
+                    left: leg.depart + iOffset, until: leg.arrive + iOffset });
             }
         });
     });
@@ -130,10 +131,12 @@ const download = async (aLegs) => {
     }
 };
 
-// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. Los refuerzos de cada respuesta
-// sustituyen a los de la anterior, cada uno con su día de servicio (sin él, el de la respuesta).
+// Lo preguntado sin dato vuelve a su horario, salvo el vehículo que ya ha salido y aún no ha llegado: la API solo lo
+// ve en su parada de subida, así que guarda su último retraso hasta que llegue. Lo que llega se apunta con su hora.
+// Los refuerzos de cada respuesta sustituyen a los de la anterior, cada uno con su día de servicio (o el de la respuesta).
 const remember = (aLegs, answer) => {
     const iNow = Date.now();
+    const iSeconds = nowHere().seconds;
     let aExtras = [];
     if (Array.isArray(answer.extras)) {
         aExtras = answer.extras.map((extra) => Object.assign({ day: answer.day }, extra));
@@ -141,6 +144,11 @@ const remember = (aLegs, answer) => {
     live.extras = { at: iNow, list: aExtras };
     aLegs.forEach((leg) => {
         live.asked.set(leg.key, iNow);
+        const kept = live.entries.get(leg.key);
+        if (kept && iSeconds >= leg.left && iSeconds <= leg.until) {
+            kept.at = iNow;
+            return;
+        }
         live.entries.delete(leg.key);
     });
     // Cada viaje con su día de servicio (el de ayer, de madrugada); sin él, el de hoy.
