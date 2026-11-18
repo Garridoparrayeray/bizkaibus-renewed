@@ -195,17 +195,25 @@ const requestFor = async () => {
     return request;
 };
 
-// El primer viaje que cumple los filtros que hubo que quitar, en las 12 horas siguientes (operación range).
-const FIRST_OK_WINDOW = 43200;
+// El primer viaje que cumple los filtros que hubo que quitar, en las 12 horas siguientes (operación range). Si son tantos
+// viajes que la respuesta no cabe (error limit, en trayectos largos con mucha oferta), se mira en franjas más cortas.
+const FIRST_OK_WINDOWS = [43200, 10800, 3600];
 const findFirstOk = async (request, sKey) => {
     const range = {
-        op: 'range', from: request.from, to: request.to, day: request.day, time: request.time, window: FIRST_OK_WINDOW,
+        op: 'range', from: request.from, to: request.to, day: request.day, time: request.time, window: 0,
         accessible: request.accessible, live_only: request.live_only, transfer_margin: request.transfer_margin,
     };
     if (request.networks) {
         range.networks = request.networks;
     }
-    const answer = await engine.call(range, 'first-ok').catch(() => null);
+    let answer = null;
+    for (const iWindow of FIRST_OK_WINDOWS) {
+        range.window = iWindow;
+        answer = await engine.call(range, 'first-ok').catch(() => null);
+        if (!answer || answer.status !== 'error' || answer.error !== 'limit') {
+            break;
+        }
+    }
     if (!answer || answer.status !== 'ok' || app.answerKey !== sKey) {
         return;
     }
