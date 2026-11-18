@@ -81,6 +81,14 @@ foreach (\Core\Networks::all() as $sSlug => $aNet) {
 }
 $aWithoutFeed = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => in_array('trip-updates', $aNet['live'], true) && (empty($aNet['gtfs_rt']['trip_updates_url']) || !isset($aNet['gtfs_rt']['max_age_seconds']) || (($aNet['gtfs_rt']['matching'] ?? 'stops') === 'stops' && !isset($aNet['gtfs_rt']['match_tolerance_seconds'])))));
 $Expect('las redes con horas previstas (GTFS-Realtime) tienen su feed configurado', $aWithoutFeed === [], implode(', ', $aWithoutFeed));
+// La accesibilidad de cada red (accessibility), con sus valores; build-packs del motor la aplica a su paquete.
+$aAccessibilityValues = ['fleet' => ['all', 'some', 'unknown'], 'stops' => ['all', 'some', 'unknown'],
+    'gtfs' => ['trust', 'ignore'], 'unknown_stops_with_accessible_fleet' => ['yes', 'no']];
+$aBadAccessibility = array_keys(array_filter(\Core\Networks::all(), fn($aNet) => array_filter($aAccessibilityValues,
+    fn($aAllowed, $sKey) => !in_array($aNet['accessibility'][$sKey] ?? null, $aAllowed, true), ARRAY_FILTER_USE_BOTH) !== []
+    || !array_key_exists('source', $aNet['accessibility']) || !is_string($aNet['accessibility']['note'] ?? null)));
+$Expect('cada red dice su accesibilidad (flota, paradas, qué hacer con el GTFS, fuente y nota)', $aBadAccessibility === [],
+    implode(', ', $aBadAccessibility));
 $Expect('?red= desconocida cae en la red por defecto', \Core\Networks::fromQuery('no-existe') === 'bus' && \Core\Networks::fromQuery(null) === 'bus' && \Core\Networks::fromQuery('renfe') === 'renfe');
 
 /* ------------------------------------------------------------------ */
@@ -1085,6 +1093,7 @@ $Expect('un tren sin salida sale sin horario, con el destino y la línea del rec
 $Expect('liveTrip: las paradas que le quedan al tren casado con el viaje', $MatcherPm->liveTrip('A', $aRowsPm, 'r1') === [['A', $iMidPm + 1090], ['B', $iMidPm + 1150]], json_encode($MatcherPm->liveTrip('A', $aRowsPm, 'r1')));
 $aExtraTrainPm = $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'B');
 $Expect('el tren sin horario se vuelve a encontrar por su clave, con su recorrido', $aExtraTrainPm !== null && \count($aExtraTrainPm['stops']) === 3 && $aExtraTrainPm['sequence'] === $aSequencesPm['P2'] && $aExtraTrainPm['headsign'] === 'Uve', json_encode($aExtraTrainPm));
+$Expect('el tren sin horario trae su id del feed (lo usa el planificador para los refuerzos)', ($aExtraTrainPm['trip_id'] ?? null) === 't3', json_encode($aExtraTrainPm));
 $Expect('la clave de un tren sin horario lleva su andén: con otro andén no es él', $aExtraPm[0]['platform_stop_id'] === 'B' && $MatcherPm->unscheduledTrain('A', $iMidPm + 2030, 'C') === null);
 $aTwoExtras = [
     ['tripId' => 'e1', 'stops' => [['A', $iMidPm + 1900], ['B', $iMidPm + 1960], ['Y', $iMidPm + 2000]]],
@@ -1159,6 +1168,46 @@ $aBasauri = array_values(array_filter($aMoySiri, fn(array $aArrival) => $aSiriRe
 $aUrduliz = array_values(array_filter($aMoySiri, fn(array $aArrival) => $aSiriReal[$aArrival['train']]['tripId'] === '902928'))[0]['fits'] ?? [];
 $Expect('Moyua real con el SIRI: el tren que manda Urduliz como Gobela (20) va a Plentzia, con la parada arreglada', array_map('strval', array_keys($aUrduliz)) === ['30'] && end($aUrduliz[30]['stops'])[0] === '29', json_encode(array_keys($aUrduliz)));
 $Expect('Moyua real con el SIRI: el mismo tren, el mismo destino (Basauri)', \count($aBasauri) === 1 && array_map('strval', array_keys($aBasauri[0]['fits'])) === ['51'], json_encode($aBasauri));
+
+$Section('Directo del planificador');
+$aParsed = \Controllers\PlannerController::legsByNetwork('metro|20|MB|57063|903255,metro|20|L2|57100|9,bus|3950|A3515|59402|trp%7C1,nadie|1|X|60|y');
+$Expect('los tramos se agrupan por red y parada, con su línea, su hora y el viaje (con su escape), y una red que no existe se pasa por alto', $aParsed === ['metro' => ['20' => [['MB', 57063, '903255'], ['L2', 57100, '9']]], 'bus' => ['3950' => [['A3515', 59402, 'trp|1']]]], json_encode($aParsed));
+$Expect('un tramo sin hora, con partes vacías o de más no vale; sin tramos, nada', \Controllers\PlannerController::legsByNetwork('metro|20|MB|x|1') === null && \Controllers\PlannerController::legsByNetwork('metro||MB|1|1') === null && \Controllers\PlannerController::legsByNetwork('metro|20|MB|1|1|2') === null && \Controllers\PlannerController::legsByNetwork('') === []);
+$Expect('más de 40 tramos no vale', \Controllers\PlannerController::legsByNetwork(implode(',', array_fill(0, 41, 'metro|20|MB|1|1'))) === null);
+$aPlannerUpdates = \Controllers\PlannerController::updatesOf('metro', ['a' => ['status' => 'live', 'delaySeconds' => 245], 'b' => ['status' => 'live', 'delaySeconds' => -600], 'c' => ['status' => 'cancelled', 'delaySeconds' => 0], 'd' => ['status' => 'scheduled', 'delaySeconds' => 0], 'e' => ['status' => 'estimated', 'delaySeconds' => 0], 'f' => ['status' => 'live', 'delaySeconds' => 60, 'yesterday' => true]], 20407);
+$Expect('en directo va el retraso entero y el adelanto hasta 2 min; cancelado, cancelado; lo estimado o del horario no sale; cada viaje con su día de servicio (el de ayer de madrugada, con el de ayer)', $aPlannerUpdates === [['network' => 'metro', 'trip' => 'a', 'day' => 20407, 'delay' => 245, 'cancelled' => false], ['network' => 'metro', 'trip' => 'b', 'day' => 20407, 'delay' => -120, 'cancelled' => false], ['network' => 'metro', 'trip' => 'c', 'day' => 20407, 'delay' => 0, 'cancelled' => true], ['network' => 'metro', 'trip' => 'f', 'day' => 20406, 'delay' => 60, 'cancelled' => false]], json_encode($aPlannerUpdates));
+$aRefuerzo = ['sequence' => ['A', 'B', 'C', 'D'], 'headsign' => 'Uve'];
+$aRefuerzoTimes = ['A' => $iMidPm + 1000, 'B' => $iMidPm + 1100, 'D' => $iMidPm + 1300];
+$aPlannerExtra = \Services\PlannerExtras::extraOf('metro', 'MB', 'rt:t3', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 900);
+$Expect('un refuerzo para el planificador: sus paradas en el orden del recorrido con su hora del día, sin las que no tienen hora', $aPlannerExtra === ['network' => 'metro', 'line' => 'MB', 'trip' => 'rt:t3', 'headsign' => 'Uve', 'stops' => [['stop' => 'A', 'arrive' => 1000, 'depart' => 1000], ['stop' => 'B', 'arrive' => 1100, 'depart' => 1100], ['stop' => 'D', 'arrive' => 1300, 'depart' => 1300]]], json_encode($aPlannerExtra));
+$Expect('un refuerzo que no pasa por ninguna parada en las próximas 2 h no sale (ni el que ya pasó ni el de dentro de 3 h)', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1400) === null && \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 1000 - 3 * 3600) === null);
+$aPlannerDay = \Services\PlannerExtras::extraOf('metro', 'MB', 'rt:t3', $aRefuerzo, $aRefuerzoTimes, $iMidPm, 900, 20772, true);
+$Expect('el refuerzo lleva su día de servicio y, si la ficha lo dice, que es accesible', ($aPlannerDay['day'] ?? null) === 20772 && ($aPlannerDay['accessible'] ?? null) === true && array_key_last($aPlannerDay) === 'stops', json_encode($aPlannerDay));
+$aOddTimes = ['A' => $iMidPm - 30, 'B' => $iMidPm + 1100, 'C' => $iMidPm + 1050, 'D' => $iMidPm + 1300];
+$aOdd = \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, $aOddTimes, $iMidPm, 900);
+$Expect('del refuerzo se quitan las paradas de hora negativa (antes de medianoche) y las que retroceden', array_column($aOdd['stops'] ?? [], 'stop') === ['B', 'D'], json_encode($aOdd));
+$Expect('la ficha de la red dice si su flota es toda accesible; si no, no se sabe', \Services\PlannerExtras::fleetAccessible(['accessibility' => ['fleet' => 'all']]) === true && \Services\PlannerExtras::fleetAccessible(['accessibility' => ['fleet' => 'some']]) === null && \Services\PlannerExtras::fleetAccessible([]) === null);
+$KnownTrips = new class extends ServiceJourney {
+    public function __construct()
+    {
+        parent::__construct(new PDO('sqlite::memory:'));
+    }
+
+    public function journeyIdsForTripRefs(array $aTripRefs): array
+    {
+        return array_intersect_key(['alias-1' => '896700'], array_flip($aTripRefs));
+    }
+
+    public function lineOfJourney(string $sServiceJourneyId): array|null
+    {
+        if ($sServiceJourneyId === '896643') {
+            return ['id' => 'MB', 'code' => 'MB'];
+        }
+        return null;
+    }
+};
+$Expect('un tren «sin horario» cuyo id del feed es un viaje del horario (o su alias) no es un refuerzo', \Services\PlannerExtras::scheduled($KnownTrips, '896643') && \Services\PlannerExtras::scheduled($KnownTrips, 'alias-1') && !\Services\PlannerExtras::scheduled($KnownTrips, '999') && !\Services\PlannerExtras::scheduled($KnownTrips, ''));
+$Expect('un refuerzo con la hora de una sola parada no sale', \Services\PlannerExtras::extraOf('metro', 'MB', 'x', $aRefuerzo, ['A' => $iMidPm + 1000], $iMidPm, 900) === null);
 
 $Section('Servicio reducido (huelgas, servicios mínimos)');
 $aReducedRules = \Services\ReducedService::rules();

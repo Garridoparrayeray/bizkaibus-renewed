@@ -443,6 +443,13 @@
         const link = el('a', 'map-action', t('map.openStop'));
         link.href = `/stops/${encodeURIComponent(stopId)}?red=${slug}`;
         body.appendChild(link);
+        const plan = el('div', 'map-plan');
+        const planTo = el('a', 'map-action map-action--plan', t('plan.howTo'));
+        planTo.href = PlannerLink.url('to', slug, stopId, stop[0]);
+        const planFrom = el('a', 'map-action map-action--plan', t('plan.leaveFrom'));
+        planFrom.href = PlannerLink.url('from', slug, stopId, stop[0]);
+        plan.append(planTo, planFrom);
+        body.appendChild(plan);
         openPanel();
     }
 

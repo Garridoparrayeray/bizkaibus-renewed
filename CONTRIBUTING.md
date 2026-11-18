@@ -15,10 +15,11 @@ Necesitas PHP 8.2 o superior con las extensiones `sqlite3`, `pdo_sqlite`, `curl`
 
 ```
 cd bideplus
+php scripts/fetch-databases.php
 php -S localhost:8011 dev-router.php
 ```
 
-La aplicación queda en <http://localhost:8011>. Para que una petición lenta (el feed en directo) no bloquee a las demás, arranca el servidor con varios procesos: `PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php`.
+Las bases `data/*.sqlite` no están en git: `fetch-databases.php` baja las de producción de la release `bases`. La aplicación queda en <http://localhost:8011>. Para que una petición lenta (el feed en directo) no bloquee a las demás, arranca el servidor con varios procesos: `PHP_CLI_SERVER_WORKERS=4 php -S localhost:8011 dev-router.php`.
 
 ## Pruebas
 
@@ -48,8 +49,13 @@ Todo esto lo comprueba la batería de limpieza en medio segundo: `php tests/code
 
 ## Datos y archivos generados
 
-- No incluyas en tu *pull request* las bases de datos `bideplus/data/*.sqlite` regeneradas, salvo que el cambio sea justo en cómo se generan. Un flujo diario de GitHub Actions las reconstruye desde los GTFS oficiales.
+- Las bases de datos `bideplus/data/*.sqlite` no van en git (salvo la de Villavesas, que sigue como estaba): el flujo diario «Rebuild schedule data» las reconstruye desde los GTFS oficiales y las deja en la release `bases`, y `php scripts/fetch-databases.php` las baja. Una red nueva en una rama la construye «Build new network database» y la deja como artefacto.
+- El planificador que se despliega (`bideplus/planificador/` y sus fuentes en `bideplus/docs/`) lo genera `scripts/build-planner.php` y tampoco va en git: el mismo flujo lo deja en la release `planificador`.
 - No subas claves, tokens ni datos personales. Las claves se pasan por variables de entorno o secretos del repositorio.
+
+## Copia de prueba
+
+Lo que se sube a la rama `prueba` se despliega solo, con el flujo «Desplegar la prueba» (`.github/workflows/deploy-prueba.yml`, también a mano), en <https://bideplusmiamor.vercel.app>: la app de producción entera con el planificador, como *preview* de Vercel y con la rama `planificador` del motor. No toca producción, ni las releases, ni git. Antes de desplegar, `.github/scripts/modo-prueba.py` cambia solo la copia del runner: fuera de los buscadores (sin Google, sitemap, `llms.txt` ni IndexNow), sin Vercel Insights, con el almacén solo de lectura y sin notificaciones ni cron; si un texto que cambia ya no está tal cual, para. Las llamadas a la API de Vercel van por `.github/scripts/vercel-api.sh` (secretos `VERCEL_TOKEN`, `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID_BIDEPLUS`). El flujo hace también el mapa base de Bizkaia (`.github/scripts/mapa-base.sh`, guardado en caché por semana de OpenStreetMap) y, al acabar, comprueba que la prueba responde, sirve ese mapa a trozos, no se indexa y no da clave de notificaciones. Con «Aceptar el planificador» acepta un planificador que tarda más que el de producción.
 
 ## Flujos programados
 

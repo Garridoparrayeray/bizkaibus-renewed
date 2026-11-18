@@ -20,7 +20,7 @@
     {
       "src": "/(.*)",
       "headers": {
-        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
         "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
@@ -71,8 +71,15 @@
       "dest": "/api/index.php"
     },
     {
-      "src": "^/lib/leaflet/(.*)$",
+"src": "^/lib/leaflet/(.*)$",
       "dest": "/lib/leaflet-1.9.4/$1"
+    },
+    {
+      "src": "^/planificador/pantallas/(?:index[.]html)?$",
+      "status": 308,
+      "headers": {
+        "Location": "/"
+      }
     },
     {
       "src": "/sitemap.xml",
@@ -101,6 +108,10 @@
     },
     {
       "src": "/estado",
+      "dest": "/api/shell.php"
+    },
+    {
+      "src": "^/planificador/?$",
       "dest": "/api/shell.php"
     },
     {

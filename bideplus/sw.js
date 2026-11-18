@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v57';
+const CACHE_VERSION = 'v60';
 // Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
 // cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
 const SHELL_HASH = '';
@@ -10,6 +10,15 @@ const CACHE_NAME = shellCacheName;
 const API_CACHE_NAME = 'bizkaibus-api-' + CACHE_VERSION;
 // Los horarios sin conexión los guarda la página (js/offline.js) y no dependen de la versión: no se borran al actualizar.
 const OFFLINE_CACHE_NAME = 'bide-offline';
+// Los datos del planificador (horarios, calles y lugares) cambian cada día con los mismos nombres: los últimos que
+// llegaron, para usarlo sin conexión. Tampoco dependen de la versión.
+const PLANNER_DATA_CACHE_NAME = 'bide-planner-data';
+const PLANNER_DATA = /^\/planificador\/build\/data\//;
+// El código del planificador (pantallas, envoltorio y WebAssembly) entra en la huella (scripts/stamp-sw.php), como el
+// de la app; se guarda la primera vez que se abre, no al instalar.
+const PLANNER_CODE = /^\/planificador\/(pantallas|js|dist)\//;
+// Lo que el planificador del inicio escribe en la dirección (js/route/main.js): el inicio es uno para todas.
+const PLANNER_PARAMS = /^(de|a|cuando|dia|hora|orden|viaje)(_|$)/;
 // Con wifi lento, esperar a la red por la hoja de estilos o el script de la página nueva deja la pantalla congelada: el navegador no pinta la
 // página nueva hasta tenerlos, y mientras muestra el último fotograma de la anterior (con el «+» de carga parado).
 const SLOW_NETWORK_MS = 1500;
@@ -17,6 +26,8 @@ const SLOW_NETWORK_MS = 1500;
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 // Lo que nunca sale de la caché.
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|notice|app\/version)(\/|\?|$)/;
+// El mapa base (PMTiles) se lee a trozos (peticiones Range): directo de la red, sin pasar por la caché.
+const BASEMAP = /[.]pmtiles$/;
 const SHELL_FILES = [
     '/',
     '/css/style-networks.css',
@@ -33,6 +44,7 @@ const SHELL_FILES = [
     '/lib/leaflet-1.9.4/images/marker-icon.png',
     '/lib/leaflet-1.9.4/images/marker-icon-2x.png',
     '/lib/leaflet-1.9.4/images/marker-shadow.png',
+    '/lib/protomaps-leaflet/protomaps-leaflet.js',
     '/js/api.js',
     '/js/offline.js',
     '/js/bide-info.js',
@@ -69,6 +81,17 @@ const SHELL_FILES = [
     '/js/menu.js',
     '/js/menu-view.js',
     '/js/menu-favorites.js',
+    '/js/route/main.js',
+    '/js/route/live.js',
+    '/js/route/card.js',
+    '/js/route/common.js',
+    '/js/route/filters.js',
+    '/js/route/options.js',
+    '/js/route/share.js',
+    '/js/route/trip.js',
+    '/js/route/trip-map.js',
+    '/js/route/basemap.js',
+    '/js/planner-link.js',
     '/js/i18n.js',
     '/js/lang-offer.js',
     '/css/style-menu.css',
@@ -125,7 +148,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((key) => ![CACHE_NAME, API_CACHE_NAME, OFFLINE_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
+            Promise.all(keys.filter((key) => ![CACHE_NAME, API_CACHE_NAME, OFFLINE_CACHE_NAME, PLANNER_DATA_CACHE_NAME].includes(key)).map((key) => caches.delete(key)))
         )
     );
     self.clients.claim();
@@ -137,7 +160,11 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
         return;
     }
-    if (url.pathname.startsWith('/offline-data/')) {
+    if (url.pathname.startsWith('/offline-data/') || BASEMAP.test(url.pathname)) {
+        return;
+    }
+    if (PLANNER_DATA.test(url.pathname)) {
+        event.respondWith(plannerData(event, url));
         return;
     }
     if (url.pathname.startsWith('/api/')) {
@@ -163,13 +190,51 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     // Los ficheros de la app con huella no se vuelven a pedir: si cambia alguno, cambia la huella y llega la versión nueva entera.
-    if (SHELL_HASH && !url.search && SHELL_PATHS.has(url.pathname)) {
+    if (SHELL_HASH && !url.search && (SHELL_PATHS.has(url.pathname) || PLANNER_CODE.test(url.pathname))) {
         event.respondWith(cacheFirst(event.request));
         return;
     }
     // Hojas de estilo, scripts, tipografías e imágenes: salen de la caché al instante y se actualizan en segundo plano.
     event.respondWith(staleWhileRevalidate(event));
 });
+
+// Datos del planificador: de la red y, sin conexión (o con el servidor caído), los últimos guardados. Se guardan por
+// su ruta, sin la consulta (la versión de las teselas), y solo si han cambiado: no se reescriben megas en cada visita.
+function plannerData(event, url) {
+    const key = new Request(url.origin + url.pathname);
+    const saved = () => caches.open(PLANNER_DATA_CACHE_NAME).then((cache) => cache.match(key));
+    return fetch(event.request)
+        .then((response) => {
+            if (response.ok) event.waitUntil(keepPlannerData(key, response.clone()));
+            if (serverFailed(response)) return saved().then((hit) => hit || response);
+            return response;
+        })
+        .catch(() => saved().then((hit) => hit || Response.error()));
+}
+
+function versionOf(response) {
+    return response.headers.get('ETag') || response.headers.get('Last-Modified') || '';
+}
+
+async function keepPlannerData(key, response) {
+    const cache = await caches.open(PLANNER_DATA_CACHE_NAME);
+    const saved = await cache.match(key);
+    if (saved && versionOf(response) !== '' && versionOf(saved) === versionOf(response)) return;
+    await cache.put(key, response);
+}
+
+// La copia de una página: la del inicio es una para todas las consultas del planificador (las lee la página).
+function pageKey(request) {
+    const url = new URL(request.url);
+    if (url.pathname !== '/') return request;
+    const params = new URLSearchParams(url.search);
+    const planner = Array.from(params.keys()).filter((key) => PLANNER_PARAMS.test(key));
+    if (planner.length === 0) return request;
+    planner.forEach((key) => params.delete(key));
+    let key = url.origin + '/';
+    if (params.toString() !== '') key += '?' + params.toString();
+    return new Request(key);
+}
 
 // Servidor caído, saturado o sin cuota: mejor lo guardado que una página de error.
 function serverFailed(response) {
@@ -214,6 +279,7 @@ function fromOtherVersion(response) {
 
 // Páginas: la red manda, pero si tarda más de `timeoutMs` y hay copia, se usa la copia y la red la renueva.
 function networkFirst(request, timeoutMs) {
+    const key = pageKey(request);
     return new Promise((resolve) => {
         let settled = false;
         const settle = (response) => {
@@ -223,24 +289,24 @@ function networkFirst(request, timeoutMs) {
             }
         };
         const timer = setTimeout(() => {
-            caches.match(request).then((hit) => {
+            caches.match(key).then((hit) => {
                 if (hit) settle(hit);
             });
         }, timeoutMs);
-        const savedPage = () => caches.match(request).then((hit) => hit || appPageFallback(request));
+        const savedPage = () => caches.match(key).then((hit) => hit || appPageFallback(request));
         fetch(request)
             .then((response) => {
                 clearTimeout(timer);
                 if (fromOtherVersion(response)) {
                     self.registration.update().catch(() => {});
-                    caches.match(request).then((hit) => settle(hit || response));
+                    caches.match(key).then((hit) => settle(hit || response));
                     return;
                 }
                 if (serverFailed(response)) {
                     savedPage().then((hit) => settle(hit || response));
                     return;
                 }
-                saveInCache(request, response.clone());
+                saveInCache(key, response.clone());
                 settle(response);
             })
             .catch(() => {

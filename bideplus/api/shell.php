@@ -1,6 +1,6 @@
 <?php
-// Páginas HTML: el menú de Bide+ (/), el mapa de la red (/mapa), el estado de las redes (/estado), la pantalla de una
-// parada (/pantalla/{id}) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
+// Páginas HTML: el menú de Bide+ (/, con el planificador), el mapa de la red (/mapa), el estado de las redes (/estado),
+// la pantalla de una parada (/pantalla/{id}) y la app de cada red (/?red=, /stops/{id}, /lines/{id}).
 
 require __DIR__ . '/autoload.php';
 
@@ -37,6 +37,16 @@ if ($sShellHash !== '') {
 // Con ?lang=eu o ?lang=en, la página sale ya traducida: así los buscadores ven la versión en euskera y en inglés.
 $sLang = \Core\Lang::current();
 
+// El planificador está en el inicio: las direcciones viejas (/planificador?a=…) llevan a él con su consulta.
+if ($sPath === '/planificador' || $sPath === '/planificador/') {
+    $sLocation = '/';
+    $sQuery = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY);
+    if ($sQuery !== '') {
+        $sLocation .= '?' . $sQuery;
+    }
+    header('Location: ' . $sLocation, true, 308);
+    exit;
+}
 // Una sola dirección por página (Core\PagePath): las demás formas, con 301 a ella; lo que no es una página, 404. Una
 // ?red= que no existe lleva a la portada.
 $sCanonicalPath = \Core\PagePath::canonical($sPath);

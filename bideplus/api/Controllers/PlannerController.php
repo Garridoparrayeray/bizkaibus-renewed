@@ -1,0 +1,122 @@
+<?php
+
+namespace Controllers;
+
+use Core\Config;
+use Core\Database;
+use Core\Live;
+use Core\Networks;
+use Core\Request;
+use Core\Response;
+use Models\ServiceJourney;
+use Services\Calendar;
+use Services\PlannerExtras;
+
+// El directo del planificador del inicio (/api/planner/live?legs=red|parada|línea|hora|viaje,...): el retraso de
+// los vehículos de las opciones que se ven, con el emparejado de las próximas salidas de cada red, en el formato de la
+// operación «live» del núcleo. Lo que no va en directo no sale: el planificador lo deja con su horario. Y los refuerzos
+// (trenes que el horario no tiene) que pasan por las paradas de los tramos en las próximas 2 h, en «extras».
+class PlannerController
+{
+    private const MAX_LEGS = 40;
+    private const LEG_SEPARATOR = ',';
+    private const PART_SEPARATOR = '|';
+    private const LEG_PARTS = 5;
+    // Lo más que se cree que va adelantado un vehículo: un bus que espera en cabecera parece ir muy adelantado sin
+    // estarlo, y dar por hecho que pasa antes haría perderlo. Los retrasos van enteros.
+    private const MAX_ADVANCE_SECONDS = 120;
+
+    public function live(Request $Req, array $aParams): void
+    {
+        $aByNetwork = self::legsByNetwork((string)$Req->query('legs', ''));
+        if ($aByNetwork === null) {
+            Response::error('Invalid legs', 422);
+            return;
+        }
+        $aUpdates = [];
+        $aExtras = [];
+        $sCurrent = Config::network();
+        try {
+            foreach ($aByNetwork as $sNetwork => $aLegs) {
+                [$aNetworkUpdates, $aNetworkExtras] = self::networkLive($sNetwork, $aLegs, self::serviceDay());
+                array_push($aUpdates, ...$aNetworkUpdates);
+                array_push($aExtras, ...$aNetworkExtras);
+            }
+        } finally {
+            Config::set($sCurrent);
+        }
+        $aExtras = \array_slice($aExtras, 0, PlannerExtras::MAX_EXTRAS);
+        $aAnswer = ['day' => self::serviceDay(), 'generated' => time(), 'updates' => $aUpdates, 'extras' => $aExtras];
+        Response::json($aAnswer);
+    }
+
+    // red => parada => [[línea, hora en la parada, viaje]], de «red|parada|línea|hora|viaje» separados por comas (cada
+    // parte con su escape de URL). Las redes que la app no tiene se pasan por alto; null si sobran o hay uno mal escrito.
+    public static function legsByNetwork(string $sLegs): array|null
+    {
+        $aByNetwork = [];
+        if ($sLegs === '') {
+            return $aByNetwork;
+        }
+        $aItems = explode(self::LEG_SEPARATOR, $sLegs);
+        if (count($aItems) > self::MAX_LEGS) {
+            return null;
+        }
+        foreach ($aItems as $sItem) {
+            $aParts = array_map('rawurldecode', explode(self::PART_SEPARATOR, $sItem));
+            if (count($aParts) !== self::LEG_PARTS || in_array('', $aParts, true) || !ctype_digit($aParts[3])) {
+                return null;
+            }
+            [$sNetwork, $sStop, $sLine, $sSeconds, $sTrip] = $aParts;
+            if (Networks::exists($sNetwork)) {
+                $aByNetwork[$sNetwork][$sStop][] = [$sLine, (int)$sSeconds, $sTrip];
+            }
+        }
+        return $aByNetwork;
+    }
+
+    // Los viajes de una red que van en directo o cancelados, y sus refuerzos por las paradas de los tramos, con un
+    // solo emparejador. Si su directo falla, la red se queda con su horario y sin refuerzos.
+    private static function networkLive(string $sNetwork, array $aLegs, int $iDay): array
+    {
+        try {
+            Config::set($sNetwork);
+            $JourneyModel = new ServiceJourney(Database::connection());
+            $TripMatcher = Live::tripMatcher($JourneyModel);
+            $aUpdates = self::updatesOf($sNetwork, StopsController::liveLegs($aLegs, $JourneyModel, $TripMatcher),
+                $iDay);
+            $aExtras = PlannerExtras::atStops($sNetwork, $JourneyModel, $TripMatcher, array_keys($aLegs), $iDay);
+            return [$aUpdates, $aExtras];
+        } catch (\Throwable $Ex) {
+            error_log('Bide+ directo del planificador (' . $sNetwork . '): ' . $Ex->getMessage());
+            return [[], []];
+        }
+    }
+
+    // Cada viaje con su día de servicio ($iDay, hoy): los de ayer que siguen de madrugada, con el de ayer.
+    public static function updatesOf(string $sNetwork, array $aLive, int $iDay): array
+    {
+        $aUpdates = [];
+        foreach ($aLive as $sTrip => $aRow) {
+            $iTripDay = $iDay;
+            if (!empty($aRow['yesterday'])) {
+                $iTripDay = $iDay - 1;
+            }
+            $aTrip = ['network' => $sNetwork, 'trip' => (string)$sTrip, 'day' => $iTripDay];
+            if ($aRow['status'] === 'live') {
+                $iDelay = max(-self::MAX_ADVANCE_SECONDS, (int)$aRow['delaySeconds']);
+                $aUpdates[] = $aTrip + ['delay' => $iDelay, 'cancelled' => false];
+            } elseif ($aRow['status'] === 'cancelled') {
+                $aUpdates[] = $aTrip + ['delay' => 0, 'cancelled' => true];
+            }
+        }
+        return $aUpdates;
+    }
+
+    // El día de servicio de hoy como lo cuenta el planificador: días desde el 1 de enero de 1970.
+    private static function serviceDay(): int
+    {
+        $Midnight = new \DateTimeImmutable(Calendar::todayMadrid()->format('Y-m-d'), new \DateTimeZone('UTC'));
+        return intdiv($Midnight->getTimestamp(), Calendar::DAY_SECONDS);
+    }
+}

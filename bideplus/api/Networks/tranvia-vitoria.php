@@ -134,6 +134,19 @@ return [
         'http_timeout_seconds' => 8,
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'all',
+        'stops' => 'all',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => 'https://www.euskotren.eus/es/tranvia/accesibilidad',
+        'checked' => '2026-11-15',
+        'note' => 'Todas las paradas son accesibles al cien por cien y los tranvías son de piso bajo.',
+    ],
+
     'gtfs' => [
         // Publica solo los próximos días y lo renueva a diario: el resumen del flujo avisa y falla con 2 días o menos.
         'expiry_alert_days' => 2,

@@ -126,6 +126,20 @@ return [
         'http_timeout_seconds' => 8,
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'all',
+        'stops' => 'some',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => null,
+        'checked' => null,
+        'note' => 'El GTFS marca todos los viajes como accesibles y parte de las paradas; las paradas sin dato no '
+            . 'cuentan.',
+    ],
+
     'gtfs' => [
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del

@@ -7,7 +7,9 @@
 
 declare(strict_types=1);
 
-const SHELL_DIRS = ['css', 'js', 'lib', 'fonts'];
+// Con el código del planificador (lo pone el despliegue): si cambian sus pantallas o su núcleo, cambia la huella. Sus
+// datos no, que cambian cada día y el service worker guarda aparte.
+const SHELL_DIRS = ['css', 'js', 'lib', 'fonts', 'planificador/pantallas', 'planificador/js', 'planificador/dist'];
 const SHELL_ROOT_PATTERNS = ['*.css', '*.html', 'manifest*.json'];
 
 // Rutas relativas, ordenadas, de todo lo que el service worker puede servir sin volver a pedir.

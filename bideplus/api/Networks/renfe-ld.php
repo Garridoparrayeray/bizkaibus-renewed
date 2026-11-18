@@ -143,6 +143,19 @@ return [
         'operator_wide' => ['area_pattern' => '/^(\d+)T/', 'min_areas' => 3, 'home_areas' => ['60', '61']],
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'unknown',
+        'stops' => 'unknown',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => null,
+        'checked' => null,
+        'note' => 'Sin fuente oficial comprobada: vale lo que diga el GTFS.',
+    ],
+
     'gtfs' => [
         'source' => 'https://opendata.euskadi.eus/transport/moveuskadi/renfe_media/gtfs_renfe_media.zip',
         'fallback_source' => null,

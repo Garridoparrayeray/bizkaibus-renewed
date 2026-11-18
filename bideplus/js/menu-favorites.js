@@ -2,7 +2,6 @@
     'use strict';
 
     const KEY = 'bide_fav_networks';
-    const DEFAULT_COUNT = 4;
     const section = document.getElementById('tr');
     const favList = document.getElementById('tiles-fav');
     const restList = document.getElementById('tiles-rest');
@@ -45,10 +44,9 @@
         } catch (e) {
             saved = null;
         }
+        // Sin elegir, las de la página (Networks::defaultFavorites), que son también las del planificador.
         if (!Array.isArray(saved)) {
-            return order.filter(function (slug) {
-                return !localSlugs.includes(slug);
-            }).slice(0, DEFAULT_COUNT);
+            saved = (favList.getAttribute('data-default') || '').split(',');
         }
         return saved.filter(function (slug) {
             return order.includes(slug);

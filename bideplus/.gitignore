@@ -14,3 +14,12 @@ __pycache__/
 /engine
 map-data/
 offline-data/
+
+# Las bases de las redes van en la release «bases» (scripts/fetch-databases.php las baja); villavesas sigue aquí.
+# También lo que dejan a medias (.bajando, -journal, -wal).
+data/*.sqlite*
+!data/villavesas.sqlite
+data/bases.json
+# Lo genera scripts/build-planner.php (en producción lo pone el despliegue).
+/planificador/
+/docs/

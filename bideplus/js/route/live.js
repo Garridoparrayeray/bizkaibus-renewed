@@ -1,0 +1,238 @@
+// El directo del planificador del inicio: pide a /api/planner/live el retraso de los vehículos de las opciones que se
+// ven y del viaje elegido y los refuerzos (trenes sin horario) que pasan por sus paradas, se lo pasa al núcleo
+// (operación live) y avisa para repetir la búsqueda. Se refresca cada
+// 30 s con la pestaña a la vista y se para en segundo plano. Si falla, todo sigue con el horario. Aparte, sin esperar,
+// pide a /api/reduced, red a red, si las redes de lo que se ve tienen servicio reducido (huelga, servicios mínimos).
+import * as engine from '/planificador/pantallas/engine.js';
+import { nowHere } from '/planificador/pantallas/query.js';
+import { ridesIn } from './common.js';
+
+const LIVE_URL = '/api/planner/live';
+const REFRESH_MS = 30000;
+const TIMEOUT_MS = 8000;
+// Un dato que no se renueva en dos vueltas deja de valer: el vehículo vuelve a su horario.
+const STALE_MS = 2 * REFRESH_MS;
+// Los tramos que caben en una petición (los que acepta la API) y hasta cuándo se pregunta: más allá no hay directo.
+const MAX_LEGS = 40;
+const SECONDS_PER_DAY = 86400;
+const AHEAD_SECONDS = 2 * 3600;
+const LEG_SEPARATOR = ',';
+const PART_SEPARATOR = '|';
+
+const live = {
+    entries: new Map(), asked: new Map(), extras: { at: 0, list: [] }, sent: '', sentFull: '', running: null, timer: 0,
+    last: 0, sources: null, changed: null, reduced: new Map(), reducedChanged: null,
+};
+// El servicio reducido de cada red se vuelve a pedir pasado este tiempo.
+const REDUCED_URL = '/api/reduced?red=';
+const REDUCED_MS = 5 * 60 * 1000;
+
+const keyOf = (sNetwork, sTrip, iDay) => sNetwork + PART_SEPARATOR + sTrip + PART_SEPARATOR + iDay;
+
+// Lo que dice el directo del vehículo de un tramo ({ delay, cancelled }), o null si va con su horario.
+export const liveEntry = (leg, iDay) => {
+    const entry = live.entries.get(keyOf(leg.network, leg.trip, iDay + leg.day_shift));
+    if (!entry || Date.now() - entry.at > STALE_MS) {
+        return null;
+    }
+    return entry.update;
+};
+
+// Los tramos que salen pronto o van ya en marcha, uno por vehículo, con su parada, línea y hora sin retraso. Los de hoy
+// y, de madrugada, los de ayer que pasan de las 24:00; la hora va en la de su día de servicio (25:10, no 01:10), como
+// en las bases.
+const wantedLegs = () => {
+    const here = nowHere();
+    const wanted = new Map();
+    live.sources().forEach((source) => {
+        const iOffset = (source.day - here.day) * SECONDS_PER_DAY;
+        ridesIn(source.legs).forEach((leg) => {
+            const iServiceDay = source.day + leg.day_shift;
+            const bRunning = iServiceDay === here.day || iServiceDay === here.day - 1;
+            const bSoon = leg.depart + iOffset <= here.seconds + AHEAD_SECONDS && leg.arrive + iOffset >= here.seconds;
+            const sKey = keyOf(leg.network, leg.trip, iServiceDay);
+            if (bRunning && bSoon && !wanted.has(sKey)) {
+                wanted.set(sKey, { key: sKey, network: leg.network, stop: leg.from.id, line: leg.line.code,
+                    depart: leg.scheduled_depart - leg.day_shift * SECONDS_PER_DAY, trip: leg.trip });
+            }
+        });
+    });
+    return Array.from(wanted.values()).slice(0, MAX_LEGS);
+};
+
+// Las redes de lo que se ve, aunque salga más tarde o otro día.
+const wantedNetworks = () => {
+    const networks = new Set();
+    live.sources().forEach((source) => ridesIn(source.legs).forEach((leg) => networks.add(leg.network)));
+    return Array.from(networks);
+};
+
+// El servicio reducido de una red (lo de /api/reduced), o null si no se sabe.
+export const reducedOf = (sNetwork) => (live.reduced.get(sNetwork) || {}).value || null;
+
+// Si la línea (su id) de esa red tiene servicio reducido el día del planificador iDay (días desde el 1 de enero de 1970).
+export const reducedOn = (sNetwork, iDay, sLine) => {
+    const reduced = reducedOf(sNetwork);
+    const sDate = new Date(iDay * SECONDS_PER_DAY * 1000).toISOString().slice(0, 10);
+    if (!reduced || !reduced.days.includes(sDate)) {
+        return false;
+    }
+    return !Array.isArray(reduced.lines) || reduced.lines.map(String).includes(String(sLine));
+};
+
+// Pide, sin esperar, el servicio reducido de las redes que se ven y no se han pedido hace poco: cada una por su lado,
+// y al llegar una que cambia, reducedChanged() repinta.
+export const refreshReduced = () => {
+    wantedNetworks().filter((sNetwork) => !live.reduced.has(sNetwork) || Date.now() - live.reduced.get(sNetwork).at > REDUCED_MS)
+        .forEach(async (sNetwork) => {
+            const entry = { at: Date.now(), value: reducedOf(sNetwork) };
+            live.reduced.set(sNetwork, entry);
+            const abort = new AbortController();
+            const iTimer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+            try {
+                const response = await fetch(REDUCED_URL + encodeURIComponent(sNetwork), { signal: abort.signal });
+                const value = await response.json();
+                if (response.ok && Array.isArray(value.days) && JSON.stringify(value) !== JSON.stringify(entry.value)) {
+                    entry.value = value;
+                    live.reducedChanged();
+                }
+            } catch (error) {
+                entry.at = 0;
+            } finally {
+                clearTimeout(iTimer);
+            }
+        });
+};
+
+// Si hay tramos por los que aún no se ha preguntado (o hace mucho): pasa al repetir la búsqueda con el directo.
+export const unaskedLegs = () => wantedLegs().some((leg) => !live.asked.has(leg.key) || Date.now() - live.asked.get(leg.key) > REFRESH_MS);
+
+const legsParam = (aLegs) => aLegs.map((leg) => [leg.network, leg.stop, leg.line, leg.depart, leg.trip].map(encodeURIComponent).join(PART_SEPARATOR))
+    .join(LEG_SEPARATOR);
+
+const download = async (aLegs) => {
+    const abort = new AbortController();
+    const iTimer = setTimeout(() => abort.abort(), TIMEOUT_MS);
+    try {
+        const response = await fetch(LIVE_URL + '?legs=' + encodeURIComponent(legsParam(aLegs)), { signal: abort.signal });
+        if (!response.ok) {
+            return null;
+        }
+        const answer = await response.json();
+        if (!Array.isArray(answer.updates) || answer.day !== nowHere().day) {
+            return null;
+        }
+        return answer;
+    } catch (error) {
+        return null;
+    } finally {
+        clearTimeout(iTimer);
+    }
+};
+
+// Lo preguntado sin dato vuelve a su horario; lo que llega se apunta con su hora. Los refuerzos de cada respuesta
+// sustituyen a los de la anterior, cada uno con su día de servicio (sin él, el de la respuesta).
+const remember = (aLegs, answer) => {
+    const iNow = Date.now();
+    let aExtras = [];
+    if (Array.isArray(answer.extras)) {
+        aExtras = answer.extras.map((extra) => Object.assign({ day: answer.day }, extra));
+    }
+    live.extras = { at: iNow, list: aExtras };
+    aLegs.forEach((leg) => {
+        live.asked.set(leg.key, iNow);
+        live.entries.delete(leg.key);
+    });
+    // Cada viaje con su día de servicio (el de ayer, de madrugada); sin él, el de hoy.
+    answer.updates.forEach((update) => {
+        const full = Object.assign({ day: answer.day }, update);
+        live.entries.set(keyOf(full.network, full.trip, full.day), { at: iNow, update: full });
+    });
+};
+
+// Manda al núcleo lo que vale ahora. true si ha cambiado algo que pide repetir la búsqueda: los retrasos o qué
+// refuerzos hay, no sus horas (la ETA de un refuerzo se mueve en cada refresco; se le pasan igual al núcleo).
+const apply = async () => {
+    const iNow = Date.now();
+    live.entries.forEach((entry, sKey) => {
+        if (iNow - entry.at > STALE_MS) {
+            live.entries.delete(sKey);
+        }
+    });
+    if (iNow - live.extras.at > STALE_MS) {
+        live.extras = { at: 0, list: [] };
+    }
+    const aUpdates = Array.from(live.entries.values()).map((entry) => entry.update);
+    const aDelays = aUpdates.map((update) => [update.network, update.trip, update.day, update.delay, update.cancelled])
+        .sort();
+    const sSent = JSON.stringify([aDelays, live.extras.list.map((extra) => [extra.network, extra.trip]).sort()]);
+    const sFull = JSON.stringify([aDelays, live.extras.list]);
+    if (sFull === live.sentFull) {
+        return false;
+    }
+    const bChanged = sSent !== live.sent;
+    live.sent = sSent;
+    live.sentFull = sFull;
+    const here = nowHere();
+    await engine.setLive(here.day, aUpdates, live.extras.list, here.seconds).catch(() => null);
+    return bChanged;
+};
+
+const refresh = async () => {
+    const aLegs = wantedLegs();
+    if (aLegs.length > 0) {
+        const answer = await download(aLegs);
+        if (answer) {
+            remember(aLegs, answer);
+        }
+    }
+    live.last = Date.now();
+    return apply();
+};
+
+// Pide el directo de lo que se ve y lo aplica: true si ha cambiado. Si ya hay una petición en marcha, es esa.
+export const refreshLive = () => {
+    if (!live.running) {
+        live.running = refresh().finally(() => {
+            live.running = null;
+        });
+    }
+    return live.running;
+};
+
+const tick = async () => {
+    clearTimeout(live.timer);
+    if (document.hidden) {
+        return;
+    }
+    refreshReduced();
+    if (await refreshLive()) {
+        await live.changed();
+    }
+    scheduleLive();
+};
+
+// Vuelve a empezar la cuenta de 30 s (después de una búsqueda o de abrir un viaje).
+export const scheduleLive = () => {
+    clearTimeout(live.timer);
+    if (!document.hidden) {
+        live.timer = setTimeout(tick, REFRESH_MS);
+    }
+};
+
+// sources() da lo que se ve ([{ legs, day }]); changed() repite la búsqueda y repinta cuando cambia el directo;
+// reducedChanged() solo repinta, cuando cambia el servicio reducido de alguna red.
+export const initLive = (sources, changed, reducedChanged) => {
+    Object.assign(live, { sources, changed, reducedChanged });
+    document.addEventListener('visibilitychange', () => {
+        clearTimeout(live.timer);
+        if (document.hidden || live.last === 0) {
+            return;
+        }
+        if (Date.now() - live.last >= REFRESH_MS) {
+            tick();
+            return;
+        }
+        live.timer = setTimeout(tick, REFRESH_MS - (Date.now() - live.last));
+    });
+};

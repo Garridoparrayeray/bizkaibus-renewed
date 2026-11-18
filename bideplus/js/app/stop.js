@@ -1,5 +1,5 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection, updateTitle } from './navigation.js';
@@ -75,14 +75,20 @@ export async function selectStop(stopId) {
     syncPageContent('stop', stop.id);
     updateTitle();
     const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
+    const planTo = PlannerLink.url('to', NETWORK_SLUG, stop.id, stop.name);
+    const planFrom = PlannerLink.url('from', NETWORK_SLUG, stop.id, stop.name);
     if (HAS_PLATFORMS) {
         updateFavoriteButton(el.platformFavorite, 'stop', stop.id);
         el.platformScreen.href = screenUrl;
+        el.platformPlanTo.href = planTo;
+        el.platformPlanFrom.href = planFrom;
         el.platformPanelStop.textContent = stop.name;
         el.platformPanel.hidden = false;
     } else {
         updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
         el.liveScreen.href = screenUrl;
+        el.livePlanTo.href = planTo;
+        el.livePlanFrom.href = planFrom;
         el.liveCard.hidden = false;
     }
     if (state.currentLine && state.timetableStopId === null) {

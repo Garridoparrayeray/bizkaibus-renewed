@@ -84,7 +84,7 @@ class PlatformMatcher
     }
 
     // Un tren sin horario por la parada, el andén (null: cualquiera) y la hora de su clave: el más cercano a esa hora,
-    // con sus paradas, el recorrido donde mejor cabe, su línea y su destino. Null si ya no está.
+    // con sus paradas, el recorrido donde mejor cabe, su línea, su destino y su id en el feed. Null si ya no está.
     public function unscheduledTrain(string $sStopId, int $iArrivalTime, string|null $sPlatformStopId): array|null
     {
         $aView = $this->view($sStopId);
@@ -108,6 +108,7 @@ class PlatformMatcher
             'stops' => ($aFits[$aView['terminals'][$sPattern]] ?? reset($aFits))['stops'],
             'sequence' => $aView['sequences'][$sPattern], 'line_code' => $aExtra['line_code'],
             'line_name' => $aExtra['line_name'], 'headsign' => $aExtra['headsign'],
+            'trip_id' => (string)($this->aTrains[$aView['unmatched'][$iBest]['train']]['tripId'] ?? ''),
         ];
     }
 

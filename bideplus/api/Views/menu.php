@@ -159,29 +159,7 @@ $aJsonLd = [
             </div>
         </header>
 
-        <section class="planner" aria-labelledby="planner-title">
-            <div class="planner-head">
-                <h2 id="planner-title" data-i18n="menu.planner.title">¿A dónde vas?</h2>
-                <span class="planner-soon" data-i18n="bide.upcoming.title">Próximamente</span>
-            </div>
-            <div class="planner-body" inert aria-hidden="true">
-                <div class="planner-places">
-                    <p class="planner-place"><span class="planner-dot planner-dot--from"></span><span data-i18n="menu.planner.from">Tu ubicación</span></p>
-                    <p class="planner-place planner-place--to"><span class="planner-dot planner-dot--to"></span><span data-i18n="menu.planner.to">Destino: parada, calle o sitio</span></p>
-                    <span class="planner-swap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4V20M12 8L8 4L4 8M16 20V4M20 16L16 20L12 16"/></svg></span>
-                </div>
-                <div class="planner-when">
-                    <span data-i18n="menu.planner.now">Ahora</span>
-                    <span data-i18n="menu.planner.leave">Salir a</span>
-                    <span class="is-on" data-i18n="menu.planner.arrive">Llegar a</span>
-                </div>
-                <div class="planner-time">
-                    <span><span data-i18n="menu.planner.today">Hoy</span><span aria-hidden="true">▾</span></span>
-                    <span><strong data-i18n="menu.planner.arriveAt">Llegar 09:00</strong><span aria-hidden="true">▾</span></span>
-                </div>
-                <span class="planner-go" data-i18n="menu.planner.search">Buscar ruta</span>
-            </div>
-        </section>
+<?php require __DIR__ . '/route-planner.php'; ?>
 
         <section id="tr" class="menu-apps" data-i18n-attr="aria-label:menu.section">
             <div class="nets-head">
@@ -189,7 +167,7 @@ $aJsonLd = [
                 <button type="button" id="nets-edit" class="nets-edit" aria-pressed="false" data-i18n="menu.nets.edit">Editar</button>
             </div>
             <p id="nets-hint" class="nets-hint" data-i18n="menu.nets.hint" hidden>Toca «Añadir» en las redes que uses. Con «Quitar» dejan de salir aquí arriba.</p>
-            <ul class="tiles" id="tiles-fav">
+            <ul class="tiles" id="tiles-fav" data-default="<?= implode(',', \Core\Networks::defaultFavorites()) ?>">
 <?php foreach (\Core\Networks::all() as $sSlug => $aNetwork):
     $sName = \Core\Networks::text($aNetwork, 'name');
     $sIcon = '/' . $aNetwork['brand']['icons'] . '/icon-192.png'; ?>
@@ -263,5 +241,6 @@ $aJsonLd = [
     <script src="/js/offline.js" defer></script>
     <script src="/js/bide-info.js" defer></script>
     <script type="module" src="/js/settings.js"></script>
+    <script type="module" src="/js/route/main.js"></script>
 </body>
 </html>

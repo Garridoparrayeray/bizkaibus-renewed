@@ -22,7 +22,8 @@ class Schema
                 lat REAL NOT NULL,
                 lon REAL NOT NULL,
                 station_id TEXT,
-                platform_label TEXT
+                platform_label TEXT,
+                wheelchair_boarding INTEGER NOT NULL DEFAULT 0
             )
         ');
         $Pdo->exec('
@@ -57,7 +58,8 @@ class Schema
                 trip_number TEXT,
                 calendar_id TEXT NOT NULL,
                 first_departure_seconds INTEGER,
-                shape_id TEXT
+                shape_id TEXT,
+                wheelchair_accessible INTEGER NOT NULL DEFAULT 0
             )
         ');
         $Pdo->exec('
@@ -217,8 +219,10 @@ class Schema
             $aStopsOf[$aRow['service_journey_id']][$aRow['stop_id']] = $aRow['arrival_seconds'];
         }
         $aGroups = [];
-        foreach ($Pdo->query('SELECT id, calendar_id FROM service_journeys') as $aRow) {
+        $aWheelchair = [];
+        foreach ($Pdo->query('SELECT id, calendar_id, wheelchair_accessible FROM service_journeys') as $aRow) {
             $aGroups[substr($aRow['id'], 0, $iNumberLength) . '#' . $aRow['calendar_id']][] = $aRow['id'];
+            $aWheelchair[$aRow['id']] = [(int)$aRow['wheelchair_accessible']];
         }
         $aDuplicates = [];
         foreach ($aGroups as $aIds) {
@@ -245,11 +249,16 @@ class Schema
         $Repoint = $Pdo->prepare('UPDATE trip_aliases SET service_journey_id = ? WHERE service_journey_id = ?');
         $Delete = $Pdo->prepare('DELETE FROM service_journeys WHERE id = ?');
         $DeleteTimes = $Pdo->prepare('DELETE FROM passing_times WHERE service_journey_id = ?');
+        $SetWheelchair = $Pdo->prepare('UPDATE service_journeys SET wheelchair_accessible = ? WHERE id = ?');
         foreach ($aDuplicates as $sDuplicateId => $sKeptId) {
             $Repoint->execute([$sKeptId, $sDuplicateId]);
             $Alias->execute([$sDuplicateId, $sKeptId]);
             $DeleteTimes->execute([$sDuplicateId]);
             $Delete->execute([$sDuplicateId]);
+            $aWheelchair[$sKeptId][] = $aWheelchair[$sDuplicateId][0];
+        }
+        foreach (array_unique($aDuplicates) as $sKeptId) {
+            $SetWheelchair->execute([Gtfs::mergedWheelchair($aWheelchair[$sKeptId]), $sKeptId]);
         }
         $Pdo->exec('DELETE FROM journey_patterns WHERE id NOT IN (SELECT journey_pattern_id FROM service_journeys)');
         $Pdo->exec('DELETE FROM journey_pattern_stops WHERE journey_pattern_id NOT IN (SELECT id FROM journey_patterns)');
@@ -316,8 +325,9 @@ class Schema
     public static function insertStops(PDO $Pdo, array $aStops): void
     {
         $Stmt = $Pdo->prepare('
-            INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon, station_id, platform_label)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO stops (id, name, name_normalized, area, area_normalized, lat, lon, station_id, platform_label,
+                wheelchair_boarding)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
         foreach ($aStops as $iId => $aStop) {
             $sArea = '';
@@ -335,6 +345,7 @@ class Schema
             $Stmt->execute([
                 $iId, $aStop['name'], Search::normalize($aStop['name']), $sArea, Search::normalize($sArea),
                 $aStop['lat'], $aStop['lon'], $sStationId, $sPlatformLabel,
+                $aStop['wheelchair'] ?? Gtfs::WHEELCHAIR_UNKNOWN,
             ]);
         }
     }

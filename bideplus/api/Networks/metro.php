@@ -175,6 +175,21 @@ return [
         'colors' => ['L1' => '#F26722', 'L2' => '#1D1D1B'],
     ],
 
+    // Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; gtfs, trust|ignore.
+    // El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con unknown_stops_with_accessible_fleet = yes,
+    // las paradas sin dato de una flota toda accesible cuentan como accesibles.
+    'accessibility' => [
+        'fleet' => 'all',
+        'stops' => 'all',
+        'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no',
+        'source' => 'https://cms.metrobilbao.eus/sites/default/files/2025-03/METRO%20accesibilidad-cast_2.pdf',
+        'checked' => '2026-11-15',
+        'note' => 'Todas las estaciones son accesibles para personas con movilidad reducida, con prioridad en los '
+            . 'ascensores. Las rampas y perfiles de goma para el hueco entre tren y andén, en fase de '
+            . 'implantación.',
+    ],
+
     'gtfs' => [
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del

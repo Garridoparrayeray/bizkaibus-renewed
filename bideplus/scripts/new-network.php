@@ -888,6 +888,13 @@ function config(array $aSet): string
     if (isset($aRt['trip_updates_url']) && $aSet['platform-matching'] && $aPlatforms !== null) {
         $aConfig['gtfs_rt']['platform_matching'] = $aPlatforms['value'];
     }
+    $aConfig['accessibility'] = ['fleet' => 'unknown', 'stops' => 'unknown', 'gtfs' => 'trust',
+        'unknown_stops_with_accessible_fleet' => 'no', 'source' => null, 'checked' => null,
+        'note' => 'Sin fuente oficial comprobada: vale lo que diga el GTFS.'];
+    $aComments['accessibility'] = 'Silla de ruedas, para el planificador (build-packs): fleet y stops, all|some|unknown; '
+        . 'gtfs, trust|ignore. El GTFS (1 o 2) manda salvo con ignore, y esto nunca dice «no». Con '
+        . 'unknown_stops_with_accessible_fleet = yes, las paradas sin dato de una flota toda accesible cuentan como '
+        . 'accesibles.';
     $aConfig['gtfs'] = $aGtfs;
     $sPhp = phpValue($aConfig, '');
     foreach ($aComments as $sKey => $sComment) {

@@ -17,7 +17,9 @@ Desde agosto de 2026 Vercel arranca las funciones con un cargador que importa el
   arrancado el servidor antes de que abra el puerto y las que llegaban entonces fallaban con ECONNREFUSED. Si PHP se
   cae, se vuelve a arrancar, y una petición que no llegó a PHP (conexión rechazada) se repite una vez;
 - las bases de datos y lo que no se publica (data/, scripts/, tests/, engine/) no se suben como ficheros estáticos:
-  las rutas ya no los sirven y solo los lee la función.
+  las rutas ya no los sirven y solo los lee la función;
+- el planificador (planificador/ y sus fuentes en docs/) va solo como ficheros estáticos, y la parte del planificador
+  y los manuales del motor (engine/planner, engine/docs) no se suben: la función no los lee.
 
 Uso: python3 scripts/vercel-launcher.py [carpeta .vercel/output]   (por defecto, la de este proyecto)
 """
@@ -42,6 +44,9 @@ LARGE_LIMIT_MB = 5000
 # Al pasar de este trozo del tope de las funciones grandes, solo un aviso: el despliegue sigue.
 LARGE_WARN_SHARE = 0.9
 NOT_PUBLISHED = ('data', 'scripts', 'tests', 'engine')
+# vercel-php mete en la función todo el proyecto bajo user/ (sin mirar .vercelignore) y la función no lee esto: el
+# planificador solo va como estático y la parte del planificador y los manuales del motor no van.
+NOT_IN_FUNCTION = ('user/planificador/', 'user/docs/', 'user/engine/planner/', 'user/engine/docs/')
 
 ADAPTER = r'''
 /* --- adaptador de Bide+ para el lanzador de Vercel --- */
@@ -210,6 +215,9 @@ def patch_function(func_dir):
     file_map.pop('launcher.js', None)
     for key in [k for k in file_map if is_version_control(k) or is_version_control(file_map[k])]:
         del file_map[key]
+    not_in_function = [k for k in file_map if k.startswith(NOT_IN_FUNCTION)]
+    for key in not_in_function:
+        del file_map[key]
     removed_libs = 0
     if 'php/php.ini' in file_map:
         removed_libs = trim_php(func_dir, file_map)
@@ -219,7 +227,8 @@ def patch_function(func_dir):
         json.dump(config, f, indent=2)
         f.write('\n')
     size = sum(os.path.getsize(v) for v in file_map.values() if os.path.exists(v))
-    print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías fuera; {size / 1e6:.0f} MB')
+    print(f'{func_dir}: handler launcher.js con el adaptador; {removed_libs} librerías y {len(not_in_function)} ficheros '
+          f'que no lee fuera; {size / 1e6:.0f} MB')
     if size / 1e6 > LARGE_LIMIT_MB * LARGE_WARN_SHARE:
         print(f'::warning::La función pesa {size / 1e6:.0f} MB, cerca de los {LARGE_LIMIT_MB} MB de las funciones '
               'grandes de Vercel: hay que aligerarla antes de que no se pueda desplegar.')

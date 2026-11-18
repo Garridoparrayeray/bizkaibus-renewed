@@ -1,0 +1,314 @@
+{
+  "about": "Consultas fijas que tests/planner-check.php hace al planificador antes de cada despliegue (lat,lon). Las de «network» van solo en esa red (--only) y tienen que usarla; «places» busca por nombre en el índice de lugares.",
+  "queries": [
+    {
+      "id": "irun-bilbao-08",
+      "from": "43.3392,-1.8006",
+      "to": "43.2630,-2.9350",
+      "time": "08:00"
+    },
+    {
+      "id": "donostia-gasteiz-08",
+      "from": "43.3227,-1.9845",
+      "to": "42.8467,-2.6727",
+      "time": "08:00"
+    },
+    {
+      "id": "bilbao-getxo-08",
+      "from": "43.2609,-2.9273",
+      "to": "43.3497,-3.0094",
+      "time": "08:00"
+    },
+    {
+      "id": "irun-bilbao-13",
+      "from": "43.3392,-1.8006",
+      "to": "43.2630,-2.9350",
+      "time": "13:00"
+    },
+    {
+      "id": "donostia-gasteiz-13",
+      "from": "43.3227,-1.9845",
+      "to": "42.8467,-2.6727",
+      "time": "13:00"
+    },
+    {
+      "id": "bilbao-getxo-13",
+      "from": "43.2609,-2.9273",
+      "to": "43.3497,-3.0094",
+      "time": "13:00"
+    },
+    {
+      "id": "irun-bilbao-18",
+      "from": "43.3392,-1.8006",
+      "to": "43.2630,-2.9350",
+      "time": "18:00"
+    },
+    {
+      "id": "donostia-gasteiz-18",
+      "from": "43.3227,-1.9845",
+      "to": "42.8467,-2.6727",
+      "time": "18:00"
+    },
+    {
+      "id": "bilbao-getxo-18",
+      "from": "43.2609,-2.9273",
+      "to": "43.3497,-3.0094",
+      "time": "18:00"
+    },
+    {
+      "id": "bilbao-moyua-santutxu-08",
+      "from": "43.2630,-2.9350",
+      "to": "43.2530,-2.9170",
+      "time": "08:00"
+    },
+    {
+      "id": "bilbao-deusto-atxuri-13",
+      "from": "43.2710,-2.9470",
+      "to": "43.2540,-2.9200",
+      "time": "13:00"
+    },
+    {
+      "id": "bilbao-indautxu-otxarkoaga-18",
+      "from": "43.2605,-2.9420",
+      "to": "43.2640,-2.9050",
+      "time": "18:00"
+    },
+    {
+      "id": "donostia-boulevard-antiguo-08",
+      "from": "43.3227,-1.9845",
+      "to": "43.3145,-2.0060",
+      "time": "08:00"
+    },
+    {
+      "id": "donostia-amara-gros-13",
+      "from": "43.3080,-1.9760",
+      "to": "43.3240,-1.9750",
+      "time": "13:00"
+    },
+    {
+      "id": "donostia-antiguo-intxaurrondo-18",
+      "from": "43.3145,-2.0060",
+      "to": "43.3170,-1.9500",
+      "time": "18:00"
+    },
+    {
+      "id": "gasteiz-centro-lakua-08",
+      "from": "42.8467,-2.6727",
+      "to": "42.8650,-2.6830",
+      "time": "08:00"
+    },
+    {
+      "id": "gasteiz-estacion-salburua-13",
+      "from": "42.8415,-2.6728",
+      "to": "42.8540,-2.6390",
+      "time": "13:00"
+    },
+    {
+      "id": "gasteiz-zabalgana-centro-18",
+      "from": "42.8530,-2.7100",
+      "to": "42.8467,-2.6727",
+      "time": "18:00"
+    },
+    {
+      "id": "iruna-autobuses-castillo-08",
+      "from": "42.8110,-1.6500",
+      "to": "42.8180,-1.6430",
+      "time": "08:00",
+      "walk_only_ok": true,
+      "note": "Villavesas está fuera del planificador (decisión del dueño): solo prueba la tabla de andar en Iruña."
+    },
+    {
+      "id": "llegar-bilbao-getxo-09",
+      "from": "43.2609,-2.9273",
+      "to": "43.3497,-3.0094",
+      "time": "09:00",
+      "arrive": true
+    },
+    {
+      "id": "llegar-irun-bilbao-20",
+      "from": "43.3392,-1.8006",
+      "to": "43.2630,-2.9350",
+      "time": "20:00",
+      "arrive": true
+    },
+    {
+      "id": "llegar-donostia-gasteiz-12",
+      "from": "43.3227,-1.9845",
+      "to": "42.8467,-2.6727",
+      "time": "12:00",
+      "arrive": true
+    },
+    {
+      "id": "llegar-gasteiz-centro-lakua-08",
+      "from": "42.8467,-2.6727",
+      "to": "42.8650,-2.6830",
+      "time": "08:30",
+      "arrive": true
+    },
+    {
+      "id": "accesible-bilbao-moyua-santutxu-10",
+      "from": "43.2630,-2.9350",
+      "to": "43.2530,-2.9170",
+      "time": "10:00",
+      "accessible": true
+    },
+    {
+      "id": "accesible-bilbao-getxo-10",
+      "from": "43.2609,-2.9273",
+      "to": "43.3497,-3.0094",
+      "time": "10:00",
+      "accessible": true
+    },
+    {
+      "id": "accesible-donostia-boulevard-antiguo-10",
+      "from": "43.3227,-1.9845",
+      "to": "43.3145,-2.0060",
+      "time": "10:00",
+      "accessible": true
+    },
+    {
+      "id": "accesible-irun-bilbao-10",
+      "from": "43.3392,-1.8006",
+      "to": "43.2630,-2.9350",
+      "time": "10:00",
+      "accessible": true
+    },
+    {
+      "id": "hendaia-baiona-09",
+      "from": "43.3530,-1.7830",
+      "to": "43.4960,-1.4700",
+      "time": "09:00"
+    },
+    {
+      "id": "bilbao-gasteiz-09",
+      "from": "43.2609,-2.9273",
+      "to": "42.8467,-2.6727",
+      "time": "09:00"
+    },
+    {
+      "id": "donostia-baiona-15",
+      "from": "43.3227,-1.9845",
+      "to": "43.4960,-1.4700",
+      "time": "15:00"
+    },
+    {
+      "id": "red-bus-bilbao-mungia",
+      "from": "43.2630,-2.9350",
+      "to": "43.3546,-2.8466",
+      "time": "09:00",
+      "network": "bus"
+    },
+    {
+      "id": "red-metro-santurtzi-bilbao",
+      "from": "43.3224,-3.0378",
+      "to": "43.2630,-2.9350",
+      "time": "09:00",
+      "network": "metro"
+    },
+    {
+      "id": "red-euskotren-donostia-zarautz",
+      "from": "43.3124,-1.9816",
+      "to": "43.2840,-2.1700",
+      "time": "09:00",
+      "network": "euskotren"
+    },
+    {
+      "id": "red-renfe-santurtzi-sanmames",
+      "from": "43.3287,-3.0296",
+      "to": "43.2615,-2.9488",
+      "time": "09:00",
+      "network": "renfe"
+    },
+    {
+      "id": "red-lurraldebus-donostia-errenteria",
+      "from": "43.3210,-1.9817",
+      "to": "43.3175,-1.9113",
+      "time": "09:00",
+      "network": "lurraldebus"
+    },
+    {
+      "id": "red-tranvia-bilbao-casilla-abando",
+      "from": "43.2578,-2.9443",
+      "to": "43.2611,-2.9267",
+      "time": "09:00",
+      "network": "tranvia-bilbao"
+    },
+    {
+      "id": "red-tranvia-vitoria-salburua-euskalherria",
+      "from": "42.8545,-2.6519",
+      "to": "42.8581,-2.6851",
+      "time": "09:00",
+      "network": "tranvia-vitoria"
+    },
+    {
+      "id": "red-bilbobus-circular-otxarkoaga",
+      "from": "43.2615,-2.9272",
+      "to": "43.2585,-2.9028",
+      "time": "09:00",
+      "network": "bilbobus"
+    },
+    {
+      "id": "red-tuvisa-zaramaga-zumaquera",
+      "from": "42.8609,-2.6685",
+      "to": "42.8359,-2.6651",
+      "time": "09:00",
+      "network": "tuvisa"
+    },
+    {
+      "id": "red-dbus-larratxo-boulevard",
+      "from": "43.3122,-1.9393",
+      "to": "43.3227,-1.9845",
+      "time": "09:00",
+      "network": "dbus"
+    },
+    {
+      "id": "red-alavabus-gasteiz-amurrio",
+      "from": "42.8590,-2.6844",
+      "to": "43.0545,-2.9996",
+      "time": "09:00",
+      "network": "alavabus"
+    },
+    {
+      "id": "red-launion-bilbao-gasteiz",
+      "from": "43.2614,-2.9496",
+      "to": "42.8383,-2.6753",
+      "time": "09:00",
+      "network": "launion"
+    },
+    {
+      "id": "red-renfe-ld-gasteiz-iruna",
+      "from": "42.8415,-2.6726",
+      "to": "42.8249,-1.6614",
+      "time": "09:00",
+      "network": "renfe-ld"
+    },
+    {
+      "id": "red-txiktxak-baiona-bideartean",
+      "from": "43.4967,-1.4699",
+      "to": "43.4457,-1.5833",
+      "time": "09:00",
+      "network": "txiktxak"
+    },
+    {
+      "id": "red-sncf-hendaia-baiona",
+      "from": "43.3531,-1.7817",
+      "to": "43.4968,-1.4704",
+      "time": "09:00",
+      "network": "sncf"
+    }
+  ],
+  "places": [
+    {
+      "id": "lugar-moyua",
+      "text": "Plaza Moyua"
+    },
+    {
+      "id": "lugar-gipuzkoa-plaza",
+      "text": "Plaza Gipuzkoa"
+    },
+    {
+      "id": "lugar-virgen-blanca",
+      "text": "Plaza de la Virgen Blanca"
+    }
+  ]
+}

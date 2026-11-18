@@ -93,7 +93,7 @@ function main(array $aArgv): void
         fwrite(STDERR, "Unknown gtfs.stops=\"{$aGtfs['stops']}\" (expected " . implode('|', array_keys($aStopLoaders)) . ")\n");
         exit(1);
     }
-    $aStops = $aStopLoaders[$aGtfs['stops']]($Zip);
+    $aStops = Gtfs::withWheelchair($Zip, $aStopLoaders[$aGtfs['stops']]($Zip));
     echo '  ' . count($aStops) . " stops\n";
 
     echo "Resolving municipality/neighbourhood names (OpenStreetMap reverse geocoding, cached)...\n";

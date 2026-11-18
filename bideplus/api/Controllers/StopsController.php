@@ -22,6 +22,9 @@ class StopsController
 {
     private const LATE_TRAINS_LOOKBACK_SECONDS = 3600;
     private const LIKELY_PAST_SHOWN = 2;
+    // Las salidas que se miran para el directo del planificador, que solo pregunta por lo que sale en 2 h.
+    private const LIVE_LEGS_LIMIT = 200;
+    private const LIVE_LEGS_WINDOW_SECONDS = 3 * 3600;
 
     public function show(Request $Req, array $aParams): void
     {
@@ -174,6 +177,55 @@ class StopsController
             'departures' => self::limited(self::departureItems($aRows, $bUseLastStopHeadsign), $iLimit),
             'attribution' => $aConfig['attribution'],
         ];
+    }
+
+    // El directo de unos viajes al salir de sus paradas, en la red actual, para el planificador, con los mismos
+    // emparejadores (el por viaje puede venir hecho) y la misma ventana que las próximas salidas: por línea y hora del
+    // horario de su día de servicio (las de ayer de madrugada, como 25:10). $aLegs: parada => [[línea, hora, viaje]].
+    public static function liveLegs(array $aLegs, ServiceJourney|null $JourneyModel = null,
+        object|null $TripMatcher = null): array
+    {
+        $JourneyModel ??= new ServiceJourney(Database::connection());
+        $Matcher = Live::matcher($JourneyModel);
+        $YesterdayMatcher = null;
+        $Yesterday = function () use (&$YesterdayMatcher, $JourneyModel): object {
+            $YesterdayMatcher ??= Live::matcher($JourneyModel, null, 1);
+            return $YesterdayMatcher;
+        };
+        $TripMatcher ??= Live::tripMatcher($JourneyModel);
+        $iPast = self::pastSeconds($TripMatcher);
+        $aLive = [];
+        foreach ($aLegs as $StopId => $aWanted) {
+            $aTrips = [];
+            foreach ($aWanted as [$sLine, $iSeconds, $sTrip]) {
+                $aTrips[$sLine . '|' . $iSeconds] = $sTrip;
+            }
+            $aYesterday = $JourneyModel->upcomingAtStop((string)$StopId, self::LIVE_LEGS_LIMIT, self::LIVE_LEGS_WINDOW_SECONDS, -1, $iPast);
+            $aRows = array_merge(array_map(fn(array $aRow) => ['yesterday' => true] + $aRow, $aYesterday),
+                $JourneyModel->upcomingAtStop((string)$StopId, self::LIVE_LEGS_LIMIT, self::LIVE_LEGS_WINDOW_SECONDS, 0, $iPast));
+            $aRows = array_values(array_filter($aRows, fn(array $aRow) => isset($aTrips[self::legKey($aRow)])));
+            if (empty($aRows)) {
+                continue;
+            }
+            usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+            foreach (self::withLiveToday([$Matcher, $Yesterday], $TripMatcher, (string)$StopId, $aRows) as $aRow) {
+                $sKey = self::legKey($aRow);
+                if (isset($aTrips[$sKey])) {
+                    $aLive[$aTrips[$sKey]] ??= $aRow;
+                }
+            }
+        }
+        return $aLive;
+    }
+
+    // «línea|hora» de una salida, con la hora de su día de servicio (las de ayer vienen en horas de hoy: 01:10 es 25:10).
+    private static function legKey(array $aRow): string
+    {
+        $iSeconds = (int)($aRow['departure_seconds'] ?? 0);
+        if (!empty($aRow['yesterday'])) {
+            $iSeconds += Calendar::DAY_SECONDS;
+        }
+        return ($aRow['line_code'] ?? '') . '|' . $iSeconds;
     }
 
     // De madrugada, delante de las de hoy van los viajes de ayer que pasan de las 24:00, en horas de hoy (26:00 es 02:00).
