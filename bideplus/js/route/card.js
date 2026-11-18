@@ -161,6 +161,12 @@ export const initCard = (app) => {
         event.preventDefault();
         app.search();
     });
+    // Con la app abierta de un día para otro, «Hoy» pasa a ser el día nuevo al volver a ella.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && day.options[0] && Number(day.options[0].value) !== nowHere().day) {
+            fillDays(null);
+        }
+    });
     window.addEventListener('bide:lang', () => {
         fillDays(null);
         if (fields.from.get() === LOCATION) {

@@ -280,7 +280,11 @@ const firstLive = async (sKey) => {
         liveLater(sKey);
         return;
     }
-    if (bInTime && (await searchAgain(sKey)) && unaskedLegs()) {
+    if (bInTime) {
+        await searchAgain(sKey);
+    }
+    // El directo en marcha pudo salir con los tramos de la búsqueda anterior: lo que esta trae nuevo se pide ya.
+    if (unaskedLegs()) {
         liveLater(sKey);
     }
 };
@@ -490,7 +494,12 @@ const openReceived = async (sLink) => {
 
 // «Cómo llegar aquí», «Salir desde aquí» y los enlaces del planificador: rellenan la tarjeta y, si está todo, buscan.
 const restore = async () => {
-    const sHash = decodeURIComponent(location.hash.slice(1));
+    let sHash = location.hash.slice(1);
+    try {
+        sHash = decodeURIComponent(sHash);
+    } catch (error) {
+        // Un enlace que una aplicación de mensajes ha estropeado (un «%» suelto) se lee tal cual.
+    }
     const parsed = readSearch(location.search);
     if (LINK_HASH.test(sHash)) {
         app.wake();
