@@ -156,6 +156,9 @@ return [
             'calendar' => 'euskadi', 'territory' => 'Gipuzkoa', 'municipality' => null,
             'fallback' => ['networks' => ['dbus', 'bilbobus', 'alavabus'], 'quorum' => 2],
         ],
+        // Los operadores comparten la numeración de paradas, salvo los urbanos de Tolosa: sus ids chocan con paradas
+        // de Donostia y Pasaia (el 1004 es Pasai San Pedro) y van con su clave delante (tolosa:1004).
+        'own_stop_ids' => ['tolosa'],
         'sources' => [
             'ekialdebus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/ekialdebus/gtfs_ekialdebus.zip',
             'euskotrenbus' => 'https://opendata.euskadi.eus/transport/moveuskadi/lurraldebus/euskotren_bus/gtfs_euskotren_bus.zip',

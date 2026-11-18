@@ -8,6 +8,12 @@ declare(strict_types=1);
 require __DIR__ . '/../api/Core/Networks.php';
 $aDatabases = array_values(array_map(fn($aNetwork) => $aNetwork['db'], \Core\Networks::all()));
 
+// Más rápido que esto entre dos paradas seguidas no va nada (un TGV, a 320 km/h); el tramo cuenta al menos 30 s. Solo
+// cuentan los saltos largos: un operador que pone la misma hora a dos paradas a 4 km (La Unión) no es un id repetido.
+const MAX_RIDE_METERS_PER_SECOND = 100;
+const MIN_RIDE_SECONDS = 30;
+const MIN_JUMP_METERS = 10000;
+
 $aFailures = [];
 $Expect = function (string $sCheck, bool $bOk, string $sDetail = '') use (&$aFailures): void {
     $sOutput = 'OK  ' . $sCheck;
@@ -162,6 +168,35 @@ foreach ($aDatabases as $sName) {
         }
         $Expect($sName . ': cada trazado es [lat, lon, metros] con metros crecientes', $iBadShapes === 0, (string)$iBadShapes);
     }
+    // Ningún vehículo va de una parada a la siguiente a más de MAX_RIDE_METERS_PER_SECOND (360 km/h): si pasa, dos
+    // paradas comparten id sin serlo (como los urbanos de Tolosa en Lurraldebus antes de own_stop_ids).
+    $iJumps = 0;
+    $sJump = '';
+    $aPositions = [];
+    foreach ($Pdo->query('SELECT id, lat, lon FROM stops WHERE lat IS NOT NULL AND lon IS NOT NULL') as $aStop) {
+        $aPositions[(string)$aStop['id']] = [(float)$aStop['lat'], (float)$aStop['lon']];
+    }
+    $aPrevious = null;
+    $sQuery = 'SELECT service_journey_id, stop_id, arrival_seconds, departure_seconds FROM passing_times '
+        . 'ORDER BY service_journey_id, seq_order';
+    foreach ($Pdo->query($sQuery, PDO::FETCH_NUM) as [$sTrip, $sStop, $iArrival, $iDeparture]) {
+        $sStop = (string)$sStop;
+        $bSameTrip = $aPrevious !== null && $aPrevious[0] === (string)$sTrip;
+        if ($bSameTrip && isset($aPositions[$sStop], $aPositions[$aPrevious[1]]) && $iArrival !== null && $aPrevious[2] !== null) {
+            [$fLat1, $fLon1] = $aPositions[$aPrevious[1]];
+            [$fLat2, $fLon2] = $aPositions[$sStop];
+            $fMeters = hypot(($fLon2 - $fLon1) * cos(deg2rad(($fLat1 + $fLat2) / 2)) * 111320, ($fLat2 - $fLat1) * 110540);
+            $fSpeed = $fMeters / max((int)$iArrival - (int)$aPrevious[2], MIN_RIDE_SECONDS);
+            if ($fMeters > MIN_JUMP_METERS && $fSpeed > MAX_RIDE_METERS_PER_SECOND) {
+                $iJumps++;
+                if ($sJump === '') {
+                    $sJump = $sTrip . ': ' . $aPrevious[1] . ' -> ' . $sStop . ', ' . (int)$fMeters . ' m';
+                }
+            }
+        }
+        $aPrevious = [(string)$sTrip, $sStop, $iDeparture];
+    }
+    $Expect($sName . ': ningún vehículo salta más de 10 km entre paradas a más de 360 km/h', $iJumps === 0, trim($iJumps . ' ' . $sJump));
 }
 
 if (!empty($aFailures)) {

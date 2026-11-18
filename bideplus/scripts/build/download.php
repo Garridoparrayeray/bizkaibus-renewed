@@ -93,9 +93,13 @@ class Download
         'stops.txt' => [],
     ];
 
-    // Junta varios GTFS (un operador cada uno) en un único zip temporal. Si un viaje no trae trip_headsign se usa
-    // trip_short_name. feed_info queda con la fecha de inicio más temprana y la de fin más tardía.
-    public static function mergeGtfsZips(array $aPathsByKey): string
+    // Las columnas de parada, para los operadores con numeración propia de paradas ($aOwnStops).
+    private const OWN_STOP_COLUMNS = ['stops.txt' => ['stop_id', 'parent_station'], 'stop_times.txt' => ['stop_id']];
+
+    // Junta varios GTFS (un operador cada uno) en un único zip temporal. Las paradas son comunes salvo las de los
+    // operadores de $aOwnStops, con su clave delante. Sin trip_headsign se usa trip_short_name. feed_info queda con la
+    // fecha de inicio más temprana y la de fin más tardía.
+    public static function mergeGtfsZips(array $aPathsByKey, array $aOwnStops = []): string
     {
         $aHeaders = [];
         $aRows = [];
@@ -110,10 +114,14 @@ class Download
             }
             foreach (self::PREFIXED_COLUMNS as $sFile => $aColumns) {
                 foreach (Gtfs::readCsv($Zip, $sFile, $sFile !== 'calendar_dates.txt' && $sFile !== 'shapes.txt' && $sFile !== 'calendar.txt') as $aRow) {
+                    $aPrefixed = $aColumns;
+                    if (in_array($sKey, $aOwnStops, true)) {
+                        $aPrefixed = array_merge($aColumns, self::OWN_STOP_COLUMNS[$sFile] ?? []);
+                    }
+                    $aRow = self::prefixedRow($aRow, $sFile, $sKey, $aPrefixed);
                     if (self::repeatedStop($sFile, $aRow, $aSeenStops)) {
                         continue;
                     }
-                    $aRow = self::prefixedRow($aRow, $sFile, $sKey, $aColumns);
                     foreach (array_keys($aRow) as $sColumn) {
                         $aHeaders[$sFile][$sColumn] = true;
                     }
