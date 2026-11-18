@@ -72,7 +72,7 @@ function main(array $aArgv): void
         foreach ($aGtfs['sources'] as $sKey => $sUrl) {
             $aPaths[$sKey] = Download::resolveZipPath($sUrl);
         }
-        $sZipPath = Download::mergeGtfsZips($aPaths);
+        $sZipPath = Download::mergeGtfsZips($aPaths, $aGtfs['own_stop_ids'] ?? []);
     } else {
         echo "Reading GTFS export from: $sSource\n";
         $sZipPath = Download::resolveZipPath($sSource, $sFallbackSource);
