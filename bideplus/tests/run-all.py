@@ -31,6 +31,7 @@ STEPS = [
     ('Vigilante del directo (retrasos)', [PY, 'tests/live-health.py']),
     ('Poda de los acumulados de la captura', [PY, 'tests/podar-acumulado.py']),
     ('Despliegue a Vercel (limpieza y tamaño)', [PY, 'tests/vercel-deploy.py']),
+    ('Lanzador de Vercel (PHP en frío y caído)', ['node', 'tests/vercel-launcher.mjs']),
     ('Commit del bot tras desplegar', [PY, 'tests/rebuild-commit.py']),
 ]
 # Con ONLY_APPS y APPS, de la interfaz solo la batería de esas redes (sin las comprobaciones comunes).
