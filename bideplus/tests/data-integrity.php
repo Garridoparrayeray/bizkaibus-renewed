@@ -183,14 +183,14 @@ foreach ($aDatabases as $sName) {
         $sStop = (string)$sStop;
         $bSameTrip = $aPrevious !== null && $aPrevious[0] === (string)$sTrip;
         if ($bSameTrip && isset($aPositions[$sStop], $aPositions[$aPrevious[1]]) && $iArrival !== null && $aPrevious[2] !== null) {
-            [$fLat1, $fLon1] = $aPositions[$aPrevious[1]];
-            [$fLat2, $fLon2] = $aPositions[$sStop];
-            $fMeters = hypot(($fLon2 - $fLon1) * cos(deg2rad(($fLat1 + $fLat2) / 2)) * 111320, ($fLat2 - $fLat1) * 110540);
-            $fSpeed = $fMeters / max((int)$iArrival - (int)$aPrevious[2], MIN_RIDE_SECONDS);
-            if ($fMeters > MIN_JUMP_METERS && $fSpeed > MAX_RIDE_METERS_PER_SECOND) {
+            [$dLat1, $dLon1] = $aPositions[$aPrevious[1]];
+            [$dLat2, $dLon2] = $aPositions[$sStop];
+            $dMeters = hypot(($dLon2 - $dLon1) * cos(deg2rad(($dLat1 + $dLat2) / 2)) * 111320, ($dLat2 - $dLat1) * 110540);
+            $dSpeed = $dMeters / max((int)$iArrival - (int)$aPrevious[2], MIN_RIDE_SECONDS);
+            if ($dMeters > MIN_JUMP_METERS && $dSpeed > MAX_RIDE_METERS_PER_SECOND) {
                 $iJumps++;
                 if ($sJump === '') {
-                    $sJump = $sTrip . ': ' . $aPrevious[1] . ' -> ' . $sStop . ', ' . (int)$fMeters . ' m';
+                    $sJump = $sTrip . ': ' . $aPrevious[1] . ' -> ' . $sStop . ', ' . (int)$dMeters . ' m';
                 }
             }
         }
