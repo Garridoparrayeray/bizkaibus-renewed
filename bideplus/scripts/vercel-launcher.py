@@ -13,6 +13,9 @@ Desde agosto de 2026 Vercel arranca las funciones con un cargador que importa el
 - PHP carga solo las extensiones que usa la app (EXTENSIONS) y la función lleva solo las librerías que necesitan
   (siguiendo las dependencias de cada binario con readelf): sin eso pesa más de 250 MB, el límite normal de una función;
 - PHP atiende con varios procesos (PHP_CLI_SERVER_WORKERS), para que una petición lenta no haga esperar a las demás;
+- con varias peticiones a la vez en la misma instancia (Fluid), todas esperan a que PHP escuche: vercel-php da por
+  arrancado el servidor antes de que abra el puerto y las que llegaban entonces fallaban con ECONNREFUSED. Si PHP se
+  cae, se vuelve a arrancar, y una petición que no llegó a PHP (conexión rechazada) se repite una vez;
 - las bases de datos y lo que no se publica (data/, scripts/, tests/, engine/) no se suben como ficheros estáticos:
   las rutas ya no los sirven y solo los lee la función.
 
@@ -52,6 +55,47 @@ async function bideReadBody(stream) {
     return Buffer.concat(chunks);
 }
 
+// El servidor PHP escuchando: el arranque en marcha lo esperan todas las peticiones (no solo la primera) y, si el
+// proceso ha terminado, se arranca otro.
+let bideStarting = null;
+
+function bidePhpAlive() {
+    return Boolean(server) && server.exitCode === null && server.signalCode === null;
+}
+
+async function bideEnsurePhp(entrypoint) {
+    if (!bideStarting && bidePhpAlive()) {
+        return;
+    }
+    if (!bideStarting) {
+        server = undefined;
+        bideStarting = startServer(entrypoint).catch((error) => {
+            if (server) {
+                server.kill();
+            }
+            server = undefined;
+            throw error;
+        }).finally(() => {
+            bideStarting = null;
+        });
+    }
+    await bideStarting;
+}
+
+// Una petición que PHP no llegó a recibir (conexión rechazada) se repite una vez con el servidor otra vez en marcha.
+async function bideQuery(input) {
+    await bideEnsurePhp(input.entrypoint);
+    const output = await query(input);
+    if (output.statusCode !== 500 || !output.body.toString().includes('ECONNREFUSED')) {
+        return output;
+    }
+    if (bidePhpAlive()) {
+        server.kill();
+    }
+    await bideEnsurePhp(input.entrypoint);
+    return query(input);
+}
+
 // Con la llamada nueva de Vercel, (req, res) de Node; con la antigua, el evento de Lambda que ya entendía el lanzador.
 async function bideHandler(reqOrEvent, res) {
     const modern = reqOrEvent && typeof reqOrEvent.url === 'string' && res && typeof res.writeHead === 'function';
@@ -77,7 +121,15 @@ async function bideHandler(reqOrEvent, res) {
         headers: headers,
         body: requestBody,
     });
-    const output = await query(input);
+    let output;
+    try {
+        output = await bideQuery(input);
+    } catch (error) {
+        console.error('Bide+: PHP no arranca', error);
+        res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8', 'retry-after': '5' });
+        res.end('PHP no ha arrancado');
+        return;
+    }
     const outHeaders = Object.assign({}, output.headers);
     delete outHeaders['transfer-encoding'];
     delete outHeaders['connection'];
