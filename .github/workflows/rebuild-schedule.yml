@@ -581,10 +581,11 @@ jobs:
             echo "- No se ha podido guardar el planificador en su release: mañana se parte del anterior" >> "$RUNNER_TEMP/avisos.md"
           fi
 
-      # Ya desplegado: geocache.json y sitemap-lastmod.json se suben desde un árbol aparte, sobre el master de ese
-      # momento, con sitemap-lastmod.json rehecho desde el de master: el árbol desplegado no se toca para los pasos de
-      # después. Si no sube, solo avisa: el despliegue ya está hecho.
-      - name: Commit updated geocache and sitemap lastmod, if they changed
+      # Ya desplegado: geocache.json, sitemap-lastmod.json y los sitemaps se suben desde un árbol aparte, sobre el
+      # master de ese momento, con sitemap-lastmod.json rehecho desde el de master: el árbol desplegado no se toca para
+      # los pasos de después. Los sitemaps van también: si una red quita o añade líneas o paradas, los del repositorio
+      # dejan de cuadrar con las bases y «Tests» falla. Si no sube, solo avisa: el despliegue ya está hecho.
+      - name: Commit updated geocache, sitemap lastmod and sitemaps, if they changed
         continue-on-error: true
         run: |
           ARBOL="$RUNNER_TEMP/commit-bot"
@@ -599,17 +600,18 @@ jobs:
             }
             cp bideplus/scripts/geocache.json "$ARBOL/bideplus/scripts/geocache.json"
             php bideplus/scripts/build-sitemap.php --save-state --state="$ARBOL/bideplus/scripts/sitemap-lastmod.json" \
-              --output-dir="$RUNNER_TEMP/sitemaps-commit" > /dev/null
-            git -C "$ARBOL" add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json
+              --output-dir="$ARBOL/bideplus" > /dev/null
+            git -C "$ARBOL" add bideplus/scripts/geocache.json bideplus/scripts/sitemap-lastmod.json \
+              bideplus/sitemap-index.xml bideplus/sitemaps
             if git -C "$ARBOL" diff --cached --quiet; then
-              echo "geocache.json y sitemap-lastmod.json sin cambios"
+              echo "geocache.json, sitemap-lastmod.json y sitemaps sin cambios"
               exit 0
             fi
-            git -C "$ARBOL" commit --quiet -m "chore: update geocache and sitemap lastmod"
+            git -C "$ARBOL" commit --quiet -m "chore: update geocache, sitemap lastmod and sitemaps"
             git -C "$ARBOL" push origin HEAD:master && exit 0
             sleep 10
           done
-          echo "::warning::No se han podido subir geocache.json y sitemap-lastmod.json (el despliegue sí está hecho)"
+          echo "::warning::No se han podido subir geocache.json, sitemap-lastmod.json ni los sitemaps (el despliegue sí está hecho)"
 
       # IndexNow: avisa a Bing (y a los buscadores que lo comparten) de las páginas principales en los tres idiomas.
       # Si falla, solo lo dice: el despliegue ya está hecho.
