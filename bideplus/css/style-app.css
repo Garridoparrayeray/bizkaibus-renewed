@@ -613,8 +613,15 @@ header p,
     color: #fff;
 }
     .live-card > header {
+        gap: 8px;
         margin-bottom: 14px;
     }
+        /* Etiquetas largas («Horario oficial», «Ordutegi ofiziala»): separadas de los botones y, si no caben en una
+           línea, en dos y centradas. */
+        .live-card > header .badge {
+            line-height: 1.25;
+            text-align: center;
+        }
     .live-card .status-dot {
         box-shadow: 0 0 0 2px rgba(255, 255, 255, .35);
     }
@@ -1774,6 +1781,13 @@ dialog {
     .table-scroll {
         margin: 0 -18px;
         padding: 0 18px;
+    }
+}
+@media (max-width: 400px) {
+    .live-card > header .badge {
+        padding: 4px 8px;
+        font-size: calc(10.4px * var(--text-scale, 1));
+        letter-spacing: .2px;
     }
 }
 @media (max-width: 350px) {
