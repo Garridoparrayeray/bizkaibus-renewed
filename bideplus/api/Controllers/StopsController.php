@@ -244,8 +244,11 @@ class StopsController
     // Salidas de las próximas 4 horas o, si no hay (de noche), 4 horas desde la primera que queda o las próximas 24.
     private static function upcomingRowsToday(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast): array
     {
+        $iNow = Calendar::nowSecondsSinceMidnight();
         $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, 0, $iPast);
-        if (!empty($aRows)) {
+        // Con alguna que sale de ahora en adelante; solo las que ya salieron (el margen de 15 min para las que van tarde)
+        // no bastan: sin esto, pasado el último bus del día la parada se quedaba vacía 15 min en vez de dar las de mañana.
+        if (self::anyComing($aRows, $iNow)) {
             return $aRows;
         }
         $iNext = $JourneyModel->nextDepartureSeconds($StopId);
@@ -257,14 +260,22 @@ class StopsController
         }
         // Hoy ya no sale ninguna más: detrás de las que acaban de salir (puede venir alguna con retraso), las primeras de
         // mañana con su horario.
-        $iNow = Calendar::nowSecondsSinceMidnight();
-        foreach ($aRows as $aRow) {
-            if ((int)$aRow['departure_seconds'] >= $iNow) {
-                return $aRows;
-            }
+        if (self::anyComing($aRows, $iNow)) {
+            return $aRows;
         }
         $aTomorrow = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 1);
         return array_merge($aRows, array_map(fn(array $aRow) => ['tomorrow' => true] + $aRow, $aTomorrow));
+    }
+
+    // Si alguna de las salidas es de ahora en adelante.
+    private static function anyComing(array $aRows, int $iNow): bool
+    {
+        foreach ($aRows as $aRow) {
+            if ((int)$aRow['departure_seconds'] >= $iNow) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function pastSeconds(object|null $TripMatcher): int|null
