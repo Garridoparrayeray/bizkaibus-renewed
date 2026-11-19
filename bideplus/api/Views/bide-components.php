@@ -141,13 +141,13 @@ function bideChangelogEntry(array $aEntry): string
 function bideUpcoming(): string
 {
     $sHtml = '<section class="bide-card bide-upcoming"><h3 data-i18n="bide.upcoming.title">Próximamente</h3>';
-    $sHtml .= '<p class="bide-upcoming-head"><strong data-i18n="bide.upcoming.planner.title">Planificador de ruta</strong><span class="bide-upcoming-badge" data-i18n="bide.upcoming.badge">En desarrollo</span></p>';
-    $sHtml .= '<p data-i18n="bide.upcoming.planner.text">Dices de dónde sales y a dónde vas, y Bide+ te propone el viaje completo mezclando todas las redes: bus, metro, tren y tranvía, con los transbordos, lo que tarda cada tramo, dónde cambiar y lo que cuesta.</p>';
+    $sHtml .= '<p class="bide-upcoming-head"><strong data-i18n="bide.upcoming.live.title">Modo en directo</strong><span class="bide-upcoming-badge" data-i18n="bide.upcoming.badge">En desarrollo</span></p>';
+    $sHtml .= '<p data-i18n="bide.upcoming.live.text">Bide+ no solo te dice cómo llegar: te acompaña durante todo el viaje, con el dato del operador.</p>';
     $sHtml .= '<ul class="bide-upcoming-list">';
-    $sHtml .= '<li data-i18n="bide.upcoming.planner.1">Transbordos dentro de una misma red o entre redes, como en un mapa de rutas: cada tramo con su línea, el tiempo de espera y la parada o estación donde cambias.</li>';
-    $sHtml .= '<li data-i18n="bide.upcoming.planner.2">Coste del viaje según los transportes que elijas.</li>';
-    $sHtml .= '<li data-i18n="bide.upcoming.planner.3">Seguimiento del viaje en curso: por dónde vas, cuánto falta para el transbordo y la hora de llegada, actualizados con el directo.</li>';
-    $sHtml .= '<li data-i18n="bide.upcoming.planner.4">Si quieres, un aviso en el móvil un rato antes de cada transbordo. Es opcional: lo activas al planificar el viaje.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.live.1">Tu tren o tu bus moviéndose parada a parada, con lo que falta para el transbordo y la hora de llegada.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.live.2">Un aviso cuando toca salir de casa y otro cuando toca prepararse para bajar. Es opcional.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.live.3">Si hay un retraso o pierdes un transbordo, otra forma de llegar al momento.</li>';
+    $sHtml .= '<li data-i18n="bide.upcoming.live.4">El coste del viaje según los transportes que elijas.</li>';
     $sHtml .= '</ul></section>';
     return $sHtml;
 }
