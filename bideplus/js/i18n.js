@@ -7,7 +7,7 @@
         es: {
             'menu.tagline': 'Movilidad en Euskal Herria',
             'menu.heading': 'Bide+: horarios y tiempo real del transporte público de Euskal Herria',
-            'menu.seoTitle': 'Bideplus (Bide+): horarios Bizkaibus, Metro Bilbao y Renfe',
+            'menu.seoTitle': 'Bideplus · horarios Bizkaibus, Metro Bilbao y Renfe',
             'menu.seoDescription': 'Bideplus (Bide+): horarios y tiempo real del bus, metro, tren y tranvía de Euskal Herria: Bizkaibus, Metro Bilbao, Euskotren, Renfe, Dbus y más, gratis.',
             'map.seoTitle': 'Mapa de la red · Líneas de transporte de Euskadi | Bide+',
             'map.seoDescription': 'Mapa del transporte público de Euskal Herria: las líneas de Metro Bilbao, Bizkaibus, Euskotren, Renfe y más, con sus paradas y transbordos.',
@@ -673,7 +673,7 @@
         eu: {
             'menu.tagline': 'Mugikortasuna Euskal Herrian',
             'menu.heading': 'Bide+: Euskal Herriko garraio publikoaren ordutegiak eta denbora errealean',
-            'menu.seoTitle': 'Bideplus (Bide+): Bizkaibus, Metroa eta Renfe ordutegiak',
+            'menu.seoTitle': 'Bideplus · Bizkaibus, Metroa eta Renfe ordutegiak',
             'menu.seoDescription': 'Bideplus (Bide+): Euskal Herriko autobus, metro, tren eta tranbiaren ordutegiak eta denbora errealean: Bizkaibus, Metroa, Euskotren, Renfe, Dbus, doan.',
             'map.seoTitle': 'Sarearen mapa · Euskadiko garraio-lineak | Bide+',
             'map.seoDescription': 'Euskal Herriko garraio publikoaren mapa: Bilboko Metroa, Bizkaibus, Euskotren, Renfe eta beste linea guztiak, geltokiekin eta loturekin.',
@@ -1340,7 +1340,7 @@
             'bide.new': 'New',
             'menu.tagline': 'Getting around the Basque Country',
             'menu.heading': 'Bide+: timetables and real time for public transport in the Basque Country',
-            'menu.seoTitle': 'Bideplus (Bide+): Bizkaibus, Metro Bilbao, Renfe timetables',
+            'menu.seoTitle': 'Bideplus · Bizkaibus, Metro Bilbao and Renfe timetables',
             'menu.seoDescription': 'Bideplus (Bide+): bus, metro, train and tram timetables and real time across the Basque Country: Bizkaibus, Metro Bilbao, Euskotren, Renfe and more, free.',
             'map.seoTitle': 'Network map · Basque Country transport lines | Bide+',
             'map.seoDescription': 'Public transport map of the Basque Country: every line of Metro Bilbao, Bizkaibus, Euskotren, Renfe and more, with their stops and transfers.',
@@ -2005,7 +2005,7 @@
         fr: {
             'menu.tagline': 'Mobilité en Euskal Herria',
             'menu.heading': 'Bide+ : horaires et temps réel des transports en commun d’Euskal Herria',
-            'menu.seoTitle': 'Bideplus (Bide+) : horaires Txik Txak, SNCF, Bizkaibus',
+            'menu.seoTitle': 'Bideplus · horaires Txik Txak, SNCF, Bizkaibus, Metro Bilbao',
             'menu.seoDescription': 'Bideplus (Bide+) : horaires et temps réel des bus, métros, trains et tramways du Pays basque : Txik Txak, SNCF, Bizkaibus, Metro Bilbao et plus, gratuit.',
             'map.seoTitle': 'Plan du réseau · Lignes de transport du Pays basque | Bide+',
             'map.seoDescription': 'Plan des transports en commun d’Euskal Herria : les lignes de Txik Txak, Metro Bilbao, Bizkaibus, Euskotren et plus, avec arrêts et correspondances.',
