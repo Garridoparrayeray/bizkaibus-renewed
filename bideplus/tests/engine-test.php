@@ -770,7 +770,7 @@ function chainBus(float $dMetersToEnd, int $iAt, string $sLine = '2161', string 
     ];
 }
 
-$ChainsTrusted = new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 39, 'waits' => ['laborable' => ['seconds' => 240, 'samples' => 12], 'fin_semana' => ['seconds' => 90, 'samples' => 6]]]]]);
+$ChainsTrusted = new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 39]]]);
 $ChainRow = fn(string $sStop, int $iSeq, int $iArrival) => ['service_journey_id' => 'J_NEXT', 'line_id' => '2161', 'trip_number' => '844', 'first_departure_seconds' => T0, 'arrival_seconds' => $iArrival, 'stop_seq' => $iSeq, 'stop_id' => $sStop];
 $ChainMatcher = function (array $aVmMap, BlockChains $Chains, PDO|null $Pdo = null, int $iNow = T0 - 120) {
     $M = new RealtimeMatcher($aVmMap, new ServiceJourney($Pdo ?? chainFixture()), $iNow, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
@@ -784,21 +784,21 @@ $Expect('la primera vuelta del día no tiene anterior', RealtimeMatcher::blockKe
 $Expect('un id con otra forma no da clave: no se usa', RealtimeMatcher::blockKey('trp_A3414_808_OP9LSEPT_28800_x') === null && RealtimeMatcher::blockKey('808') === null);
 $Expect('una línea con 39 de 40 pares cumple; con 10 pares, no', $ChainsTrusted->isTrusted('2161') && !(new BlockChains(['lines' => ['2161' => ['pairs' => 10, 'same' => 10]]]))->isTrusted('2161'));
 $Expect('con el 85 % no cumple', !(new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 34]]]))->isTrusted('2161'));
-$Expect('la espera es la de la línea en ese tipo de día', $ChainsTrusted->waitSeconds('2161', 'laborable') === 240 && $ChainsTrusted->waitSeconds('2161', 'fin_semana') === 90);
-$ChainsFew = new BlockChains(['waits' => ['laborable' => ['seconds' => 150, 'samples' => 400]], 'lines' => ['2161' => ['pairs' => 40, 'same' => 40, 'waits' => ['laborable' => ['seconds' => 30, 'samples' => 2]]]]]);
-$Expect('con pocas medidas en la línea, la de toda la red', $ChainsFew->waitSeconds('2161', 'laborable') === 150);
-$Expect('sin medidas de espera, 3 min', (new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 40]]]))->waitSeconds('2161', 'fin_semana') === 180);
+$Expect('solo en laborables', $ChainsTrusted->appliesOn('laborable') && !$ChainsTrusted->appliesOn('fin_semana'));
 
 // El caso de Amaia 22: a T0 - 2 min el bus de la vuelta 15 va por M (1000 m antes de A), por donde tenía que pasar a
-// T0 - 15 min: 13 min tarde. Llegará a A a T0 + 13 min y saldrá 4 min después: el viaje sale 17 min tarde.
+// T0 - 15 min: 13 min tarde. Llegará a A a T0 + 13 min y saldrá 30 s después: el viaje sale 13,5 min tarde.
 $aLate = chainBus(1000, T0 - 120);
 $MLate = $ChainMatcher(['2161|845' => [$aLate]], $ChainsTrusted);
 $aOutB = $MLate->enrich([$ChainRow('B', 2, T0 + 300)])[0];
 $Expect('viaje sin bus y el de su vuelta anterior viene tarde: estimado con el motivo', $aOutB['status'] === 'estimated' && ($aOutB['reason'] ?? null) === 'previous_trip', json_encode($aOutB));
-$Expect('sale 17 min tarde: llega a B a T0 + 22 min', $aOutB['etaSeconds'] === T0 + 1320 && $aOutB['delaySeconds'] === 1020, hms((int)$aOutB['etaSeconds']));
+$Expect('sale 13,5 min tarde: llega a B a T0 + 18,5 min', $aOutB['etaSeconds'] === T0 + 1110 && $aOutB['delaySeconds'] === 810, hms((int)$aOutB['etaSeconds']));
 $Expect('dice qué bus es', ($aOutB['previousVehicleRef'] ?? null) === 'BUS7');
 $aOutA = $MLate->enrich([$ChainRow('A', 1, T0)])[0];
-$Expect('en la primera parada: la hora a la que sale', $aOutA['etaSeconds'] === T0 + 1020 && ($aOutA['reason'] ?? null) === 'previous_trip', hms((int)$aOutA['etaSeconds']));
+$Expect('en la primera parada: la hora a la que sale', $aOutA['etaSeconds'] === T0 + 810 && ($aOutA['reason'] ?? null) === 'previous_trip', hms((int)$aOutA['etaSeconds']));
+$MWeekend = new RealtimeMatcher(['2161|845' => [$aLate]], new ServiceJourney(chainFixture()), T0 - 120, new PaceFactors(), DATE_WEEKEND, new SegmentTimes());
+$MWeekend->setChains($ChainsTrusted);
+$Expect('en fin de semana, como siempre', !isset($MWeekend->enrich([$ChainRow('B', 2, T0 + 300)])[0]['reason']));
 
 $aOnTime = chainBus(1000, T0 - 900);
 $aOutOnTime = $ChainMatcher(['2161|845' => [$aOnTime]], $ChainsTrusted, null, T0 - 890)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
@@ -828,7 +828,7 @@ $Expect('un viaje de otro tipo de día con el mismo número de bus y vuelta no c
 // EHU: la vuelta anterior es de otra línea que acaba en la parada del campus donde empieza esta (mismo bus del día).
 $aEhu = chainBus(1000, T0 - 120, '3247', 'trp_A3247_845_OP42LJPPV_27000_O42LJP2161_216101_15');
 $aOutEhu = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('A', '3247'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
-$Expect('EHU: la vuelta anterior de otra línea que acaba en la misma parada también vale', ($aOutEhu['reason'] ?? null) === 'previous_trip' && $aOutEhu['delaySeconds'] === 1020, json_encode($aOutEhu));
+$Expect('EHU: la vuelta anterior de otra línea que acaba en la misma parada también vale', ($aOutEhu['reason'] ?? null) === 'previous_trip' && $aOutEhu['delaySeconds'] === 810, json_encode($aOutEhu));
 $aOutEhuOpposite = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('A2', '3247'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
 $Expect('EHU: si acaba en otra parada del campus, como siempre', !isset($aOutEhuOpposite['reason']));
 
