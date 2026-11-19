@@ -7,7 +7,7 @@ python tests/run-all.py            # todo, con navegador (unos 10 min); si falta
 python tests/run-all.py --rapido   # sin navegador (unos 15 s): estáticas, unitarias, datos, API y contrato
 ```
 
-O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal:
+O a mano, con `php -S localhost:8011 dev-router.php` en otra terminal (sin el planificador construido, `dev-router.php` sirve `/planificador/pantallas`, `/planificador/js` y `/planificador/dist` desde `engine/planner`, como los copia el despliegue):
 
 ```
 python tests/static-checks.py && python tests/api-smoke.py && python tests/api-contract.py && node tests/offline-schedule.mjs && node tests/schedule-periods.mjs && node tests/linkify.mjs && python tests/aviso-script.py && python tests/live-health.py && python tests/podar-acumulado.py && python tests/vercel-deploy.py && python tests/rebuild-commit.py && node tests/ui-battery.mjs && node tests/ui-offline.mjs && node tests/ui-alerts.mjs && node tests/ui-nearby.mjs && node tests/ui-bide.mjs && node tests/ui-route.mjs
