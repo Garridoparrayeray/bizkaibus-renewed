@@ -2,7 +2,7 @@
 """Convierte la copia de la app del runner en la de prueba (bideplusmiamor.vercel.app), para «Desplegar la prueba».
 
 Uso: python3 .github/scripts/modo-prueba.py <carpeta bideplus>
-Solo toca esa copia, nunca el repositorio: estética de producción en el dominio de prueba, fuera de los buscadores (sin
+Solo toca esa copia, nunca el repositorio: con el tema «mi amor» de su dominio, fuera de los buscadores (sin
 Google, sitemap, llms.txt ni IndexNow), sin Vercel Insights, el almacén solo lee y no hay notificaciones ni cron. Si un
 texto que hay que cambiar no está tal cual, sale con error: el parche ya no encaja con la app y no se despliega.
 """
@@ -11,10 +11,6 @@ import os
 import shutil
 import sys
 
-TEST_DOMAIN = 'bideplusmiamor.vercel.app'
-# Con un dominio que no existe, el tema «mi amor» no salta: la prueba se ve como producción.
-NO_DOMAIN = 'miamor.invalid'
-DOMAIN_FILES = ('js/theme.js', 'api/shell.php', 'api/Views/app-page.php')
 INDEXED = '<meta name="robots" content="index, follow, max-image-preview:large">'
 NOT_INDEXED = '<meta name="robots" content="noindex, nofollow">'
 ROBOTS_FILES = ('api/Views/menu.php', 'api/Views/app.php', 'api/Views/estado.php', 'api/Views/network-map.php')
@@ -99,13 +95,6 @@ def replace_once(root, name, old, new):
     write(root, name, text.replace(old, new))
 
 
-def replace_all(root, name, old, new):
-    text = read(root, name)
-    if old not in text:
-        raise PatchError(f'{name}: no está «{old}»')
-    write(root, name, text.replace(old, new))
-
-
 def remove(root, name):
     path = os.path.join(root, name)
     if not os.path.isfile(path):
@@ -138,8 +127,6 @@ def indexnow_key(root):
 
 
 def patch(root):
-    for name in DOMAIN_FILES:
-        replace_all(root, name, TEST_DOMAIN, NO_DOMAIN)
     for name in ROBOTS_FILES:
         replace_once(root, name, INDEXED, NOT_INDEXED)
     for name in GOOGLE_FILES:
@@ -167,7 +154,7 @@ def main():
     except PatchError as error:
         print(f'::error::Modo prueba: {error}', file=sys.stderr)
         sys.exit(1)
-    print('Modo prueba: dominio sin tema «mi amor», noindex, sin Google, Insights, sitemap, llms.txt ni IndexNow; '
+    print('Modo prueba: noindex, sin Google, Insights, sitemap, llms.txt ni IndexNow; '
           'almacén de solo lectura, sin VAPID ni secreto del cron')
 
 
