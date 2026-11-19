@@ -681,6 +681,10 @@ header p,
     .time-display .delay-sub[hidden] {
         display: none;
     }
+    /* Hora del horario sin bus en una red con directo: no es una hora segura. */
+    .time-display strong.is-unconfirmed {
+        color: rgba(255, 255, 255, .55);
+    }
     .time-display .delay-sub.is-official {
         color: rgba(255, 255, 255, .6);
         font-size: calc(13.6px * var(--text-scale, 1));
@@ -786,6 +790,9 @@ header p,
         align-items: flex-end;
         line-height: 1.2;
     }
+        .live-more-list .live-more-when.is-unconfirmed {
+            color: rgba(255, 255, 255, .55);
+        }
         .live-more-list .live-more-when > small {
             color: rgba(255, 255, 255, .55);
             font-size: calc(10.88px * var(--text-scale, 1));

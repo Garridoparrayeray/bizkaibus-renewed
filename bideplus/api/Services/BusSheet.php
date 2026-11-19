@@ -67,7 +67,64 @@ class BusSheet
             $sVehicleRef = null;
         }
         $aExtra = ['awaitingVehicle' => self::awaitingVehicle($sStatus, $aVehicles, (int)$aTripKey[2], $iNow)];
+
+        // Sin bus todavía, si el de su vuelta anterior viene tarde: cada parada con la llegada de esa salida tardía, como
+        // la tarjeta de la parada.
+        if ($sStatus === 'scheduled' && $iDaysAgo === 0) {
+            $aChained = self::previousTripEtas($Matcher, $aJourney, $aTripKey, $aStops);
+            if ($aChained !== null) {
+                $iDelaySeconds = null;
+                foreach ($aStops as $iIndex => $aStop) {
+                    if ($aChained[$iIndex] === null) {
+                        continue;
+                    }
+                    $aStopsOut[$iIndex] = TripSheet::stopEntry($aStop, $aChained[$iIndex], false, false, $iNow);
+                    $bFromHere = $sFromStopId !== null && (string)Ids::forOutput($aStop['stop_id']) === $sFromStopId;
+                    if ($iDelaySeconds === null || $bFromHere) {
+                        $iDelaySeconds = $aChained[$iIndex] - (int)$aStop['arrival_seconds'];
+                    }
+                }
+                $sStatus = 'estimated';
+                $iDelayMinutes = $Matcher->displayDelayMinutes((int)$iDelaySeconds);
+                $aExtra = ['awaitingVehicle' => false, 'reason' => 'previous_trip'];
+            }
+        }
         return TripSheet::sheet($aJourney, $sStatus, $sVehicleRef, $iDelayMinutes, $aStopsOut, $aExtra);
+    }
+
+    // La llegada a cada parada si el viaje sale tarde porque su bus viene tarde de la vuelta anterior (el motor lo dice
+    // con «reason» = «previous_trip»); null si no es el caso. Un motor sin esa parte no la da.
+    private static function previousTripEtas(object $Matcher, array $aJourney, array $aTripKey, array $aStops): array|null
+    {
+        if (empty($aStops) || !method_exists($Matcher, 'enrich')) {
+            return null;
+        }
+        $aRows = [];
+        foreach ($aStops as $aStop) {
+            $aRows[] = [
+                'service_journey_id' => $aJourney['id'],
+                'line_id' => $aTripKey[0],
+                'trip_number' => (string)$aTripKey[1],
+                'first_departure_seconds' => (int)$aTripKey[2],
+                'arrival_seconds' => (int)$aStop['arrival_seconds'],
+                'stop_seq' => (int)$aStop['seq_order'],
+                'stop_id' => $aStop['stop_id'],
+            ];
+        }
+        $aEtas = [];
+        $bAny = false;
+        foreach ($Matcher->enrich($aRows) as $aRow) {
+            $iEta = null;
+            if (($aRow['reason'] ?? null) === 'previous_trip') {
+                $iEta = (int)$aRow['etaSeconds'];
+                $bAny = true;
+            }
+            $aEtas[] = $iEta;
+        }
+        if (!$bAny) {
+            return null;
+        }
+        return $aEtas;
     }
 
     // Un viaje sin bus que aún no ha llegado a su hora de salida, en una red cuyo directo trae autobuses (con hora de

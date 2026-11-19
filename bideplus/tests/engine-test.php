@@ -9,6 +9,7 @@ if (!is_dir(__DIR__ . '/../engine')) {
 require __DIR__ . '/unit-harness.php';
 
 use Core\Config;
+use Engine\Bizkaibus\BlockChains;
 use Engine\Bizkaibus\FeedMemory;
 use Engine\Bizkaibus\PaceFactors;
 use Engine\Bizkaibus\PassageLog;
@@ -699,5 +700,136 @@ foreach (Core\Networks::all() as $sSlug => $aNet) {
     $sMatcherNetwork = (new ReflectionClassConstant($sSpace . 'RealtimeMatcher', 'NETWORK'))->getValue();
     $Expect("$sSlug: el emparejador lleva su nombre", $sMatcherNetwork === $sSlug, $sMatcherNetwork);
 }
+
+/* ------------------------------------------------------------------ */
+$Section('Vuelta anterior del bus (BlockChains)');
+
+// Un bus del día (216101) hace la vuelta 15 de U a A (llega a A a T0) y la 16 de A a C (sale de A a T0, sin margen),
+// como el A2161 en el Puente Bizkaia. Cada viaje del horario junta varios tipos de día: el id del operador de hoy va en
+// trip_aliases. $sPreviousEnd: dónde acaba la vuelta 15 (A, o la parada de enfrente). $sPreviousLine: su línea.
+function chainFixture(string $sPreviousEnd = 'A', string $sPreviousLine = '2161'): PDO
+{
+    $Pdo = new PDO('sqlite::memory:');
+    $Pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $Pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $Pdo->exec('
+        CREATE TABLE stops (id TEXT PRIMARY KEY, name TEXT NOT NULL, name_normalized TEXT NOT NULL, area TEXT NOT NULL DEFAULT \'\', area_normalized TEXT NOT NULL DEFAULT \'\', lat REAL NOT NULL, lon REAL NOT NULL, station_id TEXT, platform_label TEXT);
+        CREATE TABLE service_journeys (id TEXT PRIMARY KEY, line_id TEXT NOT NULL, journey_pattern_id TEXT NOT NULL, trip_number TEXT, calendar_id TEXT NOT NULL, first_departure_seconds INTEGER, shape_id TEXT);
+        CREATE TABLE passing_times (service_journey_id TEXT NOT NULL, seq_order INTEGER NOT NULL, stop_id TEXT NOT NULL, arrival_seconds INTEGER, departure_seconds INTEGER, dist_m REAL);
+        CREATE TABLE shapes (id TEXT PRIMARY KEY, points TEXT NOT NULL);
+        CREATE TABLE trip_aliases (trip_id TEXT PRIMARY KEY, service_journey_id TEXT NOT NULL);
+    ');
+    $InsStop = $Pdo->prepare('INSERT INTO stops (id, name, name_normalized, lat, lon) VALUES (?, ?, ?, ?, ?)');
+    foreach (['A' => 0, 'B' => 1000, 'C' => 2000] as $sStop => $iNorth) {
+        $InsStop->execute([$sStop, $sStop, strtolower($sStop), LAT0 + $iNorth * M_LAT, LON0]);
+    }
+    foreach (['U' => 2000, 'M' => 1000] as $sStop => $iNorth) {
+        $InsStop->execute([$sStop, $sStop, strtolower($sStop), LAT0 + $iNorth * M_LAT, LON0 + lonOffset(30)]);
+    }
+    $InsStop->execute(['A2', 'A enfrente', 'a enfrente', LAT0, LON0 + lonOffset(30)]);
+    $aNext = [];
+    $aPrevious = [];
+    for ($iMeters = 0; $iMeters <= 2000; $iMeters += 250) {
+        $aNext[] = [LAT0 + $iMeters * M_LAT, LON0, (float)$iMeters];
+        $aPrevious[] = [LAT0 + (2000 - $iMeters) * M_LAT, LON0 + lonOffset(30), (float)$iMeters];
+    }
+    $Pdo->prepare('INSERT INTO shapes VALUES (?, ?)')->execute(['SH_NEXT', json_encode($aNext)]);
+    $Pdo->prepare('INSERT INTO shapes VALUES (?, ?)')->execute(['SH_PREV', json_encode($aPrevious)]);
+    $InsSj = $Pdo->prepare('INSERT INTO service_journeys VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $InsSj->execute(['J_PREV', $sPreviousLine, 'PP', '845', 'C1', T0 - 1800, 'SH_PREV']);
+    $InsSj->execute(['J_NEXT', '2161', 'PN', '844', 'C1', T0, 'SH_NEXT']);
+    $InsPt = $Pdo->prepare('INSERT INTO passing_times VALUES (?, ?, ?, ?, ?, ?)');
+    $InsPt->execute(['J_PREV', 1, 'U', T0 - 1800, T0 - 1800, 0.0]);
+    $InsPt->execute(['J_PREV', 2, 'M', T0 - 900, T0 - 900, 1000.0]);
+    $InsPt->execute(['J_PREV', 3, $sPreviousEnd, T0, T0, 2000.0]);
+    $InsPt->execute(['J_NEXT', 1, 'A', T0, T0, 0.0]);
+    $InsPt->execute(['J_NEXT', 2, 'B', T0 + 300, T0 + 300, 1000.0]);
+    $InsPt->execute(['J_NEXT', 3, 'C', T0 + 600, T0 + 600, 2000.0]);
+    // El de hoy (lunes a jueves) y el de los viernes, con otro bus del día: solo el de hoy está en el feed.
+    $Pdo->exec("INSERT INTO trip_aliases VALUES
+        ('trp_A{$sPreviousLine}_845_OP42LJPPV_27000_O42LJP2161_216101_15', 'J_PREV'),
+        ('trp_A2161_844_OP42LJPPV_28800_O42LJP2161_216101_16', 'J_NEXT'),
+        ('trp_A2161_844_OP42VPPV_28800_O42VPP2161_216109_4', 'J_NEXT')");
+    return $Pdo;
+}
+
+// El bus de la vuelta 15 visto a $iNorthLeft metros de A (por su recorrido) a la hora $iAt, yendo hacia A.
+function chainBus(float $dMetersToEnd, int $iAt, string $sLine = '2161', string $sRef = 'trp_A2161_845_OP42LJPPV_27000_O42LJP2161_216101_15'): array
+{
+    return [
+        'tripRef' => $sRef,
+        'lineId' => $sLine,
+        'departureSeconds' => T0 - 1800,
+        'delaySeconds' => 0,
+        'vehicleRef' => 'BUS7',
+        'currentStopId' => 'M',
+        'order' => 3,
+        'lat' => LAT0 + $dMetersToEnd * M_LAT,
+        'lon' => LON0 + lonOffset(30),
+        'locationSeconds' => $iAt,
+    ];
+}
+
+$ChainsTrusted = new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 39, 'waits' => ['laborable' => ['seconds' => 240, 'samples' => 12], 'fin_semana' => ['seconds' => 90, 'samples' => 6]]]]]);
+$ChainRow = fn(string $sStop, int $iSeq, int $iArrival) => ['service_journey_id' => 'J_NEXT', 'line_id' => '2161', 'trip_number' => '844', 'first_departure_seconds' => T0, 'arrival_seconds' => $iArrival, 'stop_seq' => $iSeq, 'stop_id' => $sStop];
+$ChainMatcher = function (array $aVmMap, BlockChains $Chains, PDO|null $Pdo = null, int $iNow = T0 - 120) {
+    $M = new RealtimeMatcher($aVmMap, new ServiceJourney($Pdo ?? chainFixture()), $iNow, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+    $M->setChains($Chains);
+    return $M;
+};
+
+$Expect('la clave lleva tipo de día, bus del día y vuelta', RealtimeMatcher::blockKey('trp_A2161_844_OP42LJPPV_56100_O42LJP2161_216101_16') === 'OP42LJPPV|216101|16');
+$Expect('y la de la vuelta anterior', RealtimeMatcher::blockKey('trp_A2161_844_OP42LJPPV_56100_O42LJP2161_216101_16', -1) === 'OP42LJPPV|216101|15');
+$Expect('la primera vuelta del día no tiene anterior', RealtimeMatcher::blockKey('trp_A2161_844_OP42LJPPV_25200_O42LJP2161_216101_1', -1) === null);
+$Expect('un id con otra forma no da clave: no se usa', RealtimeMatcher::blockKey('trp_A3414_808_OP9LSEPT_28800_x') === null && RealtimeMatcher::blockKey('808') === null);
+$Expect('una línea con 39 de 40 pares cumple; con 10 pares, no', $ChainsTrusted->isTrusted('2161') && !(new BlockChains(['lines' => ['2161' => ['pairs' => 10, 'same' => 10]]]))->isTrusted('2161'));
+$Expect('con el 85 % no cumple', !(new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 34]]]))->isTrusted('2161'));
+$Expect('la espera es la de la línea en ese tipo de día', $ChainsTrusted->waitSeconds('2161', 'laborable') === 240 && $ChainsTrusted->waitSeconds('2161', 'fin_semana') === 90);
+$ChainsFew = new BlockChains(['waits' => ['laborable' => ['seconds' => 150, 'samples' => 400]], 'lines' => ['2161' => ['pairs' => 40, 'same' => 40, 'waits' => ['laborable' => ['seconds' => 30, 'samples' => 2]]]]]);
+$Expect('con pocas medidas en la línea, la de toda la red', $ChainsFew->waitSeconds('2161', 'laborable') === 150);
+$Expect('sin medidas de espera, 3 min', (new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 40]]]))->waitSeconds('2161', 'fin_semana') === 180);
+
+// El caso de Amaia 22: a T0 - 2 min el bus de la vuelta 15 va por M (1000 m antes de A), por donde tenía que pasar a
+// T0 - 15 min: 13 min tarde. Llegará a A a T0 + 13 min y saldrá 4 min después: el viaje sale 17 min tarde.
+$aLate = chainBus(1000, T0 - 120);
+$MLate = $ChainMatcher(['2161|845' => [$aLate]], $ChainsTrusted);
+$aOutB = $MLate->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('viaje sin bus y el de su vuelta anterior viene tarde: estimado con el motivo', $aOutB['status'] === 'estimated' && ($aOutB['reason'] ?? null) === 'previous_trip', json_encode($aOutB));
+$Expect('sale 17 min tarde: llega a B a T0 + 22 min', $aOutB['etaSeconds'] === T0 + 1320 && $aOutB['delaySeconds'] === 1020, hms((int)$aOutB['etaSeconds']));
+$Expect('dice qué bus es', ($aOutB['previousVehicleRef'] ?? null) === 'BUS7');
+$aOutA = $MLate->enrich([$ChainRow('A', 1, T0)])[0];
+$Expect('en la primera parada: la hora a la que sale', $aOutA['etaSeconds'] === T0 + 1020 && ($aOutA['reason'] ?? null) === 'previous_trip', hms((int)$aOutA['etaSeconds']));
+
+$aOnTime = chainBus(1000, T0 - 900);
+$aOutOnTime = $ChainMatcher(['2161|845' => [$aOnTime]], $ChainsTrusted, null, T0 - 890)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('el bus anterior viene a su hora: como siempre', !isset($aOutOnTime['reason']) && $aOutOnTime['etaSeconds'] === T0 + 300, json_encode($aOutOnTime));
+$aSlightly = chainBus(1000, T0 - 900 + 90);
+$aOutSlightly = $ChainMatcher(['2161|845' => [$aSlightly]], $ChainsTrusted, null, T0 - 800)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('llega a la cabecera 1,5 min tarde (menos de 2): como siempre', !isset($aOutSlightly['reason']), json_encode($aOutSlightly));
+
+$aOutUntrusted = $ChainMatcher(['2161|845' => [$aLate]], new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 30]]]))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('línea que no cumple el plan: como siempre', !isset($aOutUntrusted['reason']) && $aOutUntrusted['status'] === 'scheduled', json_encode($aOutUntrusted));
+$aOutNoFile = $ChainMatcher(['2161|845' => [$aLate]], new BlockChains())->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('sin fichero de cadenas: como siempre', !isset($aOutNoFile['reason']));
+
+$aOutOtherStop = $ChainMatcher(['2161|845' => [$aLate]], $ChainsTrusted, chainFixture('A2'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('la vuelta anterior acaba en la parada de enfrente: como siempre', !isset($aOutOtherStop['reason']), json_encode($aOutOtherStop));
+
+// Otro bus (un refuerzo) ya hace el viaje 16: manda el directo.
+$aOwn = ['tripRef' => 'trp_A2161_844_OP42LJPPV_28800_O42LJP2161_216101_16', 'lineId' => '2161', 'departureSeconds' => T0, 'delaySeconds' => 0, 'vehicleRef' => 'BUS9', 'currentStopId' => 'A', 'order' => 2, 'lat' => LAT0, 'lon' => LON0, 'locationSeconds' => T0 - 120];
+$aOutOwn = $ChainMatcher(['2161|845' => [$aLate], '2161|844' => [$aOwn]], $ChainsTrusted)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('con otro bus ya en el viaje (refuerzo o cambio de bus): manda su directo', !isset($aOutOwn['reason']) && $aOutOwn['status'] === 'live' && $aOutOwn['vehicleRef'] === 'BUS9', json_encode($aOutOwn));
+
+// El bus anterior del feed es de otro tipo de día con el mismo bus y vuelta: no es la vuelta anterior de hoy.
+$aOtherDay = chainBus(1000, T0 - 120, '2161', 'trp_A2161_845_OP42VPPV_27000_O42VPP2161_216101_15');
+$aOutOtherDay = $ChainMatcher(['2161|845' => [$aOtherDay]], $ChainsTrusted)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('un viaje de otro tipo de día con el mismo número de bus y vuelta no cuenta', !isset($aOutOtherDay['reason']));
+
+// EHU: la vuelta anterior es de otra línea que acaba en la parada del campus donde empieza esta (mismo bus del día).
+$aEhu = chainBus(1000, T0 - 120, '3247', 'trp_A3247_845_OP42LJPPV_27000_O42LJP2161_216101_15');
+$aOutEhu = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('A', '3247'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('EHU: la vuelta anterior de otra línea que acaba en la misma parada también vale', ($aOutEhu['reason'] ?? null) === 'previous_trip' && $aOutEhu['delaySeconds'] === 1020, json_encode($aOutEhu));
+$aOutEhuOpposite = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('A2', '3247'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('EHU: si acaba en otra parada del campus, como siempre', !isset($aOutEhuOpposite['reason']));
 
 $Finish('algoritmo');

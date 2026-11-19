@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Recalibrado diario del workflow «Ritmo de los buses»: para cada red con motor, con las muestras acumuladas en su
-# release (pace-data para Bizkaibus, pace-data-<red> para las demás), recalcula el factor de ritmo, los tiempos por tramo
-# y la corrección por viaje, y los deja en la carpeta de datos de su motor (bideplus/engine/<motor>/data). Una red sin
-# muestras todavía (su feed no ha traído vehículos) se salta.
+# release (pace-data para Bizkaibus, pace-data-<red> para las demás), recalcula el factor de ritmo, los tiempos por tramo,
+# la corrección por viaje y, en Bizkaibus, las líneas donde se usa la vuelta anterior del bus, y los deja en la carpeta
+# de datos de su motor (bideplus/engine/<motor>/data). Una red sin muestras todavía (su feed no ha traído vehículos) se
+# salta.
 #
 # Variables:
 #   REDES    redes a recalibrar, separadas por espacios (por defecto, todas las que tienen motor)
@@ -40,6 +41,7 @@ for RED in $REDES; do
     gunzip -c bideplus/engine/bizkaibus/data/segment-samples-seed.jsonl.gz > "$DATOS/segment-samples.jsonl"
   fi
   descargar_acumulado eta-eval.jsonl "$DATOS" || echo "Todavia no hay medidas de precision"
+  descargar_acumulado chain-samples.jsonl "$DATOS" || echo "Todavia no hay vueltas de bus"
   descargar_acumulado eta-eval-historial.jsonl "$DATOS" || echo "Todavia no hay historial de precision"
   if [ ! -s "$DATOS/pace-samples.jsonl" ] && [ ! -s "$DATOS/segment-samples.jsonl" ]; then
     echo "Sin muestras: no se recalibra" | tee -a "$RESUMEN"
@@ -63,6 +65,10 @@ for RED in $REDES; do
     php "$MOTOR/realtime-backtest.php" calibrate-segments "$DATOS/segment-samples.jsonl" --write --red="$RED"
     # Después de los tramos: se mide contra ellos.
     php "$MOTOR/realtime-backtest.php" calibrate-trips "$DATOS/segment-samples.jsonl" --write --red="$RED"
+  fi
+  # La vuelta anterior del bus: qué líneas cumplen el plan del operador (solo Bizkaibus lo publica en sus viajes).
+  if [ "$RED" = bus ] && [ -s "$DATOS/chain-samples.jsonl" ]; then
+    php "$MOTOR/realtime-backtest.php" calibrate-chains "$DATOS/chain-samples.jsonl" --write --red="$RED" | tee -a "$RESUMEN"
   fi
 
   if [ -s "$DATOS/eta-eval.jsonl" ]; then
