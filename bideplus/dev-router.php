@@ -62,7 +62,15 @@ if ($sUri === '/api/shell.php' || preg_match('#^/(data|scripts|tests|engine)(/|$
 }
 
 $sFile = realpath(__DIR__ . $sUri);
-if ($sUri !== '/' && $sFile !== false && is_file($sFile) && str_starts_with($sFile, __DIR__ . DIRECTORY_SEPARATOR)) {
+$bServable = $sFile !== false && str_starts_with($sFile, __DIR__ . DIRECTORY_SEPARATOR);
+// Sin el planificador construido (scripts/build-planner.php, al desplegar), sus pantallas, su JS y su WebAssembly salen
+// del motor tal cual, como los copia el despliegue: el inicio importa sus módulos de /planificador/pantallas.
+if (($sFile === false || !is_file($sFile)) && preg_match('#^/planificador/(pantallas|js|dist)/([^?]+)$#', $sUri, $aPlanner)) {
+    $sPlannerRoot = realpath(__DIR__ . '/engine/planner/' . $aPlanner[1]);
+    $sFile = realpath(__DIR__ . '/engine/planner/' . $aPlanner[1] . '/' . $aPlanner[2]);
+    $bServable = $sPlannerRoot !== false && $sFile !== false && str_starts_with($sFile, $sPlannerRoot . DIRECTORY_SEPARATOR);
+}
+if ($sUri !== '/' && $bServable && is_file($sFile)) {
     $aTypes = [
         'html' => 'text/html; charset=utf-8', 'css' => 'text/css; charset=utf-8', 'js' => 'text/javascript; charset=utf-8',
         'json' => 'application/json', 'webmanifest' => 'application/manifest+json', 'xml' => 'application/xml', 'txt' => 'text/plain; charset=utf-8',

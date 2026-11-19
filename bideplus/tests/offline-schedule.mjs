@@ -58,10 +58,16 @@ for (const { slug } of index.networks) {
     if (sameAsTimetable) {
         const scheduled = sameAsTimetable.api.departures.filter((d) => d.status === 'scheduled' && !d.tomorrow && !d.unscheduled).slice(0, 3);
         const notInTimetable = [];
+        // Un viaje de hoy que pasa de las 24:00 (de noche, el N12 de Villavesas a las 00:40) sale en el horario de la
+        // línea de mañana, en su madrugada: se busca en el de hoy y, si no está, en el de mañana.
+        const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(Date.now() + 24 * 3600 * 1000));
         for (const d of scheduled) {
             const url = `${BASE}/api/lines/${encodeURIComponent(d.lineId)}/timetable?stopId=${encodeURIComponent(sameAsTimetable.stopId)}&red=${slug}`;
-            const timetableAt = await (await fetch(url)).json();
-            if (!(timetableAt.entries || []).some((entry) => entry.tripKey === d.tripKey && entry.departure === d.scheduledTime)) notInTimetable.push(`${d.lineCode} ${d.scheduledTime}`);
+            const inTimetable = async (dateParam) => {
+                const timetableAt = await (await fetch(url + dateParam)).json();
+                return (timetableAt.entries || []).some((entry) => entry.tripKey === d.tripKey && entry.departure === d.scheduledTime);
+            };
+            if (!(await inTimetable('')) && !(await inTimetable(`&date=${tomorrow}`))) notInTimetable.push(`${d.lineCode} ${d.scheduledTime}`);
         }
         check(`${slug}: «Próximas salidas» da la hora de salida del horario (${scheduled.length} salidas)`, notInTimetable.length === 0, notInTimetable.join(', '));
     }
