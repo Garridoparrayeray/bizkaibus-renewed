@@ -248,6 +248,12 @@ for red in NETS:
     seo_problems(f"/stops/{NETS[red]['stopId']}", page)
 print('sitemap ok')
 
+# La ruta vieja de Leaflet (/lib/leaflet/) sirve lo mismo que la de ahora: las pestañas abiertas antes de actualizar.
+code_old, old_leaflet = fetch_text('/lib/leaflet/leaflet.js')
+code_new, new_leaflet = fetch_text('/lib/leaflet-1.9.4/leaflet.js')
+if code_old != 200 or code_new != 200 or old_leaflet != new_leaflet:
+    fails.append(f'/lib/leaflet/leaflet.js: {code_old}, no sirve lo de /lib/leaflet-1.9.4/ ({code_new})')
+
 # Las versiones en euskera e inglés (?lang=): traducidas en el servidor, con su lang, su canónica y las tres hreflang.
 for path, lang, text in (('/?lang=eu', 'eu', 'Aplikazio guztiak'), ('/?lang=en', 'en', 'All the apps'),
                          ('/mapa?lang=eu', 'eu', None), ('/?red=metro&lang=en', 'en', None), ('/?lang=fr', 'fr', None)):

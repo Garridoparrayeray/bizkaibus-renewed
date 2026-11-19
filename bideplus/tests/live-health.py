@@ -80,8 +80,10 @@ check('cron con su latido de hace 12 min (cada 10): bien',
       live_health.cron_silent({'cronSeconds': 720, 'cronEverySeconds': 600}) is None)
 check('cron callado 21 min: error',
       'no llama' in (live_health.cron_silent({'cronSeconds': 1260, 'cronEverySeconds': 600}) or ''))
-check('cron sin latido en el almacén: error',
-      live_health.cron_silent({'cronSeconds': None, 'cronEverySeconds': 600}) is not None)
+no_beat = {'cronSeconds': None, 'cronEverySeconds': 600}
+check('cron sin ningún latido en el almacén (la primera vez): aviso, no error',
+      live_health.cron_silent(no_beat) is None and live_health.cron_unknown(no_beat) is not None)
+check('cron con latido: sin aviso', live_health.cron_unknown({'cronSeconds': 30, 'cronEverySeconds': 600}) is None)
 check('sin almacén no se sabe: nada', live_health.cron_silent({'ok': True}) is None)
 
 print(f'\nRESULTADO live-health: {sum(results)} OK, {len(results) - sum(results)} MAL')

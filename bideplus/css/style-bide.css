@@ -395,44 +395,47 @@ html.bide .bide-card {
     bottom: calc(16px + env(safe-area-inset-bottom));
     left: 12px;
     z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 10px;
     max-width: 520px;
     margin: 0 auto;
-    padding: 10px 8px 10px 16px;
-    border-radius: 14px;
+    padding: 16px;
+    border-radius: 16px;
     background: var(--bide-ink);
     color: var(--bide-surface);
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .5);
-    font-size: calc(14px * var(--text-scale, 1));
+    font-size: calc(15px * var(--text-scale, 1));
 }
-    .bide-lang-offer span {
-        flex: 1;
-        min-width: 0;
+    .bide-lang-offer > .bide-lang-offer-text {
+        margin: 0 0 12px;
+        font-weight: 600;
     }
-    .bide-lang-offer-switch {
-        flex: none;
-        padding: 8px 12px;
-        border: 0;
-        border-radius: 10px;
-        background: var(--bide-surface);
-        color: var(--bide-ink);
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
+    .bide-lang-offer > .bide-lang-offer-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
     }
-    .bide-lang-offer-close {
-        flex: none;
-        width: 36px;
-        height: 36px;
-        border: 0;
-        background: transparent;
-        color: inherit;
-        font-size: 22px;
-        line-height: 1;
-        cursor: pointer;
-    }
+        .bide-lang-offer-actions > .bide-lang-offer-switch {
+            flex: 1 1 180px;
+            min-height: 48px;
+            padding: 12px 16px;
+            border: 0;
+            border-radius: 12px;
+            background: var(--bide-surface);
+            color: var(--bide-ink);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .bide-lang-offer-actions > .bide-lang-offer-close {
+            flex: 1 1 140px;
+            min-height: 48px;
+            padding: 12px 16px;
+            border: 1px solid currentColor;
+            border-radius: 12px;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+        }
 html.is-standalone .bide-lang-offer {
     bottom: calc(92px + min(env(safe-area-inset-bottom), 34px));
 }

@@ -558,11 +558,13 @@ foreach (['dbus', 'txiktxak'] as $sCapped) {
     // La fila de C lleva ya su retraso sin el del feed: se cuenta lo que añade cada uno.
     $iBase = (new TripDelayMatcher($TripLate(0, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC)[0]['delaySeconds'];
     $aLate = [];
-    foreach ([40, 46, 80, 120] as $iMinutes) {
+    foreach ([40, 46, 80] as $iMinutes) {
         $aLateRow = (new TripDelayMatcher($TripLate($iMinutes * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
         $aLate[$iMinutes] = ($aLateRow[0]['delaySeconds'] - $iBase) / 60;
     }
-    $Expect("{$sCapped}: con el día de hoy, 40, 46, 80 y 120 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80, 120 => 120], json_encode($aLate));
+    $Expect("{$sCapped}: con el día de hoy, 40, 46 y 80 min salen como retraso", $aLate === [40 => 40, 46 => 46, 80 => 80], json_encode($aLate));
+    $aAbsurd = (new TripDelayMatcher($TripLate(150 * 60, $aToday), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
+    $Expect("{$sCapped}: con el día de hoy, 2 h 30 min no es creíble: sin dato", $aAbsurd[0]['status'] === 'likely_departed', json_encode($aAbsurd[0]));
     $aUndated = (new TripDelayMatcher($TripLate(80 * 60), new ServiceJourney($PdoRenfe), $iOffMidnight))->enrich('C', $aRowC);
     $Expect("{$sCapped}: sin el día del viaje, 80 min caben en el tope de 90", $aUndated[0]['delaySeconds'] === 80 * 60 + $iBase, json_encode($aUndated[0]));
     $aOtherDay = ['startDate' => date('Ymd', $iOffMidnight - 2 * 86400 + 12 * 3600)];
@@ -607,6 +609,12 @@ $aWrongBus = [['tripId' => '22123', 'lat' => 43.009, 'lon' => -2.9, 'stopId' => 
 $aWrongTimes = [['tripId' => '22123', 'stops' => [['C', $iWrongMidnight + T0 + 1200 + 1200]]]];
 $aWrongC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('Álavabus: si el GPS dice que el autobús es de otro viaje, tampoco valen sus horas del feed: sale sin dato', ($aWrongC[0]['status'] ?? null) === 'likely_departed', json_encode($aWrongC));
+// En una red donde no manda el GPS (Renfe LD), ese mismo vehículo de 50 min sin hora prevista no deja el viaje sin
+// dato: sigue con su horario, como en master.
+\Core\Config::set('renfe-ld');
+$aLdC = (new TripDelayMatcher([], new ServiceJourney($PdoAlava), $iWrongMidnight, $aWrongBus))->enrich('C', [$AlavaRow('C', 2)]);
+$Expect('Renfe LD: un GPS de más de 45 min sin hora prevista no deja el viaje sin dato', ($aLdC[0]['status'] ?? null) === 'scheduled', json_encode($aLdC));
+\Core\Config::set('alavabus');
 $aRightC = (new TripDelayMatcher($aWrongTimes, new ServiceJourney($PdoAlava), $iWrongMidnight))->enrich('C', [$AlavaRow('C', 2)]);
 $Expect('sin GPS, las mismas horas sí valen (40 min)', ($aRightC[0]['status'] ?? null) === 'live' && $aRightC[0]['delaySeconds'] === 2400, json_encode($aRightC));
 // Sin GPS, el feed lo pone en B 25 min tarde y ya han pasado otros 25: se enseñarían 50 min, más del tope de 45.
@@ -628,6 +636,55 @@ $aMetroAbsurd = [['tripId' => '6005L1C1', 'stops' => [['B', time() + 5 * 3600], 
 $Expect('Metro: un retraso de horas en el GTFS-Realtime (otro viaje con ese id) no vale: sale con el horario', !(new TripDelayMatcher($aMetroAbsurd, new ServiceJourney($PdoRenfe), time() - T0))->hasData());
 \Core\Config::set('bus');
 $Expect('en los autobuses, el que no está en el directo sigue con el horario aunque toque ya', (new TripDelayMatcher($MetroTripAt(time() - (T0 + 1950)), new ServiceJourney($PdoRenfe), time() - (T0 + 1950)))->enrich('B', [$RenfeRow('J4', 3)])[0]['status'] === 'scheduled');
+
+$Section('Álavabus con su feed real (fixtures/alavabus-*-20261115.pb, del 15-11-2026 a las 17:49)');
+// Su base, con todos los calendarios en marcha, y el feed movido a hoy a la misma hora: lo que sale tiene que ser lo
+// de master con ese feed. El viaje 20925 trae horas de hace 4,5 h con el día de hoy (antes daba un p95 de 194 min).
+$sAlavaDb = __DIR__ . '/../data/alavabus.sqlite';
+if (is_file($sAlavaDb)) {
+    \Core\Config::set('alavabus');
+    $sAlavaCopy = tempnam(sys_get_temp_dir(), 'bide-alava-');
+    copy($sAlavaDb, $sAlavaCopy);
+    $PdoReal = new PDO('sqlite:' . $sAlavaCopy);
+    $PdoReal->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $PdoReal->exec("UPDATE service_calendars SET from_date = '2000-01-01', to_date = '2099-12-31', weekday_mask = 127");
+    $PdoReal->exec('DELETE FROM service_calendar_exceptions');
+    $aRealFeed = GtfsRealtimeClient::parseTripUpdates((string)file_get_contents(__DIR__ . '/fixtures/alavabus-trip-updates-20261115.pb'));
+    $aRealPos = GtfsRealtimeClient::parseVehiclePositions((string)file_get_contents(__DIR__ . '/fixtures/alavabus-vehicle-positions-20261115.pb'));
+    $iFixtureMidnight = (new DateTime('2026-11-15', new DateTimeZone(Calendar::TIME_ZONE)))->getTimestamp();
+    $iRealMidnight = time() - ($aRealFeed['generatedAt'] - $iFixtureMidnight);
+    $iMoved = $iRealMidnight - $iFixtureMidnight;
+    $sRealDay = (new DateTime('@' . ($iRealMidnight + 12 * 3600)))->setTimezone(new DateTimeZone(Calendar::TIME_ZONE))->format('Ymd');
+    $aRealTrips = [];
+    foreach ($aRealFeed['trips'] as $aTrip) {
+        foreach ($aTrip['stops'] as $iStop => $aStop) {
+            $aTrip['stops'][$iStop][1] += $iMoved;
+        }
+        $aTrip['startDate'] = $sRealDay;
+        $aRealTrips[] = $aTrip;
+    }
+    $aRealVehicles = [];
+    foreach ($aRealPos['vehicles'] as $aVehicle) {
+        $aVehicle['timestamp'] += $iMoved;
+        $aRealVehicles[] = $aVehicle;
+    }
+    $MReal = new TripDelayMatcher($aRealTrips, new ServiceJourney($PdoReal), $iRealMidnight, $aRealVehicles);
+    $aRealLive = [];
+    foreach ((new ReflectionProperty($MReal, 'aByJourney'))->getValue($MReal) as $sJourney => $aLive) {
+        $aRealLive[(string)$sJourney] = [(int)round($aLive['delay'] / 60), (string)$aLive['nextStopId']];
+    }
+    ksort($aRealLive);
+    // Lo que da master con el mismo feed: viaje => [retraso en min, parada a la que va].
+    $aMasterLive = ['15911' => [0, '1'], '20882' => [3, '412'], '21994' => [4, '71'], '22038' => [0, '142'],
+        '22046' => [0, '79'], '22151' => [4, '10'], '22195' => [0, '4'], '25426' => [0, '399'], '25902' => [0, '1'],
+        '25962' => [0, '135']];
+    $Expect('Álavabus, feed real: los mismos viajes en directo y con el mismo retraso que en master', $aRealLive === $aMasterLive, json_encode($aRealLive));
+    $aRealDiag = $MReal->diagnostics();
+    $Expect('Álavabus, feed real: sin retrasos absurdos (p95 de 11 min, como en master)', ($aRealDiag['delayMinutes']['p95'] ?? null) === 11, json_encode($aRealDiag));
+    $aStale = $MReal->enrich('828', [['service_journey_id' => '20925', 'trip_number' => '20925', 'stop_seq' => 1, 'arrival_seconds' => 0, 'status' => 'scheduled', 'etaSeconds' => 0, 'delaySeconds' => 0]]);
+    $Expect('Álavabus, feed real: el viaje con horas de hace 4,5 h sale sin dato', ($aStale[0]['status'] ?? null) === 'likely_departed', json_encode($aStale));
+    unlink($sAlavaCopy);
+}
 
 $Section('Directo con solo posiciones (vehicle positions sin trip updates)');
 // Una red de la que solo se publica dónde va cada vehículo: su ficha con live = ['vehicle-positions'].
@@ -1165,6 +1222,19 @@ $aStrike = $Reduced($aRenfeStrike, $aRenfeLines);
 $Expect('avisos reales de Renfe: la huelga marca el 17 de noviembre, solo en sus líneas (el aviso de 61T no es de esta red)', $aStrike['days'] === ['2026-11-17'] && $aStrike['lines'] === ['60T0002C1', '60T0001C1', '60T0003C2'] && $aStrike['cause'] === 'strike' && \count($aRenfeStrike) === 4, json_encode($aStrike));
 $aStrikeDay = $Reduced($aRenfeStrike, $aRenfeLines, false, new DateTimeImmutable('2026-11-17'));
 $Expect('el mismo aviso el día 17: hoy hay servicio reducido', \Services\ReducedService::verdict($aStrikeDay, false, '2026-11-17')['today'] && \Services\ReducedService::verdict($aStrikeDay, false, '2026-11-17')['sources'] === ['alerts']);
+// Avisos reales de Renfe del 16/11/2026: la huelga del 17 en siete núcleos de Cercanías (Bilbao, Donostia, Valencia…)
+// es de toda Renfe y vale para media y larga distancia, que no tiene avisos; la del 14/11 solo sale en dos.
+$aWideRule = \Core\Networks::get('renfe-ld')['renfe_alerts']['operator_wide'];
+$TodayWide = new DateTimeImmutable('2026-11-16');
+$aRenfeWide = RenfeAlertsClient::parse((string)file_get_contents(__DIR__ . '/fixtures/renfe-alerts-huelga-20261116.json'), [], null);
+$aWide = \Services\ReducedService::operatorWide($aRenfeWide, $aWideRule, $aReducedRules, $TodayWide);
+$Expect('huelga de toda Renfe (siete núcleos): media y larga distancia, el 17 de noviembre y por huelga', $aWide['days'] === ['2026-11-17'] && $aWide['cause'] === 'strike' && str_contains((string)$aWide['alert'], 'huelga') && !str_contains((string)$aWide['alert'], 'SEVILLA'), json_encode($aWide));
+$aLdVerdict = \Services\ReducedService::withOperatorWide(\Services\ReducedService::fromAlerts([], $aReducedRules, $TodayWide, $iNowStrike, [], true), $aWide);
+$Expect('la huelga de toda Renfe es de toda la red de media y larga distancia (sin líneas sueltas)', $aLdVerdict['days'] === ['2026-11-17'] && $aLdVerdict['lines'] === null, json_encode($aLdVerdict));
+$aNarrow = \Services\ReducedService::operatorWide($aRenfeStrike, $aWideRule, $aReducedRules, $TodayStrike);
+$Expect('una huelga en dos núcleos no es de toda Renfe', $aNarrow['days'] === [], json_encode($aNarrow));
+$aUnchanged = \Services\ReducedService::withOperatorWide($aStrike, ['days' => [], 'alert' => null, 'cause' => null]);
+$Expect('sin huelga de todo el operador, lo de los avisos de la red queda igual', $aUnchanged === $aStrike);
 $aCases = [
     'otra red refuerza' => [[['title' => 'Refuerzo de servicio', 'description' => 'Con motivo de la huelga de Bizkaibus, Metro Bilbao refuerza su servicio']], []],
     'en vigor, sin fechas' => [[['summary' => 'Greba: gutxieneko zerbitzuak', 'startTime' => '2026-11-14T06:00:00+01:00']], ['2026-11-14']],
@@ -1284,12 +1354,14 @@ $Expect('/api/status: antigüedad del latido y, sin marca de lleno, null',
 $Expect('sin almacén o si no responde, no se dice nada', \Services\CronHeartbeat::agesFrom(null, 1000) === []);
 
 // Nombres en formato título (Core\DisplayName) y medidas de títulos y descripciones (Core\Seo).
-$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'McDonalds', "O'Donnell"]]]];
+$aTitleCase = ['features' => ['title_case_names' => ['keep' => ['BBK', 'BBKren', 'CC', 'IMQ', 'McDonalds', "O'Donnell"], 'abbreviations' => ['AV' => 'Av.']]]];
 $aNames = [
     'BILBAO INTERMODAL' => 'Bilbao Intermodal', 'AREETA/LAS ARENAS' => 'Areeta/Las Arenas', 'ARTXANDA (EL GALLO)' => 'Artxanda (El Gallo)',
     'BARRIO SAN JUAN DE DIOS' => 'Barrio San Juan de Dios', 'ERANDIO-LA LLANA' => 'Erandio-La Llana', 'MUNGIA XII' => 'Mungia XII',
     'COLEGIO JUAN XXIII' => 'Colegio Juan XXIII', 'CC MAX CENTER' => 'CC Max Center', 'MCDONALDS' => 'McDonalds',
     "O'DONNELL 12" => "O'Donnell 12", 'BBKREN UDALEKUA' => 'BBKren Udalekua', 'Mixed Case' => 'Mixed Case',
+    'AV ALTOS HORNOS' => 'Av. Altos Hornos', 'AV. DEL ANGEL 18' => 'Av. del Angel 18', 'CLÍNICA IMQ' => 'Clínica IMQ',
+    'INDALECIO PRIETO / JM LIDÓN' => 'Indalecio Prieto / JM Lidón', 'NH LA AVANZADA' => 'NH la Avanzada', 'CORRO (TC)' => 'Corro (TC)',
 ];
 $aWrongNames = [];
 foreach ($aNames as $sIn => $sOut) {
@@ -1297,7 +1369,7 @@ foreach ($aNames as $sIn => $sOut) {
         $aWrongNames[] = $sIn . ' → ' . \Core\DisplayName::of($sIn, $aTitleCase);
     }
 }
-$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
+$Expect('formato título: artículos tras «/», «(» y «-» con mayúscula, romanos, siglas sin vocales, «Av.» y excepciones de la ficha', $aWrongNames === [], implode(' | ', $aWrongNames));
 $Expect('formato título: sin title_case_names en la ficha, el nombre no cambia', \Core\DisplayName::of('BILBAO', ['features' => []]) === 'BILBAO');
 $sLongTitle = \Core\Seo::title([str_repeat('Parada muy larga ', 6)]);
 $Expect('título: si nada cabe, se recorta por una palabra con «…» y no pasa de 60', mb_strlen($sLongTitle) <= \Core\Seo::TITLE_MAX && str_ends_with($sLongTitle, '…'), $sLongTitle);

@@ -95,7 +95,7 @@ return [
 
     'features' => [
         // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
-        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC', 'IMQ', 'IES', 'CIFP']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,

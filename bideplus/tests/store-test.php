@@ -57,6 +57,21 @@ try {
     putenv('UPSTASH_REDIS_REST_TOKEN=token-de-prueba');
     $Expect('con credenciales está encendido', Store::enabled());
 
+    // El latido del cron leído por /api/status: con el almacén caído justo después, sale lo leído hace un momento
+    // (READ_CACHE_SECONDS), sin volver a llamar; pasado ese rato, se vuelve a leer.
+    @unlink(\Services\CronHeartbeat::readCachePath('prueba'));
+    Store::pipeline(\Services\CronHeartbeat::commands(['prueba' => 1], 1000));
+    $aRead = \Services\CronHeartbeat::ages('prueba', 1100);
+    putenv('UPSTASH_REDIS_REST_URL=http://127.0.0.1:1');
+    $aCachedAges = \Services\CronHeartbeat::ages('prueba', 1130);
+    $aLater = \Services\CronHeartbeat::ages('prueba', 1100 + \Services\CronHeartbeat::READ_CACHE_SECONDS);
+    putenv('UPSTASH_REDIS_REST_URL=http://127.0.0.1:' . $iPort . '/');
+    @unlink($sMarker);
+    @unlink(\Services\CronHeartbeat::readCachePath('prueba'));
+    $Expect('latido del cron: leído del almacén', ($aRead['cronSeconds'] ?? null) === 100 && ($aRead['lastFullSeconds'] ?? null) === 100, json_encode($aRead));
+    $Expect('latido del cron: unos segundos después, sin volver a llamar al almacén', ($aCachedAges['cronSeconds'] ?? null) === 130, json_encode($aCachedAges));
+    $Expect('latido del cron: pasado READ_CACHE_SECONDS, se vuelve a leer (con el almacén caído, nada)', $aLater === [], json_encode($aLater));
+
     // El registro de pasos es del algoritmo (engine/, repositorio aparte): sin él, esta parte no se prueba.
     if (class_exists(PassageLog::class)) {
         Config::set('bus');

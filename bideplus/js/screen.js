@@ -126,6 +126,8 @@ tickClock();
 setInterval(tickClock, CLOCK_MS);
 body.addEventListener('click', goFullscreen);
 window.addEventListener('resize', render);
+// Con las fuentes ya cargadas las filas miden más (font-display: swap): se vuelve a ajustar cuántas caben.
+document.fonts.ready.then(render);
 if (body.dataset.stopFound === '1') {
     load();
     // En segundo plano no pide nada: al volver a verse lo pide en el momento (abajo).

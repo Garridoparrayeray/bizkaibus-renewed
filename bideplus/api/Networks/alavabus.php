@@ -98,7 +98,7 @@ return [
 
     'features' => [
         // Publica los nombres en mayúsculas: en la app y en los buscadores van en formato título (Core\DisplayName).
-        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC']],
+        'title_case_names' => ['keep' => ['UPV', 'EHU', 'BBK', 'BEC', 'BBVA', 'CC', 'IMQ', 'IES', 'CIFP', 'EG']],
         'platforms' => false,
         'headsign_from_last_stop' => false,
         'stop_hints' => true,
@@ -128,8 +128,8 @@ return [
         'local_clock' => true,
         // Sus horas previstas fallan a menudo: donde el autobús manda su posición, se usa la posición.
         'prefer_vehicles' => true,
-        // A veces da a un autobús el número de un viaje de hace horas: sin el día del viaje en el feed, un retraso de más
-        // de 45 min (el tope del GPS) no vale y el viaje sale sin dato.
+        // A veces da a un autobús el número de un viaje de hace horas, con el día de hoy: un retraso de más de 45 min
+        // (el tope del GPS) no vale y el viaje sale sin dato.
         'max_feed_gap_seconds' => 45 * 60,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,

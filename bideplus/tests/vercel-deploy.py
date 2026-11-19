@@ -23,20 +23,30 @@ def check(name, ok, detail=''):
     print('MAL ' + name + ' — ' + str(detail))
 
 
-def deleted(deployments, current):
-    env = dict(os.environ, KEEP_PREVIOUS='2', CURRENT=current)
+def deleted(deployments, current, aliased=''):
+    env = dict(os.environ, KEEP_PREVIOUS='2', CURRENT=current, ALIASED=aliased)
     out = subprocess.run([sys.executable, '-I', SCRIPT], input=json.dumps({'deployments': deployments}), env=env,
                          capture_output=True, text=True, check=True).stdout
     return sorted(uid for uid in out.split('\n') if uid)
 
 
-# D1 a D7 de producción listos; tras un «Rollback production» a D4, D5 a D7 no tienen el dominio: sirve D4.
+# D1 a D7 de producción listos; tras un «Rollback production» a D4, D5 a D7 no tienen el dominio: sirve D4, y
+# targets.production.id puede seguir siendo D7. P1, la vista previa de la copia de prueba (con su alias); P2, una
+# vista previa sin alias; B8, uno de producción que aún se construye, y E9, uno que falló.
 deployments = [{'uid': f'D{n}', 'created': n, 'target': 'production', 'state': 'READY'} for n in range(1, 8)]
-deployments.append({'uid': 'P1', 'created': 8, 'target': None, 'state': 'READY'})
-check('tras un rollback se conserva el que sirve el dominio, además de los 3 más recientes',
-      deleted(deployments, 'D4') == ['D1', 'D2', 'D3', 'P1'], deleted(deployments, 'D4'))
-check('sin rollback, el último y los 2 anteriores', deleted(deployments, 'D7') == ['D1', 'D2', 'D3', 'D4', 'P1'])
-check('si no se sabe cuál sirve el dominio, no se borra nada', deleted(deployments, '') == [])
+deployments += [{'uid': 'P1', 'created': 8, 'target': None, 'state': 'READY'},
+                {'uid': 'P2', 'created': 9, 'target': None, 'state': 'READY'},
+                {'uid': 'B8', 'created': 10, 'target': 'production', 'state': 'BUILDING'},
+                {'uid': 'E9', 'created': 0, 'target': 'production', 'state': 'ERROR'}]
+gone = deleted(deployments, 'D7', 'D4 P1')
+check('tras un rollback se conserva el que tiene el alias del dominio, además de los 3 más recientes',
+      gone == ['D1', 'D2', 'D3', 'E9'], gone)
+check('la vista previa con alias (la copia de prueba) y las demás vistas previas no se borran',
+      'P1' not in gone and 'P2' not in gone, gone)
+check('el que está a medias (BUILDING) no se borra; el que falló, sí', 'B8' not in gone and 'E9' in gone, gone)
+gone = deleted(deployments, 'D7', 'D7 P1')
+check('sin rollback, el último y los 2 anteriores', gone == ['D1', 'D2', 'D3', 'D4', 'E9'], gone)
+check('si no se sabe qué sirve cada dominio, no se borra nada', deleted(deployments, '', 'D4') == [])
 
 
 def launcher_output(megabytes):

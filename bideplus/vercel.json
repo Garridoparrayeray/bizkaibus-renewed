@@ -71,6 +71,10 @@
       "dest": "/api/index.php"
     },
     {
+"src": "^/lib/leaflet/(.*)$",
+      "dest": "/lib/leaflet-1.9.4/$1"
+    },
+    {
       "src": "^/planificador/pantallas/(?:index[.]html)?$",
       "status": 308,
       "headers": {

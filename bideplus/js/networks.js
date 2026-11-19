@@ -30,10 +30,15 @@
                     "BEC",
                     "BBVA",
                     "IES",
+                    "CIFP",
+                    "IMQ",
                     "CC",
                     "McDonalds",
                     "O'Donnell"
-                ]
+                ],
+                "abbreviations": {
+                    "AV": "Av."
+                }
             }
         },
         "texts": {
@@ -575,7 +580,10 @@
                     "BBK",
                     "BEC",
                     "BBVA",
-                    "CC"
+                    "CC",
+                    "IMQ",
+                    "IES",
+                    "CIFP"
                 ]
             },
             "platforms": false,
@@ -809,7 +817,11 @@
                     "BBK",
                     "BEC",
                     "BBVA",
-                    "CC"
+                    "CC",
+                    "IMQ",
+                    "IES",
+                    "CIFP",
+                    "EG"
                 ]
             },
             "platforms": false,
@@ -895,7 +907,10 @@
                     "BBK",
                     "BEC",
                     "BBVA",
-                    "CC"
+                    "CC",
+                    "IMQ",
+                    "IES",
+                    "CIFP"
                 ]
             },
             "platforms": false,

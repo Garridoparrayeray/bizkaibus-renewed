@@ -29,7 +29,6 @@ class RenfeAlertsClient
 
     public function fetchAlerts(): array
     {
-        $aCfg = $this->aConfig['renfe_alerts'];
         $Pdo = Database::connection();
         $aStops = $Pdo->query('SELECT id, name FROM stops')->fetchAll(\PDO::FETCH_KEY_PAIR);
         $aListed = Networks::listedStops($this->aConfig);
@@ -37,10 +36,7 @@ class RenfeAlertsClient
             $aStops = array_intersect_key($aStops, $aListed);
         }
 
-        // Una copia por red: cada una se queda con los avisos de sus estaciones.
-        $aAll = Cache::remember('renfe_alerts_' . ($this->aConfig['slug'] ?? ''), $aCfg['cache_ttl_seconds'], function () use ($aCfg, $aStops) {
-            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']), $aStops, $aCfg['max_age_seconds'] ?? null);
-        });
+        $aAll = $this->parsed($aStops);
 
         $aOwnLines = array_flip($Pdo->query('SELECT id FROM lines')->fetchAll(\PDO::FETCH_COLUMN));
         $aAlerts = [];
@@ -73,6 +69,23 @@ class RenfeAlertsClient
             self::$aCancellations[$sNetwork] = CancelledTrains::alerts($Matcher, $JourneyModel, Calendar::nowSecondsSinceMidnight());
         }
         return self::$aCancellations[$sNetwork];
+    }
+
+    // Todos los avisos del feed, también los de líneas de otros núcleos (con el id de la línea de Renfe en lineRefs):
+    // con ellos se ve si una huelga es de toda Renfe.
+    public function allAlerts(): array
+    {
+        return $this->parsed([]);
+    }
+
+    // Una copia por red: cada una se queda con los avisos de sus estaciones.
+    private function parsed(array $aStops): array
+    {
+        $aCfg = $this->aConfig['renfe_alerts'];
+        $sKey = 'renfe_alerts_' . ($this->aConfig['slug'] ?? '') . '_' . (int)empty($aStops);
+        return Cache::remember($sKey, $aCfg['cache_ttl_seconds'], function () use ($aCfg, $aStops) {
+            return self::parse(Http::get($aCfg['url'], $aCfg['http_timeout_seconds']), $aStops, $aCfg['max_age_seconds'] ?? null);
+        });
     }
 
     public function alertsByLine(): array
