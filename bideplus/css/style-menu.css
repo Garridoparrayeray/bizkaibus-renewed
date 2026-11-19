@@ -609,14 +609,16 @@ main {
                     font: inherit;
                     font-size: calc(16px * var(--text-scale, 1));
                     font-weight: 700;
+                    caret-color: var(--bide-green);
                 }
                     .planner-input::placeholder {
                         color: #3D473F;
                         font-weight: 600;
                         opacity: 1;
                     }
-                    .planner-input:focus,
-                    .planner-input:focus-visible {
+                    /* La fila ya marca el foco: sin el contorno general de html.bide :focus-visible, que pesa más. */
+                    .planner-place > .planner-input:focus,
+                    .planner-place > .planner-input:focus-visible {
                         outline: none;
                     }
             .planner-place:focus-within {
