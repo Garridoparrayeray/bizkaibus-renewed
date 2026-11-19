@@ -5,6 +5,8 @@ return [
     // aquí. bideplus.vercel.app y bideplus.eus redirigen a ella.
     'url' => 'https://www.bideplus.eus',
     'name' => 'Bide+',
+    // Cómo se escribe la marca sin el «+» (los buscadores lo quitan): «bideplus» no se confunde con otra cosa.
+    'alternate_names' => ['Bideplus', 'Bide Plus'],
     // El verde de Bide+: sale como --bide-green en css/style-networks.css y lo usan todas las hojas de estilos.
     'brand_color' => '#01573C',
     'locale' => 'es_ES',
