@@ -2,7 +2,7 @@
 // Sin cobertura, la parada se abre con ese horario y sus salidas se calculan aquí, con la misma forma que las de la
 // API. Donde la red trae horas estimadas con los tramos aprendidos (Bizkaibus), se aplican las mismas reglas que en el
 // servidor sin datos del bus: «estimado» con la hora oficial al lado, «probablemente ya pasó» si el horario va muy
-// lento, y si no, «solo horario». Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
+// lento, y si no, el horario oficial. Los datos los genera scripts/build-offline-data.php en cada reconstrucción.
 const BideOffline = (() => {
     const CACHE_NAME = 'bide-offline';
     const LIST_KEY = 'bide-offline-networks';

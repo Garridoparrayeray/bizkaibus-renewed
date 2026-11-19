@@ -172,7 +172,7 @@ if ($aContent['type'] === 'stop') {
 <?php endif; ?>
                 <article id="live-card" class="live-card glass" hidden>
                     <header>
-                        <span id="live-badge" class="badge">Solo horario</span>
+                        <span id="live-badge" class="badge">Horario oficial</span>
                         <span class="header-actions">
                             <a id="live-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la parada" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
                             <button id="live-share" class="btn-icon" type="button" aria-label="Compartir la parada" title="Compartir la parada" data-i18n-attr="aria-label:app.share.stopButton,title:app.share.stopButton"><?= BIDE_ICONS['share'] ?></button>

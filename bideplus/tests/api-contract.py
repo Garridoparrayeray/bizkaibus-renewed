@@ -54,7 +54,7 @@ SCHEMAS = {
     'line': {'id': ID, 'code': str, 'name': str, 'patterns': [{'id': ID, 'headsign': opt(str)}]},
     'timetable': {
         'line': LINE, 'date': str,
-        'entries': [{'tripKey': str, 'departure': 'hm', 'headsign': opt(str), 'status': 'status', 'delayMinutes': opt(int)}],
+        'entries': [{'tripKey': str, 'departure': 'hm', 'headsign': opt(str), 'status': 'status', 'delayMinutes': opt(int), 'reason': opt(str)}],
         'beyondPublished': bool,
         'beforePublished': bool,
     },
