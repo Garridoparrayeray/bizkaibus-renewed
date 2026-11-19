@@ -28,13 +28,12 @@ class LinesController
     {
         $Pdo = Database::connection();
         $LineModel = new LineModel($Pdo);
-        $sLineId = $aParams['id'];
-        $aLine = $LineModel->find($sLineId);
+        $aLine = $LineModel->find($aParams['id']);
         if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
-        $aLine['patterns'] = $LineModel->patterns($sLineId);
+        $aLine['patterns'] = $LineModel->patterns($aLine['id']);
         Response::json($aLine);
     }
 
@@ -47,7 +46,7 @@ class LinesController
             Response::error('Line not found', 404);
             return;
         }
-        Response::json(['line' => $aLine, 'patterns' => $LineModel->patternsWithStops($aParams['id'])]);
+        Response::json(['line' => $aLine, 'patterns' => $LineModel->patternsWithStops($aLine['id'])]);
     }
 
     public function scheduleText(Request $Req, array $aParams): void
@@ -61,14 +60,16 @@ class LinesController
             return;
         }
         $Pdo = Database::connection();
-        if ((new LineModel($Pdo))->find($aParams['id']) === null) {
+        $aLine = (new LineModel($Pdo))->find($aParams['id']);
+        if ($aLine === null) {
             Response::error('Line not found', 404);
             return;
         }
+        $sLineId = (string)$aLine['id'];
         $Text = new GtfsScheduleText(new ServiceJourney($Pdo), (bool)Config::feature('headsign_from_last_stop'));
         Response::json([
-            'lineId' => $aParams['id'],
-            'schedule' => $Text->forLine($aParams['id'], Calendar::todayMadrid(), ScheduleRange::forDatabase($Pdo)['to']),
+            'lineId' => $sLineId,
+            'schedule' => $Text->forLine($sLineId, Calendar::todayMadrid(), ScheduleRange::forDatabase($Pdo)['to']),
             'source' => 'gtfs',
         ]);
     }

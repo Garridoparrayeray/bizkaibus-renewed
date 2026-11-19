@@ -2,6 +2,7 @@
 
 require __DIR__ . '/../scripts/build-database.php';
 require_once __DIR__ . '/../scripts/build/expiry.php';
+require_once __DIR__ . '/../api/autoload.php';
 
 use Build\Calendars;
 use Build\Expiry;
@@ -357,6 +358,45 @@ $aLineNames = $NamePdo->query('SELECT id, name FROM lines ORDER BY id')->fetchAl
 $Expect('variante sin un extremo: se nombra con sus paradas extremas; sin viajes o con nombre entero, como viene',
     $iLinesNamed === 2 && $aLineNames === ['L1' => 'Karrantza – Bilbao la Concordia', 'L2' => 'Bilbao la Concordia – Karrantza',
         'L3' => '-', 'L4' => 'Abando -Santurtzi']);
+
+// Una línea que el operador publica con otro id y el mismo recorrido: su id viejo lleva a la nueva. Una que desaparece
+// no lleva a ninguna; una equivalencia de ayer sigue si su línea sigue, y las de la ficha valen si la línea existe.
+$AliasDb = function (string $sPath, array $aLines): PDO {
+    $Pdo = new PDO('sqlite:' . $sPath);
+    Build\Schema::createSchema($Pdo);
+    $InsertLine = $Pdo->prepare('INSERT INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+    $InsertStop = $Pdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
+    $InsertJourney = $Pdo->prepare('INSERT INTO service_journeys (id, line_id, journey_pattern_id, calendar_id) VALUES (?, ?, ?, ?)');
+    foreach ($aLines as $sLine => $aStops) {
+        $InsertLine->execute([$sLine, $sLine, $sLine, $sLine]);
+        foreach ($aStops as $iSeq => $sStop) {
+            $InsertStop->execute(['P' . $sLine, $iSeq + 1, $sStop]);
+        }
+        $InsertJourney->execute(['J' . $sLine, $sLine, 'P' . $sLine, 'c']);
+    }
+    return $Pdo;
+};
+$sAliasDir = sys_get_temp_dir() . '/alias-' . getmypid();
+mkdir($sAliasDir);
+$Yesterday = $AliasDb($sAliasDir . '/ayer.sqlite', ['E1' => ['A', 'B', 'C', 'D'], 'GONE' => ['X', 'Y'], 'SAME' => ['M', 'N']]);
+$Yesterday->exec("INSERT INTO line_aliases (old_id, line_id) VALUES ('OLDEST', 'E1'), ('DEAD', 'NONE')");
+$Today = $AliasDb($sAliasDir . '/hoy.sqlite', ['L62' => ['A', 'B', 'C', 'E'], 'SAME' => ['M', 'N'], 'OTHER' => ['X', 'Q', 'R', 'S']]);
+$iCarried = Build\Schema::carryLineAliases($Today, $sAliasDir . '/ayer.sqlite');
+$iManual = Build\Schema::addLineAliases($Today, ['MANUAL' => 'SAME', 'SAME' => 'L62', 'LOST' => 'NOPE']);
+$aAliases = $Today->query('SELECT old_id, line_id FROM line_aliases ORDER BY old_id')->fetchAll(PDO::FETCH_KEY_PAIR);
+$Expect('línea con id nuevo y el mismo recorrido: el viejo lleva a la nueva, también la equivalencia de ayer que iba a él',
+    $iCarried === 2 && $aAliases['E1'] === 'L62' && $aAliases['OLDEST'] === 'L62');
+$Expect('línea que desaparece o equivalencia sin línea: sin equivalencia',
+    !isset($aAliases['GONE']) && !isset($aAliases['DEAD']));
+$Expect('ficha (gtfs.line_aliases): vale si la línea existe y el id viejo no es una línea de hoy',
+    $iManual === 1 && $aAliases['MANUAL'] === 'SAME' && !isset($aAliases['SAME']) && !isset($aAliases['LOST']));
+$aAliasLine = (new Models\LineModel($Today))->find('E1');
+$Expect('LineModel::find con el id viejo da la línea de ahora, con su id nuevo',
+    $aAliasLine !== null && $aAliasLine['id'] === 'L62' && (new Models\LineModel($Today))->find('GONE') === null);
+$Yesterday = null;
+$Today = null;
+array_map('unlink', glob($sAliasDir . '/*'));
+rmdir($sAliasDir);
 
 // Accesibilidad de las paradas (wheelchair_boarding): un andén sin dato toma el de su estación; con dato, el suyo.
 $sZipPath = tempnam(sys_get_temp_dir(), 'gtfs');

@@ -84,6 +84,10 @@ async function hydrateFavoriteLabel(favorite, button, cacheKey) {
             area = details.area;
         } else {
             const details = await Api.line(favorite.refId);
+            if (String(details.id) !== favorite.refId) {
+                renameLineFavorite(favorite.refId, String(details.id));
+                return;
+            }
             label = `${details.code} ${details.name}`;
         }
         favoriteLabelCache.set(cacheKey, { label, area });
@@ -91,6 +95,22 @@ async function hydrateFavoriteLabel(favorite, button, cacheKey) {
     } catch (e) {
         setPillContent(button, icon, `#${favorite.refId}`, '');
     }
+}
+
+// El operador ha cambiado el id de la línea (la API da la de ahora): el favorito pasa al nuevo, sin repetirse.
+function renameLineFavorite(oldId, newId) {
+    const seen = new Set();
+    const favorites = [];
+    for (const favorite of readFavorites()) {
+        let renamed = favorite;
+        if (favorite.type === 'line' && favorite.refId === oldId) renamed = { type: 'line', refId: newId };
+        const key = favoriteKey(renamed.type, renamed.refId);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        favorites.push(renamed);
+    }
+    writeFavorites(favorites);
+    loadFavorites();
 }
 
 export function updateFavoriteButton(button, type, refId) {

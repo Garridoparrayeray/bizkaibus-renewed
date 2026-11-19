@@ -167,6 +167,9 @@ return [
         'source' => 'https://nap.transportes.gob.es/api/Fichero/download/1263',
         'fallback_source' => 'https://opendata.euskadi.eus/transport/moveuskadi/euskotren/gtfs_euskotren.zip',
         'agency_id' => 'ES:Euskotren:Operator:EUS_Tren:',
+        // Ids de línea que Euskotren cambió el 19-11-2026 (E1, y la E2 que pasó a T1): los favoritos y enlaces viejos
+        // llevan a la de ahora. Los cambios de después los ve solo la construcción, con la base de ayer.
+        'line_aliases' => ['ES:Euskotren:Line:11:' => 'ES:Euskotren:Line:62:', 'ES:Euskotren:Line:12:' => 'ES:Euskotren:Line:61:'],
         'stops' => 'euskotren',
         'skip_geocode' => false,
         // Hay servicios de días sueltos: cada viaje lleva las fechas exactas del periodo publicado.

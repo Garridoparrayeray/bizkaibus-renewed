@@ -10,6 +10,9 @@ use Models\Search;
 
 class Schema
 {
+    // Parte de las paradas de las dos líneas que tienen que compartir una de ayer y una de hoy para ser la misma.
+    private const LINE_ALIAS_MIN_SHARED = 0.6;
+
     public static function createSchema(PDO $Pdo): void
     {
         $Pdo->exec('
@@ -34,6 +37,13 @@ class Schema
                 name_normalized TEXT NOT NULL,
                 color TEXT,
                 text_color TEXT
+            )
+        ');
+        // Ids de línea que el operador ha cambiado: el viejo (favoritos, enlaces, buscadores) lleva al nuevo.
+        $Pdo->exec('
+            CREATE TABLE line_aliases (
+                old_id TEXT PRIMARY KEY,
+                line_id TEXT NOT NULL
             )
         ');
         $Pdo->exec('
@@ -167,6 +177,90 @@ class Schema
             $iNamed++;
         }
         return $iNamed;
+    }
+
+    // Las líneas de la base de ayer que hoy no están se apuntan con la de hoy que comparte más paradas (al menos
+    // LINE_ALIAS_MIN_SHARED de todas las de las dos, y sin empate); las equivalencias de ayer siguen si su línea sigue.
+    public static function carryLineAliases(PDO $Pdo, string $sPreviousPath): int
+    {
+        $Previous = new PDO('sqlite:' . $sPreviousPath);
+        $Previous->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $aOld = self::lineStops($Previous);
+        $aNew = self::lineStops($Pdo);
+        $aAliases = [];
+        foreach (array_diff_key($aOld, $aNew) as $sOldId => $aStops) {
+            $sMatch = self::closestLine($aStops, $aNew);
+            if ($sMatch !== null) {
+                $aAliases[(string)$sOldId] = $sMatch;
+            }
+        }
+        $bHadAliases = (bool)$Previous->query("SELECT 1 FROM sqlite_master WHERE name = 'line_aliases'")->fetchColumn();
+        if ($bHadAliases) {
+            foreach ($Previous->query('SELECT old_id, line_id FROM line_aliases')->fetchAll(PDO::FETCH_KEY_PAIR) as $sOldId => $sLineId) {
+                $sTarget = $aAliases[$sLineId] ?? $sLineId;
+                if (!isset($aNew[$sOldId]) && isset($aNew[$sTarget])) {
+                    $aAliases[(string)$sOldId] = $sTarget;
+                }
+            }
+        }
+        $Insert = $Pdo->prepare('INSERT OR REPLACE INTO line_aliases (old_id, line_id) VALUES (?, ?)');
+        foreach ($aAliases as $sOldId => $sLineId) {
+            $Insert->execute([$sOldId, $sLineId]);
+        }
+        return count($aAliases);
+    }
+
+    // Las equivalencias que la ficha apunta a mano (gtfs.line_aliases: un cambio de id que la base de ayer ya no
+    // tenía), solo si la línea de destino existe y el id viejo no es una línea de hoy.
+    public static function addLineAliases(PDO $Pdo, array $aAliases): int
+    {
+        $aLines = self::lineStops($Pdo);
+        $Insert = $Pdo->prepare('INSERT OR REPLACE INTO line_aliases (old_id, line_id) VALUES (?, ?)');
+        $iAdded = 0;
+        foreach ($aAliases as $sOldId => $sLineId) {
+            if (isset($aLines[(string)$sOldId]) || !isset($aLines[(string)$sLineId])) {
+                continue;
+            }
+            $Insert->execute([(string)$sOldId, (string)$sLineId]);
+            $iAdded++;
+        }
+        return $iAdded;
+    }
+
+    // Cada línea con viajes y el conjunto de paradas de sus recorridos (como claves).
+    private static function lineStops(PDO $Pdo): array
+    {
+        $aLines = [];
+        $Rows = $Pdo->query('
+            SELECT DISTINCT j.line_id, p.stop_id FROM service_journeys j
+            JOIN journey_pattern_stops p ON p.journey_pattern_id = j.journey_pattern_id
+        ');
+        foreach ($Rows as $aRow) {
+            $aLines[(string)$aRow['line_id']][(string)$aRow['stop_id']] = true;
+        }
+        return $aLines;
+    }
+
+    private static function closestLine(array $aStops, array $aLines): string|null
+    {
+        $dBest = 0.0;
+        $dSecond = 0.0;
+        $sBest = null;
+        foreach ($aLines as $sId => $aOther) {
+            $iShared = count(array_intersect_key($aStops, $aOther));
+            $dShare = $iShared / (count($aStops) + count($aOther) - $iShared);
+            if ($dShare > $dBest) {
+                $dSecond = $dBest;
+                $dBest = $dShare;
+                $sBest = (string)$sId;
+            } elseif ($dShare > $dSecond) {
+                $dSecond = $dShare;
+            }
+        }
+        if ($dBest < self::LINE_ALIAS_MIN_SHARED || $dBest === $dSecond) {
+            return null;
+        }
+        return $sBest;
     }
 
     public static function lacksEnd(string $sName): bool

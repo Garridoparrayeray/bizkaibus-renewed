@@ -158,6 +158,16 @@ try {
                 }
             }
         }
+        // Una línea con el id viejo (el operador lo ha cambiado) lleva a su dirección de ahora.
+        if ($sType === 'lines' && $aRecord !== null && (string)$aRecord['id'] !== $sId) {
+            $sRest = '';
+            if (isset($aMatches[3])) {
+                $sRest = '/' . $aMatches[3];
+            }
+            $sNew = '/lines/' . rawurlencode((string)$aRecord['id']) . $sRest . Networks::urlSuffix($sNetworkSlug);
+            header('Location: ' . Lang::url($sNew, $sLang), true, 301);
+            exit;
+        }
         $aSplit = null;
         if ($aRecord !== null && isset($aMatches[3])) {
             $aSplit = appPageSplit($aNetwork, (string)$aRecord['id'], urldecode($aMatches[3]));

@@ -121,6 +121,12 @@ function main(array $aArgv): void
         exit(1);
     }
 
+    // La base de ayer de la red (aunque esta se escriba en otro sitio), para seguir sus líneas con id nuevo.
+    $sPrevious = tempnam(sys_get_temp_dir(), 'previous');
+    if (!is_file($aNetwork['db_path']) || !copy($aNetwork['db_path'], $sPrevious)) {
+        unlink($sPrevious);
+        $sPrevious = null;
+    }
     if (file_exists($sOutput)) {
         unlink($sOutput);
     }
@@ -184,6 +190,14 @@ function main(array $aArgv): void
     $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
         echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";
+    }
+
+    if ($sPrevious !== null) {
+        echo '  ' . Schema::carryLineAliases($Pdo, $sPrevious) . " line ids from yesterday that now go to another line\n";
+        unlink($sPrevious);
+    }
+    if (!empty($aGtfs['line_aliases'])) {
+        echo '  ' . Schema::addLineAliases($Pdo, $aGtfs['line_aliases']) . " line ids changed by the operator, from the network sheet\n";
     }
 
     echo "Building indexes...\n";

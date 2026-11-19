@@ -116,6 +116,25 @@
         else showView(tab, true);
     }
 
+    // El operador ha cambiado el id de la línea (la API da la de ahora): el favorito pasa al nuevo, sin repetirse.
+    function renameLineFavorite(app, oldId, newId) {
+        const seen = new Set();
+        const favorites = [];
+        for (const favorite of readFavorites(app)) {
+            let renamed = favorite;
+            if (favorite.type === 'line' && favorite.refId === oldId) renamed = { type: 'line', refId: newId };
+            const key = renamed.type + ':' + renamed.refId;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            favorites.push(renamed);
+        }
+        try {
+            localStorage.setItem(APPS[app].storageKey, JSON.stringify(favorites));
+        } catch (e) {
+            return;
+        }
+    }
+
     async function favoriteLabel(app, favorite) {
         const cacheKey = `${app}:${favorite.type}:${favorite.refId}`;
         if (labelCache.has(cacheKey)) return labelCache.get(cacheKey);
@@ -127,6 +146,7 @@
                 label = { title: stop.name, area: stop.area || '' };
             } else {
                 const line = await api.line(favorite.refId);
+                if (String(line.id) !== favorite.refId) renameLineFavorite(app, favorite.refId, String(line.id));
                 label = { title: `${line.code} ${line.name}`, area: '' };
             }
         } catch (e) {

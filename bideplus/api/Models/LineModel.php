@@ -12,16 +12,40 @@ class LineModel
     {
     }
 
+    // Con un id que el operador ha cambiado (line_aliases), la línea de ahora, con su id nuevo.
     public function find(int|string $iId): array|null
     {
         $Stmt = $this->Pdo->prepare('SELECT id, code, name FROM lines WHERE id = ?');
         $Stmt->execute([$iId]);
         $aRow = $Stmt->fetch();
         if (!$aRow) {
+            $sAlias = $this->aliasOf((string)$iId);
+            if ($sAlias === null) {
+                return null;
+            }
+            $Stmt->execute([$sAlias]);
+            $aRow = $Stmt->fetch();
+        }
+        if (!$aRow) {
             return null;
         }
         $aRow['id'] = Ids::forOutput($aRow['id']);
         return $aRow;
+    }
+
+    // Las bases de antes de line_aliases no tienen la tabla.
+    private function aliasOf(string $sId): string|null
+    {
+        if (!$this->Pdo->query("SELECT 1 FROM sqlite_master WHERE name = 'line_aliases'")->fetchColumn()) {
+            return null;
+        }
+        $Stmt = $this->Pdo->prepare('SELECT line_id FROM line_aliases WHERE old_id = ?');
+        $Stmt->execute([$sId]);
+        $sLineId = $Stmt->fetchColumn();
+        if ($sLineId === false) {
+            return null;
+        }
+        return $sLineId;
     }
 
     public function all(): array
