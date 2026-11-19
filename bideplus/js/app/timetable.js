@@ -121,7 +121,7 @@ export function renderTimetableRows(entries) {
     el.timetableEmpty.hidden = entries.length > 0;
 
     for (const entry of entries) {
-        const { text, className } = statusLabel(entry.status, entry.delayMinutes);
+        const { text, className } = statusLabel(entry.status, entry.delayMinutes, { reason: entry.reason });
         const tr = document.createElement('tr');
         if (entry.status === 'departed' || entry.status === 'likely_departed') tr.className = 'is-past';
 

@@ -613,8 +613,15 @@ header p,
     color: #fff;
 }
     .live-card > header {
+        gap: 8px;
         margin-bottom: 14px;
     }
+        /* Etiquetas largas («Horario oficial», «Ordutegi ofiziala»): separadas de los botones y, si no caben en una
+           línea, en dos y centradas. */
+        .live-card > header .badge {
+            line-height: 1.25;
+            text-align: center;
+        }
     .live-card .status-dot {
         box-shadow: 0 0 0 2px rgba(255, 255, 255, .35);
     }
@@ -680,6 +687,10 @@ header p,
     }
     .time-display .delay-sub[hidden] {
         display: none;
+    }
+    /* Hora del horario sin bus en una red con directo: no es una hora segura. */
+    .time-display strong.is-unconfirmed {
+        color: rgba(255, 255, 255, .55);
     }
     .time-display .delay-sub.is-official {
         color: rgba(255, 255, 255, .6);
@@ -786,6 +797,9 @@ header p,
         align-items: flex-end;
         line-height: 1.2;
     }
+        .live-more-list .live-more-when.is-unconfirmed {
+            color: rgba(255, 255, 255, .55);
+        }
         .live-more-list .live-more-when > small {
             color: rgba(255, 255, 255, .55);
             font-size: calc(10.88px * var(--text-scale, 1));
@@ -1767,6 +1781,13 @@ dialog {
     .table-scroll {
         margin: 0 -18px;
         padding: 0 18px;
+    }
+}
+@media (max-width: 400px) {
+    .live-card > header .badge {
+        padding: 4px 8px;
+        font-size: calc(10.4px * var(--text-scale, 1));
+        letter-spacing: .2px;
     }
 }
 @media (max-width: 350px) {

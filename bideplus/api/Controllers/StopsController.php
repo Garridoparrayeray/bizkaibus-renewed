@@ -406,6 +406,8 @@ class StopsController
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,
                 'passedTime' => self::passedTime($aRow),
+                // «previous_trip»: sin bus todavía, sale tarde porque su bus viene tarde de la vuelta anterior.
+                'reason' => $aRow['reason'] ?? null,
             ];
         }
         return $aDepartures;

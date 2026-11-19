@@ -61,11 +61,18 @@ export function statusLabel(status, delayMinutes, departure = null) {
     }
     if (status === 'finished') return { text: I18n.t('app.status.finished'), className: 'status-muted' };
     if (status === 'departed') return { text: I18n.t('app.status.departed'), className: 'status-muted' };
+    // Sin bus todavía, pero el de su vuelta anterior viene tarde: sale tarde (el motor lo dice con reason).
+    if (isPreviousTripLate(status, delayMinutes, departure)) return { text: I18n.t('app.status.delay', { min: delayMinutes }), className: 'status-warn' };
     if (status === 'estimated') return { text: I18n.t('app.status.estimated'), className: 'status-muted' };
     if (status === 'likely_departed') return { text: noData('app.status.likelyDeparted', 'app.status.likelyDepartedTrain'), className: 'status-muted' };
     if (status === 'cancelled') return { text: I18n.t('app.status.cancelled'), className: 'status-warn' };
     if (mayNotRun(departure)) return { text: I18n.t('app.status.mayNotRun'), className: 'status-warn' };
     return { text: I18n.t('app.status.scheduled'), className: 'status-muted' };
+}
+
+// Un viaje sin bus que saldrá tarde porque su bus viene con retraso de la vuelta anterior.
+export function isPreviousTripLate(status, delayMinutes, departure) {
+    return status === 'estimated' && departure?.reason === 'previous_trip' && delayMinutes > 0;
 }
 
 function delayText(status, delayMinutes) {
@@ -75,11 +82,14 @@ function delayText(status, delayMinutes) {
     return '';
 }
 
-// Bajo los minutos: el retraso si va en directo, o en gris la hora oficial si la hora es estimada.
-export function setDelaySub(node, status, delayMinutes, scheduledTime = null) {
+// Bajo los minutos: el retraso si va en directo, por qué sale tarde si su bus viene tarde de la vuelta anterior, o en
+// gris la hora oficial si la hora es estimada.
+export function setDelaySub(node, status, delayMinutes, scheduledTime = null, departure = null) {
     let text = delayText(status, delayMinutes);
     node.classList.remove('is-official');
-    if (text === '' && status === 'estimated' && scheduledTime) {
+    if (isPreviousTripLate(status, delayMinutes, departure)) {
+        text = `${I18n.t('app.status.delay', { min: delayMinutes })} · ${I18n.t('app.previousTripLate')}`;
+    } else if (text === '' && status === 'estimated' && scheduledTime) {
         text = I18n.t('app.officialTime', { time: scheduledTime });
         node.classList.add('is-official');
     }

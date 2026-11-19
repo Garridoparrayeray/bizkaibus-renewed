@@ -147,6 +147,8 @@ class TimetableController
             'headsign' => $sHeadsign,
             'status' => $sStatus,
             'delayMinutes' => (int)round(($aRow['delaySeconds'] ?? 0) / 60),
+            // «previous_trip»: sin bus todavía, sale tarde porque su bus viene tarde de la vuelta anterior.
+            'reason' => $aRow['reason'] ?? null,
         ];
     }
 

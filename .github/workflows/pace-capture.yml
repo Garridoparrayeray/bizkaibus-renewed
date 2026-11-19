@@ -220,15 +220,15 @@ jobs:
       - name: Guardar el resultado si ha cambiado
         working-directory: bideplus/engine
         run: |
-          FILES=$(ls */data/pace-factors.json */data/segment-times.json */data/trip-offsets.json 2>/dev/null)
+          FILES=$(ls */data/pace-factors.json */data/segment-times.json */data/trip-offsets.json */data/block-chains.json 2>/dev/null)
           if git diff --quiet -- $FILES && [ -z "$(git ls-files --others --exclude-standard $FILES)" ]; then
-            echo "Sin cambios en pace-factors.json, segment-times.json ni trip-offsets.json de ninguna red"
+            echo "Sin cambios en pace-factors.json, segment-times.json, trip-offsets.json ni block-chains.json de ninguna red"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $FILES
-          git commit -m "chore(bideplus): recalibra el ritmo de los buses (factor k, tiempos por tramo y corrección por viaje)"
+          git commit -m "chore(bideplus): recalibra el ritmo de los buses (factor k, tiempos por tramo, corrección por viaje y vuelta anterior del bus)"
           # También a planificador, el motor de la copia de prueba, para que no se quede atrás; solo si avanza sin más
           # (con cambios propios allí no se pisan: queda el aviso).
           for i in 1 2 3; do
