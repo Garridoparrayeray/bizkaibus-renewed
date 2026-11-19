@@ -46,7 +46,7 @@ SCHEMAS = {
         'departures': [{
             'lineId': ID, 'lineCode': str, 'lineName': str, 'headsign': opt(str), 'tripKey': str, 'unscheduled': bool,
             'scheduledTime': 'hm', 'etaMinutes': int, 'etaAt': int, 'status': 'status', 'delayMinutes': opt(int),
-            'tomorrow': bool, 'passedTime': opt('hm'),
+            'tomorrow': bool, 'passedTime': opt('hm'), 'reason': opt(str),
         }],
         'attribution': str,
     },
@@ -54,7 +54,7 @@ SCHEMAS = {
     'line': {'id': ID, 'code': str, 'name': str, 'patterns': [{'id': ID, 'headsign': opt(str)}]},
     'timetable': {
         'line': LINE, 'date': str,
-        'entries': [{'tripKey': str, 'departure': 'hm', 'headsign': opt(str), 'status': 'status', 'delayMinutes': opt(int)}],
+        'entries': [{'tripKey': str, 'departure': 'hm', 'headsign': opt(str), 'status': 'status', 'delayMinutes': opt(int), 'reason': opt(str)}],
         'beyondPublished': bool,
         'beforePublished': bool,
     },

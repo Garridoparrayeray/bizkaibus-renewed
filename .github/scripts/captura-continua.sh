@@ -51,7 +51,8 @@ ARCHIVO_TOKEN=$(printf '%s' "$ARCHIVO_TOKEN" | tr -d '[:space:]')
 TRABAJO=${TRABAJO:-${RUNNER_TEMP:-/tmp}/captura-continua}
 RESUMEN=${GITHUB_STEP_SUMMARY:-/dev/null}
 MOTOR=bideplus/engine/bizkaibus/tools
-ACUMULADOS=(pace-samples.jsonl segment-samples.jsonl coverage-samples.jsonl eta-eval.jsonl)
+# chain-samples.jsonl: qué bus hizo cada viaje, para la vuelta anterior del bus (el motor poda lo de más de 28 días).
+ACUMULADOS=(pace-samples.jsonl segment-samples.jsonl coverage-samples.jsonl eta-eval.jsonl chain-samples.jsonl)
 ACUM="$TRABAJO/acumulados"
 if [ "$RELEASE" != "$RELEASE_RED" ]; then
   PREFIJO_ARCHIVO="$RELEASE-capturas"
@@ -195,7 +196,8 @@ procesar_muestras() {
   timeout 900 php "$MOTOR/realtime-backtest.php" samples "$sBloque/capturas" "$ACUM/pace-samples.jsonl" \
     --nuevas="$sBloque/muestras-ritmo.jsonl" --red="$RED" || aviso "Fallan las muestras de ritmo de $(basename "$sBloque")"
   timeout 900 php "$MOTOR/realtime-backtest.php" segment-samples "$sBloque/capturas" "$ACUM/segment-samples.jsonl" \
-    --nuevas="$sBloque/muestras-tramos.jsonl" --red="$RED" || aviso "Fallan los tiempos por tramo de $(basename "$sBloque")"
+    --nuevas="$sBloque/muestras-tramos.jsonl" --cadenas="$ACUM/chain-samples.jsonl" --red="$RED" \
+    || aviso "Fallan los tiempos por tramo de $(basename "$sBloque")"
   if timeout 600 php "$MOTOR/coverage-samples.php" "$sBloque/capturas" "$sBloque/cobertura.jsonl" 15 --red="$RED"; then
     cat "$sBloque/cobertura.jsonl" >>"$ACUM/coverage-samples.jsonl"
   else

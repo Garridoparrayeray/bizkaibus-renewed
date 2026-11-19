@@ -247,7 +247,20 @@ function renderLiveCard(departures) {
     el.liveHeadsign.textContent = state.currentStop.name;
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
     el.liveMinutes.nextElementSibling.hidden = false;
-    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime);
+    setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime, departure);
+    // Hora del horario sin bus en una red con directo: en gris y dicho debajo, no es una hora segura. Pasada su hora,
+    // la hora del horario en vez de «0 min», que parece que el bus está en la parada.
+    const unconfirmed = NETWORK.live === true && departure.status === 'scheduled' && !departure.tomorrow;
+    el.liveMinutes.classList.toggle('is-unconfirmed', unconfirmed);
+    if (unconfirmed) {
+        el.liveDelay.textContent = I18n.t('app.unconfirmed');
+        el.liveDelay.classList.add('is-official');
+        el.liveDelay.hidden = false;
+        if (departure.etaMinutes <= 0) {
+            el.liveMinutes.textContent = departure.scheduledTime;
+            el.liveMinutes.nextElementSibling.hidden = true;
+        }
+    }
     el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes, departure.atOrigin);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
     // Hoy ya no sale ninguna más: la hora de la primera de mañana, en vez de cientos de minutos.
@@ -277,6 +290,9 @@ function renderLiveCard(departures) {
             const official = document.createElement('small');
             official.textContent = I18n.t('app.list.official', { time: other.scheduledTime });
             when.appendChild(official);
+        }
+        if (NETWORK.live === true && other.status === 'scheduled') {
+            when.classList.add('is-unconfirmed');
         }
         if (other.status === 'likely_departed') {
             when.textContent = likelyPastText(other);
@@ -334,7 +350,7 @@ function renderPlatformColumn(direction, departures) {
     nextButton.className = 'time-display';
     nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
     if (next.tomorrow) nextButton.querySelector('.platform-column-next').innerHTML = `<strong>${escapeHtml(next.scheduledTime)}</strong>`;
-    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime);
+    setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime, next);
     nextButton.addEventListener('click', () => openVehicleModal(next.tripKey, { tomorrow: next.tomorrow }));
 
     const badge = document.createElement('span');

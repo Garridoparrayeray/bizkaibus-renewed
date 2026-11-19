@@ -76,7 +76,7 @@ export function renderModalStops(data) {
 }
 
 export function renderModalHeader(data) {
-    const { text } = statusLabel(data.status, data.delayMinutes);
+    const { text } = statusLabel(data.status, data.delayMinutes, { reason: data.reason });
     el.modalBadge.textContent = text;
     if (data.tomorrow) el.modalBadge.textContent = I18n.t('app.badge.tomorrow');
     el.modalLine.textContent = `${data.lineCode} · ${data.lineName}`;
@@ -89,6 +89,8 @@ export function renderModalHeader(data) {
         el.modalVehicle.textContent = I18n.t('app.tripFinished');
     } else if (data.status === 'live') {
         el.modalVehicle.textContent = I18n.t('app.liveTrackingFeed', { source: I18n.t('net.' + NETWORK_SLUG + '.liveSource') });
+    } else if (data.status === 'estimated' && data.reason === 'previous_trip') {
+        el.modalVehicle.textContent = I18n.t('app.previousTripLate');
     } else if (data.status === 'estimated') {
         el.modalVehicle.textContent = I18n.t('app.estimatedNoGps');
     } else if (data.awaitingVehicle) {
