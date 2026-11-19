@@ -248,8 +248,19 @@ function renderLiveCard(departures) {
     el.liveMinutes.textContent = Math.max(departure.etaMinutes, 0);
     el.liveMinutes.nextElementSibling.hidden = false;
     setDelaySub(el.liveDelay, departure.status, departure.delayMinutes, departure.scheduledTime, departure);
-    // Hora del horario sin bus en una red con directo: en gris, no es una hora segura.
-    el.liveMinutes.classList.toggle('is-unconfirmed', NETWORK.live === true && departure.status === 'scheduled');
+    // Hora del horario sin bus en una red con directo: en gris y dicho debajo, no es una hora segura. Pasada su hora,
+    // la hora del horario en vez de «0 min», que parece que el bus está en la parada.
+    const unconfirmed = NETWORK.live === true && departure.status === 'scheduled' && !departure.tomorrow;
+    el.liveMinutes.classList.toggle('is-unconfirmed', unconfirmed);
+    if (unconfirmed) {
+        el.liveDelay.textContent = I18n.t('app.unconfirmed');
+        el.liveDelay.classList.add('is-official');
+        el.liveDelay.hidden = false;
+        if (departure.etaMinutes <= 0) {
+            el.liveMinutes.textContent = departure.scheduledTime;
+            el.liveMinutes.nextElementSibling.hidden = true;
+        }
+    }
     el.liveBadge.textContent = liveBadgeText(departure.status, departure.etaMinutes, departure.atOrigin);
     el.liveStatusText.textContent = `${departure.lineCode} · ${departure.scheduledTime}`;
     // Hoy ya no sale ninguna más: la hora de la primera de mañana, en vez de cientos de minutos.
