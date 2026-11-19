@@ -330,6 +330,34 @@ $Expect('viajes fusionados: accesible solo si lo son todos, no accesible si uno 
     Gtfs::mergedWheelchair([1, 1]) === 1 && Gtfs::mergedWheelchair([1, 2, 0]) === 2
     && Gtfs::mergedWheelchair([1, 0]) === 0 && Gtfs::mergedWheelchair([0]) === 0);
 
+// Una variante sin nombre o sin uno de sus extremos se nombra con sus paradas extremas; las demás, como vienen.
+$NamePdo = new PDO('sqlite::memory:');
+Build\Schema::createSchema($NamePdo);
+$InsertNameLine = $NamePdo->prepare('INSERT INTO lines (id, code, name, name_normalized) VALUES (?, ?, ?, ?)');
+$InsertNameStop = $NamePdo->prepare('INSERT INTO stops (id, name, name_normalized, lat, lon) VALUES (?, ?, ?, 0, 0)');
+$InsertNamePattern = $NamePdo->prepare('INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES (?, ?, ?)');
+$InsertNameJourney = $NamePdo->prepare('INSERT INTO service_journeys (id, line_id, journey_pattern_id, calendar_id)
+    VALUES (?, ?, ?, ?)');
+foreach (['K' => 'Karrantza', 'M' => 'Muskiz', 'B' => 'Bilbao la Concordia'] as $sStop => $sStopName) {
+    $InsertNameStop->execute([$sStop, $sStopName, $sStopName]);
+}
+foreach (['P' => ['K', 'M', 'B'], 'Q' => ['B', 'K']] as $sPattern => $aPatternStops) {
+    foreach ($aPatternStops as $iSeq => $sStop) {
+        $InsertNamePattern->execute([$sPattern, $iSeq + 1, $sStop]);
+    }
+}
+foreach (['L1' => '-Bilbao La Concordia', 'L2' => 'Bilbao La Concordia -', 'L3' => '-', 'L4' => 'Abando -Santurtzi'] as $sLine => $sLineName) {
+    $InsertNameLine->execute([$sLine, 'C5', $sLineName, $sLineName]);
+}
+foreach ([['J1', 'L1', 'P'], ['J2', 'L2', 'Q'], ['J3', 'L4', 'P']] as [$sJourney, $sLine, $sPattern]) {
+    $InsertNameJourney->execute([$sJourney, $sLine, $sPattern, 'c']);
+}
+$iLinesNamed = Build\Schema::nameLinesFromStops($NamePdo);
+$aLineNames = $NamePdo->query('SELECT id, name FROM lines ORDER BY id')->fetchAll(PDO::FETCH_KEY_PAIR);
+$Expect('variante sin un extremo: se nombra con sus paradas extremas; sin viajes o con nombre entero, como viene',
+    $iLinesNamed === 2 && $aLineNames === ['L1' => 'Karrantza – Bilbao la Concordia', 'L2' => 'Bilbao la Concordia – Karrantza',
+        'L3' => '-', 'L4' => 'Abando -Santurtzi']);
+
 // Accesibilidad de las paradas (wheelchair_boarding): un andén sin dato toma el de su estación; con dato, el suyo.
 $sZipPath = tempnam(sys_get_temp_dir(), 'gtfs');
 $Zip = new ZipArchive();

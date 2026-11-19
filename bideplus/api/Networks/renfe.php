@@ -153,6 +153,8 @@ return [
         'route_id_prefixes' => ['60T', '61T'],
         'stops' => 'renfe',
         'skip_geocode' => false,
+        // Algunas variantes llegan sin uno de los extremos en el nombre ("-Bilbao La Concordia").
+        'name_lines_from_stops' => true,
         // Hay trenes de días sueltos (obras, festivos): cada viaje lleva las fechas exactas del periodo publicado.
         'feed_window' => true,
         'required' => false,

@@ -135,11 +135,12 @@ class Schema
         }
     }
 
-    // Nombra "Origen – Destino" las líneas que el operador publica sin nombre, con las paradas extremas de su patrón con
-    // más viajes.
+    // Nombra "Origen – Destino" las líneas que el operador publica sin nombre o sin uno de sus extremos ("-Karranza"),
+    // con las paradas extremas de su patrón con más viajes.
     public static function nameLinesFromStops(PDO $Pdo): int
     {
-        $aLines = $Pdo->query("SELECT id FROM lines WHERE name = ''")->fetchAll(PDO::FETCH_COLUMN);
+        $aNames = $Pdo->query('SELECT id, name FROM lines')->fetchAll(PDO::FETCH_KEY_PAIR);
+        $aLines = array_keys(array_filter($aNames, [self::class, 'lacksEnd']));
         $Pattern = $Pdo->prepare('
             SELECT journey_pattern_id FROM service_journeys WHERE line_id = ?
             GROUP BY journey_pattern_id ORDER BY COUNT(*) DESC LIMIT 1
@@ -166,6 +167,12 @@ class Schema
             $iNamed++;
         }
         return $iNamed;
+    }
+
+    public static function lacksEnd(string $sName): bool
+    {
+        $sName = trim($sName);
+        return $sName === '' || str_starts_with($sName, '-') || str_ends_with($sName, '-');
     }
 
     // Deja solo los viajes en los que se sube en alguna de esas paradas, y de cada uno, esas paradas y su destino (para
