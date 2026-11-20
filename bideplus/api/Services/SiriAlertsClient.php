@@ -22,11 +22,17 @@ class SiriAlertsClient
         if (!empty($aCfg['alerts_urls'])) {
             return Cache::remember('siri_alerts_' . $this->aConfig['network'], $aCfg['cache_ttl_seconds'], function () use ($aCfg) {
                 $aAlerts = [];
+                $bAnswered = false;
                 foreach ($aCfg['alerts_urls'] as $Operator => $sUrl) {
                     try {
                         $aAlerts = array_merge($aAlerts, self::withOperator(self::parse(Http::get($sUrl, $aCfg['http_timeout_seconds'])), $Operator));
+                        $bAnswered = true;
                     } catch (\Throwable $Ex) {
                     }
+                }
+                // Si no ha respondido ningún operador es un fallo (Cache conserva el último bueno), no «sin incidencias».
+                if (!$bAnswered) {
+                    throw new \RuntimeException('Ningún operador ha dado sus incidencias');
                 }
                 return $aAlerts;
             });
@@ -71,8 +77,9 @@ class SiriAlertsClient
     private static function parse(string $sXmlString): array
     {
         $Xml = @simplexml_load_string($sXmlString);
+        // Lo que no es XML (una página de error) no es «ninguna incidencia»: lanzando, Cache conserva el último bueno.
         if ($Xml === false) {
-            return [];
+            throw new \RuntimeException('Incidencias SIRI ilegibles');
         }
         $aSituations = [];
         if (isset($Xml->ServiceDelivery->SituationExchangeDelivery->Situations->PtSituationElement)) {

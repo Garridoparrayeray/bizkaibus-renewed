@@ -36,7 +36,8 @@ class TimetableController
 
         $JourneyModel = new ServiceJourney($Pdo);
         $iHourFrom = Calendar::hmToSeconds($Req->query('hourFrom', '00:00'));
-        $iHourTo = Calendar::hmToSeconds($Req->query('hourTo', '23:59'));
+        // La franja llega hasta el final de su último minuto: las horas llevan segundos (12:00:02, 23:59:38).
+        $iHourTo = Calendar::hmToSeconds($Req->query('hourTo', '23:59')) + 59;
         $aRows = self::rowsInRange($JourneyModel, $aLine['id'], $Date, $iHourFrom, $iHourTo, self::stopId($Pdo, $Req->query('stopId')));
         $aRows = self::withStatus($JourneyModel, $aRows, $Date);
 
@@ -90,6 +91,7 @@ class TimetableController
             $aRows = [];
             foreach ($aDayRows as $aRow) {
                 $aRow['departure_seconds'] = (int)$aRow['departure_seconds'] + $iShift;
+                $aRow['dayOffset'] = $iDays;
                 $aRows[] = $aRow;
             }
             return $aRows;
@@ -106,14 +108,33 @@ class TimetableController
         return $aRows;
     }
 
-    // Hoy, en las redes con autobuses en directo, cada salida lleva su estado y retraso; si no, solo el horario.
-    private static function withStatus(ServiceJourney $JourneyModel, array $aRows, \DateTime $Date): array
+    // Hoy, con autobuses en directo, cada salida con su estado y retraso, del emparejador de su día de servicio (las de
+    // ayer de después de las 24:00, del de ayer en sus horas); las de mañana, con su horario: el directo de hoy no es el
+    // de esos viajes (salían «puede haber pasado»). Si no, solo el horario. $aMatchers, en las pruebas.
+    private static function withStatus(ServiceJourney $JourneyModel, array $aRows, \DateTime $Date, array|null $aMatchers = null): array
     {
+        $Scheduled = fn(array $aRow) => $aRow + ['status' => 'scheduled', 'delaySeconds' => 0];
         $bIsToday = $Date->format('Y-m-d') === Calendar::todayMadrid()->format('Y-m-d');
-        if ($bIsToday && Config::hasLive('vehicle-monitoring')) {
-            return Live::matcher($JourneyModel)->enrich(array_map(fn($aRow) => $aRow + ['arrival_seconds' => $aRow['departure_seconds']], $aRows));
+        if (!$bIsToday || ($aMatchers === null && !Config::hasLive('vehicle-monitoring'))) {
+            return array_map($Scheduled, $aRows);
         }
-        return array_map(fn($aRow) => $aRow + ['status' => 'scheduled', 'delaySeconds' => 0], $aRows);
+        $aMatchers ??= [0 => fn() => Live::matcher($JourneyModel), -1 => fn() => Live::matcher($JourneyModel, null, 1)];
+        $aOut = [];
+        foreach ($aMatchers as $iOffset => $Matcher) {
+            $aDay = array_filter($aRows, fn(array $aRow) => ($aRow['dayOffset'] ?? 0) === $iOffset);
+            if ($aDay === []) {
+                continue;
+            }
+            $iShift = -$iOffset * self::DAY_SECONDS;
+            $aIn = array_map(fn(array $aRow) => ['departure_seconds' => (int)$aRow['departure_seconds'] + $iShift, 'arrival_seconds' => (int)$aRow['departure_seconds'] + $iShift] + $aRow, array_values($aDay));
+            $aEnriched = array_map(fn(array $aRow) => ['departure_seconds' => (int)$aRow['departure_seconds'] - $iShift] + $aRow, $Matcher()->enrich($aIn));
+            $aOut += array_combine(array_keys($aDay), $aEnriched);
+        }
+        foreach ($aRows as $iKey => $aRow) {
+            $aOut[$iKey] ??= $Scheduled($aRow);
+        }
+        ksort($aOut);
+        return array_values($aOut);
     }
 
     // Hasta qué hora (segundos desde medianoche) las salidas del día pedido ya pasaron: todas en un día anterior,

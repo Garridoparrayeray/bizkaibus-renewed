@@ -66,6 +66,8 @@ class Calendar
 
     public static function secondsToHm(int $iSeconds): string
     {
+        // Las horas de ayer de antes de medianoche llegan en negativo (−59 s): salían como «00:-1».
+        $iSeconds = (($iSeconds % 86400) + 86400) % 86400;
         $iH = intdiv($iSeconds, 3600) % 24;
         $iM = intdiv($iSeconds % 3600, 60);
         return sprintf('%02d:%02d', $iH, $iM);

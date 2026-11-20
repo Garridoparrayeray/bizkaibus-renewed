@@ -57,7 +57,39 @@ class Push
         if (!preg_match('/^[A-Za-z0-9_-]+$/', $sP256dh . $sAuth) || strlen($sPublic) !== 65 || $sPublic[0] !== "\x04" || strlen(WebPush::base64UrlDecode($sAuth)) !== 16) {
             return null;
         }
+        if (!WebPush::validPublicKey($sPublic)) {
+            return null;
+        }
         return ['endpoint' => $sEndpoint, 'keys' => ['p256dh' => $sP256dh, 'auth' => $sAuth]];
+    }
+
+    // Altas por cliente y hora: sin esto, un solo cliente llenaba los cupos globales (5.000 avisos de llegada, 20.000
+    // suscriptores) y nadie más podía darse de alta. El cliente es su IP (la que pone Vercel, que no se puede falsear),
+    // guardada solo como resumen. Sin almacén no se cuenta: tampoco hay avisos.
+    public const MAX_ARRIVALS_PER_HOUR = 120;
+    public const MAX_SAVES_PER_HOUR = 300;
+    private const RATE_PREFIX = 'bide:push:rate:';
+    private const RATE_WINDOW_SECONDS = 3600;
+
+    public static function allowClient(string $sAction, int $iMax): bool
+    {
+        $sKey = self::RATE_PREFIX . $sAction . ':' . substr(hash('sha256', self::clientAddress()), 0, 32);
+        $aResult = Store::pipeline([['SET', $sKey, '0', 'EX', self::RATE_WINDOW_SECONDS, 'NX'], ['INCR', $sKey]]);
+        if ($aResult === null) {
+            return true;
+        }
+        return (int)$aResult[1] <= $iMax;
+    }
+
+    private static function clientAddress(): string
+    {
+        $sForwarded = trim(explode(',', (string)($_SERVER['HTTP_X_FORWARDED_FOR'] ?? ''))[0]);
+        foreach ([(string)($_SERVER['HTTP_X_REAL_IP'] ?? ''), $sForwarded, (string)($_SERVER['REMOTE_ADDR'] ?? '')] as $sAddress) {
+            if ($sAddress !== '') {
+                return $sAddress;
+            }
+        }
+        return 'desconocido';
     }
 
     public static function lang(mixed $sLang): string

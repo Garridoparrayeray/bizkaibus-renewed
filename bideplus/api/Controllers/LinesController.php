@@ -51,13 +51,14 @@ class LinesController
 
     public function scheduleText(Request $Req, array $aParams): void
     {
+        // El del operador; si su fuente no responde y no hay copia, el del GTFS (antes salía vacío, y el CDN lo guardaba).
         if (Config::feature('schedule_text')) {
-            Response::json([
-                'lineId' => (int)$aParams['id'],
-                'schedule' => (new ScheduleTextClient(Config::current()))->fetchForLine((int)$aParams['id']),
-                'source' => 'operator',
-            ]);
-            return;
+            $iFailures = \Core\Cache::$iEmptyFailures;
+            $aSchedule = (new ScheduleTextClient(Config::current()))->fetchForLine((int)$aParams['id']);
+            if (\Core\Cache::$iEmptyFailures === $iFailures) {
+                Response::json(['lineId' => (int)$aParams['id'], 'schedule' => $aSchedule, 'source' => 'operator']);
+                return;
+            }
         }
         $Pdo = Database::connection();
         $aLine = (new LineModel($Pdo))->find($aParams['id']);

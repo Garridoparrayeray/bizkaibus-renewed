@@ -16,10 +16,9 @@ class TripUpdatesMatcher
 
     public function __construct(private array $aTrips, private ServiceJourney $JourneyModel, private int $iToleranceSeconds, int|null $iMidnight = null)
     {
-        if ($iMidnight === null) {
-            $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
-        }
-        $this->iMidnight = $iMidnight;
+        // La medianoche «de pared» (Calendar::wallMidnight), la de las horas del horario: el día del cambio de hora la
+        // real va una hora desfasada y los trenes salían como pasados o con 60 min de retraso.
+        $this->iMidnight = $iMidnight ?? Calendar::wallMidnight();
     }
 
     public function hasData(): bool

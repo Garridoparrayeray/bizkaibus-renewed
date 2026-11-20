@@ -47,7 +47,7 @@ class Gtfs
     // La cabecera de un CSV, sin espacios ni la marca BOM que algunos ficheros llevan al principio.
     public static function readCsvHeader($Stream): array
     {
-        $aHeader = array_map('trim', fgetcsv($Stream, 0, ',', '"', '\\'));
+        $aHeader = array_map('trim', fgetcsv($Stream, 0, ',', '"', ''));
         $aHeader[0] = preg_replace('/^\xEF\xBB\xBF/', '', $aHeader[0]);
         return $aHeader;
     }
@@ -62,16 +62,50 @@ class Gtfs
             return;
         }
         $aHeader = self::readCsvHeader($Stream);
-        while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
+        $iDropped = 0;
+        while (($aRow = fgetcsv($Stream, 0, ',', '"', '')) !== false) {
             if ($aRow === null || $aRow === [null]) {
                 continue;
             }
-            if (count($aRow) !== count($aHeader)) {
+            $aRow = self::fitRow($aRow, count($aHeader));
+            if ($aRow === null) {
+                $iDropped++;
                 continue;
             }
             yield array_combine($aHeader, array_map('trim', $aRow));
         }
         fclose($Stream);
+        self::reportDropped($sName, $iDropped);
+    }
+
+    // Una fila con columnas vacías de más (una coma al final, típica de las exportaciones a mano) vale recortada; con
+    // cualquier otro número de columnas no se sabe qué valor va en cada una: null.
+    public static function fitRow(array $aRow, int $iColumns): array|null
+    {
+        if (count($aRow) > $iColumns && trim(implode('', array_slice($aRow, $iColumns))) === '') {
+            $aRow = array_slice($aRow, 0, $iColumns);
+        }
+        if (count($aRow) !== $iColumns) {
+            return null;
+        }
+        return $aRow;
+    }
+
+    // Las filas descuadradas no se pierden en silencio: se cuentan, y en los ficheros de los que salen los viajes,
+    // sus paradas y sus días la construcción se para (una parada o una anulación de menos dejaría la base mal sin que
+    // nada lo dijera). En los demás, un aviso.
+    public const STRICT_FILES = ['stop_times.txt', 'trips.txt', 'calendar.txt', 'calendar_dates.txt'];
+
+    public static function reportDropped(string $sName, int $iDropped): void
+    {
+        if ($iDropped === 0) {
+            return;
+        }
+        $sMessage = "$sName: $iDropped filas con un número de columnas distinto del de la cabecera";
+        if (in_array($sName, self::STRICT_FILES, true)) {
+            throw new RuntimeException($sMessage . '. Build abortado.');
+        }
+        fwrite(STDERR, "AVISO: $sMessage (descartadas)\n");
     }
 
     public static function gtfsColor(string|null $sValue): string|null
@@ -373,8 +407,14 @@ class Gtfs
 
         $aByTrip = [];
 
-        while (($aRow = fgetcsv($Stream, 0, ',', '"', '\\')) !== false) {
-            if ($aRow === null || $aRow === [null] || count($aRow) !== count($aHeader)) {
+        $iDropped = 0;
+        while (($aRow = fgetcsv($Stream, 0, ',', '"', '')) !== false) {
+            if ($aRow === null || $aRow === [null]) {
+                continue;
+            }
+            $aRow = self::fitRow($aRow, count($aHeader));
+            if ($aRow === null) {
+                $iDropped++;
                 continue;
             }
             $aAssoc = array_combine($aHeader, array_map('trim', $aRow));
@@ -405,6 +445,7 @@ class Gtfs
             ];
         }
         fclose($Stream);
+        self::reportDropped('stop_times.txt', $iDropped);
 
         foreach ($aByTrip as $sTripId => $aBuffer) {
             yield $sTripId => self::withoutDayJumps($aBuffer);

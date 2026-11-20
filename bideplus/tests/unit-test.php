@@ -891,6 +891,46 @@ $aMany[] = $MakeItem('P3', 'likely_departed', $iNowItems + 120);
 $aShown = array_column($Limited->invoke(null, $BuildItems->invoke(null, $aMany, false), 5), 'status');
 $Expect('el límite no deja fuera a los que pueden haber pasado: las 5 que vienen y, detrás, dos de ellos', $aShown === ['live', 'live', 'live', 'live', 'live', 'likely_departed', 'likely_departed'], json_encode($aShown));
 
+// Cerca de medianoche, las 00:xx que el GTFS pone en el día siguiente (no como 24:xx) salen con las de hoy dentro de
+// las 4 horas, en horas de hoy y sin «mañana»; la que el horario de hoy ya trae como 24:xx no se repite; las de más
+// allá de la ventana, cuando hoy ya no queda ninguna, siguen como «mañana».
+$NextDayModel = new class (buildFixture(40)) extends ServiceJourney {
+    public array $aDays = [];
+    public int $iFakeNow = 0;
+    public function upcomingAtStop(int|string $iStopId, int $iLimit = 8, int $iWindowSeconds = 4 * 3600, int $iDaysAhead = 0, int|null $iPastSeconds = null): array
+    {
+        $iShift = $iDaysAhead * 86400;
+        $iNow = $this->iFakeNow - $iShift;
+        $aOut = [];
+        foreach ($this->aDays[$iDaysAhead] ?? [] as [$sLine, $iDeparture]) {
+            if ($iDeparture >= $iNow - 900 && $iDeparture <= $iNow + $iWindowSeconds) {
+                $aOut[] = ['line_code' => $sLine, 'departure_seconds' => $iDeparture + $iShift, 'arrival_seconds' => $iDeparture + $iShift];
+            }
+        }
+        return $aOut;
+    }
+    public function nextDepartureSeconds(int|string $iStopId): int|null
+    {
+        return null;
+    }
+};
+$RowsToday = new ReflectionMethod(Controllers\StopsController::class, 'upcomingRowsToday');
+$NextDayModel->aDays = [0 => [['L3', 85680], ['L3', 86400]], 1 => [['L3', 0], ['L3', 180], ['L3', 1080], ['L3', 30000]]];
+$NextDayModel->iFakeNow = 85200;
+$aNear = $RowsToday->invoke(null, $NextDayModel, '1', 4, null, 85200);
+$Expect('a las 23:40, detrás de la de las 23:48 y la de las 24:00, las de las 00:03 y 00:18 del día siguiente, en horas de hoy y sin «mañana»',
+    array_map(fn(array $aRow) => [(int)$aRow['departure_seconds'], !empty($aRow['nextDay']), !empty($aRow['tomorrow'])], $aNear) === [[85680, false, false], [86400, false, false], [86580, true, false], [87480, true, false]],
+    json_encode($aNear));
+$NextDayModel->aDays[0] = [['L3', 84000]];
+$NextDayModel->iFakeNow = 86280;
+$aLate = $RowsToday->invoke(null, $NextDayModel, '1', 4, null, 86280);
+$Expect('a las 23:58 sin más salidas hoy: las de las 00:03 y 00:18 van como las de hoy; la de las 08:20 de mañana, como «mañana»',
+    array_map(fn(array $aRow) => [(int)$aRow['departure_seconds'], !empty($aRow['nextDay']), !empty($aRow['tomorrow'])], $aLate) === [[86400, true, false], [86580, true, false], [87480, true, false], [116400, false, true]],
+    json_encode($aLate));
+$WithLiveRows = new ReflectionMethod(Controllers\StopsController::class, 'withLive');
+$aLateLive = $WithLiveRows->invoke(null, [new \Services\ScheduleOnlyMatcher()], null, '1', $aLate);
+$Expect('las del día siguiente dentro de la ventana van con su horario, sin pasar por el directo de hoy', array_unique(array_column($aLateLive, 'status')) === ['scheduled'], json_encode(array_column($aLateLive, 'status')));
+
 // Filas repetidas: mismo número de viaje en dos calendarios se junta; dos viajes distintos a la vez por la parada, no.
 $Dedupe = new ReflectionMethod(ServiceJourney::class, 'dedupeByTrip');
 $aDedupeRows = [
@@ -1131,6 +1171,33 @@ foreach (['2026-10-25 10:00', '2026-03-29 10:00'] as $sChange) {
     $aChange = \Services\PlatformMatcher::assign([['train' => 0, 'time' => $iChangeNow + 300, 'next' => 'B', 'fits' => ['Z' => ['stops' => []]]]], [$PmRow('c', 'P1', 10 * 3600 + 300)], ['P1' => 'B'], ['P1' => 'Z'], $iWall, $iChangeNow, $aPmSettings);
     $Expect("día de cambio de hora ($sChange): con la medianoche de pared, el tren de las 10:05 es el de las 10:05", $iWall === $iChangeNow - 10 * 3600 && $iWall !== (new DateTime('@' . $iChangeNow))->setTimezone(new DateTimeZone('Europe/Madrid'))->setTime(0, 0)->getTimestamp() && $aChange['live'] === ['c|36300' => 36300], json_encode($aChange['live']));
 }
+
+// La medianoche real (DateTime('today')) no sirve para pasar horas del feed a segundos del horario: el día del cambio
+// de hora va una hora desfasada (los trenes salían como pasados o con 60 min). Solo Calendar::wallMidnight().
+$aRealMidnight = [];
+foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__ . '/../api', FilesystemIterator::SKIP_DOTS)) as $File) {
+    if ($File->getExtension() === 'php' && preg_match("/new \\\\?DateTime\\('today'/", (string)file_get_contents($File->getPathname()))) {
+        $aRealMidnight[] = basename($File->getPathname());
+    }
+}
+$Expect('ningún servicio usa la medianoche real como base de las horas (DateTime(\'today\'))', $aRealMidnight === [], implode(', ', $aRealMidnight));
+
+// Horas de ayer de antes de medianoche (negativas tras restar un día): nunca «00:-1».
+$Expect('secondsToHm: −59 s es 23:59 y 24:01 es 00:01', Calendar::secondsToHm(-59) === '23:59' && Calendar::secondsToHm(86460) === '00:01' && Calendar::secondsToHm(45000) === '12:30');
+// «Ver horario oficial» del GTFS: el último día publicado entra aunque se pida a media mañana.
+$TzMadrid = new DateTimeZone('Europe/Madrid');
+$DatesOf = fn(string $sNow, string|null $sLast) => array_map(fn(DateTime $Day) => $Day->format('Y-m-d'), \Services\GtfsScheduleText::dates(new DateTime($sNow, $TzMadrid), $sLast));
+$Expect('horario oficial: el último día publicado, pedido a las 10:00, tiene su día', $DatesOf('2026-12-19 10:00', '2026-12-19') === ['2026-12-19']);
+$Expect('horario oficial: la víspera salen los dos días', $DatesOf('2026-12-18 10:00', '2026-12-19') === ['2026-12-18', '2026-12-19']);
+$Expect('horario oficial: sin último día, 42 días desde hoy', \count($DatesOf('2026-11-20 23:30', null)) === 42 && $DatesOf('2026-11-20 23:30', null)[0] === '2026-11-20');
+// Avisos de llegada: con más de los que caben en una vuelta, cada minuto va otro trozo y ninguno se queda sin mirar.
+$aAlertIds = array_map(fn(int $i) => sprintf('%024x', $i), range(1, 2500));
+$aSeenIds = [];
+for ($iMinute = 0; $iMinute < 3; $iMinute++) {
+    $aSeenIds = array_merge($aSeenIds, \Services\ArrivalAlerts::dueIds($aAlertIds, 1800000000 + 60 * $iMinute));
+}
+$Expect('avisos: con 2500 pendientes, en 3 vueltas se miran todos (antes, siempre los mismos 1000)', \count(array_unique($aSeenIds)) === 2500 && \count(\Services\ArrivalAlerts::dueIds($aAlertIds, 1800000000)) === 1000);
+$Expect('avisos: con pocos, se miran todos en cada vuelta', \Services\ArrivalAlerts::dueIds(['b', 'a']) === ['b', 'a']);
 
 // Datos reales del sábado 14-11-2026 a las 18:39 en Moyua (parada 8): el GTFS-Realtime de Metro y, de referencia, lo
 // que daba a la vez la app oficial. Con el feed abierto tiene que salir el mismo destino en cada tren que lo dice.
@@ -1383,5 +1450,67 @@ $Expect('descripción corta: la frase de relleno más corta que la deja entre 12
 $sLongDescription = \Core\Seo::description([str_repeat('palabra ', 30)], []);
 $Expect('descripción larga: recortada a 155 como mucho', mb_strlen($sLongDescription) <= \Core\Seo::DESCRIPTION_MAX);
 $Expect('medianoche de Madrid: lo que falta está entre 0 y 25 h', \Services\Calendar::secondsUntilMidnight() > 0 && \Services\Calendar::secondsUntilMidnight() <= 25 * 3600);
+
+// Una fuente caída: con copia anterior, la copia; sin ella, [] contado como fallo, que no se guarda en el CDN ni cuenta
+// como «sin incidencias»; y lo que no se entiende (una página de error) lanza para que Cache conserve el último bueno.
+$sCacheKey = 'prueba_caida_' . bin2hex(random_bytes(4));
+\Core\Cache::remember($sCacheKey . '_buena', 0, fn() => ['bueno']);
+$iFailuresBefore = \Core\Cache::$iEmptyFailures;
+$aStale = \Core\Cache::remember($sCacheKey . '_buena', 0, function () {
+    throw new RuntimeException('caída');
+});
+$Expect('caché: si la fuente cae, sale la última copia buena y no cuenta como fallo vacío', $aStale === ['bueno'] && \Core\Cache::$iEmptyFailures === $iFailuresBefore);
+$aEmpty = \Core\Cache::remember($sCacheKey . '_nueva', 60, function () {
+    throw new RuntimeException('caída');
+});
+$Expect('caché: sin copia anterior sale [] y se cuenta', $aEmpty === [] && \Core\Cache::$iEmptyFailures === $iFailuresBefore + 1);
+\Core\Response::$iCacheSeconds = 3600;
+$Expect('caché: una respuesta hecha con una fuente caída no se guarda en el CDN', \Core\Response::cacheControl(200) === 'no-store');
+\Core\Cache::$iEmptyFailures = 0;
+$Expect('caché: sin fallos, la respuesta lleva su caché pública', str_contains(\Core\Response::cacheControl(200), 's-maxage=3600'));
+\Core\Response::$iCacheSeconds = 0;
+foreach (glob(sys_get_temp_dir() . '/bizkaibusplus_' . $sCacheKey . '*') as $sCacheFile) {
+    unlink($sCacheFile);
+}
+$aUnreadable = [];
+foreach ([[Services\ScheduleTextClient::class, '<html>Mantenimiento</html>'], [Services\MetroAlertsClient::class, '<html>Mantenimiento</html>'], [Services\SiriAlertsClient::class, '<html>Mantenimiento']] as [$sClass, $sBody]) {
+    try {
+        (new ReflectionMethod($sClass, 'parse'))->invoke(null, $sBody);
+        $aUnreadable[] = $sClass;
+    } catch (RuntimeException $Ex) {
+    }
+}
+$Expect('fuentes: una página de error no se lee como «ninguna incidencia» ni «ningún horario»: lanza', $aUnreadable === [], implode(', ', $aUnreadable));
+$IncidentFetch = new ReflectionMethod(Services\IncidentAlerts::class, 'fetch');
+$aFetched = $IncidentFetch->invoke(null, function () {
+    \Core\Cache::$iEmptyFailures++;
+    return [];
+}, 'metro', null, null);
+$Expect('avisos de incidencias: una fuente caída sin copia es un fallo (null), no la línea base vacía', $aFetched === null);
+\Core\Cache::$iEmptyFailures = 0;
+
+// Horario de una línea con una franja que pasa de medianoche: cada salida con el emparejador de su día de servicio. Las
+// de ayer de después de las 24:00 van con el de ayer en sus horas (24:30); las de la madrugada de mañana, con su
+// horario (antes pasaban por el de hoy y salían «puede haber pasado»).
+$TimetableStatus = new ReflectionMethod(Controllers\TimetableController::class, 'withStatus');
+$SeenBy = new ArrayObject([0 => [], -1 => []]);
+$MatcherFor = fn(int $iOffset) => fn() => new class ($iOffset, $SeenBy) {
+    public function __construct(private int $iOffset, private ArrayObject $Seen)
+    {
+    }
+    public function enrich(array $aRows): array
+    {
+        $this->Seen[$this->iOffset] = array_merge($this->Seen[$this->iOffset], array_column($aRows, 'departure_seconds'));
+        return array_map(fn(array $aRow) => $aRow + ['status' => 'live', 'delaySeconds' => 60], $aRows);
+    }
+};
+$aTimetable = $TimetableStatus->invoke(null, new ServiceJourney(buildFixture(40)), [
+    ['trip_number' => 'ayer', 'departure_seconds' => 1800, 'dayOffset' => -1],
+    ['trip_number' => 'hoy', 'departure_seconds' => 80000, 'dayOffset' => 0],
+    ['trip_number' => 'manana', 'departure_seconds' => 86400 + 18000, 'dayOffset' => 1],
+], Calendar::todayMadrid(), [0 => $MatcherFor(0), -1 => $MatcherFor(-1)]);
+$Expect('horario de línea: la de ayer va con el de ayer a las 24:30, la de hoy con el de hoy y la de mañana con su horario, en orden',
+    array_column($aTimetable, 'status') === ['live', 'live', 'scheduled'] && array_column($aTimetable, 'departure_seconds') === [1800, 80000, 104400]
+    && $SeenBy[-1] === [88200] && $SeenBy[0] === [80000], json_encode([$aTimetable, $SeenBy->getArrayCopy()]));
 
 $Finish('unitarias');

@@ -541,6 +541,35 @@ $Expect('caducidad: Euskotren sin reconstruir hoy con 4 días: aviso, con el umb
 [$aErr, $aWarn] = Expiry::problems($aRolling, $Row('2026-11-19'), false, '2026-11-15');
 $Expect('caducidad: Euskotren con el fichero del día anterior (4 días): ni aviso', $aErr === [] && $aWarn === []);
 
+// Filas CSV descuadradas: una coma de más al final vale recortada; otro número de columnas en los ficheros de viajes,
+// paradas de paso y días para la construcción (antes se perdían en silencio: una parada o una anulación de menos).
+$sCsvZip = tempnam(sys_get_temp_dir(), 'csvrows') . '.zip';
+$CsvZip = new ZipArchive();
+$CsvZip->open($sCsvZip, ZipArchive::CREATE);
+$CsvZip->addFromString('stop_times.txt', "trip_id,arrival_time,departure_time,stop_id,stop_sequence\nT1,08:00:00,08:00:00,A,1\nT1,08:05:00,08:05:00,B,2,\nT1,08:10:00,08:10:00,C,3\n");
+$CsvZip->addFromString('calendar_dates.txt', "service_id,date,exception_type\nS1,20261225,2\nS1,20270101,2,\n");
+$CsvZip->addFromString('trips.txt', "route_id,service_id,trip_id\nR1,S1,T1\nR1,S1,T2,sobra\n");
+$CsvZip->addFromString('stops.txt', "stop_id,stop_name\nA,\"Plaza \"\"Nueva\"\"\"\nB,Uno,dos\n");
+$CsvZip->close();
+$CsvZip->open($sCsvZip);
+$aCsvStops = [];
+foreach (Gtfs::streamStopTimesByTrip($CsvZip) as $aCsvRows) {
+    $aCsvStops = array_column($aCsvRows, 'stopId');
+}
+$Expect('CSV: una coma de más al final de stop_times no quita la parada', $aCsvStops === ['A', 'B', 'C'], json_encode($aCsvStops));
+$Expect('CSV: una coma de más al final de calendar_dates no quita la anulación', count(iterator_to_array(Gtfs::readCsv($CsvZip, 'calendar_dates.txt'), false)) === 2);
+$sCsvError = '';
+try {
+    iterator_to_array(Gtfs::readCsv($CsvZip, 'trips.txt'), false);
+} catch (RuntimeException $Error) {
+    $sCsvError = $Error->getMessage();
+}
+$Expect('CSV: una fila de trips.txt con otro número de columnas para la construcción', str_contains($sCsvError, 'trips.txt: 1 filas'), $sCsvError);
+$aCsvNames = array_column(iterator_to_array(Gtfs::readCsv($CsvZip, 'stops.txt'), false), 'stop_name');
+$Expect('CSV: en stops.txt la fila descuadrada se descarta con aviso y las comillas dobles se leen como en RFC 4180', $aCsvNames === ['Plaza "Nueva"'], json_encode($aCsvNames));
+$CsvZip->close();
+unlink($sCsvZip);
+
 if (!empty($aFailures)) {
     echo "\nRESULTADO construcción: FALLA -> " . implode('; ', $aFailures) . "\n";
     exit(1);

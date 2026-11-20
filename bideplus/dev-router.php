@@ -13,6 +13,27 @@ if ($sUri === '' || preg_match('/[\x00-\x1f]/', $sUri)) {
     return true;
 }
 
+// La ruta normalizada, sin «//», «/./» ni «..»: los bloqueos de abajo miran esta, y escribir la misma ruta de otra
+// forma no los salta. Un tramo que empieza por punto (.env, .vercel, .git…) no se sirve nunca, salvo .well-known.
+$aSegments = [];
+foreach (explode('/', $sUri) as $sSegment) {
+    if ($sSegment === '..') {
+        array_pop($aSegments);
+    } elseif ($sSegment !== '' && $sSegment !== '.') {
+        $aSegments[] = $sSegment;
+    }
+}
+$sTrailing = '';
+if ($aSegments !== [] && str_ends_with($sUri, '/')) {
+    $sTrailing = '/';
+}
+$sUri = '/' . implode('/', $aSegments) . $sTrailing;
+if (preg_match('#/[.](?!well-known(/|$))#', $sUri)) {
+    http_response_code(404);
+    readfile(__DIR__ . '/404.html');
+    return true;
+}
+
 // Las rutas de vercel.json con «has» solo valen en ese dominio (la copia de prueba): aquí, con la cabecera Host.
 function routeHostMatches(array $aRoute, string $sHost): bool
 {
