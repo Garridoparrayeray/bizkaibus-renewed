@@ -88,6 +88,25 @@ jobs:
             fi
           done
 
+      # Los datos del planificador publicado (release «planificador», los de producción): sin ellos, ui-route.mjs no
+      # prueba nada. Solo los datos: pantallas, JS y WebAssembly salen del motor de esta prueba (dev-router.php).
+      - name: Datos del planificador publicado
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE: planificador
+        run: |
+          source ../.github/scripts/pace-data.sh
+          if descargar_acumulado planificador.tar.gz "$RUNNER_TEMP/plan"; then
+            tar -xzf "$RUNNER_TEMP/plan/planificador.tar.gz" -C "$RUNNER_TEMP/plan"
+            mkdir -p planificador/build
+            cp -r "$RUNNER_TEMP/plan/planificador/build/data" planificador/build/data
+            ls planificador/build/data/manifest.json
+          else
+            echo "::warning::Sin el planificador publicado: la prueba de su pantalla no probará nada"
+          fi
+
       # El mapa de la red (/mapa) lee map-data/*.json, que se generan con las bases como en la reconstrucción diaria.
       - name: Datos del mapa de la red
         run: php scripts/build-network-map.php
@@ -110,6 +129,20 @@ jobs:
 
       - name: Static checks, unit tests and data integrity
         run: python tests/static-checks.py
+
+      # Las pruebas del planificador que no necesitan sus datos (planner/build/data): sin esto no las lanza nadie.
+      - name: Planificador del motor (normas del C, casos a mano, memoria y directo grabado)
+        working-directory: bideplus/engine/planner
+        run: |
+          python tests/quality.py
+          python tests/scenarios.py
+          node tests/places.mjs
+          python tests/live-capture.py --app ../..
+          mkdir -p build
+          gcc -std=c11 -O1 -g -Wall -Wextra -Werror -Isrc -fsanitize=address,undefined -fno-sanitize-recover=all \
+            -o build/driver-san tests/native/Driver.c $(ls src/*.c | grep -v Wasm.c)
+          python tests/scenarios.py --driver build/driver-san
+          python tests/pareto.py --driver build/driver-san
 
       - name: API smoke tests
         run: python tests/api-smoke.py
