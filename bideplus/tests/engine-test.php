@@ -181,6 +181,17 @@ $Expect('el viaje lleva el prefijo del operador, como en la base de datos', $aLu
 $Expect('posición, parada, orden y hora del dato', $aLurEntry !== null && $aLurEntry['lat'] === 43.31 && $aLurEntry['currentStopId'] === '130' && $aLurEntry['order'] === 5 && $aLurEntry['locationSeconds'] === 8 * 3600 + 30 * 60 + 10);
 $Expect('salida de cabecera desde OriginAimedDepartureTime', $aLurEntry !== null && $aLurEntry['departureSeconds'] === 8 * 3600 + 15 * 60);
 $Expect('un feed vacío no trae buses', \Engine\Lurraldebus\Live::parseSnapshot('<Siri xmlns="http://www.siri.org.uk/siri"><ServiceDelivery><VehicleMonitoringDelivery/></ServiceDelivery></Siri>', 'pesa', DATE_WEEKDAY) === []);
+// Si no responde ningún operador es un fallo, no un feed vacío: sale lo último bueno y se reintenta al minuto (Cache).
+$aDownNetwork = ['network' => 'prueba_caida_' . getmypid(), 'siri' => ['vehicle_monitoring_urls' => ['pesa' => 'http://127.0.0.1:1/caido.xml'], 'http_timeout_seconds' => 2, 'cache_ttl_seconds' => 25]];
+$sDownCache = sys_get_temp_dir() . '/bizkaibusplus_siri_vm_' . $aDownNetwork['network'] . '.json';
+$aLastGood = ['pesa:7|pesa:7_702_LJ_29700' => [$aLurEntry]];
+file_put_contents($sDownCache, json_encode($aLastGood));
+touch($sDownCache, time() - 60);
+$aDown = \Engine\Lurraldebus\Live::vehicles($aDownNetwork);
+$Expect('si no responde ningún operador, sale lo último bueno y queda marcado el fallo (no se guarda un feed vacío)', $aDown == $aLastGood && is_file($sDownCache . '.fail') && json_decode((string)file_get_contents($sDownCache), true) == $aLastGood, json_encode($aDown));
+foreach ([$sDownCache, $sDownCache . '.fail', sys_get_temp_dir() . '/bideplus_feed_memory_' . $aDownNetwork['network'] . '.json'] as $sDownFile) {
+    @unlink($sDownFile);
+}
 $Expect('motores separados: Lurraldebus no lee los datos aprendidos de Bizkaibus', (new \ReflectionClassConstant(\Engine\Lurraldebus\SegmentTimes::class, 'FILE_PATH'))->getValue() !== (new \ReflectionClassConstant(\Engine\Bizkaibus\SegmentTimes::class, 'FILE_PATH'))->getValue());
 
 $Section('RealtimeMatcher: capa 2, parada registrada sin GPS utilizable');
@@ -366,16 +377,28 @@ if (class_exists(TripOffsets::class)) {
     $Expect('sin el orden de la parada, se encuentra por parada y hora', $MTrip->enrich([$aRowNoSeq])[0]['etaSeconds'] === T0 + 460 + 30);
     $Expect('con tramos pasados a mano y sin tabla de viajes, no se lee la del fichero', $MNoBus->enrich([$aRowNoBus])[0]['etaSeconds'] === T0 + 460);
 
-    // Festivo entre semana: tramos y corrección de fin de semana (40 s en S4 en vez de 30).
+    // Festivo entre semana: tramos y corrección de fin de semana (40 s en S4 en vez de 30). El jueves 1 va el domingo; el
+    // viernes 2, laborable, también un viaje de domingo (C_NAV, como el A2161 de las 10:05 los laborables de Navidad); el
+    // martes 6, festivo con servicio reducido (el 25-12): ese viaje de domingo, los de todos los días y dos propios.
     $PdoHoliday = buildFixture(40);
     $PdoHoliday->exec("
         CREATE TABLE service_calendars (id TEXT PRIMARY KEY, from_date TEXT NOT NULL, to_date TEXT NOT NULL, weekday_mask INTEGER NOT NULL);
         CREATE TABLE service_calendar_exceptions (calendar_id TEXT NOT NULL, date TEXT NOT NULL, available INTEGER NOT NULL);
-        INSERT INTO service_calendars VALUES ('C_DOM', '2026-01-01', '2026-12-31', 64), ('C_LAB', '2026-01-01', '2026-12-31', 31);
-        INSERT INTO service_calendar_exceptions VALUES ('C_DOM', '" . DATE_WEEKDAY . "', 1), ('C_LAB', '" . DATE_WEEKDAY . "', 0), ('C_LAB', '2026-10-03', 1);
+        INSERT INTO service_calendars VALUES ('C_DOM', '2026-01-01', '2026-12-31', 64), ('C_NAV', '2026-01-01', '2026-12-31', 64),
+            ('C_LAB', '2026-01-01', '2026-12-31', 31), ('C_DIA', '2026-01-01', '2026-12-31', 127), ('C_ESP', '2026-01-01', '2026-12-31', 0);
+        INSERT INTO service_calendar_exceptions VALUES ('C_DOM', '" . DATE_WEEKDAY . "', 1), ('C_NAV', '" . DATE_WEEKDAY . "', 1), ('C_LAB', '" . DATE_WEEKDAY . "', 0),
+            ('C_LAB', '2026-10-03', 1), ('C_NAV', '2026-10-02', 1), ('C_NAV', '2026-10-06', 1), ('C_LAB', '2026-10-06', 0), ('C_ESP', '2026-10-06', 1);
     ");
+    $InsHolidayTrip = $PdoHoliday->prepare("INSERT INTO service_journeys VALUES (?, '3414', 'P1', ?, ?, " . T0 . ', NULL)');
+    foreach (['C_DOM' => 4, 'C_NAV' => 1, 'C_LAB' => 6, 'C_DIA' => 2, 'C_ESP' => 2] as $sCalendar => $iTrips) {
+        for ($i = 0; $i < $iTrips; $i++) {
+            $InsHolidayTrip->execute(['J_' . $sCalendar . $i, (string)(900 + $i), $sCalendar]);
+        }
+    }
     $HolidayJourneys = new ServiceJourney($PdoHoliday);
-    $Expect('festivo: el día que circulan por excepción los calendarios de solo domingo', $HolidayJourneys->isHoliday(DATE_WEEKDAY) && !$HolidayJourneys->isHoliday('2026-10-02') && !$HolidayJourneys->isHoliday('2026-10-03'));
+    $Expect('festivo: el día que circula el servicio de domingo (todo lo que va ese día va también los domingos)', $HolidayJourneys->isHoliday(DATE_WEEKDAY) && !$HolidayJourneys->isHoliday('2026-10-03') && !$HolidayJourneys->isHoliday('2026-10-05'));
+    $Expect('festivo: no lo es un laborable en el que va además un viaje de domingo (3 de 9 viajes van los domingos)', !$HolidayJourneys->isHoliday('2026-10-02'));
+    $Expect('festivo: sí con servicio reducido, aunque se añada solo parte del domingo (3 de 5 viajes van los domingos)', $HolidayJourneys->isHoliday('2026-10-06'));
     $Expect('festivo: sin calendarios en la base, ningún día lo es', !(new ServiceJourney(buildFixture(40)))->isHoliday(DATE_WEEKDAY));
     $Expect('festivo: la capa 3 calcula con el domingo de esa semana', TripOffsets::serviceDate(DATE_WEEKDAY, true) === DATE_WEEKEND && TripOffsets::serviceDate(DATE_WEEKDAY, false) === DATE_WEEKDAY);
     $TripsBoth = new TripOffsets(['trips' => [$sLineKey => ['laborable' => [10, 20, 30], 'fin_semana' => [10, 20, 40]]]]);
@@ -590,6 +613,10 @@ $Expect('pasado HOLD_SECONDS ya no se guarda', FeedMemory::withHeld([], $aPrevio
 $aOtherTrip = live(0, 0, 1, $iHeldGps + 60, 'trp_A3414_809_OP9LSEPT_30600_x');
 $Expect('si el bus ya va en otro viaje, el anterior no se guarda', FeedMemory::withHeld(['3414|809' => [$aOtherTrip]], $aPrevious, $iHeldGps + 60) === ['3414|809' => [$aOtherTrip]]);
 $Expect('si su viaje ya lo lleva otro bus, no se duplica', FeedMemory::withHeld(['3414|808' => [$aOtherBus]], $aPrevious, $iHeldGps + 60) === ['3414|808' => [$aOtherBus]]);
+// El número de viaje se repite a lo largo del día (el 3333|704 tiene 49 salidas): otro bus en otra salida no lo tapa.
+$aLaterDeparture = array_merge($aOtherBus, ['tripRef' => 'trp_A3414_808_OP9LSEPT_30600_x', 'departureSeconds' => T0 + 1800]);
+$aHeldBeside = FeedMemory::withHeld(['3414|808' => [$aLaterDeparture]], $aPrevious, $iHeldGps + 60)['3414|808'];
+$Expect('si otro bus lleva otra salida con el mismo número, el que falta se guarda igual', \count($aHeldBeside) === 2 && ($aHeldBeside[1]['vehicleRef'] ?? '') === 'BUS1' && !empty($aHeldBeside[1]['held']), json_encode(array_column($aHeldBeside, 'vehicleRef')));
 $Expect('sin hora del dato no se guarda', FeedMemory::withHeld([], ['3414|808' => [['vehicleRef' => 'BUS1']]], $iHeldGps) === []);
 $MHeld = new RealtimeMatcher($aHeld, new ServiceJourney(buildFixture(40)), $iHeldGps + 60, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $aHeldRow = $MHeld->enrich([['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0 + 720, 'stop_seq' => 5]])[0];
@@ -630,6 +657,12 @@ $Expect('el registro se pide una vez por consulta, sin repetir viajes', $aAsked 
 $MPass->enrich($aPassRows);
 $Expect('lo ya leído no se vuelve a pedir', $aAsked === ['J_LINE'], json_encode($aAsked));
 
+// Esperando en cabecera el feed ya apunta a la parada 2: el registro de las 07:55 no dice que haya salido. Si el bus
+// desaparece del feed antes de su hora (cambio de bus), la salida de las 08:00 no se da por pasada.
+$MPassWaiting = new RealtimeMatcher([], new ServiceJourney(buildFixture(40)), T0 - 60, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
+$MPassWaiting->setPassageLoader(fn(array $aIds) => ['J_LINE' => ['order' => 2, 'seconds' => T0 - 300]]);
+$aPassWaiting = $MPassWaiting->enrich([['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => T0, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => T0, 'stop_seq' => 1, 'stop_id' => 'S0']])[0];
+$Expect('un registro anterior a la salida de cabecera no da la cabecera por pasada', $aPassWaiting['status'] === 'scheduled' && $aPassWaiting['etaSeconds'] === T0, json_encode([$aPassWaiting['status'], hms($aPassWaiting['etaSeconds'])]));
 $aAskedLive = [];
 $MPassLive = matcher(live(1500, 0, 3, T0 + 270), T0 + 300);
 $MPassLive->setPassageLoader(function (array $aIds) use (&$aAskedLive) {
@@ -684,6 +717,21 @@ $Expect('el feed congelado de madrugada: el bus de las 23:58 no lleva hora de ho
     && RealtimeMatcher::vehiclesOfDay($aFrozen, 3600, 0) === [] && RealtimeMatcher::vehiclesOfDay($aFrozen, 3600, 1) === [],
     json_encode($aFrozen));
 $Expect('leído antes de medianoche, sí: de hoy y con su hora', RealtimeMatcher::vehiclesOfDay(SiriVehicleMonitoringClient::parse($sFrozenXml, '2026-11-06'), 86340, 0)['3136|668'][0]['recordedSeconds'] === 86306);
+
+// Leído a las 23:59:50 y servido a las 00:00:10 (caché de 25 s, o la última copia buena si la fuente falla), el feed
+// lleva las horas de ayer: un dato de las 86.390 s va por delante de ahora (10 s). Aquí J_LINE sale a las 00:02.
+$PdoMidnight = buildFixture(40);
+$PdoMidnight->exec('UPDATE passing_times SET arrival_seconds = arrival_seconds - ' . (T0 - 120) . ', departure_seconds = departure_seconds - ' . (T0 - 120));
+$PdoMidnight->exec('UPDATE service_journeys SET first_departure_seconds = 120');
+$aMidnightRow = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => 120, 'service_journey_id' => 'J_LINE', 'arrival_seconds' => 840, 'stop_seq' => 5];
+$aBeforeMidnight = ['departureSeconds' => 120, 'recordedSeconds' => 86390] + live(0, 0, 2, 86390);
+$aMidnightOut = (new RealtimeMatcher(RealtimeMatcher::vehiclesOfDay(['3414|808' => [$aBeforeMidnight]], 10, 0), new ServiceJourney($PdoMidnight), 10, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes()))->enrich([$aMidnightRow])[0];
+$Expect('pasada la medianoche, un dato GPS con hora de antes no da una llegada «en directo» 24 h después', $aMidnightOut['status'] === 'scheduled' && $aMidnightOut['etaSeconds'] === 840, json_encode([$aMidnightOut['status'], hms($aMidnightOut['etaSeconds'])]));
+$aNoGpsBeforeMidnight = array_merge($aBeforeMidnight, ['lat' => null, 'lon' => null, 'locationSeconds' => null, 'order' => 3]);
+$aMidnightRegistered = (new RealtimeMatcher(['3414|808' => [$aNoGpsBeforeMidnight]], new ServiceJourney($PdoMidnight), 10, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes()))->enrich([$aMidnightRow])[0];
+$Expect('ni con la parada registrada (sin GPS)', $aMidnightRegistered['status'] === 'scheduled' && $aMidnightRegistered['etaSeconds'] === 840, json_encode([$aMidnightRegistered['status'], hms($aMidnightRegistered['etaSeconds'])]));
+$aSkewed = live(1500, 0, 3, T0 + 300);
+$Expect('un dato unos segundos por delante del reloj (30 s) sí vale', matcher($aSkewed, T0 + 270)->positionFor('J_LINE', $aSkewed) !== null);
 
 $MNight = new RealtimeMatcher($aYesterdayMap, new ServiceJourney($PdoNight), $iNightNow + 86400, new PaceFactors(), DATE_WEEKDAY, new SegmentTimes());
 $aNightRow = ['line_id' => '3414', 'trip_number' => '808', 'first_departure_seconds' => NIGHT, 'service_journey_id' => 'J_LINE', 'stop_seq' => 3, 'stop_id' => 'S2', 'arrival_seconds' => NIGHT + 360];
@@ -830,6 +878,13 @@ $MWeekend = new RealtimeMatcher(['2161|845' => [$aLate]], new ServiceJourney(cha
 $MWeekend->setChains($ChainsTrusted);
 $Expect('en fin de semana, como siempre', !isset($MWeekend->enrich([$ChainRow('B', 2, T0 + 300)])[0]['reason']));
 
+// Más de 45 min tarde (pasa por M, prevista a T0 - 15 min, a T0 + 40 min): el motor no se cree ese retraso (el GPS
+// lleva el número de otro viaje), así que el viaje siguiente no lo hereda.
+$aTooLate = chainBus(1000, T0 + 2400);
+$aOutTooLate = $ChainMatcher(['2161|845' => [$aTooLate]], $ChainsTrusted, null, T0 + 2420)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('el bus anterior viene más de 45 min tarde: no se hereda ese retraso, como siempre', !isset($aOutTooLate['reason']) && $aOutTooLate['delaySeconds'] === 0, json_encode($aOutTooLate));
+$aOutEdge = $ChainMatcher(['2161|845' => [chainBus(1000, T0 - 900 + 2685)]], $ChainsTrusted, null, T0 + 1800)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
+$Expect('ni si es el retraso que pasaría a este viaje el que pasa de 45 min (44:45 del anterior + 30 s en cabecera)', !isset($aOutEdge['reason']), json_encode($aOutEdge));
 $aOnTime = chainBus(1000, T0 - 900);
 $aOutOnTime = $ChainMatcher(['2161|845' => [$aOnTime]], $ChainsTrusted, null, T0 - 890)->enrich([$ChainRow('B', 2, T0 + 300)])[0];
 $Expect('el bus anterior viene a su hora: como siempre', !isset($aOutOnTime['reason']) && $aOutOnTime['etaSeconds'] === T0 + 300, json_encode($aOutOnTime));
@@ -861,5 +916,27 @@ $aOutEhu = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('
 $Expect('EHU: la vuelta anterior de otra línea que acaba en la misma parada también vale', ($aOutEhu['reason'] ?? null) === 'previous_trip' && $aOutEhu['delaySeconds'] === 810, json_encode($aOutEhu));
 $aOutEhuOpposite = $ChainMatcher(['3247|845' => [$aEhu]], $ChainsTrusted, chainFixture('A2', '3247'))->enrich([$ChainRow('B', 2, T0 + 300)])[0];
 $Expect('EHU: si acaba en otra parada del campus, como siempre', !isset($aOutEhuOpposite['reason']));
+
+/* ------------------------------------------------------------------ */
+$Section('Herramienta de calibrado (realtime-backtest.php): muestras de tramo y corrección por viaje');
+
+require __DIR__ . '/../engine/bizkaibus/tools/realtime-backtest.php';
+selectToolNetwork(['--red=bus']);
+// Como en Bizkaibus, cada parada sale 2 s después de llegar, y las posiciones de un tramo van de la salida de su parada
+// a la llegada a la siguiente: el bus sale de S0 a T0 + 30 (sigue allí con la hora de salida) y pasa por S1 y S2.
+$aToolStops = [];
+foreach ([0, 180, 360] as $iIndex => $iOffset) {
+    $aToolStops[] = ['seq_order' => $iIndex + 1, 'stop_id' => 'S' . $iIndex, 'arrival_seconds' => T0 + $iOffset, 'departure_seconds' => T0 + $iOffset + 2];
+}
+$aToolTrack = [['t' => T0 + 30, 'sched' => T0 + 2], ['t' => T0 + 120, 'sched' => T0 + 92], ['t' => T0 + 250, 'sched' => T0 + 250], ['t' => T0 + 380, 'sched' => T0 + 340], ['t' => T0 + 400, 'sched' => T0 + 360]];
+$aToolInfo = ['journey' => 'J_LINE', 'line' => '3414', 'date' => DATE_WEEKDAY, 'serviceDate' => DATE_WEEKDAY];
+$aToolSamples = trackSegmentSamples('BUS1|J_LINE', $aToolTrack, $aToolInfo, $aToolStops);
+$Expect('el primer tramo también da muestra: el paso por la cabecera es su salida (T0 + 30), como en las posiciones', array_column($aToolSamples, 'from') === ['S0', 'S1'] && $aToolSamples[0]['at'] === T0 + 30, json_encode(array_column($aToolSamples, 'from')));
+$Expect('la muestra de un laborable no lleva día de servicio aparte', !isset($aToolSamples[0]['serviceDate']));
+// Un festivo pasado (el lunes 12-10): la base de hoy no lo sabe; la muestra lleva el día con el que calculó la capa 3.
+$aHolidaySamples = trackSegmentSamples('BUS1|J_LINE', $aToolTrack, ['date' => '2026-10-12', 'serviceDate' => '2026-10-18'] + $aToolInfo, $aToolStops);
+$Expect('la muestra de un festivo lleva el domingo de esa semana, el día con el que calculó la capa 3', $aHolidaySamples !== [] && array_unique(array_column($aHolidaySamples, 'serviceDate')) === ['2026-10-18'], json_encode($aHolidaySamples[0] ?? null));
+$aHolidayResiduals = tripResiduals(tripPassages($aHolidaySamples), buildFixture(40), ['2026-10-12' => '2026-10-18']);
+$Expect('calibrate-trips aprende ese festivo como fin de semana aunque la base de hoy no lo tenga', $aHolidayResiduals !== [] && array_unique(array_column($aHolidayResiduals, 'serviceDate')) === ['2026-10-18'], json_encode(array_column($aHolidayResiduals, 'serviceDate')));
 
 $Finish('algoritmo');
