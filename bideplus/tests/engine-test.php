@@ -478,6 +478,25 @@ $Expect('sin valor para la franja, k = 1', $P->factor('B2', DATE_WEEKEND, 10 * 3
 $Expect('k se limita por abajo a 0,6', $P->factor(null, DATE_WEEKDAY, 21 * 3600) === PaceFactors::MIN_FACTOR);
 $Expect('k se limita por arriba a 1,2', $P->factor(null, DATE_WEEKDAY, 14 * 3600) === PaceFactors::MAX_FACTOR);
 $Expect('un fichero que no existe da k = 1', PaceFactors::fromFile('/no/existe.json')->factor(null, DATE_WEEKDAY, 10 * 3600) === 1.0);
+// Acumulado de muestras: tope por tipo de día (los laborables no echan a las de fin de semana).
+$aPaceSamples = [];
+foreach ([['2026-11-14', 'fin_semana.manana'], ['2026-11-15', 'fin_semana.noche'], ['2026-11-17', 'laborable.manana'],
+    ['2026-11-18', 'laborable.manana'], ['2026-11-19', 'laborable.noche'], ['2026-11-20', 'laborable.manana']] as [$sDay, $sBand]) {
+    $aPaceSamples[] = ['date' => $sDay, 'at' => 100, 'band' => $sBand, 'track' => $sDay];
+}
+$aCapped = PaceFactors::capSamples($aPaceSamples, ['laborable' => 2, 'fin_semana' => 1]);
+$Expect('tope por tipo de día: se quedan los 2 laborables y el fin de semana más recientes, en orden de fecha',
+    array_column($aCapped, 'date') === ['2026-11-15', '2026-11-19', '2026-11-20']);
+$Expect('un tipo de día sin tope se queda entero', \count(PaceFactors::capSamples($aPaceSamples, ['laborable' => 1])) === 3);
+// Recalibrado sin muestras de un tipo de día: sus franjas se quedan como estaban.
+$aPaceBefore = ['global' => ['laborable.manana' => 0.9, 'fin_semana.manana' => 0.85], 'lines' => ['651' => ['laborable.manana' => 0.8, 'fin_semana.noche' => 0.95]],
+    'meta' => ['global' => ['laborable.manana' => 300, 'fin_semana.manana' => 120], 'lines' => ['651' => ['laborable.manana' => 40, 'fin_semana.noche' => 30]]]];
+$aPaceNew = ['global' => ['laborable.manana' => 0.88], 'lines' => [], 'meta' => ['global' => ['laborable.manana' => 310], 'lines' => []]];
+[$aPaceMerged, $aPaceKept] = PaceFactors::carryOverDayTypes($aPaceNew, $aPaceBefore);
+$Expect('recalibrado sin fin de semana: mantiene sus franjas globales y por línea; lo laborable es lo nuevo',
+    $aPaceKept === ['fin_semana'] && $aPaceMerged['global'] === ['laborable.manana' => 0.88, 'fin_semana.manana' => 0.85]
+    && $aPaceMerged['lines'] === ['651' => ['fin_semana.noche' => 0.95]] && $aPaceMerged['meta']['global']['fin_semana.manana'] === 120);
+$Expect('con los dos tipos de día medidos no se mantiene nada', PaceFactors::carryOverDayTypes($aPaceBefore, $aPaceNew) === [$aPaceBefore, []]);
 
 $aData = json_decode((string)file_get_contents(PaceFactors::defaultPath()), true);
 $aBands = [];
