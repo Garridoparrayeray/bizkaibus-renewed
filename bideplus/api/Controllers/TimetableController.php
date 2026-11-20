@@ -37,7 +37,7 @@ class TimetableController
         $JourneyModel = new ServiceJourney($Pdo);
         $iHourFrom = Calendar::hmToSeconds($Req->query('hourFrom', '00:00'));
         $iHourTo = Calendar::hmToSeconds($Req->query('hourTo', '23:59'));
-        $aRows = self::rowsInRange($JourneyModel, $aParams['id'], $Date, $iHourFrom, $iHourTo, self::stopId($Pdo, $Req->query('stopId')));
+        $aRows = self::rowsInRange($JourneyModel, $aLine['id'], $Date, $iHourFrom, $iHourTo, self::stopId($Pdo, $Req->query('stopId')));
         $aRows = self::withStatus($JourneyModel, $aRows, $Date);
 
         $sDate = $Date->format('Y-m-d');
