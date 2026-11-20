@@ -1101,6 +1101,11 @@ $aTwoExtras = [
 ];
 $MatcherTwo = new \Services\PlatformMatcher($aTwoExtras, \Services\PlatformMatcher::SOURCE_TRIP_UPDATES, $JourneyPm, $iMidPm, $aPmSettings, []);
 $Expect('de varios trenes sin horario cerca de la hora de la clave, el más cercano de su andén', $MatcherTwo->unscheduledTrain('A', $iMidPm + 2000, 'B')['stops'][0][1] === $iMidPm + 2010 && $MatcherTwo->unscheduledTrain('A', $iMidPm + 1950, 'B')['stops'][0][1] === $iMidPm + 1900);
+$aShareConfig = ['gtfs_rt' => ['platform_matching' => ['min_trip_share' => 0.8]]];
+$Expect('Metro: con unos pocos ids del feed en el horario (21 de 83) se casa por andén; con casi todos, por id',
+    !Core\Live::tripIdsCover($aShareConfig, 21, 83) && Core\Live::tripIdsCover($aShareConfig, 70, 83));
+$Expect('sin platform_matching.min_trip_share, cualquier viaje casado por id vale (como antes)',
+    Core\Live::tripIdsCover(['gtfs_rt' => ['matching' => 'trip']], 1, 83));
 $Expect('cuántos trenes trae el feed (los de una sola parada no cuentan)', $MatcherPm->trainCount() === 4 && $MatcherPm->diagnostics()['trainSource'] === \Services\PlatformMatcher::SOURCE_TRIP_UPDATES);
 $aNoFeedPm = (new \Services\PlatformMatcher([], \Services\PlatformMatcher::SOURCE_TRIP_UPDATES, $JourneyPm, $iMidPm, $aPmSettings, []))->enrich('A', $aRowsPm);
 $Expect('sin trenes en el feed, el horario tal cual (sin errores)', array_column($aNoFeedPm, 'trip_number') === ['r1', 'r2', 'r5', 'r3', 'r6', 'r4'] && array_unique(array_column($aNoFeedPm, 'status')) === ['scheduled']);

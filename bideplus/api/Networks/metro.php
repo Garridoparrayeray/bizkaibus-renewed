@@ -143,6 +143,9 @@ return [
         // Los ids del feed son de viajes de otra generación del horario: cada tren se casa por andén y destino
         // (Services\PlatformMatcher).
         'platform_matching' => [
+            // Si el horario comparte ids con el feed, se casa por id solo con el 80 % de sus viajes o más (el horario
+            // del 19-11-2026 compartía 21 de 83 y dejaba el resto con el horario).
+            'min_trip_share' => 0.8,
             // Hasta 10 min tarde o 3 min antes, un tren es el de su salida; si no, sale sin horario (sus minutos y su
             // destino).
             'max_delay_seconds' => 600,

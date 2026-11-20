@@ -106,7 +106,7 @@ class Live
                 $aVehicles = (new GtfsRealtimeClient($aConfig))->fetchVehiclePositions();
             }
             $TripMatcher = new TripDelayMatcher($aTrips, $JourneyModel, $iMidnight, $aVehicles);
-            if ($TripMatcher->matchedJourneys() > 0) {
+            if ($TripMatcher->matchedJourneys() > 0 && self::tripIdsCover($aConfig, $TripMatcher->matchedJourneys(), count($aTrips))) {
                 return $TripMatcher;
             }
             if (isset($aConfig['gtfs_rt']['platform_matching'])) {
@@ -118,6 +118,17 @@ class Live
             }
         }
         return new TripUpdatesMatcher($aTrips, $JourneyModel, $aConfig['gtfs_rt']['match_tolerance_seconds'], $iMidnight);
+    }
+
+    // Con platform_matching.min_trip_share (Metro), los ids del feed valen solo si casa esa parte de sus viajes: un
+    // horario nuevo puede compartir unos pocos por casualidad, y con ellos el resto saldría con el horario.
+    public static function tripIdsCover(array $aConfig, int $iMatched, int $iFeedTrips): bool
+    {
+        $dMinShare = $aConfig['gtfs_rt']['platform_matching']['min_trip_share'] ?? null;
+        if ($dMinShare === null) {
+            return true;
+        }
+        return $iMatched >= $iFeedTrips * $dMinShare;
     }
 
     // Los trenes del GTFS-Realtime casados por andén o, si no trae ninguno, los del SIRI de llegadas (con
