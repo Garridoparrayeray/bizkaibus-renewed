@@ -154,9 +154,11 @@ jobs:
               print('   ', x.get('lineCode'), x.get('scheduledTime'), x.get('status'), x.get('etaMinutes'), x.get('delayMinutes'))
           PY
           done
-          # Mapa de una línea en la consulta de horarios: recorridos aunque no haya buses en ruta.
+          # Mapa de una línea en la consulta de horarios (/route): recorridos aunque no haya buses en ruta.
           for l in 651 2151; do
-            curl -sS "$BASE/api/lines/$l/live?red=bus" -o live.json -w "línea $l /live -> %{http_code}\n"
-            python3 -c "import json; d = json.load(open('live.json')); print('  recorridos:', len(d.get('patterns', [])), '| buses:', len(d.get('vehicles', [])), '| error:', d.get('error'))" || fail=1
+            code=$(curl -sS "$BASE/api/lines/$l/route?red=bus" -o route.json -w '%{http_code}')
+            echo "línea $l /route -> $code"
+            [ "$code" = "200" ] || { echo "::error::línea $l /route: esperaba 200, obtuve $code"; fail=1; continue; }
+            python3 -c "import json, sys; n = len(json.load(open('route.json')).get('patterns', [])); print('  recorridos:', n); sys.exit(n == 0)" || fail=1
           done
           exit $fail

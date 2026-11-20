@@ -2,6 +2,8 @@ import datetime
 import json
 import unicodedata
 import os
+import re
+import sqlite3
 import subprocess
 import sys
 import urllib.error
@@ -58,6 +60,7 @@ def enc(value):
 
 
 today = datetime.date.today().isoformat()
+schedule_checked = set()
 for name, cfg in NETS.items():
     s = cfg['suffix']
     res = get(with_net('/api/search?q=' + cfg['q'], s))
@@ -81,6 +84,15 @@ for name, cfg in NETS.items():
                 get(with_net(f'/api/trips/{trip}?stopId={sid}', s))
             get(with_net(f'/api/lines/{lid}/timetable?date={today}&hourFrom=22:00&hourTo=05:00', s))
             get(with_net(f'/api/lines/{lid}/route', s))
+            # «Ver horario oficial»: el del operador (Bizkaibus) o el sacado del GTFS de la red (GtfsScheduleText).
+            if name not in schedule_checked:
+                schedule_checked.add(name)
+                text = get(with_net(f'/api/lines/{lid}/schedule-text', s)) or {}
+                blocks = text.get('schedule')
+                if text.get('source') == 'gtfs' and (not blocks or any(
+                        not block.get('PERIODO_DESDE') or not re.search(r'\d\d:\d\d', block.get('HORARIO_IDA_CAS', '') + block.get('HORARIO_VUELTA_CAS', ''))
+                        for block in blocks)):
+                    fails.append(f'{name}: horario oficial del GTFS vacío o sin horas ({lid}) {str(blocks)[:120]}')
     get(with_net('/api/lines', s))
     get(with_net('/api/alerts', s))
     get(with_net('/api/search?q=x', s))
@@ -88,6 +100,27 @@ for name, cfg in NETS.items():
     get(with_net('/api/lines/999999999', s), expect=404)
     get(with_net('/api/nope', s), expect=404)
     print(name, 'ok')
+
+# Equivalencias de id de línea (tabla line_aliases): con el id viejo salen la línea nueva y su mismo horario.
+for name, cfg in NETS.items():
+    s = cfg['suffix']
+    with open(os.path.join(ROOT, 'api', 'Networks', f'{name}.php'), encoding='utf-8') as card:
+        database = re.search(r"'db'\s*=>\s*'([^']+)'", card.read()).group(1)
+    connection = sqlite3.connect(f'file:{os.path.join(ROOT, "data", database + ".sqlite")}?mode=ro', uri=True)
+    try:
+        aliases = connection.execute('SELECT old_id, line_id FROM line_aliases LIMIT 3').fetchall()
+    except sqlite3.OperationalError:
+        aliases = []
+    connection.close()
+    for old_id, line_id in aliases:
+        day = cfg.get('serviceDate', today)
+        old = get(with_net(f'/api/lines/{enc(old_id)}/timetable?date={day}', s)) or {}
+        new = get(with_net(f'/api/lines/{enc(line_id)}/timetable?date={day}', s)) or {}
+        if old.get('line', {}).get('id') != line_id or len(old.get('entries', [])) != len(new.get('entries', [])):
+            fails.append(f'{name}: el horario con el id viejo {old_id} no es el de {line_id} '
+                         f'({len(old.get("entries", []))} salidas frente a {len(new.get("entries", []))})')
+    if aliases:
+        print(name, 'equivalencias de línea ok', len(aliases))
 
 for name, cfg in NETS.items():
     s = cfg['suffix']

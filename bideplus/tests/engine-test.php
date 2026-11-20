@@ -784,6 +784,17 @@ $Expect('la primera vuelta del día no tiene anterior', RealtimeMatcher::blockKe
 $Expect('un id con otra forma no da clave: no se usa', RealtimeMatcher::blockKey('trp_A3414_808_OP9LSEPT_28800_x') === null && RealtimeMatcher::blockKey('808') === null);
 $Expect('una línea con 39 de 40 pares cumple; con 10 pares, no', $ChainsTrusted->isTrusted('2161') && !(new BlockChains(['lines' => ['2161' => ['pairs' => 10, 'same' => 10]]]))->isTrusted('2161'));
 $Expect('con el 85 % no cumple', !(new BlockChains(['lines' => ['2161' => ['pairs' => 40, 'same' => 34]]]))->isTrusted('2161'));
+// Recalibrado: con pocos pares en la ventana nueva (la captura de cadenas acaba de empezar) se queda lo que se sabía;
+// con pares bastantes manda lo nuevo, también para dejar de cumplir.
+$aChainsBefore = ['2161' => ['pairs' => 252, 'same' => 251], '3247' => ['pairs' => 60, 'same' => 59], '651' => ['pairs' => 30, 'same' => 30]];
+$aChainsNew = ['2161' => ['pairs' => 6, 'same' => 6], '3247' => ['pairs' => 40, 'same' => 20], '3338' => ['pairs' => 25, 'same' => 25]];
+[$aChainsMerged, $iChainsCarried] = BlockChains::carryOver($aChainsNew, $aChainsBefore);
+$ChainsMerged = new BlockChains(['lines' => $aChainsMerged]);
+$Expect('recalibrado: una línea con 6 pares nuevos sigue con los 252 de antes y cumple', $aChainsMerged['2161']['pairs'] === 252 && $ChainsMerged->isTrusted('2161'));
+$Expect('recalibrado: una línea sin pares nuevos se queda como estaba', $aChainsMerged['651'] === ['pairs' => 30, 'same' => 30]);
+$Expect('recalibrado: con 40 pares nuevos y la mitad con otro bus deja de cumplir', $aChainsMerged['3247']['pairs'] === 40 && !$ChainsMerged->isTrusted('3247'));
+$Expect('recalibrado: una línea nueva entra con lo medido', $ChainsMerged->isTrusted('3338') && $iChainsCarried === 2 && $ChainsMerged->trustedCount() === [3, 4]);
+$Expect('recalibrado: sin fichero en uso es lo medido, tal cual', BlockChains::carryOver($aChainsNew, [])[0] === ['2161' => ['pairs' => 6, 'same' => 6], '3247' => ['pairs' => 40, 'same' => 20], '3338' => ['pairs' => 25, 'same' => 25]]);
 $Expect('solo en laborables', $ChainsTrusted->appliesOn('laborable') && !$ChainsTrusted->appliesOn('fin_semana'));
 
 // El caso de Amaia 22: a T0 - 2 min el bus de la vuelta 15 va por M (1000 m antes de A), por donde tenía que pasar a

@@ -40,7 +40,7 @@ Sigue el estilo que ya hay alrededor de tu cambio:
 - **CSS:** medidas en `px`, cada regla en su bloque con una declaración por línea y un selector por línea, y la sangría
   en pirámide (lo que va dentro de un componente, 4 espacios más). `>` cuando el elemento es hijo directo.
 - **Comentarios:** mínimos, solo donde el código no se explica solo. Lo que cambió va en el commit, no en el código.
-- **Textos:** la interfaz está en castellano, euskera e inglés. Si añades o cambias un texto, hazlo en los tres idiomas (`bideplus/js/i18n.js`), y si dejas de usar uno, bórralo.
+- **Textos:** la interfaz está en castellano, euskera, inglés y francés. Si añades o cambias un texto, hazlo en los cuatro idiomas (`bideplus/js/i18n.js`), y si dejas de usar uno, bórralo.
 - **Nada muerto:** si una función, una constante, una clase de CSS o un archivo deja de usarse, se borra.
 - **Sangría de 4 espacios**, sin tabuladores ni espacios al final de la línea.
 
