@@ -14,7 +14,7 @@ La aplicación está pensada para las versiones recientes de Chrome, Edge, Firef
 
 ## Lo que ya se ha tenido en cuenta
 
-- El idioma de la página se declara y se actualiza al cambiar entre castellano y euskera.
+- El idioma de la página se declara y se actualiza al cambiar entre castellano, euskera, inglés y francés.
 - Los cuadros de diálogo (menú, horarios, aviso legal) usan el elemento nativo `dialog`, que gestiona el foco y se cierra con la tecla Escape.
 - Los botones y controles sin texto visible tienen etiqueta accesible, y las imágenes decorativas se ocultan a las tecnologías de apoyo.
 - Hay indicador visible de foco con teclado.
