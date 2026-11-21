@@ -31,8 +31,9 @@ class ScheduleTextClient
     private static function parse(string $sXmlString): array
     {
         $Xml = @simplexml_load_string($sXmlString);
+        // Una página de error o de mantenimiento no es «ninguna línea»: lanzando, Cache conserva el último bueno.
         if ($Xml === false || !isset($Xml->{'LINEA-LINEA'})) {
-            return [];
+            throw new \RuntimeException('Horario del operador ilegible');
         }
 
         $aByLine = [];

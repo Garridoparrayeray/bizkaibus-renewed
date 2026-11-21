@@ -25,6 +25,8 @@ class StopsController
     // Las salidas que se miran para el directo del planificador, que solo pregunta por lo que sale en 2 h.
     private const LIVE_LEGS_LIMIT = 200;
     private const LIVE_LEGS_WINDOW_SECONDS = 3 * 3600;
+    // Las próximas salidas de una parada: las de las próximas 4 horas.
+    private const WINDOW_SECONDS = 4 * 3600;
 
     public function show(Request $Req, array $aParams): void
     {
@@ -242,29 +244,67 @@ class StopsController
     }
 
     // Salidas de las próximas 4 horas o, si no hay (de noche), 4 horas desde la primera que queda o las próximas 24.
-    private static function upcomingRowsToday(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast): array
+    // Las del día siguiente que caen dentro de esas horas (las 00:xx que muchas redes ponen en el día siguiente y no
+    // como 24:xx) van mezcladas con las de hoy («nextDay»); «tomorrow» queda para las de más allá.
+    private static function upcomingRowsToday(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int|null $iPast, int|null $iNow = null): array
     {
-        $iNow = Calendar::nowSecondsSinceMidnight();
-        $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 4 * 3600, 0, $iPast);
+        $iNow ??= Calendar::nowSecondsSinceMidnight();
+        $iWindow = self::WINDOW_SECONDS;
+        $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iWindow, 0, $iPast);
         // Con alguna que sale de ahora en adelante; solo las que ya salieron (el margen de 15 min para las que van tarde)
         // no bastan: sin esto, pasado el último bus del día la parada se quedaba vacía 15 min en vez de dar las de mañana.
         if (self::anyComing($aRows, $iNow)) {
-            return $aRows;
+            return self::withNextDay($JourneyModel, $StopId, $iLimit, $iNow, $iNow + $iWindow, $aRows);
         }
         $iNext = $JourneyModel->nextDepartureSeconds($StopId);
         if ($iNext !== null) {
-            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iNext - Calendar::nowSecondsSinceMidnight() + 4 * 3600, 0, $iPast);
+            $iWindow = $iNext - $iNow + self::WINDOW_SECONDS;
+            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iWindow, 0, $iPast);
         }
         if (count($aRows) < $iLimit + 5) {
-            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 0, $iPast);
+            $iWindow = Calendar::DAY_SECONDS;
+            $aRows = $JourneyModel->upcomingAtStop($StopId, $iLimit, $iWindow, 0, $iPast);
+        }
+        if (self::anyComing($aRows, $iNow)) {
+            return self::withNextDay($JourneyModel, $StopId, $iLimit, $iNow, $iNow + min($iWindow, self::WINDOW_SECONDS), $aRows);
         }
         // Hoy ya no sale ninguna más: detrás de las que acaban de salir (puede venir alguna con retraso), las primeras de
-        // mañana con su horario.
-        if (self::anyComing($aRows, $iNow)) {
+        // mañana con su horario; las que salen dentro de las 4 horas, como las de hoy (a las 23:58, la de las 00:03 es
+        // «5 min», no «mañana»).
+        $aTomorrow = [];
+        foreach ($JourneyModel->upcomingAtStop($StopId, $iLimit, Calendar::DAY_SECONDS, 1) as $aRow) {
+            $sFlag = 'tomorrow';
+            if ((int)$aRow['departure_seconds'] <= $iNow + self::WINDOW_SECONDS) {
+                $sFlag = 'nextDay';
+            }
+            $aTomorrow[] = [$sFlag => true] + $aRow;
+        }
+        return array_merge($aRows, $aTomorrow);
+    }
+
+    // Detrás de las de hoy, las del día siguiente que salen antes de $iWindowEnd (en horas de hoy: 86.580 son las 00:03
+    // de mañana), sin repetir una que el horario de hoy ya trae como 24:xx. Sin esto, cerca de medianoche las 00:xx de
+    // Euskotren, Bilbobus, Dbus, Lurraldebus o Álavabus no salían hasta acabarse las de hoy.
+    private static function withNextDay(ServiceJourney $JourneyModel, string|int $StopId, int $iLimit, int $iNow, int $iWindowEnd, array $aRows): array
+    {
+        if ($iWindowEnd <= Calendar::DAY_SECONDS) {
             return $aRows;
         }
-        $aTomorrow = $JourneyModel->upcomingAtStop($StopId, $iLimit, 24 * 3600, 1);
-        return array_merge($aRows, array_map(fn(array $aRow) => ['tomorrow' => true] + $aRow, $aTomorrow));
+        $aSeen = [];
+        foreach ($aRows as $aRow) {
+            $aSeen[$aRow['line_code'] . '|' . (int)$aRow['departure_seconds']] = true;
+        }
+        $bAdded = false;
+        foreach ($JourneyModel->upcomingAtStop($StopId, $iLimit, $iWindowEnd - $iNow, 1) as $aRow) {
+            if ((int)$aRow['departure_seconds'] <= $iWindowEnd && !isset($aSeen[$aRow['line_code'] . '|' . (int)$aRow['departure_seconds']])) {
+                $aRows[] = ['nextDay' => true] + $aRow;
+                $bAdded = true;
+            }
+        }
+        if ($bAdded) {
+            usort($aRows, fn(array $aA, array $aB) => (int)$aA['departure_seconds'] <=> (int)$aB['departure_seconds']);
+        }
+        return $aRows;
     }
 
     // Si alguna de las salidas es de ahora en adelante.
@@ -288,12 +328,12 @@ class StopsController
     }
 
     // El directo sobre las salidas del horario: el algoritmo de los autobuses ([emparejador de hoy, el de ayer cuando
-    // se pida]) y, en los trenes y tranvías, las horas del feed del operador (sin los que ya han salido).
-    // Las de mañana van con el horario tal cual: el directo de hoy no es el de esos viajes.
+    // se pida]) y, en los trenes y tranvías, las horas del feed (sin los que ya han salido). Las del día siguiente
+    // (también las 00:xx de la ventana) van con su horario: el directo de hoy no es el de esos viajes.
     private static function withLive(array $aMatchers, object|null $TripMatcher, string $sStopId, array $aRows): array
     {
-        $aToday = array_values(array_filter($aRows, fn(array $aRow) => empty($aRow['tomorrow'])));
-        $aTomorrow = array_values(array_filter($aRows, fn(array $aRow) => !empty($aRow['tomorrow'])));
+        $aToday = array_values(array_filter($aRows, fn(array $aRow) => empty($aRow['tomorrow']) && empty($aRow['nextDay'])));
+        $aTomorrow = array_values(array_filter($aRows, fn(array $aRow) => !empty($aRow['tomorrow']) || !empty($aRow['nextDay'])));
         return array_merge(self::withLiveToday($aMatchers, $TripMatcher, $sStopId, $aToday), (new ScheduleOnlyMatcher())->enrich($aTomorrow));
     }
 
@@ -413,6 +453,9 @@ class StopsController
                 'status' => $aRow['status'],
                 'atOrigin' => !empty($aRow['atOrigin']),
                 'tomorrow' => !empty($aRow['tomorrow']),
+                // Del día de servicio siguiente pero dentro de las 4 horas (las 00:xx): la ficha del viaje va con su
+                // horario, como la de mañana, porque la de hoy de esa clave ya terminó.
+                'nextDay' => !empty($aRow['nextDay']),
                 'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,

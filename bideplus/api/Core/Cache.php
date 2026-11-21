@@ -10,6 +10,10 @@ class Cache
     // Un feed en directo que responde sin ningún vehículo (Lurraldebus y Bilbobus pasan días así) se vuelve a pedir
     // pasado este tiempo, no en cada petición ni en cada minuto del cron. Un fallo no cuenta: se reintenta al minuto.
     private const EMPTY_FEED_RETRY_SECONDS = 600;
+    // Las veces que en esta petición una fuente ha fallado sin copia anterior y se ha devuelto [] (que no quiere decir
+    // «no hay datos»): Response no guarda en la CDN una respuesta hecha con eso, y los avisos de incidencias no lo toman
+    // por «sin incidencias».
+    public static int $iEmptyFailures = 0;
 
     // Como remember(), para un feed en directo: una respuesta vacía se guarda EMPTY_FEED_RETRY_SECONDS.
     public static function rememberFeed(string $sKey, int $iTtlSeconds, callable $Producer): mixed
@@ -51,6 +55,7 @@ class Cache
                 return $aStale;
             }
         }
+        self::$iEmptyFailures++;
         return [];
     }
 }

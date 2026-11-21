@@ -26,8 +26,9 @@ class MetroAlertsClient
     private static function parse(string $sBody): array
     {
         $aDecoded = json_decode($sBody, true);
+        // Lo que no es la respuesta de la API no es «ninguna incidencia»: lanzando, Cache conserva el último bueno.
         if (!isset($aDecoded['data']) || !is_array($aDecoded['data'])) {
-            return [];
+            throw new \RuntimeException('Incidencias de Metro ilegibles');
         }
 
         $aAlerts = [];

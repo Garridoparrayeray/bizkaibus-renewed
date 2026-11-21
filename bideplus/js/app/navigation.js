@@ -1,7 +1,7 @@
 // Cerrar la parada o la línea, el menú de redes y la navegación con el historial (atrás, enlaces /stops y /lines).
 import { NETWORK, el, followAppLink, hideStaleSchedule, networkQuery, state, syncPageContent } from './core.js';
 import { clearLineMap } from './line-map.js';
-import { selectStop, stopDeparturesRefresh } from './stop.js';
+import { forgetStopRequests, selectStop, stopDeparturesRefresh } from './stop.js';
 import { selectLine } from './timetable.js';
 import { openVehicleModal } from './vehicle-modal.js';
 
@@ -45,6 +45,7 @@ export function updateTitle() {
 
 // Con { push: true } (el botón de cerrar) la red entra en el historial y «atrás» vuelve a la parada.
 export function closeLiveCard({ push = false } = {}) {
+    forgetStopRequests();
     state.currentStop = null;
     el.liveCard.hidden = true;
     el.platformPanel.hidden = true;

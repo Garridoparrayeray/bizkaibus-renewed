@@ -142,6 +142,12 @@ class WebPush
         return openssl_pkey_get_private(self::pem('EC PRIVATE KEY', $sDer));
     }
 
+    // Que la clave del navegador sea de verdad un punto de la curva P-256 (no basta con 65 bytes que empiecen por 0x04).
+    public static function validPublicKey(string $sRaw): bool
+    {
+        return strlen($sRaw) === 65 && openssl_pkey_get_public(self::pem('PUBLIC KEY', hex2bin(self::P256_PUBLIC_PREFIX) . $sRaw)) !== false;
+    }
+
     private static function pem(string $sLabel, string $sDer): string
     {
         return "-----BEGIN $sLabel-----\n" . chunk_split(base64_encode($sDer), 64, "\n") . "-----END $sLabel-----\n";

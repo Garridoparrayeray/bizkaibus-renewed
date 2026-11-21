@@ -468,7 +468,7 @@ if (sharedTrip) {
     const sampleStops = {
         bus: ['331', '277', '298'],
         metro: ['7'],
-        euskotren: ['ES:Euskotren:StopPlace:2581:', 'ES:Euskotren:StopPlace:2590:'],
+        euskotren: ['ES:Euskotren:StopPlace:2802:', 'ES:Euskotren:StopPlace:2590:'],
         'tranvia-bilbao': ['ES:Euskotren:StopPlace:1471:', 'ES:Euskotren:StopPlace:1475:'],
         'tranvia-vitoria': ['ES:Euskotren:StopPlace:1560:', 'ES:Euskotren:StopPlace:1568:'],
         renfe: ['13200'],

@@ -36,10 +36,9 @@ class TripDelayMatcher
 
     public function __construct(array $aTrips, ServiceJourney $JourneyModel, int|null $iMidnight = null, array $aVehicles = [])
     {
-        if ($iMidnight === null) {
-            $iMidnight = (new \DateTime('today', new \DateTimeZone('Europe/Madrid')))->getTimestamp();
-        }
-        $this->iMidnight = $iMidnight;
+        // La medianoche «de pared» (Calendar::wallMidnight), la de las horas del horario: el día del cambio de hora la
+        // real va una hora desfasada y los trenes salían como pasados o con 60 min de retraso.
+        $this->iMidnight = $iMidnight ?? Calendar::wallMidnight();
         $this->bRail = \in_array(\Core\Config::current()['kind'] ?? 'bus', ['train', 'metro'], true);
         $this->Stops = new JourneyStops($JourneyModel);
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());

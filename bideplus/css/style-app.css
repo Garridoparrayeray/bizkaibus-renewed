@@ -1190,6 +1190,15 @@ tbody tr {
     tbody tr.is-past > td {
         opacity: .5;
     }
+    /* La hora de cada fila es un botón (para el teclado) que se ve como el resto de la fila. */
+    .timetable-open {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+    }
 .stop-alerts {
     display: flex;
     flex-direction: column;

@@ -29,14 +29,61 @@ export function writeArrivalAlerts(list) {
     window.dispatchEvent(new CustomEvent('bide:arrival-alerts'));
 }
 
-// Cancela en el servidor y lo quita de aquí. Si el servidor ya lo había mandado o borrado, también vale.
-export async function cancelArrivalAlert(alert) {
+// Las cancelaciones que el servidor aún no sabe (se cancelaron sin conexión): [{ id, endpoint }].
+const CANCELS_KEY = 'bide-arrival-cancels';
+
+function readPendingCancels() {
+    try {
+        return JSON.parse(localStorage.getItem(CANCELS_KEY) || '[]') || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function writePendingCancels(list) {
+    try {
+        localStorage.setItem(CANCELS_KEY, JSON.stringify(list));
+    } catch (e) {
+        // Sin almacenamiento no se puede reintentar: el servidor lo borra al caducar.
+    }
+}
+
+// true si el servidor ya no lo tiene: lo cancela ahora o ya no estaba (404: ya avisó, caducó o se canceló antes).
+async function cancelOnServer(alert) {
     try {
         await Api.cancelArrivalAlert(alert.id, alert.endpoint);
+        return true;
     } catch (e) {
-        // El servidor lo borra igual al caducar.
+        return e.status === 404 || e.status === 410;
+    }
+}
+
+/*
+ * Lo cancela en el servidor y lo quita de aquí. Sin conexión (o con el servidor fallando) queda apuntado y se manda en
+ * cuanto se pueda: si no, uno de todos los días seguiría llegando y ya no se podría cancelar. false si queda pendiente.
+ */
+export async function cancelArrivalAlert(alert) {
+    const done = await cancelOnServer(alert);
+    if (!done) {
+        const others = readPendingCancels().filter((item) => item.id !== alert.id);
+        writePendingCancels([...others, { id: alert.id, endpoint: alert.endpoint }]);
     }
     writeArrivalAlerts(readArrivalAlerts().filter((item) => item.id !== alert.id));
+    return done;
+}
+
+let sendingCancels = null;
+
+// Las cancelaciones pendientes se mandan al abrir la app, al volver a ella y al recuperar la conexión.
+function sendPendingCancels() {
+    if (sendingCancels || readPendingCancels().length === 0) return;
+    sendingCancels = (async () => {
+        for (const item of readPendingCancels()) {
+            if (await cancelOnServer(item)) writePendingCancels(readPendingCancels().filter((other) => other.id !== item.id));
+        }
+    })().finally(() => {
+        sendingCancels = null;
+    });
 }
 
 function dropFired(ids) {
@@ -61,6 +108,10 @@ if ('serviceWorker' in navigator) {
     });
 }
 dropFiredWhileClosed();
+sendPendingCancels();
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') dropFiredWhileClosed();
+    if (document.visibilityState !== 'visible') return;
+    dropFiredWhileClosed();
+    sendPendingCancels();
 });
+window.addEventListener('online', sendPendingCancels);
