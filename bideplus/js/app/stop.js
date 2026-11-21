@@ -68,10 +68,13 @@ function showOfflineSchedule(isOffline) {
  */
 let stopRequest = 0;
 let departuresRequest = 0;
+// La última petición de salidas pintada (o anulada): las anteriores ya no pintan.
+let departuresPainted = 0;
 
 export function forgetStopRequests() {
     stopRequest += 1;
     departuresRequest += 1;
+    departuresPainted = departuresRequest;
 }
 
 export async function selectStop(stopId) {
@@ -180,7 +183,9 @@ export async function loadDepartures() {
     if (!state.currentStop) return;
     const request = ++departuresRequest;
     const stopId = state.currentStop.id;
-    const stillShown = () => request === departuresRequest && String(state.currentStop?.id) === String(stopId);
+    // De la parada que se ve y más nueva que la última pintada: si cada respuesta tarda más que el refresco, la
+    // anterior se pinta igual (antes, cada refresco dejaba sin valor la que venía y no se pintaba ninguna).
+    const stillShown = () => request > departuresPainted && String(state.currentStop?.id) === String(stopId);
     let data;
     try {
         data = await Api.stopDepartures(stopId, 20);
@@ -189,12 +194,14 @@ export async function loadDepartures() {
         if (saved) data = BideOffline.departures(saved, stopId, new Date(), 20);
         if (!stillShown()) return;
         if (!data) {
+            departuresPainted = request;
             state.lastDepartures = null;
             renderDepartures({ departures: [], platforms: [] });
             return;
         }
     }
     if (!stillShown()) return;
+    departuresPainted = request;
     showOfflineSchedule(data.offline === true);
     state.lastDepartures = data;
     renderDepartures(data);

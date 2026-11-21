@@ -15,6 +15,8 @@ const MODAL_TICK_MS = 10000;
 const MODAL_PASSED_AFTER_MS = 45000;
 export const DEPARTED_GRACE_MS = 45 * 1000;
 const MINUTES_PER_DAY = 1440;
+// Un viaje de ayer que pasa de las 24:00 se sigue tomando por el de ayer hasta este rato después de su llegada.
+const LATE_TRIP_GRACE_MINUTES = 15;
 // scheduleOnly: el viaje abierto es el de mañana o el del día de servicio siguiente (solo su horario).
 export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '', scheduleOnly: false };
 // Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
@@ -223,7 +225,7 @@ async function openTripStopsModal(tripKey, tomorrow = false) {
     el.modalAlerts.hidden = true;
     el.modalAlerts.innerHTML = '';
 
-    const past = pastStops(data.stops, tomorrow);
+    const past = pastStops(data.stops, tomorrow, tripKey);
     el.modalStops.innerHTML = '';
     data.stops.forEach((stop, index) => {
         const li = document.createElement('li');
@@ -255,21 +257,20 @@ function tripMinutes(stops) {
     });
 }
 
-// Las paradas por las que el viaje ya ha pasado según su horario, con la hora de Madrid. «Ahora» se pone en el día
-// (ayer, hoy o mañana) más cerca de la parada pedida o, sin ella, del viaje: así un viaje que pasa de las 24:00 no da
-// por pasadas las paradas de la madrugada.
-function pastStops(stops, tomorrow) {
+// Las paradas por las que el viaje ya ha pasado según su horario, con la hora de Madrid. El viaje es el del día de
+// servicio de hoy, salvo uno de ayer que pasa de las 24:00 y aún no ha terminado. La clave lleva su primera salida en
+// horas de su día de servicio (25:10 son 90.600 s); con el día «más cerca», uno de dentro de 12 h salía como pasado.
+function pastStops(stops, tomorrow, tripKey) {
     if (tomorrow) return stops.map(() => false);
     const minutes = tripMinutes(stops);
-    const target = stops.findIndex((stop) => stop.isTarget);
-    let anchor = (minutes[0] + minutes[minutes.length - 1]) / 2;
-    if (target !== -1) anchor = minutes[target];
+    let start = minutes[0];
+    const keySeconds = Number(String(tripKey).split('-').pop());
+    if (Number.isFinite(keySeconds) && String(tripKey).includes('-')) start = Math.floor(keySeconds / 60);
+    const service = minutes.map((value) => start + value - minutes[0]);
     const today = Math.floor(hereNow().seconds / 60);
     let now = today;
-    for (const candidate of [today - MINUTES_PER_DAY, today + MINUTES_PER_DAY]) {
-        if (Math.abs(candidate - anchor) < Math.abs(now - anchor)) now = candidate;
-    }
-    return minutes.map((value) => value < now);
+    if (today + MINUTES_PER_DAY <= service[service.length - 1] + LATE_TRIP_GRACE_MINUTES) now = today + MINUTES_PER_DAY;
+    return service.map((value) => value < now);
 }
 
 async function loadModalAlerts() {

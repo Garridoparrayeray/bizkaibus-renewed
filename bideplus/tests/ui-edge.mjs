@@ -207,6 +207,31 @@ for (const zone of ['Europe/Madrid', 'America/New_York']) {
     await ev("document.getElementById('vehicle-modal').close(); true");
 }
 await send('Emulation.setTimezoneOverride', { timezoneId: '' });
+
+// El viaje de la ficha es el de su día de servicio (la clave lleva su primera salida): uno de hoy a más de 12 h no sale
+// como pasado ni uno de esta mañana como por venir; uno de ayer que pasa de las 24:00, mientras va, como el de ayer.
+const farSheets = [];
+for (const [at, tripKey, times, expected] of [
+    ['06:00', '3136-700-68400', ['19:00', '19:20', '19:40'], '[false,false,false]'],
+    ['23:00', '3136-701-21600', ['06:00', '06:20', '06:40'], '[true,true,true]'],
+    ['00:20', '3136-702-87000', ['00:10', '00:30', '00:50'], '[true,false,false]'],
+]) {
+    await setClock(madridToday(at));
+    const stops = times.map((time, index) => ({ stopId: 361 + index, name: 'Parada ' + index, scheduledTime: time, isTarget: index === 1 }));
+    rules = [
+        { match: /\/api\/stops\/361\/departures/, body: () => departures({ id: 361, name: 'Santiago - Santa Ana' }, [departure('A3136', 'Santurtzi', tripKey, 30, { status: 'scheduled' })]) },
+        { match: /\/api\/vehicles\//, fail: true },
+        { match: /\/api\/trips\//, body: { lineCode: 'A3136', lineName: 'Bilbao-Barakaldo-Santurtzi', headsign: 'Santurtzi', stops } },
+    ];
+    await go('/stops/361?red=bus');
+    await waitTrue("!!document.getElementById('live-open-detail').dataset.tripKey && !document.getElementById('live-open-detail').disabled");
+    await ev("document.getElementById('live-open-detail').click(); true");
+    await waitTrue("document.getElementById('vehicle-modal').open && document.querySelectorAll('#modal-stops li').length === 3");
+    const marks = JSON.stringify(await ev("[...document.querySelectorAll('#modal-stops li')].map((li) => li.classList.contains('stop-past'))"));
+    farSheets.push({ at, marks, ok: marks === expected });
+    await ev("document.getElementById('vehicle-modal').close(); true");
+}
+check('ficha del viaje con su día de servicio: el de las 19:00 a las 06:00 por venir, el de las 06:00 a las 23:00 pasado y el de ayer de las 24:10 a las 00:20, en marcha', farSheets.every((sheet) => sheet.ok), JSON.stringify(farSheets));
 await setClock(null);
 
 // ===== La ficha de un viaje de mañana sigue siendo de mañana al volver a la app =====
