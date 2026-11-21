@@ -63,10 +63,12 @@ class Gtfs
         }
         $aHeader = self::readCsvHeader($Stream);
         $iDropped = 0;
+        $iRows = 0;
         while (($aRow = fgetcsv($Stream, 0, ',', '"', '')) !== false) {
             if ($aRow === null || $aRow === [null]) {
                 continue;
             }
+            $iRows++;
             $aRow = self::fitRow($aRow, count($aHeader));
             if ($aRow === null) {
                 $iDropped++;
@@ -75,7 +77,7 @@ class Gtfs
             yield array_combine($aHeader, array_map('trim', $aRow));
         }
         fclose($Stream);
-        self::reportDropped($sName, $iDropped);
+        self::reportDropped($sName, $iDropped, $iRows);
     }
 
     // Una fila con columnas vacías de más (una coma al final, típica de las exportaciones a mano) vale recortada; con
@@ -91,18 +93,19 @@ class Gtfs
         return $aRow;
     }
 
-    // Las filas descuadradas no se pierden en silencio: se cuentan, y en los ficheros de los que salen los viajes,
-    // sus paradas y sus días la construcción se para (una parada o una anulación de menos dejaría la base mal sin que
-    // nada lo dijera). En los demás, un aviso.
+    // Las filas descuadradas no se pierden en silencio: siempre un aviso en el registro, y en los ficheros de los que
+    // salen los viajes, sus paradas y sus días la construcción se para si son más del 0,1 % (un fichero roto). Una
+    // suelta no para el despliegue de todas las redes.
     public const STRICT_FILES = ['stop_times.txt', 'trips.txt', 'calendar.txt', 'calendar_dates.txt'];
+    public const MAX_DROPPED_SHARE = 0.001;
 
-    public static function reportDropped(string $sName, int $iDropped): void
+    public static function reportDropped(string $sName, int $iDropped, int $iRows): void
     {
         if ($iDropped === 0) {
             return;
         }
-        $sMessage = "$sName: $iDropped filas con un número de columnas distinto del de la cabecera";
-        if (in_array($sName, self::STRICT_FILES, true)) {
+        $sMessage = "$sName: $iDropped de $iRows filas con un número de columnas distinto del de la cabecera";
+        if (in_array($sName, self::STRICT_FILES, true) && $iDropped > self::MAX_DROPPED_SHARE * $iRows) {
             throw new RuntimeException($sMessage . '. Build abortado.');
         }
         fwrite(STDERR, "AVISO: $sMessage (descartadas)\n");
@@ -408,10 +411,12 @@ class Gtfs
         $aByTrip = [];
 
         $iDropped = 0;
+        $iRows = 0;
         while (($aRow = fgetcsv($Stream, 0, ',', '"', '')) !== false) {
             if ($aRow === null || $aRow === [null]) {
                 continue;
             }
+            $iRows++;
             $aRow = self::fitRow($aRow, count($aHeader));
             if ($aRow === null) {
                 $iDropped++;
@@ -445,7 +450,7 @@ class Gtfs
             ];
         }
         fclose($Stream);
-        self::reportDropped('stop_times.txt', $iDropped);
+        self::reportDropped('stop_times.txt', $iDropped, $iRows);
 
         foreach ($aByTrip as $sTripId => $aBuffer) {
             yield $sTripId => self::withoutDayJumps($aBuffer);

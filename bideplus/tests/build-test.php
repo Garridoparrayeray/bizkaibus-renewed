@@ -564,9 +564,30 @@ try {
 } catch (RuntimeException $Error) {
     $sCsvError = $Error->getMessage();
 }
-$Expect('CSV: una fila de trips.txt con otro número de columnas para la construcción', str_contains($sCsvError, 'trips.txt: 1 filas'), $sCsvError);
+$Expect('CSV: una fila de trips.txt con otro número de columnas (la mitad del fichero) para la construcción', str_contains($sCsvError, 'trips.txt: 1 de 2 filas'), $sCsvError);
 $aCsvNames = array_column(iterator_to_array(Gtfs::readCsv($CsvZip, 'stops.txt'), false), 'stop_name');
 $Expect('CSV: en stops.txt la fila descuadrada se descarta con aviso y las comillas dobles se leen como en RFC 4180', $aCsvNames === ['Plaza "Nueva"'], json_encode($aCsvNames));
+$CsvZip->close();
+unlink($sCsvZip);
+// Una suelta entre 2.000 (menos del 0,1 %) no para la construcción: aviso y fuera.
+$sCsvZip = tempnam(sys_get_temp_dir(), 'csvrows') . '.zip';
+$CsvZip = new ZipArchive();
+$CsvZip->open($sCsvZip, ZipArchive::CREATE);
+$sManyTrips = "route_id,service_id,trip_id\n";
+for ($iTrip = 0; $iTrip < 2000; $iTrip++) {
+    $sManyTrips .= "R1,S1,T$iTrip\n";
+}
+$CsvZip->addFromString('trips.txt', $sManyTrips . "R1,S1,T9999,sobra\n");
+$CsvZip->close();
+$CsvZip->open($sCsvZip);
+$sCsvError = '';
+$iManyTrips = 0;
+try {
+    $iManyTrips = count(iterator_to_array(Gtfs::readCsv($CsvZip, 'trips.txt'), false));
+} catch (RuntimeException $Error) {
+    $sCsvError = $Error->getMessage();
+}
+$Expect('CSV: una fila descuadrada entre 2.000 de trips.txt no para la construcción (aviso y fuera)', $sCsvError === '' && $iManyTrips === 2000, $sCsvError);
 $CsvZip->close();
 unlink($sCsvZip);
 

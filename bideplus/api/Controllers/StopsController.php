@@ -453,6 +453,9 @@ class StopsController
                 'status' => $aRow['status'],
                 'atOrigin' => !empty($aRow['atOrigin']),
                 'tomorrow' => !empty($aRow['tomorrow']),
+                // Del día de servicio siguiente pero dentro de las 4 horas (las 00:xx): la ficha del viaje va con su
+                // horario, como la de mañana, porque la de hoy de esa clave ya terminó.
+                'nextDay' => !empty($aRow['nextDay']),
                 'delayMinutes' => self::delayMinutes($aRow['delaySeconds']),
                 'direction' => $aRow['direction'] ?? null,
                 'platformId' => $sPlatformId,
