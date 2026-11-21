@@ -567,21 +567,26 @@ const BideOffline = (() => {
      * de medianoche, las de la madrugada del día siguiente.
      * options: { date: Date, from, to (segundos), stopId, now: Date }.
      */
+    // Lo que una hora «HH:MM» abarca más allá de su minuto cero.
+    const LAST_MINUTE_SECONDS = 59;
+
     function timetable(data, lineId, options) {
         const index = lineIndex(data, lineId);
         if (index < 0) return null;
-        let last = options.to;
-        if (options.to < options.from) last = options.to + DAY_SECONDS;
+        // Hasta el final del minuto de «to», como la API: las horas llevan segundos (10:00:30 sale como 10:00).
+        const to = options.to + LAST_MINUTE_SECONDS;
+        let last = to;
+        if (to < options.from) last = to + DAY_SECONDS;
         const previous = new Date(options.date);
         previous.setDate(previous.getDate() - 1);
         const fromPrevious = options.from + DAY_SECONDS;
         const toPrevious = Math.min(last, DAY_SECONDS - 1) + DAY_SECONDS;
         let rows = departuresOn(data, index, previous, fromPrevious, toPrevious, options.stopId, -DAY_SECONDS);
         rows = rows.concat(departuresOn(data, index, options.date, options.from, last, options.stopId, 0));
-        if (options.to < options.from) {
+        if (to < options.from) {
             const next = new Date(options.date);
             next.setDate(next.getDate() + 1);
-            rows = rows.concat(departuresOn(data, index, next, 0, options.to, options.stopId, DAY_SECONDS));
+            rows = rows.concat(departuresOn(data, index, next, 0, to, options.stopId, DAY_SECONDS));
         }
         rows.sort((a, b) => a.seconds - b.seconds);
         const day = isoDate(options.date);
