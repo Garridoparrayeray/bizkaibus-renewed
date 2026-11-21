@@ -130,8 +130,9 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await sleep(500);
         const rows = await ev("document.querySelectorAll('#timetable-body tr').length");
         check(`${tag} tabla con filas de todo el dia`, rows > 0, `${rows} filas`);
-        const localToday = await ev("(() => { const n = new Date(); const p = (v) => String(v).padStart(2, '0'); return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())}`; })()");
-        check(`${tag} la fecha por defecto del horario es hoy (hora local)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
+        // El día de los horarios es el de Madrid, no el del navegador (el de GitHub va en UTC: de 0 a 1 h es otro día).
+        const localToday = await ev("new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' })");
+        check(`${tag} la fecha por defecto del horario es hoy (hora de Madrid)`, todayValue === localToday, `${todayValue} vs ${localToday}`);
         // Hoy el aviso solo sale si el horario publicado ya terminó (bases del repositorio sin reconstruir): entonces debe citar una fecha pasada.
         const noteToday = await ev("(() => { const note = document.getElementById('timetable-note'); if (note.hidden) return ''; return note.textContent; })()");
         const publishedUntil = (noteToday.match(/(\d{2})\/(\d{2})\/(\d{4})/) || []).slice(1).reverse().join('-');
