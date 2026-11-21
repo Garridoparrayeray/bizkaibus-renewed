@@ -24,6 +24,8 @@ return [
     ],
     // El Instagram de Bide+: sale en el pie y en Info, junto a los enlaces de «Hecho por», y en los datos para buscadores.
     'instagram_url' => 'https://www.instagram.com/bideplus.eus/',
+    // La ficha de Bide+ en Wikidata: en los datos para buscadores, para que unan la marca con esta web.
+    'wikidata_url' => 'https://www.wikidata.org/wiki/Q142213325',
     // El aviso general: lo escribe el dueño desde GitHub (Actions, «Aviso a los usuarios») y vive en una release pública.
     'notice_url' => 'https://github.com/Garridoparrayeray/bizkaibus-renewed/releases/download/avisos/notice.json',
     // El enlace «Código en GitHub».

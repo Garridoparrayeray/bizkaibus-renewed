@@ -231,7 +231,7 @@ function bideSiteJsonLd(string $sLang): array
             'url' => $aSite['url'] . '/',
             'logo' => $aSite['url'] . '/icons-bide-rojo/icon-512.png',
             'founder' => ['@type' => 'Person', 'name' => $aSite['author'], 'url' => $aSite['author_url']],
-            'sameAs' => [$aSite['instagram_url'], $aSite['source_url']],
+            'sameAs' => [$aSite['instagram_url'], $aSite['source_url'], $aSite['wikidata_url']],
         ],
     ];
 }
