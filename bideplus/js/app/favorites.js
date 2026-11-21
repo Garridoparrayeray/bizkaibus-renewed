@@ -118,6 +118,8 @@ export function updateFavoriteButton(button, type, refId) {
     button.innerHTML = ICONS.heartOutline;
     if (isFavorite) button.innerHTML = ICONS.heartFilled;
     button.classList.toggle('is-favorite', isFavorite);
+    // El corazón dice si ya está guardado; su etiqueta (app.php, data-i18n-attr) no cambia.
+    button.setAttribute('aria-pressed', String(isFavorite));
 }
 
 export function toggleFavorite(type, refId, button) {

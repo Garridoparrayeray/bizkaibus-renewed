@@ -1,5 +1,5 @@
 // Ficha de un viaje: paradas, posición del vehículo, retraso e incidencias.
-import { FEATURES, NETWORK_SLUG, appHref, el, onReturn, openOnClick, savedSchedule, state, whenVisible } from './core.js';
+import { FEATURES, NETWORK_SLUG, appHref, el, hereNow, onReturn, openOnClick, savedSchedule, state, whenVisible } from './core.js';
 import { selectStop } from './stop.js';
 import { statusLabel } from './ui.js';
 import { showArrivalAlerts } from './arrival-alerts.js';
@@ -14,7 +14,9 @@ const MODAL_REFRESH_MS = 15000;
 const MODAL_TICK_MS = 10000;
 const MODAL_PASSED_AFTER_MS = 45000;
 export const DEPARTED_GRACE_MS = 45 * 1000;
-export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '' };
+const MINUTES_PER_DAY = 1440;
+// scheduleOnly: el viaje abierto es el de mañana o el del día de servicio siguiente (solo su horario).
+export const modalState = { tripKey: null, data: null, refreshTimer: null, tickTimer: null, signature: '', scheduleOnly: false };
 // Lo que se comparte del viaje abierto: su clave y sus datos (los de la ficha en directo o los del horario).
 // La hora del texto de compartir, en el idioma de la app y en la zona de los horarios aunque el móvil esté en otra.
 const SHARE_TIME_OPTIONS = { timeZone: BideNetworks.TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
@@ -61,18 +63,23 @@ export function renderModalStops(data) {
         if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
             label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
         }
-        const link = document.createElement('a');
-        link.href = appHref('stops', stop.stopId);
-        link.textContent = label;
-        openOnClick(link, () => {
-            el.modal.close();
-            selectStop(stop.stopId);
-        });
-        li.appendChild(link);
+        li.appendChild(stopLink(stop, label));
         li.classList.add('stop-clickable');
         el.modalStops.appendChild(li);
     }
     el.modal.scrollTop = scrollTop;
+}
+
+// Cada parada del recorrido es un enlace a la suya: se abre también con el teclado.
+function stopLink(stop, label) {
+    const link = document.createElement('a');
+    link.href = appHref('stops', stop.stopId);
+    link.textContent = label;
+    openOnClick(link, () => {
+        el.modal.close();
+        selectStop(stop.stopId);
+    });
+    return link;
 }
 
 export function renderModalHeader(data) {
@@ -107,11 +114,14 @@ function stopModalFollow() {
     modalState.tickTimer = null;
     modalState.tripKey = null;
     modalState.data = null;
+    modalState.scheduleOnly = false;
 }
 
+// El viaje de mañana o del día siguiente no se vuelve a pedir (tampoco al volver a la app): la clave no lleva fecha y la
+// API daría el de hoy, que ya ha terminado.
 async function refreshVehicleModal() {
     const tripKey = modalState.tripKey;
-    if (!tripKey || !el.modal.open) return;
+    if (!tripKey || !el.modal.open || modalState.scheduleOnly) return;
     let data;
     try {
         data = await Api.vehicle(tripKey, state.currentStop?.id);
@@ -130,16 +140,20 @@ function tickVehicleModal() {
     renderModalStops(modalState.data);
 }
 
-// Un viaje de mañana (hoy ya no sale ninguno más de la parada): su horario, sin nada del día de hoy.
-function asTomorrow(data) {
+/*
+ * Un viaje de mañana (hoy ya no sale ninguno más de la parada) o del día de servicio siguiente que sale en unas horas
+ * (nextDay): su horario, sin nada del de hoy con esa clave, que ya terminó. El de mañana lo dice («MAÑANA»); el otro
+ * sale como horario oficial, que es lo que es.
+ */
+function scheduleOnly(data, tomorrow) {
     const stops = data.stops.map((stop) => ({ ...stop, isPast: false, isCurrent: false, etaMinutes: null, etaAt: null }));
-    return { ...data, stops, tomorrow: true, status: 'scheduled', vehicleRef: null, awaitingVehicle: false, delayMinutes: null };
+    return { ...data, stops, tomorrow, status: 'scheduled', vehicleRef: null, awaitingVehicle: false, delayMinutes: null, reason: null };
 }
 
 // La clave de un tren que el horario no tiene (refuerzo) empieza así: tiene ficha, pero no avisos ni enlace.
 const EXTRA_TRIP_PREFIX = 'extra-';
 
-export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
+export async function openVehicleModal(tripKey, { tomorrow = false, nextDay = false } = {}) {
     if (!tripKey) return;
     if (FEATURES.trip_detail === 'stops') {
         await openTripStopsModal(tripKey, tomorrow);
@@ -154,13 +168,15 @@ export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
         await openTripStopsModal(tripKey, tomorrow);
         return;
     }
-    if (tomorrow) data = asTomorrow(data);
+    const onlySchedule = tomorrow || nextDay;
+    if (onlySchedule) data = scheduleOnly(data, tomorrow);
 
     stopModalFollow();
     modalState.signature = '';
     const isExtra = tripKey.startsWith(EXTRA_TRIP_PREFIX);
     modalState.tripKey = tripKey;
     modalState.data = data;
+    modalState.scheduleOnly = onlySchedule;
     shareState.tripKey = tripKey;
     shareState.data = data;
     showShareOptions();
@@ -180,8 +196,8 @@ export async function openVehicleModal(tripKey, { tomorrow = false } = {}) {
     if (!isExtra) showArrivalAlerts(tripKey);
 
     el.modal.showModal();
-    // El horario de mañana no cambia: no hace falta irlo refrescando.
-    if (tomorrow) return;
+    // Su horario no cambia: no hace falta irlo refrescando.
+    if (onlySchedule) return;
     modalState.refreshTimer = setInterval(whenVisible(refreshVehicleModal), MODAL_REFRESH_MS);
     modalState.tickTimer = setInterval(tickVehicleModal, MODAL_TICK_MS);
 }
@@ -207,24 +223,53 @@ async function openTripStopsModal(tripKey, tomorrow = false) {
     el.modalAlerts.hidden = true;
     el.modalAlerts.innerHTML = '';
 
-    const nowHm = new Date().toTimeString().slice(0, 5);
+    const past = pastStops(data.stops, tomorrow);
     el.modalStops.innerHTML = '';
-    for (const stop of data.stops) {
+    data.stops.forEach((stop, index) => {
         const li = document.createElement('li');
         const classes = ['stop-clickable'];
         if (stop.isTarget) classes.push('stop-current');
-        if (!tomorrow && stop.scheduledTime < nowHm) classes.push('stop-past');
+        if (past[index]) classes.push('stop-past');
         li.className = classes.join(' ');
-        li.textContent = `${stop.scheduledTime} · ${stop.name}`;
-        li.addEventListener('click', () => {
-            el.modal.close();
-            selectStop(stop.stopId);
-        });
+        li.appendChild(stopLink(stop, `${stop.scheduledTime} · ${stop.name}`));
         el.modalStops.appendChild(li);
-    }
+    });
     showArrivalAlerts(tripKey);
 
     el.modal.showModal();
+}
+
+// Las horas del horario («HH:MM») dan la vuelta a las 24:00: en minutos seguidos desde la primera parada del viaje.
+function tripMinutes(stops) {
+    let previous = 0;
+    let shift = 0;
+    return stops.map((stop) => {
+        const [hours, minutes] = String(stop.scheduledTime).split(':').map(Number);
+        let value = hours * 60 + minutes + shift;
+        if (value < previous) {
+            shift += MINUTES_PER_DAY;
+            value += MINUTES_PER_DAY;
+        }
+        previous = value;
+        return value;
+    });
+}
+
+// Las paradas por las que el viaje ya ha pasado según su horario, con la hora de Madrid. «Ahora» se pone en el día
+// (ayer, hoy o mañana) más cerca de la parada pedida o, sin ella, del viaje: así un viaje que pasa de las 24:00 no da
+// por pasadas las paradas de la madrugada.
+function pastStops(stops, tomorrow) {
+    if (tomorrow) return stops.map(() => false);
+    const minutes = tripMinutes(stops);
+    const target = stops.findIndex((stop) => stop.isTarget);
+    let anchor = (minutes[0] + minutes[minutes.length - 1]) / 2;
+    if (target !== -1) anchor = minutes[target];
+    const today = Math.floor(hereNow().seconds / 60);
+    let now = today;
+    for (const candidate of [today - MINUTES_PER_DAY, today + MINUTES_PER_DAY]) {
+        if (Math.abs(candidate - anchor) < Math.abs(now - anchor)) now = candidate;
+    }
+    return minutes.map((value) => value < now);
 }
 
 async function loadModalAlerts() {

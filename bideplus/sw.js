@@ -1,6 +1,6 @@
 importScripts('/js/networks.js', '/js/alerts-store.js');
 
-const CACHE_VERSION = 'v60';
+const CACHE_VERSION = 'v61';
 // Huella de los ficheros de la app: la pone el despliegue a producción (scripts/stamp-sw.php) y cambia en cuanto cambia
 // cualquiera de ellos, así que el móvil baja la versión nueva entera. Vacía en local y en las vistas previas.
 const SHELL_HASH = '';
@@ -26,6 +26,10 @@ const SLOW_NETWORK_MS = 1500;
 const BADGE_ICON = '/icons-bide-rojo/badge-96.png';
 // Lo que nunca sale de la caché.
 const LIVE_API = /\/(departures|live|vehicles|alerts|nearby|notice|app\/version)(\/|\?|$)/;
+// Lo que depende del día y de la hora (el servicio reducido de hoy; el horario de una línea, con sus estados y
+// retrasos): de la red y, solo si no contesta, la última copia marcada con X-Bide-Offline, que la página trata como lo
+// guardado sin conexión (js/api.js) y no como si fuera de ahora.
+const DATED_API = /\/(reduced|lines\/[^/]+\/timetable)(\/|\?|$)/;
 // El mapa base (PMTiles) se lee a trozos (peticiones Range): directo de la red, sin pasar por la caché.
 const BASEMAP = /[.]pmtiles$/;
 const SHELL_FILES = [
@@ -120,9 +124,13 @@ const SHELL_FILES = [
 ];
 const SHELL_PATHS = new Set(SHELL_FILES.filter((file) => file !== '/'));
 
-// La app entera, recién bajada (sin la caché HTTP). Falla si se corta la conexión: así no se guarda a medias.
+// La app entera, recién bajada (sin la caché HTTP). Falla si se corta la conexión o si el servidor falla en algún
+// fichero (5xx, 429, 402): así no se guarda a medias ni se borra lo que había.
 function downloadShell() {
-    return Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => [file, response])));
+    return Promise.all(SHELL_FILES.map((file) => fetch(new Request(file, { cache: 'reload' })).then((response) => {
+        if (serverFailed(response)) throw new Error(file + ' ' + response.status);
+        return [file, response];
+    })));
 }
 
 function storeShell(files) {
@@ -168,7 +176,9 @@ self.addEventListener('fetch', (event) => {
         return;
     }
     if (url.pathname.startsWith('/api/')) {
-        if (!LIVE_API.test(url.pathname)) {
+        if (DATED_API.test(url.pathname)) {
+            event.respondWith(datedApi(event));
+        } else if (!LIVE_API.test(url.pathname)) {
             event.respondWith(
                 fetch(event.request)
                     .then((response) => {
@@ -197,6 +207,25 @@ self.addEventListener('fetch', (event) => {
     // Hojas de estilo, scripts, tipografías e imágenes: salen de la caché al instante y se actualizan en segundo plano.
     event.respondWith(staleWhileRevalidate(event));
 });
+
+function datedApi(event) {
+    const saved = () => caches.match(event.request).then((hit) => {
+        if (!hit) return null;
+        const headers = new Headers(hit.headers);
+        headers.set('X-Bide-Offline', '1');
+        return hit.blob().then((body) => new Response(body, { status: hit.status, statusText: hit.statusText, headers }));
+    });
+    return fetch(event.request)
+        .then((response) => {
+            if (response.ok) {
+                const clone = response.clone();
+                event.waitUntil(caches.open(API_CACHE_NAME).then((cache) => cache.put(event.request, clone)));
+            }
+            if (serverFailed(response)) return saved().then((hit) => hit || response);
+            return response;
+        })
+        .catch(() => saved().then((hit) => hit || Response.error()));
+}
 
 // Datos del planificador: de la red y, sin conexión (o con el servidor caído), los últimos guardados. Se guardan por
 // su ruta, sin la consulta (la versión de las teselas), y solo si han cambiado: no se reescriben megas en cada visita.

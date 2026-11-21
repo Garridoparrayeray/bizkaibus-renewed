@@ -198,6 +198,13 @@ jobs:
           CHROME_PATH: google-chrome
         run: node tests/ui-bide.mjs
 
+      # Casos límite del cliente: respuestas viejas, hora de Madrid en otro huso, medianoche, service worker con la red
+      # caída, avisos cancelados sin conexión, accesibilidad, textos traducidos y nombres como texto en el mapa.
+      - name: UI casos límite (ui-edge)
+        env:
+          CHROME_PATH: google-chrome
+        run: node tests/ui-edge.mjs
+
       # Sin el planificador publicado (planificador/build/data, que no se genera aquí) la prueba lo dice y no falla.
       - name: UI planificador del inicio (tarjeta, opciones, filtros y viaje)
         env:

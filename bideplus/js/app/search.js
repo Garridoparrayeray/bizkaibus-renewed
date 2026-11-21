@@ -85,7 +85,7 @@ function renderNearbyResults(stops) {
         const link = document.createElement('a');
         link.className = 'pill';
         link.href = appHref('stops', stop.id);
-        let next = 'Sin salidas próximas';
+        let next = I18n.t('app.noUpcomingDepartures');
         if (stop.next) next = `${stop.next.lineCode} → ${stop.next.headsign} · ${departureWhen(stop.next)}`;
         setPillContent(link, ICONS.pin, stop.name, stop.area, `${formatDistance(stop.distanceM)} · ${next}`);
         openOnClick(link, () => {

@@ -1,5 +1,5 @@
 // Una parada: sus salidas en directo (tarjeta o andenes), refresco periódico y horario guardado sin conexión.
-import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, VEHICLE_PLURAL, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
+import { FEATURES, HAS_PLATFORMS, NETWORK, NETWORK_SLUG, appHref, el, networkQuery, openOnClick, savedSchedule, state, syncPageContent, whenVisible } from './core.js';
 import { favoriteKey, toggleFavorite, updateFavoriteButton } from './favorites.js';
 import { departureWhen, escapeHtml, liveBadgeText, setDelaySub, statusLabel } from './ui.js';
 import { closeFromButton, closeLiveCard, closeTimetableSection, updateTitle } from './navigation.js';
@@ -9,6 +9,10 @@ import { refreshStopAlerts } from './stop-alerts.js';
 
 const DEPARTURES_REFRESH_MS = 25000;
 const DEPARTURES_TICK_MS = 10000;
+
+// La ficha de una salida: la de mañana (tomorrow) y la del día de servicio siguiente que sale en unas horas (nextDay,
+// los de las 00:xx que algunas redes publican como del día siguiente) solo tienen su horario.
+const sheetOf = (departure) => ({ tomorrow: Boolean(departure.tomorrow), nextDay: Boolean(departure.nextDay) });
 
 // Las salidas que se ven, ¿salen del horario guardado (sin conexión)? Solo entonces se puede marcar si un bus pasó.
 let offlineView = null;
@@ -58,18 +62,33 @@ function showOfflineSchedule(isOffline) {
     if (isOffline) el.netBanner.hidden = false;
 }
 
+/*
+ * Cada parada que se elige y cada petición de sus salidas lleva su número. Con la red lenta, una respuesta que llega
+ * cuando ya se ha elegido otra parada (o cerrado la tarjeta) no pinta nada, no cambia de parada ni toca el historial.
+ */
+let stopRequest = 0;
+let departuresRequest = 0;
+
+export function forgetStopRequests() {
+    stopRequest += 1;
+    departuresRequest += 1;
+}
+
 export async function selectStop(stopId) {
+    const request = ++stopRequest;
     let stop;
     try {
         stop = await Api.stop(stopId);
     } catch (e) {
         const saved = await savedSchedule();
         if (saved) stop = BideOffline.stop(saved, stopId);
+        if (request !== stopRequest) return;
         if (!stop) {
             el.appMain.classList.remove('is-stop-page', 'is-tall');
             return;
         }
     }
+    if (request !== stopRequest) return;
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
     syncPageContent('stop', stop.id);
@@ -103,6 +122,7 @@ export async function selectStop(stopId) {
     }
 
     await loadDepartures();
+    if (request !== stopRequest) return;
     startDeparturesRefresh();
 }
 
@@ -158,18 +178,23 @@ export function renderDepartures(data) {
 
 export async function loadDepartures() {
     if (!state.currentStop) return;
+    const request = ++departuresRequest;
+    const stopId = state.currentStop.id;
+    const stillShown = () => request === departuresRequest && String(state.currentStop?.id) === String(stopId);
     let data;
     try {
-        data = await Api.stopDepartures(state.currentStop.id, 20);
+        data = await Api.stopDepartures(stopId, 20);
     } catch (e) {
         const saved = await savedSchedule();
-        if (saved) data = BideOffline.departures(saved, state.currentStop.id, new Date(), 20);
+        if (saved) data = BideOffline.departures(saved, stopId, new Date(), 20);
+        if (!stillShown()) return;
         if (!data) {
             state.lastDepartures = null;
             renderDepartures({ departures: [], platforms: [] });
             return;
         }
     }
+    if (!stillShown()) return;
     showOfflineSchedule(data.offline === true);
     state.lastDepartures = data;
     renderDepartures(data);
@@ -236,6 +261,7 @@ function renderLiveCard(departures) {
         el.liveStatusDot.className = 'status-dot';
         el.liveIncidentsLink.hidden = true;
         el.liveOpenDetail.disabled = true;
+        el.liveOpenDetail.setAttribute('aria-label', I18n.t('app.openDetail'));
         renderStopLines(state.currentStop.lines || []);
         return;
     }
@@ -273,8 +299,10 @@ function renderLiveCard(departures) {
     el.liveStatusDot.className = `status-dot ${className}`;
     el.liveIncidentsLink.hidden = FEATURES.alerts === 'network';
     el.liveOpenDetail.disabled = false;
+    describeOpenDetail();
     el.liveOpenDetail.dataset.tripKey = departure.tripKey ?? '';
     el.liveOpenDetail.dataset.tomorrow = String(Boolean(departure.tomorrow));
+    el.liveOpenDetail.dataset.nextDay = String(Boolean(departure.nextDay));
     renderLineButtons(departures, el.liveTimetableLink, el.liveTimetableLines, FEATURES.line_buttons === true, FEATURES.line_buttons === true, departure.lineId);
 
     for (const other of others) {
@@ -305,7 +333,7 @@ function renderLiveCard(departures) {
         button.innerHTML = `<strong>${escapeHtml(other.lineCode)}</strong><span>${escapeHtml(other.headsign)}</span>`;
         button.appendChild(when);
 
-        button.addEventListener('click', () => openVehicleModal(other.tripKey, { tomorrow: other.tomorrow }));
+        button.addEventListener('click', () => openVehicleModal(other.tripKey, sheetOf(other)));
 
         li.appendChild(button);
         if (offlineView) {
@@ -316,9 +344,20 @@ function renderLiveCard(departures) {
     }
 }
 
+// El botón grande dice lo que enseña (los minutos o la hora, y el retraso) y lo que hace: su etiqueta es lo que oye un
+// lector de pantalla en vez de lo que lleva dentro.
+function describeOpenDetail() {
+    let when = el.liveMinutes.textContent;
+    if (!el.liveMinutes.nextElementSibling.hidden) when += ' min';
+    const parts = [when];
+    if (!el.liveDelay.hidden && el.liveDelay.textContent) parts.push(el.liveDelay.textContent);
+    parts.push(I18n.t('app.openDetail'));
+    el.liveOpenDetail.setAttribute('aria-label', parts.join(', '));
+}
+
 const PLATFORM_DIRECTIONS = [
-    { key: 'toward_reference', label: 'Sentido 1' },
-    { key: 'away_from_reference', label: 'Sentido 2' },
+    { key: 'toward_reference', labelKey: 'app.platform.direction1' },
+    { key: 'away_from_reference', labelKey: 'app.platform.direction2' },
 ];
 
 function renderPlatformColumn(direction, departures) {
@@ -351,7 +390,7 @@ function renderPlatformColumn(direction, departures) {
     nextButton.innerHTML = `<span class="platform-column-next"><strong>${Math.max(Number(next.etaMinutes) || 0, 0)}</strong><span>min</span></span><sub class="delay-sub" hidden></sub>`;
     if (next.tomorrow) nextButton.querySelector('.platform-column-next').innerHTML = `<strong>${escapeHtml(next.scheduledTime)}</strong>`;
     setDelaySub(nextButton.querySelector('.delay-sub'), next.status, next.delayMinutes, next.scheduledTime, next);
-    nextButton.addEventListener('click', () => openVehicleModal(next.tripKey, { tomorrow: next.tomorrow }));
+    nextButton.addEventListener('click', () => openVehicleModal(next.tripKey, sheetOf(next)));
 
     const badge = document.createElement('span');
     badge.className = 'badge';
@@ -386,7 +425,7 @@ function renderPlatformColumn(direction, departures) {
                 li.className = 'is-cancelled';
             }
             button.innerHTML = `<span>${escapeHtml(departure.headsign)}</span><span>${escapeHtml(when)}</span>`;
-            button.addEventListener('click', () => openVehicleModal(departure.tripKey, { tomorrow: departure.tomorrow }));
+            button.addEventListener('click', () => openVehicleModal(departure.tripKey, sheetOf(departure)));
             li.appendChild(button);
             if (offlineView) {
                 li.classList.add('has-mark');
@@ -400,12 +439,17 @@ function renderPlatformColumn(direction, departures) {
     return column;
 }
 
+// Las clases de vehículo con su aviso de andenes sin salidas (app.platform.none.*).
+const PLATFORM_KINDS = ['bus', 'metro', 'tram', 'train'];
+
 function renderPlatformPanel(data) {
     el.platformColumns.innerHTML = '';
     const departures = data.departures || [];
     const platformNotice = document.getElementById('platform-notice');
     platformNotice.hidden = departures.length > 0;
-    platformNotice.textContent = `No hay ${VEHICLE_PLURAL[NETWORK.kind] || 'trenes'} en las próximas 4 horas: puede ser fuera de horario o sin servicio en esta estación. Consulta el horario completo.`;
+    let kind = NETWORK.kind;
+    if (!PLATFORM_KINDS.includes(kind)) kind = 'train';
+    platformNotice.textContent = I18n.t('app.platform.none.' + kind);
 
     if (data.platforms && data.platforms.length) {
         for (const platform of data.platforms) {
@@ -426,8 +470,8 @@ function renderPlatformPanel(data) {
             const columnDepartures = departures.filter((d) => d.direction === direction.key);
             if (columnDepartures.length === 0 && departures.length > 0) continue;
             const termini = data.directionLabels && data.directionLabels[direction.key];
-            let label = direction.label;
-            if (termini) label = 'Hacia ' + termini;
+            let label = I18n.t(direction.labelKey);
+            if (termini) label = I18n.t('app.platform.towards', { termini });
             el.platformColumns.appendChild(renderPlatformColumn({ ...direction, label }, columnDepartures));
         }
     }
@@ -491,7 +535,10 @@ export function setUpStop() {
         if (el.platformTimetableLink.dataset.lineId) selectLine(el.platformTimetableLink.dataset.lineId, true);
     });
 
-    el.liveOpenDetail.addEventListener('click', () => openVehicleModal(el.liveOpenDetail.dataset.tripKey, { tomorrow: el.liveOpenDetail.dataset.tomorrow === 'true' }));
+    el.liveOpenDetail.addEventListener('click', () => {
+        const { tripKey, tomorrow, nextDay } = el.liveOpenDetail.dataset;
+        openVehicleModal(tripKey, { tomorrow: tomorrow === 'true', nextDay: nextDay === 'true' });
+    });
     el.liveTimetableLink.addEventListener('click', () => {
         if (el.liveTimetableLink.dataset.lineId) selectLine(el.liveTimetableLink.dataset.lineId, true);
     });

@@ -31,6 +31,8 @@
         if (text !== undefined) node.textContent = text;
         return node;
     };
+    // Leaflet mete como HTML el texto de un tooltip: los nombres de los operadores van como texto.
+    const asText = (text) => () => document.createTextNode(text);
 
     // Trazo de una línea: las de autobús más finas para que no tapen a las de tren.
     function lineStyle(bus) {
@@ -112,7 +114,7 @@
                     lineCap: 'round',
                     lineJoin: 'round',
                 });
-                polyline.bindTooltip(`${line.code} · ${line.name}`, { sticky: true, direction: 'top' });
+                polyline.bindTooltip(asText(`${line.code} · ${line.name}`), { sticky: true, direction: 'top' });
                 polyline.on('click', () => selectLine(network.slug, line));
                 polyline.__line = line;
                 polyline.__bus = bus;
@@ -133,7 +135,7 @@
                 fillColor: '#ffffff',
                 fillOpacity: 1,
             });
-            marker.bindTooltip(stop[0], { direction: 'top' });
+            marker.bindTooltip(asText(stop[0]), { direction: 'top' });
             marker.on('click', () => selectStop(network.slug, stopId));
             network.stopLayer.addLayer(marker);
         }
@@ -264,7 +266,7 @@
                 fillColor: '#ffffff',
                 fillOpacity: 1,
             });
-            marker.bindTooltip(stop[0], { direction: 'top' });
+            marker.bindTooltip(asText(stop[0]), { direction: 'top' });
             marker.on('click', () => selectStop(network.slug, stopId));
             marker.addTo(layer);
         }

@@ -3,22 +3,30 @@
 import * as engine from '/planificador/pantallas/engine.js';
 import { transfersOf } from '/planificador/pantallas/journey.js';
 import { nowHere, ridesOf, sameRides } from '/planificador/pantallas/query.js';
-import { SECONDS_PER_MINUTE, clock, dayNote, distance, duration, minutesOf, spareText } from '/planificador/pantallas/texts.js';
+import { SECONDS_PER_DAY, SECONDS_PER_MINUTE, clock, dayNote, distance, duration, minutesOf, spareText } from '/planificador/pantallas/texts.js';
 import { inkOn } from '/planificador/pantallas/dom.js';
 import { byId, colorOf, countText, el, namesOf, ridesIn, svgIcon } from './common.js';
 import { liveOf } from './options.js';
 import { closeTripMap, tripMapNode } from './trip-map.js';
 
-// «Sal en N min» solo si es hoy y falta poco; si no, la hora de salida.
+// «Sal en N min» solo si falta poco; si no (o ya ha salido), la hora de salida.
 const SOON_SECONDS = 90 * SECONDS_PER_MINUTE;
-const trip = { app: null, chosen: null, journey: null, render: 0, opener: null };
+// Con el viaje abierto y a la vista, «Sal en N min» se pone al día cada tanto aunque el directo no cambie (o falle).
+const LEAVE_TICK_MS = 15000;
+// shown: el viaje como se ha pintado (con las horas de prepare); leaveTimer: el que pone al día «Sal en N min».
+const trip = { app: null, chosen: null, journey: null, render: 0, opener: null, shown: null, leaveTimer: null };
+
+// Segundos que faltan hasta esa hora del día del viaje (pasada la medianoche, la de un viaje de ayer a las 24:10).
+const secondsUntil = (chosen, iSeconds) => {
+    const here = nowHere();
+    return (chosen.day - here.day) * SECONDS_PER_DAY + iSeconds - here.seconds;
+};
 
 const leaveNode = (chosen) => {
     const box = el('div', 'route-hero-leave');
-    const here = nowHere();
-    const iLeft = chosen.option.depart - here.seconds;
+    const iLeft = secondsUntil(chosen, chosen.option.depart);
     const big = el('span', 'route-hero-big');
-    if (chosen.day === here.day && iLeft >= 0 && iLeft <= SOON_SECONDS) {
+    if (iLeft >= 0 && iLeft <= SOON_SECONDS) {
         box.append(el('span', 'route-hero-label', I18n.t('route.trip.leaveIn')));
         big.append(el('span', '', String(minutesOf(iLeft))), el('span', 'route-hero-unit', 'min'));
     } else {
@@ -252,8 +260,28 @@ const lostNotice = (chosen, option, journey) => {
 const paint = (app, chosen, journey) => {
     const option = currentOption(chosen.option, journey);
     const shown = Object.assign({}, chosen, { option });
+    trip.shown = shown;
     byId('route-trip-body').replaceChildren(hero(app, shown), ...lostNotice(chosen, option, journey),
         tripMapNode(app, chosen, option, journey), legsList(app, shown, option, journey), startLink(option));
+};
+
+const stopLeaveTick = () => {
+    clearInterval(trip.leaveTimer);
+    trip.leaveTimer = null;
+};
+
+// «Sal en N min» con el reloj; acabado el viaje (pasada la llegada) ya no cambia nada y se deja de contar.
+const tickLeave = () => {
+    if (document.hidden || byId('route-trip').hidden || !trip.shown) {
+        return;
+    }
+    const node = byId('route-trip-body').querySelector('.route-hero-leave');
+    if (node) {
+        node.replaceWith(leaveNode(trip.shown));
+    }
+    if (secondsUntil(trip.shown, trip.shown.option.arrive) < 0) {
+        stopLeaveTick();
+    }
 };
 
 const repaint = async (iRender) => {
@@ -289,6 +317,8 @@ export const openTrip = async (app, chosen) => {
     byId('route-trip-title').textContent = I18n.t('route.trip.title', { place: names.to });
     paint(app, chosen, null);
     byId('route-trip').hidden = false;
+    stopLeaveTick();
+    trip.leaveTimer = setInterval(tickLeave, LEAVE_TICK_MS);
     document.documentElement.classList.add('route-trip-open');
     window.scrollTo(0, 0);
     byId('route-trip-title').focus({ preventScroll: true });
@@ -301,6 +331,7 @@ export const closeTrip = () => {
         return;
     }
     byId('route-trip').hidden = true;
+    stopLeaveTick();
     closeTripMap();
     document.documentElement.classList.remove('route-trip-open');
     if (trip.opener && document.contains(trip.opener)) {
@@ -310,6 +341,8 @@ export const closeTrip = () => {
 
 export const initTrip = (app) => {
     byId('route-trip-back').addEventListener('click', () => history.back());
+    // Al volver a la app, en el momento, sin esperar a la siguiente vuelta.
+    document.addEventListener('visibilitychange', tickLeave);
     byId('route-trip-share').addEventListener('click', () => {
         const chosen = trip.chosen;
         app.share(chosen.day, [ridesOf(chosen.option)], chosen.query, chosen.request, 'route.share.tripTitle');

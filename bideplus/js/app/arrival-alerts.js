@@ -93,9 +93,11 @@ async function createAlert(minutes) {
 async function cancelAlert() {
     const active = activeAlert();
     if (!active) return;
-    await cancelArrivalAlert(active);
+    const done = await cancelArrivalAlert(active);
     renderState();
-    setStatus('app.notify.cancelled');
+    // Sin conexión queda pendiente de mandar al servidor: se dice, para no dar por hecho lo que aún no lo está.
+    if (done) setStatus('app.notify.cancelled');
+    else setStatus('app.notify.cancelLater');
 }
 
 export function setUpArrivalAlerts() {
