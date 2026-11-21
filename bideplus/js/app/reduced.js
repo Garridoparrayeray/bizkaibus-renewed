@@ -1,17 +1,14 @@
 // Servicio reducido de la red (huelga, servicios mínimos; /api/reduced) debajo de la búsqueda, que se ve en el inicio y
 // con la parada abierta: hoy o el próximo día con él. Lo último que se vio hoy se pinta al arrancar, para que el aviso
 // no empuje la página al llegar; con él, lo que va solo con su horario hoy se marca como «puede no pasar».
-import { NETWORK_SLUG } from './core.js';
+import { NETWORK_SLUG, hereNow } from './core.js';
 import { setReducedToday } from './ui.js';
 
 const STORAGE_KEY = `bide_reduced_${NETWORK_SLUG}`;
 const REFRESH_MS = 5 * 60 * 1000;
 let lastReduced = null;
 
-const todayIso = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-};
+const todayIso = () => hereNow().date;
 
 function noticeText(reduced) {
     let kind = 'reduced';
@@ -43,6 +40,11 @@ async function refresh() {
     try {
         reduced = await Api.reduced();
     } catch (e) {
+        return;
+    }
+    // La copia que guardó el service worker (sin conexión) puede ser de otro día: «hoy» se mira en sus días.
+    if (reduced.offline) {
+        render({ ...reduced, today: (reduced.days || []).includes(todayIso()) });
         return;
     }
     try {

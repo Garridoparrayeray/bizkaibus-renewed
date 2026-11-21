@@ -152,13 +152,27 @@ check('sin conexión, sin estimación para ese tipo de día sale la hora oficial
 r = at(thursday, T + 300, { timings: sample.timings });
 check('sin conexión, una red sin horas estimadas sale con la hora oficial', r.status === 'scheduled', JSON.stringify(r));
 
-// Festivo entre semana: hora estimada de fin de semana (08:15 en vez de 08:10).
+// Festivo entre semana: hora estimada de fin de semana (08:15 en vez de 08:10). Ese día solo van los viajes del
+// calendario de solo domingo, que lo añade.
 const withHoliday = BideOffline.prepare({
-    lines: [], patterns: [], timings: [[0, 600, 2400]], trips: [], stops: {},
+    lines: [['1', 'A1', 'Línea de ejemplo']], patterns: [[0, 'Final', ['S1', 'S2', 'S3']]], timings: [[0, 600, 2400]], stops: {},
+    trips: [[0, 0, T, 0, 'w', T, 0, 1], [0, 0, T, 1, 's1', T, 0, 1], [0, 0, T, 1, 's2', T, 0, 1]],
     estimates: [[0, 300, 600], [0, 400, 900]], estimateTrusted: ['011', '011'],
     calendars: [[31, [], ['2026-11-05']], [64, ['2026-11-05'], []], [96, ['2026-11-06'], []]],
 });
 check('festivos: son los días que añaden los calendarios de solo domingo', withHoliday.holidays.has('2026-11-05') && !withHoliday.holidays.has('2026-11-06'), [...withHoliday.holidays].join(','));
+// Como el servidor (ServiceJourney::isHoliday): además, más de la mitad de lo que circula ese día va también los
+// domingos. Un viaje de domingo que va también los laborables de Navidad (22-12) no los hace festivos; el 25-12, sin
+// los de laborable, sí. Con la mitad justa, no.
+const christmas = BideOffline.prepare({
+    lines: [['1', 'A1', 'Línea de ejemplo']], patterns: [[0, 'Final', ['S1', 'S2']]], timings: [[0, 600]], stops: {},
+    trips: [[0, 0, T, 0, 'w1', T, -1, -1], [0, 0, T, 0, 'w2', T, -1, -1], [0, 0, T, 0, 'w3', T, -1, -1], [0, 0, T, 0, 'w4', T, -1, -1],
+        [0, 0, T, 1, 's1', T, -1, -1], [0, 0, T, 2, 'h1', T, -1, -1], [0, 0, T, 2, 'h2', T, -1, -1], [0, 0, T, 3, 'm1', T, -1, -1]],
+    calendars: [[31, [], ['2026-12-24', '2026-12-25']], [64, ['2026-12-22', '2026-12-24', '2026-12-25'], []], [64, ['2026-12-25'], []], [31, [], []]],
+});
+check('festivos: un viaje de domingo que va también un laborable de Navidad no lo hace festivo', !christmas.holidays.has('2026-12-22'), [...christmas.holidays].join(','));
+check('festivos: el 25-12, con más de la mitad de los viajes de domingo, sí es festivo', christmas.holidays.has('2026-12-25'), [...christmas.holidays].join(','));
+check('festivos: con la mitad justa de viajes de domingo (24-12) no es festivo', !christmas.holidays.has('2026-12-24'), [...christmas.holidays].join(','));
 const bothDays = [0, 0, T, 0, '1', T, 0, 1];
 r = BideOffline.arrival(withHoliday, bothDays, 2, thursday, T + 2400, T + 300);
 check('festivos: un jueves festivo usa la hora estimada de fin de semana', r.status === 'estimated' && r.etaSeconds === T + 900, JSON.stringify(r));
@@ -201,6 +215,46 @@ BideOffline.mark(shown, 'coming');
 check('marcas: «no ha pasado» lo devuelve con su hora oficial', statusAt('S3', T + 1500) === 'scheduled', statusAt('S3', T + 1500));
 const otherDay = BideOffline.departures(net, 'S3', nowAt(T + 1500, 1), 5).departures.map((d) => d.status).join(',');
 check('marcas: una marca vale solo para el día de ese viaje', otherDay === 'likely_departed', otherDay);
+
+// La hora de los horarios es la de Madrid aunque el móvil esté en otra zona (Londres, Nueva York, Tokio): a la misma
+// hora, las mismas salidas. Viajes de ejemplo de hoy a las 23:50 y a las 24:30 (de madrugada, pero de hoy) y dos que
+// solo salen mañana, a las 00:20 (dentro de las 4 horas) y a las 06:00.
+const night = BideOffline.prepare({
+    lines: [['1', 'N1', 'Línea de noche']],
+    patterns: [[0, 'Final', ['S1', 'S2']]],
+    timings: [[0, 600]],
+    trips: [[0, 0, 85800, 0, '1', 85800, -1, -1], [0, 0, 88200, 0, '2', 88200, -1, -1], [0, 0, 21600, 1, '3', 21600, -1, -1], [0, 0, 1200, 1, '4', 1200, -1, -1]],
+    calendars: [[127, [], []], [0, ['2026-11-21'], []]],
+    stops: { S1: ['Uno'], S2: ['Dos'] },
+    lon: {},
+    directionReference: null,
+});
+const madridNight = new Date('2026-11-20T23:45:00+01:00');
+const nightDepartures = (zone) => {
+    process.env.TZ = zone;
+    return BideOffline.departures(night, 'S1', madridNight, 5).departures.map((d) => `${d.scheduledTime} ${d.etaMinutes} min ${d.etaAt} mañana:${d.tomorrow}`).join(', ');
+};
+const inMadrid = nightDepartures('Europe/Madrid');
+for (const zone of ['Europe/London', 'America/New_York', 'Asia/Tokyo']) {
+    const inZone = nightDepartures(zone);
+    check(`sin conexión, con el móvil en ${zone} salen las mismas salidas que en Madrid`, inZone === inMadrid, `${inZone} frente a ${inMadrid}`);
+}
+const nightTimetable = (zone) => {
+    process.env.TZ = zone;
+    const entries = BideOffline.timetable(night, '1', { date: new Date(2026, 10, 20), from: 23 * 3600, to: 23 * 3600 + 3540, stopId: null, now: madridNight }).entries;
+    return entries.map((entry) => `${entry.departure} ${entry.status}`).join(', ');
+};
+const timetableInTokyo = nightTimetable('Asia/Tokyo');
+check('sin conexión, el horario de la línea marca «ya salió» con la hora de Madrid, no la del móvil', timetableInTokyo === nightTimetable('Europe/Madrid') && timetableInTokyo === '23:50 scheduled', timetableInTokyo);
+process.env.TZ = 'Europe/Madrid';
+// Un viaje de hoy que pasa de las 24:00 sale en minutos, como con conexión: «mañana» es solo el del día siguiente.
+const nightTrip = BideOffline.departures(night, 'S1', madridNight, 5).departures.find((d) => d.scheduledTime === '00:30');
+check('sin conexión, el de las 24:30 de hoy sale a los 45 min y no como «mañana»', !!nightTrip && nightTrip.etaMinutes === 45 && nightTrip.tomorrow === false, JSON.stringify(nightTrip));
+const nextDay = BideOffline.departures(night, 'S1', madridNight, 5).departures.find((d) => d.scheduledTime === '06:00');
+check('sin conexión, el que sale mañana sí sale como «mañana»', !!nextDay && nextDay.tomorrow === true, JSON.stringify(nextDay));
+// El del día siguiente dentro de las 4 horas (00:20, publicado en el día siguiente) sale en minutos con nextDay, como la API.
+const soonNextDay = BideOffline.departures(night, 'S1', madridNight, 5).departures.find((d) => d.scheduledTime === '00:20');
+check('sin conexión, el de las 00:20 del día siguiente sale a los 35 min con nextDay y no como «mañana»', !!soonNextDay && soonNextDay.etaMinutes === 35 && soonNextDay.tomorrow === false && soonNextDay.nextDay === true, JSON.stringify(soonNextDay));
 
 const bad = results.filter((r) => r.startsWith('MAL')).length;
 console.log(results.join('\n'));

@@ -181,7 +181,9 @@ if not lines_found:
     fails.append('búsqueda «gernika bilbao»: no encuentra líneas entre los dos pueblos')
 
 # Lo que no se publica: bases de datos, scripts, pruebas y el motor (código y datos).
-for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/bizkaibus/data/pace-factors.json', '/engine/bizkaibus/RealtimeMatcher.php', '/api/Networks/bus.php'):
+# También escrito de otra forma («//», «/./», «..») y los ficheros que empiezan por punto.
+for private in ('/data/bizkaibus.sqlite', '/scripts/build-database.php', '/engine/bizkaibus/data/pace-factors.json', '/engine/bizkaibus/RealtimeMatcher.php', '/api/Networks/bus.php',
+                '//data/bizkaibus.sqlite', '/./data/bizkaibus.sqlite', '/js/../data/bizkaibus.sqlite', '//tests/README.md', '/.gitignore', '/.vercelignore', '/.htaccess'):
     count += 1
     try:
         code = urllib.request.urlopen(BASE + private, timeout=60).status

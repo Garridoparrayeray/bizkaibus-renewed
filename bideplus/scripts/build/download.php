@@ -145,9 +145,9 @@ class Download
         foreach ($aRows as $sFile => $aFileRows) {
             $aColumns = array_keys($aHeaders[$sFile]);
             $Fp = fopen('php://temp', 'w+');
-            fputcsv($Fp, $aColumns, ',', '"', '\\');
+            fputcsv($Fp, $aColumns, ',', '"', '');
             foreach ($aFileRows as $aRow) {
-                fputcsv($Fp, array_map(fn($sColumn) => $aRow[$sColumn] ?? '', $aColumns), ',', '"', '\\');
+                fputcsv($Fp, array_map(fn($sColumn) => $aRow[$sColumn] ?? '', $aColumns), ',', '"', '');
             }
             rewind($Fp);
             $Out->addFromString($sFile, stream_get_contents($Fp));

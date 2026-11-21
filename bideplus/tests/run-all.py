@@ -46,6 +46,7 @@ elif not QUICK:
         ('UI Bide+ (pestañas, columna, páginas)', ['node', 'tests/ui-bide.mjs']),
         ('UI planificador del inicio', ['node', 'tests/ui-route.mjs']),
         ('UI SEO (título, idioma y contenido sin /api/)', ['node', 'tests/ui-seo.mjs']),
+        ('UI casos límite (noche, zona, lentitud, SW)', ['node', 'tests/ui-edge.mjs']),
     ]
 
 

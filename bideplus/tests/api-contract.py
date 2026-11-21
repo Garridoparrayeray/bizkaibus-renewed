@@ -46,7 +46,7 @@ SCHEMAS = {
         'departures': [{
             'lineId': ID, 'lineCode': str, 'lineName': str, 'headsign': opt(str), 'tripKey': str, 'unscheduled': bool,
             'scheduledTime': 'hm', 'etaMinutes': int, 'etaAt': int, 'status': 'status', 'delayMinutes': opt(int),
-            'tomorrow': bool, 'passedTime': opt('hm'), 'reason': opt(str),
+            'tomorrow': bool, 'nextDay': bool, 'passedTime': opt('hm'), 'reason': opt(str),
         }],
         'attribution': str,
     },
@@ -236,7 +236,7 @@ for name, cfg in NETS.items():
         if tomorrow != sorted(tomorrow):
             fails.append(f'{name} {sid}: una salida de mañana delante de una de hoy')
         for x in dep.get('departures') or []:
-            if x.get('tomorrow') and x['status'] != 'scheduled':
+            if (x.get('tomorrow') or x.get('nextDay')) and x['status'] != 'scheduled':
                 fails.append(f"{name} {sid}: una salida de mañana con el estado de hoy ({x['status']})")
         # Las 3 primeras líneas, y más hasta dar con una que salga hoy (en fin de semana no circulan todas).
         for index, line in enumerate(stop.get('lines') or []):

@@ -12,6 +12,7 @@ use Controllers\StopsController;
 use Core\Config;
 use Core\Store;
 use Services\ArrivalAlerts;
+use Services\Broadcast;
 use Services\Changelog;
 use Services\IncidentAlerts;
 use Services\NoticeAlerts;
@@ -215,7 +216,7 @@ try {
     // viajes a esta hora (de noche) se salta.
     $aSampleStops = [
         'metro' => ['7'],
-        'euskotren' => ['ES:Euskotren:StopPlace:2581:', 'ES:Euskotren:StopPlace:2590:'],
+        'euskotren' => ['ES:Euskotren:StopPlace:2802:', 'ES:Euskotren:StopPlace:2590:'],
         'tranvia-bilbao' => ['ES:Euskotren:StopPlace:1471:', 'ES:Euskotren:StopPlace:1475:'],
         'tranvia-vitoria' => ['ES:Euskotren:StopPlace:1560:', 'ES:Euskotren:StopPlace:1568:'],
         'renfe' => ['13200'],
@@ -501,6 +502,52 @@ try {
         UpdateAlerts::remove($Device($sName)['endpoint']);
     }
     IncidentAlerts::remove($Device('aviso-eu')['endpoint']);
+
+    // Cupos por cliente: un solo navegador no puede llenar los avisos de todos.
+    if ($aTrip !== null) {
+        $aQuota = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/cupo', 'keys' => $aSubscription['keys']];
+        $sQuotaOwner = 'bide:arrival:by:' . Broadcast::id($aQuota['endpoint']);
+        $aQuotaIds = [];
+        for ($i = 0; $i < 3; $i++) {
+            $aQuotaIds[] = ArrivalAlerts::create($aQuota, '356', $aTrip['tripKey'], 5, 'es', true)['id'] ?? null;
+        }
+        $aQuotaPending = $Pending();
+        $Expect('cupo: el mismo aviso tres veces (misma suscripción, parada y salida) deja uno solo, el último',
+            in_array($aQuotaIds[2], $aQuotaPending, true) && !in_array($aQuotaIds[0], $aQuotaPending, true) && !in_array($aQuotaIds[1], $aQuotaPending, true)
+            && Store::pipeline([['SMEMBERS', $sQuotaOwner]])[0] === [$aQuotaIds[2]], json_encode($aQuotaIds));
+        // Hasta el tope de la suscripción con avisos de otras salidas (guardados a mano: no hay tantas en la parada).
+        $aFill = [];
+        for ($i = 0; $i < ArrivalAlerts::MAX_PER_SUBSCRIPTION; $i++) {
+            $sFillId = sprintf('%024x', 0xC0FFEE00 + $i);
+            $aFill[] = ['SET', 'bide:arrival:' . $sFillId, json_encode(['id' => $sFillId, 'network' => 'bus', 'stopId' => '356', 'tripKey' => 'otra-' . $i])];
+            $aFill[] = ['SADD', $sQuotaOwner, $sFillId];
+        }
+        Store::pipeline($aFill);
+        Store::pipeline([['SREM', $sQuotaOwner, sprintf('%024x', 0xC0FFEE00 + ArrivalAlerts::MAX_PER_SUBSCRIPTION - 1)]]);
+        $aTwin = ArrivalAlerts::create($aQuota, '356', $aTrip['tripKey'], 10, 'es');
+        $Expect('cupo: con el tope lleno, repetir uno que ya tiene lo sustituye', $aTwin['status'] === 'created', json_encode($aTwin));
+        $aQuotaOther = ['endpoint' => 'https://fcm.googleapis.com/fcm/send/cupo-otra', 'keys' => $aSubscription['keys']];
+        Store::pipeline([['SADD', 'bide:arrival:by:' . Broadcast::id($aQuotaOther['endpoint']), ...array_map(fn($aCmd) => $aCmd[2], array_filter($aFill, fn($aCmd) => $aCmd[0] === 'SADD'))]]);
+        $aFull = ArrivalAlerts::create($aQuotaOther, '356', $aTrip['tripKey'], 5, 'es');
+        $Expect('cupo: una suscripción con ' . ArrivalAlerts::MAX_PER_SUBSCRIPTION . ' avisos guardados no puede crear otro', $aFull['status'] === 'limit', json_encode($aFull));
+        Store::pipeline([['DEL', 'bide:arrival:' . sprintf('%024x', 0xC0FFEE00)]]);
+        $aAfter = ArrivalAlerts::create($aQuotaOther, '356', $aTrip['tripKey'], 5, 'es');
+        $Expect('cupo: cuando uno caduca, vuelve a haber sitio y su id sale de la lista', $aAfter['status'] === 'created'
+            && !in_array(sprintf('%024x', 0xC0FFEE00), Store::pipeline([['SMEMBERS', 'bide:arrival:by:' . Broadcast::id($aQuotaOther['endpoint'])]])[0], true), json_encode($aAfter));
+        $Expect('cupo: cancelar lo quita también de la lista de su suscripción', ArrivalAlerts::cancel($aTwin['id'], $aQuota['endpoint'])
+            && !in_array($aTwin['id'], Store::pipeline([['SMEMBERS', $sQuotaOwner]])[0], true));
+        ArrivalAlerts::cancel($aAfter['id'], $aQuotaOther['endpoint']);
+        Store::pipeline([['DEL', $sQuotaOwner, 'bide:arrival:by:' . Broadcast::id($aQuotaOther['endpoint'])], ...array_map(fn($aCmd) => ['DEL', $aCmd[1]], array_filter($aFill, fn($aCmd) => $aCmd[0] === 'SET'))]);
+    }
+    $sNotOnCurve = WebPush::base64UrlEncode("\x04" . str_repeat("\x01", 64));
+    $Expect('suscripción: una clave de 65 bytes que no es un punto de la curva no vale',
+        Push::subscription(['endpoint' => 'https://fcm.googleapis.com/fcm/send/x', 'keys' => ['p256dh' => $sNotOnCurve, 'auth' => $aSubscription['keys']['auth']]]) === null
+        && Push::subscription($aSubscription) !== null);
+    $_SERVER['HTTP_X_REAL_IP'] = '203.0.113.7';
+    $aAllowed = array_map(fn() => Push::allowClient('prueba', 3), range(1, 4));
+    $_SERVER['HTTP_X_REAL_IP'] = '203.0.113.8';
+    $Expect('límite por cliente: la cuarta alta en la hora se rechaza; otro cliente sigue pudiendo', $aAllowed === [true, true, true, false] && Push::allowClient('prueba', 3), json_encode($aAllowed));
+    unset($_SERVER['HTTP_X_REAL_IP']);
 } finally {
     proc_terminate($Server);
     @unlink($sDataFile);

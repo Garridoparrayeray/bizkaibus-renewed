@@ -195,6 +195,64 @@ const SPANISH_ONLY = Object.keys(SPANISH).map((sKey) => [sKey, SPANISH[sKey]])
 const spanishIn = (sText) => SPANISH_ONLY.filter(([, sSpanish]) => sText.includes(sSpanish)).map(([sKey]) => sKey);
 const PLANNER_TEXT = "[...document.querySelectorAll('.planner, #route')].map((n) => n.innerText + ' ' + [...n.querySelectorAll('[placeholder], [aria-label], [title]')].map((e) => [e.getAttribute('placeholder'), e.getAttribute('aria-label'), e.getAttribute('title')].join(' ')).join(' ')).join(' ')";
 
+// «Sal en N min» sigue el reloj aunque el directo no cambie y, pasada la salida, deja de contar. Con el viaje abierto, el
+// reloj de la página se adelanta (window.__shiftClock): primero a unos 10 min de la salida, luego 2 min más y luego
+// hasta después de salir. Al acabar, el reloj de verdad.
+const LEAVE = "document.querySelector('#route-trip .route-hero-leave .route-hero-label').textContent + ' ' + document.querySelector('#route-trip .route-hero-big').textContent";
+const leaveIn = async () => {
+    const sLeave = await ev(LEAVE);
+    if (typeof sLeave !== 'string' || !sLeave.startsWith('Sal en ')) return null;
+    return parseInt(sLeave.slice('Sal en '.length), 10);
+};
+const checkLeaveTicks = async () => {
+    await ev(`(() => {
+        const Real = Date;
+        let shift = 0;
+        class Shifted extends Real {
+            constructor(...args) {
+                if (args.length === 0) {
+                    super(Real.now() + shift);
+                } else {
+                    super(...args);
+                }
+            }
+            static now() {
+                return Real.now() + shift;
+            }
+        }
+        window.__RealDate = Real;
+        window.Date = Shifted;
+        window.__shiftClock = (ms) => {
+            shift += ms;
+        };
+        return true;
+    })()`);
+    // Lo que falta para salir: los minutos de «Sal en» o, con «Sal a las HH:MM», hasta esa hora de hoy o de mañana.
+    await waitTrue("!!document.querySelector('#route-trip .route-hero-leave .route-hero-big')");
+    let iLeft = await leaveIn();
+    const aAt = String(await ev(LEAVE)).match(/(\d\d):(\d\d)$/);
+    if (iLeft === null && !aAt) {
+        check('es · «Sal en N min» sigue el reloj aunque no cambie el directo', false, `sin la hora de salida: ${await ev(LEAVE)}`);
+        await ev('window.Date = window.__RealDate; true');
+        return;
+    }
+    if (iLeft === null) {
+        const [iHour, iMinute] = aAt.slice(1).map(Number);
+        const iNow = await ev("(async () => (await import('/planificador/pantallas/query.js')).nowHere().seconds)()");
+        iLeft = (((iHour * 60 + iMinute) - Math.floor(iNow / 60)) % 1440 + 1440) % 1440;
+    }
+    await ev(`window.__shiftClock(${(iLeft - 10) * 60000}); true`);
+    // Hasta que se repinta con el reloj nuevo: si ya decía «Sal en N», el texto de antes también empieza así.
+    const bTen = await waitTrue(`(() => { const s = ${LEAVE}; const n = parseInt(s.slice('Sal en '.length), 10); return s.startsWith('Sal en ') && n >= 9 && n <= 11; })()`, 20000);
+    const iTen = await leaveIn();
+    await ev('window.__shiftClock(2 * 60000); true');
+    const bTicks = await waitTrue(`(() => { const n = parseInt((${LEAVE}).slice('Sal en '.length), 10); return n <= ${iTen} - 2 && n >= ${iTen} - 3; })()`, 20000);
+    check('es · «Sal en N min» sigue el reloj aunque no cambie el directo', bTen && iTen >= 9 && iTen <= 11 && bTicks, `${iTen} → ${await ev(LEAVE)}`);
+    await ev(`window.__shiftClock(${(iTen + 1) * 60000}); true`);
+    check('es · pasada la salida ya no dice «Sal en»', await waitTrue(`(${LEAVE}).startsWith('Sal a las ')`, 20000), await ev(LEAVE));
+    await ev('window.Date = window.__RealDate; true');
+};
+
 for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir este viaje', 'Tu viaje a'], ['eu', 'Nola iritsi', 'Aukeratu bidaia hau', 'Zure bidaia'], ['fr', 'Itinéraire', 'Choisir ce trajet', 'Votre trajet vers']]) {
     await searchFromCard(sLang);
     check(`${sLang} · título «${sTitle}» con Filtros y compartir`, (await text('#route-title')) === sTitle && (await ev(shown('#route-filters-open'))) && (await ev(shown('#route-share'))));
@@ -247,6 +305,7 @@ for (const [sLang, sTitle, sChoose, sTrip] of [['es', 'Cómo llegar', 'Elegir es
         if (bBasemap) {
             check('mapa del viaje: los nombres, encima del recorrido y debajo de las paradas', await ev("(() => { const z = (s) => Number(getComputedStyle(document.querySelector('.route-trip-map .leaflet-' + s + '-pane')).zIndex); return z('overlay') < z('routeLabels') && z('routeLabels') < z('marker') && !!document.querySelector('.route-trip-map .leaflet-routeLabels-pane canvas'); })()"));
         }
+        await checkLeaveTicks();
         check('mapa del viaje: entre el resumen y los tramos', await ev("(() => { const m = document.querySelector('.route-trip-map'); return m.previousElementSibling.classList.contains('route-hero') || m.previousElementSibling.classList.contains('route-notice'); })()"));
         check('mapa del viaje: fuera de Bizkaia, las teselas de siempre', await ev(`(async () => {
             const { addBasemap } = await import('/js/route/basemap.js');

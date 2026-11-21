@@ -60,14 +60,17 @@ final class GtfsScheduleText
         return $aBlocks;
     }
 
-    private static function dates(\DateTime $Today, string|null $sLastDay): array
+    // Los días del periodo, de hoy al último publicado (como mucho MAX_DAYS), comparados por fecha: con la hora de hoy
+    // el último publicado (a las 00:00) se quedaba fuera, y ese día el horario salía vacío.
+    public static function dates(\DateTime $Today, string|null $sLastDay): array
     {
-        $iLast = $Today->getTimestamp() + (self::MAX_DAYS - 1) * self::DAY_SECONDS;
-        if ($sLastDay !== null) {
-            $iLast = min($iLast, (new \DateTime($sLastDay, $Today->getTimezone()))->getTimestamp());
+        $Day = new \DateTime($Today->format('Y-m-d'), $Today->getTimezone());
+        $sLast = (clone $Day)->modify('+' . (self::MAX_DAYS - 1) . ' days')->format('Y-m-d');
+        if ($sLastDay !== null && $sLastDay < $sLast) {
+            $sLast = $sLastDay;
         }
         $aDates = [];
-        for ($Date = clone $Today; $Date->getTimestamp() <= $iLast; $Date = (clone $Date)->modify('+1 day')) {
+        for ($Date = $Day; $Date->format('Y-m-d') <= $sLast; $Date = (clone $Date)->modify('+1 day')) {
             $aDates[] = $Date;
         }
         return $aDates;

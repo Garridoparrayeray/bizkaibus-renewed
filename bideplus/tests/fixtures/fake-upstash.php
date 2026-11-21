@@ -1,7 +1,7 @@
 <?php
 // Imita la API HTTPS de Upstash Redis (solo /pipeline) para tests/store-test.php y tests/push-test.php:
 // hashes (HSET, HMGET, HSCAN), textos (SET con NX y EX, GET, MGET, DEL), conjuntos (SADD, SREM, SMEMBERS, SCARD,
-// SISMEMBER), EXPIRE y EXPIREAT.
+// SISMEMBER), INCR, EXPIRE y EXPIREAT.
 $sFile = getenv('FAKE_UPSTASH_FILE');
 if (($_SERVER['HTTP_AUTHORIZATION'] ?? '') !== 'Bearer token-de-prueba') {
     http_response_code(401);
@@ -63,6 +63,10 @@ foreach (json_decode(file_get_contents('php://input'), true) as $aCmd) {
             $aData[$sKey] = ['__str' => (string)$aCmd[0]];
             $aOut[] = ['result' => 'OK'];
         }
+    } elseif ($sName === 'INCR') {
+        $iValue = (int)($aData[$sKey]['__str'] ?? 0) + 1;
+        $aData[$sKey] = ['__str' => (string)$iValue];
+        $aOut[] = ['result' => $iValue];
     } elseif ($sName === 'GET') {
         $aOut[] = ['result' => $aData[$sKey]['__str'] ?? null];
     } elseif ($sName === 'MGET') {

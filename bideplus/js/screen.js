@@ -29,8 +29,11 @@ function createNode(tag, className, text) {
     return node;
 }
 
+// La hora de los horarios (la de Madrid), aunque el aparato esté en otra zona: las pantallas vienen a menudo en UTC.
+const CLOCK_FORMAT = { timeZone: BideNetworks.TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
+
 function hourMinute(date) {
-    return date.toTimeString().slice(0, 5);
+    return new Intl.DateTimeFormat(I18n.getLang(), CLOCK_FORMAT).format(date);
 }
 
 // Minutos que faltan: con la hora absoluta (etaAt) se recalculan con el reloj entre refrescos.

@@ -176,8 +176,8 @@ if ($aContent['type'] === 'stop') {
                         <span class="header-actions">
                             <a id="live-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la parada" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
                             <button id="live-share" class="btn-icon" type="button" aria-label="Compartir la parada" title="Compartir la parada" data-i18n-attr="aria-label:app.share.stopButton,title:app.share.stopButton"><?= BIDE_ICONS['share'] ?></button>
-                            <button id="live-favorite" class="btn-icon" type="button" aria-label="Guardar parada en favoritos"></button>
-                            <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar">
+                            <button id="live-favorite" class="btn-icon" type="button" aria-pressed="false" aria-label="Guardar parada en favoritos" data-i18n-attr="aria-label:app.favorite.stop"></button>
+                            <button id="live-close" class="btn-icon" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">
                                 <?= BIDE_ICONS['close'] ?>
                             </button>
                         </span>
@@ -185,7 +185,7 @@ if ($aContent['type'] === 'stop') {
                     <button id="live-alerts" class="stop-alerts" type="button" hidden></button>
                     <h3 id="live-line" class="live-line"></h3>
                     <p id="live-headsign" class="live-headsign"></p>
-                    <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto">
+                    <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto" data-i18n-attr="aria-label:app.openDetail">
                         <strong id="live-minutes">–</strong><span>min</span><sub id="live-delay" class="delay-sub" hidden></sub>
                     </button>
                     <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
@@ -213,8 +213,8 @@ if ($aContent['type'] === 'stop') {
                         <span class="header-actions">
                             <a id="platform-screen" class="btn-icon" href="/" target="_blank" rel="noopener" aria-label="Abrir la pantalla de la estación" data-i18n-attr="aria-label:app.screen.open,title:app.screen.open"><?= BIDE_ICONS['screen'] ?></a>
                             <button id="platform-share" class="btn-icon" type="button" aria-label="Compartir la parada" title="Compartir la parada" data-i18n-attr="aria-label:app.share.stopButton,title:app.share.stopButton"><?= BIDE_ICONS['share'] ?></button>
-                            <button id="platform-favorite" class="btn-icon" type="button" aria-label="Guardar estación en favoritos"></button>
-                            <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar">
+                            <button id="platform-favorite" class="btn-icon" type="button" aria-pressed="false" aria-label="Guardar estación en favoritos" data-i18n-attr="aria-label:app.favorite.station"></button>
+                            <button id="platform-close" class="btn-icon" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">
                                 <?= BIDE_ICONS['close'] ?>
                             </button>
                         </span>
@@ -243,8 +243,8 @@ if ($aContent['type'] === 'stop') {
             <header>
                 <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
                 <span class="header-actions">
-                    <button id="timetable-favorite" class="btn-icon" type="button" aria-label="Guardar línea en favoritos"></button>
-                    <button id="timetable-close" class="btn-icon" type="button" aria-label="Cerrar">
+                    <button id="timetable-favorite" class="btn-icon" type="button" aria-pressed="false" aria-label="Guardar línea en favoritos" data-i18n-attr="aria-label:app.favorite.line"></button>
+                    <button id="timetable-close" class="btn-icon" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">
                         <?= BIDE_ICONS['close'] ?>
                     </button>
                 </span>
@@ -254,9 +254,9 @@ if ($aContent['type'] === 'stop') {
             <div id="line-map" class="line-map"></div>
 
             <div class="filters">
-                <input id="filter-date" class="filter-date" type="date" aria-label="Fecha">
-                <input id="filter-hour-from" type="time" aria-label="Hora desde">
-                <input id="filter-hour-to" type="time" aria-label="Hora hasta">
+                <input id="filter-date" class="filter-date" type="date" aria-label="Fecha" data-i18n-attr="aria-label:app.filter.date">
+                <input id="filter-hour-from" type="time" aria-label="Hora desde" data-i18n-attr="aria-label:app.filter.from">
+                <input id="filter-hour-to" type="time" aria-label="Hora hasta" data-i18n-attr="aria-label:app.filter.to">
             </div>
 
             <p id="timetable-note" class="timetable-note" role="status" hidden></p>
@@ -304,7 +304,7 @@ if ($aContent['type'] === 'stop') {
 <?php require __DIR__ . '/legal.php'; ?>
 
     <dialog id="schedule-modal" class="schedule-modal">
-        <button id="schedule-modal-close" class="btn-icon schedule-modal-close" type="button" aria-label="Cerrar">
+        <button id="schedule-modal-close" class="btn-icon schedule-modal-close" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">
             <?= BIDE_ICONS['close'] ?>
         </button>
         <h3 id="schedule-modal-line" class="schedule-modal-line"></h3>
@@ -312,7 +312,7 @@ if ($aContent['type'] === 'stop') {
     </dialog>
 
     <dialog id="vehicle-modal" class="vehicle-modal">
-        <button id="modal-close" class="btn-icon modal-close" type="button" aria-label="Cerrar">
+        <button id="modal-close" class="btn-icon modal-close" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">
             <?= BIDE_ICONS['close'] ?>
         </button>
         <span id="modal-badge" class="badge"></span>

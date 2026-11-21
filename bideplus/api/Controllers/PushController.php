@@ -40,11 +40,18 @@ class PushController
             Response::error('Invalid alert', 400);
             return;
         }
+        if (!Push::allowClient('arrival', Push::MAX_ARRIVALS_PER_HOUR)) {
+            Response::json(['status' => 'limit'], 429);
+            return;
+        }
         $bRepeat = ($aBody['repeat'] ?? false) === true;
         $aResult = ArrivalAlerts::create($aSubscription, $sStopId, $sTripKey, $iMinutes, Push::lang($aBody['lang'] ?? null), $bRepeat);
         $iStatus = 200;
         if ($aResult['status'] === 'unavailable') {
             $iStatus = 503;
+        }
+        if ($aResult['status'] === 'limit') {
+            $iStatus = 429;
         }
         Response::json($aResult, $iStatus);
     }
@@ -66,6 +73,10 @@ class PushController
         $aSubscription = Push::subscription($aBody['subscription'] ?? null);
         if ($aSubscription === null) {
             Response::error('Invalid subscription', 400);
+            return;
+        }
+        if (!Push::allowClient('save', Push::MAX_SAVES_PER_HOUR)) {
+            Response::json(['status' => 'limit'], 429);
             return;
         }
         $sStatus = IncidentAlerts::save($aSubscription, IncidentAlerts::favorites($aBody['favorites'] ?? null), Push::lang($aBody['lang'] ?? null));
@@ -96,6 +107,10 @@ class PushController
         $aSubscription = Push::subscription($aBody['subscription'] ?? null);
         if ($aSubscription === null) {
             Response::error('Invalid subscription', 400);
+            return;
+        }
+        if (!Push::allowClient('save', Push::MAX_SAVES_PER_HOUR)) {
+            Response::json(['status' => 'limit'], 429);
             return;
         }
         $sStatus = UpdateAlerts::save($aSubscription, Push::lang($aBody['lang'] ?? null));

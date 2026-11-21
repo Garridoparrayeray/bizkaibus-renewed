@@ -17,6 +17,8 @@ class ServiceJourney
     private const LONGEST_TRIP_SECONDS = 6 * 3600;
 
     private const SUNDAY_ONLY_MASK = 0b1000000;
+    // Parte de los viajes del día que van también los domingos a partir de la cual es festivo (isHoliday).
+    private const HOLIDAY_SUNDAY_SHARE = 0.5;
 
     private const LAST_STOP_NAME_SUBQUERY = '(
         SELECT s2.name FROM passing_times pt2
@@ -501,7 +503,9 @@ class ServiceJourney
         return $Stmt->fetchAll();
     }
 
-    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
+    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo, y entonces más de la mitad de lo
+    // que circula va también los domingos (el 8-12, todo; el 25-12, el 59 %). Solo con lo primero, un viaje de domingo
+    // que va además los laborables de Navidad los hacía festivos (en esos días, el 20 %; en un laborable, el 29 %).
     public function isHoliday(string $sDate): bool
     {
         if (!$this->hasTable('service_calendars') || !$this->hasTable('service_calendar_exceptions')) {
@@ -515,7 +519,17 @@ class ServiceJourney
             LIMIT 1
         ');
         $Stmt->execute([$sDate, self::SUNDAY_ONLY_MASK]);
-        return $Stmt->fetchColumn() !== false;
+        if ($Stmt->fetchColumn() === false) {
+            return false;
+        }
+        $Stmt = $this->Pdo->prepare('
+            SELECT COUNT(*) AS trips, COALESCE(SUM((sc.weekday_mask & :sunday) != 0), 0) AS sunday_trips
+            FROM service_journeys sj
+            JOIN service_calendars sc ON sc.id = sj.calendar_id
+            WHERE ' . self::RUNS_ON_DAY);
+        $Stmt->execute(['sunday' => self::SUNDAY_ONLY_MASK, 'weekdayBit' => Calendar::weekdayBitFor(new \DateTime($sDate)), 'day' => $sDate, 'day2' => $sDate]);
+        $aCount = $Stmt->fetch();
+        return (int)$aCount['sunday_trips'] > self::HOLIDAY_SUNDAY_SHARE * (int)$aCount['trips'];
     }
 
     private function hasTable(string $sTable): bool

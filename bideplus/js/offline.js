@@ -20,6 +20,14 @@ const BideOffline = (() => {
     const LIKELY_PAST_SHOWN = 2;
     const SLOW_SCHEDULE_SECONDS = 600;
     const SUNDAY_ONLY_MASK = 0b1000000;
+    // Parte de los viajes del día que van también los domingos a partir de la cual es festivo (ServiceJourney::isHoliday).
+    const HOLIDAY_SUNDAY_SHARE = 0.5;
+    // La zona de los horarios (BideNetworks.TIME_ZONE; en las pruebas de Node no hay BideNetworks).
+    let timeZone = 'Europe/Madrid';
+    if (typeof BideNetworks !== 'undefined') timeZone = BideNetworks.TIME_ZONE;
+    const WALL_CLOCK = new Intl.DateTimeFormat('en-GB', {
+        timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23',
+    });
     const prepared = new Map();
     let refreshing = null;
 
@@ -221,17 +229,48 @@ const BideOffline = (() => {
             if (!platformsByStation.has(stop[1])) platformsByStation.set(stop[1], []);
             platformsByStation.get(stop[1]).push({ id: stopId, label: stop[2] || '' });
         }
-        return { ...data, byStop, tripsByPattern, platformsByStation, holidays: holidays(data.calendars) };
+        return { ...data, byStop, tripsByPattern, platformsByStation, holidays: holidays(data.calendars, data.trips) };
     }
 
-    // Bizkaibus publica los festivos añadiendo ese día sus calendarios de solo domingo.
-    function holidays(calendars) {
-        const days = new Set();
+    /*
+     * Como el servidor (ServiceJourney::isHoliday): Bizkaibus publica los festivos añadiendo ese día sus calendarios de
+     * solo domingo, y entonces más de la mitad de los viajes que circulan van también los domingos. Solo con lo
+     * primero, un viaje de domingo que va además los laborables de Navidad los hacía festivos.
+     */
+    function holidays(calendars, trips) {
+        const candidates = new Set();
         for (const calendar of calendars) {
             if (calendar[0] !== SUNDAY_ONLY_MASK) continue;
-            for (const day of calendar[1]) days.add(day);
+            for (const day of calendar[1]) candidates.add(day);
+        }
+        const tripsPerCalendar = calendars.map(() => 0);
+        for (const trip of trips) tripsPerCalendar[trip[3]] += 1;
+        const days = new Set();
+        for (const day of candidates) {
+            const [year, month, date] = day.split('-').map(Number);
+            const midnight = new Date(year, month - 1, date);
+            let running = 0;
+            let sunday = 0;
+            calendars.forEach((calendar, index) => {
+                if (!runsOn(calendar, midnight)) return;
+                running += tripsPerCalendar[index];
+                if ((calendar[0] & SUNDAY_ONLY_MASK) !== 0) sunday += tripsPerCalendar[index];
+            });
+            if (sunday > HOLIDAY_SUNDAY_SHARE * running) days.add(day);
         }
         return days;
+    }
+
+    /*
+     * El día y la hora de los horarios (los de Madrid) en un instante, sea cual sea la zona del móvil: el día como una
+     * fecha a las 00:00 (para runsOn e isoDate, que miran sus campos) y los segundos desde la medianoche.
+     */
+    function wallClock(date) {
+        const parts = {};
+        WALL_CLOCK.formatToParts(date).forEach((part) => {
+            parts[part.type] = Number(part.value);
+        });
+        return { day: new Date(parts.year, parts.month - 1, parts.day), seconds: parts.hour * 3600 + parts.minute * 60 + parts.second };
     }
 
     function isoDate(date) {
@@ -288,8 +327,9 @@ const BideOffline = (() => {
         let platforms = quays;
         if (data.stationPlatforms === false) platforms = [];
         const merged = quays.length > 0 && platforms.length === 0;
-        const nowSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const wall = wallClock(now);
+        const nowSeconds = wall.seconds;
+        const midnight = wall.day;
         const days = [-1, 0, 1].map((offset) => {
             const date = new Date(midnight);
             date.setDate(date.getDate() + offset);
@@ -324,7 +364,7 @@ const BideOffline = (() => {
                         if (userMark && userMark.coming !== undefined && position >= userMark.coming && timing.status === 'likely_departed') {
                             finalTiming = { status: 'scheduled', etaSeconds: seconds };
                         }
-                        const item = { seconds, departure, trip, pattern, position, serviceDay, tripKey, target };
+                        const item = { seconds, departure, trip, pattern, position, serviceDay, tripKey, target, offset: day.offset };
                         items.push({ ...item, ...finalTiming });
                     }
                 }
@@ -402,8 +442,11 @@ const BideOffline = (() => {
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
             status: item.status,
             delayMinutes: null,
-            // Pasada la medianoche: la app la enseña como «mañana 07:00», igual que con conexión.
-            tomorrow: item.seconds >= DAY_SECONDS,
+            // Un viaje del día de servicio de mañana: más allá de las 4 horas, «mañana 07:00»; dentro (las 00:xx que la red
+            // pone en el día siguiente), en minutos y con nextDay, como la API. Los de hoy que pasan de las 24:00 (búhos)
+            // son de hoy.
+            tomorrow: item.offset === 1 && item.etaSeconds > nowSeconds + NEXT_DAY_WINDOW_SECONDS,
+            nextDay: item.offset === 1 && item.etaSeconds <= nowSeconds + NEXT_DAY_WINDOW_SECONDS,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
             passedTime: passedTime(item),
@@ -567,26 +610,35 @@ const BideOffline = (() => {
      * de medianoche, las de la madrugada del día siguiente.
      * options: { date: Date, from, to (segundos), stopId, now: Date }.
      */
+    // Las salidas del día siguiente dentro de estas horas van como las de hoy (StopsController::WINDOW_SECONDS).
+    const NEXT_DAY_WINDOW_SECONDS = 4 * 3600;
+
+    // Lo que una hora «HH:MM» abarca más allá de su minuto cero.
+    const LAST_MINUTE_SECONDS = 59;
+
     function timetable(data, lineId, options) {
         const index = lineIndex(data, lineId);
         if (index < 0) return null;
-        let last = options.to;
-        if (options.to < options.from) last = options.to + DAY_SECONDS;
+        // Hasta el final del minuto de «to», como la API: las horas llevan segundos (10:00:30 sale como 10:00).
+        const to = options.to + LAST_MINUTE_SECONDS;
+        let last = to;
+        if (to < options.from) last = to + DAY_SECONDS;
         const previous = new Date(options.date);
         previous.setDate(previous.getDate() - 1);
         const fromPrevious = options.from + DAY_SECONDS;
         const toPrevious = Math.min(last, DAY_SECONDS - 1) + DAY_SECONDS;
         let rows = departuresOn(data, index, previous, fromPrevious, toPrevious, options.stopId, -DAY_SECONDS);
         rows = rows.concat(departuresOn(data, index, options.date, options.from, last, options.stopId, 0));
-        if (options.to < options.from) {
+        if (to < options.from) {
             const next = new Date(options.date);
             next.setDate(next.getDate() + 1);
-            rows = rows.concat(departuresOn(data, index, next, 0, options.to, options.stopId, DAY_SECONDS));
+            rows = rows.concat(departuresOn(data, index, next, 0, to, options.stopId, DAY_SECONDS));
         }
         rows.sort((a, b) => a.seconds - b.seconds);
         const day = isoDate(options.date);
-        const today = isoDate(options.now);
-        const nowSeconds = options.now.getHours() * 3600 + options.now.getMinutes() * 60 + options.now.getSeconds();
+        const wall = wallClock(options.now);
+        const today = isoDate(wall.day);
+        const nowSeconds = wall.seconds;
         const entries = rows.map((row) => {
             let status = 'scheduled';
             if (day < today || (day === today && row.seconds < nowSeconds)) status = 'departed';

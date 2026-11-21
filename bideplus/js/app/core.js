@@ -5,7 +5,6 @@ export const FEATURES = NETWORK.features;
 export const HAS_PLATFORMS = FEATURES.platforms;
 export const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
 export const networkQuery = networkQueryFor(NETWORK_SLUG);
-export const VEHICLE_PLURAL = { bus: 'autobuses', metro: 'metros', tram: 'tranvías', train: 'trenes' };
 
 // El horario de esta red guardado en el móvil (Ajustes → Horarios sin conexión), o null si no está.
 export async function savedSchedule() {
@@ -161,6 +160,21 @@ export function followAppLink(event, link, open) {
 export function syncPageContent(type, id) {
     if (!el.pageContent.querySelector('h2')) return;
     el.pageContent.hidden = type === 'stop' || el.pageContent.dataset.pageType !== type || el.pageContent.dataset.pageId !== String(id);
+}
+
+// La fecha (AAAA-MM-DD), la hora y los segundos desde la medianoche en la zona de los horarios, sea cual sea la del
+// móvil (Canarias, de viaje o puesta a mano): con la del móvil saldría otro día u otras salidas.
+const HERE_FORMAT = new Intl.DateTimeFormat('en-GB', {
+    timeZone: BideNetworks.TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+
+export function hereNow(date = new Date()) {
+    const parts = {};
+    HERE_FORMAT.formatToParts(date).forEach((part) => {
+        parts[part.type] = part.value;
+    });
+    const hour = Number(parts.hour);
+    return { date: `${parts.year}-${parts.month}-${parts.day}`, hour, seconds: hour * 3600 + Number(parts.minute) * 60 + Number(parts.second) };
 }
 
 // El horario de hoy de #page-content, si es de otro día (una copia vieja del service worker o del CDN), no se enseña.

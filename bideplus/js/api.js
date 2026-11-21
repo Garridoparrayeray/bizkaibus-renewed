@@ -34,8 +34,14 @@ const Api = (() => {
             window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: await serverReachable() } }));
             throw networkError;
         }
-        window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok: true } }));
+        // La copia que el service worker guarda de lo que depende del día (sw.js, DATED_API), servida porque el servidor
+        // no contesta: se marca como lo guardado sin conexión del resto de la app (offline), no como si fuera de ahora.
+        const saved = response.headers.get('X-Bide-Offline') === '1';
+        let ok = true;
+        if (saved) ok = await serverReachable();
+        window.dispatchEvent(new CustomEvent('bb:api', { detail: { ok } }));
         const data = await response.json().catch(() => ({}));
+        if (saved && data && typeof data === 'object') data.offline = true;
         if (!response.ok) {
             const error = new Error(data.error || `Error ${response.status}`);
             error.status = response.status;

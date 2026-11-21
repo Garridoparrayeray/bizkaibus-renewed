@@ -12,10 +12,13 @@ class ArrivalAlerts
 {
     public const MINUTES = [2, 5, 10];
     private const TTL_SECONDS = 3 * 3600;
+    private const TTL_AFTER_SECONDS = 3600;
     private const REPEAT_TTL_SECONDS = 60 * 86400;
     private const REPEAT_SENT_SECONDS = 12 * 3600;
     private const REPEAT_WINDOW_SECONDS = 90 * 60;
     private const MAX_PENDING = 5000;
+    // Avisos guardados a la vez por suscripción (un navegador): con el tope global solo, uno solo lo llenaba.
+    public const MAX_PER_SUBSCRIPTION = 20;
     private const MAX_PER_RUN = 1000;
     private const DEPARTURES_LIMIT = 40;
     // Un aviso de llegada que no se entrega en 10 minutos ya no sirve.
@@ -23,6 +26,7 @@ class ArrivalAlerts
     private const PENDING_KEY = 'bide:arrival:pending';
     private const ALERT_PREFIX = 'bide:arrival:';
     private const SENT_PREFIX = 'bide:arrival:sent:';
+    private const OWNER_PREFIX = 'bide:arrival:by:';
     private const GONE_STATUSES = ['departed', 'likely_departed', 'finished'];
     private const TEXTS = [
         'es' => ['minutes' => '{line} llega en {min} min', 'now' => '{line} está llegando', 'cancelled' => '{line} cancelado', 'body' => '→ {headsign} · {stop}'],
@@ -31,7 +35,8 @@ class ArrivalAlerts
         'fr' => ['minutes' => '{line} arrive dans {min} min', 'now' => '{line} arrive', 'cancelled' => '{line} supprimé', 'body' => '→ {headsign} · {stop}'],
     ];
 
-    // Estados: created, now, gone, unknown y unavailable. Uno de todos los días se crea siempre, con «today».
+    // Estados: created, now, gone, unknown, limit (la suscripción ya tiene MAX_PER_SUBSCRIPTION) y unavailable. Uno de
+    // todos los días se crea siempre, con «today».
     public static function create(array $aSubscription, string $sStopId, string $sTripKey, int $iMinutes, string $sLang, bool $bRepeat = false): array
     {
         [$aStop, $aDeparture] = self::departure($sStopId, $sTripKey);
@@ -46,8 +51,17 @@ class ArrivalAlerts
         if (!$bRepeat && $sToday === 'now') {
             return ['status' => 'now', 'minutesLeft' => max(0, $iLeft)];
         }
+        $sOwnerKey = self::OWNER_PREFIX . Broadcast::id($aSubscription['endpoint']);
+        $aOwned = self::owned($sOwnerKey, (string)$aStop['id'], $sTripKey);
+        if ($aOwned === null) {
+            return ['status' => 'unavailable'];
+        }
+        [$iOwned, $sSameId] = $aOwned;
+        if ($iOwned >= self::MAX_PER_SUBSCRIPTION) {
+            return ['status' => 'limit'];
+        }
         $aCount = Store::pipeline([['SCARD', self::PENDING_KEY]]);
-        if ($aCount === null || (int)$aCount[0] >= self::MAX_PENDING) {
+        if ($aCount === null || ((int)$aCount[0] >= self::MAX_PENDING && $sSameId === null)) {
             return ['status' => 'unavailable'];
         }
         $aAlert = [
@@ -65,8 +79,12 @@ class ArrivalAlerts
             'repeat' => $bRepeat,
             'scheduledSeconds' => Calendar::hmToSeconds((string)$aDeparture['scheduledTime']),
         ];
-        if (!self::store($aAlert, $bRepeat && $sToday === 'now')) {
+        if (!self::store($aAlert, $bRepeat && $sToday === 'now', $iLeft, $sOwnerKey)) {
             return ['status' => 'unavailable'];
+        }
+        // El mismo aviso otra vez (misma suscripción, parada y salida) sustituye al anterior en vez de sumar otro.
+        if ($sSameId !== null) {
+            Store::pipeline([['DEL', self::ALERT_PREFIX . $sSameId, self::SENT_PREFIX . $sSameId], ['SREM', self::PENDING_KEY, $sSameId], ['SREM', $sOwnerKey, $sSameId]]);
         }
         return [
             'status' => 'created',
@@ -91,15 +109,58 @@ class ArrivalAlerts
         return 'coming';
     }
 
-    private static function store(array $aAlert, bool $bSentToday): bool
+    // Los avisos que esa suscripción tiene guardados: cuántos siguen vivos (sin contar uno para la misma parada y salida)
+    // y el id de ese, si lo hay. Los ids de avisos ya caducados o enviados se quitan de su lista. Null si falla el almacén.
+    private static function owned(string $sOwnerKey, string $sStopId, string $sTripKey): array|null
     {
-        $iTtl = self::TTL_SECONDS;
+        $aResult = Store::pipeline([['SMEMBERS', $sOwnerKey]]);
+        if ($aResult === null) {
+            return null;
+        }
+        $aIds = array_values(array_filter((array)($aResult[0] ?? []), 'is_string'));
+        if ($aIds === []) {
+            return [0, null];
+        }
+        $aValues = Store::pipeline([array_merge(['MGET'], array_map(fn(string $sId) => self::ALERT_PREFIX . $sId, $aIds))]);
+        if ($aValues === null) {
+            return null;
+        }
+        $sNetwork = Config::current()['network'];
+        $iLive = 0;
+        $sSameId = null;
+        $aGone = [];
+        foreach ($aIds as $iIndex => $sId) {
+            $aAlert = null;
+            if (is_string($aValues[0][$iIndex] ?? null)) {
+                $aAlert = json_decode($aValues[0][$iIndex], true);
+            }
+            if (!is_array($aAlert)) {
+                $aGone[] = $sId;
+            } elseif (($aAlert['network'] ?? '') === $sNetwork && ($aAlert['stopId'] ?? '') === $sStopId && ($aAlert['tripKey'] ?? '') === $sTripKey) {
+                $sSameId = $sId;
+            } else {
+                $iLive++;
+            }
+        }
+        if ($aGone !== []) {
+            Store::pipeline([array_merge(['SREM', $sOwnerKey], $aGone)]);
+        }
+        return [$iLive, $sSameId];
+    }
+
+    // Uno de una vez dura hasta su salida y una hora más (como poco TTL_SECONDS): con solo 3 h, uno de la madrugada
+    // para un bus de más de 3 h después caducaba antes de mandarse.
+    private static function store(array $aAlert, bool $bSentToday, int $iMinutesLeft, string $sOwnerKey): bool
+    {
+        $iTtl = max(self::TTL_SECONDS, $iMinutesLeft * 60 + self::TTL_AFTER_SECONDS);
         if ($aAlert['repeat']) {
             $iTtl = self::REPEAT_TTL_SECONDS;
         }
         $aCommands = [
             ['SET', self::ALERT_PREFIX . $aAlert['id'], json_encode($aAlert, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'EX', $iTtl],
             ['SADD', self::PENDING_KEY, $aAlert['id']],
+            ['SADD', $sOwnerKey, $aAlert['id']],
+            ['EXPIRE', $sOwnerKey, self::REPEAT_TTL_SECONDS],
         ];
         if ($bSentToday) {
             $aCommands[] = ['SET', self::SENT_PREFIX . $aAlert['id'], '1', 'EX', self::REPEAT_SENT_SECONDS];
@@ -124,7 +185,7 @@ class ArrivalAlerts
         if (!hash_equals((string)($aAlert['subscription']['endpoint'] ?? ''), $sEndpoint)) {
             return false;
         }
-        Store::pipeline([['DEL', self::ALERT_PREFIX . $sId], ['DEL', self::SENT_PREFIX . $sId], ['SREM', self::PENDING_KEY, $sId]]);
+        Store::pipeline([['DEL', self::ALERT_PREFIX . $sId], ['DEL', self::SENT_PREFIX . $sId], ['SREM', self::PENDING_KEY, $sId], ['SREM', self::OWNER_PREFIX . Broadcast::id($sEndpoint), $sId]]);
         return true;
     }
 
@@ -138,7 +199,7 @@ class ArrivalAlerts
         if ($aIds === null || !is_array($aIds[0]) || empty($aIds[0])) {
             return $aCounts;
         }
-        $aIds = array_slice($aIds[0], 0, self::MAX_PER_RUN);
+        $aIds = self::dueIds($aIds[0]);
         $aCounts['pending'] = count($aIds);
         $aValues = Store::pipeline([array_merge(['MGET'], array_map(fn($sId) => self::ALERT_PREFIX . $sId, $aIds))]);
         $Sender ??= Push::sender(self::PUSH_TTL_SECONDS);
@@ -157,6 +218,18 @@ class ArrivalAlerts
         Config::set($sNetwork);
         $aCounts['dropped'] = self::forget($aForget);
         return $aCounts;
+    }
+
+    // Los que se miran en esta vuelta, como mucho MAX_PER_RUN. Si hay más, cada minuto va otro trozo (en orden fijo):
+    // antes se miraban siempre los mismos 1000 y los demás no se mandaban nunca.
+    public static function dueIds(array $aIds, int|null $iNow = null): array
+    {
+        if (count($aIds) <= self::MAX_PER_RUN) {
+            return array_values($aIds);
+        }
+        sort($aIds);
+        $iStart = (intdiv($iNow ?? time(), 60) * self::MAX_PER_RUN) % count($aIds);
+        return array_slice(array_merge(array_slice($aIds, $iStart), array_slice($aIds, 0, $iStart)), 0, self::MAX_PER_RUN);
     }
 
     // Por parada, para calcular sus salidas una vez. Los de todos los días lejos de su hora no se miran.

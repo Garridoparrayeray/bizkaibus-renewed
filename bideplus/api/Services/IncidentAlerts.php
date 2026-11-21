@@ -323,12 +323,14 @@ class IncidentAlerts
 
     private static function fetch(callable $Fetcher, string $sNetwork, string|null $sLine, string|null $sStop): array|null
     {
+        $iFailures = \Core\Cache::$iEmptyFailures;
         try {
             $aRaw = $Fetcher($sNetwork, $sLine, $sStop);
         } catch (\Throwable $Ex) {
             return null;
         }
-        if (!is_array($aRaw)) {
+        // Una fuente caída sin copia anterior da [] (Cache): es un fallo, no «sin incidencias».
+        if (!is_array($aRaw) || \Core\Cache::$iEmptyFailures > $iFailures) {
             return null;
         }
         $aAlerts = [];
