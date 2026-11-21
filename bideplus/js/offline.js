@@ -442,9 +442,11 @@ const BideOffline = (() => {
             etaAt: Math.round(now.getTime() / 1000) + (item.etaSeconds - nowSeconds),
             status: item.status,
             delayMinutes: null,
-            // Un viaje del día de servicio de mañana: la app lo enseña como «mañana 07:00», igual que con conexión. Los de
-            // hoy que pasan de las 24:00 (búhos) son de hoy y salen en minutos.
-            tomorrow: item.offset === 1,
+            // Un viaje del día de servicio de mañana: más allá de las 4 horas, «mañana 07:00»; dentro (las 00:xx que la red
+            // pone en el día siguiente), en minutos y con nextDay, como la API. Los de hoy que pasan de las 24:00 (búhos)
+            // son de hoy.
+            tomorrow: item.offset === 1 && item.etaSeconds > nowSeconds + NEXT_DAY_WINDOW_SECONDS,
+            nextDay: item.offset === 1 && item.etaSeconds <= nowSeconds + NEXT_DAY_WINDOW_SECONDS,
             direction: direction(data, item.pattern, item.position, target),
             platformId,
             passedTime: passedTime(item),
@@ -608,6 +610,9 @@ const BideOffline = (() => {
      * de medianoche, las de la madrugada del día siguiente.
      * options: { date: Date, from, to (segundos), stopId, now: Date }.
      */
+    // Las salidas del día siguiente dentro de estas horas van como las de hoy (StopsController::WINDOW_SECONDS).
+    const NEXT_DAY_WINDOW_SECONDS = 4 * 3600;
+
     // Lo que una hora «HH:MM» abarca más allá de su minuto cero.
     const LAST_MINUTE_SECONDS = 59;
 

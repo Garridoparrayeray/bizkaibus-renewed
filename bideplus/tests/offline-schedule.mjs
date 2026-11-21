@@ -217,13 +217,13 @@ const otherDay = BideOffline.departures(net, 'S3', nowAt(T + 1500, 1), 5).depart
 check('marcas: una marca vale solo para el día de ese viaje', otherDay === 'likely_departed', otherDay);
 
 // La hora de los horarios es la de Madrid aunque el móvil esté en otra zona (Londres, Nueva York, Tokio): a la misma
-// hora, las mismas salidas. Viajes de ejemplo de hoy a las 23:50 y a las 24:30 (de madrugada, pero de hoy) y uno que
-// solo sale mañana a las 06:00.
+// hora, las mismas salidas. Viajes de ejemplo de hoy a las 23:50 y a las 24:30 (de madrugada, pero de hoy) y dos que
+// solo salen mañana, a las 00:20 (dentro de las 4 horas) y a las 06:00.
 const night = BideOffline.prepare({
     lines: [['1', 'N1', 'Línea de noche']],
     patterns: [[0, 'Final', ['S1', 'S2']]],
     timings: [[0, 600]],
-    trips: [[0, 0, 85800, 0, '1', 85800, -1, -1], [0, 0, 88200, 0, '2', 88200, -1, -1], [0, 0, 21600, 1, '3', 21600, -1, -1]],
+    trips: [[0, 0, 85800, 0, '1', 85800, -1, -1], [0, 0, 88200, 0, '2', 88200, -1, -1], [0, 0, 21600, 1, '3', 21600, -1, -1], [0, 0, 1200, 1, '4', 1200, -1, -1]],
     calendars: [[127, [], []], [0, ['2026-11-21'], []]],
     stops: { S1: ['Uno'], S2: ['Dos'] },
     lon: {},
@@ -252,6 +252,9 @@ const nightTrip = BideOffline.departures(night, 'S1', madridNight, 5).departures
 check('sin conexión, el de las 24:30 de hoy sale a los 45 min y no como «mañana»', !!nightTrip && nightTrip.etaMinutes === 45 && nightTrip.tomorrow === false, JSON.stringify(nightTrip));
 const nextDay = BideOffline.departures(night, 'S1', madridNight, 5).departures.find((d) => d.scheduledTime === '06:00');
 check('sin conexión, el que sale mañana sí sale como «mañana»', !!nextDay && nextDay.tomorrow === true, JSON.stringify(nextDay));
+// El del día siguiente dentro de las 4 horas (00:20, publicado en el día siguiente) sale en minutos con nextDay, como la API.
+const soonNextDay = BideOffline.departures(night, 'S1', madridNight, 5).departures.find((d) => d.scheduledTime === '00:20');
+check('sin conexión, el de las 00:20 del día siguiente sale a los 35 min con nextDay y no como «mañana»', !!soonNextDay && soonNextDay.etaMinutes === 35 && soonNextDay.tomorrow === false && soonNextDay.nextDay === true, JSON.stringify(soonNextDay));
 
 const bad = results.filter((r) => r.startsWith('MAL')).length;
 console.log(results.join('\n'));
