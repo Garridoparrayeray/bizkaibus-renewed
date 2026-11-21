@@ -103,6 +103,14 @@ jobs:
             mkdir -p planificador/build
             cp -r "$RUNNER_TEMP/plan/planificador/build/data" planificador/build/data
             ls planificador/build/data/manifest.json
+            # Los paquetes, rehechos con la herramienta del motor de esta prueba: sus reglas pueden ser más nuevas que las
+            # de los publicados, y su WebAssembly rechazaría los viejos. Lo demás (andar, lugares, trazados), el publicado.
+            BASE_DATE="$(python3 -c "import json; print(json.load(open('planificador/build/data/manifest.json'))['base_date'])")"
+            if php engine/planner/tools/build-packs.php --out="$RUNNER_TEMP/packs" --base-date="$BASE_DATE" --app=.; then
+              python3 ../.github/scripts/planner-packs.py "$RUNNER_TEMP/packs" planificador/build/data
+            else
+              echo "::warning::No se han podido rehacer los paquetes del planificador con este motor"
+            fi
           else
             echo "::warning::Sin el planificador publicado: la prueba de su pantalla no probará nada"
           fi
