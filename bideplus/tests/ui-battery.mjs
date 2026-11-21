@@ -224,11 +224,15 @@ if (onlyApps) finish();
 
 where = 'deep';
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+// La estación de Euskotren, por su nombre: el operador renumera sus ids (Amara-Donostia era la 2581 y ahora es la 2802).
+const amaraFound = ((await (await fetch(`${BASE}/api/search?q=amara&red=euskotren`)).json()).stops || []).find((stop) => /^Amara/.test(stop.name));
+let amaraId = 'ES:Euskotren:StopPlace:2802:';
+if (amaraFound) amaraId = amaraFound.id;
 for (const [url, panel, name] of [
     ['/stops/4255', 'live-card', 'parada bus'],
     ['/stops/19?red=metro', 'platform-panel', 'estacion metro'],
-    ['/stops/ES:Euskotren:StopPlace:2581:?red=euskotren', 'platform-panel', 'estacion euskotren'],
-    ['/stops/ES%3AEuskotren%3AStopPlace%3A2581%3A?red=euskotren', 'platform-panel', 'estacion euskotren con el id codificado (enlace de Favoritos)'],
+    [`/stops/${amaraId}?red=euskotren`, 'platform-panel', 'estacion euskotren'],
+    [`/stops/${encodeURIComponent(amaraId)}?red=euskotren`, 'platform-panel', 'estacion euskotren con el id codificado (enlace de Favoritos)'],
     ['/stops/ES:Euskotren:StopPlace:1468:?red=tranvia-bilbao', 'platform-panel', 'parada tranvia bilbao'],
     ['/stops/ES:Euskotren:StopPlace:1560:?red=tranvia-vitoria', 'platform-panel', 'parada tranvia vitoria'],
     ['/stops/13200?red=renfe', 'platform-panel', 'estacion renfe'],
