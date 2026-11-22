@@ -1533,6 +1533,8 @@ dialog {
         font-size: calc(14.08px * var(--text-scale, 1));
     }
         .modal-stops > li.stop-current {
+            border-radius: 6px;
+            background: var(--primary-tint);
             color: var(--primary);
             font-weight: 700;
         }

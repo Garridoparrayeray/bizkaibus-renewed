@@ -53,16 +53,18 @@ export function renderModalStops(data) {
     if (signature === modalState.signature && el.modalStops.children.length > 0) return;
     modalState.signature = signature;
 
+    // Pasadas en gris y minutos a las siguientes: con las horas del feed o con el vehículo seguido en directo.
+    const tracked = data.feedTimes || data.status === 'live';
     const scrollTop = el.modal.scrollTop;
     el.modalStops.innerHTML = '';
     for (const stop of stops) {
         const li = document.createElement('li');
         const classes = [];
         if (stop.isCurrent) classes.push('stop-current');
-        if (data.feedTimes && stop.isPast) classes.push('stop-past');
+        if (tracked && stop.isPast) classes.push('stop-past');
         li.className = classes.join(' ');
         let label = `${stop.scheduledTime} · ${stop.name}`;
-        if (data.feedTimes && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
+        if (tracked && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
             label += ` · ${Math.max(stop.etaMinutes, 0)} min`;
         }
         li.appendChild(stopLink(stop, label));
@@ -70,6 +72,12 @@ export function renderModalStops(data) {
         el.modalStops.appendChild(li);
     }
     el.modal.scrollTop = scrollTop;
+}
+
+// Al abrir la ficha, la lista baja hasta la parada actual (por donde va el vehículo o la de la consulta); los
+// refrescos ya no la mueven.
+function showCurrentStop() {
+    el.modalStops.querySelector('.stop-current')?.scrollIntoView({ block: 'center' });
 }
 
 // Cada parada del recorrido es un enlace a la suya: se abre también con el teclado.
@@ -198,6 +206,7 @@ export async function openVehicleModal(tripKey, { tomorrow = false, nextDay = fa
     if (!isExtra) showArrivalAlerts(tripKey);
 
     el.modal.showModal();
+    showCurrentStop();
     // Su horario no cambia: no hace falta irlo refrescando.
     if (onlySchedule) return;
     modalState.refreshTimer = setInterval(whenVisible(refreshVehicleModal), MODAL_REFRESH_MS);
@@ -239,6 +248,7 @@ async function openTripStopsModal(tripKey, tomorrow = false) {
     showArrivalAlerts(tripKey);
 
     el.modal.showModal();
+    showCurrentStop();
 }
 
 // Las horas del horario («HH:MM») dan la vuelta a las 24:00: en minutos seguidos desde la primera parada del viaje.
