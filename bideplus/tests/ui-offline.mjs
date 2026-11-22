@@ -146,7 +146,8 @@ await ev("document.querySelector('#timetable-body tr').click()");
 check('servidor caido: un viaje del horario abre sus paradas con su hora', await waitTrue("document.getElementById('vehicle-modal').open && document.querySelectorAll('#modal-stops li').length > 1"));
 await ev("document.getElementById('vehicle-modal').close()");
 await goOwn('/stops/1137', 4000);
-check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && ['ESTIMADO', 'HORARIO OFICIAL'].includes(document.getElementById('live-badge').textContent) && /\\d/.test(document.getElementById('live-minutes').textContent)"));
+// Cerca de la medianoche ya no quedan salidas de hoy y salen las de mañana («MAÑANA»), también del horario guardado.
+check('servidor caido: la parada sale del horario guardado', await waitTrue("!document.getElementById('live-card').hidden && ['ESTIMADO', 'HORARIO OFICIAL', 'MAÑANA'].includes(document.getElementById('live-badge').textContent) && /\\d/.test(document.getElementById('live-minutes').textContent)"));
 // Bizkaibus guarda también lo que tardan de verdad los buses: sin conexión sale la hora estimada con la oficial al lado.
 check('servidor caido: Bizkaibus enseña la hora estimada con los tramos aprendidos', await ev("document.getElementById('live-badge').textContent === 'ESTIMADO' || document.getElementById('live-more-list').textContent.includes('≈')"));
 check('servidor caido: avisa de que es el horario guardado y sin directo', await ev("document.getElementById('net-banner').textContent.includes('sin directo')"));

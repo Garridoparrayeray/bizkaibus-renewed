@@ -255,7 +255,7 @@ jobs:
           php bideplus/tests/planner-check.php \
             --data="$RUNNER_TEMP/plan/planificador/build/data" --engine=bideplus/engine/planner \
             --except="$REDES_RESERVADAS" --previous="$ANTES" --out="$RUNNER_TEMP/plan/resultados.json"
-          cp -a "$RUNNER_TEMP/plan/planificador" "$RUNNER_TEMP/plan/docs" bideplus/
+          python3 .github/scripts/publicar-planificador.py "$RUNNER_TEMP/plan/planificador" bideplus
           echo "### Planificador de la prueba: $(du -sh bideplus/planificador | cut -f1)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Comprobar los datos antes de desplegar
@@ -388,6 +388,12 @@ jobs:
           fi
           if ! curl -s "$SITIO/api/push/key" | jq -e '.publicKey == null' > /dev/null; then
             echo "::error::/api/push/key da una clave: las notificaciones no están apagadas"
+            FALLOS=1
+          fi
+          if ! EXPUESTAS=$(bash .github/scripts/comprobar-privado.sh "$SITIO"); then
+            for RUTA in $EXPUESTAS; do
+              echo "::error::La prueba sirve $RUTA, que no debería ser público"
+            done
             FALLOS=1
           fi
           exit "$FALLOS"
