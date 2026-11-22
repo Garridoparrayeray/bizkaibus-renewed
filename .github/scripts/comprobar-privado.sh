@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Tras desplegar, comprueba que la web no sirve nada privado ni interno: código, bases, el motor y las herramientas del
 # planificador. Uso: bash .github/scripts/comprobar-privado.sh <dirección del sitio>
-# Escribe las que se sirven, una por línea, y sale con 1 si hay alguna.
+# Escribe las que se sirven, una por línea, y sale con 1 si hay alguna. Va despacio: el cortafuegos de Vercel corta las
+# ráfagas con un 403 (x-vercel-mitigated), y esa ruta queda sin comprobar, sin contar como fallo.
 set -u
+
+ESPERA_SEGUNDOS=3
 
 SITIO="$1"
 RUTAS=(
@@ -30,12 +33,17 @@ RUTAS=(
 
 EXPUESTAS=0
 for RUTA in "${RUTAS[@]}"; do
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SITIO$RUTA")
+  CABECERAS=$(curl -s -o /dev/null -D - "$SITIO$RUTA")
+  # La última línea de estado: con un proxy, la primera es la de su túnel.
+  CODE=$(awk '/^HTTP\// { sCode = $2 } END { print sCode }' <<<"$CABECERAS")
+  if [ "$CODE" = 403 ] && grep -qi '^x-vercel-mitigated:' <<<"$CABECERAS"; then
+    CODE="$CODE (cortafuegos: sin comprobar)"
+  fi
   echo "$RUTA -> $CODE" >&2
   if [ "${CODE:0:1}" = 2 ]; then
     echo "$RUTA"
     EXPUESTAS=1
   fi
-  sleep 1
+  sleep "$ESPERA_SEGUNDOS"
 done
 exit "$EXPUESTAS"

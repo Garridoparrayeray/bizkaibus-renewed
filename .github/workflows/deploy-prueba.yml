@@ -368,12 +368,6 @@ jobs:
               FALLOS=1
             fi
           done
-          if ! EXPUESTAS=$(bash .github/scripts/comprobar-privado.sh "$SITIO"); then
-            for RUTA in $EXPUESTAS; do
-              echo "::error::La prueba sirve $RUTA, que no debería ser público"
-            done
-            FALLOS=1
-          fi
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-126' "$SITIO/map-data/bizkaia.pmtiles")
           echo "prueba /map-data/bizkaia.pmtiles (Range) -> $CODE"
           if [ "$CODE" != "206" ]; then
@@ -394,6 +388,12 @@ jobs:
           fi
           if ! curl -s "$SITIO/api/push/key" | jq -e '.publicKey == null' > /dev/null; then
             echo "::error::/api/push/key da una clave: las notificaciones no están apagadas"
+            FALLOS=1
+          fi
+          if ! EXPUESTAS=$(bash .github/scripts/comprobar-privado.sh "$SITIO"); then
+            for RUTA in $EXPUESTAS; do
+              echo "::error::La prueba sirve $RUTA, que no debería ser público"
+            done
             FALLOS=1
           fi
           exit "$FALLOS"
