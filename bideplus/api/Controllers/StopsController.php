@@ -153,7 +153,9 @@ class StopsController
                 $aRows = self::withLive([$Matcher, $Yesterday], $TripMatcher, (string)$aPlatform['id'], self::upcomingRows($JourneyModel, $aPlatform['id'], $iLimit, self::pastSeconds($TripMatcher)));
                 array_push($aDepartures, ...self::departureItems($aRows, $bUseLastStopHeadsign));
             }
-            usort($aDepartures, fn(array $aA, array $aB) => [$aA['tomorrow'], $aA['etaAt']] <=> [$aB['tomorrow'], $aB['etaAt']]);
+            // Por hora prevista (etaAt ya cuenta el día) y, al final, las que probablemente pasaron, como en departureItems:
+            // el directo puede traer un tren de mañana como de hoy y, por «tomorrow», salía delante de los de mañana antes.
+            usort($aDepartures, fn(array $aA, array $aB) => [(int)($aA['status'] === 'likely_departed'), $aA['etaAt']] <=> [(int)($aB['status'] === 'likely_departed'), $aB['etaAt']]);
             return $aOut + ['platforms' => [], 'directionLabels' => null, 'departures' => self::limited($aDepartures, $iLimit), 'attribution' => $aConfig['attribution']];
         }
         if (!empty($aPlatforms)) {
