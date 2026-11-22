@@ -22,6 +22,9 @@ export async function selectLine(lineId, scopeToCurrentStop = false) {
     try {
         line = await lineInfo(lineId);
     } catch (e) {
+        // Sin la línea, la tarjeta que el servidor pintó para ella (app.php) no se queda vacía guardando sitio.
+        if (!state.currentLine) el.timetableSection.hidden = true;
+        el.timetableSection.classList.remove('is-loading');
         return;
     }
     // Una parada que aún no ha llegado tampoco se abre ya encima de la línea.
@@ -50,7 +53,11 @@ export async function selectLine(lineId, scopeToCurrentStop = false) {
     }
 
     followClock();
+    // Mientras llega el horario, la tarjeta guarda el sitio de la tabla y del periodo publicado (CSS): sin eso, al
+    // llegar empujaba lo de debajo con la tarjeta ya a la vista (CLS).
+    el.timetableSection.classList.add('is-loading');
     await loadTimetable();
+    el.timetableSection.classList.remove('is-loading');
     if (FEATURES.line_map) {
         await loadLineMap(line.id);
     }

@@ -15,7 +15,7 @@
     function build() {
         if (I18n.hasChoice() || offered === I18n.getLang()) return;
 
-        const offer = document.createElement('aside');
+        const offer = document.createElement('div');
         offer.className = 'bide-lang-offer';
         offer.setAttribute('role', 'status');
         offer.lang = offered;

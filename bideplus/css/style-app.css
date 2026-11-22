@@ -938,6 +938,8 @@ header p,
         line-height: 1.6;
     }
         .page-content-list > li > a {
+            display: inline-block;
+            padding: 3px 0;
             color: var(--primary);
             font-weight: 600;
             text-decoration: none;
@@ -1178,6 +1180,14 @@ header p,
     margin: 0 -22px;
     padding: 0 22px;
     overflow-x: auto;
+}
+/* Mientras llega el horario de una línea (timetable.js): el sitio del periodo publicado y de unas filas. */
+.timetable-section.is-loading > .timetable-range[hidden] {
+    display: block;
+    visibility: hidden;
+}
+.timetable-section.is-loading > .table-scroll {
+    min-height: 260px;
 }
 table {
     width: 100%;

@@ -1257,7 +1257,6 @@ html.bide .bide-footer-links {
 html.bide .bide-footer-copyright {
     margin: 14px 0 0;
     font-size: calc(12.8px * var(--text-scale, 1));
-    opacity: .75;
 }
 html.bide .bide-footer-title {
     flex-basis: 100%;
@@ -1291,7 +1290,7 @@ html.bide body.page-app .app-footer {
     html.bide body.page-app .bide-footer-brand > p {
         display: none;
     }
-    html.bide body.page-app .app-footer .bide-footer-title {
+    html.bide body.page-app .app-footer :is(.bide-footer-title, .bide-footer-copyright) {
         color: #fff;
     }
     html.bide.is-metro body.page-app .app-footer .bide-wordmark > span {

@@ -9,6 +9,7 @@ import { refreshStopAlerts } from './stop-alerts.js';
 
 const DEPARTURES_REFRESH_MS = 25000;
 const DEPARTURES_TICK_MS = 10000;
+const ALERTS_WAIT_MS = 2000;
 
 // La ficha de una salida: la de mañana (tomorrow) y la del día de servicio siguiente que sale en unas horas (nextDay,
 // los de las 00:xx que algunas redes publican como del día siguiente) solo tienen su horario.
@@ -94,7 +95,6 @@ export async function selectStop(stopId) {
     if (request !== stopRequest) return;
     state.currentStop = { id: stop.id, name: stop.name, lines: stop.lines || [] };
     el.liveEmpty.hidden = true;
-    syncPageContent('stop', stop.id);
     updateTitle();
     const screenUrl = '/pantalla/' + encodeURIComponent(stop.id) + networkQuery;
     const planTo = PlannerLink.url('to', NETWORK_SLUG, stop.id, stop.name);
@@ -105,13 +105,11 @@ export async function selectStop(stopId) {
         el.platformPlanTo.href = planTo;
         el.platformPlanFrom.href = planFrom;
         el.platformPanelStop.textContent = stop.name;
-        el.platformPanel.hidden = false;
     } else {
         updateFavoriteButton(el.liveFavorite, 'stop', stop.id);
         el.liveScreen.href = screenUrl;
         el.livePlanTo.href = planTo;
         el.livePlanFrom.href = planFrom;
-        el.liveCard.hidden = false;
     }
     if (state.currentLine && state.timetableStopId === null) {
         closeTimetableSection();
@@ -126,6 +124,11 @@ export async function selectStop(stopId) {
 
     await loadDepartures();
     if (request !== stopRequest) return;
+    // La tarjeta sustituye al contenido del servidor ya con sus salidas y sus avisos, de una vez: si saliera vacía y se
+    // fuera llenando, lo de dentro bajaría a la vista (CLS).
+    syncPageContent('stop', stop.id);
+    if (HAS_PLATFORMS) el.platformPanel.hidden = false;
+    else el.liveCard.hidden = false;
     startDeparturesRefresh();
 }
 
@@ -186,12 +189,16 @@ export async function loadDepartures() {
     // De la parada que se ve y más nueva que la última pintada: si cada respuesta tarda más que el refresco, la
     // anterior se pinta igual (antes, cada refresco dejaba sin valor la que venía y no se pintaba ninguna).
     const stillShown = () => request > departuresPainted && String(state.currentStop?.id) === String(stopId);
+    // Los avisos de la parada, a la vez que las salidas: se pintan juntos, sin que los avisos lleguen luego y empujen la
+    // tarjeta. Si tardan más de ALERTS_WAIT_MS, las salidas no los esperan.
+    const alertsReady = Promise.race([refreshStopAlerts(), new Promise((resolve) => setTimeout(resolve, ALERTS_WAIT_MS))]);
     let data;
     try {
         data = await Api.stopDepartures(stopId, 20);
     } catch (e) {
         const saved = await savedSchedule();
         if (saved) data = BideOffline.departures(saved, stopId, new Date(), 20);
+        await alertsReady;
         if (!stillShown()) return;
         if (!data) {
             departuresPainted = request;
@@ -200,12 +207,12 @@ export async function loadDepartures() {
             return;
         }
     }
+    await alertsReady;
     if (!stillShown()) return;
     departuresPainted = request;
     showOfflineSchedule(data.offline === true);
     state.lastDepartures = data;
     renderDepartures(data);
-    refreshStopAlerts();
 }
 
 function tickDepartures() {
@@ -355,11 +362,10 @@ function renderLiveCard(departures) {
 // lector de pantalla en vez de lo que lleva dentro.
 function describeOpenDetail() {
     let when = el.liveMinutes.textContent;
-    if (!el.liveMinutes.nextElementSibling.hidden) when += ' min';
-    const parts = [when];
-    if (!el.liveDelay.hidden && el.liveDelay.textContent) parts.push(el.liveDelay.textContent);
-    parts.push(I18n.t('app.openDetail'));
-    el.liveOpenDetail.setAttribute('aria-label', parts.join(', '));
+    if (!el.liveMinutes.nextElementSibling.hidden) when += el.liveMinutes.nextElementSibling.textContent;
+    // Lo que se ve (los minutos y el retraso, tal cual y en ese orden) y luego lo que hace.
+    if (!el.liveDelay.hidden && el.liveDelay.textContent) when += ' ' + el.liveDelay.textContent;
+    el.liveOpenDetail.setAttribute('aria-label', when + ', ' + I18n.t('app.openDetail'));
 }
 
 const PLATFORM_DIRECTIONS = [

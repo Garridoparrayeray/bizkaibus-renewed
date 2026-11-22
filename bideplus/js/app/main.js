@@ -15,9 +15,14 @@ import { setUpReduced } from './reduced.js';
 import { setUpAlerts } from './alerts.js';
 import { setUpArrivalAlerts } from './arrival-alerts.js';
 
+// Lo que hace el botón de idioma, en los tres idiomas a la vez (como en app.php): lo entiende cualquiera.
+const LANG_TOGGLE_LABEL = 'Aldatu hizkuntza / Cambiar idioma / Change language';
+
 // El botón enseña el idioma al que cambia.
 function updateLangToggleLabel() {
+    // La etiqueta empieza por lo que se ve en el botón (el idioma siguiente), para quien lo nombra en voz alta.
     el.langToggle.textContent = I18n.nextLang().toUpperCase();
+    el.langToggle.setAttribute('aria-label', el.langToggle.textContent + ' · ' + LANG_TOGGLE_LABEL);
 }
 function updateNetworkSubtitle() {
     if (window.__bbTheme === 'miamor' && window.__bbNetwork === BideNetworks.DEFAULT) return;

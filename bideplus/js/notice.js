@@ -54,7 +54,7 @@ const BideNotice = (() => {
     }
 
     function build(notice) {
-        const banner = document.createElement('aside');
+        const banner = document.createElement('div');
         banner.className = 'bide-notice';
         banner.setAttribute('role', 'status');
 

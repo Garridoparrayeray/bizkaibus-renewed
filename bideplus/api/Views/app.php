@@ -121,7 +121,7 @@ use Core\Networks;
 
             <span class="header-actions">
                 <?= bideLangSwitch() ?>
-                <button id="lang-toggle" class="btn-icon btn-lang lang-toggle" type="button" aria-label="Aldatu hizkuntza / Cambiar idioma / Change language">EU</button>
+                <button id="lang-toggle" class="btn-icon btn-lang lang-toggle" type="button" aria-label="EU · Aldatu hizkuntza / Cambiar idioma / Change language">EU</button>
                 <button id="menu-open" class="btn-icon menu-open" type="button" aria-label="Abrir menú">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
                 </button>
@@ -187,7 +187,7 @@ if ($aContent['type'] === 'stop') {
                     <h3 id="live-line" class="live-line"></h3>
                     <p id="live-headsign" class="live-headsign"></p>
                     <button id="live-open-detail" class="time-display" type="button" aria-label="Ver detalle del trayecto" data-i18n-attr="aria-label:app.openDetail">
-                        <strong id="live-minutes">–</strong><span>min</span><sub id="live-delay" class="delay-sub" hidden></sub>
+                        <strong id="live-minutes">–</strong><span>min</span> <sub id="live-delay" class="delay-sub" hidden></sub>
                     </button>
                     <button id="live-timetable-link" type="button" class="platform-timetable-link live-timetable-link" data-i18n="app.fullSchedule">Ver horario completo</button>
                     <div id="live-timetable-lines" class="platform-timetable-lines live-timetable-lines" hidden></div>
@@ -240,7 +240,17 @@ if ($aContent['type'] === 'stop') {
             </div>
 
             <div class="detail">
-        <section id="timetable-section" class="timetable glass timetable-section" hidden>
+<?php
+// En una página de línea, su tarjeta sale ya con el sitio guardado (is-loading, timetable.js la rellena): si saliera al
+// llegar el JS, empujaría hacia abajo lo que ya se ve (CLS).
+$sTimetableAttrs = ' hidden';
+$sTimetableClass = 'timetable glass timetable-section';
+if ($aContent['type'] === 'line') {
+    $sTimetableAttrs = '';
+    $sTimetableClass .= ' is-loading';
+}
+?>
+        <section id="timetable-section" class="<?= $sTimetableClass ?>"<?= $sTimetableAttrs ?>>
             <header>
                 <h2 data-i18n="app.checkSchedules">Consultar Horarios</h2>
                 <span class="header-actions">
