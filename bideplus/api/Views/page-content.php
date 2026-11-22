@@ -11,9 +11,18 @@
     if (!empty($aSection['ordered'])) {
         $sListTag = 'ol';
     }
+    // Un apartado plegado (collapsed) es un desplegable cerrado: va en el HTML para los buscadores y ocupa una línea.
+    $sSectionTag = 'div';
+    if (!empty($aSection['collapsed'])) {
+        $sSectionTag = 'details';
+    }
 ?>
-                    <div class="page-content-section"<?php if (isset($aSection['date'])): ?> data-date="<?= $aSection['date'] ?>"<?php endif; ?>>
+                    <<?= $sSectionTag ?> class="page-content-section"<?php if (isset($aSection['date'])): ?> data-date="<?= $aSection['date'] ?>"<?php endif; ?>>
+<?php if ($sSectionTag === 'details'): ?>
+                        <summary><h2><?= htmlspecialchars($aSection['title']) ?></h2></summary>
+<?php else: ?>
                         <h2><?= htmlspecialchars($aSection['title']) ?></h2>
+<?php endif; ?>
 <?php if (!empty($aSection['items'])): ?>
                         <<?= $sListTag ?> class="page-content-list">
 <?php foreach ($aSection['items'] as $aItem): ?>
@@ -24,7 +33,7 @@
 <?php if (isset($aSection['empty'])): ?>
                         <p><?= htmlspecialchars($aSection['empty']) ?></p>
 <?php endif; ?>
-                    </div>
+                    </<?= $sSectionTag ?>>
 <?php endforeach; ?>
                     <noscript><p><a href="/">Bide+</a> · <?= htmlspecialchars(\Core\Lang::t('seo.enableJs', $sLang)) ?></p></noscript>
                 </section>
