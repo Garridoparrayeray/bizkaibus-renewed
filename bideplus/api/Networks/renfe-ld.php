@@ -120,14 +120,14 @@ return [
         'trip_updates_url' => 'https://gtfsrt.renfe.com/trip_updates_LD.pb',
         'vehicle_positions_url' => 'https://gtfsrt.renfe.com/vehicle_positions_LD.pb',
         'matching' => 'trip',
+        // Cada id de viaje lleva detrás la fecha de su versión del GTFS, y el directo usa a veces la de otra versión.
+        'dated_trip_ids' => true,
         'cache_ttl_seconds' => 30,
         'http_timeout_seconds' => 8,
         'max_age_seconds' => 300,
         // La cabecera de sus posiciones va una hora atrasada (9/11/2026; la de los retrasos, no): vale la hora de la
         // cabecera y también la corregida, por si Renfe lo arregla.
         'clock_offset_seconds' => 3600,
-        // El id de sus viajes acaba con su fecha de servicio y arrastra los de ayer: sólo valen los de hoy.
-        'trip_date_suffix' => true,
     ],
 
     // Los avisos de Renfe (uno para todos sus trenes): los de sus estaciones de aquí y los trenes cancelados, como en

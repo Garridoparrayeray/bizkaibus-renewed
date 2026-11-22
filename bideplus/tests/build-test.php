@@ -399,6 +399,19 @@ $Expect('ficha (gtfs.line_aliases): vale si la línea existe y el id viejo no es
 $aAliasLine = (new Models\LineModel($Today))->find('E1');
 $Expect('LineModel::find con el id viejo da la línea de ahora, con su id nuevo',
     $aAliasLine !== null && $aAliasLine['id'] === 'L62' && (new Models\LineModel($Today))->find('GONE') === null);
+// Renfe larga distancia: el id del viaje lleva la fecha de su versión del GTFS; el directo, a veces la de otra.
+$Dated = $AliasDb($sAliasDir . '/fechas.sqlite', ['L' => ['A', 'B']]);
+$Dated->exec("INSERT INTO service_calendars (id, from_date, to_date, weekday_mask) VALUES ('NOV', '', '', 0), ('DIC', '', '', 0)");
+$Dated->exec("INSERT INTO service_calendar_exceptions (calendar_id, date, available) VALUES ('NOV', '2026-11-22', 1), ('DIC', '2026-12-13', 1)");
+$Dated->exec("INSERT INTO service_journeys (id, line_id, journey_pattern_id, calendar_id) VALUES ('T-NOV', 'L', 'PL', 'NOV'), ('T-DIC', 'L', 'PL', 'DIC')");
+$Dated->exec("INSERT INTO trip_aliases (trip_id, service_journey_id) VALUES ('0053012026-11-22', 'T-NOV'), ('0053012026-12-13', 'T-DIC')");
+$DatedModel = new Models\ServiceJourney($Dated);
+$aDatedIds = $DatedModel->journeyIdsForTripRefs(['0053012026-11-21', '0099012026-11-21'], new DateTime('2026-11-22'));
+$Expect('id con la fecha de otra versión del GTFS: el tren de la base que circula ese día; otro tren, nada',
+    $aDatedIds === ['0053012026-11-21' => 'T-NOV']);
+$Expect('sin el día, el id con otra fecha no casa', $DatedModel->journeyIdsForTripRefs(['0053012026-11-21']) === []);
+$Dated = null;
+$DatedModel = null;
 $Yesterday = null;
 $Today = null;
 array_map('unlink', glob($sAliasDir . '/*'));

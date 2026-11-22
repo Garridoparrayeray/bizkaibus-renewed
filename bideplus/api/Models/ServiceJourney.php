@@ -8,6 +8,9 @@ use Services\Calendar;
 // viaje concreto. Los calendarios (qué días circula cada viaje) se resuelven aquí.
 class ServiceJourney
 {
+    // Un id de viaje con la fecha de la versión del GTFS detrás (Renfe larga distancia): el tren y la fecha.
+    private const DATED_TRIP_ID = '/^(.+)\\d{4}-\\d{2}-\\d{2}$/';
+
     private const DEDUPE_TOLERANCE_SECONDS = 90;
 
     private const PAST_GRACE_SECONDS = 900;
@@ -361,7 +364,8 @@ class ServiceJourney
         return (int)$sValue;
     }
 
-    public function journeyIdsForTripRefs(array $aTripRefs): array
+    // Con $DatedDay, el id que no está tal cual se busca sin la fecha de su versión del GTFS (datedTripRefs()).
+    public function journeyIdsForTripRefs(array $aTripRefs, \DateTime|null $DatedDay = null): array
     {
         if (empty($aTripRefs) || !$this->hasTable('trip_aliases')) {
             return [];
@@ -375,6 +379,31 @@ class ServiceJourney
             $Stmt->execute($aChunk);
             foreach ($Stmt->fetchAll() as $aRow) {
                 $aResult[$aRow['trip_id']] = $aRow['service_journey_id'];
+            }
+        }
+        if ($DatedDay !== null) {
+            $aResult += $this->datedTripRefs(array_diff(array_unique($aTripRefs), array_keys($aResult)), $DatedDay);
+        }
+        return $aResult;
+    }
+
+    /*
+     * Renfe larga distancia pone a cada id de viaje la fecha de la versión del GTFS que lo publicó (0053012026-11-21) y
+     * su directo sigue a veces con la de otra versión que la de la base: sin la fecha, el tren es el viaje de la base
+     * con el mismo principio que circula ese día; si circulan dos, ninguno.
+     */
+    private function datedTripRefs(array $aTripRefs, \DateTime $Day): array
+    {
+        $aResult = [];
+        foreach ($aTripRefs as $sTripRef) {
+            if (!preg_match(self::DATED_TRIP_ID, (string)$sTripRef, $aMatch)) {
+                continue;
+            }
+            $Stmt = $this->Pdo->prepare("SELECT DISTINCT service_journey_id FROM trip_aliases WHERE trip_id GLOB ?");
+            $Stmt->execute([$aMatch[1] . '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]']);
+            $aRunning = $this->runningOf($Stmt->fetchAll(\PDO::FETCH_COLUMN), $Day);
+            if (\count($aRunning) === 1) {
+                $aResult[$sTripRef] = $aRunning[0];
             }
         }
         return $aResult;
