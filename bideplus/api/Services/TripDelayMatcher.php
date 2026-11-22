@@ -42,9 +42,14 @@ class TripDelayMatcher
         $this->bRail = \in_array(\Core\Config::current()['kind'] ?? 'bus', ['train', 'metro'], true);
         $this->Stops = new JourneyStops($JourneyModel);
         $this->Trust = new FeedTrust($this->Stops, $this->nowSeconds());
-        $aJourneyIds = $this->runningJourneys($JourneyModel, $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId')));
-        $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'));
         $Today = (new \DateTime('@' . ($this->iMidnight + 12 * 3600)))->setTimezone(new \DateTimeZone('Europe/Madrid'));
+        // gtfs_rt.dated_trip_ids (Renfe larga distancia): el id lleva la fecha de su versión del GTFS (ServiceJourney).
+        $DatedDay = null;
+        if (!empty(\Core\Config::current()['gtfs_rt']['dated_trip_ids'])) {
+            $DatedDay = $Today;
+        }
+        $aJourneyIds = $this->runningJourneys($JourneyModel, $JourneyModel->journeyIdsForTripRefs(array_column($aTrips, 'tripId'), $DatedDay));
+        $aVehicleJourneys = $JourneyModel->journeyIdsForTripRefs(array_column($aVehicles, 'tripId'), $DatedDay);
         $Vehicles = new VehicleDelays($aVehicles, $aVehicleJourneys, $this->Stops, $JourneyModel, $this->nowSeconds(),
             $Today);
         $this->iZone = (new \DateTime('now', new \DateTimeZone('Europe/Madrid')))->getOffset();
