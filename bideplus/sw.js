@@ -112,7 +112,6 @@ const SHELL_FILES = [
     '/css/style-bide.css',
     '/manifest-bide.json',
     '/manifest-miamor.json',
-    '/miamor.html',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
     '/icons-bide-rojo/icon-192.png',

@@ -451,7 +451,7 @@ jobs:
             ORIGEN="$RUNNER_TEMP/ayer"
           fi
           if [ -f "$ORIGEN/planificador/origen.json" ]; then
-            cp -a "$ORIGEN/planificador" "$ORIGEN/docs" bideplus/
+            python3 .github/scripts/publicar-planificador.py "$ORIGEN/planificador" bideplus
             echo "hay=1" >> "$GITHUB_OUTPUT"
             DIAS=$(( ($(date +%s) - $(jq -r '.generated' "$ORIGEN/planificador/origen.json")) / 86400 ))
             echo "### Planificador desplegado: $(basename "$ORIGEN"), de hace $DIAS días ($(du -sh bideplus/planificador | cut -f1))" >> "$GITHUB_STEP_SUMMARY"
@@ -524,6 +524,17 @@ jobs:
               echo "- El planificador no responde en producción: $RUTA da $CODE" >> "$RUNNER_TEMP/avisos.md"
             fi
           done
+
+      # Nada privado ni interno a la vista (código, bases, motor, herramientas del planificador): si algo se sirve, aviso.
+      - name: Comprobar que no se publica nada privado
+        run: |
+          SITIO=$(php -r 'echo (require "bideplus/api/Config/site.php")["url"];')
+          if ! EXPUESTAS=$(bash .github/scripts/comprobar-privado.sh "$SITIO"); then
+            for RUTA in $EXPUESTAS; do
+              echo "::error::Producción sirve $RUTA, que no debería ser público"
+              echo "- Producción sirve $RUTA, que no debería ser público" >> "$RUNNER_TEMP/avisos.md"
+            done
+          fi
 
       # Lo desplegado queda en la release. Cada base lleva su huella en el nombre y solo se sube si no está; bases.json
       # va el último (nunca falta: ver pace-data.sh) y luego se borran las que no citan ni el nuevo ni el de ayer.
