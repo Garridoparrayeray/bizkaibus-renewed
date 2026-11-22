@@ -482,9 +482,12 @@ await waitTrue("document.getElementById('route-filters').open");
 await ev("document.querySelector('[data-route-filter=accessible]').click(); document.getElementById('route-filters-done').click(); true");
 await waitOptionsSettled();
 const aAccessibleTags = await ev(ACCESSIBLE_TAGS);
+// De noche, pasado el último metro, las opciones van en autobús (con «Accesible» del GTFS): «según el operador» se
+// pide solo a las que llevan metro.
+const aMetroTags = await ev("[...document.querySelectorAll('#route-options .route-option')].filter((o) => o.innerText.includes('Metro+')).map((o) => [...o.querySelectorAll('.route-tag')].map((n) => n.textContent))");
 check('accesible con el metro · todas las opciones lo son y las del metro dicen «Accesible según el operador»',
     aAccessibleTags.length > 0 && aAccessibleTags.every((a) => a.some((s) => s.startsWith('Accesible')))
-    && aAccessibleTags.some((a) => a.includes('Accesible según el operador')), JSON.stringify(aAccessibleTags));
+    && aMetroTags.every((a) => a.includes('Accesible según el operador')), JSON.stringify(aAccessibleTags));
 check('accesible con el metro · sin el aviso de que no consta', !/no consta|que consten|Sin constar/.test(await ev(NOTICES)),
     await ev(NOTICES));
 await ev("document.getElementById('route-filters-open').click(); true");
