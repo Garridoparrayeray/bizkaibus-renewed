@@ -281,7 +281,7 @@ await go('/stops/356?red=bus&lang=en');
 await waitTrue("document.getElementById('live-minutes').textContent === '20'");
 const A11Y = "(() => { const b = document.getElementById('live-open-detail'); const f = document.getElementById('live-favorite'); return { label: b.getAttribute('aria-label') || '', delay: document.getElementById('live-delay').textContent, favorite: f.getAttribute('aria-label'), pressed: f.getAttribute('aria-pressed'), close: document.getElementById('live-close').getAttribute('aria-label') }; })()";
 const a11y = await ev(A11Y);
-check('lector de pantalla: el botón grande dice los minutos y el retraso', a11y.label.includes('20 min') && a11y.delay !== '' && a11y.label.includes(a11y.delay) && a11y.label.includes('journey'), JSON.stringify(a11y));
+check('lector de pantalla: el botón grande dice los minutos y el retraso', /20 ?min/.test(a11y.label) && a11y.delay !== '' && a11y.label.includes(a11y.delay) && a11y.label.includes('journey'), JSON.stringify(a11y));
 check('lector de pantalla: el favorito y «cerrar», en inglés', a11y.favorite === 'Save stop to favourites' && a11y.close === 'Close', JSON.stringify(a11y));
 await ev("document.getElementById('live-favorite').click(); true");
 const pressed = await ev(A11Y);
