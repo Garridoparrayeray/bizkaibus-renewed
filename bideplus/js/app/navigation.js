@@ -159,6 +159,7 @@ export function startRouting() {
             opened = selectLine(pathId);
         }
     }
+    if (window.bideSplash) window.bideSplash.hold(opened);
     if (sharedTrip) opened.then(() => openVehicleModal(sharedTrip));
 }
 

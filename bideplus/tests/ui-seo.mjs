@@ -127,7 +127,8 @@ check('Ctrl+clic abre en otra pestaña y no navega en esta', (await ev("location
 await send('Page.addScriptToEvaluateOnNewDocument', { source: "window.__lcp = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lcp.push(e); }).observe({ type: 'largest-contentful-paint', buffered: true });" });
 for (const url of ['/stops/171', '/stops/7?red=metro']) {
     await go(url, 5000);
-    check(`${url}: el LCP es el contenido del servidor`, (await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return !!last && !!last.element && !!last.element.closest('#page-content'); })()")) === true, await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return last && last.element ? last.element.className || last.element.tagName : 'sin LCP'; })()"));
+    // La pantalla de carga tapa la página hasta que sale la tarjeta: el LCP es la parada (servidor o tarjeta), no ella.
+    check(`${url}: el LCP es el contenido de la parada`, (await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return !!last && !!last.element && !!last.element.closest('#page-content, #live-card, #platform-panel'); })()")) === true, await ev("(() => { const last = window.__lcp[window.__lcp.length - 1]; return last && last.element ? last.element.className || last.element.tagName : 'sin LCP'; })()"));
 }
 
 // El horario de hoy de una copia vieja (otro día) no se enseña.

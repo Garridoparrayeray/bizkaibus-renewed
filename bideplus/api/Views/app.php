@@ -2,9 +2,15 @@
 // Plantilla de las apps de cada red. Los datos de la página (título, descripción, JSON-LD) vienen de app-page.php.
 
 use Core\Networks;
+
+// En una parada o una línea, la pantalla de carga sale ya y se queda hasta que su tarjeta está pintada (splash.js).
+$sSplashAttr = '';
+if ($aContent['type'] === 'stop' || $aContent['type'] === 'line') {
+    $sSplashAttr = ' data-splash="open"';
+}
 ?>
 <!DOCTYPE html>
-<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>" data-titles="<?= htmlspecialchars(json_encode($aTitles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT)) ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
+<html lang="<?= $sLang ?>" data-server-lang="<?= $sLang ?>"<?= $sSplashAttr ?> data-titles="<?= htmlspecialchars(json_encode($aTitles, JSON_UNESCAPED_UNICODE | JSON_FORCE_OBJECT)) ?>" data-new-days="<?= \Core\NewBadge::days() ?>">
 <head>
     <meta charset="UTF-8">
     <base href="/">

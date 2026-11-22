@@ -7,6 +7,7 @@
     const SPLASH_KEY = 'bide_splash';
     let showTimer = null;
     let maxTimer = null;
+    const holds = [];
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function hide() {
@@ -43,6 +44,11 @@
             });
             return Promise.all(pending);
         });
+    }
+
+    // Lo que la pantalla de carga espera además de la página: la tarjeta de la parada o de la línea (navigation.js).
+    function hold(promise) {
+        holds.push(promise.catch(function () {}));
     }
 
     function finish() {
@@ -85,12 +91,15 @@
         if (event.persisted) hide();
     });
 
-    window.bideSplash = { arm: arm };
+    window.bideSplash = { arm: arm, hold: hold };
 
-    if (root.getAttribute('data-splash') === 'first' && isFirstVisitOfSession()) {
+    const mode = root.getAttribute('data-splash');
+    if (mode === 'open' || (mode === 'first' && isFirstVisitOfSession())) {
         show();
     } else {
         arm();
     }
-    whenEverythingLoaded().then(finish);
+    whenEverythingLoaded().then(function () {
+        return Promise.all(holds);
+    }).then(finish);
 })();
