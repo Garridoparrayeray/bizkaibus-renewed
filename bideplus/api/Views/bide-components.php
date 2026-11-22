@@ -419,9 +419,15 @@ function bideNetworkDataLead(string $sClass): string
     return '<p class="' . $sClass . '" data-i18n="bide.data.lead">Cada operador publica datos distintos. Si alguno publica más (la posición GPS de sus vehículos o sus tiempos en directo), Bide+ los incorporará.</p>';
 }
 
-function bideViews(): string
+function bideBackButton(): string
 {
-    $sBack = '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
+    return '<button type="button" class="bide-view-back" data-bide-close data-i18n-attr="aria-label:bide.back" aria-label="Volver">' . BIDE_ICONS['back'] . '</button>';
+}
+
+// Las vistas de Bide+. Con $bInfo en false falta la de Info, que la página lleva aparte (bideDeferred()).
+function bideViews(bool $bInfo = true): string
+{
+    $sBack = bideBackButton();
     $sHtml = '<div class="bide-views">';
 
     $sHtml .= '<section class="bide-view" data-bide-view="favoritos" hidden>';
@@ -438,9 +444,18 @@ function bideViews(): string
     $sHtml .= '</section>';
 
     $sHtml .= bideSettings($sBack);
+    if ($bInfo) {
+        $sHtml .= bideInfoView();
+    }
 
-    $sHtml .= '<section class="bide-view" data-bide-view="info" hidden>';
-    $sHtml .= '<header class="bide-view-head">' . $sBack . '<h2 data-i18n="info.title">Información</h2></header>';
+    return $sHtml . '</div>';
+}
+
+// Info: sobre Bide+, preguntas, sugerencias, fuentes, datos de cada red, autor, novedades y el enlace al aviso legal.
+function bideInfoView(): string
+{
+    $sHtml = '<section class="bide-view" data-bide-view="info" hidden>';
+    $sHtml .= '<header class="bide-view-head">' . bideBackButton() . '<h2 data-i18n="info.title">Información</h2></header>';
     $sHtml .= '<div class="bide-info-grid">';
     $sHtml .= '<section class="bide-card bide-about"><h3 data-i18n="bide.info.about">Sobre Bide+</h3><p data-i18n="bide.info.aboutText">Horarios y tiempo real del transporte público de Euskal Herria en una sola app. En Bizkaibus+, las llegadas se calculan con la posición GPS de cada autobús. Proyecto independiente y no oficial, sin relación con los operadores.</p></section>';
     $sHtml .= bideFaq();
@@ -451,9 +466,19 @@ function bideViews(): string
     $sHtml .= bideUpcoming();
     $sHtml .= bideChangelog();
     $sHtml .= '<button type="button" class="bide-card bide-card-link" data-bide-legal><span data-i18n="app.legalNotice">Aviso legal y privacidad</span>' . BIDE_ICONS['next'] . '</button>';
-    $sHtml .= '</div></section>';
+    return $sHtml . '</div></section>';
+}
 
-    return $sHtml . '</div>';
+/*
+ * En las páginas de línea, parada y red, Info y el aviso legal van en un <template>: es el mismo texto en miles de
+ * páginas y así no cuenta como su contenido. js/deferred.js los mete en la página la primera vez que se abren. La
+ * portada de Bide+ (menu.php) los lleva a la vista, una sola vez.
+ */
+function bideDeferred(): string
+{
+    ob_start();
+    require __DIR__ . '/legal.php';
+    return '<template id="bide-deferred">' . bideInfoView() . ob_get_clean() . '</template>';
 }
 
 function bideInstallBanner(): string

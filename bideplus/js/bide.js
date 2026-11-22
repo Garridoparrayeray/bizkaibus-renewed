@@ -76,6 +76,8 @@
 
     function showView(view, addToHistory) {
         const wasOpen = !!currentView;
+        // Info puede llegar aparte (js/deferred.js): entra en la página antes de mostrarla.
+        if (view === 'info' && typeof BideDeferred !== 'undefined') BideDeferred.ensure();
         document.querySelectorAll('dialog[open]').forEach((dialog) => dialog.close());
         document.querySelectorAll('[data-bide-view]').forEach((section) => {
             section.hidden = section.getAttribute('data-bide-view') !== view;
@@ -426,6 +428,7 @@
     });
 
     document.querySelectorAll('dialog[id]').forEach(watchDialog);
+    window.addEventListener('bide:deferred', () => watchDialog(document.getElementById('legal-panel')));
 
     const appsToggle = document.querySelector('.bide-rail-apps');
     if (appsToggle) {

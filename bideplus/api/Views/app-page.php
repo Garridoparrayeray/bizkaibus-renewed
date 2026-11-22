@@ -271,7 +271,32 @@ try {
             $sBreadcrumbName = Lang::t('seo.line', $sLang, ['code' => $sLineCode]);
 
             $aContent = ['type' => 'line', 'id' => (string)$aRecord['id'], 'heading' => Lang::t('seo.lineHeading', $sLang, $aLineVars), 'sections' => []];
-            foreach ((new LineModel($Pdo))->mainRoutes($aRecord['id'], LINE_PAGE_ROUTES, $aEnds) as $aRoute) {
+            $aRoutes = (new LineModel($Pdo))->mainRoutes($aRecord['id'], LINE_PAGE_ROUTES, $aEnds);
+            // El horario de hoy: las salidas de la línea desde la primera parada de cada recorrido, desde ahora.
+            $aSchedule = [];
+            $aOrigins = [];
+            foreach ($aRoutes as $aRoute) {
+                $aOrigin = $aRoute['stops'][0] ?? null;
+                if ($aOrigin === null || isset($aOrigins[(string)$aOrigin['id']])) {
+                    continue;
+                }
+                $aOrigins[(string)$aOrigin['id']] = true;
+                foreach (StopDaySchedule::today($Pdo, (string)$aOrigin['id']) as $aGroup) {
+                    if ((string)$aGroup['lineId'] !== (string)$aRecord['id']) {
+                        continue;
+                    }
+                    $sLabel = Lang::t('seo.fromTowards', $sLang, ['stop' => $Name($aOrigin['name']), 'headsign' => $Name($aGroup['headsign'])]);
+                    $aSchedule[] = ['href' => $AppLink('stops', (string)$aOrigin['id']), 'label' => $sLabel, 'times' => implode(' · ', $aGroup['times'])];
+                }
+            }
+            $sScheduleTitle = Lang::t('seo.scheduleToday', $sLang, ['date' => Calendar::todayMadrid()->format('d/m/Y')]);
+            $aScheduleSection = ['title' => $sScheduleTitle, 'items' => $aSchedule, 'date' => Calendar::todayMadrid()->format('Y-m-d')];
+            if (empty($aSchedule)) {
+                $aScheduleSection['empty'] = Lang::t('seo.lineNoDepartures', $sLang);
+            }
+            $aContent['sections'][] = $aScheduleSection;
+            $iCacheSeconds = min($iCacheSeconds, Calendar::secondsUntilMidnight());
+            foreach ($aRoutes as $aRoute) {
                 $aLinks = [];
                 foreach ($aRoute['stops'] as $aStop) {
                     $aLinks[] = ['href' => $AppLink('stops', (string)$aStop['id']), 'label' => $Name($aStop['name'])];

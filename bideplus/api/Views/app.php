@@ -54,6 +54,7 @@ use Core\Networks;
     <script defer src="/js/notice.js"></script>
     <script src="/js/networks.js"></script>
     <script defer src="/js/new-badge.js"></script>
+    <script defer src="/js/deferred.js"></script>
     <script src="/js/theme.js"></script>
     <!-- Sin defer: boot.js usa document.write (y necesita networks.js); bide-mode.js pone la clase que pinta. -->
     <script src="/js/boot.js"></script>
@@ -282,7 +283,7 @@ if ($aContent['type'] === 'stop') {
             </div>
         </div>
 
-<?= bideViews() ?>
+<?= bideViews(false) ?>
 
         <p class="attribution"><span data-i18n="net.<?= $sNetworkSlug ?>.attribution"><?= htmlspecialchars($aNetwork['attribution']) ?></span><span id="schedule-published"></span></p>
         <p id="disclaimer" class="disclaimer" data-i18n="net.<?= htmlspecialchars($sNetworkSlug) ?>.disclaimer"><?= htmlspecialchars(Networks::text($aNetwork, 'disclaimer')) ?></p>
@@ -301,7 +302,7 @@ if ($aContent['type'] === 'stop') {
 
 <?= bideTabbar() ?>
 
-<?php require __DIR__ . '/legal.php'; ?>
+<?= bideDeferred() ?>
 
     <dialog id="schedule-modal" class="schedule-modal">
         <button id="schedule-modal-close" class="btn-icon schedule-modal-close" type="button" aria-label="Cerrar" data-i18n-attr="aria-label:app.close">

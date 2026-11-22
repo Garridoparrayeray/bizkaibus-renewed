@@ -137,7 +137,8 @@
 
     // ===== Sugerencias y errores =====
 
-    const feedback = document.querySelector('.bide-feedback');
+    // El formulario puede llegar después, con Info (js/deferred.js): se busca al prepararlo.
+    let feedback = null;
 
     function feedbackParts() {
         const type = feedback.querySelector('[data-feedback-type][aria-pressed="true"]');
@@ -167,6 +168,7 @@
     }
 
     function setUpFeedback() {
+        feedback = document.querySelector('.bide-feedback');
         if (!feedback) return;
         const textarea = feedback.querySelector('[data-feedback-text]');
         const count = feedback.querySelector('[data-feedback-count]');
@@ -207,6 +209,7 @@
     renderOffline();
     loadOfflineSizes();
     setUpFeedback();
+    window.addEventListener('bide:deferred', setUpFeedback);
     if (typeof BideOffline !== 'undefined') {
         const refreshOffline = () => BideOffline.refresh().then((updated) => {
             if (updated) renderOffline();

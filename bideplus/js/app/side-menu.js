@@ -1,4 +1,4 @@
-// Menú lateral con incidencias (avisos de Renfe y de las líneas favoritas) y el panel legal.
+// Menú lateral con incidencias (avisos de Renfe y de las líneas favoritas). El aviso legal, en js/deferred.js.
 import { FEATURES, el, state } from './core.js';
 import { readFavorites } from './favorites.js';
 
@@ -161,14 +161,4 @@ export function setUpSideMenu() {
         if (e.target === el.sideMenu) el.sideMenu.close();
     });
 
-    const legalOpen = document.getElementById('legal-open');
-    const legalPanel = document.getElementById('legal-panel');
-    const legalClose = document.getElementById('legal-close');
-    if (legalOpen && legalPanel && legalClose) {
-        legalOpen.addEventListener('click', () => legalPanel.showModal());
-        legalClose.addEventListener('click', () => legalPanel.close());
-        legalPanel.addEventListener('click', (e) => {
-            if (e.target === legalPanel) legalPanel.close();
-        });
-    }
 }
