@@ -24,9 +24,16 @@ export const modalState = { tripKey: null, data: null, refreshTimer: null, tickT
 const SHARE_TIME_OPTIONS = { timeZone: BideNetworks.TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' };
 const shareState = { tripKey: null, data: null };
 
+// Sin directo (horario oficial), las que ya pasaron según su hora (etaAt, con su día) van en gris: un búho sin GPS
+// compartido de noche dice al menos por dónde debería ir. Sin minutos ni parada actual: no se sabe dónde está.
+function byTimetable(data) {
+    return data.status === 'scheduled' && !data.feedTimes && !modalState.scheduleOnly;
+}
+
 function freshModalStops(data) {
     const now = Date.now();
     const clockDriven = data.status === 'live';
+    const timetable = byTimetable(data);
     let currentSet = false;
     return data.stops.map((stop) => {
         const out = { ...stop };
@@ -34,6 +41,7 @@ function freshModalStops(data) {
             out.etaMinutes = Math.round((stop.etaAt * 1000 - now) / 60000);
             if (stop.etaAt * 1000 < now - MODAL_PASSED_AFTER_MS) out.isPast = true;
         }
+        if (timetable && Number.isFinite(stop.etaAt)) out.isPast = stop.etaAt * 1000 < now - MODAL_PASSED_AFTER_MS;
         if (clockDriven) {
             out.isCurrent = !out.isPast && !currentSet;
             if (out.isCurrent) currentSet = true;
@@ -61,7 +69,7 @@ export function renderModalStops(data) {
         const li = document.createElement('li');
         const classes = [];
         if (stop.isCurrent) classes.push('stop-current');
-        if (tracked && stop.isPast) classes.push('stop-past');
+        if (stop.isPast && (tracked || byTimetable(data))) classes.push('stop-past');
         li.className = classes.join(' ');
         let label = `${stop.scheduledTime} · ${stop.name}`;
         if (tracked && stop.etaMinutes !== null && stop.etaMinutes !== undefined && !stop.isPast) {
@@ -74,10 +82,12 @@ export function renderModalStops(data) {
     el.modal.scrollTop = scrollTop;
 }
 
-// Al abrir la ficha, la lista baja hasta la parada actual (por donde va el vehículo o la de la consulta); los
-// refrescos ya no la mueven.
+// Al abrir la ficha, la lista baja hasta la parada actual (por donde va el vehículo o la de la consulta) o, sin ella,
+// hasta la primera que queda; los refrescos ya no la mueven.
 function showCurrentStop() {
-    el.modalStops.querySelector('.stop-current')?.scrollIntoView({ block: 'center' });
+    let current = el.modalStops.querySelector('.stop-current');
+    if (!current) current = el.modalStops.querySelector('li.stop-past + li:not(.stop-past)');
+    current?.scrollIntoView({ block: 'center' });
 }
 
 // Cada parada del recorrido es un enlace a la suya: se abre también con el teclado.
