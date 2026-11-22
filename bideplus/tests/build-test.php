@@ -381,13 +381,19 @@ mkdir($sAliasDir);
 $Yesterday = $AliasDb($sAliasDir . '/ayer.sqlite', ['E1' => ['A', 'B', 'C', 'D'], 'GONE' => ['X', 'Y'], 'SAME' => ['M', 'N']]);
 $Yesterday->exec("INSERT INTO line_aliases (old_id, line_id) VALUES ('OLDEST', 'E1'), ('DEAD', 'NONE')");
 $Today = $AliasDb($sAliasDir . '/hoy.sqlite', ['L62' => ['A', 'B', 'C', 'E'], 'SAME' => ['M', 'N'], 'OTHER' => ['X', 'Q', 'R', 'S']]);
+// IDLE sigue en la base sin viajes hoy: comparte las paradas de L62, pero no ha cambiado de id.
+$Yesterday->exec("INSERT INTO lines (id, code, name, name_normalized) VALUES ('IDLE', 'IDLE', 'IDLE', 'IDLE')");
+$Yesterday->exec("INSERT INTO journey_pattern_stops (journey_pattern_id, seq_order, stop_id) VALUES ('PIDLE', 1, 'A'), ('PIDLE', 2, 'B'), ('PIDLE', 3, 'C'), ('PIDLE', 4, 'E')");
+$Yesterday->exec("INSERT INTO service_journeys (id, line_id, journey_pattern_id, calendar_id) VALUES ('JIDLE', 'IDLE', 'PIDLE', 'c')");
+$Today->exec("INSERT INTO lines (id, code, name, name_normalized) VALUES ('IDLE', 'IDLE', 'IDLE', 'IDLE')");
 $iCarried = Build\Schema::carryLineAliases($Today, $sAliasDir . '/ayer.sqlite');
-$iManual = Build\Schema::addLineAliases($Today, ['MANUAL' => 'SAME', 'SAME' => 'L62', 'LOST' => 'NOPE']);
+$iManual = Build\Schema::addLineAliases($Today, ['MANUAL' => 'SAME', 'SAME' => 'L62', 'LOST' => 'NOPE', 'IDLE' => 'L62']);
 $aAliases = $Today->query('SELECT old_id, line_id FROM line_aliases ORDER BY old_id')->fetchAll(PDO::FETCH_KEY_PAIR);
 $Expect('línea con id nuevo y el mismo recorrido: el viejo lleva a la nueva, también la equivalencia de ayer que iba a él',
     $iCarried === 2 && $aAliases['E1'] === 'L62' && $aAliases['OLDEST'] === 'L62');
 $Expect('línea que desaparece o equivalencia sin línea: sin equivalencia',
     !isset($aAliases['GONE']) && !isset($aAliases['DEAD']));
+$Expect('una línea que sigue en la base sin viajes hoy no se apunta como otra (ni a mano)', !isset($aAliases['IDLE']));
 $Expect('ficha (gtfs.line_aliases): vale si la línea existe y el id viejo no es una línea de hoy',
     $iManual === 1 && $aAliases['MANUAL'] === 'SAME' && !isset($aAliases['SAME']) && !isset($aAliases['LOST']));
 $aAliasLine = (new Models\LineModel($Today))->find('E1');

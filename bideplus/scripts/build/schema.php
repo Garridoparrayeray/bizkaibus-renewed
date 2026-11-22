@@ -181,14 +181,16 @@ class Schema
 
     // Las líneas de la base de ayer que hoy no están se apuntan con la de hoy que comparte más paradas (al menos
     // LINE_ALIAS_MIN_SHARED de todas las de las dos, y sin empate); las equivalencias de ayer siguen si su línea sigue.
+    // Una línea que sigue en la base sin viajes hoy (la de los días de partido) no ha cambiado de id.
     public static function carryLineAliases(PDO $Pdo, string $sPreviousPath): int
     {
         $Previous = new PDO('sqlite:' . $sPreviousPath);
         $Previous->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $aOld = self::lineStops($Previous);
         $aNew = self::lineStops($Pdo);
+        $aExisting = self::lineIds($Pdo);
         $aAliases = [];
-        foreach (array_diff_key($aOld, $aNew) as $sOldId => $aStops) {
+        foreach (array_diff_key($aOld, $aExisting) as $sOldId => $aStops) {
             $sMatch = self::closestLine($aStops, $aNew);
             if ($sMatch !== null) {
                 $aAliases[(string)$sOldId] = $sMatch;
@@ -198,7 +200,7 @@ class Schema
         if ($bHadAliases) {
             foreach ($Previous->query('SELECT old_id, line_id FROM line_aliases')->fetchAll(PDO::FETCH_KEY_PAIR) as $sOldId => $sLineId) {
                 $sTarget = $aAliases[$sLineId] ?? $sLineId;
-                if (!isset($aNew[$sOldId]) && isset($aNew[$sTarget])) {
+                if (!isset($aExisting[$sOldId]) && isset($aNew[$sTarget])) {
                     $aAliases[(string)$sOldId] = $sTarget;
                 }
             }
@@ -215,10 +217,11 @@ class Schema
     public static function addLineAliases(PDO $Pdo, array $aAliases): int
     {
         $aLines = self::lineStops($Pdo);
+        $aExisting = self::lineIds($Pdo);
         $Insert = $Pdo->prepare('INSERT OR REPLACE INTO line_aliases (old_id, line_id) VALUES (?, ?)');
         $iAdded = 0;
         foreach ($aAliases as $sOldId => $sLineId) {
-            if (isset($aLines[(string)$sOldId]) || !isset($aLines[(string)$sLineId])) {
+            if (isset($aExisting[(string)$sOldId]) || !isset($aLines[(string)$sLineId])) {
                 continue;
             }
             $Insert->execute([(string)$sOldId, (string)$sLineId]);
@@ -239,6 +242,12 @@ class Schema
             $aLines[(string)$aRow['line_id']][(string)$aRow['stop_id']] = true;
         }
         return $aLines;
+    }
+
+    // Los ids de todas las líneas de la base, con viajes o sin ellos (como claves).
+    private static function lineIds(PDO $Pdo): array
+    {
+        return array_fill_keys(array_map('strval', $Pdo->query('SELECT id FROM lines')->fetchAll(PDO::FETCH_COLUMN)), true);
     }
 
     private static function closestLine(array $aStops, array $aLines): string|null
