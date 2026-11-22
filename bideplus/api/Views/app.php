@@ -366,6 +366,7 @@ if ($aContent['type'] === 'stop') {
     <script defer src="/js/bide-info.js"></script>
     <script defer src="/js/sw-register.js"></script>
     <script defer src="/js/lang-offer.js"></script>
+    <script defer src="/js/analytics-filter.js"></script>
     <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

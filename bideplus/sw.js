@@ -105,6 +105,7 @@ const SHELL_FILES = [
     '/js/boot.js',
     '/js/header-brand.js',
     '/js/sw-register.js',
+    '/js/analytics-filter.js',
     '/js/menu-lang.js',
     '/js/bide-mode.js',
     '/js/notification-open.js',
