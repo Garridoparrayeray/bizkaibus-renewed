@@ -25,4 +25,5 @@
 
     document.addEventListener('DOMContentLoaded', mark);
     window.addEventListener('bide:lang', mark);
+    window.addEventListener('bide:deferred', mark);
 })();
