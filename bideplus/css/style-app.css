@@ -886,11 +886,43 @@ header p,
         font-weight: 800;
         line-height: 1.2;
     }
-    .page-content-section > h2 {
+    .page-content-section > h2,
+    .page-content-section > summary > h2 {
         margin: 16px 0 8px;
         color: var(--text);
         font-size: calc(15.2px * var(--text-scale, 1));
         font-weight: 700;
+    }
+    /* Desplegable (details): el título con una flecha que gira al abrirlo. */
+    .page-content-section > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        cursor: pointer;
+        list-style: none;
+    }
+        .page-content-section > summary::-webkit-details-marker {
+            display: none;
+        }
+        .page-content-section > summary::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            margin-right: 4px;
+            border-right: 2px solid var(--text-secondary);
+            border-bottom: 2px solid var(--text-secondary);
+            transform: rotate(-45deg);
+            transition: transform .15s ease;
+        }
+        .page-content-section[open] > summary::after {
+            transform: rotate(45deg);
+        }
+        .page-content-section > summary > h2 {
+            margin: 12px 0;
+        }
+    .page-content-section[open] > .page-content-list {
+        margin-bottom: 8px;
     }
     .page-content-section > p,
     .page-content > noscript > p {

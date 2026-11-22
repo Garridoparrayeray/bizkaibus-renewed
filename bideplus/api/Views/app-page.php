@@ -290,7 +290,7 @@ try {
                 }
             }
             $sScheduleTitle = Lang::t('seo.scheduleToday', $sLang, ['date' => Calendar::todayMadrid()->format('d/m/Y')]);
-            $aScheduleSection = ['title' => $sScheduleTitle, 'items' => $aSchedule, 'date' => Calendar::todayMadrid()->format('Y-m-d')];
+            $aScheduleSection = ['title' => $sScheduleTitle, 'items' => $aSchedule, 'date' => Calendar::todayMadrid()->format('Y-m-d'), 'collapsed' => true];
             if (empty($aSchedule)) {
                 $aScheduleSection['empty'] = Lang::t('seo.lineNoDepartures', $sLang);
             }
@@ -301,7 +301,7 @@ try {
                 foreach ($aRoute['stops'] as $aStop) {
                     $aLinks[] = ['href' => $AppLink('stops', (string)$aStop['id']), 'label' => $Name($aStop['name'])];
                 }
-                $aContent['sections'][] = ['title' => Lang::t('seo.towards', $sLang, ['headsign' => $Name($aRoute['headsign'])]), 'items' => $aLinks, 'ordered' => true];
+                $aContent['sections'][] = ['title' => Lang::t('seo.towards', $sLang, ['headsign' => $Name($aRoute['headsign'])]), 'items' => $aLinks, 'ordered' => true, 'collapsed' => true];
             }
             // La línea que el operador publica junta (Metro): enlaces a la página de cada una de las suyas.
             $aSplitLinks = [];
