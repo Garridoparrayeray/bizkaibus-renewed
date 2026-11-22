@@ -115,7 +115,16 @@ def without_lastmod(path):
     return re.sub(r'<lastmod>[^<]*</lastmod>', '', open(path, encoding='utf-8').read())
 
 
+# Una red que no va a la release «bases» (las reservadas) se construye aquí desde su GTFS, no con la base desplegada:
+# su sitemap no se puede rehacer igual y no cuenta.
+local_only = []
+released_manifest = os.path.join(ROOT, 'data', 'bases.json')
+if os.path.exists(released_manifest):
+    released = json.load(open(released_manifest, encoding='utf-8'))['networks']
+    local_only = ['sitemaps/' + f for f in os.listdir(ROOT + 'sitemaps') if f[:-len('.xml')] not in released and f != 'bide.xml']
 for name in ['sitemap-index.xml'] + ['sitemaps/' + f for f in sorted(os.listdir(ROOT + 'sitemaps'))]:
+    if name in local_only:
+        continue
     stale = stale or not os.path.exists(os.path.join(fresh, name)) or without_lastmod(os.path.join(fresh, name)) != without_lastmod(ROOT + name)
 sitemap_result = 'al día (' + r.stdout.strip() + ')'
 if stale:
