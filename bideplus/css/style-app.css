@@ -1182,12 +1182,15 @@ header p,
     overflow-x: auto;
 }
 /* Mientras llega el horario de una línea (timetable.js): el sitio del periodo publicado y de unas filas. */
-.timetable-section.is-loading > .timetable-range[hidden] {
-    display: block;
-    visibility: hidden;
+.timetable-section.is-loading > .timetable-range:empty::before,
+.timetable-section.is-loading > .timetable-line:empty::before {
+    content: "\a0";
 }
 .timetable-section.is-loading > .table-scroll {
     min-height: 260px;
+}
+.timetable-section.is-loading > .schedule-text-toggle {
+    visibility: hidden;
 }
 table {
     width: 100%;

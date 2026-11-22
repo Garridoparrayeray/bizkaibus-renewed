@@ -87,8 +87,9 @@ for (const size of (sizes.filter((x) => !sizeFilter || sizeFilter.includes(x.n))
         await search(a.q);
         check(`${tag} aparecen resultados de busqueda`, (await ev("document.querySelectorAll('#search-results .pill').length")) > 0);
         await ev("document.querySelector('#search-results .pill').click()");
-        await sleep(3500);
-        check(`${tag} se abre la ficha de la parada`, (await ev(`!document.getElementById('${a.panel}').hidden`)) === true);
+        // La ficha sale con las salidas y los avisos ya puestos: se espera a que salga, no un tiempo fijo.
+        check(`${tag} se abre la ficha de la parada`, await until(`!document.getElementById('${a.panel}').hidden`));
+        await sleep(500);
         let favBtn = 'platform-favorite';
         if (a.panel === 'live-card') {
             favBtn = 'live-favorite';

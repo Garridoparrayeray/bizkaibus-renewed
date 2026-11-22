@@ -244,9 +244,11 @@ if ($aContent['type'] === 'stop') {
 // En una página de línea, su tarjeta sale ya con el sitio guardado (is-loading, timetable.js la rellena): si saliera al
 // llegar el JS, empujaría hacia abajo lo que ya se ve (CLS).
 $sTimetableAttrs = ' hidden';
+$sRangeAttrs = ' hidden';
 $sTimetableClass = 'timetable glass timetable-section';
 if ($aContent['type'] === 'line') {
     $sTimetableAttrs = '';
+    $sRangeAttrs = '';
     $sTimetableClass .= ' is-loading';
 }
 ?>
@@ -271,7 +273,7 @@ if ($aContent['type'] === 'line') {
             </div>
 
             <p id="timetable-note" class="timetable-note" role="status" hidden></p>
-            <p id="timetable-range" class="timetable-range" hidden></p>
+            <p id="timetable-range" class="timetable-range"<?= $sRangeAttrs ?>></p>
 
             <div class="table-scroll">
                 <table>
