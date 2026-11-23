@@ -7,9 +7,14 @@ export const FAVORITES_STORAGE_KEY = NETWORK.favoritesKey;
 export const networkQuery = networkQueryFor(NETWORK_SLUG);
 
 // El horario de esta red guardado en el móvil (Ajustes → Horarios sin conexión), o null si no está.
+// Si lo guardado no responde en este tiempo (Cache Storage a veces se queda colgado en el iPhone tras actualizarse la
+// app), se sigue sin ello, con la API: sin esto, el buscador no daba nada hasta reiniciar la app.
+const SAVED_SCHEDULE_WAIT_MS = 2000;
+
 export async function savedSchedule() {
     if (typeof BideOffline === 'undefined') return null;
-    return BideOffline.load(NETWORK_SLUG).catch(() => null);
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), SAVED_SCHEDULE_WAIT_MS));
+    return Promise.race([BideOffline.load(NETWORK_SLUG).catch(() => null), timeout]);
 }
 
 export const ICONS = {

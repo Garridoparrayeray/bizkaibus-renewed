@@ -5,7 +5,11 @@ import { debounce, departureWhen, setPillContent } from './ui.js';
 import { selectLine } from './timetable.js';
 import { currentPosition, isLocationOff } from '../location-pref.js';
 
+// La última búsqueda pedida: la respuesta de una anterior que llega tarde no pisa la de lo que hay escrito.
+let searchRequest = 0;
+
 async function performSearch(query) {
+    const request = ++searchRequest;
     if (query.trim().length < 2) {
         el.searchResults.hidden = true;
         el.searchResults.innerHTML = '';
@@ -23,6 +27,7 @@ async function performSearch(query) {
             return;
         }
     }
+    if (request !== searchRequest) return;
     renderSearchResults(results.stops, results.lines);
 }
 

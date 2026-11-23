@@ -29,6 +29,8 @@ const BideOffline = (() => {
         timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23',
     });
     const prepared = new Map();
+    // Las lecturas en curso: las que se piden a la vez (cada tecla del buscador) esperan a la misma.
+    const loading = new Map();
     let refreshing = null;
 
     const dataUrl = (slug) => '/offline-data/' + slug + '.json';
@@ -77,15 +79,20 @@ const BideOffline = (() => {
         }
     }
 
-    async function load(slug) {
-        if (!saved()[slug] || !supported()) return null;
-        if (prepared.has(slug)) return prepared.get(slug);
+    async function read(slug) {
         const cache = await caches.open(CACHE_NAME);
         const response = await cache.match(dataUrl(slug));
         if (!response) return null;
         const data = prepare(await response.json());
         prepared.set(slug, data);
         return data;
+    }
+
+    function load(slug) {
+        if (!saved()[slug] || !supported()) return Promise.resolve(null);
+        if (prepared.has(slug)) return Promise.resolve(prepared.get(slug));
+        if (!loading.has(slug)) loading.set(slug, read(slug).finally(() => loading.delete(slug)));
+        return loading.get(slug);
     }
 
     function chosen() {
