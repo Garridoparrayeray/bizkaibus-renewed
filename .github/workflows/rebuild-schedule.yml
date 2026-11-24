@@ -168,6 +168,8 @@ jobs:
         run: |
           set -o pipefail
           php bideplus/scripts/build-database.php --network=bus 2>&1 | tee "$RUNNER_TEMP/bus-build.log"
+          # Lo que el constructor descarta del origen (paradas que faltan) va a los avisos del dueño.
+          grep -h "quitados de sus viajes" "$RUNNER_TEMP/bus-build.log" | sort -u | sed 's/^AVISO: /- bus: /' >> "$RUNNER_TEMP/avisos.md" || true
 
       # Cada base se genera aparte y solo sustituye a la de ayer si termina bien y no está vacía. Si falla una
       # obligatoria (gtfs.required), el flujo se para y producción sigue como estaba; si falla una opcional, va la
@@ -182,9 +184,14 @@ jobs:
               *" todas "*|*" $network "*) ;;
               *) continue ;;
             esac
-            if php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
+            php bideplus/scripts/build-database.php --network="$network" --output="$RUNNER_TEMP/$db.sqlite" 2> "$RUNNER_TEMP/build-$network.err"
+            CODIGO=$?
+            cat "$RUNNER_TEMP/build-$network.err" >&2
+            if [ "$CODIGO" -eq 0 ] && [ -s "$RUNNER_TEMP/$db.sqlite" ]; then
               mv "$RUNNER_TEMP/$db.sqlite" "bideplus/data/$db.sqlite"
               echo "OK: $network reconstruida"
+              # Lo que el constructor descarta del origen (paradas que faltan) va a los avisos del dueño.
+              grep -h "quitados de sus viajes" "$RUNNER_TEMP/build-$network.err" | sort -u | sed "s/^AVISO: /- $network: /" >> "$RUNNER_TEMP/avisos.md" || true
               continue
             fi
             echo "$network" >> "$RUNNER_TEMP/redes-fallidas"

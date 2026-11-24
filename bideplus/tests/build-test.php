@@ -576,7 +576,7 @@ foreach (Gtfs::streamStopTimesByTrip($CsvZip) as $aCsvRows) {
     $aCsvStops = array_column($aCsvRows, 'stopId');
 }
 $Expect('CSV: una coma de más al final de stop_times no quita la parada', $aCsvStops === ['A', 'B', 'C'], json_encode($aCsvStops));
-// Un paso a una parada que stops.txt no define (su fila venía descuadrada) se quita del viaje, con aviso; si son demasiados, se para.
+// Un paso a una parada que stops.txt no define (su fila venía descuadrada) se quita del viaje; si son muchos, se para.
 $sManyRows = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n";
 for ($i = 1; $i <= 1000; $i++) {
     $sManyRows .= "T$i,08:00:00,08:00:00,A,1\nT$i,08:05:00,08:05:00,B,2\n";

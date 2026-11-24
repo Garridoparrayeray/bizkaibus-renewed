@@ -99,9 +99,8 @@ class Gtfs
     public const STRICT_FILES = ['stop_times.txt', 'trips.txt', 'calendar.txt', 'calendar_dates.txt'];
     public const MAX_DROPPED_SHARE = 0.001;
 
-    // Un paso de stop_times.txt a una parada que stops.txt no define (casi siempre, la fila de la parada venía descuadrada y
-    // se descartó) no se puede mostrar: se quita del viaje, con aviso, y con la misma regla de arriba, si son más del 0,1 %
-    // la construcción se para.
+    // Un paso a una parada que stops.txt no define (casi siempre, su fila venía descuadrada y se descartó) no se puede
+    // mostrar: se quita del viaje con un aviso, y con la regla de arriba, si son más del 0,1 %, la construcción se para.
     public static function reportUnknownStops(array $aUnknown, int $iRows): void
     {
         $iUnknown = array_sum($aUnknown);
