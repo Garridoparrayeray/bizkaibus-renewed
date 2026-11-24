@@ -220,7 +220,6 @@ function bideSiteJsonLd(string $sLang): array
             'alternateName' => $aSite['alternate_names'],
             'url' => $aSite['url'] . '/',
             'inLanguage' => $sLang,
-            'availableLanguage' => \Core\Lang::LANGS,
             'publisher' => ['@id' => $aSite['url'] . '/#organization'],
         ],
         [
