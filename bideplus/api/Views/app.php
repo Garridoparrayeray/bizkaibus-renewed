@@ -71,7 +71,7 @@ if ($aContent['type'] === 'stop' || $aContent['type'] === 'line') {
     <link rel="stylesheet" href="/css/style-miamor.css">
 </head>
 <body class="page-app">
-    <div class="splash" aria-hidden="true"><?= $sWordmark ?></div>
+    <?= bideAppSplash($aNetwork, $sNetworkSlug) ?>
 
     <main class="app-container">
 

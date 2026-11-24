@@ -31,11 +31,15 @@ function cssRule(string $sSelector, array $aDeclarations): string
 }
 
 $aTiles = [];
+$aSplashes = [];
 $aSwatches = [];
 $aPalettes = [];
 foreach (Networks::all() as $sSlug => $aNetwork) {
     $aBrand = $aNetwork['brand'];
     $aTiles[] = cssRule('.tile--' . $sSlug, ['--c' => $aBrand['tile_color'] ?? $aBrand['theme_color']]);
+    if (Networks::splashLogoPath($aNetwork) !== null) {
+        $aSplashes[] = cssRule('.splash--' . $sSlug, ['background' => $aBrand['tile_color'] ?? $aBrand['theme_color']]);
+    }
     if (isset($aBrand['swatch_color'])) {
         $aSwatches[] = cssRule('html.bide .bide-swatch--' . $sSlug, ['background' => $aBrand['swatch_color']]);
     }
@@ -55,6 +59,7 @@ $aSite = require __DIR__ . '/../api/Config/site.php';
 $sCss = "/* Generado por scripts/build-networks-css.php: no lo edites a mano. */\n\n"
     . "/* ===== El verde de Bide+ (brand_color de api/Config/site.php) ===== */\n" . cssRule(':root', ['--bide-green' => $aSite['brand_color']]) . "\n\n"
     . "/* ===== Ficha de cada red en el inicio ===== */\n" . implode("\n", $aTiles) . "\n\n"
+    . "/* ===== Fondo de la pantalla de carga de las redes con logo propio ===== */\n" . implode("\n", $aSplashes) . "\n\n"
     . "/* ===== Cuadradito de cada red en Bide+ ===== */\n" . implode("\n", $aSwatches) . "\n\n"
     . "/* ===== Paleta de la app de cada red ===== */\n" . implode("\n", $aPalettes) . "\n";
 

@@ -55,6 +55,38 @@
     --c: #0A7A3E;
 }
 
+/* ===== Fondo de la pantalla de carga de las redes con logo propio ===== */
+.splash--lurraldebus {
+    background: #2A9AB2;
+}
+.splash--bilbobus {
+    background: #C0362C;
+}
+.splash--tuvisa {
+    background: #00796B;
+}
+.splash--dbus {
+    background: #0141AD;
+}
+.splash--alavabus {
+    background: #A8034F;
+}
+.splash--launion {
+    background: #30609D;
+}
+.splash--renfe-ld {
+    background: #74349A;
+}
+.splash--txiktxak {
+    background: #268991;
+}
+.splash--sncf {
+    background: #0C131F;
+}
+.splash--villavesas {
+    background: #0A7A3E;
+}
+
 /* ===== Cuadradito de cada red en Bide+ ===== */
 html.bide .bide-swatch--metro {
     background: #C8102E;

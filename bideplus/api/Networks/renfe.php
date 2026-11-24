@@ -10,6 +10,8 @@ return [
         'icons' => 'icons-renfe',
         'theme_color' => '#74349A',
         'title' => ['RENFE', ''],
+        // Lo que lleva debajo el nombre en la pantalla de carga (las demás redes, la segunda parte del título).
+        'splash_city' => 'CERCANÍAS',
         'logomark' => '<img src="/icons-renfe/glyph.png" alt="Renfe Cercanías+" aria-hidden="true">',
         'card_logomark' => '<img src="/icons-renfe/icon-192.png" alt="Renfe Cercanías+" aria-hidden="true">',
         // Colores (scripts/build-networks-css.php los pasa a css/style-networks.css): la ficha del menú, el cuadradito de

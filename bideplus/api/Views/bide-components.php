@@ -498,3 +498,23 @@ function bideAppsLinks(): string
     }
     return $sHtml . '</nav>';
 }
+
+// La pantalla de carga de una app: con logo propio (icons-<red>/splash.svg), solo ese logo con su «+» girando; si no,
+// el logo y el nombre de la cabecera, con la ciudad debajo (brand.splash_city o la segunda parte del título).
+function bideAppSplash(array $aNetwork, string $sSlug): string
+{
+    $sLogoPath = \Core\Networks::splashLogoPath($aNetwork);
+    if ($sLogoPath !== null) {
+        return '<div class="splash splash--logo splash--' . $sSlug . '" aria-hidden="true">' . file_get_contents($sLogoPath) . '</div>';
+    }
+    $aBrand = $aNetwork['brand'];
+    $sCity = $aBrand['splash_city'] ?? $aBrand['title'][1];
+    $sCityHtml = '';
+    if ($sCity !== '') {
+        $sCityHtml = '<span class="splash-city">' . htmlspecialchars($sCity) . '</span>';
+    }
+    $sPlus = '<svg class="splash-plus splash-spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 3h4.8v6.6H21v4.8h-6.6V21H9.6v-6.6H3V9.6h6.6z"/></svg>';
+    return '<div class="splash splash--lockup" aria-hidden="true"><div class="splash-lockup"><span class="splash-logomark">' . $aBrand['logomark']
+        . '</span><span class="splash-text"><span class="splash-title">' . htmlspecialchars($aBrand['title'][0]) . $sPlus . '</span>'
+        . $sCityHtml . '</span></div></div>';
+}

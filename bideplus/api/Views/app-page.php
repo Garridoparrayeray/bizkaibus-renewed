@@ -15,7 +15,6 @@ use Services\StopDaySchedule;
 
 $aSite = require __DIR__ . '/../Config/site.php';
 require_once __DIR__ . '/bide-components.php';
-$sWordmark = require __DIR__ . '/wordmark.php';
 
 // Recorridos (uno por destino) que salen en la página de una línea.
 const LINE_PAGE_ROUTES = 4;

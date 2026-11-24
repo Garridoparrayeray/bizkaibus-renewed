@@ -1505,4 +1505,21 @@ $Expect('horario de línea: la de ayer va con el de ayer a las 24:30, la de hoy 
     array_column($aTimetable, 'status') === ['live', 'live', 'scheduled'] && array_column($aTimetable, 'departure_seconds') === [1800, 80000, 104400]
     && $SeenBy[-1] === [88200] && $SeenBy[0] === [80000], json_encode([$aTimetable, $SeenBy->getArrayCopy()]));
 
+$Section('Pantalla de carga de cada app');
+require_once __DIR__ . '/../api/Views/bide-components.php';
+$sNetworksCss = (string)file_get_contents(__DIR__ . '/../css/style-networks.css');
+foreach (\Core\Networks::all() as $sSplashSlug => $aSplashNetwork) {
+    $sSplash = bideAppSplash($aSplashNetwork, $sSplashSlug);
+    $bLogo = \Core\Networks::splashLogoPath($aSplashNetwork) !== null;
+    $bSpins = substr_count($sSplash, 'splash-spin') === 1;
+    $bOwnBackground = !$bLogo || str_contains($sNetworksCss, ".splash--$sSplashSlug {");
+    $sKind = 'logo con su nombre';
+    if ($bLogo) {
+        $sKind = 'solo su logo';
+    }
+    $Expect("$sSplashSlug: pantalla de carga con $sKind, un solo «+» que gira y su fondo en el CSS", $bSpins && $bOwnBackground && str_contains($sSplash, 'aria-hidden="true"'));
+}
+$Expect('Renfe: «Cercanías» debajo del nombre en la pantalla de carga', str_contains(bideAppSplash(\Core\Networks::get('renfe'), 'renfe'), '<span class="splash-city">CERCANÍAS</span>'));
+$Expect('Tranvía Bilbao: la ciudad debajo, como en la cabecera', str_contains(bideAppSplash(\Core\Networks::get('tranvia-bilbao'), 'tranvia-bilbao'), '<span class="splash-city">BILBAO</span>'));
+
 $Finish('unitarias');

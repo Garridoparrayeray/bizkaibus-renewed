@@ -54,7 +54,7 @@
     function finish() {
         clearTimeout(showTimer);
         if (!root.classList.contains('is-loading')) return;
-        const plus = document.querySelector('.splash .wm-plus');
+        const plus = document.querySelector('.splash .wm-plus, .splash .splash-spin');
         if (!plus) {
             hide();
             return;

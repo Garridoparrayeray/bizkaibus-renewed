@@ -150,6 +150,17 @@ class Networks
         return true;
     }
 
+    // El logo con su «+» de la pantalla de carga de una red (icons-<red>/splash.svg), o null: sin él, la pantalla lleva
+    // el logo y el nombre de la cabecera de la app.
+    public static function splashLogoPath(array $aNetwork): string|null
+    {
+        $sPath = __DIR__ . '/../../' . $aNetwork['brand']['icons'] . '/splash.svg';
+        if (is_file($sPath)) {
+            return $sPath;
+        }
+        return null;
+    }
+
     // Las marcas de las redes para los buscadores (la del mapa o el nombre sin el «+»), separadas por comas.
     public static function brandList(string $sLang): string
     {

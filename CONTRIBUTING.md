@@ -72,6 +72,8 @@ Con `"event_type":"live-health"` lanza la vigilancia. El token es uno de grano f
 
 Una red es su ficha (`bideplus/api/Networks/<red>.php`) y sus iconos (`bideplus/icons-<red>/`): el menú, el buscador, el mapa, el *sitemap*, los horarios sin conexión, `llms.txt`, las preguntas frecuentes, las descripciones para buscadores, las pruebas y el planificador la leen del registro (`Core\Networks`). Se hace en unos 20 minutos, casi todos de esperar a que se construya y se pruebe:
 
+La pantalla de carga de cada app sale sola de la ficha: el logo (`brand.logomark`) y el nombre (`brand.title`) de la cabecera, con la segunda parte del título debajo (o `brand.splash_city`) y el «+» girando. Para que una red lleve solo su logo, se añade `icons-<red>/splash.svg`: su icono sin el cuadrado de fondo, recortado a su contenido, con el «+» envuelto en `<g class="splash-spin">`; el fondo es su `tile_color`.
+
 1. **La ficha**, desde la dirección de su GTFS (desde `bideplus`):
 
    ```bash
