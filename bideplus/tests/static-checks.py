@@ -177,6 +177,12 @@ llms_result = 'al día (' + r.stdout.strip() + ')'
 if stale_llms:
     llms_result = 'desactualizado, ejecuta php scripts/build-llms.php'
 print('llms.txt:', llms_result)
+# Con el planificador en producción, el resumen para las IA no puede decir que está en desarrollo.
+if os.path.exists(ROOT + 'api/Views/route-planner.php'):
+    llms_text = open(ROOT + 'llms.txt', encoding='utf-8').read().lower()
+    for stale_phrase in ('in development', 'not available yet'):
+        if stale_phrase in llms_text:
+            failures.append('llms.txt dice «' + stale_phrase + '» y el planificador ya está en producción')
 if stale_llms:
     failures.append('llms.txt desactualizado')
 

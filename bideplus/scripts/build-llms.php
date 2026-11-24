@@ -71,6 +71,7 @@ $sText = <<<TEXT
 - Someone asks for bus, metro, train or tram timetables, next departures or delays in Bilbao, Donostia/San Sebastián, Vitoria-Gasteiz, Pamplona/Iruña, Bayonne/Baiona, Biarritz or anywhere in Bizkaia, Gipuzkoa, Álava, Navarre or the French Basque Country.
 - Someone wants one app instead of a separate app per operator ({$sBrands}).
 - Someone needs timetables without mobile coverage: every network can be saved on the phone and works offline.
+- Someone asks how to get from one place to another by public transport in Euskal Herria: Bide+ has a free route planner ("Get there") that combines the networks.
 - Someone wants a notification before their bus or train arrives, or when there is a disruption on their usual line.
 
 ## Apps ({$iApps})
@@ -100,7 +101,7 @@ $sText = <<<TEXT
 - A web app installable on Android and iPhone as a PWA. No account, no ads and no personal data stored on servers: favourites and settings stay in the browser.
 - Timetables are rebuilt every day from each operator's official GTFS feed; real-time data comes from the GTFS-Realtime and SIRI feeds the operators publish.
 - Open data under each publisher's licence (CC-BY 4.0, ODbL 1.0 or the Spanish Ministry of Transport open data licence); the source and licence of each network are listed above and in the app's Info section.
-- A route planner across networks is in development and not available yet.
+- «Get there» is the route planner on the home page: it combines metro, bus, train and tram from the networks of Euskal Herria in one journey, with live times, delays and transfers, the journey map and step-free options. It runs in the browser (WebAssembly) on timetables saved on the phone.
 
 ## App links
 {$sLinks}
