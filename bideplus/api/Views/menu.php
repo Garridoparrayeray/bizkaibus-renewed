@@ -76,7 +76,6 @@ $aJsonLd = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= htmlspecialchars($sTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($sDescription) ?>">
-    <meta name="keywords" content="<?= htmlspecialchars($sKeywords) ?>">
     <meta name="author" content="<?= htmlspecialchars($aSite['author']) ?>">
 <?php if ($bMiamorDomain): ?>
     <meta name="robots" content="noindex, nofollow">
