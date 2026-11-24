@@ -99,6 +99,23 @@ class Gtfs
     public const STRICT_FILES = ['stop_times.txt', 'trips.txt', 'calendar.txt', 'calendar_dates.txt'];
     public const MAX_DROPPED_SHARE = 0.001;
 
+    // Un paso de stop_times.txt a una parada que stops.txt no define (casi siempre, la fila de la parada venía descuadrada y
+    // se descartó) no se puede mostrar: se quita del viaje, con aviso, y con la misma regla de arriba, si son más del 0,1 %
+    // la construcción se para.
+    public static function reportUnknownStops(array $aUnknown, int $iRows): void
+    {
+        $iUnknown = array_sum($aUnknown);
+        if ($iUnknown === 0) {
+            return;
+        }
+        arsort($aUnknown);
+        $sMessage = "stop_times.txt: $iUnknown de $iRows pasos a paradas que stops.txt no define (" . implode(', ', array_map(fn($sId, $iCount) => "$sId: $iCount", array_keys(array_slice($aUnknown, 0, 5, true)), array_slice($aUnknown, 0, 5, true))) . ')';
+        if ($iUnknown > self::MAX_DROPPED_SHARE * $iRows) {
+            throw new RuntimeException($sMessage . '. Build abortado.');
+        }
+        fwrite(STDERR, "AVISO: $sMessage (quitados de sus viajes)\n");
+    }
+
     public static function reportDropped(string $sName, int $iDropped, int $iRows): void
     {
         if ($iDropped === 0) {
@@ -399,7 +416,7 @@ class Gtfs
         return preg_replace('/\.0$/', '', $sId);
     }
 
-    public static function streamStopTimesByTrip(ZipArchive $Zip): Generator
+    public static function streamStopTimesByTrip(ZipArchive $Zip, array|null $aKnownStops = null): Generator
     {
         $Stream = $Zip->getStream('stop_times.txt');
         if ($Stream === false) {
@@ -412,6 +429,7 @@ class Gtfs
 
         $iDropped = 0;
         $iRows = 0;
+        $aUnknownStops = [];
         while (($aRow = fgetcsv($Stream, 0, ',', '"', '')) !== false) {
             if ($aRow === null || $aRow === [null]) {
                 continue;
@@ -424,6 +442,11 @@ class Gtfs
             }
             $aAssoc = array_combine($aHeader, array_map('trim', $aRow));
             $sTripId = $aAssoc['trip_id'];
+            $sStopId = self::stripFloatIdSuffix($aAssoc['stop_id']);
+            if ($aKnownStops !== null && !isset($aKnownStops[$sStopId])) {
+                $aUnknownStops[$sStopId] = ($aUnknownStops[$sStopId] ?? 0) + 1;
+                continue;
+            }
 
             $iArrival = null;
             if ($aAssoc['arrival_time'] !== '') {
@@ -443,7 +466,7 @@ class Gtfs
 
             $aByTrip[$sTripId][] = [
                 'seqOrder' => (int)$aAssoc['stop_sequence'],
-                'stopId' => self::stripFloatIdSuffix($aAssoc['stop_id']),
+                'stopId' => $sStopId,
                 'arrival' => $iArrival,
                 'departure' => $iDeparture,
                 'distance' => $dDistance,
@@ -451,6 +474,7 @@ class Gtfs
         }
         fclose($Stream);
         self::reportDropped('stop_times.txt', $iDropped, $iRows);
+        self::reportUnknownStops($aUnknownStops, $iRows);
 
         foreach ($aByTrip as $sTripId => $aBuffer) {
             yield $sTripId => self::withoutDayJumps($aBuffer);

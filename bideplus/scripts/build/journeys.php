@@ -26,7 +26,7 @@ class Journeys
         return substr(md5(implode(',', $aOffsets)), 0, 12);
     }
 
-    public static function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, bool $bMergeCalendars, array $aWindow = []): void
+    public static function processStopTimes(PDO $Pdo, ZipArchive $Zip, array $aTrips, array $aRoutes, array $aCalendars, array &$aTotals, bool $bMergeCalendars, array $aWindow = [], array|null $aKnownStops = null): void
     {
         echo "  Pass 1/2: computing trip signatures and merge groups...\n";
 
@@ -36,7 +36,7 @@ class Journeys
         $iSkippedUnknownRoute = 0;
         $iSkippedDuplicateTrip = 0;
 
-        foreach (Gtfs::streamStopTimesByTrip($Zip) as $sTripId => $aBuffer) {
+        foreach (Gtfs::streamStopTimesByTrip($Zip, $aKnownStops) as $sTripId => $aBuffer) {
             if (isset($aSeenTripIds[$sTripId])) {
                 $iSkippedDuplicateTrip++;
                 continue;
@@ -281,7 +281,7 @@ class Journeys
         $aSeenPatterns = [];
         $iRowCount = 0;
 
-        foreach (Gtfs::streamStopTimesByTrip($Zip) as $sTripId => $aBuffer) {
+        foreach (Gtfs::streamStopTimesByTrip($Zip, $aKnownStops) as $sTripId => $aBuffer) {
             $aGroup = null;
             if (isset($aRepresentatives[$sTripId])) {
                 $aGroup = $aRepresentatives[$sTripId];

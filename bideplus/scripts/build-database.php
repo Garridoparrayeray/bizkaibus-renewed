@@ -154,7 +154,7 @@ function main(array $aArgv): void
     if (!empty($aGtfs['feed_window'])) {
         $aWindow = Calendars::publishedWindow($aFeedInfo, $aCalendars);
     }
-    Journeys::processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow);
+    Journeys::processStopTimes($Pdo, $Zip, $aTrips, $aRoutes, $aCalendars, $aTotals, $bMergeCalendars, $aWindow, $aStops);
 
     $Pdo->commit();
 

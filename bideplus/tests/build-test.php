@@ -576,6 +576,40 @@ foreach (Gtfs::streamStopTimesByTrip($CsvZip) as $aCsvRows) {
     $aCsvStops = array_column($aCsvRows, 'stopId');
 }
 $Expect('CSV: una coma de más al final de stop_times no quita la parada', $aCsvStops === ['A', 'B', 'C'], json_encode($aCsvStops));
+// Un paso a una parada que stops.txt no define (su fila venía descuadrada) se quita del viaje, con aviso; si son demasiados, se para.
+$sManyRows = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n";
+for ($i = 1; $i <= 1000; $i++) {
+    $sManyRows .= "T$i,08:00:00,08:00:00,A,1\nT$i,08:05:00,08:05:00,B,2\n";
+}
+$sManyRows .= "T1,08:10:00,08:10:00,X,3\n";
+$sManyZip = tempnam(sys_get_temp_dir(), 'manyrows') . '.zip';
+$ManyZip = new ZipArchive();
+$ManyZip->open($sManyZip, ZipArchive::CREATE);
+$ManyZip->addFromString('stop_times.txt', $sManyRows);
+$ManyZip->close();
+$ManyZip->open($sManyZip);
+$aKnownRows = [];
+foreach (Gtfs::streamStopTimesByTrip($ManyZip, ['A' => [], 'B' => []]) as $sKnownTrip => $aKnownTrip) {
+    if ($sKnownTrip === 'T1') {
+        $aKnownRows = array_column($aKnownTrip, 'stopId');
+    }
+}
+$Expect('CSV: un paso a una parada que no existe se quita del viaje', $aKnownRows === ['A', 'B'], json_encode($aKnownRows));
+$sUnknownError = '';
+try {
+    Gtfs::reportUnknownStops(['293' => 5], 1000);
+} catch (RuntimeException $Error) {
+    $sUnknownError = $Error->getMessage();
+}
+$Expect('CSV: más de un 0,1 % de pasos a paradas que no existen para la construcción', str_contains($sUnknownError, 'Build abortado') && str_contains($sUnknownError, '293: 5'), $sUnknownError);
+$sUnknownOk = '';
+try {
+    Gtfs::reportUnknownStops(['293' => 1], 100000);
+    $sUnknownOk = 'sin error';
+} catch (RuntimeException $Error) {
+    $sUnknownOk = $Error->getMessage();
+}
+$Expect('CSV: un paso suelto a una parada que no existe solo avisa', $sUnknownOk === 'sin error', $sUnknownOk);
 $Expect('CSV: una coma de más al final de calendar_dates no quita la anulación', count(iterator_to_array(Gtfs::readCsv($CsvZip, 'calendar_dates.txt'), false)) === 2);
 $sCsvError = '';
 try {
