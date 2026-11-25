@@ -149,6 +149,8 @@ return [
 
     // Un GTFS por operador; build-database.php los junta (ver mergeGtfsZips).
     'gtfs' => [
+        // Tramos con el tiempo inflado en el GTFS (850 m en 16 minutos): se acortan (Gtfs::withoutInflatedSegments).
+        'repair_slow_segments' => true,
         // Festivos de los que su GTFS no dice nada (sin calendar_dates o pasado su periodo), con el servicio
         // de domingo: los del calendario laboral (Build\Holidays) de toda Euskadi, del territorio y del
         // municipio; sin él, los que salen de las redes de respaldo.

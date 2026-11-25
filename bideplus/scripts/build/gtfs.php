@@ -17,6 +17,11 @@ class Gtfs
     public const WHEELCHAIR_YES = 1;
     public const WHEELCHAIR_NO = 2;
 
+    // Tramos inflados (withoutInflatedSegments): solo con la red que lo pide en su 'gtfs' (repair_slow_segments).
+    public const SLOW_SEGMENT_SECONDS = 300;
+    public const SLOW_SEGMENT_KMH = 10;
+    public const REPAIRED_SEGMENT_KMH = 20;
+
     // «Azkoitia(altzibar» -> «Azkoitia (Altzibar)»: espacio antes del paréntesis, paréntesis cerrado y mayúscula
     // inicial en cada palabra que empieza en minúscula (también tras «-» y «(»).
     public static function tidyHeadsign(string $sHeadsign): string
@@ -499,6 +504,42 @@ class Gtfs
         }
         unset($aRow);
         return $aBuffer;
+    }
+
+    // Un tramo de 5 minutos o más a menos de 10 km/h no es de un autobús (Lurraldebus: 850 m en 16 minutos). Se deja
+    // a 20 km/h y las paradas siguientes se adelantan lo mismo; la espera en la parada no se toca. Filas: arrival,
+    // departure y distance (metros sobre el trazado).
+    public static function withoutInflatedSegments(array $aBuffer): array
+    {
+        $iSaved = 0;
+        $aPrevious = null;
+        foreach ($aBuffer as &$aRow) {
+            $iDwell = $aRow['departure'] - $aRow['arrival'];
+            $aRow['arrival'] -= $iSaved;
+            if ($aPrevious !== null) {
+                $iExcess = self::inflatedSeconds($aPrevious, $aRow);
+                $aRow['arrival'] -= $iExcess;
+                $iSaved += $iExcess;
+            }
+            $aRow['departure'] = $aRow['arrival'] + $iDwell;
+            $aPrevious = $aRow;
+        }
+        unset($aRow);
+        return $aBuffer;
+    }
+
+    // Los segundos que sobran entre la salida de $aFrom y la llegada a $aTo, o 0 si el tramo es normal o sin distancia.
+    private static function inflatedSeconds(array $aFrom, array $aTo): int
+    {
+        if ($aFrom['distance'] === null || $aTo['distance'] === null || $aTo['distance'] <= $aFrom['distance']) {
+            return 0;
+        }
+        $iSeconds = $aTo['arrival'] - $aFrom['departure'];
+        $dMeters = $aTo['distance'] - $aFrom['distance'];
+        if ($iSeconds < self::SLOW_SEGMENT_SECONDS || $dMeters / $iSeconds * 3.6 >= self::SLOW_SEGMENT_KMH) {
+            return 0;
+        }
+        return $iSeconds - (int)round($dMeters / (self::REPAIRED_SEGMENT_KMH / 3.6));
     }
 
     public static function timeToSeconds(string $sHms): int

@@ -576,6 +576,21 @@ foreach (Gtfs::streamStopTimesByTrip($CsvZip) as $aCsvRows) {
     $aCsvStops = array_column($aCsvRows, 'stopId');
 }
 $Expect('CSV: una coma de más al final de stop_times no quita la parada', $aCsvStops === ['A', 'B', 'C'], json_encode($aCsvStops));
+// Un tramo inflado (1.052 m en 16 minutos) se deja a 20 km/h y las paradas siguientes se adelantan lo mismo.
+$aSlowTrip = [
+    ['seqOrder' => 1, 'stopId' => 'A', 'arrival' => 23400, 'departure' => 23405, 'distance' => 0.0],
+    ['seqOrder' => 2, 'stopId' => 'B', 'arrival' => 24400, 'departure' => 24405, 'distance' => 1052.0],
+    ['seqOrder' => 3, 'stopId' => 'C', 'arrival' => 24500, 'departure' => 24500, 'distance' => 1700.0],
+];
+$aFast = Gtfs::withoutInflatedSegments($aSlowTrip);
+$Expect('tramo inflado: llega a B a 20 km/h (189 s)', $aFast[1]['arrival'] === 23594 && $aFast[1]['departure'] === 23599, json_encode($aFast[1]));
+$Expect('tramo inflado: las paradas siguientes se adelantan lo mismo', $aFast[2]['arrival'] === 23694, json_encode($aFast[2]));
+$aNormal = [
+    ['seqOrder' => 1, 'stopId' => 'A', 'arrival' => 100, 'departure' => 100, 'distance' => 0.0],
+    ['seqOrder' => 2, 'stopId' => 'B', 'arrival' => 700, 'departure' => 700, 'distance' => 3000.0],
+    ['seqOrder' => 3, 'stopId' => 'C', 'arrival' => 1500, 'departure' => 1500, 'distance' => null],
+];
+$Expect('tramo normal o sin distancia: no se toca', Gtfs::withoutInflatedSegments($aNormal) === $aNormal);
 // Un paso a una parada que stops.txt no define (su fila venía descuadrada) se quita del viaje; si son muchos, se para.
 $sManyRows = "trip_id,arrival_time,departure_time,stop_id,stop_sequence\n";
 for ($i = 1; $i <= 1000; $i++) {

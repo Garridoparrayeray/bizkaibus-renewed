@@ -187,6 +187,14 @@ function main(array $aArgv): void
         echo "  AVISO: $iBackwards pasos con la hora anterior a la parada de antes (errata del GTFS), puestos a la hora de esa parada\n";
     }
 
+    if (!empty($aGtfs['repair_slow_segments'])) {
+        $iShortened = Schema::shortenInflatedSegments($Pdo);
+        if ($iShortened > 0) {
+            fwrite(STDERR, "AVISO: $iShortened tramos con el tiempo inflado en el GTFS (a menos de 10 km/h durante 5 minutos"
+                . " o más) se han acortado a 20 km/h.\n");
+        }
+    }
+
     $iPruned = Schema::pruneUnservedStops($Pdo);
     if ($iPruned > 0) {
         echo "  pruned $iPruned stops with zero real service (e.g. tram/funicular-only stations filtered out by agencyId)\n";

@@ -403,6 +403,49 @@ class Schema
         return $iFixed;
     }
 
+    // Acorta los tramos con el tiempo inflado (Gtfs::withoutInflatedSegments) con los metros ya medidos sobre el
+    // trazado. Devuelve cuántos tramos ha acortado.
+    public static function shortenInflatedSegments(PDO $Pdo): int
+    {
+        $Update = $Pdo->prepare('
+            UPDATE passing_times SET arrival_seconds = ?, departure_seconds = ?
+            WHERE service_journey_id = ? AND seq_order = ?
+        ');
+        $aJourneys = [];
+        $Rows = $Pdo->query('
+            SELECT service_journey_id, seq_order, arrival_seconds, departure_seconds, dist_m
+            FROM passing_times ORDER BY service_journey_id, seq_order
+        ');
+        foreach ($Rows as $aRow) {
+            $aDistance = null;
+            if ($aRow['dist_m'] !== null) {
+                $aDistance = (float)$aRow['dist_m'];
+            }
+            $aJourneys[$aRow['service_journey_id']][] = [
+                'seqOrder' => (int)$aRow['seq_order'],
+                'arrival' => (int)$aRow['arrival_seconds'],
+                'departure' => (int)$aRow['departure_seconds'],
+                'distance' => $aDistance,
+            ];
+        }
+        $iShortened = 0;
+        foreach ($aJourneys as $sJourney => $aRows) {
+            $aFixed = Gtfs::withoutInflatedSegments($aRows);
+            $iShift = 0;
+            foreach ($aFixed as $iIndex => $aRow) {
+                $iNewShift = $aRows[$iIndex]['arrival'] - $aRow['arrival'];
+                if ($iNewShift > $iShift) {
+                    $iShortened++;
+                }
+                $iShift = $iNewShift;
+                if ($iShift > 0) {
+                    $Update->execute([$aRow['arrival'], $aRow['departure'], $sJourney, $aRow['seqOrder']]);
+                }
+            }
+        }
+        return $iShortened;
+    }
+
     public static function pruneUnservedStops(PDO $Pdo): int
     {
         $iDeletedQuays = $Pdo->exec('
