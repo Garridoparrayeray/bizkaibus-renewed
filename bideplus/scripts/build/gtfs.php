@@ -104,17 +104,22 @@ class Gtfs
     public const STRICT_FILES = ['stop_times.txt', 'trips.txt', 'calendar.txt', 'calendar_dates.txt'];
     public const MAX_DROPPED_SHARE = 0.001;
 
-    // Un paso a una parada que stops.txt no define (casi siempre, su fila venía descuadrada y se descartó) no se puede
-    // mostrar: se quita del viaje con un aviso, y con la regla de arriba, si son más del 0,1 %, la construcción se para.
-    public static function reportUnknownStops(array $aUnknown, int $iRows): void
+    // Un paso a una parada que stops.txt no define (casi siempre, su fila viene rota en el origen) no se puede mostrar:
+    // se quita del viaje con un aviso. Se para si son más del 2 % de las paradas distintas (un stops.txt cortado), no
+    // por los pasos: unas pocas paradas rotas en una línea muy usada suman más del 0,1 % de los pasos.
+    public const MAX_UNKNOWN_STOPS_SHARE = 0.02;
+
+    public static function reportUnknownStops(array $aUnknown, int $iRows, int $iKnownStops): void
     {
         $iUnknown = array_sum($aUnknown);
         if ($iUnknown === 0) {
             return;
         }
         arsort($aUnknown);
-        $sMessage = "stop_times.txt: $iUnknown de $iRows pasos a paradas que stops.txt no define (" . implode(', ', array_map(fn($sId, $iCount) => "$sId: $iCount", array_keys(array_slice($aUnknown, 0, 5, true)), array_slice($aUnknown, 0, 5, true))) . ')';
-        if ($iUnknown > self::MAX_DROPPED_SHARE * $iRows) {
+        $aTop = array_slice($aUnknown, 0, 5, true);
+        $sTop = implode(', ', array_map(fn($sId, $iCount) => "$sId: $iCount", array_keys($aTop), $aTop));
+        $sMessage = "stop_times.txt: $iUnknown de $iRows pasos a " . count($aUnknown) . " paradas que stops.txt no define ($sTop)";
+        if (count($aUnknown) > self::MAX_UNKNOWN_STOPS_SHARE * ($iKnownStops + count($aUnknown))) {
             throw new RuntimeException($sMessage . '. Build abortado.');
         }
         fwrite(STDERR, "AVISO: $sMessage (quitados de sus viajes)\n");
@@ -478,7 +483,7 @@ class Gtfs
         }
         fclose($Stream);
         self::reportDropped('stop_times.txt', $iDropped, $iRows);
-        self::reportUnknownStops($aUnknownStops, $iRows);
+        self::reportUnknownStops($aUnknownStops, $iRows, count($aKnownStops ?? []));
 
         foreach ($aByTrip as $sTripId => $aBuffer) {
             yield $sTripId => self::withoutDayJumps($aBuffer);

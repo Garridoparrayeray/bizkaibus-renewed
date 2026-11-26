@@ -604,7 +604,7 @@ $ManyZip->addFromString('stop_times.txt', $sManyRows);
 $ManyZip->close();
 $ManyZip->open($sManyZip);
 $aKnownRows = [];
-foreach (Gtfs::streamStopTimesByTrip($ManyZip, ['A' => [], 'B' => []]) as $sKnownTrip => $aKnownTrip) {
+foreach (Gtfs::streamStopTimesByTrip($ManyZip, ['A' => [], 'B' => []] + array_fill_keys(range(1, 100), [])) as $sKnownTrip => $aKnownTrip) {
     if ($sKnownTrip === 'T1') {
         $aKnownRows = array_column($aKnownTrip, 'stopId');
     }
@@ -612,14 +612,14 @@ foreach (Gtfs::streamStopTimesByTrip($ManyZip, ['A' => [], 'B' => []]) as $sKnow
 $Expect('CSV: un paso a una parada que no existe se quita del viaje', $aKnownRows === ['A', 'B'], json_encode($aKnownRows));
 $sUnknownError = '';
 try {
-    Gtfs::reportUnknownStops(['293' => 5], 1000);
+    Gtfs::reportUnknownStops(array_fill_keys(range(1, 20), 5), 1000, 400);
 } catch (RuntimeException $Error) {
     $sUnknownError = $Error->getMessage();
 }
-$Expect('CSV: más de un 0,1 % de pasos a paradas que no existen para la construcción', str_contains($sUnknownError, 'Build abortado') && str_contains($sUnknownError, '293: 5'), $sUnknownError);
+$Expect('CSV: más de un 2 % de paradas que no existen para la construcción', str_contains($sUnknownError, 'Build abortado') && str_contains($sUnknownError, '1: 5'), $sUnknownError);
 $sUnknownOk = '';
 try {
-    Gtfs::reportUnknownStops(['293' => 1], 100000);
+    Gtfs::reportUnknownStops(['192' => 1415, '193' => 506, '178' => 506, '293' => 254], 346465, 526);
     $sUnknownOk = 'sin error';
 } catch (RuntimeException $Error) {
     $sUnknownOk = $Error->getMessage();
