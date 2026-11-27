@@ -32,6 +32,7 @@ class FeedStatus
         }
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
+        $aOut['operatorDelays'] = !empty($aConfig['live_delays_are_operators']);
         $aOut['reducedService'] = ReducedService::current();
         $aOut += self::publishedUntil() + CronHeartbeat::ages($aConfig['slug'], time());
         $aOut['ms'] = (int)round((microtime(true) - $dStart) * 1000);
