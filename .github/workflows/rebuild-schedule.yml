@@ -654,6 +654,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_BIDEPLUS }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           KEEP_PREVIOUS: 2
+          KEEP_PREVIEWS: 3
           # Los dominios que se sirven desde este proyecto, además del del sitio: la copia de prueba.
           OTHER_ALIASES: bideplusmiamor.vercel.app
         run: |
@@ -661,7 +662,7 @@ jobs:
           case "$VERCEL_ORG_ID" in team_*) TEAM="&teamId=$VERCEL_ORG_ID";; esac
           API="https://api.vercel.com"
           AUTH="Authorization: Bearer $VERCEL_TOKEN"
-          LISTA="$(curl -fsS -H "$AUTH" "$API/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=100$TEAM")" || exit 0
+          LISTA="$(python3 .github/scripts/vercel-list.py)" || exit 0
           # El de producción actual y el que sirve cada dominio; si alguno no se puede leer, no se borra nada.
           PROYECTO="$(curl -fsS -H "$AUTH" "$API/v9/projects/$VERCEL_PROJECT_ID?x=1$TEAM" || true)"
           CURRENT="$(printf '%s' "$PROYECTO" | python3 -c \
