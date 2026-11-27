@@ -144,6 +144,8 @@ def check(network, report):
     compared = report.get('compared', 0)
     off_operator = report.get('offOperator', 0)
     shows_operator_times = compared >= MIN_COMPARED and off_operator / compared <= MAX_OFF_OPERATOR_SHARE
+    # Larga distancia (operatorDelays): se retrasa horas de verdad y no lleva tope, el retraso es el del operador.
+    shows_operator_times = shows_operator_times or bool(report.get('operatorDelays'))
     if delays and report.get('live', 0) >= MIN_LIVE:
         if delays['median'] > MAX_MEDIAN_MINUTES or delays['p95'] > MAX_P95_MINUTES:
             message = f"retrasos grandes: mediana {delays['median']} min, p95 {delays['p95']} min"

@@ -43,6 +43,10 @@ errors, notices, summary = live_health.check('sncf', report(compared=6))
 check('retrasos grandes con pocas comparadas: error, no se sabe de quién son',
       len(errors) == 1 and 'no creíbles' in errors[0], errors)
 
+errors, notices, summary = live_health.check('renfe-ld', report(compared=0, operatorDelays=True))
+check('retrasos grandes en una red de larga distancia (sin comparadas, pero del operador): aviso, no error',
+      errors == [] and len(notices) == 1 and 'operador' in notices[0], (errors, notices))
+
 errors, notices, summary = live_health.check('sncf', report(delayMinutes={'median': 2, 'p95': 9, 'max': 12}))
 check('retrasos normales: ni error ni aviso', errors == [] and notices == [], (errors, notices))
 

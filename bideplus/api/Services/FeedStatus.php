@@ -90,6 +90,7 @@ class FeedStatus
         }
         $aOut['scheduled'] = self::scheduled();
         $aOut['oftenEmpty'] = !empty($aConfig['live_often_empty']);
+        $aOut['operatorDelays'] = !empty($aConfig['live_delays_are_operators']);
         $aOut['reducedService'] = ReducedService::current();
         // La última vez que vino lleno solo se apunta en las redes con motor (vehicle-monitoring).
         $aAges = array_diff_key(CronHeartbeat::ages($aConfig['slug'], time()), ['lastFullSeconds' => true]);

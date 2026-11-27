@@ -114,6 +114,10 @@ return [
     // El workflow «Ritmo de los buses» guarda este directo para que el motor aprenda de él, como en Renfe Cercanías.
     'capture' => 'gtfs-rt',
 
+    // Sus trenes se retrasan de verdad hasta horas y no llevan tope: lo que se enseña es el retraso del operador, y la
+    // vigilancia del directo no lo da por increíble.
+    'live_delays_are_operators' => true,
+
     // Directo de Renfe para estos trenes (GTFS-Realtime): el retraso de cada uno y dónde va. Sus viajes son los del
     // horario (con su fecha), así que se empareja por viaje.
     'gtfs_rt' => [

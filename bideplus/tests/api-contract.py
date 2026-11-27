@@ -70,7 +70,7 @@ SCHEMAS = {
     'route': {'line': LINE, 'patterns': [{'id': ID, 'headsign': opt(str), 'stops': [STOP_REF]}]},
     'alerts': {'alerts': ['alert'], 'reducedService': REDUCED},
     'reduced': REDUCED,
-    'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'reducedService': REDUCED,
+    'netStatus': {'network': str, 'ok': bool, 'oftenEmpty': bool, 'operatorDelays': opt(bool), 'reducedService': REDUCED,
                   'publishedUntil': opt('date')},
     'noLiveStatus': {'error': str, 'publishedUntil': opt('date')},
     'nearby': {'stops': [{'id': ID, 'name': str, 'lat': NUM, 'lon': NUM, 'distanceM': NUM,
